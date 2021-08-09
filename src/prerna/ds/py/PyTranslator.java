@@ -229,6 +229,7 @@ public class PyTranslator
 		// if so loop
 		File daFile = new File(file);
 		int marker = 0;
+		RandomAccessFile raf = null;
 		try {
 			synchronized(monitor)
 			{
@@ -256,7 +257,7 @@ public class PyTranslator
 			}
 			
 			// open the file in read mode
-			RandomAccessFile raf = new RandomAccessFile(file, "r");
+			raf = new RandomAccessFile(file, "r");
 			long offset = raf.getFilePointer();
 			int count = 0;
 			int sleepTime = 200;
@@ -301,6 +302,15 @@ public class PyTranslator
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			try {
+				if(raf != null) {
+					raf.close();
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
 	}
@@ -671,41 +681,41 @@ public class PyTranslator
 		return curEncoding;
 	}
 	
-	public static void main(String [] args) {
-		DIHelper helper = DIHelper.getInstance();
-		Properties prop = new Properties();
-		try {
-			prop.load(new FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop"));
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		helper.setCoreProp(prop);
-	
-		PyTranslator py = new PyTranslator();
-		PyExecutorThread pt = new PyExecutorThread();
-		pt.start();
-		py.pt = pt;
-		String command = "print('Hello World')" + 
-						  "\n" +
-						  "print('World Hello')" + 
-						  "\n" + 
-						  "a = 2" +
-						  "\n" +
-						  "a" +
-						  "\n" +
-						  "if (a ==2):" +
-						  "\n" + 
-						  "   print('a is 2')";
-		
-		
-		//py.runPyAndReturnOutput("print('Hello World')\nprint('world hello')");
-		String output = py.runPyAndReturnOutput(command);
-		System.out.println("Output >> " + output);
-	}
+//	public static void main(String [] args) {
+//		DIHelper helper = DIHelper.getInstance();
+//		Properties prop = new Properties();
+//		try {
+//			prop.load(new FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop"));
+//		} catch (FileNotFoundException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		helper.setCoreProp(prop);
+//	
+//		PyTranslator py = new PyTranslator();
+//		PyExecutorThread pt = new PyExecutorThread();
+//		pt.start();
+//		py.pt = pt;
+//		String command = "print('Hello World')" + 
+//						  "\n" +
+//						  "print('World Hello')" + 
+//						  "\n" + 
+//						  "a = 2" +
+//						  "\n" +
+//						  "a" +
+//						  "\n" +
+//						  "if (a ==2):" +
+//						  "\n" + 
+//						  "   print('a is 2')";
+//		
+//		
+//		//py.runPyAndReturnOutput("print('Hello World')\nprint('world hello')");
+//		String output = py.runPyAndReturnOutput(command);
+//		System.out.println("Output >> " + output);
+//	}
 
 
 	

@@ -35,11 +35,11 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = AdminUploadAppPermissionsReactor.class.getName();
-	
+
 	static final String ENGINE_ID = "ENGINEID";
 	static final String USER_ID = "USERID";
 	static final String PERMISSION = "PERMISSION";
-	
+
 	private static String insertQuery = null;
 	private static Map<String, Integer> psIndex = new HashMap<>();
 	static {
@@ -57,19 +57,19 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 				builder.append(", ");
 			}
 			builder.append("?");
-			
+
 			// also keep track of header to index for the file uploading
 			psIndex.put(headers[i], (i+1));
 		}
 		insertQuery = builder.append(")").toString();
 	}
-	
+
 	private Logger logger = null;
-	
+
 	public AdminUploadAppPermissionsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
@@ -95,7 +95,7 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		
+
 		long start = System.currentTimeMillis();
 		{
 			ExcelSheetFileIterator it = null;
@@ -143,14 +143,14 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 			}
 		}
 		processor.clear();
-		
+
 		ExcelQueryStruct qs = new ExcelQueryStruct();
 		qs.setSheetName(sheetName);
 		qs.setSheetRange(range);
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(fileLocation);
 		ExcelSheetFileIterator it = helper.getSheetIterator(qs);
-		
+
 		return it;
 	}
 
@@ -161,67 +161,74 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 		boolean hasInsert = false;
 		boolean hasUpdate = false;
 		PreparedStatement insertPs = conn.prepareStatement(insertQuery);
-		String[] excelHeaders = helper.getHeaders();
-		List<String> excelHeadersList = Arrays.asList(excelHeaders);
+		try {
+			String[] excelHeaders = helper.getHeaders();
+			List<String> excelHeadersList = Arrays.asList(excelHeaders);
 
-		int idxEngine = excelHeadersList.indexOf(ENGINE_ID);
-		int idxUser = excelHeadersList.indexOf(USER_ID);
-		int idxRole = excelHeadersList.indexOf(PERMISSION);
+			int idxEngine = excelHeadersList.indexOf(ENGINE_ID);
+			int idxUser = excelHeadersList.indexOf(USER_ID);
+			int idxRole = excelHeadersList.indexOf(PERMISSION);
 
-		if(idxEngine < 0 
-				|| idxUser < 0
-				|| idxRole < 0
-				) {
-			throw new IllegalArgumentException("One or more headers are missing from the excel");
+			if(idxEngine < 0 
+					|| idxUser < 0
+					|| idxRole < 0
+					) {
+				throw new IllegalArgumentException("One or more headers are missing from the excel");
+			}
+
+			int counter = 0;
+			Object[] row = null;
+			while ((helper.hasNext())) {
+				row = helper.next().getRawValues();
+
+				String engineId = (String) row[idxEngine];
+				String userId = (String) row[idxUser];
+				String role = (String) row[idxRole];
+
+				if(engineId == null || engineId.isEmpty()) {
+					throw new IllegalArgumentException("Must have the engine id for the user defined - check row " + counter);
+				}
+				if(userId == null || userId.isEmpty()) {
+					throw new IllegalArgumentException("Must have the user id for the user defined - check row " + counter);
+				}
+				if(role == null || role.isEmpty()) {
+					throw new IllegalArgumentException("Must have the role for the user defined - check row " + counter);
+				}
+
+				AccessPermission permission = AccessPermission.valueOf(role);
+				if(permission == null) {
+					throw new IllegalArgumentException("Must have a valid permission role - check row " + counter);
+				}
+
+
+				// check if the ID already exists
+				if(SecurityAppUtils.checkUserHasAccessToDatabase(engineId, userId)) {
+					//TODO: update based on user id instead of continue?
+					logger.info("User id = " + userId + " alraedy exists for app = " + engineId + " - skipping record for upload");
+					continue;
+				} else {
+					hasInsert = true;
+					// add to insert ps
+					insertPs.setString(psIndex.get(ENGINE_ID), engineId);
+					insertPs.setString(psIndex.get(USER_ID), userId);
+					insertPs.setInt(psIndex.get(PERMISSION), permission.getId());
+
+					insertPs.addBatch();
+				}
+
+				counter++;
+			}
+			// we execute for insert and updates
+			if(hasInsert) {
+				insertPs.executeBatch();
+			}
+			logger.info("Done with item type updates , total rows = " + counter);
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);	
+		} finally {
+			if(insertPs!=null) {
+				insertPs.close();
+			}
 		}
-		
-		int counter = 0;
-		Object[] row = null;
-		while ((helper.hasNext())) {
-			row = helper.next().getRawValues();
-			
-			String engineId = (String) row[idxEngine];
-			String userId = (String) row[idxUser];
-			String role = (String) row[idxRole];
-
-			if(engineId == null || engineId.isEmpty()) {
-				throw new IllegalArgumentException("Must have the engine id for the user defined - check row " + counter);
-			}
-			if(userId == null || userId.isEmpty()) {
-				throw new IllegalArgumentException("Must have the user id for the user defined - check row " + counter);
-			}
-			if(role == null || role.isEmpty()) {
-				throw new IllegalArgumentException("Must have the role for the user defined - check row " + counter);
-			}
-			
-			AccessPermission permission = AccessPermission.valueOf(role);
-			if(permission == null) {
-				throw new IllegalArgumentException("Must have a valid permission role - check row " + counter);
-			}
-			
-			
-			// check if the ID already exists
-			if(SecurityAppUtils.checkUserHasAccessToDatabase(engineId, userId)) {
-				//TODO: update based on user id instead of continue?
-				logger.info("User id = " + userId + " alraedy exists for app = " + engineId + " - skipping record for upload");
-				continue;
-			} else {
-				hasInsert = true;
-				// add to insert ps
-				insertPs.setString(psIndex.get(ENGINE_ID), engineId);
-				insertPs.setString(psIndex.get(USER_ID), userId);
-				insertPs.setInt(psIndex.get(PERMISSION), permission.getId());
-
-				insertPs.addBatch();
-			}
-			
-			counter++;
-		}
-		// we execute for insert and updates
-		if(hasInsert) {
-			insertPs.executeBatch();
-		}
-		logger.info("Done with item type updates , total rows = " + counter);
 	}
-	
 }
