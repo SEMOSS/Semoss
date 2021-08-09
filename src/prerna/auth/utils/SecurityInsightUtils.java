@@ -1513,7 +1513,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		// get the favorites for this user
 		SelectQueryStruct qs2 = new SelectQueryStruct();
-//		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENGINEID", "ENGINEID"));
+		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PROJECTID", "PROJECTID"));
 		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID", "INSIGHTID"));
 		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__FAVORITE", "insight_favorite"));
 		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
@@ -1531,9 +1531,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		if(favoritesOnly) {
 //			joins.add(new Join("app_id", "inner.join", "ENGINEID"));
 			joins.add(new Join("app_insight_id", "inner.join", "INSIGHTID"));
+			joins.add(new Join("app_id", "inner.join", "PROJECTID"));
 		} else {
 //			joins.add(new Join("app_id", "left.outer.join", "ENGINEID"));
 			joins.add(new Join("app_insight_id", "left.outer.join", "INSIGHTID"));
+			joins.add(new Join("app_id", "left.outer.join", "PROJECTID"));
+
 		}
 		
 		GenExpression retExpression = SQLQueryUtils.joinSQL(queries, joins);
