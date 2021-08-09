@@ -117,8 +117,9 @@ public class GetInsightsReactor extends AbstractReactor {
 				res.put("tags", new Vector<String>());
 			}
 			
-			for(String projectId : projectIdsToInsight.keySet()) {
-				IRawSelectWrapper wrapper = SecurityInsightUtils.getInsightMetadataWrapper(projectId, projectIdsToInsight.get(projectId), META_KEYS_LIST);
+			// grab the wrapper for all the meta information for all the project + insights in one go
+			if(!projectIdsToInsight.isEmpty()) {
+				IRawSelectWrapper wrapper = SecurityInsightUtils.getInsightMetadataWrapper(projectIdsToInsight, META_KEYS_LIST);
 				while(wrapper.hasNext()) {
 					Object[] data = wrapper.next().getValues();
 					String metaKey = (String) data[2];
