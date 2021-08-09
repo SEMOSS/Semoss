@@ -621,7 +621,8 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 				db + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rDatabaseIds
 						+ ", Datatype = " + rColTypes + ", Key = " + rPrimKey + ", stringsAsFactors = FALSE);");
 		sessionTableBuilder.append(joins + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = "
-				+ rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rDatabaseIdsJoin + ", stringsAsFactors = FALSE);");
+				+ rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rDatabaseIdsJoin +  ",AppID2 = "
+				+ rDatabaseIdsJoin +", stringsAsFactors = FALSE);");
 
 		// run the cluster tables function
 		sessionTableBuilder.append("cluster_tables (" + db + "," + joins + ");");
