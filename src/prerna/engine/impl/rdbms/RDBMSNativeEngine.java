@@ -318,7 +318,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	protected void setDataSourceProperties(HikariDataSource dataSource) {
 		dataSource.setMinimumIdle(this.poolMinSize);
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
-		dataSource.setLeakDetectionThreshold(5_000);
+		dataSource.setLeakDetectionThreshold(30_000);
 //		dataSource.setRemoveAbandonedOnBorrow(true);
 //		dataSource.setRemoveAbandonedOnMaintenance(true);
 //		dataSource.setRemoveAbandonedTimeout(5);
