@@ -273,7 +273,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					// so first add the aggregate row
 					// add 'f' prior to any aggregate function 
 					if(comp.equals("unique count")) {
-						elemToAdd += "unique fcount";
+						elemToAdd += "funiquecount";
 					} else {
 						elemToAdd += ("f" + comp);
 					}
@@ -306,7 +306,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				
 				// need to include the aggregate 'f'
 				if(agg.equals("unique count")) {
-					elemToAdd += (elemName + " unique fcount");
+					elemToAdd += (elemName + " funiquecount");
 				} else {
 					elemToAdd += (elemName + " f" + agg);
 				}
@@ -321,7 +321,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				if(comp.startsWith("having")) {
 					elemName = "having";
 					if(comp.substring(7).equals("unique count")) {
-						elemToAdd += "having unique fcount";
+						elemToAdd += "having funiquecount";
 					} else {
 						elemToAdd += ("having f" + comp.substring(7));
 					}
@@ -546,7 +546,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				+ ", stringsAsFactors = FALSE);");
 		sessionTableBuilder.append(
 				joins + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = " + rJoinBy1
-						+ " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDsJoin + ", stringsAsFactors = FALSE);");
+						+ " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDsJoin + ", AppID2 = "
+						+ rAppIDsJoin+ ", stringsAsFactors = FALSE);");
 
 		
 		// run the cluster tables function
