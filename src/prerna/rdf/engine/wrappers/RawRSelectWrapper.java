@@ -71,7 +71,7 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	@Override
 	public long getNumRows() {
 		if(this.numRows == 0) {
-			this.numRows = this.output.getNumRows();
+			this.numRows = this.output.getTotalNumRows();
 		}
 		return this.numRows;
 	}
