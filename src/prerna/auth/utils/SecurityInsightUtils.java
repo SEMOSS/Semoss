@@ -1812,7 +1812,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return qs;
 	}
 	
-	
 	/**
 	 * Get the wrapper for additional insight metadata
 	 * @param projectId
@@ -1834,6 +1833,47 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", metaKeys));
 		// order
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		return wrapper;
+	}
+	
+	/**
+	 * Get the wrapper for additional insight metadata
+	 * @param projectId
+	 * @param insightIds
+	 * @param metaKeys
+	 * @return
+	 */
+	public static IRawSelectWrapper getInsightMetadataWrapper(Map<String, List<String>> projectToInsightMap, List<String> metaKeys) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__PROJECTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
+		// filters
+		OrQueryFilter orFilters = new OrQueryFilter();
+		for(String projectId : projectToInsightMap.keySet()) {
+			AndQueryFilter andFilter = new AndQueryFilter();
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__PROJECTID", "==", projectId));
+			// grab the insight ids from the map
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__INSIGHTID", "==", projectToInsightMap.get(projectId)));
+			
+			// store the and filter
+			// in the list of or filters
+			orFilters.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilters);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", metaKeys));
+		// order
+		qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHTMETA__METAORDER"));
 		
 		IRawSelectWrapper wrapper = null;
 		try {
