@@ -302,6 +302,7 @@ preprocess_request<-function(request,cols){
 	components<-names(request)
 	n<-length(components)
 	if(n>0){
+		group<-''
 		if('distribution' %in% components){
 			ind<-which(components=='distribution')
 			items<-unlist(strsplit(unname(request[ind]),' '))
@@ -317,6 +318,11 @@ preprocess_request<-function(request,cols){
 			names(request)[ind:(ind+1)]<-c('select','group')
 			components<-names(request)
 			n<-length(components)
+		}else if('select' %in% components){
+			ind<-which(components=='select')
+			items<-unlist(strsplit(unname(request[ind]),' '))
+			group_items<-paste(items[2:length(items)],collapse=' ')
+			group<-paste0(c('group',group_items),collapse=' ')
 		}
 		if('position' %in% components | 'based on' %in% components ){
 			if('based on' %in% components){
@@ -350,8 +356,16 @@ preprocess_request<-function(request,cols){
 						comp_rank<-paste0('rank ',get_aggr_alias(comp_words[3:length(comp_words)]),' ',position)
 						out<-append(out,setNames(c(aggr_select,comp_rank),c('select','rank')))
 					}else{
-						out<-'request format is incorrect'
-						break
+						group_id<-which('group' %in% components)
+						if(length(group_id)==0 & length(group)>0){
+							comp_words<-unlist(strsplit(unname(request[i]),' '))
+							comp_cols<-intersect(comp_words,cols)
+							aggr_select<-paste0('select ',paste(comp_words[3:length(comp_words)],collapse=' '))
+						
+							out<-append(out,setNames(c(aggr_select,group),c('select','group')))
+						}else{
+							out<-append(out,request[i])
+						}
 					}
 				}else{
 					out<-append(out,request[i])
