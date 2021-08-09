@@ -168,35 +168,46 @@ public class SchedulerDatabaseUtility {
 
 	public static void startServer() throws IOException, SQLException {
 		schedulerDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SCHEDULER_DB);
-		schedulerDb.getConnection();
-		queryUtil = schedulerDb.getQueryUtil();
-		
-		SchedulerOwlCreator owlCreator = new SchedulerOwlCreator(schedulerDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
-		}
-
-		initialize();
-		
-		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+		Connection conn = schedulerDb.getConnection();
 		try {
-			if(!scheduler.isStarted()) {
-				logger.info("Scheduler is not active. Starting up scheduler...");
-				scheduler.start();
+			queryUtil = schedulerDb.getQueryUtil();
+			
+			SchedulerOwlCreator owlCreator = new SchedulerOwlCreator(schedulerDb);
+			if (owlCreator.needsRemake()) {
+				owlCreator.remakeOwl();
 			}
-		} catch (SchedulerException e) {
-			logger.error(Constants.STACKTRACE, e);
+	
+			initialize();
+			
+			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+			try {
+				if(!scheduler.isStarted()) {
+					logger.info("Scheduler is not active. Starting up scheduler...");
+					scheduler.start();
+				}
+			} catch (SchedulerException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				conn.close();
+			}
 		}
 	}
 
 	public static void initialize() throws SQLException {
 		String schema = schedulerDb.getSchema();
-		Connection connection = schedulerDb.getConnection();
-
-		createQuartzTables(connection, schema);
-		createSemossTables(connection, schema);
-		addAllPrimaryKeys();
-		addAllForeignKeys();
+		Connection conn = schedulerDb.getConnection();
+		try {
+			createQuartzTables(conn, schema);
+			createSemossTables(conn, schema);
+			addAllPrimaryKeys();
+			addAllForeignKeys();
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				conn.close();
+			}
+		}
 	}
 
 	public static Connection connectToScheduler() {
@@ -237,8 +248,8 @@ public class SchedulerDatabaseUtility {
 	}
 	
 	public static boolean insertIntoExecutionTable(String execId, String jobId, String jobGroup) {
-		Connection connection = connectToScheduler();
-		try (PreparedStatement statement = connection
+		Connection conn = connectToScheduler();
+		try (PreparedStatement statement = conn
 				.prepareStatement("INSERT INTO SMSS_EXECUTION (EXEC_ID, JOB_ID, JOB_GROUP) VALUES (?,?,?)")) {
 			statement.setString(1, execId);
 			statement.setString(2, jobId);
@@ -247,15 +258,23 @@ public class SchedulerDatabaseUtility {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return true;
 	}
 	
 	public static String[] executionIdExists(String execId) {
-		Connection connection = connectToScheduler();
+		Connection conn = connectToScheduler();
 		ResultSet rs = null;
-		try (PreparedStatement statement = connection
+		try (PreparedStatement statement = conn
 				.prepareStatement("SELECT JOB_ID, JOB_GROUP FROM SMSS_EXECUTION WHERE EXEC_ID = ?")) {
 			statement.setString(1, execId);
 			rs = statement.executeQuery();
@@ -275,67 +294,91 @@ public class SchedulerDatabaseUtility {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return null;
 	}
 	
 	public static boolean removeExecutionId(String execId) {
-		Connection connection = connectToScheduler();
-		try (PreparedStatement statement = connection
+		Connection conn = connectToScheduler();
+		try (PreparedStatement statement = conn
 				.prepareStatement("DELETE FROM SMSS_EXECUTION WHERE EXEC_ID = ?")) {
 			statement.setString(1, execId);
 			statement.executeUpdate();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return true;
 	}
 
 	public static boolean insertIntoAuditTrailTable(String jobId, String jobGroup, Long start, Long end, boolean success) {
-		Connection connection = connectToScheduler();
+		Connection conn = connectToScheduler();
 
 		Timestamp startTimeStamp = new Timestamp(start);
 		Timestamp endTimeStamp = new Timestamp(end);
 		
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		// update is_latest to false for all the existing records of this job id
-		try{
-			PreparedStatement updateAuditTrailStatement = connection
-					.prepareStatement("UPDATE SMSS_AUDIT_TRAIL SET IS_LATEST=? WHERE JOB_ID=?");
-			updateAuditTrailStatement.setBoolean(1, false);
-			updateAuditTrailStatement.setString(2, jobId);
-			updateAuditTrailStatement.executeUpdate();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-			return false;
+		try {
+			try{
+				PreparedStatement updateAuditTrailStatement = conn
+						.prepareStatement("UPDATE SMSS_AUDIT_TRAIL SET IS_LATEST=? WHERE JOB_ID=?");
+				updateAuditTrailStatement.setBoolean(1, false);
+				updateAuditTrailStatement.setString(2, jobId);
+				updateAuditTrailStatement.executeUpdate();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+				return false;
+			}
+			// now insert the new record with is_latest as true
+			try (PreparedStatement statement = conn
+					.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS, IS_LATEST) VALUES (?,?,?,?,?,?,?)")) {
+				statement.setString(1, jobId);
+				statement.setString(2, jobGroup);
+				statement.setTimestamp(3, startTimeStamp, cal);
+				statement.setTimestamp(4, endTimeStamp, cal);
+				statement.setString(5, String.valueOf(end - start));
+				statement.setBoolean(6, success);
+				statement.setBoolean(7, true);
+				statement.executeUpdate();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+				return false;
+			}
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
-		// now insert the new record with is_latest as true
-		try (PreparedStatement statement = connection
-				.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS, IS_LATEST) VALUES (?,?,?,?,?,?,?)")) {
-			statement.setString(1, jobId);
-			statement.setString(2, jobGroup);
-			statement.setTimestamp(3, startTimeStamp, cal);
-			statement.setTimestamp(4, endTimeStamp, cal);
-			statement.setString(5, String.valueOf(end - start));
-			statement.setBoolean(6, success);
-			statement.setBoolean(7, true);
-			statement.executeUpdate();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-			return false;
-		}
-
 		return true;
 	}
 
 	public static boolean insertIntoJobRecipesTable(String userId, String jobId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters,
 			String jobCategory, boolean triggerOnLoad, String uiState, List<String> jobTags ) {
 		
-		Connection connection = connectToScheduler();
-		try (PreparedStatement statement = connection
+		Connection conn = connectToScheduler();
+		try (PreparedStatement statement = conn
 				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE) VALUES (?,?,?,?,?,?,?,?,?,?)")) {
 			statement.setString(1, userId);
 			statement.setString(2, jobId);
@@ -346,13 +389,13 @@ public class SchedulerDatabaseUtility {
 			statement.setBoolean(9, triggerOnLoad);
 
 			if(queryUtil.allowBlobJavaObject()) {
-				statement.setBlob(6, stringToBlob(connection, recipe));
+				statement.setBlob(6, stringToBlob(conn, recipe));
 				if(recipeParameters == null || recipeParameters.isEmpty()) {
 					statement.setNull(7, java.sql.Types.BLOB);
 				} else {
-					statement.setBlob(7, stringToBlob(connection, recipeParameters));
+					statement.setBlob(7, stringToBlob(conn, recipeParameters));
 				}
-				statement.setBlob(10, stringToBlob(connection, uiState));
+				statement.setBlob(10, stringToBlob(conn, uiState));
 			} else {
 				statement.setString(6, recipe);
 				if(recipeParameters == null || recipeParameters.isEmpty()) {
@@ -368,6 +411,14 @@ public class SchedulerDatabaseUtility {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return updateJobTags(jobId, jobTags);
@@ -380,42 +431,53 @@ public class SchedulerDatabaseUtility {
 	 * @return
 	 */
 	public static boolean updateJobTags( String jobId, List<String> jobTags) {
-		Connection connection = connectToScheduler();
+		Connection conn = connectToScheduler();
 
-		// first we delete old tags
-		try (PreparedStatement statement = connection.prepareStatement("DELETE FROM SMSS_JOB_TAGS WHERE JOB_ID=?")) {
-			statement.setString(1, jobId);
-			statement.execute();
-		} catch( SQLException e) {
-			logger.error(Constants.STACKTRACE, e );
-			return false;
-		}
-
-
-		if(jobTags == null) {
-			return true;
-		}
-
-		// bulk insert for the job tags
-		try (PreparedStatement statement = connection.prepareStatement("INSERT INTO SMSS_JOB_TAGS (JOB_ID, JOB_TAG) VALUES (?,?)")) {
-			for(String jobTag : jobTags) {
+		try {
+			// first we delete old tags
+			try (PreparedStatement statement = conn.prepareStatement("DELETE FROM SMSS_JOB_TAGS WHERE JOB_ID=?")) {
 				statement.setString(1, jobId);
-				statement.setString(2, jobTag.trim());
-				statement.addBatch();
+				statement.execute();
+			} catch( SQLException e) {
+				logger.error(Constants.STACKTRACE, e );
+				return false;
 			}
-			statement.executeBatch();
-		} catch( SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-			return false;
+	
+	
+			if(jobTags == null) {
+				return true;
+			}
+	
+			// bulk insert for the job tags
+			try (PreparedStatement statement = conn.prepareStatement("INSERT INTO SMSS_JOB_TAGS (JOB_ID, JOB_TAG) VALUES (?,?)")) {
+				for(String jobTag : jobTags) {
+					statement.setString(1, jobId);
+					statement.setString(2, jobTag.trim());
+					statement.addBatch();
+				}
+				statement.executeBatch();
+			} catch( SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+				return false;
+			}
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
+		
 		return true;
 	}
 	
 	public static boolean updateJobRecipesTable(String userId, String jobId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters,
 			String jobCategory, boolean triggerOnLoad, String uiState, String existingJobName, String existingJobGroup, List<String> jobTags) {
 		
-		Connection connection = connectToScheduler();
-		try (PreparedStatement statement = connection
+		Connection conn = connectToScheduler();
+		try (PreparedStatement statement = conn
 				.prepareStatement("UPDATE SMSS_JOB_RECIPES SET USER_ID = ?, JOB_NAME = ?, JOB_GROUP = ?, CRON_EXPRESSION = ?, PIXEL_RECIPE = ?, "
 						+ "PIXEL_RECIPE_PARAMETERS = ?, JOB_CATEGORY = ?, TRIGGER_ON_LOAD = ?, UI_STATE = ? WHERE JOB_ID = ? AND JOB_GROUP = ?")) {
 			statement.setString(1, userId);
@@ -426,13 +488,13 @@ public class SchedulerDatabaseUtility {
 			statement.setBoolean(8, triggerOnLoad);
 
 			if(queryUtil.allowBlobJavaObject()) {
-				statement.setBlob(5, stringToBlob(connection, recipe));
+				statement.setBlob(5, stringToBlob(conn, recipe));
 				if(recipeParameters == null || recipeParameters.isEmpty()) {
 					statement.setNull(6, java.sql.Types.BLOB);
 				} else {
-					statement.setBlob(6, stringToBlob(connection, recipeParameters));
+					statement.setBlob(6, stringToBlob(conn, recipeParameters));
 				}
-				statement.setBlob(9, stringToBlob(connection, uiState));
+				statement.setBlob(9, stringToBlob(conn, uiState));
 			} else {
 				statement.setString(5, recipe);
 				if(recipeParameters == null || recipeParameters.isEmpty()) {
@@ -451,14 +513,22 @@ public class SchedulerDatabaseUtility {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return updateJobTags(jobId, jobTags);
 	}
 
 	public static boolean removeFromJobRecipesTable(String jobId , String jobGroup) {
-		Connection connection = connectToScheduler();
-		try (PreparedStatement statement = connection
+		Connection conn = connectToScheduler();
+		try (PreparedStatement statement = conn
 				.prepareStatement("DELETE FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?")) {
 			statement.setString(1, jobId);
 			statement.setString(2, jobGroup);
@@ -467,14 +537,22 @@ public class SchedulerDatabaseUtility {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return true;
 	}
 
 	public static boolean existsInJobRecipesTable(String jobId, String jobGroup) {
-		Connection connection = connectToScheduler();
-		try (PreparedStatement statement = connection
+		Connection conn = connectToScheduler();
+		try (PreparedStatement statement = conn
 				.prepareStatement("SELECT COUNT(JOB_ID) FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?");) {
 			statement.setString(1, jobId);
 			statement.setString(2, jobGroup);
@@ -489,6 +567,14 @@ public class SchedulerDatabaseUtility {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return true;
@@ -517,10 +603,10 @@ public class SchedulerDatabaseUtility {
 //	}
 
 	public static Map<String, Map<String, String>> retrieveJobsForApp(String appId, List<String> jobTags ) {
-		Connection connection = connectToScheduler();
+		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 
-		try (PreparedStatement statement = connection
+		try (PreparedStatement statement = conn
 				.prepareStatement(createJobQuery("WHERE SMSS_JOB_RECIPES.JOB_GROUP=?",jobTags))) {
 			// always have the is_latest value
 			statement.setBoolean(1, true);
@@ -533,15 +619,23 @@ public class SchedulerDatabaseUtility {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return jobMap;
 	}
 
 	public static Map<String, Map<String, String>> retrieveUsersJobsForApp(String appId, String userId, List<String> jobTags) {
-		Connection connection = connectToScheduler();
+		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
-		try (PreparedStatement statement = connection
+		try (PreparedStatement statement = conn
 				.prepareStatement(createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=? AND SMSS_JOB_RECIPES.JOB_GROUP=?",jobTags))) {
 			// always have the is_latest value
 			statement.setBoolean(1, true);
@@ -555,15 +649,23 @@ public class SchedulerDatabaseUtility {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return jobMap;
 	}
 
 	public static Map<String, Map<String, String>> retrieveUsersJobs(String userId, List<String> jobTags) {
-		Connection connection = connectToScheduler();
+		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
-		try (PreparedStatement statement = connection
+		try (PreparedStatement statement = conn
 				.prepareStatement(createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=?",jobTags))) {
 			// always have the is_latest value
 			statement.setBoolean(1, true);
@@ -575,6 +677,14 @@ public class SchedulerDatabaseUtility {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return jobMap;
@@ -627,10 +737,10 @@ public class SchedulerDatabaseUtility {
 	}
 
 	public static Map<String, Map<String, String>> retrieveAllJobs(List<String> jobTags) {
-		Connection connection = connectToScheduler();
+		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		String query = createJobQuery(null, jobTags);
-		try (PreparedStatement statement = connection.prepareStatement(query)) {
+		try (PreparedStatement statement = conn.prepareStatement(query)) {
 			// always have the is_latest value
 			statement.setBoolean(1, true);
 			try (ResultSet result = statement.executeQuery()) {
@@ -640,6 +750,14 @@ public class SchedulerDatabaseUtility {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return jobMap;
@@ -725,11 +843,11 @@ public class SchedulerDatabaseUtility {
 			return;
 		}
 		
-		Connection connection = connectToScheduler();
+		Connection conn = connectToScheduler();
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		ResultSet result = null;
 
-		try (PreparedStatement preparedStatement = connection
+		try (PreparedStatement preparedStatement = conn
 				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE TRIGGER_ON_LOAD=?")) {
 			preparedStatement.setBoolean(1, true);
 			result = preparedStatement.executeQuery();
@@ -755,6 +873,13 @@ public class SchedulerDatabaseUtility {
 				}
 			} catch (SQLException sqe) {
 				logger.error(Constants.STACKTRACE, sqe);
+			}
+			if(schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}
