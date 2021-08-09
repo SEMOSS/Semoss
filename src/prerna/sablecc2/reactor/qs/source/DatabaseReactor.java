@@ -28,26 +28,26 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 	protected AbstractQueryStruct createQueryStruct() {
 		// get the selectors
 		this.organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 			}
 		} else {
-			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist");
+			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
+			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
 			}
 		}
 
-		this.qs.setEngineId(engineId);
+		this.qs.setEngineId(databaseId);
 		// add the engine to the insight
-		this.insight.addQueriedDatabasesese(engineId);
+		this.insight.addQueriedDatabasesese(databaseId);
 		
 		//checking if it is a big data engine
-		String smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
+		String smssFile = (String) DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE);
 		Object bigDataProp = Utility.loadProperties(smssFile).get(Constants.BIG_DATA_ENGINE);
 		if(bigDataProp!= null){
 			 if(Boolean.parseBoolean(bigDataProp.toString())){
