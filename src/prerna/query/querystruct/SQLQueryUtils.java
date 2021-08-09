@@ -5,8 +5,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
@@ -204,6 +206,9 @@ public class SQLQueryUtils {
 			// remove the duplicate from existing list of selectors
 			retExpression.nselectors = removeDuplicateSelectors(thisJoin, retExpression.nselectors, rightAlias);
 		}		
+		
+		realiasDuplicateSelectorNames(retExpression.nselectors);
+		
 		retExpression.joins.remove(lastExpression);
 		joinExpr.from = lastExpression;
 		retExpression.joins.add(joinExpr);
@@ -214,52 +219,69 @@ public class SQLQueryUtils {
 	
 	public static GenExpression makeJoin(Join thisJoin, GenExpression lastExpr, String leftAlias, String rightAlias, List <GenExpression> nSelectors)
 	{
-		GenExpression joinExpr = new GenExpression();
-		String joinType = thisJoin.getJoinType();
-		
-		// need to do a better job here but.. 
-		joinType = joinType.replace(".", " ");
-		joinExpr.setOn(joinType);
-		joinExpr.telescope = true;
+		// form new body term
 		String lColumn = thisJoin.getLColumn(); // this could potentially be other things but for now for isntance this could be a full query
-		String rColumn = thisJoin.getRColumn(); 
-		
+		String rColumn = thisJoin.getRColumn();
 		if(lColumn.indexOf("__") > 0)
 			lColumn = lColumn.substring(lColumn.indexOf("__") + 2);
-
 		if(rColumn.indexOf("__") > 0)
 			rColumn = rColumn.substring(rColumn.indexOf("__") + 2);
-
 		lColumn = leftAlias + ".\"" + lColumn + "\"";
 		rColumn = rightAlias + ".\"" + rColumn + "\"";
 		
-		GenExpression body = new GenExpression();
-		body.setOperation("=");
-		
+		GenExpression thisJoinBody = new GenExpression();
+		String op = thisJoin.getComparator();
+		if(op.equals("==")) op = "=";
+		thisJoinBody.setOperation(op);
 		GenExpression leftColumn = new GenExpression();
 		leftColumn.operation = "string";
 		leftColumn.leftItem = lColumn;
-
 		GenExpression rightColumn = new GenExpression();
 		rightColumn.operation = "string";
 		rightColumn.leftItem = rColumn;
-
-		body.leftItem = leftColumn;
-		body.rightItem = rightColumn;
-		joinExpr.body = body;
-				
-		if(lastExpr != null)
-		{
-			// make it and then elevate
-			GenExpression newRoot = new GenExpression();
-			newRoot.setOperation("AND");
-			newRoot.setLeftExpresion(lastExpr);
-			newRoot.setRightExpresion(joinExpr);
-			return newRoot;
-		}
-		else
+		thisJoinBody.leftItem = leftColumn;
+		thisJoinBody.rightItem = rightColumn;
+		
+		if(lastExpr == null) {
+			GenExpression joinExpr = new GenExpression();
+			String joinType = thisJoin.getJoinType();
+			joinType = joinType.replace(".", " ");
+			joinExpr.setOn(joinType);
+			joinExpr.telescope = true;
+			joinExpr.body = thisJoinBody;
+			
 			return joinExpr;
-
+		} else {
+			// check for joinType update
+			String joinType = thisJoin.getJoinType();
+			joinType = joinType.replace(".", " ");
+			if(lastExpr.on.equals("left outer join")) {
+				if(joinType.equals("right outer join")) {
+					joinType = "outer join";
+				} else if(joinType.equals("inner join")) {
+					joinType = lastExpr.on;
+				}
+			} else if(lastExpr.on.equals("right outer join")) {
+				if(joinType.equals("left outer join")) {
+					joinType = "outer join";
+				} else if(joinType.equals("inner join")) {
+					joinType = lastExpr.on;
+				}
+			} else if(lastExpr.on.equals("outer join")) {
+				joinType = lastExpr.on;
+			}
+			lastExpr.setOn(joinType);
+			
+			// update body tree
+			GenExpression newBody = new GenExpression();
+			newBody.setOperation("AND");
+			newBody.recursive = true;
+			newBody.setLeftExpresion(lastExpr.body);
+			newBody.setRightExpresion(thisJoinBody);
+			lastExpr.body = newBody;
+			
+			return lastExpr;
+		}
 	}
 	
 	public static List <GenExpression> removeDuplicateSelectors(Join thisJoin, List <GenExpression> nSelectors, String rightAlias)
@@ -285,6 +307,39 @@ public class SQLQueryUtils {
 		return nSelectors;
 	}
 	
+	// re-alias selectors with duplicate names irrespective of table
+	// this is so custom queries on the built results don't error out with ambiguous column references
+	public static void realiasDuplicateSelectorNames(List <GenExpression> nSelectors)
+	{
+		Map<String, Integer> aliases = new HashMap<>();
+		
+		for(int selectorIndex = 0;selectorIndex < nSelectors.size();selectorIndex++)
+		{
+			GenExpression thisColumn = nSelectors.get(selectorIndex);
+			String exprActual = thisColumn.getLeftExpr();
+			String exprUniq = exprActual.replaceAll("\"", "");
+			
+			Integer exprCt = aliases.get(exprUniq);
+			if(exprCt == null) {
+				aliases.put(exprUniq, 1);
+			} else {
+				aliases.put(exprUniq, exprCt++);
+				
+				if(exprActual.endsWith("\"")) {
+					thisColumn.setLeftAlias(
+						exprActual.substring(0, exprActual.length()-1) 
+						+ exprCt.toString() 
+						+ "\""
+					);
+				} else {
+					thisColumn.setLeftAlias(
+						exprActual 
+						+ exprCt.toString()
+					);
+				}
+			}
+		}
+	}
 	
 	public static GenExpression makeCopy(GenExpression input)
 	{
