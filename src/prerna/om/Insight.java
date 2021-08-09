@@ -788,9 +788,8 @@ public class Insight implements Serializable {
 	 * @param databaseId
 	 */
 	public void addQueriedDatabasesese(String databaseId) {
-		if(!this.queriedDatabaseIds.contains(databaseId)) {
-			this.queriedDatabaseIds.add(databaseId);
-		}
+		// this is a set
+		this.queriedDatabaseIds.add(databaseId);
 	}
 	
 	public Set<String> getQueriedDatabaseIds() {
