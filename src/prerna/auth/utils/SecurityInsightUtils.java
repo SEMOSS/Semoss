@@ -1532,14 +1532,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		List<Join> joins = new ArrayList<>();
 		if(favoritesOnly) {
-//			joins.add(new Join("app_id", "inner.join", "ENGINEID"));
 			joins.add(new Join("app_insight_id", "inner.join", "INSIGHTID"));
 			joins.add(new Join("app_id", "inner.join", "PROJECTID"));
 		} else {
-//			joins.add(new Join("app_id", "left.outer.join", "ENGINEID"));
 			joins.add(new Join("app_insight_id", "left.outer.join", "INSIGHTID"));
 			joins.add(new Join("app_id", "left.outer.join", "PROJECTID"));
-
 		}
 		
 		GenExpression retExpression = SQLQueryUtils.joinSQL(queries, joins);
