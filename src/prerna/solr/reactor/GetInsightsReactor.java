@@ -88,37 +88,37 @@ public class GetInsightsReactor extends AbstractReactor {
 		
 		// this entire block is to add the additional metadata to the insights
 		{
-			// now i will aggregate each app id to its insight ids
+			// now i will aggregate each project id to its insight ids
 			// and then i will query to get all the tags + descriptions
 			int size = results.size();
-			Map<String, List<String>> appIdsToInsight = new HashMap<String, List<String>>();
+			Map<String, List<String>> projectIdsToInsight = new HashMap<String, List<String>>();
 			Map<String, Integer> index = new HashMap<String, Integer>(size);
 			for(int i = 0; i < size; i++) {
 				Map<String, Object> res = results.get(i);
-				String appId = (String) res.get("app_id");
+				String projectId = (String) res.get("app_id");
 				String insightId = (String) res.get("app_insight_id");
 				
 				// aggregate + store
 				List<String> inIds = null;
-				if(appIdsToInsight.containsKey(appId)) {
-					inIds = appIdsToInsight.get(appId);
+				if(projectIdsToInsight.containsKey(projectId)) {
+					inIds = projectIdsToInsight.get(projectId);
 				} else {
 					inIds = new Vector<String>();
-					appIdsToInsight.put(appId, inIds);
+					projectIdsToInsight.put(projectId, inIds);
 				}
 				
 				inIds.add(insightId);
 				
 				// store so we can search by index
-				index.put(appId + insightId, new Integer(i));
+				index.put(projectId + insightId, new Integer(i));
 				
 				// i will put an empty description + tag placeholder
 				res.put("description", "");
 				res.put("tags", new Vector<String>());
 			}
 			
-			for(String appId : appIdsToInsight.keySet()) {
-				IRawSelectWrapper wrapper = SecurityInsightUtils.getInsightMetadataWrapper(appId, appIdsToInsight.get(appId), META_KEYS_LIST);
+			for(String projectId : projectIdsToInsight.keySet()) {
+				IRawSelectWrapper wrapper = SecurityInsightUtils.getInsightMetadataWrapper(projectId, projectIdsToInsight.get(projectId), META_KEYS_LIST);
 				while(wrapper.hasNext()) {
 					Object[] data = wrapper.next().getValues();
 					String metaKey = (String) data[2];
@@ -141,9 +141,9 @@ public class GetInsightsReactor extends AbstractReactor {
 						// we only have 1 description per insight
 						// so just push
 						res.put("description", value);
-					} else if(metaKey.equals("tag")){
+					} else if(metaKey.equals("tag")) {
 						// multiple tags per insight
-						List<String> tags = (List<String>) res.get("tags");;
+						List<String> tags = (List<String>) res.get("tags");
 						// add to the list
 						tags.add(value);
 					}
