@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,7 +42,7 @@ public class PixelRunner {
 
 	private static final Logger logger = LogManager.getLogger(PixelRunner.class);
 
-	private static List<PixelOperationType> errorOpTypes = new Vector<>();
+	private static List<PixelOperationType> errorOpTypes = new ArrayList<>();
 	static {
 		errorOpTypes.add(PixelOperationType.ERROR);
 		errorOpTypes.add(PixelOperationType.UNEXECUTED_PIXELS);
@@ -65,10 +64,10 @@ public class PixelRunner {
 	protected Insight insight = null;
 	protected boolean maintainErrors = false;
 	
-	protected List<NounMetadata> results = new Vector<>();
-	protected List<Pixel> returnPixelList = new Vector<>();
+	protected List<NounMetadata> results = new ArrayList<>();
+	protected List<Pixel> returnPixelList = new ArrayList<>();
 
-	protected List<String> encodingList = new Vector<>();
+	protected List<String> encodingList = new ArrayList<>();
 	protected Map<String, String> encodedTextToOriginal = new HashMap<>();
 	
 	public void runPixel(String expression, Insight insight) {
@@ -155,7 +154,7 @@ public class PixelRunner {
 			if(pixel.isReturnedError() && !this.maintainErrors) {
 				// we actually need to remove this from the pixel list
 				// there is also no sync required 
-				List<String> removeId = new Vector<String>();
+				List<String> removeId = new ArrayList<String>();
 				removeId.add(pixel.getId());
 				pixelList.removeIds(removeId, false);
 			} else {
