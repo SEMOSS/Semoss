@@ -1,6 +1,6 @@
 process_select<-function(db,part,cols,p,k){
 	library(tools)
-	AGGR<-c("fsum","faverage","fcount","fmin","fmax","fstdev","fdayname","fweek","fmonthname","fquarter","fyear")
+	AGGR<-c("fsum","faverage","fcount","funiquecount","fmin","fmax","fstdev","fdayname","fweek","fmonthname","fquarter","fyear")
 
 	ind<-which(tolower(part) %in% tolower(cols))
 	if(length(ind)>0){
@@ -160,7 +160,7 @@ process_group<-function(db,part,cols,p,k){
 }
 
 process_having<-function(db,part,cols,p,k){
-	AGGR<-c("fsum","faverage","fcount","fmin","fmax")
+	AGGR<-c("fsum","faverage","fcount","funiquecount","fmin","fmax")
 	OPS<-c("<","<=",">",">=","<>","=")
 	
 	ind<-which(tolower(part) %in% tolower(cols))
