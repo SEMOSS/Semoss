@@ -68,7 +68,7 @@ public class MasterDatabaseUtility {
 		
 		// since i have major changes
 		requireRemakeAndAlter(database, conn, queryUtil, schema, allowIfExistsTable);
-			
+		
 		// engine table
 		colNames = new String[]{"ID", "ENGINENAME", "MODIFIEDDATE", "TYPE"};
 		types = new String[]{"varchar(255)", "varchar(255)", "timestamp", "varchar(255)"};
@@ -104,19 +104,29 @@ public class MasterDatabaseUtility {
 			}
 		}
 		// add index
+		{
+			// 2021-08-11
+			if(allowIfExistsIndexs) {
+				executeSql(conn, queryUtil.dropIndexIfExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT"));
+			} else {
+				if(queryUtil.indexExists(database, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
+					executeSql(conn, queryUtil.dropIndexIfExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT"));
+				}
+			}
+		}
 		if(allowIfExistsIndexs) {
 			List<String> iCols = new Vector<>();
 			iCols.add("ENGINE");
 			iCols.add("LOCALCONCEPTID");
-			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
+			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols));
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(database, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
+			if(!queryUtil.indexExists(database, "ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", schema)) {
 				List<String> iCols = new Vector<>();
 				iCols.add("ENGINE");
 				iCols.add("LOCALCONCEPTID");
-				executeSql(conn, queryUtil.createIndex("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
+				executeSql(conn, queryUtil.createIndex("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols));
 			}
 			if(!queryUtil.indexExists(database, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", schema)) {
 				executeSql(conn, queryUtil.createIndex("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
@@ -157,6 +167,19 @@ public class MasterDatabaseUtility {
 				executeSql(conn, queryUtil.createTable("RELATION", colNames, types));
 			}
 		}
+		// add index
+		if(allowIfExistsIndexs) {
+			executeSql(conn, queryUtil.createIndexIfNotExists("RELATION_TARGETID_INDEX", "RELATION", "TARGETID"));
+			executeSql(conn, queryUtil.createIndexIfNotExists("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID"));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(database, "RELATION_TARGETID_INDEX", "RELATION", schema)) {
+				executeSql(conn, queryUtil.createIndex("RELATION_TARGETID_INDEX", "RELATION", "TARGETID"));
+			}
+			if(!queryUtil.indexExists(database, "RELATION_SOURCEID_INDEX", "RELATION", schema)) {
+				executeSql(conn, queryUtil.createIndex("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID"));
+			}
+		}
 
 		// engine relation table
 		colNames = new String[]{"ENGINE", "RELATIONID", "INSTANCERELATIONID", "SOURCECONCEPTID", "TARGETCONCEPTID", "SOURCEPROPERTY", "TARGETPROPERTY", "RELATIONNAME"};
@@ -168,6 +191,23 @@ public class MasterDatabaseUtility {
 			if(!queryUtil.tableExists(database, "ENGINERELATION", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINERELATION", colNames, types));
+			}
+		}
+		// add index
+		if(allowIfExistsIndexs) {
+			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE"));
+			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", "TARGETCONCEPTID"));
+			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID"));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(database, "ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", schema)) {
+				executeSql(conn, queryUtil.createIndex("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE"));
+			}
+			if(!queryUtil.indexExists(database, "ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", schema)) {
+				executeSql(conn, queryUtil.createIndex("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", "TARGETCONCEPTID"));
+			}
+			if(!queryUtil.indexExists(database, "ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", schema)) {
+				executeSql(conn, queryUtil.createIndex("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID"));
 			}
 		}
 
