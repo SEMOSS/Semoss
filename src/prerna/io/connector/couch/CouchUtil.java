@@ -5,8 +5,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -59,6 +57,13 @@ import prerna.util.DIHelper;
 import prerna.util.insight.InsightUtility;
 import prerna.util.insight.TextToGraphic;
 
+/**
+ * Utility class to handle image operations in a partitioned CouchDB database.
+ * This allows downloads, uploads, and deletion of images in the partitions for
+ * databases, projects, and insights. One should verify that CouchDB is enabled
+ * before using this class via the
+ * <a href="#{@link}">{@link CouchUtil#COUCH_ENABLED}</a> flag.
+ */
 public class CouchUtil {
 	
 	public static final String DATABASE = "database";
@@ -70,6 +75,9 @@ public class CouchUtil {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	private static final String COUCH_ENABLED_KEY = "COUCH_ENABLED";
+	/**
+	 * boolean indicator that CouchDB is configured to be enabled
+	 */
 	public static final boolean COUCH_ENABLED = 
 		StringUtils.isEmpty(DIHelper.getInstance().getProperty(COUCH_ENABLED_KEY))
 		?
@@ -118,8 +126,30 @@ public class CouchUtil {
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
+	/**
+	 * Retrieve the image attachment data from a CouchDB document in the given
+	 * partition with matching field data. The entries of the map are used to form a
+	 * document selector used to query CouchDB for matching documents in the
+	 * partition. If a document is found, the attachment data is retrieved.
+	 * Otherwise, a new document with a default image attachment is created. The
+	 * retrieved or created image data is used to build a JAX-RS Response object to
+	 * download it.
+	 * 
+	 * @param partitionId   The partition of the database to query for document
+	 *                      attachments
+	 * @param referenceData A map whose key-value pairs are used to build a document
+	 *                      selector
+	 * @return A download <a href="#{@link}">{@link Response}</a> containing the
+	 *         bytes of the attachment
+	 * @see CouchUtil#getSelectorString
+	 * @see CouchUtil#retrieveDocumentsInPartitionForSelector
+	 * @see CouchUtil#retrieveDocument
+	 * @see CouchUtil#createDefault
+	 * @throws IllegalArgumentException If the referenceData map is null or empty
+	 * @throws CouchException           If another exception is encountered
+	 */
 	public static Response download(String partitionId, Map<String, String> referenceData) throws CouchException {
-		if(referenceData.isEmpty()) {
+		if(referenceData == null || referenceData.isEmpty()) {
 			throw new IllegalArgumentException("Selector list is empty");
 		}
 		
@@ -181,8 +211,29 @@ public class CouchUtil {
 		return builder.build();
 	}
 	
+	/**
+	 * Upload image data from a File to CouchDB with the given partition and
+	 * document field data. The entries of the map are used to form a document
+	 * selector used to query CouchDB for matching documents in the partition. If a
+	 * document is found, it is updated to contain the fields and attachment
+	 * provided. Otherwise, a new document with an attachment of the imageFile
+	 * contents is created.
+	 * 
+	 * @param partitionId   The partition of the database that will contain the
+	 *                      document
+	 * @param referenceData A map whose key-value pairs are placed in the document's
+	 *                      fields
+	 * @param imageFile     A <a href="#{@link}">{@link File}</a> whose contents
+	 *                      will be attached to the document
+	 * 
+	 * @see CouchUtil#getSelectorString
+	 * @see CouchUtil#retrieveDocumentsInPartitionForSelector
+	 * @see CouchUtil#updateDocument
+	 * @throws IllegalArgumentException If the referenceData map is null or empty
+	 * @throws CouchException           If another exception is encountered
+	 */
 	public static void upload(String partitionId, Map<String, String> referenceData, File imageFile) throws CouchException {
-		if(!referenceData.containsKey(partitionId)) {
+		if(referenceData == null || !referenceData.containsKey(partitionId)) {
 			throw new IllegalArgumentException("Upload data is missing required value for key: " + partitionId);
 		}
 		
@@ -225,8 +276,29 @@ public class CouchUtil {
 		}
 	}
 	
+	/**
+	 * Upload image data from a FileItem to CouchDB with the given partition and
+	 * document field data. The entries of the map are used to form a document
+	 * selector used to query CouchDB for matching documents in the partition. If a
+	 * document is found, it is updated to contain the fields and attachment
+	 * provided. Otherwise, a new document with an attachment of the imageFile
+	 * contents is created.
+	 * 
+	 * @param partitionId   The partition of the database that will contain the
+	 *                      document
+	 * @param referenceData A map whose key-value pairs are placed in the document's
+	 *                      fields
+	 * @param imageFile     A <a href="#{@link}">{@link FileItem}</a> whose contents
+	 *                      will be attached to the document
+	 * 
+	 * @see CouchUtil#getSelectorString
+	 * @see CouchUtil#retrieveDocumentsInPartitionForSelector
+	 * @see CouchUtil#updateDocument
+	 * @throws IllegalArgumentException If the referenceData map is null or empty
+	 * @throws CouchException           If another exception is encountered
+	 */
 	public static void upload(String partitionId, Map<String, String> referenceData, FileItem imageFile) throws CouchException {
-		if(!referenceData.containsKey(partitionId)) {
+		if(referenceData == null || !referenceData.containsKey(partitionId)) {
 			throw new IllegalArgumentException("Upload data is missing required value for key: " + partitionId);
 		}
 		
@@ -261,8 +333,32 @@ public class CouchUtil {
 		}
 	}
 	
+	/**
+	 * Delete a document from CouchDB in the given partition with the
+	 * matching document field data. The entries of the map are used to form a
+	 * document selector with key = value over all key-value pairs in the map. This
+	 * selector is used to query CouchDB for matching documents in the partition. If
+	 * a document is found, it is deleted.
+	 * 
+	 * @param partitionId   The partition of the database that will contain the
+	 *                      document
+	 * @param referenceData A map whose key-value pairs are placed in the document's
+	 *                      fields
+	 * 
+	 * @see CouchUtil#getSelectorString
+	 * @see CouchUtil#retrieveDocumentsInPartitionForSelector
+	 * @see CouchUtil#deleteDocument
+	 * @see <a href=
+	 *      "https://docs.couchdb.org/en/stable/api/partitioned-dbs.html#db-partition-partition-id-find">Couch
+	 *      API Reference on Document Search in Partition</a>
+	 * @see <a href=
+	 *      "https://docs.couchdb.org/en/stable/api/document/common.html#delete--db-docid">Couch
+	 *      API Reference on Document Deletes</a>
+	 * @throws IllegalArgumentException If the referenceData map is null or empty
+	 * @throws CouchException           If another exception is encountered
+	 */
 	public static void delete(String partitionId, Map<String, String> referenceData) throws CouchException {
-		if(referenceData.isEmpty()) {
+		if(referenceData == null || referenceData.isEmpty()) {
 			throw new IllegalArgumentException("Selector list is empty");
 		}
 		
@@ -290,6 +386,16 @@ public class CouchUtil {
 		}
 	}
 	
+	/**
+	 * Build a JSON selector string for the given map. The entries of the map are
+	 * used to form a document selector with key = value over all key-value pairs in
+	 * the map. The JSON created is of the form: {"selector": { "key1": {"$eq":
+	 * "value1"}, "key2": {"$eq": "value2"}, ... }}
+	 * 
+	 * @param referenceData A map whose key-value pairs are used to build the
+	 *                      selector
+	 * @return The selector JSON String
+	 */
 	private static String getSelectorString(Map<String, String> referenceData) {
 		StringBuilder selectorBuilder = new StringBuilder("{\"selector\": {");
 		for(String key : referenceData.keySet()) {
@@ -307,6 +413,27 @@ public class CouchUtil {
 		return selectorBuilder.toString();
 	}
 	
+	/**
+	 * Build a default image for the given partition and data. If the provided
+	 * documentData includes an _id, indicating a document already exists, a
+	 * revision tag is sought for the eventual CouchDB update of the image
+	 * attachment. The default image is created by first searching for a local image
+	 * in the associated DB, project, and insight image locations. If found, the
+	 * byte array contents are returned. Otherwise, an image is formed based on the
+	 * database/project name or the insight layout type as appropriate. Before
+	 * returning, the image is also uploaded to CouchDB for later use.
+	 * 
+	 * @param partitionId  The partition of the database that will contain the image
+	 * @param documentData A <a href="#{@link}">{@link ObjectNode}</a> with contents
+	 *                     needed for the partition choice
+	 * @return The byte[] of image contents
+	 * @see CouchUtil#retrieveDocumentInfo
+	 * @see CouchUtil#updateDocument
+	 * @see InsightUtility.findImageFile
+	 * @see TextToGraphic.buildBufferedImage
+	 * @see AbstractSecurityUtils.getStockImage
+	 * @throws CouchException If an exception is encountered
+	 */
 	private static byte[] createDefault(String partitionId, ObjectNode documentData) throws CouchException {
 		String documentId = null;
 		String revisionId = null;
@@ -423,6 +550,19 @@ public class CouchUtil {
 		}
 	}
 	
+	/**
+	 * Call CouchDB with an HTTP HEAD request to /{db}/{docid} to lookup document
+	 * information.
+	 * 
+	 * @param documentId The document identifier used by CouchDB
+	 * @return A <a href="#{@link}">{@link CouchResponse}</a> wrapper for the HTTP
+	 *         response
+	 * @see CouchUtil#executeRequest
+	 * @see <a href=
+	 *      "https://docs.couchdb.org/en/stable/api/document/common.html#head--db-docid">Couch
+	 *      API Reference on Document Info Lookup</a>
+	 * @throws CouchException If an exception is encountered during the request
+	 */
 	private static CouchResponse retrieveDocumentInfo(String documentId) throws CouchException {
 		HttpHead documentInfoGet = new HttpHead(COUCH_ENDPOINT + documentId);
 		CouchResponse response = executeRequest(documentInfoGet);
@@ -430,6 +570,35 @@ public class CouchUtil {
 		return response;
 	}
 	
+	/**
+	 * Call CouchDB with an HTTP PUT request to /{db}/{docid} to update the
+	 * document. The provided revisionId, if non-null, is used as a query parameter
+	 * in the PUT. The provided attachment data is used to update the _attachments
+	 * portion of the documentData before the request is performed.
+	 * 
+	 * @param documentId            The document identifier for use by CouchDB
+	 * @param revisionId            Revision identifier used in the PUT when the
+	 *                              document exists. Null otherwise
+	 * @param documentData          A <a href="#{@link}">{@link ObjectNode}</a>
+	 *                              whose contents are mapped to the CouchDB
+	 *                              document
+	 * @param attachmentName        The name of the attachment as it will appear in
+	 *                              the _attachments object. For example, image.png
+	 * @param attachmentContentType The content type of the attachment. For example,
+	 *                              image/png
+	 * @param attachmentBytes       The byte array contents of the attachment. These
+	 *                              will be Base64 encoded before being added to the
+	 *                              document data
+	 * @return A <a href="#{@link}">{@link CouchResponse}</a> wrapper for the HTTP
+	 *         response
+	 * @see CouchUtil#executeRequest
+	 * @see <a href=
+	 *      "https://docs.couchdb.org/en/stable/api/document/common.html#put--db-docid">Couch
+	 *      API Reference on Document Updates</a>
+	 * @throws IllegalArgumentException If the documentData fails to be encoded into
+	 *                                  the request
+	 * @throws CouchException           If another exception is encountered
+	 */
 	private static CouchResponse updateDocument(String documentId, String revisionId, ObjectNode documentData, String attachmentName, 
 			String attachmentContentType, byte[] attachmentBytes) throws CouchException {
 		String attachmentData = new String(Base64.encodeBase64(attachmentBytes));
@@ -466,27 +635,78 @@ public class CouchUtil {
 		}
 	}
 	
+	/**
+	 * Call CouchDB with an HTTP POST request to /_partition/{partitionId}/_find to
+	 * search for documents in the partition matching the given selector string.
+	 * 
+	 * @param partitionId The partition of the database to search for documents in
+	 * @param selector    A JSON selector string with the search criteria
+	 * @return A <a href="#{@link}">{@link CouchResponse}</a> wrapper for the HTTP
+	 *         response
+	 * @see CouchUtil#executeRequest
+	 * @see <a href=
+	 *      "https://docs.couchdb.org/en/stable/api/partitioned-dbs.html#db-partition-partition-id-find">Couch
+	 *      API Reference on Document Search in Partition</a>
+	 * @see <a href=
+	 *      "https://docs.couchdb.org/en/stable/api/database/find.html#selector-syntax">Couch
+	 *      API Reference on Selector Syntax</a>
+	 * @throws IllegalArgumentException If the selector fails to be encoded into the
+	 *                                  request
+	 * @throws CouchException           If another exception is encountered
+	 */
 	private static CouchResponse retrieveDocumentsInPartitionForSelector(String partitionId, String selector) throws CouchException {
 		try {
 			HttpPost findPost = new HttpPost(COUCH_ENDPOINT + "_partition/" + partitionId + "/_find");
 			findPost.setEntity(new StringEntity(selector));
+			// Explicitly tell CouchDB to expect a JSON to avoid 415 errors
 			findPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 			CouchResponse response = executeRequest(findPost);
 			LOGGER.debug("Successfully retrieved documents for selector: " + response.toString());
 			return response;
 		} catch (UnsupportedEncodingException e) {
-			throw new CouchException("Failed to form query", e);
+			throw new IllegalArgumentException("The selector encoding isn't supported", e);
 		}
 	}
 	
+	/**
+	 * Call CouchDB with an HTTP GET request to /{db}/{docId} to retrieve a document
+	 * with the given identifier and the option to include attachment data.
+	 * 
+	 * @param documentId      The document identifier as used by CouchDB
+	 * @param withAttachments A boolean flagging if the document attachment contents
+	 *                        should be requested as well
+	 * @return A <a href="#{@link}">{@link CouchResponse}</a> wrapper for the HTTP
+	 *         response
+	 * @see CouchUtil#executeRequest
+	 * @see <a href=
+	 *      "https://docs.couchdb.org/en/stable/api/document/common.html#get--db-docid">Couch
+	 *      API Reference on Document Retrieval</a>
+	 * @throws CouchException If an exception is encountered
+	 */
 	private static CouchResponse retrieveDocument(String documentId, boolean withAttachments) throws CouchException {
 		HttpGet documentGet = new HttpGet(COUCH_ENDPOINT + documentId + "?attachments=" + withAttachments);
+		// add accepts application/json to get the attachment data in the JSON structure instead of as multipart
 		documentGet.setHeader(HttpHeaders.ACCEPT, "application/json");
 		CouchResponse response = executeRequest(documentGet);
 		LOGGER.debug("Successful document retrieval: " + response.toString());
 		return response;
 	}
 	
+	/**
+	 * Call CouchDB with an HTTP DELETE request to /{db}/{docId} to delete a
+	 * document with the given identifier and revision.
+	 * 
+	 * @param documentId The document identifier as used by CouchDB
+	 * @param revisionId The current revision code used by CouchDB to validate the
+	 *                   deletion request
+	 * @return A <a href="#{@link}">{@link CouchResponse}</a> wrapper for the HTTP
+	 *         response
+	 * @see CouchUtil#executeRequest
+	 * @see <a href=
+	 *      "https://docs.couchdb.org/en/stable/api/document/common.html#delete--db-docid">Couch
+	 *      API Reference on Document Deletes</a>
+	 * @throws CouchException If an exception is encountered
+	 */
 	private static CouchResponse deleteDocument(String documentId, String revisionId) throws CouchException {
 		HttpDelete documentDelete = new HttpDelete(COUCH_ENDPOINT + documentId + "?rev=" + revisionId);
 		CouchResponse response = executeRequest(documentDelete);
@@ -494,6 +714,17 @@ public class CouchUtil {
 		return response;
 	}
 	
+	/**
+	 * A generalized helper method to send a variety of HTTP requests to CouchDB.
+	 * All requests get a header added for request authorization.
+	 * 
+	 * @param request The <a href="#{@link}">{@link HttpUriRequest}</a> request to
+	 *                execute with the default
+	 *                <a href="#{@link}">{@link CloseableHttpClient}</a>
+	 * @return A <a href="#{@link}">{@link CouchResponse}</a> wrapper for the HTTP
+	 *         response
+	 * @throws CouchException If an exception is encountered
+	 */
 	private static CouchResponse executeRequest(HttpUriRequest request) throws CouchException {
 		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
 			request.setHeader(HttpHeaders.AUTHORIZATION, COUCH_AUTH);
@@ -525,7 +756,7 @@ public class CouchUtil {
 		}
 	}
 	
-	/* Run this to init a new database in couch: */
+	/* Run this to init a new database in couch:
 	public static void main(String[] args) throws Exception {
 		// (re-)initialize a DB on localhost
 		
@@ -590,6 +821,6 @@ public class CouchUtil {
 			System.out.println("Failed to create all indexes: "+ e);
 			throw e;
 		}
-	}
-	/**/
+		
+	}*/
 }
