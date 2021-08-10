@@ -6,6 +6,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -363,14 +364,14 @@ public class RdbmsConnectionHelper {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static ResultSet getTables(Connection con, DatabaseMetaData meta, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {					
+	public static ResultSet getTables(Connection con, Statement stmt, DatabaseMetaData meta, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {					
 		ResultSet tablesRs;
 		if (driver == RdbmsTypeEnum.ORACLE) {
 			String query = "SELECT TABLE_NAME AS \"table_name\", 'TABLE' AS \"table_type\"" + 
 					"FROM ALL_TABLES " +
 					"UNION SELECT VIEW_NAME AS \"table_name\", 'VIEW' AS \"table_type\" " + 
 					"FROM ALL_VIEWS ";
-			tablesRs = con.createStatement().executeQuery(query);
+			tablesRs = stmt.executeQuery(query);
 		} else if (driver == RdbmsTypeEnum.ATHENA){
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL_TABLE", "VIEW" });
 		} else if (driver == RdbmsTypeEnum.SQL_SERVER) {
