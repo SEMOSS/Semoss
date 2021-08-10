@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +21,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -77,26 +79,42 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		List<String> views = new ArrayList<String>();
 
 		DatabaseMetaData meta;
+		boolean close = false;
 		try {
 			meta = con.getMetaData();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			close = true;
+			logger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		} finally {
+			if(close) {
+				closeAutoClosable(con, logger);
+			}
 		}
 		
 		String catalogFilter = null;
 		try {
 			catalogFilter = con.getCatalog();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			// we can ignore this
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
-		ResultSet tablesRs;
+		Statement tableStmt = null;
+		ResultSet tablesRs = null;
 		try {
-			tablesRs = RdbmsConnectionHelper.getTables(con, meta, catalogFilter, schemaFilter, driverEnum);
+			tableStmt = con.createStatement();
+			tablesRs = RdbmsConnectionHelper.getTables(con, tableStmt, meta, catalogFilter, schemaFilter, driverEnum);
 		} catch (SQLException e) {
+			close = true;
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		} finally {
+			if(close) {
+				closeAutoClosable(tablesRs, logger);
+				closeAutoClosable(tableStmt, logger);
+				closeAutoClosable(con, logger);
+			}
 		}
 		
 		String[] tableKeys = RdbmsConnectionHelper.getTableKeys(driverEnum);
@@ -119,16 +137,11 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 				}
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeRs(tablesRs);
-			if(con != null) {
-				try {
-					con.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
+			closeAutoClosable(tablesRs, logger);
+			closeAutoClosable(tableStmt, logger);
+			closeAutoClosable(con, logger);
 		}
 		logger.info("Done parsing database metadata");
 		
@@ -139,15 +152,15 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 	}
 	
 	/**
-	 * Close the result set
-	 * @param rs
+	 * Close a connection, statement, or result set
+	 * @param closeable
 	 */
-	private void closeRs(ResultSet rs) {
-		if(rs != null) {
+	private void closeAutoClosable(AutoCloseable closeable, Logger logger) {
+		if(closeable != null) {
 			try {
-				rs.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
+				closeable.close();
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
