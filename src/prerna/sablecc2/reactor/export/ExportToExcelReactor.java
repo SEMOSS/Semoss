@@ -1605,6 +1605,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		int excelRowCounter = endRow;
 
 		Row headerRow = null;
+		Map<String, Row> xAxisToRow = new HashMap<>();
 		List<String> currentHeaderValues = new ArrayList<>();
 		CellStyle headerCellStyle = null;
 		int xAxisIndex = 0;
@@ -1665,11 +1666,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				cell.setCellStyle(headerCellStyle);
 			}
 			
-			// generate the data row
+			// generate the first data row
 			excelRow = sheet.createRow(excelRowCounter++);
 			Object[] dataRow = row.getValues();
 			// now we transpose this row to put it properly in the excel
 			Object xAxisValue = dataRow[xAxisIndex];
+			xAxisToRow.put(xAxisValue + "", excelRow);
 			Cell cell = excelRow.createCell(0);
 			getFormatedCellWithValue(cell, xAxisValue, typesArr[xAxisIndex],
 					stylingArr[xAxisIndex]);
@@ -1689,14 +1691,21 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// now iterate through all the data
 		while (task.hasNext()) {
-			excelRow = sheet.createRow(excelRowCounter++);
 			IHeadersDataRow row = task.next();
 			Object[] dataRow = row.getValues();
-			
+			Cell cell = null;
 			Object xAxisValue = dataRow[xAxisIndex];
-			Cell cell = excelRow.createCell(0);
-			getFormatedCellWithValue(cell, xAxisValue, typesArr[xAxisIndex],
-					stylingArr[xAxisIndex]);
+			if(xAxisToRow.containsKey(xAxisValue + "")) {
+				excelRow = xAxisToRow.get(xAxisValue + "");
+			} else {
+				excelRow = sheet.createRow(excelRowCounter++);
+				xAxisToRow.put(xAxisValue + "", excelRow);
+				
+				// set the x axis value once
+				cell = excelRow.createCell(0);
+				getFormatedCellWithValue(cell, xAxisValue, typesArr[xAxisIndex],
+						stylingArr[xAxisIndex]);
+			}
 			
 			Object instanceValue = dataRow[yAxisIndex];
 			Object instanceColumn = dataRow[instanceColumnIndex];
