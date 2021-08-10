@@ -1,3 +1,43 @@
+get_dataset_composition<-function(df,nbr_int=10){
+# Identifies column insights
+# Args
+# df - dataframe/table to search
+# nbr_int - number of interval to discretize data (default 10)
+# ext - extention coefficient (default 1.5)
+# Output
+# list with each element is a list itself 
+# with first element discretized data, second anomalies of the data 
+	library(data.table)
+	library(arules)
+	n<-ncol(df)
+	cols<-colnames(df)
+	out<-data.frame(Column=character(),Instance=character(),Frequency=integer(),stringsAsFactors=FALSE)
+	if(n>0){
+		for(i in 1:n){	
+			item<-list()
+			if(class(df[[i]]) %in% c("integer","numeric")){
+				item[[cols[i]]]<-table(discretize(df[[i]],method="interval",breaks=nbr_int))	
+				
+			}else if(class(df[[i]]) %in% c("character","factor")){
+				item[[cols[i]]]<-table(as.numeric(as.factor(df[[i]])))
+				names(item[[cols[i]]])<-levels(as.factor(df[[i]]))
+				
+			}else if(class(df[[i]])=="logical"){
+				item[[cols[i]]]<-table(as.numeric(df[[i]]))
+				names(item[[cols[i]]])<-unname(sapply(names(out[[i]]),function(x) if(x=="0") "FALSE" else "TRUE"))
+			}else if(class(df[[i]]) == "Date" ){
+				item[[cols[i]]]<-table(discretize(df[[i]],method="interval",breaks=nbr_int))
+			}
+			if(length(item)>0){
+				m<-length(item[[1]])
+				out<-rbind(out,data.frame(Column=rep(names(df)[i],m),Instance=names(item[[1]]),Frequency=unname(as.integer(item[[1]]))))
+			}
+		}
+	}
+	gc()
+	return(out)
+}
+
 get_dataset_outliers<-function(df,nbr_int=10,method="mean"){
 # Identifies column insights
 # Args
