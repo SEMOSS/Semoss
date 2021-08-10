@@ -337,9 +337,8 @@ public class SchedulerDatabaseUtility {
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		// update is_latest to false for all the existing records of this job id
 		try {
-			try{
-				PreparedStatement updateAuditTrailStatement = conn
-						.prepareStatement("UPDATE SMSS_AUDIT_TRAIL SET IS_LATEST=? WHERE JOB_ID=?");
+			try(PreparedStatement updateAuditTrailStatement = conn
+					.prepareStatement("UPDATE SMSS_AUDIT_TRAIL SET IS_LATEST=? WHERE JOB_ID=?")){
 				updateAuditTrailStatement.setBoolean(1, false);
 				updateAuditTrailStatement.setString(2, jobId);
 				updateAuditTrailStatement.executeUpdate();

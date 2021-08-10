@@ -184,7 +184,6 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		String host = getHostForDB(appId);
 		HttpClient httpclient = HttpClients.createDefault();
 		HttpPost httppost = getHttpPost(host, action, params);
-		
 		// Try to execute the call
 		HttpResponse response = null;
 		try {
@@ -203,6 +202,8 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 				// So rethrow e
 				throw e;
 			}
+		} finally {
+			httppost.releaseConnection();
 		}
 		HttpEntity entity = response.getEntity();
 		if (entity != null) {
