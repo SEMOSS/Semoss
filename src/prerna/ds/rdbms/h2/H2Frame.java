@@ -246,7 +246,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	 * Not specifically used in any workflow at the moment
 	 */
 
-	public String connectFrame() {
+	public String connectFrame(String pass) {
 		if (server == null) {
 			try {
 				String port = Utility.findOpenPort();
@@ -261,48 +261,35 @@ public class H2Frame extends AbstractRdbmsFrame {
 				e.printStackTrace();
 			}
 		}
-		printSchemaTables();
+		printSchemaTables(pass);
 		System.out.println("URL... " + serverURL);
 		return serverURL;
 	}
 
-	private void printSchemaTables() {
+	private void printSchemaTables(String pass) {
 		Connection conn = null;
 		ResultSet rs = null;
-
 		try {
 			Class.forName("org.h2.Driver");
 			String url = serverURL;
-			conn = DriverManager.getConnection(url, "sa", "");
+			conn = DriverManager.getConnection(url, "sa", pass);
 			rs = conn.createStatement()
 					.executeQuery("SELECT TABLE_NAME FROM INFORMATIOn_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'");
 
-			while (rs.next())
+			while (rs.next()) {
 				System.out.println("Table name is " + rs.getString(1));
-
-			url = "jdbc:h2:mem:test";
-			conn = this.conn;
-			rs = conn.createStatement()
-					.executeQuery("SELECT TABLE_NAME FROM INFORMATIOn_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'");
-
+			}
+			
 			// String schema = this.conn.getSchema();
 			System.out.println(".. " + conn.getMetaData().getURL());
 			System.out.println(".. " + conn.getMetaData().getUserName());
-			// System.out.println(".. " + conn.getMetaData().getS);
-
-			while (rs.next())
-				System.out.println("Table name is " + rs.getString(1));
-
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
+		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 		} finally {
 			if(conn!=null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -311,7 +298,6 @@ public class H2Frame extends AbstractRdbmsFrame {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
