@@ -66,7 +66,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		boolean includeDataTypes = options.contains("datatypes");
 
-		logger.info("Pulling database metadata for app " + engineId);
+		logger.info("Pulling database metadata for database " + engineId);
 		Map<String, Object> metamodelObject = new HashMap<>();
 		{
 			Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(engineId);
@@ -82,7 +82,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 		// add logical names
 		if(options.contains("logicalnames")) {
-			logger.info("Pulling database logical names for app " + engineId);
+			logger.info("Pulling database logical names for database " + engineId);
 			Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(engineId);
 			if(logicalNames == null) {
 				logicalNames = MasterDatabaseUtility.getDatabaseLogicalNames(engineId);
@@ -92,7 +92,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		}
 		// add descriptions
 		if(options.contains("descriptions")) {
-			logger.info("Pulling database descriptions for app " + engineId);
+			logger.info("Pulling database descriptions for database " + engineId);
 			Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(engineId);
 			if(descriptions == null) {
 				descriptions = MasterDatabaseUtility.getDatabaseDescriptions(engineId);
@@ -112,7 +112,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				File positionFile = app.getOwlPositionFile();
 				// try to make the file
 				if(!positionFile.exists()) {
-					logger.info("Generating metamodel layout for app " + engineId);
+					logger.info("Generating metamodel layout for database " + engineId);
 					logger.info("This process may take some time");
 					GenerateMetamodelLayout.generateLayout(engineId);
 					logger.info("Metamodel layout has been generated");
