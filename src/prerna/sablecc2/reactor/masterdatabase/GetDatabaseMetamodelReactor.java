@@ -103,6 +103,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 		// this is for the OWL positions for the new layout
 		if(options.contains("positions")) {
+			logger.info("Pulling database positions for database " + engineId);
 			IEngine app = Utility.getEngine(engineId);
 			// if the file is present, pull it and load
 			File owlF = SmssUtilities.getOwlFile(app.getProp());
