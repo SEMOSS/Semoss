@@ -70,6 +70,12 @@ public class DHMSMDataAccessLatencyFileImporter extends AbstractFileReader {
 			}catch(IOException e) {
 				e.printStackTrace();
 			}
+			try{
+				if(workbook!=null)
+					workbook.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		XSSFSheet sheet = workbook.getSheet("Data Requirements");
 

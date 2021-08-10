@@ -78,7 +78,7 @@ import prerna.util.sql.SqlQueryUtilFactory;
 public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	private static final Logger logger = LogManager.getLogger(RDBMSNativeEngine.class);
-	
+
 	public static final String STATEMENT_OBJECT = "STATEMENT_OBJECT";
 	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
 	public static final String CONNECTION_OBJECT = "CONNECTION_OBJECT";
@@ -95,9 +95,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	private Connection engineConn = null;
 	private boolean useConnectionPooling = false;
 	private boolean autoCommit = false;
-	
+
 	public PersistentHash conceptIdHash = null;
-	
+
 	private RdbmsConnectionBuilder connBuilder;
 	private String userName = null;
 	private String password = null;
@@ -110,7 +110,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	private int poolMinSize = 1;
 	private int poolMaxSize = 16;
 	private int queryTimeout = -1;
-	
+
 	private AbstractSqlQueryUtil queryUtil = null;
 
 	private String fileDB = null;
@@ -144,7 +144,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					super.openDB(propFile);
 				}
 			}
-			
+
 			// grab the values from the prop file 
 			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
 			if(dbTypeString == null) {
@@ -171,7 +171,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			if(this.password == null) {
 				this.password = prop.containsKey(queryUtil.getConnectionPasswordKey()) ? prop.getProperty(queryUtil.getConnectionPasswordKey()) : "";
 			}
-			
+
 			// grab the connection url
 			this.connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
@@ -226,16 +226,16 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
-			
+
 			this.connBuilder = null;
 			if(useFile) {
 				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.BUILD_FROM_FILE);
-				
+
 				// determine the location of the file relative to where SEMOSS is installed
 				this.fileDB = SmssUtilities.getDataFile(prop).getAbsolutePath();
 				// set the file location
 				connBuilder.setFileLocation(this.fileDB);
-				
+
 				// set the types
 				Vector<String> concepts = this.getConcepts();
 				String [] conceptsArray = concepts.toArray(new String[concepts.size()]);
@@ -247,32 +247,32 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					conceptAndType.putAll(typeMap);
 				}
 				connBuilder.setColumnToTypesMap(conceptAndType);
-				
+
 				// also update the connection url
 				Hashtable<String, String> paramHash = new Hashtable<String, String>();
 				String dbName = this.fileDB.replace(".csv", "").replace(".tsv", "");
 				paramHash.put("database", dbName);
 				this.connectionURL = Utility.fillParam2(connectionURL, paramHash);
-				
+
 			} else if(useConnectionPooling) {
 				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.CONNECTION_POOL);
 			} else {
 				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
 			}
-			
+
 			connBuilder.setConnectionUrl(this.connectionURL);
 			connBuilder.setUserName(this.userName);
 			connBuilder.setPassword(this.password);
 			connBuilder.setDriver(this.driver);
-			
+
 			init(connBuilder);
-			
+
 			try {
 				// update the query utility values
 				this.queryUtil.setConnectionUrl(this.connectionURL);
 				this.queryUtil.setUsername(this.userName);
 				this.queryUtil.setPassword(this.password);
-				
+
 				// build the connection
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
@@ -292,7 +292,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			}
 		}
 	}	
-	
+
 	/**
 	 * This is for when there are other engines that extend
 	 * the base RDBMSNativeEngine that need to do additional processing
@@ -303,7 +303,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		// default does nothing
 		init(connBuilder, false);
 	}
-	
+
 	/**
 	 * This is for when there are other engines that extend
 	 * the base RDBMSNativeEngine that need to do additional processing
@@ -314,22 +314,22 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	protected void init(RdbmsConnectionBuilder connBuilder, boolean force) {
 		// default does nothing
 	}
-	
+
 	protected void setDataSourceProperties(HikariDataSource dataSource) {
 		dataSource.setMinimumIdle(this.poolMinSize);
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(30_000);
-//		dataSource.setRemoveAbandonedOnBorrow(true);
-//		dataSource.setRemoveAbandonedOnMaintenance(true);
-//		dataSource.setRemoveAbandonedTimeout(5);
-//		dataSource.setMaxWaitMillis(30_000);
+		//		dataSource.setRemoveAbandonedOnBorrow(true);
+		//		dataSource.setRemoveAbandonedOnMaintenance(true);
+		//		dataSource.setRemoveAbandonedTimeout(5);
+		//		dataSource.setMaxWaitMillis(30_000);
 	}
 
 	@Override
 	public AbstractSqlQueryUtil getQueryUtil() {
 		return this.queryUtil;
 	}
-	
+
 	@Override
 	public String getSchema() {
 		if(this.schema == null) {
@@ -360,8 +360,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		}
 		return this.schema;
 	}
-	
+
 	private void makeConnection(String driver, String userName, String password, String connectionUrl, String createString) {
+		Statement stmt = null;
 		try {
 			Class.forName(driver);
 			this.connectionURL = connectionUrl;
@@ -369,7 +370,8 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			this.password = password;
 			this.engineConn = DriverManager.getConnection(connectionUrl, userName, password);
 			if(createString != null) {
-				this.engineConn.createStatement().execute(createString);
+				stmt = this.engineConn.createStatement();
+				stmt.execute(createString);
 			}
 			this.engineConnected = true;
 			this.autoCommit = this.engineConn.getAutoCommit();
@@ -378,9 +380,18 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			logger.error(Constants.STACKTRACE, e);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		}
 	}
-	
+
 	// you cant change owl right now
 	public void reloadFile() {
 		try {
@@ -390,7 +401,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	@Override
 	public HikariDataSource getDataSource() {
 		return this.dataSource;
@@ -562,6 +573,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 				stmt.setQueryTimeout(queryTimeout);
 			}
 			rs = null;
+			//System.out.println("PRINT QUERY: "+ query);
 			rs = stmt.executeQuery(query);
 			if(this.fetchSize > 0) {
 				try {
@@ -649,7 +661,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	public boolean isConnected() {
 		return engineConn !=null && this.engineConnected;
 	}
-	
+
 	public boolean isConnectionPooling() {
 		return this.useConnectionPooling;
 	}
@@ -766,7 +778,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			}
 		}
 	}
-	
+
 	@Override
 	public void removeData(String query) throws SQLException {
 		Connection conn = getConnection();
@@ -796,7 +808,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	public void commitRDBMS() {
 		System.out.println("Before commit.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
 		conceptIdHash.persistBack();
@@ -816,7 +828,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		IQueryInterpreter builder = getQueryInterpreter();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(this);
-		
+
 		String fromTableName = Utility.getInstanceName(fromType);
 		String toTableName = Utility.getInstanceName(toType);
 		qs.addSelector(fromTableName, SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
@@ -846,7 +858,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			IQueryFilter simple = new SimpleQueryFilter(lComparison, "==", rComparison);
 			qs.addExplicitFilter(simple);
 		}
-		
+
 		String retQuery = builder.composeQuery();
 		return retQuery;
 	}
@@ -876,14 +888,14 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
 		//WHY ARE WE DELETING THE SOURCE DATABSE????
 		//COMMENTING THIS OUT FOR NOW
-//		if (this.getDbType() != SQLQueryUtil.DB_TYPE.H2_DB) {
-//			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
-//			insertData(deleteText);
-//		}
+		//		if (this.getDbType() != SQLQueryUtil.DB_TYPE.H2_DB) {
+		//			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
+		//			insertData(deleteText);
+		//		}
 
 		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
-//			this.insightRdbms.getConnection().close();
+			//			this.insightRdbms.getConnection().close();
 			closeDB();
 
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
@@ -933,7 +945,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 		return getPreparedStatement(sql.toString());
 	}
-	
+
 	@Override
 	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
 		return makeConnection().prepareStatement(sql);
@@ -948,7 +960,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		}
 		return null;
 	}
-	
+
 	@Override
 	// does not account for a pooled connection need to ensure
 	public Connection makeConnection() throws SQLException {
@@ -966,11 +978,11 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		}
 		return retObject;
 	}
-	
+
 	public PersistentHash getConceptIdHash() {
 		return this.conceptIdHash;
 	}
-	
+
 	@Override
 	public IQueryInterpreter getQueryInterpreter(){
 		return this.queryUtil.getInterpreter(this);
@@ -985,20 +997,20 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	public Clob createClob() throws SQLException {
 		return this.makeConnection().createClob();
 	}
-	
+
 	public void setQueryUtil(AbstractSqlQueryUtil queryUtil) {
 		this.queryUtil = queryUtil;
 	}
-	
+
 	@Override
 	public String getConnectionUrl() {
 		return this.connectionURL;
 	}
-	
+
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////

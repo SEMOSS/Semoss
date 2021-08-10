@@ -105,10 +105,10 @@ public class FlatXML {
 	public void getURLData(String url)
 	{
 		String retString = null;
-		
+		CloseableHttpClient httpclient  = null;
 		try {
 			
-			CloseableHttpClient httpclient = HttpClients.createDefault();
+			httpclient = HttpClients.createDefault();
 			HttpGet httpget = new HttpGet(url);
 			
 			ResponseHandler<String> handler = new BasicResponseHandler();
@@ -121,6 +121,14 @@ public class FlatXML {
 			logger.error(STACKTRACE, cpe);
 		} catch (IOException ioe) {
 			logger.error(STACKTRACE, ioe);
+		} finally {
+			if(httpclient != null) {
+				try {
+					httpclient.close();
+				} catch(IOException e) {
+					// ignore
+				}
+			}
 		}
 				
 		//return retString;
@@ -200,9 +208,9 @@ public class FlatXML {
 		String [] cols = new String [data.length];
 		int numItems = data.length;
 		
-		
+		BufferedWriter bw = null;
 		try {
-			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
+			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
 			bw.write(headers);
 			bw.write("\n");
 			
@@ -230,20 +238,31 @@ public class FlatXML {
 				bw.write("\n");
 			}
 			
-			bw.flush();
-			bw.close();
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if(bw != null) {
+				try {
+					bw.flush();
+					bw.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		}
 		
 	}
 	
 	public void getData(String file)
 	{
+		InputStream inputStream = null;
+		Reader reader  = null;
+		BufferedReader breader = null;
 		try {
-			InputStream inputStream = new FileInputStream(file);
-			Reader reader = new InputStreamReader(inputStream);
-			BufferedReader breader = new BufferedReader(reader);
+			inputStream = new FileInputStream(file);
+			reader = new InputStreamReader(inputStream);
+			breader = new BufferedReader(reader);
 			
 			String jsonString = breader.readLine();
 			logger.debug("String is .. " + jsonString);
@@ -281,6 +300,28 @@ public class FlatXML {
 			logger.error(STACKTRACE, fnfe);
 		} catch (IOException ioe) {
 			logger.error(STACKTRACE, ioe);
+		} finally {
+			if(inputStream != null) {
+		          try {
+		        	  inputStream.close();
+		          } catch(IOException e) {
+		            // ignore
+		          }
+		        }
+			if(reader != null) {
+		          try {
+		        	  reader.close();
+		          } catch(IOException e) {
+		            // ignore
+		          }
+		        }
+			if(breader != null) {
+		          try {
+		        	  breader.close();
+		          } catch(IOException e) {
+		            // ignore
+		          }
+		        }
 		}
 	}
 	
@@ -302,7 +343,7 @@ public class FlatXML {
 	{
 		InputStream inputStream = new FileInputStream(file);
 		Reader reader = new InputStreamReader(inputStream);
-		BufferedReader breader = new BufferedReader(reader);
+		//BufferedReader breader = new BufferedReader(reader);
 		
 		//String jsonString = breader.readLine();
 		//System.out.println(jsonString);

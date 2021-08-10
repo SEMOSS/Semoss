@@ -97,6 +97,7 @@ public class AppTokens extends AbstractValueObject{
 		InputStream is = null;
 		InputStreamReader isr = null;
 		BufferedReader rd = null;
+		CloseableHttpClient httpclient = null;
 		if(twitToken == null) {
 			try {
 				String prefix = "twitter_";
@@ -114,7 +115,7 @@ public class AppTokens extends AbstractValueObject{
 
 				// encde this base 64
 				String encodedJointString = new String(Base64.getEncoder().encode(jointString.getBytes()));
-				CloseableHttpClient httpclient = HttpClients.createDefault();
+				httpclient = HttpClients.createDefault();
 				HttpPost httppost = new HttpPost("https://api.twitter.com/oauth2/token");
 				httppost.addHeader("Authorization", "Basic " + encodedJointString);
 
@@ -157,6 +158,13 @@ public class AppTokens extends AbstractValueObject{
 				if(rd != null) {
 					try {
 						rd.close();
+					} catch(IOException e) {
+						// ignore
+					}
+				}
+				if(httpclient != null) {
+					try {
+						httpclient.close();
 					} catch(IOException e) {
 						// ignore
 					}
