@@ -460,9 +460,10 @@ public class JsonAPIEngine extends AbstractEngine {
 	{
 		String retString = null;
 		
+		CloseableHttpClient httpclient = null;
 		try {
 			
-			CloseableHttpClient httpclient = HttpClients.createDefault();
+			httpclient = HttpClients.createDefault();
 			HttpGet httpget = new HttpGet(url);
 			
 			// need to set headers if the headers are there
@@ -488,6 +489,14 @@ public class JsonAPIEngine extends AbstractEngine {
 			logger.error(STACKTRACE, cpe);
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if(httpclient != null) {
+		          try {
+		            httpclient.close();
+		          } catch(IOException e) {
+		            // ignore
+		          }
+		        }
 		}
 				
 		return retString;
@@ -496,11 +505,11 @@ public class JsonAPIEngine extends AbstractEngine {
 	public String doPost(Hashtable params)
 	{
 		String retString = null;
-		
+		CloseableHttpClient httpclient = null;
 		try {
 			String url = prop.getProperty(INPUT_URL);
 			
-			CloseableHttpClient httpclient = HttpClients.createDefault();
+			httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
 
 			// need to set headers if the headers are there
@@ -553,6 +562,14 @@ public class JsonAPIEngine extends AbstractEngine {
 			logger.error(STACKTRACE, cpe);
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if(httpclient != null) {
+		          try {
+		            httpclient.close();
+		          } catch(IOException e) {
+		            // ignore
+		          }
+		        }
 		}
 				
 		return retString;
@@ -563,11 +580,11 @@ public class JsonAPIEngine extends AbstractEngine {
 	public InputStream doPostI(Hashtable params)
 	{
 		InputStream retStream = null;
-		
+		CloseableHttpClient httpclient = null;
 		try {
 			String url = prop.getProperty(INPUT_URL);
 			
-			CloseableHttpClient httpclient = HttpClients.createDefault();
+			httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
 
 			// need to set headers if the headers are there
@@ -606,6 +623,14 @@ public class JsonAPIEngine extends AbstractEngine {
 			logger.error(STACKTRACE, cpe);
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if(httpclient != null) {
+		          try {
+		            httpclient.close();
+		          } catch(IOException e) {
+		            // ignore
+		          }
+		        }
 		}
 				
 		return retStream;
@@ -616,9 +641,9 @@ public class JsonAPIEngine extends AbstractEngine {
 	public InputStream doGetI(String url)
 	{
 		InputStream retStream = null;
-		
+		CloseableHttpClient httpclient = null;
 		try {
-			CloseableHttpClient httpclient = HttpClients.createDefault();
+			httpclient = HttpClients.createDefault();
 			HttpGet httpget = new HttpGet(url);
 			
 			// need to set headers if the headers are there
@@ -644,6 +669,14 @@ public class JsonAPIEngine extends AbstractEngine {
 			logger.error(STACKTRACE, cpe);
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if(httpclient != null) {
+		          try {
+		            httpclient.close();
+		          } catch(IOException e) {
+		            // ignore
+		          }
+		        }
 		}
 				
 		return retStream;

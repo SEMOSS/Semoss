@@ -316,10 +316,16 @@ public class SmssUtilities {
 
 			}
 		} finally {
-			fr.close();
-			br.close();
-			out.flush();
-			out.close();
+			if(fr != null) {
+				fr.close();
+			}
+			if(br != null) {
+				br.close();
+			}
+			if(out != null) {
+				out.flush();
+				out.close();
+			}
 		}
 	}
 

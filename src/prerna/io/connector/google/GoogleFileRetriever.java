@@ -18,7 +18,7 @@ public class GoogleFileRetriever implements IConnectorIOp{
 		
 		
 		String fileName = (String)params.remove("target");
-		
+		BufferedWriter target  = null;
 		try {
 			String url_str = "https://docs.google.com/spreadsheets/export"; 
 			//System.out.println("....");
@@ -28,7 +28,7 @@ public class GoogleFileRetriever implements IConnectorIOp{
 			// create a file
 			File outputFile = new File(fileName);
 			
-			BufferedWriter target = new BufferedWriter(new FileWriter(outputFile));
+			target = new BufferedWriter(new FileWriter(outputFile));
 			String data = null;
 			
 			
@@ -41,6 +41,16 @@ public class GoogleFileRetriever implements IConnectorIOp{
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if(target != null) {
+		          try {
+		        	  target.flush();
+		        	  target.close();
+		          } catch(IOException e) {
+		            // ignore
+		          }
+		        }
+
 		}
 		
 		// TODO Auto-generated method stub
