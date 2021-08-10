@@ -76,7 +76,7 @@ public class ExportDatabaseReactor extends AbstractReactor {
 			String databaseName = database.getEngineName();
 			String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/export/ZIPs";
 			String engineDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(databaseName, databaseId);
-			zipFilePath = OUTPUT_PATH + "/" + databaseName + ".zip";
+			zipFilePath = OUTPUT_PATH + "/" + databaseName + "_database.zip";
 			
 			// zip database
 			ZipOutputStream zos = null;
