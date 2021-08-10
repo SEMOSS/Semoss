@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -18,6 +19,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable {
 
+	private Statement tableStmt;
 	private ResultSet tablesRs;
 	private String[] tableKeys;
 	private boolean useDirectValues = false;
@@ -34,7 +36,8 @@ public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable
 	public CustomTableAndViewIterator(Connection con, DatabaseMetaData meta, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver, Collection<String> tableAndViewFilters) {
 		if(tableAndViewFilters == null || tableAndViewFilters.isEmpty()) {
 			try {
-				this.tablesRs = RdbmsConnectionHelper.getTables(con, meta, catalogFilter, schemaFilter, driver);
+				this.tableStmt = con.createStatement();
+				this.tablesRs = RdbmsConnectionHelper.getTables(con, tableStmt, meta, catalogFilter, schemaFilter, driver);
 				this.tableKeys = RdbmsConnectionHelper.getTableKeys(driver);
 			} catch (SQLException e) {
 				throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -91,7 +94,14 @@ public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable
 			} catch (SQLException e) {
 				// ignore
 			}
-		}		
+		}
+		if(this.tableStmt != null) {
+			try {
+				this.tableStmt.close();
+			} catch (SQLException e) {
+				// ignore
+			}
+		}
 	}
 	
 }
