@@ -24,34 +24,70 @@ import prerna.util.Utility;
 public class ExcelUtility {
 
 	public static void encrypt(Workbook workbook, String fileLocation, String password) {
+		FileOutputStream output = null;
+		POIFSFileSystem fs = null;
+		OPCPackage opc = null;
+		ByteArrayInputStream input = null;
+		OutputStream os  = null;
 		try {
 			// saves sheet
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			workbook.write(bos);
 			workbook.close();
-			ByteArrayInputStream input = new ByteArrayInputStream(bos.toByteArray());
+			input = new ByteArrayInputStream(bos.toByteArray());
 			bos.close();
-			FileOutputStream output = new FileOutputStream(fileLocation);
+			output = new FileOutputStream(fileLocation);
 			// encrypt the file
-			POIFSFileSystem fs = new POIFSFileSystem();
+			fs = new POIFSFileSystem();
 			EncryptionInfo info = new EncryptionInfo(EncryptionMode.agile);
 			Encryptor enc = info.getEncryptor();
 			enc.confirmPassword(password);
-			OPCPackage opc = OPCPackage.open(input);
-			OutputStream os = enc.getDataStream(fs);
+			opc = OPCPackage.open(input);
+			os = enc.getDataStream(fs);
 			opc.save(os);
-			os.close();
-			opc.close();
 			fs.writeFilesystem(output);
-			fs.close();
-			output.close();
-			input.close();
 		} catch (GeneralSecurityException e) {
 			throw new RuntimeException(e);
 		} catch (InvalidFormatException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			if(output != null) {
+		          try {
+		        	  output.close();
+		          } catch(IOException e) {
+		        	  e.printStackTrace();
+		          }
+		        }
+			if(fs != null) {
+		          try {
+		        	  fs.close();
+		          } catch(IOException e) {
+		        	  e.printStackTrace();
+		          }
+		        }
+			if(opc != null) {
+		          try {
+		        	  opc.close();
+		          } catch(IOException e) {
+		        	  e.printStackTrace();
+		          }
+		        }
+			if(input != null) {
+		          try {
+		        	  input.close();
+		          } catch(IOException e) {
+		        	  e.printStackTrace();
+		          }
+		        }
+			if(os != null) {
+		          try {
+		        	  os.close();
+		          } catch(IOException e) {
+		        	  e.printStackTrace();
+		          }
+		        }
 		}
 	}
 
