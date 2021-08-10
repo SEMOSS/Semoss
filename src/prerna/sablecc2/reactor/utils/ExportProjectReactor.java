@@ -12,12 +12,10 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityAppUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IEngine;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.InsightFile;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,52 +40,51 @@ public class ExportProjectReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		logger.info("Checking database information and user permissions.");
 		organizeKeys();
-		String project = keysToGet[0];
-		/*
-		 * Need to check with Maher if the below security works for projects as well.
-		 */
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+
 		User user = this.insight.getUser();
 		if (AbstractSecurityUtils.securityEnabled()) {
-			project = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), project);
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			if (!isAdmin) {
-				boolean isOwner = SecurityAppUtils.userIsOwner(user, project);
+				boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
 				if (!isOwner)
-					throw new IllegalArgumentException("Project " + project + "does not exist.");
+					throw new IllegalArgumentException("Project " + projectId + "does not exist.");
 			}
-		} else {
-			project = MasterDatabaseUtility.testDatabaseIdIfAlias(project);
-			if (!MasterDatabaseUtility.getAllDatabaseIds().contains(project))
-				throw new IllegalArgumentException("Project " + project + " does not exist.");
-		}
+		} 
+//		else {
+//			project = MasterDatabaseUtility.testDatabaseIdIfAlias(project);
+//			if (!MasterDatabaseUtility.getAllDatabaseIds().contains(project))
+//				throw new IllegalArgumentException("Project " + project + " does not exist.");
+//		}
 
 		logger.info("Exporting project now...");
-		logger.info("Stopping the engine...");
+		logger.info("Stopping the project...");
 
 		String zipFilePath = null;
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		IEngine engine = Utility.getEngine(project);
-		String engineName = engine.getEngineName();
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
 		String OUTPUT_PATH = baseFolder + "/export/ZIPs";
-		String projectDir = baseFolder + "/project/" + SmssUtilities.getUniqueName(engineName, project);
+		String projectDir = baseFolder + "/project/" + SmssUtilities.getUniqueName(projectName, projectId);
 		// String projectDir = baseFolder + "/project/" +
 		// SmssUtilities.getUniqueName(engineName, project);
-		zipFilePath = OUTPUT_PATH + "/" + engineName + "_project.zip";
+		zipFilePath = OUTPUT_PATH + "/" + projectName + "_project.zip";
 
-		Lock lock = EngineSyncUtility.getEngineLock(engineName);
+		Lock lock = EngineSyncUtility.getEngineLock(projectName);
 		lock.lock();
 		try {
-			DIHelper.getInstance().removeLocalProperty(project);
-			engine.closeDB();
+			DIHelper.getInstance().removeProjectProperty(projectId);
+			project.closeProject();
 			// zip project
 			ZipOutputStream zos = null;
 			try {
 				// zip project folder
 				logger.info("Zipping project files...");
 				zos = ZipUtils.zipFolder(projectDir, zipFilePath);
-				logger.info("Done zipping app files...");
+				logger.info("Done zipping project files...");
 				// add smss file
-				File smss = new File(projectDir + "/../" + SmssUtilities.getUniqueName(engineName, project) + ".smss");
+				File smss = new File(projectDir + "/../" + SmssUtilities.getUniqueName(projectName, projectId) + ".smss");
 				logger.info("Saving file " + smss.getName());
 				ZipUtils.addToZipFile(smss, zos);
 			} catch (FileNotFoundException e) {
@@ -108,8 +105,8 @@ public class ExportProjectReactor extends AbstractReactor {
 			logger.info("Zipping Complete");
 		} finally {
 			// open it back up
-			logger.info("Opening the engine again ... ");
-			Utility.getEngine(project);
+			logger.info("Opening the project again ... ");
+			Utility.getProject(projectId);
 			lock.unlock();
 		}
 
