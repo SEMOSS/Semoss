@@ -268,9 +268,10 @@ public class ComparingTwoColumns {
 	
 	public static void readExcelFile(String loc) {
 		FileInputStream is = null;
+		XSSFWorkbook wb = null;
 		try {
 			is = new FileInputStream(loc);
-			XSSFWorkbook wb = new XSSFWorkbook(is);
+			wb = new XSSFWorkbook(is);
 			XSSFSheet xs = wb.getSheetAt(0);
 			
 			colA = new ArrayList<String>();
@@ -303,6 +304,13 @@ public class ComparingTwoColumns {
 			if(is != null) {
 				try {
 					is.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(wb != null) {
+				try {
+					wb.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
