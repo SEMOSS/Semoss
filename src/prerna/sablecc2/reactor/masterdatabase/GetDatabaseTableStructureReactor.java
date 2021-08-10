@@ -45,7 +45,7 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 		}
 
 		Logger logger = getLogger(CLASS_NAME);
-		logger.info("Pulling database structure for app " + engineId);
+		logger.info("Pulling database structure for database " + engineId);
 		// if cache exists, return from there
 		List<Object[]> data = EngineSyncUtility.getDatabaseStructureCache(engineId);
 		if(data == null) {

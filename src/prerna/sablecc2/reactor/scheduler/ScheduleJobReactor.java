@@ -153,7 +153,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 			// insert into SMOSS_JOB_RECIPES table
 			logger.info("Saving JobId to database: "+jobId);
-			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", triggerOnLoad, uiState, jobTags);
+			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, 
+					recipe, recipeParameters, "Default", triggerOnLoad, uiState, jobTags);
 
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
