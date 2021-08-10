@@ -865,6 +865,7 @@ public class Project implements IProject {
 		Invoker invoker = new DefaultInvoker();
 
 		invoker.setMavenHome(new File(mvnHome));
+		BufferedReader br = null;
 		try {
 			InvocationResult result = invoker.execute( request );
 			 
@@ -885,7 +886,7 @@ public class Project implements IProject {
 			
 			List <String> finalCP = new Vector<String>();
 			File classesFile = new File(outputFile);
-			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(classesFile)));
+			br = new BufferedReader(new InputStreamReader(new FileInputStream(classesFile)));
 			String data = null;
 			while((data = br.readLine()) != null)
 			{
@@ -913,6 +914,14 @@ public class Project implements IProject {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if(br != null) {
+		          try {
+		            br.close();
+		          } catch(IOException e) {
+		        	  logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
 		}
 
 

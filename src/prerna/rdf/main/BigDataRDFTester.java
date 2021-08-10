@@ -137,8 +137,10 @@ public class BigDataRDFTester {
 	 */
 	public void loadProperties(String fileName) throws Exception {
 		bdProp = new Properties();
-		bdProp.load(new FileInputStream(fileName));
+		try( FileInputStream fileInput = new FileInputStream(fileName)){
+		bdProp.load(fileInput);
 		logger.debug("Properties >>>>>>>>" + bdProp);
+		}
 
 	}
 	
@@ -149,7 +151,9 @@ public class BigDataRDFTester {
 	public void loadRDFMap(String fileName) throws Exception
 	{
 		rdfMap = new Properties();
-		rdfMap.load(new FileInputStream(fileName));
+		try( FileInputStream fileInput = new FileInputStream(fileName)){
+		rdfMap.load(fileInput);
+		}
 	}
 
 	/**
