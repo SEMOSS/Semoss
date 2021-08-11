@@ -160,14 +160,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * TODO >>> Kunal: change app_id to projectId. Have to cordinate with FE.
 	 * Get the insights the user has edit access to
 	 * @param user
 	 * @param appId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserEditableInsighs(User user, String projectId) {
-		
 		String permission = SecurityProjectUtils.getActualUserProjectPermission(user, projectId);
 		if(permission == null || permission.equals(AccessPermission.READ_ONLY.getPermission())) {
 			return new Vector<>();
@@ -178,8 +176,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// you are the owner
 			// you get all the insights
 			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
-			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "project_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "project_insight_id"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "exec_count"));
@@ -195,8 +193,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			Collection<String> userIds = getUserFiltersQs(user);
 
 			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
-			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "project_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "project_insight_id"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "exec_count"));
