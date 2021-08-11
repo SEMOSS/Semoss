@@ -163,7 +163,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				+ "INSIGHT.INSIGHTNAME AS \"insight_name\", " 
 				+ "INSIGHT.GLOBAL AS \"insight_public\", " 
 				+ "INSIGHT.PROJECTID AS \"project_id\", " 
-				+ "SUB_Q.NAME AS \"project_permission\", " 
+				+ "SUB_Q.NAME AS \"insight_permission\", " 
 				+ "SUB_Q.USERID AS \"user_id\" " 
 				+ "FROM INSIGHT LEFT OUTER JOIN ( "
 					+ "SELECT USERINSIGHTPERMISSION.INSIGHTID, "
