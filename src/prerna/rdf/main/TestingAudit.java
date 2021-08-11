@@ -173,6 +173,15 @@ public class TestingAudit {
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
+			} finally {
+			      if(stmt != null) {
+		                try {
+		            stmt.close();
+		          } catch (SQLException e) {
+		            // TODO Auto-generated catch block
+		            e.printStackTrace();
+		          }
+		        }
 			}
 			
 			// actually run

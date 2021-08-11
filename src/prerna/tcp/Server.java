@@ -121,8 +121,9 @@ public class Server
 		DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		worker.prop = new Properties();
-		try {
-			worker.prop.load(new FileInputStream(Utility.normalizePath(args[1])));
+		
+		try(FileInputStream fileInput = new FileInputStream(Utility.normalizePath(args[1]))) {
+			worker.prop.load(fileInput);
 			System.out.println("Loaded the rdf map");
 			
 			// get the library for jep

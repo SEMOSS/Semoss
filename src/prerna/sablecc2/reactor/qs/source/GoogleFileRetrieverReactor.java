@@ -94,6 +94,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 		else{
 			throw new IllegalArgumentException("Illegal file type");
 		}
+		BufferedWriter target = null;
 		try{
 			BufferedReader br = AbstractHttpHelper.getHttpStream(url_str, accessToken, params, true);
 
@@ -101,7 +102,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 
 			File outputFile = new File(filePath);
 
-			BufferedWriter target = new BufferedWriter(new FileWriter(outputFile));
+			target = new BufferedWriter(new FileWriter(outputFile));
 			String data = null;
 
 
@@ -130,6 +131,15 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 			return qs;
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			if(target != null) {
+		          try {
+		        	  target.flush();
+		        	  target.close();
+		          } catch(IOException e) {
+		            logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
 		}
 
 		return qs;

@@ -400,10 +400,26 @@ public class RuntimeJavaClassBuilder {
 				}
 			}
 
-			writer.close();
-			fw.close();
+			
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			if(writer != null) {
+			try {
+				writer.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			}
+			if(fw != null) {
+			try {
+				fw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			}
 		}
 	}
 
