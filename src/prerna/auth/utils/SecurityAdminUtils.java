@@ -3,6 +3,7 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -488,7 +489,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	
 	/**
 	 * 
 	 * @param newUserId
@@ -517,6 +517,47 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	/**
+	 * Return the databases the user has explicit access to
+	 * @param singleUserId
+	 * @return
+	 */
+	public List<String> getProjectsUserHasExplicitAccess(String singleUserId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", singleUserId));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+	
+	/**
+	 * Return the databases the user has explicit access to
+	 * @param singleUserId
+	 * @return
+	 */
+	public Map<String, Boolean> getProjectsAndVisibilityUserHasExplicitAccess(String singleUserId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", singleUserId));
+		Map<String, Boolean> values = new HashMap<>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				values.put((String) row[0], (Boolean) row[1]);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return values;
+	}
+	
 	/** 
 	 * Give user permission for all the projects
 	 * @param userId		String - 	The user id we are providing permissions to
@@ -525,41 +566,166 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * 									If true, adding new projects with the permission level specified
 	 */
 	public void grantAllProjects(String userId, String permission, boolean isAddNew) {
-		// delete all previous permissions for the user
-		String query = "DELETE FROM PROJECTPERMISSION WHERE USERID='"+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
-		String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES('"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', ?, " + "TRUE, "
-				+ AccessPermission.getIdByPermission(permission) + ");";
-		PreparedStatement ps = null;
-		try {
-			securityDb.insertData(query);
-			ps = securityDb.getPreparedStatement(insertQuery);
-			// add new permission for all projects
+		if(isAddNew) {
+			List<String> currentProjectAccess = getProjectsUserHasExplicitAccess(userId);
 			List<String> projectIds = SecurityProjectUtils.getAllProjectIds();
-			for (String projectId : projectIds) {
-				ps.setString(1, projectId);
-				ps.addBatch();
+			String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
+			int permissionLevel = AccessPermission.getIdByPermission(permission);
+			boolean visible = true;
+			PreparedStatement ps = null;
+
+			try {
+				ps = securityDb.getPreparedStatement(insertQuery);
+				// add new permission for projects
+				for (String projectId : projectIds) {
+					if(currentProjectAccess.contains(projectId)) {
+						// only add for new projects, not existing projects
+						continue;
+					}
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, userId);
+					ps.setString(parameterIndex++, projectId);
+					ps.setBoolean(parameterIndex++, visible);
+					ps.setInt(parameterIndex++, permissionLevel);
+					ps.addBatch();
+				}
+				ps.executeBatch();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+			} finally {
+				if (ps != null) {
+					try {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
 			}
-			ps.executeBatch();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
-		} finally {
-			if (ps != null) {
+		} else {
+			// first grab the projects and visibility
+			Map<String, Boolean> currentProjectToVisibilityMap = getProjectsAndVisibilityUserHasExplicitAccess(userId);
+			
+			// we will remove all the current permissions
+			// and then re-add the ones they used to have but with the new level
+			
+			// delete first
+			{
+				String deleteQuery = "DELETE FROM PROJECTPERMISSION WHERE USERID=?";
+				PreparedStatement ps = null;
 				try {
-					ps.close();
-					if(securityDb.isConnectionPooling()) {
+					ps = securityDb.getPreparedStatement(deleteQuery);
+					ps.setString(1, userId);
+					ps.execute();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+				} finally {
+					if (ps != null) {
 						try {
-							ps.getConnection().close();
+							ps.close();
+							if(securityDb.isConnectionPooling()) {
+								try {
+									ps.getConnection().close();
+								} catch (SQLException e) {
+									logger.error(Constants.STACKTRACE, e);
+								}
+							}
 						} catch (SQLException e) {
 							logger.error(Constants.STACKTRACE, e);
 						}
 					}
+				}
+			}
+			// now add
+			{
+				// now we insert the values
+				String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
+				int permissionLevel = AccessPermission.getIdByPermission(permission);
+				PreparedStatement ps = null;
+
+				try {
+					ps = securityDb.getPreparedStatement(insertQuery);
+					// add new permission for all projects
+					for (String projectId : currentProjectToVisibilityMap.keySet()) {
+						boolean visible = currentProjectToVisibilityMap.get(projectId);
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, projectId);
+						ps.setBoolean(parameterIndex++, visible);
+						ps.setInt(parameterIndex++, permissionLevel);
+						ps.addBatch();
+					}
+					ps.executeBatch();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+				} finally {
+					if (ps != null) {
+						try {
+							ps.close();
+							if(securityDb.isConnectionPooling()) {
+								try {
+									ps.getConnection().close();
+								} catch (SQLException e) {
+									logger.error(Constants.STACKTRACE, e);
+								}
+							}
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Return the databases the user has explicit access to
+	 * @param singleUserId
+	 * @return
+	 */
+	public static List<String> getDatabasesUserHasExplicitAccess(String singleUserId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+	
+	/**
+	 * Return the databases the user has explicit access to
+	 * @param singleUserId
+	 * @return
+	 */
+	public Map<String, Boolean> getDatabasesAndVisibilityUserHasExplicitAccess(String singleUserId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
+		Map<String, Boolean> values = new HashMap<>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				values.put((String) row[0], (Boolean) row[1]);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return values;
 	}
 	
 	/** 
@@ -570,39 +736,122 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * 									If true, adding new projects with the permission level specified
 	 */
 	public void grantAllDatabases(String userId, String permission, boolean isAddNew) {
-		// delete all previous permissions for the user
-		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID='"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
-		String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES('"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', ?, " + "TRUE, "
-				+ AccessPermission.getIdByPermission(permission) + ");";
-		PreparedStatement ps = null;
-		try {
-			securityDb.insertData(query);
-			ps = securityDb.getPreparedStatement(insertQuery);
-			// add new permission for all dbs
-			List<String> dbIds = SecurityDatabaseUtils.getAllDatabaseIds();
-			for (String appId : dbIds) {
-				ps.setString(1, appId);
-				ps.addBatch();
+		if(isAddNew) {
+			List<String> currentDatabaseAccess = getDatabasesUserHasExplicitAccess(userId);
+			List<String> databaseIds = SecurityDatabaseUtils.getAllDatabaseIds();
+			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
+			int permissionLevel = AccessPermission.getIdByPermission(permission);
+			boolean visible = true;
+			PreparedStatement ps = null;
+
+			try {
+				ps = securityDb.getPreparedStatement(insertQuery);
+				// add new permission for databases
+				for (String databaseId : databaseIds) {
+					if(currentDatabaseAccess.contains(databaseId)) {
+						// only add for new databases, not existing databases
+						continue;
+					}
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, userId);
+					ps.setString(parameterIndex++, databaseId);
+					ps.setBoolean(parameterIndex++, visible);
+					ps.setInt(parameterIndex++, permissionLevel);
+					ps.addBatch();
+				}
+				ps.executeBatch();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("An error occured granting the user permission for all the databases");
+			} finally {
+				if (ps != null) {
+					try {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
 			}
-			ps.executeBatch();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured granting the user permission for all the databases");
-		} finally {
-			if (ps != null) {
+		} else {
+			// first grab the databases and visibility
+			Map<String, Boolean> currentDatabaseToVisibilityMap = getDatabasesAndVisibilityUserHasExplicitAccess(userId);
+			
+			// we will remove all the current permissions
+			// and then re-add the ones they used to have but with the new level
+			
+			// delete first
+			{
+				String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=?";
+				PreparedStatement ps = null;
 				try {
-					ps.close();
-					if(securityDb.isConnectionPooling()) {
+					ps = securityDb.getPreparedStatement(deleteQuery);
+					ps.setString(1, userId);
+					ps.execute();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("An error occured granting the user permission for all the databases");
+				} finally {
+					if (ps != null) {
 						try {
-							ps.getConnection().close();
+							ps.close();
+							if(securityDb.isConnectionPooling()) {
+								try {
+									ps.getConnection().close();
+								} catch (SQLException e) {
+									logger.error(Constants.STACKTRACE, e);
+								}
+							}
 						} catch (SQLException e) {
 							logger.error(Constants.STACKTRACE, e);
 						}
 					}
+				}
+			}
+			// now add
+			{
+				// now we insert the values
+				String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
+				int permissionLevel = AccessPermission.getIdByPermission(permission);
+				PreparedStatement ps = null;
+
+				try {
+					ps = securityDb.getPreparedStatement(insertQuery);
+					// add new permission for all projects
+					for (String databaseId : currentDatabaseToVisibilityMap.keySet()) {
+						boolean visible = currentDatabaseToVisibilityMap.get(databaseId);
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, databaseId);
+						ps.setBoolean(parameterIndex++, visible);
+						ps.setInt(parameterIndex++, permissionLevel);
+						ps.addBatch();
+					}
+					ps.executeBatch();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("An error occured granting the user permission for all the databases");
+				} finally {
+					if (ps != null) {
+						try {
+							ps.close();
+							if(securityDb.isConnectionPooling()) {
+								try {
+									ps.getConnection().close();
+								} catch (SQLException e) {
+									logger.error(Constants.STACKTRACE, e);
+								}
+							}
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				}
 			}
 		}
