@@ -36,10 +36,6 @@ public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
 			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
 		}
 		
-		if(!SecurityQueryUtils.getDatabaseIds().contains(engineId)) {
-			throw new IllegalArgumentException("App id does not exist");
-		}
-		
 		String concept = getConcept();
 		String description = MasterDatabaseUtility.getMetadataValue(engineId, concept, Constants.DESCRIPTION);
 		String output = "";
