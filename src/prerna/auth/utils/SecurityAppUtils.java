@@ -75,6 +75,19 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Get a list of the database ids
+	 * @return
+	 */
+	public static List<String> getAllDatabaseIds() {
+//		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+	
+	/**
 	 * Get the database permissions for a specific user
 	 * @param singleUserId
 	 * @param databaseId

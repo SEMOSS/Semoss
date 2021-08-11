@@ -460,7 +460,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return SecurityQueryUtils.getFullProjectOwnersAndEditors(projectId);
 	}
 	
-	
 	/**
 	 * 
 	 * @param newUserId
@@ -536,7 +535,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			ps = securityDb.getPreparedStatement(insertQuery);
 			// add new permission for all projects
-			List<String> projectIds = SecurityQueryUtils.getProjectIds();
+			List<String> projectIds = SecurityProjectUtils.getAllProjectIds();
 			for (String projectId : projectIds) {
 				ps.setString(1, projectId);
 				ps.addBatch();
@@ -582,7 +581,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			ps = securityDb.getPreparedStatement(insertQuery);
 			// add new permission for all dbs
-			List<String> dbIds = SecurityQueryUtils.getDatabaseIds();
+			List<String> dbIds = SecurityAppUtils.getAllDatabaseIds();
 			for (String appId : dbIds) {
 				ps.setString(1, appId);
 				ps.addBatch();
