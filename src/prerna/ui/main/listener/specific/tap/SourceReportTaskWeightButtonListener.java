@@ -56,7 +56,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 	ArrayList<String> outputArray = new ArrayList<String>();
 	String repo="";
 	IEngine engine;
-	
+
 	/**
 	 * Method actionPerformed.
 	 * @param actionevent ActionEvent
@@ -73,7 +73,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			Utility.showError("The database does not contain the required elements");
 			return;
 		}
-		
+
 
 		ArrayList<String> tasks = getVendorTasks();//get a list of all tasks used in the vendor database
 		if(tasks==null)
@@ -87,14 +87,14 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
-		
+
 		//hashtable to hold scoring values
 		Hashtable<String,Integer> options = new Hashtable<String,Integer>();
 		options.put("Supports_out_of_box", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
 		options.put("Supports_with_configuration",  Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
 		options.put("Supports_with_customization", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));
 		options.put("Does_not_support", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
-		
+
 		Hashtable<String, Hashtable<String, Hashtable<String,Object>>> vendors = createVendorHash(options);
 		Hashtable<String,Double> vendorsCustomCost = createVendorCustomCostHash();
 		Hashtable<String,Double> vendorsHWSWCost = createVendorHWSWCostHash();
@@ -104,11 +104,11 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		logger.info("Source Report Generator Button Pushed");
 
 	}
-	
+
 	/**
 	 * Method getVendorTasks.
 	 * @return ArrayList<String> 
@@ -143,7 +143,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		}
 		return tasks;
 	}
-	
+
 	/**
 	 * Method calculateTaskWeights.
 	 * @param tasks ArrayList<String>
@@ -158,7 +158,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		String query2 = "SELECT DISTINCT ?Capability ?Task (SUM(COALESCE(?dataWeight,0) * COALESCE(?Error_Percent,0) * .583 + COALESCE(?bluWeight,0) * COALESCE(?Error_Percent1,0) * .23) AS ?Task_Effect) WHERE {{SELECT DISTINCT ?Capability ?Task ?Data_Object ?FError ?Error_Percent ?dataWeight WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Data_Object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}  {?FError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute> ;} {?FError_Needs_Data_Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Assigned <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Assigned> ;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.} {?Task <http://semoss.org/ontologies/Relation/Needs> ?Data_Object}{ ?Task <http://semoss.org/ontologies/Relation/Has> ?Attribute.}{?FError <http://semoss.org/ontologies/Relation/Supports> ?Attribute}{?FError ?FError_Needs_Data_Object ?Data_Object}{?FError_Needs_Data_Object <http://semoss.org/ontologies/Relation/Contains/weight> ?dataWeight} { ?Activity ?Assigned ?FError.}{?Assigned <http://semoss.org/ontologies/Relation/Contains/weight> ?Error_Percent}}  }UNION{SELECT DISTINCT ?Capability ?Task ?BLU ?FError ?Error_Percent1 ?bluWeight WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?FError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute> ;}{?FError_Needs_Data_Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?Assigned <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Assigned> ;}{ ?Task <http://semoss.org/ontologies/Relation/Has> ?Attribute.}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task <http://semoss.org/ontologies/Relation/Needs> ?BLU}{?FError <http://semoss.org/ontologies/Relation/Supports> ?Attribute}{?FError ?FError_Needs_Data_Object ?BLU}{?FError_Needs_Data_Object <http://semoss.org/ontologies/Relation/Contains/weight> ?bluWeight}{ ?Activity ?Assigned ?FError.}{?Assigned <http://semoss.org/ontologies/Relation/Contains/weight> ?Error_Percent1} } }} GROUP BY ?Capability ?Task ORDER BY ?Task_Effect";
 
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
-		
+
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query1);
 
 		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
@@ -179,9 +179,9 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 				ISelectStatement sjss = wrapper.next();
 				Double valToAdd=0.0;
 				if((Double)sjss.getVar(names[4])!=0.0)
-						valToAdd=((Double)(sjss.getVar(names[3])) *Math.log(((Double)sjss.getVar(names[4]))))/((Double)sjss.getVar(names[2]));
+					valToAdd=((Double)(sjss.getVar(names[3])) *Math.log(((Double)sjss.getVar(names[4]))))/((Double)sjss.getVar(names[2]));
 				if(taskHash.containsKey((String)sjss.getVar(names[0])))
-						taskHash.put((String)sjss.getVar(names[0]),taskHash.get((String)sjss.getVar(names[0]))+valToAdd);
+					taskHash.put((String)sjss.getVar(names[0]),taskHash.get((String)sjss.getVar(names[0]))+valToAdd);
 				else
 					taskHash.put((String)sjss.getVar(names[0]),valToAdd);
 			}
@@ -189,42 +189,42 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
-		
-			wrapper = WrapperManager.getInstance().getSWrapper(engine, query2);
 
-			/*wrapper = new SesameJenaSelectWrapper();
+		wrapper = WrapperManager.getInstance().getSWrapper(engine, query2);
+
+		/*wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(query2);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
-			*/
-			
-			//all tasks and their associated weights are stored in taskAndWeights
-			Hashtable<String,Double> taskAndWeights = new Hashtable<String,Double>();
-			String[] names2 = wrapper.getVariables();
-			try {
-				while(wrapper.hasNext()) {
-					ISelectStatement sjss = wrapper.next();
-					//Object [] values = new Object[2];
-					String task=(String)sjss.getVar(names2[1]);
-					if(tasks.contains(task))
-					{
+		 */
+
+		//all tasks and their associated weights are stored in taskAndWeights
+		Hashtable<String,Double> taskAndWeights = new Hashtable<String,Double>();
+		String[] names2 = wrapper.getVariables();
+		try {
+			while(wrapper.hasNext()) {
+				ISelectStatement sjss = wrapper.next();
+				//Object [] values = new Object[2];
+				String task=(String)sjss.getVar(names2[1]);
+				if(tasks.contains(task))
+				{
 					Double weight=0.0;
 					if(taskHash.containsKey(task))
 						weight=((Double)(sjss.getVar(names2[2])))*taskHash.get(task);
 					taskAndWeights.put(task, weight);
-					}
 				}
-			} 
-			catch (RuntimeException e) {
-				e.printStackTrace();
 			}
-			
-			for(String task : tasks)
-			{
-				if(!taskAndWeights.containsKey(task))
-					taskAndWeights.put(task, 0.0);
-			}
-			return taskAndWeights;
+		} 
+		catch (RuntimeException e) {
+			e.printStackTrace();
+		}
+
+		for(String task : tasks)
+		{
+			if(!taskAndWeights.containsKey(task))
+				taskAndWeights.put(task, 0.0);
+		}
+		return taskAndWeights;
 	}
 
 	/**
@@ -237,12 +237,12 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		//delete old properties
 		String deleteQuery="DELETE {?Task ?rel ?Weight.} WHERE{BIND(<http://semoss.org/ontologies/Relation/Contains/Weight> AS ?rel){?Task ?rel ?Weight ;}}";	
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
-		
+
 		engine.execQuery(deleteQuery);
 		engine.commit();
-		
+
 		String predUri = "<http://semoss.org/ontologies/Relation/Contains/Weight>";
-			//start with type triple
+		//start with type triple
 		String insertQuery = "INSERT DATA { " +predUri + " <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
 				"<http://semoss.org/ontologies/Relation/Contains>. ";
 		//add other type triple
@@ -251,19 +251,19 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		//add sub property triple -->>>>>>> should probably look into this.... very strange how other properties are set up
 		insertQuery = insertQuery + predUri +" <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
 				predUri + ". ";
-		
+
 		for(String task : taskAndWeights.keySet())
-			{
+		{
 			String subjectUri = "<http://health.mil/ontologies/Concept/Task/"+task+">";
 			String objectUri = "\"" +taskAndWeights.get(task)+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>";
 			insertQuery = insertQuery+subjectUri+" "+predUri+" "+objectUri+". ";
-			}
+		}
 		insertQuery = insertQuery + "}";
 
 		engine.execQuery(insertQuery);
 		engine.commit();
 	}
-	
+
 	/**
 	 * Method createVendorHash.
 	 * @param options Hashtable<String,Integer>
@@ -352,7 +352,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		}
 		return vendors;
 	}
-	
+
 	/**
 	 * Method createVendorCustomCostHash.
 	 * @return Hashtable<String,Double> 
@@ -367,8 +367,8 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			queryCount++;
 			query=(String)DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_CUSTOM_COST_QUERY + "_"+queryCount);
 		}
-	
-		
+
+
 		Hashtable<String,Double> vendorsCost = new Hashtable<String, Double>();
 		Hashtable<String,ArrayList<String>> vendorsRequirements = new Hashtable<String,ArrayList<String>>();
 		//SesameJenaSelectWrapper wrapper;
@@ -380,10 +380,10 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			wrapper.setQuery(queryArray.get(i));
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
-			*/
+			 */
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, queryArray.get(i));
 
-			
+
 			// get the bindings from it
 			String[] names = wrapper.getVariables();
 			try {
@@ -426,9 +426,9 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		ArrayList<String> queryArray = new ArrayList<String>();
 		queryArray.add((String)DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_HWSW_COST_QUERY + "_1"));
 		queryArray.add((String)DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_HWSW_COST_QUERY + "_2"));
-				
+
 		Hashtable<String,Double> vendorsHWSWCost = new Hashtable<String, Double>();
-		
+
 		//SesameJenaSelectWrapper wrapper;
 		ISelectWrapper wrapper;
 
@@ -438,11 +438,11 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			wrapper.setQuery(queryArray.get(i));
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
-			*/
-			
+			 */
+
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, queryArray.get(i));
 
-			
+
 			// get the bindings from it
 			String[] names = wrapper.getVariables();
 			try {
@@ -461,7 +461,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		}
 		return vendorsHWSWCost;
 	}
-	
+
 	/**
 	 * Method replaceBVTVCost.
 	 * @param vendors Hashtable<String,Hashtable<String,Hashtable<String,Object>>>
@@ -476,23 +476,23 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		deleteQueries.add("DELETE {?Vendor ?hasTS ?ts.} WHERE{BIND(<http://semoss.org/ontologies/Relation/Contains/TechScore> AS ?hasTS){?Vendor ?hasTS ?ts ;}}");
 		deleteQueries.add("DELETE {?Vendor ?hasCost ?cost.} WHERE{BIND(<http://semoss.org/ontologies/Relation/Contains/CustomizationCost> AS ?hasCost){?Vendor ?hasCost ?cost ;}}");
 		deleteQueries.add("DELETE {?Vendor ?hasCost ?totalCost.} WHERE{BIND(<http://semoss.org/ontologies/Relation/Contains/TotalCost> AS ?hasCost){?Vendor ?hasCost ?totalCost ;}}");
-		
+
 		for(int i=0;i<deleteQueries.size();i++)
 		{
 			engine.execQuery(deleteQueries.get(i));
 			engine.commit();
 		}
 
-			ArrayList<String> predUris = new ArrayList<String>();
-			predUris.add("<http://semoss.org/ontologies/Relation/Contains/BusinessScore>");
-			predUris.add("<http://semoss.org/ontologies/Relation/Contains/TechScore>");
-			predUris.add("<http://semoss.org/ontologies/Relation/Contains/CustomizationCost>");
-			predUris.add("<http://semoss.org/ontologies/Relation/Contains/TotalCost>");
-				//start with type triple
-			String insertQuery = "INSERT DATA { ";
-			for(String predUri : predUris)
-			{
-				insertQuery+=predUri + " <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
+		ArrayList<String> predUris = new ArrayList<String>();
+		predUris.add("<http://semoss.org/ontologies/Relation/Contains/BusinessScore>");
+		predUris.add("<http://semoss.org/ontologies/Relation/Contains/TechScore>");
+		predUris.add("<http://semoss.org/ontologies/Relation/Contains/CustomizationCost>");
+		predUris.add("<http://semoss.org/ontologies/Relation/Contains/TotalCost>");
+		//start with type triple
+		String insertQuery = "INSERT DATA { ";
+		for(String predUri : predUris)
+		{
+			insertQuery+=predUri + " <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
 					"<http://semoss.org/ontologies/Relation/Contains>. ";			
 			//add other type triple
 			insertQuery = insertQuery + predUri +" <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
@@ -500,52 +500,59 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			//add sub property triple -->>>>>>> should probably look into this.... very strange how other properties are set up
 			insertQuery = insertQuery + predUri +" <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
 					predUri + ". ";	
-			}
-			for(String vendor : vendors.keySet())
+		}
+		for(String vendor : vendors.keySet())
+		{
+			Hashtable<String, Hashtable<String,Object>> tasksHash= vendors.get(vendor);
+			double venBusScore=0.0;
+			double venTechScore=0.0;
+			double weightBusSum=0.0;
+			double weightTechSum=0.0;
+			for(String task : tasksHash.keySet())
 			{
-				Hashtable<String, Hashtable<String,Object>> tasksHash= vendors.get(vendor);
-				double venBusScore=0.0;
-				double venTechScore=0.0;
-				double weightBusSum=0.0;
-				double weightTechSum=0.0;
-				for(String task : tasksHash.keySet())
+				Hashtable<String,Object> values = tasksHash.get(task);
+				if(((Double)values.get("BusNum"))>0)
 				{
-					Hashtable<String,Object> values = tasksHash.get(task);
-					if(((Double)values.get("BusNum"))>0)
-					{
-						venBusScore+=((Double)values.get("BusScore"))/((Double)values.get("BusNum"))*((Double)values.get("Weight"));
-						weightBusSum+=(Double)values.get("Weight");
-					}
-					if(((Double)values.get("TechNum"))>0)
-					{
-						venTechScore+=((Double)values.get("TechScore"))/((Double)values.get("TechNum"))*((Double)values.get("Weight"));
-						weightTechSum+=(Double)values.get("Weight");
-					}
+					venBusScore+=((Double)values.get("BusScore"))/((Double)values.get("BusNum"))*((Double)values.get("Weight"));
+					weightBusSum+=(Double)values.get("Weight");
 				}
-				double totalCost=vendorsCost.get(vendor)+vendorsHWSWCost.get(vendor);
-				String subjectUri = "<http://health.mil/ontologies/Concept/Vendor/"+vendor+">";
-				ArrayList<String> objectUris = new ArrayList<String>();
-				objectUris.add("\"" +venBusScore/weightBusSum+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>");
-				objectUris.add("\"" +venTechScore/weightTechSum+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>");
-				objectUris.add("\"" +vendorsCost.get(vendor)+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>");
-				objectUris.add("\"" +totalCost+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>");
-				for(int i=0;i<predUris.size();i++)
+				if(((Double)values.get("TechNum"))>0)
 				{
-					insertQuery = insertQuery+subjectUri+" "+predUris.get(i)+" "+objectUris.get(i)+". ";
+					venTechScore+=((Double)values.get("TechScore"))/((Double)values.get("TechNum"))*((Double)values.get("Weight"));
+					weightTechSum+=(Double)values.get("Weight");
 				}
 			}
-			insertQuery = insertQuery + "}";
+			double totalCost=vendorsCost.get(vendor)+vendorsHWSWCost.get(vendor);
+			String subjectUri = "<http://health.mil/ontologies/Concept/Vendor/"+vendor+">";
+			ArrayList<String> objectUris = new ArrayList<String>();
+			if(weightBusSum == 0.0) {
+				throw new IllegalArgumentException("weightBusSum can not be 0");
+			}
+			if(weightTechSum == 0.0) {
+				throw new IllegalArgumentException("weightTechSum can not be 0");
+			}
 
-			engine.execQuery(insertQuery);
-			engine.commit();
+			objectUris.add("\"" +venBusScore/weightBusSum+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>");
+			objectUris.add("\"" +venTechScore/weightTechSum+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>");
+			objectUris.add("\"" +vendorsCost.get(vendor)+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>");
+			objectUris.add("\"" +totalCost+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>");
+			for(int i=0;i<predUris.size();i++)
+			{
+				insertQuery = insertQuery+subjectUri+" "+predUris.get(i)+" "+objectUris.get(i)+". ";
+			}
+		}
+		insertQuery = insertQuery + "}";
+
+		engine.execQuery(insertQuery);
+		engine.commit();
 	}
-	
+
 	/**
 	 * Override method from ICharkaListener
 	 * @param view JComponent
 	 */
 	@Override
 	public void setView(JComponent view) {
-		
+
 	}
 }

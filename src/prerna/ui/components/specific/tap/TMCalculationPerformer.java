@@ -302,6 +302,10 @@ public class TMCalculationPerformer implements IAlgorithm{
 					counter += systemCount.get(key);
 				systemCount.put(key, counter);
 			}
+			
+		    if(numStandards == 0) {
+		        throw new IllegalArgumentException("numStandards can not be 0");
+		      }
 			for (String key: systemCount.keySet()) {
 				systemCount.put(key, systemCount.get(key)*10.0/numStandards);
 			}

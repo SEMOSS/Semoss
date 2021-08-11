@@ -74,7 +74,9 @@ public final class InstanceSimilarity {
 						totalCount++;
 					}
 				}
-				
+			    if(totalCount == 0) {
+			        throw new IllegalArgumentException("totalCount");
+			      }
 				sim += (double) matchCount / totalCount;
 			}
 		}

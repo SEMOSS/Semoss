@@ -118,6 +118,9 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 			}
 			
 			double weight = weights.get(attributeNames.get(i));
+			if(sumProperties == 0) {
+				throw new IllegalArgumentException("sumProperties can not be 0");
+			}
 			similarity += weight * numOccuranceInCluster / sumProperties;
 		}
 
@@ -179,7 +182,9 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 					sumClusterDiff += count2/normalizationCount2;
 				}
 			}
-			
+		    if(possibleValues == 0) {
+		        throw new IllegalArgumentException("possibleValues can not be 0");
+		      }
 			similarity += weights.get(attributeType) * (1 - sumClusterDiff/possibleValues);
 		}
 		
