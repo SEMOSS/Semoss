@@ -472,6 +472,9 @@ public final class NaturalLanguageProcessingHelper {
 				sumMinSimilarity += minSimVal;
 			}
 		}
+	    if(numOfVals == 0) {
+	        throw new IllegalArgumentException("numOfVals can not be 0");
+	      }
 		double avgMinSimilarity = sumMinSimilarity / numOfVals;
 
 		return avgMinSimilarity;
