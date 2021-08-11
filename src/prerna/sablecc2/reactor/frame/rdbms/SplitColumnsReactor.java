@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.util.Constants;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -134,7 +135,15 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 				}
 			} catch (SQLException e) {
 				logger.error("StackTrace: ", e);
-			}		
+			}	finally {
+			      if(ps != null) {
+		                try {
+		                	ps.close();
+		          } catch (SQLException e) {
+		              logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
+			}
 			frame.syncHeaders();
 		}
 

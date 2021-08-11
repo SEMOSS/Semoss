@@ -16,6 +16,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 
 public class CLPModelReactor extends AbstractReactor {
 
@@ -55,8 +56,9 @@ public class CLPModelReactor extends AbstractReactor {
 
 		H2Frame frame = new H2Frame(headers, types);
 		logger.info("Loading data into frame");
+		PreparedStatement ps = null;
 		try {
-			PreparedStatement ps = frame.createInsertPreparedStatement(headers);
+			ps = frame.createInsertPreparedStatement(headers);
 			for(int i = 0; i < size; i++) {
 				String[] row = values.get(i);
 				ps.setString(1, row[0]);
@@ -75,6 +77,14 @@ public class CLPModelReactor extends AbstractReactor {
 			ps.executeBatch();
 		} catch(SQLException e) {
 			throw new IllegalArgumentException("Error occured attempting to insert CLP model into a frame");
+		} finally {
+		    if(ps != null) {
+                try {
+            ps.close();
+          } catch (SQLException e) {
+              logger.error(Constants.STACKTRACE, e);
+          	}
+          }
 		}
 		logger.info("Done loading data");
 

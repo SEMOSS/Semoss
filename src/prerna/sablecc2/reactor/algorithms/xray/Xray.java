@@ -46,7 +46,7 @@ public class Xray {
 	private AbstractRJavaTranslator rJavaTranslator = null;
 	private String baseFolder = null;
 	private Logger logger = null;
-	
+
 	// variables used to create instance count frame
 	private boolean genCountFrame = false;
 	private String countDF = null;
@@ -73,7 +73,7 @@ public class Xray {
 		this.rJavaTranslator.checkPackages(encodePackages);
 
 
-		
+
 		// output folder for data mode to be written to
 		String dataFolder = this.baseFolder + "\\R\\XrayCompatibility\\Temp\\MatchingRepository";
 		dataFolder = dataFolder.replace("\\", "/");
@@ -131,12 +131,12 @@ public class Xray {
 				this.countDF = "countDF" + Utility.getRandomString(8);
 				StringBuilder countBuilder = new StringBuilder();
 				countBuilder
-						.append(this.countDF + "<- data.frame(engine="
-								+ RSyntaxHelper.createStringRColVec(engineColumn.toArray()) + ", table="
-								+ RSyntaxHelper.createStringRColVec(tableColumn.toArray()) + ", prop="
-								+ RSyntaxHelper.createStringRColVec(propColumn.toArray()) + ", count=" + RSyntaxHelper
-										.createStringRColVec(countColumn.toArray(new Integer[countColumn.size()]))
-								+ ")");
+				.append(this.countDF + "<- data.frame(engine="
+						+ RSyntaxHelper.createStringRColVec(engineColumn.toArray()) + ", table="
+						+ RSyntaxHelper.createStringRColVec(tableColumn.toArray()) + ", prop="
+						+ RSyntaxHelper.createStringRColVec(propColumn.toArray()) + ", count=" + RSyntaxHelper
+						.createStringRColVec(countColumn.toArray(new Integer[countColumn.size()]))
+						+ ")");
 				this.rJavaTranslator.runR(countBuilder.toString());
 			}
 		}
@@ -249,7 +249,7 @@ public class Xray {
 				rsb.append(rFrameName + " <-" + semanticComparisonFrame + ";");
 				// if it is only semantic score renmae score header to semnatic score
 				rsb.append("names(" + rFrameName + ")[names(" + rFrameName + ") == 'Score'] <- 'Semantic_Score';");
-				
+
 			}
 			this.logger.info("Comparing data from datasources for X-ray semantic mode...");
 			this.rJavaTranslator.runR(rsb.toString());
@@ -366,77 +366,88 @@ public class Xray {
 		// read csv into string[]
 		char delimiter = ','; // TODO get from user
 		CSVReader csv = null;
-		if (delimiter == '\t') {
-			try {
-				csv = new CSVReader(new FileReader(new File(csvFile)));
-			} catch (FileNotFoundException e) {
-				logger.error(STACKTRACE, e);
-			}
-		} else {
-			try {
-				csv = new CSVReader(new FileReader(new File(csvFile)));
-			} catch (FileNotFoundException e) {
-				logger.error(STACKTRACE, e);
-			}
-		}
-
-		List<String[]> rowData = null;
-
-		if (csv == null) {
-			throw new NullPointerException("csv cannot be null here.");
-		}
-
 		try {
-			rowData = csv.readAll();
-		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
-		}
-
-		if (rowData == null) {
-			throw new NullPointerException("rowData cannot be null here.");
-		}
-
-		// get all rows
-		String[] headers = rowData.get(0);
-		List<String> selectedCols = new ArrayList<>();
-		for (String col : dataSelection.keySet()) {
-			// make a list of selected columns
-			Map<String, Object> colInfo = (Map<String, Object>) dataSelection.get(col);
-			for (String cols : colInfo.keySet()) {
-				if ((Boolean) colInfo.get(cols)) {
-					selectedCols.add(cols);
+			if (delimiter == '\t') {
+				try {
+					csv = new CSVReader(new FileReader(new File(csvFile)));
+				} catch (FileNotFoundException e) {
+					logger.error(STACKTRACE, e);
 				}
-			}
-		}
-
-		// iterate through selected columns and only grab those
-		// instances where the indices match
-		for (String col : selectedCols) {
-			// find the index of the selected column in the header
-			// array
-			int index = -1;
-			for (String header : headers) {
-				if (header.equalsIgnoreCase(col)) {
-					index = Arrays.asList(headers).indexOf(header);
+			} else {
+				try {
+					csv = new CSVReader(new FileReader(new File(csvFile)));
+				} catch (FileNotFoundException e) {
+					logger.error(STACKTRACE, e);
 				}
 			}
 
-			// get instance values
-			if (index != -1) {
-				HashSet<Object> instances = new HashSet<>();
-				for (int j = 0; j < rowData.size(); j++) {
-					if (j == 1) {
-						continue;
-					} else {
-						instances.add(rowData.get(j)[index]);
+			List<String[]> rowData = null;
+
+			if (csv == null) {
+				throw new NullPointerException("csv cannot be null here.");
+			}
+
+			try {
+				rowData = csv.readAll();
+			} catch (IOException e) {
+				logger.error(STACKTRACE, e);
+			}
+
+			if (rowData == null) {
+				throw new NullPointerException("rowData cannot be null here.");
+			}
+
+
+			// get all rows
+			String[] headers = rowData.get(0);
+			List<String> selectedCols = new ArrayList<>();
+			for (String col : dataSelection.keySet()) {
+				// make a list of selected columns
+				Map<String, Object> colInfo = (Map<String, Object>) dataSelection.get(col);
+				for (String cols : colInfo.keySet()) {
+					if ((Boolean) colInfo.get(cols)) {
+						selectedCols.add(cols);
 					}
 				}
-				String fileName = dataFolder + "\\" + csvName + ";" + col + ".txt";
-				fileName = fileName.replace("\\", "/");
-				// encode data to fileName
-				this.logger.info("Getting " + Utility.cleanLogString(col) + " from " + csvName + " csv to run xray comparison... ");
-				encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 			}
+
+			// iterate through selected columns and only grab those
+			// instances where the indices match
+			for (String col : selectedCols) {
+				// find the index of the selected column in the header
+				// array
+				int index = -1;
+				for (String header : headers) {
+					if (header.equalsIgnoreCase(col)) {
+						index = Arrays.asList(headers).indexOf(header);
+					}
+				}
+
+				// get instance values
+				if (index != -1) {
+					HashSet<Object> instances = new HashSet<>();
+					for (int j = 0; j < rowData.size(); j++) {
+						if (j == 1) {
+							continue;
+						} else {
+							instances.add(rowData.get(j)[index]);
+						}
+					}
+					String fileName = dataFolder + "\\" + csvName + ";" + col + ".txt";
+					fileName = fileName.replace("\\", "/");
+					// encode data to fileName
+					this.logger.info("Getting " + Utility.cleanLogString(col) + " from " + csvName + " csv to run xray comparison... ");
+					encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
+				}
+			}
+		} finally {
+			if(csv != null) {
+		          try {
+		        	  csv.close();
+		          } catch(Exception e) {
+		            logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
 		}
 	}
 
@@ -579,7 +590,7 @@ public class Xray {
 							sqs.setEngineId(engineID);
 							sqs.addSelector(table, null);
 							sqs.setDistinct(true);
-							
+
 							List<Object> instances = new ArrayList<>();
 							IRawSelectWrapper iterator = null;
 							try {
@@ -613,7 +624,7 @@ public class Xray {
 							sqs.setEngineId(engineID);
 							sqs.addSelector(table, column);
 							sqs.setDistinct(true);
-							
+
 							List<Object> instances = new ArrayList<>(); 
 							IRawSelectWrapper iterator = null;
 							try {
@@ -880,7 +891,7 @@ public class Xray {
 		}
 		return similarityThreshold;
 	}
-	
+
 	/**
 	 * Get Local engine instance and save to lists to write to R dataframe if
 	 * xray generateCountFrame is enabled

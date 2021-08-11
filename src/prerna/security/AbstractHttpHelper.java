@@ -66,9 +66,10 @@ public abstract class AbstractHttpHelper {
 	 */
 	public static AccessToken getAccessToken(String url, Map<String, String> params, boolean json, boolean extract) {
 		AccessToken tok = null;
+		CloseableHttpClient httpclient = null;
 		try {
 			// default client
-			CloseableHttpClient httpclient = HttpClients.createDefault();
+			httpclient = HttpClients.createDefault();
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			// loop through all keys and add as basic name value pair 
@@ -82,8 +83,8 @@ public abstract class AbstractHttpHelper {
 			LOGGER.info("Request for access token at " + url + " returned status code = " + status);
 
 			String result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-			LOGGER.debug("Request response = " + result);
-
+			LOGGER.info("Request response = " + result);
+			
 			// this will set the token to use
 			if(status == 200 && extract) {
 				if(json) {
@@ -100,6 +101,14 @@ public abstract class AbstractHttpHelper {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			if(httpclient != null) {
+		          try {
+		            httpclient.close();
+		          } catch(IOException e) {
+		              e.printStackTrace();
+		          }
+		        }
 		}
 
 		// send back the token
@@ -328,9 +337,9 @@ public abstract class AbstractHttpHelper {
 	
 	public static String makePostCall(String url, String accessToken, Object input,  boolean json)
 	{
-		
+		CloseableHttpClient httpclient = null;
 		try {
-			CloseableHttpClient httpclient = HttpClients.createDefault();
+			httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type","application/json; charset=utf-8");
@@ -375,6 +384,14 @@ public abstract class AbstractHttpHelper {
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
+		} finally {
+			if(httpclient != null) {
+		          try {
+		            httpclient.close();
+		          } catch(IOException e) {
+		              e.printStackTrace();
+		          }
+		        }
 		}
 		
 		return null;
@@ -382,9 +399,9 @@ public abstract class AbstractHttpHelper {
 	}
 	
 	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName,  String localPath){
-			
+		CloseableHttpClient httpclient = null;
 			try {
-				CloseableHttpClient httpclient = HttpClients.createDefault();
+				httpclient = HttpClients.createDefault();
 				HttpPut httpput = new HttpPut(url);
 				httpput.addHeader("Authorization", "Bearer " + accessToken);
 				httpput.addHeader("Content-Type","application/json; charset=utf-8");
@@ -408,6 +425,14 @@ public abstract class AbstractHttpHelper {
 			}catch(Exception ex)
 			{
 				ex.printStackTrace();
+			} finally {
+				if(httpclient != null) {
+			          try {
+			            httpclient.close();
+			          } catch(IOException e) {
+			              e.printStackTrace();
+			          }
+			        }
 			}
 			
 			return null;
@@ -416,9 +441,9 @@ public abstract class AbstractHttpHelper {
 	
 	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath)
 	{
-		
+		CloseableHttpClient httpclient = null;
 		try {
-			CloseableHttpClient httpclient = HttpClients.createDefault();
+			httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type","application/octet-stream");
@@ -442,6 +467,14 @@ public abstract class AbstractHttpHelper {
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
+		} finally {
+			if(httpclient != null) {
+		          try {
+		            httpclient.close();
+		          } catch(IOException e) {
+		              e.printStackTrace();
+		          }
+		        }
 		}
 		return null;
 
@@ -449,9 +482,9 @@ public abstract class AbstractHttpHelper {
 	
 	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath)
 	{
-		
+		CloseableHttpClient httpclient = null;
 		try {
-			CloseableHttpClient httpclient = HttpClients.createDefault();
+			 httpclient = HttpClients.createDefault();
 			HttpPatch httppatch = new HttpPatch(url);
 			httppatch.addHeader("Authorization", "Bearer " + accessToken);
 
@@ -475,6 +508,14 @@ public abstract class AbstractHttpHelper {
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
+		} finally {
+			if(httpclient != null) {
+		          try {
+		            httpclient.close();
+		          } catch(IOException e) {
+		              e.printStackTrace();
+		          }
+		        }
 		}
 		return null;
 

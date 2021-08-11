@@ -68,7 +68,7 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 		
 		//Step 1 query and grab data to insert into temp table
 		IRawSelectWrapper iterator = getData(database, tableName, columns);
-
+		PreparedStatement ps = null;
 		// load data
 		try {
 			// create temp table
@@ -84,7 +84,7 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 
 			conn = database.getConnection();
 			logger.info(stepCounter + ". Loading data in temp table...");
-			PreparedStatement ps = conn.prepareStatement(queryUtil.createInsertPreparedStatementString(tempTable, columnNames));
+			ps  = conn.prepareStatement(queryUtil.createInsertPreparedStatementString(tempTable, columnNames));
 			// align headers with types and exclude new id column
 			String[] headers = iterator.getHeaders();
 			while (iterator.hasNext()) {
@@ -138,6 +138,14 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 		} finally {
 			if (iterator != null) {
 				iterator.cleanUp();
+			}
+			
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
