@@ -396,7 +396,9 @@ public class Cluster {
 			}
 		}
 		int totalAttributes = numCategorical + numNumeric;
-		
+	    if(totalAttributes == 0) {
+	        throw new IllegalArgumentException("totalAttributes can not be 0");
+	      }
 		double numericalClusterSim = ((double) numNumeric / totalAttributes) * this.numericalCluster.getClusterSimilarity(c2.numericalCluster, instanceType);
 		double categoricalClusterSim = ((double) numCategorical / totalAttributes) * this.categoricalCluster.getClusterSimilarity(c2.categoricalCluster, instanceType);
 		return numericalClusterSim + categoricalClusterSim;

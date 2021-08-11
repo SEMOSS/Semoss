@@ -86,8 +86,8 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		if (this.retCon == null) {
 			try {
 				ReentrantLock lock = getConnectionLock("genId");
-				lock.lock();
 				try {
+					lock.lock();
 					if(this.retCon == null) {
 						logger.info("Starting R Connection... ");
 						this.retCon = generateConnection();
