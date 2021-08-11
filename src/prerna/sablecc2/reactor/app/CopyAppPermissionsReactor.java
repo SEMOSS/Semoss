@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -35,16 +35,16 @@ public class CopyAppPermissionsReactor extends AbstractReactor {
 		String targetAppId = this.keyValue.get(this.keysToGet[1]);
 
 		// must be an editor for both to run this
-		if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
+		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
 			throw new IllegalArgumentException("You do not have edit access to the source database");
 		}
-		if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
+		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
 			throw new IllegalArgumentException("You do not have edit access to the target database");
 		}
 		
 		// now perform the operation
 		try {
-			SecurityAppUtils.copyDatabasePermissions(sourceAppId, targetAppId);
+			SecurityDatabaseUtils.copyDatabasePermissions(sourceAppId, targetAppId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured copying the app permissions.  Detailed error: " + e.getMessage());

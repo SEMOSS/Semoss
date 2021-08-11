@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.project;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -30,7 +29,7 @@ public class SetProjectDescriptionReactor extends AbstractReactor {
 		}
 
 		String description = this.keyValue.get(this.keysToGet[1]);
-		SecurityAppUtils.updateDatabaseDescription(projectId, description);
+		SecurityProjectUtils.updateProjectDescription(projectId, description);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new description for project"));

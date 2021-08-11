@@ -24,7 +24,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.rpa.config.IllegalConfigException;
 import prerna.rpa.config.JobConfig;
 import prerna.rpa.config.ParseConfigException;
@@ -70,7 +70,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityAppUtils.userCanEditDatabase(user, jobGroup)) {
+		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityDatabaseUtils.userCanEditDatabase(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 

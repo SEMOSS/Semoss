@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,10 +41,10 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 		String targetInsightId = this.keyValue.get(this.keysToGet[3]);
 
 		// must be an editor for both to run this
-		if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
+		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
 			throw new IllegalArgumentException("You do not have edit access to the source database");
 		}
-		if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
+		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
 			throw new IllegalArgumentException("You do not have edit access to the target database");
 		}
 		
