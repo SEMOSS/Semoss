@@ -578,9 +578,17 @@ public abstract class AbstractEngine implements IEngine {
 		this.closeDB();
 
 //		File insightFile = SmssUtilities.getInsightsRdbmsFile(this.prop);
+		File engineFolder = null;
 		File owlFile = SmssUtilities.getOwlFile(this.prop);
-		File engineFolder = owlFile.getParentFile();
-		String folderName = engineFolder.getName();
+		String folderName = null;
+		if(owlFile != null) {
+			engineFolder = owlFile.getParentFile();
+		} else {
+			engineFolder = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+					+ "/" + Constants.DB_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		}
+		folderName = engineFolder.getName();
+
 		if(owlFile != null && owlFile.exists()) {
 			System.out.println("Deleting owl file " + owlFile.getAbsolutePath());
 			try {
