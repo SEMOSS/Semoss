@@ -469,7 +469,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void addDatabaseUser(String newUserId, String databaseId, String permission) {
 		// make sure user doesn't already exist for this database
-		if(SecurityAppUtils.getUserDatabasePermission(newUserId, databaseId) != null) {
+		if(SecurityDatabaseUtils.getUserDatabasePermission(newUserId, databaseId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this database. Please edit the existing permission level.");
 		}
@@ -581,7 +581,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			ps = securityDb.getPreparedStatement(insertQuery);
 			// add new permission for all dbs
-			List<String> dbIds = SecurityAppUtils.getAllDatabaseIds();
+			List<String> dbIds = SecurityDatabaseUtils.getAllDatabaseIds();
 			for (String appId : dbIds) {
 				ps.setString(1, appId);
 				ps.addBatch();
@@ -744,7 +744,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void editDatabaseUserPermission(String existingUserId, String databaseId, String newPermission) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityAppUtils.getUserDatabasePermission(existingUserId, databaseId);
+		Integer existingUserPermission = SecurityDatabaseUtils.getUserDatabasePermission(existingUserId, databaseId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the database");
 		}
@@ -797,7 +797,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void removeDatabaseUser(String existingUserId, String databaseId) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityAppUtils.getUserDatabasePermission(existingUserId, databaseId);
+		Integer existingUserPermission = SecurityDatabaseUtils.getUserDatabasePermission(existingUserId, databaseId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the database");
 		}

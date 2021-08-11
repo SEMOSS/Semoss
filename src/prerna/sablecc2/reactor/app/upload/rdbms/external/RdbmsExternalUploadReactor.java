@@ -22,7 +22,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -137,7 +137,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			if (security) {
 				// check if input is alias since we are adding to existing
 				databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseId);
-				if (!SecurityAppUtils.userCanEditDatabase(user, databaseId)) {
+				if (!SecurityDatabaseUtils.userCanEditDatabase(user, databaseId)) {
 					NounMetadata noun = new NounMetadata(
 							"User does not have sufficient priviledges to create or update a database",
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR);

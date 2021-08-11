@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
@@ -139,7 +140,7 @@ public class GitConsumer {
 			throw new IllegalArgumentException("There is no app id defined within the smss of the new app you are downloading");
 		}
 		
-		if (SecurityQueryUtils.getDatabaseIds().contains(actualAppId)) {
+		if (SecurityDatabaseUtils.getAllDatabaseIds().contains(actualAppId)) {
 			throw new IllegalArgumentException("The app you are attempting to copy already exists as " + SecurityQueryUtils.getDatabaseAliasForId(actualAppId));
 		}
 		
