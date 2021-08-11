@@ -103,6 +103,9 @@ public final class CentralityCalculator {
 		double totalDistance = 0.0;
 		for(String connectedNode : distances.keySet()) {
 			totalDistance += distances.get(connectedNode);
+		} 
+		if(totalDistance == 0.0) {
+			return 0.0;
 		}
 		return ((islandSize - 1) / totalDistance ) * ((islandSize - 1) / (edges.size()-1.0) );
 		//return (distances.size()-1.0) / totalDistance;

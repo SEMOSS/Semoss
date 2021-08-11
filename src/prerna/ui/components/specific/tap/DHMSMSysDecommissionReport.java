@@ -270,6 +270,10 @@ public class DHMSMSysDecommissionReport {
 						else if (sysLatencyType.equals(archive))
 							sysToRecHash.put(system,  sunset);
 						
+						
+					    if(dataMax == 0) {
+					        throw new IllegalArgumentException("dataMax can not be 0");
+					      }
 						int resources = (int) Math.ceil(dataSum/dataMax);
 						Date systemPilotStartDate = chunkStartDate; //start of the chunk for system
 						Date systemPilotEndDate = getNewEndDate(systemPilotStartDate,dataMax); //when the whole system ends the pilot

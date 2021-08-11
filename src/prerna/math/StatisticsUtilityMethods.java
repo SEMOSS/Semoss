@@ -319,7 +319,9 @@ public final class StatisticsUtilityMethods {
 				nonNullSize++;
 			}
 		}
-		
+	    if(nonNullSize == 0) {
+	        throw new IllegalArgumentException("nonNullSize can not be 0");
+	      }
 		return sum/nonNullSize;
 	}
 	
@@ -358,6 +360,9 @@ public final class StatisticsUtilityMethods {
 			}
 		}
 		
+	    if(counter == 0) {
+	        throw new IllegalArgumentException("counter can not be 0");
+	      }
 		return sum/counter;
 	}
 	
@@ -478,6 +483,9 @@ public final class StatisticsUtilityMethods {
 			}
 		}
 		
+		 if(nonNullSize == 0) {
+		        throw new IllegalArgumentException("nonNullSize can not be 0");
+		      }
 		double mean = sum/nonNullSize;
 		double stdev = getSampleStandardDeviationIgnoringNull(values);
 		

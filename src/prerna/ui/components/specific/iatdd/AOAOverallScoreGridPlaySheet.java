@@ -246,6 +246,10 @@ public class AOAOverallScoreGridPlaySheet extends GridPlaySheet {
 					sscore += Double.parseDouble(ServiceScoreNavy.get(req));
 					count ++;
 				}
+				
+			    if(count == 0) {
+			        throw new IllegalArgumentException("count can not be 0");
+			      }
 
 				sscore /= count;
 
