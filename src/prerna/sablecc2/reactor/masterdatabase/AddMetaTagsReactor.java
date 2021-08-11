@@ -42,10 +42,6 @@ public class AddMetaTagsReactor extends AbstractMetaDBReactor {
 			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
 		}
 		
-		if(!SecurityQueryUtils.getDatabaseIds().contains(engineId)) {
-			throw new IllegalArgumentException("App id does not exist");
-		}
-		
 		String concept = getConcept();
 		List<String> values = getValues();
 		String newTagList = "";

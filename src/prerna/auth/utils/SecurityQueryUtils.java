@@ -84,32 +84,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get a list of the database ids
-	 * @return
-	 */
-	public static List<String> getDatabaseIds() {
-//		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
-		return QueryExecutionUtility.flushToListString(securityDb, qs);
-	}
-	
-	/**
-	 * Get a list of the project ids
-	 * @return
-	 */
-	public static List<String> getProjectIds() {
-//		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
-		return QueryExecutionUtility.flushToListString(securityDb, qs);
-	}
-	
-	/**
 	 * Get the database alias for a id
 	 * @return
 	 */

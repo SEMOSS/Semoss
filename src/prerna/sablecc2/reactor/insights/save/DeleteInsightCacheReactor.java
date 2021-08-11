@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.insights.save;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,10 +29,6 @@ public class DeleteInsightCacheReactor extends AbstractReactor {
 			}
 		} else {
 			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
-		}
-		
-		if(!SecurityQueryUtils.getDatabaseIds().contains(projectId)) {
-			throw new IllegalArgumentException("Project id does not exist");
 		}
 		
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
