@@ -1243,7 +1243,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void setDbVisibility(User user, String databaseId, boolean visibility) throws SQLException, IllegalAccessException {
-		if(!SecurityAppUtils.userCanViewDatabase(user, databaseId)) {
+		if(!SecurityDatabaseUtils.userCanViewDatabase(user, databaseId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this app.");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
@@ -1323,7 +1323,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void setDbFavorite(User user, String databaseId, boolean isFavorite) throws SQLException, IllegalAccessException {
-		if (!SecurityAppUtils.userCanViewDatabase(user, databaseId)) {
+		if (!SecurityDatabaseUtils.userCanViewDatabase(user, databaseId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this database.");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);

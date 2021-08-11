@@ -1,7 +1,7 @@
 package prerna.solr.reactor;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -25,7 +25,7 @@ public class SetDatabaseDescriptionReactor extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), appId)) {
+			if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 		} else {
@@ -33,7 +33,7 @@ public class SetDatabaseDescriptionReactor extends AbstractReactor {
 		}
 		
 		String description = this.keyValue.get(this.keysToGet[1]);
-		SecurityAppUtils.updateDatabaseDescription(appId, description);
+		SecurityDatabaseUtils.updateDatabaseDescription(appId, description);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new description for app"));

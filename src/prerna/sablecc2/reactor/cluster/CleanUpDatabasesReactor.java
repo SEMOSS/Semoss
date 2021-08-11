@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.CloudClient;
@@ -103,7 +103,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 			//////////////////////////////////////////////////////////////////////////////////////////
 			//////////////////////////////////// Cleanup Apps ////////////////////////////////////////
 			Map<String, Object> removedAppsMap = new HashMap<>();
-			List<String> appIds = SecurityAppUtils.getAllDatabaseIds();
+			List<String> appIds = SecurityDatabaseUtils.getAllDatabaseIds();
 			for (String appId : appIds) {
 				String alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
 				String key = alias + "__" + appId; 
