@@ -105,6 +105,10 @@ public class ROIFunction extends UnivariateSvcOptFunction{
 			denominator = denominator * (1-mu);
 		}
 		
+		if(denominator == 0) {
+			return 0;
+		}
+		
 		double ROI = numerator/denominator-1;
 		
 		if(Double.isNaN(ROI))

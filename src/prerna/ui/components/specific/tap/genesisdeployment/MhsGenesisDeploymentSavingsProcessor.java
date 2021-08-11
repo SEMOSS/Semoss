@@ -442,10 +442,10 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
-
+		PreparedStatement updatePs = null;
 		try {
 			// create an update statement to set all the values to false as default
-			PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Site_Specific"}, new String[]{});
+			updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Site_Specific"}, new String[]{});
 			updatePs.setObject(1, "FALSE");
 			updatePs.addBatch();
 			updatePs.executeBatch();
@@ -466,6 +466,15 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			updatePs.executeBatch();
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+		      try {
+		          if(updatePs != null) {
+		        	  updatePs.close();
+		               }
+		       } catch (SQLException e) {
+		               e.printStackTrace();
+		       }
+
 		}
 
 		return mainSustainmentFrame;
@@ -496,9 +505,10 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		IRawSelectWrapper rawIterator = null;
 		try {
 			rawIterator = WrapperManager.getInstance().getRawWrapper(tapCore, centralDeployedSystems.toString());
+			PreparedStatement updatePs = null;
 			try {
 				// create an update statement to set all the values to false as default
-				PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Central_Deployment"}, new String[]{});
+				updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Central_Deployment"}, new String[]{});
 				updatePs.setObject(1, "FALSE");
 				updatePs.addBatch();
 				updatePs.executeBatch();
@@ -514,6 +524,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				updatePs.executeBatch();
 			} catch (SQLException e) {
 				e.printStackTrace();
+			} finally {
+			      try {
+			          if(updatePs != null) {
+			        	  updatePs.close();
+			               }
+			       } catch (SQLException e) {
+			               e.printStackTrace();
+			       }
 			}
 		} catch (Exception e1) {
 			e1.printStackTrace();
@@ -521,6 +539,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			if(rawIterator != null) {
 				rawIterator.cleanUp();
 			}
+			
+			
 		}
 
 		return mainSustainmentFrame;
@@ -555,8 +575,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		try {
 			rawIterator = WrapperManager.getInstance().getRawWrapper(tapSite, sysNumSitesQuery.toString());
 			// create an update statement
-			PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Num_Sites"}, new String[]{"System"});
-			try {
+			try(PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Num_Sites"}, new String[]{"System"})) {
 				while(rawIterator.hasNext()) {
 					Object[] values = rawIterator.next().getValues();
 					updatePs.setObject(1, values[1]);
@@ -666,9 +685,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		// we will add the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
 
-		PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(newColumnsForFrame, new String[] { "System" });
 
-		try {
+		try (PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(newColumnsForFrame, new String[] { "System" })){
 			// loop through and create the appropriate query on the tempframe for each system
 			// and fill in the missing values using the inflation arr before inserting
 			final String baseSysQuery = "SELECT * FROM " + tempFrameName + " WHERE SYSTEM = ";
