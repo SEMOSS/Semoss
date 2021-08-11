@@ -27,9 +27,9 @@ import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class SecurityAppUtils extends AbstractSecurityUtils {
+public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityAppUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityDatabaseUtils.class);
 
 	/**
 	 * Get what permission the user has for a given database
@@ -367,7 +367,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void addAppUser(User user, String newUserId, String databaseId, String permission) throws IllegalAccessException {
+	public static void addDatabaseUser(User user, String newUserId, String databaseId, String permission) throws IllegalAccessException {
 		if(!userCanEditDatabase(user, databaseId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
@@ -506,7 +506,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static boolean setDatabaseGlobal(User user, String databaseId, boolean isPublic) throws IllegalAccessException {
-		if(!SecurityAppUtils.userIsOwner(user, databaseId)) {
+		if(!SecurityDatabaseUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
 		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
@@ -524,7 +524,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean setDatabaseName(User user, String databaseId, String newDatabaseName) {
-		if(!SecurityAppUtils.userIsOwner(user, databaseId)) {
+		if(!SecurityDatabaseUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to change the database name. Only the owner or an admin can perform this action.");
 		}
 		newDatabaseName = RdbmsQueryBuilder.escapeForSQLStatement(newDatabaseName);
