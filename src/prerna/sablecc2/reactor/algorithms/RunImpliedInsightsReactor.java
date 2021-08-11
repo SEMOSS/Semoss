@@ -82,22 +82,18 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 		Map<String,String> allSummaryFrames = formatSummaryFrame(summaryFrame);
 		
 		// run the outlier frame functions
-		String outlierFrame = getOutlierFrame(targetDt);
+		String makeupFrame = getMakeupFrame(targetDt);
 		
 		// get the frequent itemsets
-		String frequentItemsetsFrame = getFrequentItemsetsFrame(targetDt);
-		
-		// get the frame outliers
-		String hdoutliersFrame = getHDOutliersFrame(targetDt);
+		String frequentItemsetsFrame = getFrequentItemsetsFrame(targetDt);		
 		
 		// format and return the noun
-		String[] retData = new String[6];
+		String[] retData = new String[5];
 		retData[0] = allSummaryFrames.get("NUMBER");
 		retData[1] = allSummaryFrames.get("STRING");
 		retData[2] = allSummaryFrames.get("DATE");
-		retData[3] = outlierFrame;
+		retData[3] = makeupFrame;
 		retData[4] = frequentItemsetsFrame;
-		retData[5] = hdoutliersFrame;
 		
 		// format and return the noun
 		List<NounMetadata> tasks = new Vector<>();
@@ -115,6 +111,7 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 					noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME);
 					this.insight.getVarStore().put(newFrame, noun);
 				}
+				this.rJavaTranslator.runR("saveRDS(" + targetDt + ",\"C:/workspace/movie_df.rds\");");
 			}
 			tasks.add(noun);
 		}
@@ -122,27 +119,18 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 		// return as array
 		return new NounMetadata(tasks, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
-
-	private String getHDOutliersFrame(String targetDt) {
-		// the name of the results table is what we will be passing to the FE
-		String results = "HdOutliersFrame_" + Utility.getRandomString(10);
-		String cleanInput = "CleanedInput_" + Utility.getRandomString(10);
+	
+	private String getMakeupFrame(String targetDt) {
+		// name of the results table is what we pass to the FE
+		String results = "MakeupFrame_" + Utility.getRandomString(10);
+		StringBuilder sb = new StringBuilder(results);
 		
-		// create a stringbuilder for our r syntax
-		StringBuilder rsb = new StringBuilder();
-		rsb.append(cleanInput + "<-"+targetDt+"[complete.cases("+targetDt+"), ];");
-
-		// run function
-		rsb.append(RSyntaxHelper.asDataFrame(cleanInput, cleanInput));
-		rsb.append(results + " <- detect_outliers(" + cleanInput + ");");
-
-		// run the script
-		this.rJavaTranslator.runR(rsb.toString());
+		sb.append(" <- get_dataset_makeup(")
+		  .append(targetDt)
+		  .append(");");
 		
-		// garbage cleanup
-		this.rJavaTranslator.executeEmptyR("rm(" + cleanInput + "); gc();");
-
-		// return new frame
+		this.rJavaTranslator.runR(sb.toString());
+		
 		return results;
 	}
 
@@ -230,22 +218,6 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 		return results;
 	}
 	
-	private String getOutlierFrame(String targetDt) {
-		// the name of the results table is what we will be passing to the FE
-		String results = "outlierFrame" + Utility.getRandomString(10);
-
-		// create a stringbuilder for our r syntax
-		StringBuilder rsb = new StringBuilder();
-
-		// run function
-		rsb.append(results + " <- get_dataset_outliers(" + targetDt + ");");
-
-		// run the script
-		this.rJavaTranslator.runR(rsb.toString());
-
-		// return new frame
-		return results;
-	}
 	
 	protected InsightPanel getInsightPanel() {
 		InsightPanel panel = null;
