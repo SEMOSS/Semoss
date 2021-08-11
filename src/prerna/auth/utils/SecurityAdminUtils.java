@@ -519,14 +519,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/** 
-	 * give user permission for all the projects
-	 * @param userId
-	 * @param permission
+	 * Give user permission for all the projects
+	 * @param userId		String - 	The user id we are providing permissions to
+	 * @param permission	String - 	The permission level for the access
+	 * @param isAddNew 		boolean - 	If false, modifying existing project permissions to the new permission level
+	 * 									If true, adding new projects with the permission level specified
 	 */
-	public void grantAllProjects(String userId, String permission) {
+	public void grantAllProjects(String userId, String permission, boolean isAddNew) {
 		// delete all previous permissions for the user
-		String query = "DELETE FROM PROJECTPERMISSION WHERE USERID='"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
+		String query = "DELETE FROM PROJECTPERMISSION WHERE USERID='"+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
 		String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', ?, " + "TRUE, "
 				+ AccessPermission.getIdByPermission(permission) + ");";
@@ -564,10 +565,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	/** 
 	 * give user permission for all the databases
-	 * @param userId
-	 * @param permission
+	 * @param userId		String - 	The user id we are providing permissions to
+	 * @param permission	String - 	The permission level for the access
+	 * @param isAddNew 		boolean - 	If false, modifying existing project permissions to the new permission level
+	 * 									If true, adding new projects with the permission level specified
 	 */
-	public void grantAllDatabases(String userId, String permission) {
+	public void grantAllDatabases(String userId, String permission, boolean isAddNew) {
 		// delete all previous permissions for the user
 		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID='"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
