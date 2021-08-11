@@ -28,7 +28,6 @@
 package prerna.engine.impl;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -213,7 +212,7 @@ public abstract class AbstractEngine implements IEngine {
 				}
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} 
 		
 	}
@@ -332,13 +331,13 @@ public abstract class AbstractEngine implements IEngine {
 			fileOut = new FileOutputStream(propFile);
 			prop.store(fileOut, null);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(fileOut!=null)
 					fileOut.close();
 			}catch(IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -433,7 +432,7 @@ public abstract class AbstractEngine implements IEngine {
 			baseHash.putAll(RDFEngineHelper.createBaseFilterHash(baseRelEngine.getRc()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		setBaseHash(baseHash);
 
@@ -590,19 +589,19 @@ public abstract class AbstractEngine implements IEngine {
 		folderName = engineFolder.getName();
 
 		if(owlFile != null && owlFile.exists()) {
-			System.out.println("Deleting owl file " + owlFile.getAbsolutePath());
+			logger.info("Deleting owl file " + owlFile.getAbsolutePath());
 			try {
 				FileUtils.forceDelete(owlFile);
 			} catch(IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 //		if(insightFile != null && insightFile.exists()) {
-//			System.out.println("Deleting insight file " + insightFile.getAbsolutePath());
+//			logger.info("Deleting insight file " + insightFile.getAbsolutePath());
 //			try {
 //				FileUtils.forceDelete(insightFile);
 //			} catch(IOException e) {
-//				e.printStackTrace();
+//				logger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 
@@ -613,7 +612,7 @@ public abstract class AbstractEngine implements IEngine {
 			try {
 				FileUtils.deleteDirectory(engineFolder);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -622,7 +621,7 @@ public abstract class AbstractEngine implements IEngine {
 		try {
 			FileUtils.forceDelete(smssFile);
 		} catch(IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		// remove from DIHelper
@@ -670,7 +669,7 @@ public abstract class AbstractEngine implements IEngine {
 					logger.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineId() + " : " + getEngineName());
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrap != null) {
 					wrap.cleanUp();
@@ -748,7 +747,7 @@ public abstract class AbstractEngine implements IEngine {
 			conceptSet.clear();
 			conceptSet = null;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -776,7 +775,7 @@ public abstract class AbstractEngine implements IEngine {
 			}
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -932,9 +931,9 @@ public abstract class AbstractEngine implements IEngine {
 				retString = snow.decryptMessage(creationTime, passwordFileName);
 			}			
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		return retString;
@@ -993,7 +992,7 @@ public abstract class AbstractEngine implements IEngine {
 					}
 					
 					SnowApi snow = new SnowApi();		
-					//System.out.println("Using creation time.. " + creationTime);
+					//logger.info("Using creation time.. " + creationTime);
 					snow.encryptMessage(passToEncrypt, creationTime, propFile, passwordFileName);
 				}
 				
@@ -1005,22 +1004,22 @@ public abstract class AbstractEngine implements IEngine {
 						passFile.delete();
 					}
 					SnowApi snow = new SnowApi();		
-					//System.out.println("Using creation time.. " + creationTime);
+					//logger.info("Using creation time.. " + creationTime);
 					snow.encryptMessage(insightPassToEncrypt, creationTime, propFile, passwordFileName);
 				}
 			}
 			
 			return prop;
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(os != null) {
 				try {
 					os.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1029,8 +1028,9 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	public String [] getUDF() {
-		if(prop.containsKey("UDF"))
+		if(prop.containsKey("UDF")) {
 			return prop.get("UDF").toString().split(";");
+		}
 		return null;
 	}
 	
@@ -1040,34 +1040,33 @@ public abstract class AbstractEngine implements IEngine {
 	 * Testing
 	 */
 	
-	public static void main(String [] args) throws Exception
-	{
-		DIHelper.getInstance().loadCoreProp("C:\\workspace\\SEMOSSDev\\RDF_Map.prop");
-		FileInputStream fileIn = null;
-		try{
-			Properties prop = new Properties();
-			String fileName = "C:\\workspace\\SEMOSSDev\\db\\Movie_Test.smss";
-			fileIn = new FileInputStream(fileName);
-			prop.load(fileIn);
-			System.err.println("Loading DB " + fileName);
-			Utility.loadEngine(fileName, prop);
-		}catch(IOException e){
-			e.printStackTrace();
-		}finally{
-			try{
-				if(fileIn!=null)
-					fileIn.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
-		IEngine eng = (IEngine) DIHelper.getInstance().getLocalProp("Movie_Test");
-		List<String> props = eng.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/Title");
-		while(!props.isEmpty()){
-			System.out.println(props.remove(0));
-		}
-	}
-	
-	
+//	public static void main(String [] args) throws Exception
+//	{
+//		DIHelper.getInstance().loadCoreProp("C:\\workspace\\SEMOSSDev\\RDF_Map.prop");
+//		FileInputStream fileIn = null;
+//		try{
+//			Properties prop = new Properties();
+//			String fileName = "C:\\workspace\\SEMOSSDev\\db\\Movie_Test.smss";
+//			fileIn = new FileInputStream(fileName);
+//			prop.load(fileIn);
+//			System.err.println("Loading DB " + fileName);
+//			Utility.loadEngine(fileName, prop);
+//		}catch(IOException e){
+//			e.printStackTrace();
+//		}finally{
+//			try{
+//				if(fileIn!=null) {
+//					fileIn.close();
+//				}
+//			} catch(IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		IEngine eng = (IEngine) DIHelper.getInstance().getLocalProp("Movie_Test");
+//		List<String> props = eng.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/Title");
+//		while(!props.isEmpty()){
+//			System.out.println(props.remove(0));
+//		}
+//	}
 	
 }
