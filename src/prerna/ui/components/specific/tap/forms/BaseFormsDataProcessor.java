@@ -264,6 +264,13 @@ public class BaseFormsDataProcessor {
 					throw new IOException("Could not close Excel file stream");
 				}
 			}
+			
+			try{
+				if(workbook!=null)
+					workbook.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		LOGGER.info("************** End getWorkBook");
 		return workbook;

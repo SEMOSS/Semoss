@@ -367,9 +367,10 @@ public class TMCalculationPerformer implements IAlgorithm{
 	 */
 	public void testPrint(String key){
 		FileOutputStream fileOut=null;
+		HSSFWorkbook workbook = null;
 		try {
 			fileOut = new FileOutputStream(key +" testPrint.xls");
-			HSSFWorkbook workbook = new HSSFWorkbook();
+			workbook = new HSSFWorkbook();
 			HSSFSheet worksheet = workbook.createSheet("Data");
 			ArrayList<Double> values = (ArrayList<Double>) TMhash.get(key+Constants.CALC_MATRIX);
 			ArrayList<String> names = (ArrayList<String>) TMhash.get(key+Constants.CALC_NAMES_LIST);
@@ -394,6 +395,12 @@ public class TMCalculationPerformer implements IAlgorithm{
 			}catch(IOException e) {
 				e.printStackTrace();
 			}
+			try{
+				if(workbook!=null)
+					workbook.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		logger.info("Printed: " +key +" testPrint.xls");
 	}	
@@ -409,9 +416,10 @@ public class TMCalculationPerformer implements IAlgorithm{
 		//mprint(activitySystem);
 		String key = keyPart1+"/"+keyPart2;
 		FileOutputStream fileOut = null;
+		HSSFWorkbook workbook = null;
 		try {
 			fileOut = new FileOutputStream(keyPart1+"-"+keyPart2 +"_Matrix.xls");
-			HSSFWorkbook workbook = new HSSFWorkbook();
+			workbook = new HSSFWorkbook();
 			HSSFSheet worksheet = workbook.createSheet("Data");
 			double[][] matrix = (double[][]) TMhash.get(key+Constants.CALC_MATRIX);
 			ArrayList<String> rowNames = (ArrayList<String>) TMhash.get(key+Constants.CALC_ROW_LABELS);
@@ -441,6 +449,12 @@ public class TMCalculationPerformer implements IAlgorithm{
 			try{
 				if(fileOut!=null)
 					fileOut.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
+			try{
+				if(workbook!=null)
+					workbook.close();
 			}catch(IOException e) {
 				e.printStackTrace();
 			}

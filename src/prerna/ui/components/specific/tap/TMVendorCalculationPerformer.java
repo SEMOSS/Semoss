@@ -63,9 +63,9 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 	 * Constructor for TMVendorCalculationPerformer.
 	 */
 	public TMVendorCalculationPerformer() {
-		
+
 	}
-	
+
 	/**
 	 * Updates DB with TM Values.
 	 * 
@@ -79,23 +79,23 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 		try {
 			calculateTechMaturity();
 			DIHelper.getInstance().setLocalProperty(Constants.TECH_MATURITY, TMhash);
-			
+
 		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}
 		if(TMhash.size()>0)
 		{
-//			ArrayList<Double> techStdValues = (ArrayList<Double>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_MATRIX_TECH_STD);
+			//			ArrayList<Double> techStdValues = (ArrayList<Double>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_MATRIX_TECH_STD);
 			ArrayList<Double> extStabValues = (ArrayList<Double>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_MATRIX_EXT_STAB);
 			ArrayList<String> technicalNames = (ArrayList<String>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_NAMES_LIST);
-			
+
 			String extStabQuery = prepareInsert(technicalNames, extStabValues, "ExternalStabilityTM");
-	//		String techStdQuery = prepareInsert(technicalNames, techStdValues,"TechnicalStandardTM");
-			
+			//		String techStdQuery = prepareInsert(technicalNames, techStdValues,"TechnicalStandardTM");
+
 			UpdateProcessor pro = new UpdateProcessor();
-	//		pro.setQuery(techStdQuery);
-	//		pro.processQuery();
+			//		pro.setQuery(techStdQuery);
+			//		pro.processQuery();
 			pro = new UpdateProcessor();
 			pro.setQuery(extStabQuery);
 			pro.processQuery();
@@ -153,7 +153,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 			}
 		}
 	}
-	
+
 	/**
 	 * Integrate system software into calculations.
 	 */
@@ -196,7 +196,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 			}
 		}
 	}
-	
+
 	/**
 	 * Returns lifecycle value based on end date vs. current date.
 	 * 
@@ -209,7 +209,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 		date=date.substring(1,date.substring(1).indexOf("T"));
 		int year=Integer.parseInt(date.substring(0,date.indexOf("-")));
 		int month=Integer.parseInt(date.substring(date.indexOf("-")+1,date.lastIndexOf("-")));
-		
+
 		Calendar now = Calendar.getInstance();
 		int currYear = now.get(Calendar.YEAR);
 		int currMonth = now.get(Calendar.MONTH);
@@ -222,71 +222,71 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 			lifeCycleType="Generally_Available";
 		return lifeCycleType;
 	}
-	
-//	/**
-//	 * Populates fulfillment values based on vendor/tech standards.
-//	 */
-//	private void prepareTechStandardFulfillment()
-//	{
-//		String query = "SELECT DISTINCT ?Vendor ?TechStandard ?FulfillLevel WHERE {{?Techconcat <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement>;}{?AssociatedTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/AssociatedTo> ;}{?concat <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/VendorSystemCapabilityTask>;}{?Techconcat ?AssociatedTo ?concat;}{?Vendor <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Vendor> ;}{?HasVendor <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has> ;}{?concat ?HasVendor ?Vendor;}{?TechStandard <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandard> ;}{?SatisfiesTechStandard <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Satisfies> ;}{?Techconcat ?SatisfiesTechStandard ?TechStandard;}{?FulfillLevel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SupportLevel> ;}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports> ;}{?Techconcat ?Supports ?FulfillLevel;}}";// ORDER BY ?Vendor ?TechStandard ?FulfillLevel";
-//		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-//		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-//		Object[] repos = (Object [])list.getSelectedValues();
-//		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
-//		logger.info("Repository is " + repos);
-//		
-//		Hashtable<String,Double> options = new Hashtable<String,Double>();
-//		options.put("Supports_out_of_box", 10.0);
-//		options.put("Supports_with_configuration", 7.0);
-//		options.put("Supports_with_customization", 3.0);
-//		options.put("Does_not_support", 0.0);
-//		
-//		wrapper.setQuery(query);
-//		wrapper.setEngine(engine);
-//		wrapper.executeQuery();
-//		
-//		Hashtable<String,Double> vendorNumOfTechStandards = new Hashtable<String,Double>();
-//		
-//		String[] names = wrapper.getVariables();
-//		while(wrapper.hasNext()) {
-//			// make a hashtable with system as the key mapped to number of tech standards for each
-//			SesameJenaSelectStatement sjss = wrapper.BVnext();
-//			String vendor = (String) Utility.getInstanceName(sjss.getVar(names[0])+"");
-//			String standard = (String) Utility.getInstanceName(sjss.getVar(names[1])+""); 
-//			String fulfill = (String)Utility.getInstanceName(sjss.getVar(names[2])+"");
-//			Double value=options.get(fulfill);
-//			Double count=1.0;
-//			if (fulfillment.containsKey(vendor))
-//			{
-//				value+=fulfillment.get(vendor);
-//				count+=vendorNumOfTechStandards.get(vendor);
-//			}
-//			fulfillment.put(vendor, value);
-//			vendorNumOfTechStandards.put(vendor,count);
-//		}
-//		
-//		for (String ven: fulfillment.keySet()) {
-//			double score = fulfillment.get(ven)/(vendorNumOfTechStandards.get(ven));
-//			fulfillment.put(ven, score);
-//		}
-//	}
-	
+
+	//	/**
+	//	 * Populates fulfillment values based on vendor/tech standards.
+	//	 */
+	//	private void prepareTechStandardFulfillment()
+	//	{
+	//		String query = "SELECT DISTINCT ?Vendor ?TechStandard ?FulfillLevel WHERE {{?Techconcat <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement>;}{?AssociatedTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/AssociatedTo> ;}{?concat <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/VendorSystemCapabilityTask>;}{?Techconcat ?AssociatedTo ?concat;}{?Vendor <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Vendor> ;}{?HasVendor <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has> ;}{?concat ?HasVendor ?Vendor;}{?TechStandard <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandard> ;}{?SatisfiesTechStandard <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Satisfies> ;}{?Techconcat ?SatisfiesTechStandard ?TechStandard;}{?FulfillLevel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SupportLevel> ;}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports> ;}{?Techconcat ?Supports ?FulfillLevel;}}";// ORDER BY ?Vendor ?TechStandard ?FulfillLevel";
+	//		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+	//		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+	//		Object[] repos = (Object [])list.getSelectedValues();
+	//		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
+	//		logger.info("Repository is " + repos);
+	//		
+	//		Hashtable<String,Double> options = new Hashtable<String,Double>();
+	//		options.put("Supports_out_of_box", 10.0);
+	//		options.put("Supports_with_configuration", 7.0);
+	//		options.put("Supports_with_customization", 3.0);
+	//		options.put("Does_not_support", 0.0);
+	//		
+	//		wrapper.setQuery(query);
+	//		wrapper.setEngine(engine);
+	//		wrapper.executeQuery();
+	//		
+	//		Hashtable<String,Double> vendorNumOfTechStandards = new Hashtable<String,Double>();
+	//		
+	//		String[] names = wrapper.getVariables();
+	//		while(wrapper.hasNext()) {
+	//			// make a hashtable with system as the key mapped to number of tech standards for each
+	//			SesameJenaSelectStatement sjss = wrapper.BVnext();
+	//			String vendor = (String) Utility.getInstanceName(sjss.getVar(names[0])+"");
+	//			String standard = (String) Utility.getInstanceName(sjss.getVar(names[1])+""); 
+	//			String fulfill = (String)Utility.getInstanceName(sjss.getVar(names[2])+"");
+	//			Double value=options.get(fulfill);
+	//			Double count=1.0;
+	//			if (fulfillment.containsKey(vendor))
+	//			{
+	//				value+=fulfillment.get(vendor);
+	//				count+=vendorNumOfTechStandards.get(vendor);
+	//			}
+	//			fulfillment.put(vendor, value);
+	//			vendorNumOfTechStandards.put(vendor,count);
+	//		}
+	//		
+	//		for (String ven: fulfillment.keySet()) {
+	//			double score = fulfillment.get(ven)/(vendorNumOfTechStandards.get(ven));
+	//			fulfillment.put(ven, score);
+	//		}
+	//	}
+
 	/**
 	 * Performs technical maturity calculations, inserting them into TMhash.
 	 */
 	private void calculateTechMaturity(){
-//		prepareTechStandardFulfillment();
+		//		prepareTechStandardFulfillment();
 		prepareSysSoft();
 		combineWithSysHard();
 		ArrayList<String> allSysNames = new ArrayList<String>();
 		ArrayList<String> tempSysNames = new ArrayList<String>();
 		ArrayList<Double> sysExtStabMat = new ArrayList<Double>();
 		ArrayList<Double> sysTechStdMat = new ArrayList<Double>();
-		
+
 		Set<String> combinedKeyIt = combined.keySet();
 		for(String fullKey: combinedKeyIt) 
 			if(!fullKey.contains("/")) tempSysNames.add(fullKey);
-		
+
 		Iterator sysNameIt = tempSysNames.iterator();
 		while(sysNameIt.hasNext()){
 			String sys = (String) sysNameIt.next();
@@ -301,7 +301,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 				int finalCount = (Integer) counts.get(type);
 				techMatValue = techMatValue + finalTotal/finalCount;
 			}
-			
+
 			double techStdValue = 0;
 			if(fulfillment.containsKey(sys)) {
 				techStdValue = fulfillment.get(sys);
@@ -311,11 +311,11 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 			sysTechStdMat.add(techStdValue);
 		}
 		TMhash.put(Constants.TECH_MATURITY + Constants.CALC_MATRIX_EXT_STAB, sysExtStabMat);
-//		TMhash.put(Constants.TECH_MATURITY + Constants.CALC_MATRIX_TECH_STD, sysTechStdMat);
+		//		TMhash.put(Constants.TECH_MATURITY + Constants.CALC_MATRIX_TECH_STD, sysTechStdMat);
 		TMhash.put(Constants.TECH_MATURITY + Constants.CALC_NAMES_LIST, allSysNames);
 
 	}
-	
+
 	//TODO: Delete unused method?
 	/**
 	 * Method testPrint.
@@ -324,9 +324,11 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 	 */
 	public void testPrint(String key){
 		FileOutputStream fileOut = null;
+		HSSFWorkbook workbook = null;
+
 		try {
 			fileOut = new FileOutputStream(key +" testPrint.xls");
-			HSSFWorkbook workbook = new HSSFWorkbook();
+			workbook = new HSSFWorkbook();
 			HSSFSheet worksheet = workbook.createSheet("Data");
 			ArrayList<Double> values = (ArrayList<Double>) TMhash.get(key+Constants.CALC_MATRIX);
 			ArrayList<String> names = (ArrayList<String>) TMhash.get(key+Constants.CALC_NAMES_LIST);
@@ -337,8 +339,8 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 				HSSFCell cell1 = row1.createCell(1);
 				cell1.setCellValue((double) values.get(row));
 			}
-		workbook.write(fileOut);
-		fileOut.flush();
+			workbook.write(fileOut);
+			fileOut.flush();
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -351,10 +353,17 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 			}catch(IOException e) {
 				e.printStackTrace();
 			}
+			try{
+				if(workbook!=null)
+					workbook.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
+
 		logger.info("Printed: " +key +" testPrint.xls");
 	}	
-	
+
 	//TODO: Delete unused method?
 	/**
 	 * Method printMatrix.
@@ -366,9 +375,11 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 		//mprint(activitySystem);
 		String key = keyPart1+"/"+keyPart2;
 		FileOutputStream fileOut = null;
+		HSSFWorkbook workbook = null;
+
 		try {
 			fileOut = new FileOutputStream(keyPart1+"-"+keyPart2 +"_Matrix.xls");
-			HSSFWorkbook workbook = new HSSFWorkbook();
+			workbook = new HSSFWorkbook();
 			HSSFSheet worksheet = workbook.createSheet("Data");
 			double[][] matrix = (double[][]) TMhash.get(key+Constants.CALC_MATRIX);
 			ArrayList<String> rowNames = (ArrayList<String>) TMhash.get(key+Constants.CALC_ROW_LABELS);
@@ -387,8 +398,8 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 					cell1.setCellValue((double) matrix[row-1][col-1]);
 				}
 			}
-		workbook.write(fileOut);
-		fileOut.flush();
+			workbook.write(fileOut);
+			fileOut.flush();
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -401,10 +412,16 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 			}catch(IOException e) {
 				e.printStackTrace();
 			}
+			try{
+				if(workbook!=null)
+					workbook.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");
 	}	
-	
+
 	/**
 	 * Returns appropriate numerical value based upon String value
 	 * 
@@ -422,9 +439,9 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 		else if(s1.contains("Supported")) return 10;
 		else if(s1.contains("Sunset_(End_of_Life)")) return 5;
 		else return 0;
-	  }
+	}
 
-	
+
 	/**
 	 * Prepares insert query based on property triples
 	 * 
@@ -436,19 +453,19 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 	 */
 	private String prepareInsert(ArrayList<String> names, ArrayList<Double> values, String propName){
 		String predUri = "<http://semoss.org/ontologies/Relation/Contains/"+propName+">";
-		
+
 		//add start with type triple
 		String insertQuery = "INSERT DATA { " +predUri + " <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
 				"<http://semoss.org/ontologies/Relation/Contains>. ";
-		
+
 		//add other type triple
 		insertQuery = insertQuery + predUri +" <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
 				"<http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>. ";
-		
+
 		//add sub property triple -->>>>>>> should probably look into this.... very strange how other properties are set up
 		insertQuery = insertQuery + predUri +" <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
 				predUri + ". ";
-		
+
 		for(int sysIdx = 0; sysIdx<names.size(); sysIdx++){
 			String subjectUri = "<http://health.mil/ontologies/Concept/Vendor/"+names.get(sysIdx) +">";
 			String objectUri = "\"" + values.get(sysIdx) + "\"" + "^^<http://www.w3.org/2001/XMLSchema#double>";
@@ -456,7 +473,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 			insertQuery = insertQuery + subjectUri + " " + predUri + " " + objectUri + ". ";
 		}
 		insertQuery = insertQuery + "}";
-		
+
 		return insertQuery;
 	}
 
@@ -467,7 +484,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 	 */
 	@Override
 	public void setPlaySheet(IPlaySheet graphPlaySheet) {
-		
+
 	}
 
 	/**
@@ -486,7 +503,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 	 */
 	@Override
 	public void execute() {
-		
+
 	}
 
 	/**
