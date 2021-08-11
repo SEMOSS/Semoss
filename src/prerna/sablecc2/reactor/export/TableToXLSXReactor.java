@@ -309,11 +309,11 @@ public class TableToXLSXReactor	extends AbstractReactor {
 
 	
 	public String processTable(String sheetName, String html, String fileName) {
+		Workbook wb = null;
 		try
 		{
 			Document doc = Jsoup.parse(html, "UTF-8");
 
-			Workbook wb = null;
 			if(exportMap.containsKey(fileName))
 			{
 				// keeping a map to be used for various things
@@ -405,6 +405,14 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		}catch (Exception ex)
 		{
 			ex.printStackTrace();
+		} finally {
+			if(wb != null) {
+		          try {
+		        	  wb.close();
+		          } catch(IOException e) {
+						e.printStackTrace();
+		          }
+		        }
 		}
 		return null;
 	}

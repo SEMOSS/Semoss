@@ -131,13 +131,15 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 	private void transferToServer( String clientFile, String serverFile ){
 		RConnection r = getRcon();
 		byte [] b = new byte[8192];
+		BufferedInputStream clientStream = null;
+		RFileOutputStream serverStream = null;
 		try{
 			/* the file on the client machine we read from */
-			BufferedInputStream clientStream = new BufferedInputStream( 
+			 clientStream = new BufferedInputStream( 
 					new FileInputStream( new File( clientFile ) ) ); 
 
 			/* the file on the server we write to */
-			RFileOutputStream serverStream = r.createFile( serverFile );
+			 serverStream = r.createFile( serverFile );
 
 			/* typical java IO stuff */
 			int c = clientStream.read(b) ; 
@@ -146,23 +148,38 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 				c = clientStream.read(b) ;
 			}
 
-			serverStream.close();
-			clientStream.close(); 
 		} catch( IOException e){
 			logger.error(STACKTRACE, e);
+		} finally {
+			if(serverStream != null) {
+		          try {
+		        	  serverStream.close();
+		          } catch(IOException e) {
+		            logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
+			if(clientStream != null) {
+		          try {
+		        	  clientStream.close();
+		          } catch(IOException e) {
+		            logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
 		}
 	}
 
 	private void transferToClient( String clientFile, String serverFile ){
 		RConnection r = getRcon();
 		byte[] b = new byte[8192];
+		BufferedOutputStream clientStream = null;
+		RFileInputStream serverStream = null;
 		try{
 			/* the file on the client machine we write to */
-			BufferedOutputStream clientStream = new BufferedOutputStream(
+			 clientStream = new BufferedOutputStream(
 					new FileOutputStream( new File( clientFile ) ) );
 
 			/* the file on the server machine we read from */
-			RFileInputStream serverStream = r.openFile( serverFile );
+			 serverStream = r.openFile( serverFile );
 
 			/* typical java io stuff */
 			int c = serverStream.read(b) ; 
@@ -175,6 +192,21 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 			serverStream.close(); 
 		} catch( IOException e){
 			logger.error(STACKTRACE, e);
+		}finally {
+			if(serverStream != null) {
+		          try {
+		        	  serverStream.close();
+		          } catch(IOException e) {
+		            logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
+			if(clientStream != null) {
+		          try {
+		        	  clientStream.close();
+		          } catch(IOException e) {
+		            logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
 		}
 	}
 

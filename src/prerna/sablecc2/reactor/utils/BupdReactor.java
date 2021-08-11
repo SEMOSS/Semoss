@@ -30,9 +30,10 @@ public class BupdReactor extends AbstractReactor {
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		
+		Statement stmt = null;
 		try {
 			// check to see if such a fancy name exists
-			Statement stmt = conn.createStatement();
+			stmt = conn.createStatement();
 			String query = "SELECT embed, fancy from bitly where fancy='" + this.keyValue.get("fancy") + "'";
 			ResultSet rs = stmt.executeQuery(query);
 			// if there is a has next not sure what
@@ -45,6 +46,15 @@ public class BupdReactor extends AbstractReactor {
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		}
 		return new NounMetadata("Updated " + this.keyValue.get("fancy"), PixelDataType.CONST_STRING);
 	}

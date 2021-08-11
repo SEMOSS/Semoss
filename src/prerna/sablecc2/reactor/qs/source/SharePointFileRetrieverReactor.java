@@ -76,7 +76,7 @@ public class SharePointFileRetrieverReactor extends AbstractQueryStructReactor{
 
 		Hashtable params = new Hashtable();
 		CsvQueryStruct qs = new CsvQueryStruct();
-
+		BufferedWriter target = null;
 		try {
 			String url_str = "https://graph.microsoft.com/v1.0/drives/"+driveID+"/items/"+fileID+"/content";
 			BufferedReader br = AbstractHttpHelper.getHttpStream(url_str, accessToken, params, true);
@@ -88,7 +88,7 @@ public class SharePointFileRetrieverReactor extends AbstractQueryStructReactor{
 			filePath = filePath.replace("\\", "/");
 			File outputFile = new File(filePath);
 
-			BufferedWriter target = new BufferedWriter(new FileWriter(outputFile));
+			target = new BufferedWriter(new FileWriter(outputFile));
 			String data = null;
 
 
@@ -118,6 +118,15 @@ public class SharePointFileRetrieverReactor extends AbstractQueryStructReactor{
 			return qs;
 		} catch (IOException e) {
 			e.printStackTrace();
+		}finally {
+			if(target != null) {
+		          try {
+		        	  target.flush();
+		        	  target.close();
+		          } catch(IOException e) {
+		            logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
 		}
 		return qs;
 	}
