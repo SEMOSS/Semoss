@@ -680,6 +680,15 @@ public class GraphUtility {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				 if(statement != null) {
+					 statement.close();
+			        }
+			} catch (SQLException e) {
+		          e.printStackTrace();
+			}
+
 		}
 		if (!nodeMap.isEmpty()) {
 			metamodel.put("nodes", nodeMap);

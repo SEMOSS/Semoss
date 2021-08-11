@@ -190,9 +190,10 @@ public class ImportDataListener implements IChakraListener {
 
 		for(String file : files) {
 			FileInputStream fileIn = null;
+			XSSFWorkbook book = null;
 			try{
 				fileIn = new FileInputStream(file);
-				XSSFWorkbook book = new XSSFWorkbook(fileIn);
+				book = new XSSFWorkbook(fileIn);
 				XSSFSheet lSheet = book.getSheet("Loader");
 				int lastRow = lSheet.getLastRowNum();
 				
@@ -244,6 +245,13 @@ public class ImportDataListener implements IChakraListener {
 				}catch(IOException e) {
 					e.printStackTrace();
 				}
+				if(book != null) {
+			          try {
+			        	  book.close();
+			          } catch(IOException e) {
+			            logger.error(Constants.STACKTRACE, e);
+			          }
+			        }
 			}
 		}
 		Object[] buttons = {"Cancel", "Continue"};

@@ -2799,8 +2799,7 @@ public class Utility {
 		
 		for (; !found && lowPort < highPort; lowPort++) {
 			logger.info("Trying port = " + lowPort);
-			try {
-				ServerSocket s = new ServerSocket(lowPort); 
+			try(ServerSocket s = new ServerSocket(lowPort);) {
 				logger.info("Success with port = " + lowPort);
 				// no error, found an open port, we can stop
 				found = true;
@@ -3334,13 +3333,13 @@ public class Utility {
 	
 	
 	public static void copyURLtoFile(String urlString, String filePath) {
-		try {
+		try(PrintWriter out = new PrintWriter(filePath)){
 			URL url = new URL(urlString);
 			URLConnection conn = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 			String inputLine;
 			// write file
-			PrintWriter out = new PrintWriter(filePath);
+			
 			while ((inputLine = in.readLine()) != null) {
 				out.write(inputLine + System.getProperty("line.separator"));
 			}

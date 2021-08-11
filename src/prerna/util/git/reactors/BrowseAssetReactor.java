@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -17,12 +20,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.git.GitAssetUtils;
+import prerna.util.Constants;
 
 public class BrowseAssetReactor extends AbstractReactor {
 
 	// pulls the latest for this project / asset
 	// the asset is basically the folder where it sits
 	// this can be used enroute in a pipeline
+
+	private static Logger logger = LogManager.getLogger(BrowseAssetReactor.class);
 
 	public BrowseAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(),  ReactorKeysEnum.SPACE.getKey() };
@@ -54,11 +60,12 @@ public class BrowseAssetReactor extends AbstractReactor {
 		// add the files from repository and show it as if those files are there
 		if(locFolder.length() == 0)
 		{
+			FileInputStream fis = null;
 			// try to add all the repository
 			try {
 				File repoFile = new File(assetFolder + "/version/repoList.txt");
 				Properties prop = new Properties();
-				FileInputStream fis = new FileInputStream(repoFile);
+				fis = new FileInputStream(repoFile);
 				prop.load(fis);
 				Enumeration <Object> dirs = prop.keys();
 				
@@ -75,14 +82,21 @@ public class BrowseAssetReactor extends AbstractReactor {
 					
 					output.add(meta);
 				}
-				fis.close();
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}			
+			} finally {
+				if(fis != null) {
+					try {
+						fis.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 		}
 		
 		
@@ -104,11 +118,11 @@ public class BrowseAssetReactor extends AbstractReactor {
 	
 	private void cloneRepo(String repoName, String workingDir)
 	{
-		try {
-			File repoFile = new File(workingDir + "/version/repoList.txt");
+		File repoFile = new File(workingDir + "/version/repoList.txt");
+		try(FileInputStream fis = new FileInputStream(repoFile)) {
 			if(repoFile.exists() && repoFile.isFile()) {
 				Properties prop = new Properties();
-				prop.load(new FileInputStream(repoFile));
+				prop.load(fis);
 
 				String url = prop.getProperty(repoName);
 
