@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
@@ -60,7 +60,7 @@ public class AllAppsReactor extends AbstractReactor {
 		
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = SecurityAppUtils.getDatabaseMetadataWrapper(index.keySet(), META_KEYS_LIST);
+			wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), META_KEYS_LIST);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String appId = (String) data[0];

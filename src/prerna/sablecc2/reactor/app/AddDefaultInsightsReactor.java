@@ -7,7 +7,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -56,7 +56,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the project");
 			}
-			if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("User does not have permission to view the database");
 			}
 		}

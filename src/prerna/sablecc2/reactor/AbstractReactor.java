@@ -17,7 +17,7 @@ import org.codehaus.plexus.util.StringUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -618,29 +618,29 @@ public abstract class AbstractReactor implements IReactor {
 	
 	/**
 	 * Test the app id and grab the correct value and check if the user needs edit access or just read access
-	 * @param appId			String the app id to test
+	 * @param databaseId	String the database id to test
 	 * @param edit			Boolean true means the user needs edit access
 	 * @return
 	 */
-	protected String testDatabaseId(String appId, boolean edit) {
-		String testId = appId;
+	protected String testDatabaseId(String databaseId, boolean edit) {
+		String testId = databaseId;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			testId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), testId);
 			if(edit) {
 				// need edit permission
-				if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), testId)) {
-					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
+				if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), testId)) {
+					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
 				}
 			} else {
 				// just need read access
-				if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), testId)) {
-					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
+				if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), testId)) {
+					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
 				}
 			}
 		} else {
 			testId = MasterDatabaseUtility.testDatabaseIdIfAlias(testId);
 			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(testId)) {
-				throw new IllegalArgumentException("App " + appId + " does not exist");
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
 			}
 		}
 		return testId;
