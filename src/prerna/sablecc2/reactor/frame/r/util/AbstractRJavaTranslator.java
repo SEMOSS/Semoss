@@ -415,17 +415,31 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 */
 	public void checkPackages(String[] packages) {
 		String packageError = "";
-		int[] confirmedPackages = this.getIntArray("which(as.logical(lapply(list('" + StringUtils.join(packages, "','")
-				+ "')" + ", require, character.only=TRUE))==F)");
-
-		if (confirmedPackages.length > 0) {
-			for (int i : confirmedPackages) {
-				int index = i - 1;
-				packageError += packages[index] + "\n";
-			}
+		String rScript = "required_packages<- c('" + StringUtils.join(packages,"','") + "');"
+				+ "required_packages[!(required_packages %in% rownames(installed.packages()))]";
+		String[] missingPackages = this.getStringArray(rScript);
+		
+		if (missingPackages.length > 0) {
+			packageError += StringUtils.join(missingPackages, "\n");
 			String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
 			throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
+		
+		/*
+		 * Require actually loads the library if it exists
+		 */
+//		String packageError = "";
+//		int[] confirmedPackages = this.getIntArray("which(as.logical(lapply(list('" + StringUtils.join(packages, "','")
+//				+ "')" + ", require, character.only=TRUE))==F)");
+//
+//		if (confirmedPackages.length > 0) {
+//			for (int i : confirmedPackages) {
+//				int index = i - 1;
+//				packageError += packages[index] + "\n";
+//			}
+//			String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
+//			throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+//		}
 	}
 	
 	/**
