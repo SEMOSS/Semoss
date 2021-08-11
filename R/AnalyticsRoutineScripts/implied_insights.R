@@ -1,3 +1,47 @@
+get_dataset_makeup<-function(df,nbr_int=10,method="mean"){
+# Identifies column insights
+# Args
+# df - dataframe/table to search
+# nbr_int - number of interval to discretize data (default 10)
+# ext - extention coefficient (default 1.5)
+# Output
+# list with each element is a list itself 
+# with first element discretized data, second anomalies of the data 
+	library(data.table)
+	library(arules)
+	n<-ncol(df)
+	cols<-colnames(df)
+	out<-data.frame(Column=character(),Instance=character(),Frequency=integer(),Outlier=character(),stringsAsFactors=FALSE)
+	if(n>0){
+		for(i in 1:n){
+			item<-list()
+			if(class(df[[i]]) %in% c("integer","numeric")){
+				item[[1]]<-table(discretize(df[[i]],method="interval",breaks=nbr_int))
+				item[[2]]<-get_univarible_outliers(item[[1]],method)
+			}else if(class(df[[i]]) %in% c("character","factor")){
+				item[[1]]<-table(as.numeric(as.factor(df[[i]])))
+				names(item[[1]])<-levels(as.factor(df[[i]]))
+				item[[2]]<-get_univarible_outliers(item[[1]],method)
+			}else if(class(df[[i]])=="logical"){
+				item[[1]]<-table(as.numeric(df[[i]]))
+				names(item[[1]])<-unname(sapply(names(out[[i]]),function(x) if(x=="0") "FALSE" else "TRUE"))
+				item[[2]]<-get_univarible_outliers(item[[1]],method)
+			}
+			if(length(item)>0){
+				m<-length(item[[1]])
+				out<-rbind(out,data.frame(Column=rep(names(df)[i],m),Instance=names(item[[1]]),Frequency=unname(as.integer(item[[1]])),Outlier='FALSE',stringsAsFactors=FALSE))
+				m<-length(item[[2]])
+				if(m>0){
+					out[out$Column== names(df)[i] & out$Instance %in% names(item[[2]]),'Outlier']<-'TRUE'
+				}
+			}
+		}
+	}
+	gc()
+	return(out)
+}
+
+
 get_dataset_composition<-function(df,nbr_int=10){
 # Identifies column insights
 # Args
