@@ -176,7 +176,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		return null;
 	}
+	
+	/**
+	 * Get a list of the project ids
+	 * @return
+	 */
+	public static List<String> getAllProjectIds() {
+//		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
 
 	/**
 	 * Get the project permissions for a specific user
@@ -988,12 +1000,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		List<Map<String, Object>> engineMap = QueryExecutionUtility.flushRsToMap(securityDb, qs2);
 		engineMap.addAll(allGlobalEnginesMap);
 		return engineMap;
-	}
-	
-	public static List<String> getAllProjectIds() {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 	
 	/**
