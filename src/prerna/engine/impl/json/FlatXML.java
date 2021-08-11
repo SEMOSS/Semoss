@@ -87,9 +87,9 @@ public class FlatXML {
 	
 	public void loadProp(String propFile)
 	{
-		try {
+		try(FileInputStream fis = new FileInputStream(propFile)) {
 			this.prop = new Properties();
-			prop.load(new FileInputStream(propFile));
+			prop.load(fis);
 			if(prop.containsKey("input_type") && ((String)prop.get("input_type")).equalsIgnoreCase("file"))
 				document = Configuration.defaultConfiguration().jsonProvider().parse(new FileInputStream(Utility.normalizePath(prop.getProperty("input_url"))), "utf-8");
 

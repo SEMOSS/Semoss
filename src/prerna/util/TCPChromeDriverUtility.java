@@ -29,7 +29,7 @@ public class TCPChromeDriverUtility {
 
 	protected static String contextPath = null;
 	protected static String sessionCookie = null;
-	
+
 	public static ChromeDriver driver = null;
 
 	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
@@ -51,7 +51,7 @@ public class TCPChromeDriverUtility {
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String os = System.getProperty("os.name").toUpperCase();
 			String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
-	
+
 			boolean linux = false;
 			if (os.contains("WIN")) {
 				sysProp += "chromedriver-win.exe";
@@ -64,7 +64,7 @@ public class TCPChromeDriverUtility {
 			System.setProperty("webdriver.chrome.driver", sysProp);
 			// System.setProperty("webdriver.chrome.verboseLogging", "true");
 			System.setProperty("webdriver.chrome.whitelistedIps", "");
-	
+
 			ChromeOptions chromeOptions = new ChromeOptions();
 			String customGoogleBinaryLocation = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_BINARY);
 			if (customGoogleBinaryLocation != null && !customGoogleBinaryLocation.isEmpty()) {
@@ -76,13 +76,13 @@ public class TCPChromeDriverUtility {
 			chromeOptions.addArguments("--remote-debugging-port=9222");
 			//logger.info("##CHROME DRIVER: allowing insecure local");
 			//logger.info("##CHROME DRIVER: ignore certs");
-	
+
 			//chromeOptions.addArguments("--allow-insecure-localhost");
 			chromeOptions.addArguments("--ignore-certificate-errors");
 			chromeOptions.addArguments("--ignore-ssl-errors");
 			chromeOptions.addArguments("--ignore-ssl-errors=yes");
 			chromeOptions.addArguments("--ignore-ssl-errors=true");
-	
+
 			if (linux) {
 				chromeOptions.addArguments("-disable-dev-shm-usage");
 				chromeOptions.addArguments("--no-sandbox");
@@ -184,22 +184,33 @@ public class TCPChromeDriverUtility {
 		}
 		return null;
 	}
-	
+
 	private static void copyFile(File srcFile, File targetFile) throws Exception
 	{
-    	
-		FileInputStream input = new FileInputStream(srcFile);
-		FileOutputStream output = new FileOutputStream(targetFile);
 
-		byte[] buf = new byte[1024];
-		int bytesRead;
-		
-		while ((bytesRead = input.read(buf)) > 0) {
-		    output.write(buf, 0, bytesRead);
+		FileInputStream input=null;
+		FileOutputStream output = null;
+		try {
+			input = new FileInputStream(srcFile);
+			output = new FileOutputStream(targetFile);
+
+			byte[] buf = new byte[1024];
+			int bytesRead;
+
+			while ((bytesRead = input.read(buf)) > 0) {
+				output.write(buf, 0, bytesRead);
+			}
+		} finally {
+
+			if(input!=null) {
+				input.close();
+			}
+
+			if(output!=null) {
+				output.close();
+			}
+
 		}
-
-		input.close();
-		output.close();
 	}
 
 	protected static void updateCookie(ChromeDriver driver, String cookieName, String cookieValue) {
@@ -214,7 +225,7 @@ public class TCPChromeDriverUtility {
 			String name2 = cook3.getName();
 			logger.info("##CHROME DRIVER: INIT CHECK found cookie" + cook3.toJson());
 		}
-		
+
 		Iterator<Cookie> cooki = driver.manage().getCookies().iterator();
 		boolean cookieFound = false;
 		Cookie cook = null;
@@ -264,19 +275,19 @@ public class TCPChromeDriverUtility {
 			logger.info("##CHROME DRIVER: cookie not found " + cookieName);
 
 			//Date expiresDate = new Date(new Date().getTime() + 36000*1000); 
-			
+
 			//Cookie name = new Cookie(cookieName, cookieValue, "/", expiresDate); // , null);
 			Cookie name = new Cookie(cookieName, cookieValue, "/"); // , null);
-			
-//			logger.info("##CHROME DRIVER: MODDED COOKIE");
-//
-//			Cookie name= new Cookie(cookieName,
-//					cookieValue,
-//					"semosscontainer-healthx-dev.apps.ent-ocp-np1-har.antmdc.internal.das",
-//					"/Monolith",
-//					null,
-//					true,
-//					true);
+
+			//			logger.info("##CHROME DRIVER: MODDED COOKIE");
+			//
+			//			Cookie name= new Cookie(cookieName,
+			//					cookieValue,
+			//					"semosscontainer-healthx-dev.apps.ent-ocp-np1-har.antmdc.internal.das",
+			//					"/Monolith",
+			//					null,
+			//					true,
+			//					true);
 			logger.info("##CHROME DRIVER: BASE ADD Adding cookie  - name: " + name.getName()
 			+ " domain: " + name.getDomain() 
 			+ " path: " +  name.getPath()
@@ -296,7 +307,7 @@ public class TCPChromeDriverUtility {
 		// so that the cookie is applied at root level
 		// driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
 
-		
+
 		if (TCPChromeDriverUtility.contextPath != null) {
 			logger.info("##CHROME DRIVER: starting url = "+ url);
 
@@ -349,18 +360,18 @@ public class TCPChromeDriverUtility {
 		} catch (InterruptedException e) {
 			e.printStackTrace(); 
 		}
-		
+
 		// trying the wait
 		WebDriverWait wait = new WebDriverWait(TCPChromeDriverUtility.driver, 600); // giving it 10 min.. we need a better way for this but.. 
 		WebElement we1 = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//html/body//table")));
-		
+
 		logger.info(" The element output I got is " + we1.getText());
-		
+
 		//String html2 = getHTML(TCPChromeDriverUtility.driver, "//html/body//table");
 		return we1.getText();
 
 	}
-	
+
 	public static void setContextAndSessionCookie(String contextPath, String sessionCookie)
 	{
 		TCPChromeDriverUtility.sessionCookie = sessionCookie;
@@ -368,91 +379,91 @@ public class TCPChromeDriverUtility {
 	}
 
 
-//	/**
-//	 * Capture the image of from a url
-//	 * 
-//	 * @param feUrl     the base semoss url
-//	 * @param url       the insight embed url
-//	 * @param imagePath location to save image
-//	 * @param sessionId user session id if logged in
-//	 */
-//	public static ChromeDriver captureImage(String feUrl, String url, String imagePath, String sessionId, int height,
-//			int width, boolean close) {
-//		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-//		// load driver options
-//		String os = System.getProperty("os.name").toUpperCase();
-//		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
-//		boolean linux = false;
-//		if (os.contains("WIN")) {
-//			sysProp += "chromedriver-win.exe";
-//		} else if (os.contains("MAC")) {
-//			sysProp += "chromedriver-mac";
-//		} else {
-//			linux = true;
-//			sysProp += "chromedriver-linux";
-//		}
-//		System.setProperty("webdriver.chrome.driver", sysProp);
-//		boolean secure = url.contains("https");
-//
-//		ChromeOptions chromeOptions = new ChromeOptions();
-//		String customGoogleBinaryLocation = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_BINARY);
-//		if (customGoogleBinaryLocation != null && !customGoogleBinaryLocation.isEmpty()) {
-//			chromeOptions.setBinary(customGoogleBinaryLocation);
-//		}
-//		chromeOptions.addArguments("--headless");
-//		chromeOptions.addArguments("--disable-gpu");
-//		chromeOptions.addArguments("--window-size=" + height + "," + width);
-//		chromeOptions.addArguments("--remote-debugging-port=9222");
-//		if (linux) {
-//			chromeOptions.addArguments("-disable-dev-shm-usage");
-//			chromeOptions.addArguments("--no-sandbox");
-//		}
-//		if (url.contains("localhost") && url.contains("https")) {
-//			chromeOptions.addArguments("--allow-insecure-localhost ");
-//		}
-//		driver = new ChromeDriver(chromeOptions);
-//		// driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
-//
-//		// need to go to the base url first
-//		// so that the cookie is applied at root level
-//		if (ChromeDriverUtility.contextPath != null) {
-//			String startingUrl = feUrl;
-//			if (startingUrl.endsWith("/")) {
-//				startingUrl = startingUrl.substring(0, startingUrl.length() - 1);
-//			}
-//			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
-//					+ ChromeDriverUtility.contextPath;
-//			driver.get(baseUrl);
-//		} else {
-//			driver.get(url);
-//		}
-//		if (sessionId != null && ChromeDriverUtility.sessionCookie != null) {
-//			// name, value, domain, path, expiration, secure, http only
-//			//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
-//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
-//
-//			driver.manage().addCookie(name);
-//		}
-//		driver.navigate().to(url);
-//
-//		// time for FE to render the page before the image is taken
-//		try {
-//			Thread.sleep(10_000);
-//		} catch (InterruptedException e) {
-//			e.printStackTrace();
-//		}
-//		// take image
-//		File scrFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-//		try {
-//			FileUtils.copyFile(scrFile, new File(imagePath));
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//		if (close) {
-//			driver.quit();
-//		}
-//		return driver;
-//	}
+	//	/**
+	//	 * Capture the image of from a url
+	//	 * 
+	//	 * @param feUrl     the base semoss url
+	//	 * @param url       the insight embed url
+	//	 * @param imagePath location to save image
+	//	 * @param sessionId user session id if logged in
+	//	 */
+	//	public static ChromeDriver captureImage(String feUrl, String url, String imagePath, String sessionId, int height,
+	//			int width, boolean close) {
+	//		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+	//		// load driver options
+	//		String os = System.getProperty("os.name").toUpperCase();
+	//		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
+	//		boolean linux = false;
+	//		if (os.contains("WIN")) {
+	//			sysProp += "chromedriver-win.exe";
+	//		} else if (os.contains("MAC")) {
+	//			sysProp += "chromedriver-mac";
+	//		} else {
+	//			linux = true;
+	//			sysProp += "chromedriver-linux";
+	//		}
+	//		System.setProperty("webdriver.chrome.driver", sysProp);
+	//		boolean secure = url.contains("https");
+	//
+	//		ChromeOptions chromeOptions = new ChromeOptions();
+	//		String customGoogleBinaryLocation = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_BINARY);
+	//		if (customGoogleBinaryLocation != null && !customGoogleBinaryLocation.isEmpty()) {
+	//			chromeOptions.setBinary(customGoogleBinaryLocation);
+	//		}
+	//		chromeOptions.addArguments("--headless");
+	//		chromeOptions.addArguments("--disable-gpu");
+	//		chromeOptions.addArguments("--window-size=" + height + "," + width);
+	//		chromeOptions.addArguments("--remote-debugging-port=9222");
+	//		if (linux) {
+	//			chromeOptions.addArguments("-disable-dev-shm-usage");
+	//			chromeOptions.addArguments("--no-sandbox");
+	//		}
+	//		if (url.contains("localhost") && url.contains("https")) {
+	//			chromeOptions.addArguments("--allow-insecure-localhost ");
+	//		}
+	//		driver = new ChromeDriver(chromeOptions);
+	//		// driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
+	//
+	//		// need to go to the base url first
+	//		// so that the cookie is applied at root level
+	//		if (ChromeDriverUtility.contextPath != null) {
+	//			String startingUrl = feUrl;
+	//			if (startingUrl.endsWith("/")) {
+	//				startingUrl = startingUrl.substring(0, startingUrl.length() - 1);
+	//			}
+	//			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
+	//					+ ChromeDriverUtility.contextPath;
+	//			driver.get(baseUrl);
+	//		} else {
+	//			driver.get(url);
+	//		}
+	//		if (sessionId != null && ChromeDriverUtility.sessionCookie != null) {
+	//			// name, value, domain, path, expiration, secure, http only
+	//			//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
+	//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+	//
+	//			driver.manage().addCookie(name);
+	//		}
+	//		driver.navigate().to(url);
+	//
+	//		// time for FE to render the page before the image is taken
+	//		try {
+	//			Thread.sleep(10_000);
+	//		} catch (InterruptedException e) {
+	//			e.printStackTrace();
+	//		}
+	//		// take image
+	//		File scrFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+	//		try {
+	//			FileUtils.copyFile(scrFile, new File(imagePath));
+	//		} catch (IOException e) {
+	//			e.printStackTrace();
+	//		}
+	//		if (close) {
+	//			driver.quit();
+	//		}
+	//		return driver;
+	//	}
 
 	public static void setContextPath(String contextPath) {
 		if (contextPath.startsWith("/")) {
@@ -467,14 +478,14 @@ public class TCPChromeDriverUtility {
 	public static void setSessionCookie(String sessionCookie) {
 		TCPChromeDriverUtility.sessionCookie = sessionCookie;
 	}
-	
+
 	public static String getHTML(Object driverObj, String path)
 	{
 		WebElement we = TCPChromeDriverUtility.driver.findElement(By.xpath(path));
 		String html2 = TCPChromeDriverUtility.driver.executeScript("return arguments[0].outerHTML;", we) + "";
 		return html2;
 	}
-	
+
 	public static void quit(Object driverObj)
 	{
 		if(driver != null)

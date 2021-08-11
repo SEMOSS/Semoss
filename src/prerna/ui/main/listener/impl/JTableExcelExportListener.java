@@ -63,9 +63,10 @@ public class JTableExcelExportListener extends AbstractListener {
 	public boolean runExport() {
 		boolean successfulExport = true;
 		FileOutputStream stream = null;
+		XSSFWorkbook wb  = null;
 		try{
 			TableModel model = this.table.getModel();
-			XSSFWorkbook wb = new XSSFWorkbook();
+			wb = new XSSFWorkbook();
 			XSSFSheet sheet = wb.createSheet("Export");
 
 			int columnCount = model.getColumnCount();
@@ -100,6 +101,13 @@ public class JTableExcelExportListener extends AbstractListener {
 			}catch(IOException e) {
 				e.printStackTrace();
 			}
+	        if(wb != null) {
+                try {
+                  wb.close();
+                } catch(IOException e) {
+    				e.printStackTrace();
+                }
+              }
 		}
 
 		return successfulExport;

@@ -84,6 +84,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	 * @param headers					The headers for the frame
 	 */
 	public static void updateCostValues(H2Frame frame, String instance, double[] newValues, String endYear, String[] headers) {
+		PreparedStatement updatePs = null;
 		try {
 			String mainColName = headers[0];
 
@@ -125,7 +126,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 				// need to do an update
 				// got to make a query
-				PreparedStatement updatePs = frame.createUpdatePreparedStatement(updateHeaders, new String[]{mainColName});
+				updatePs = frame.createUpdatePreparedStatement(updateHeaders, new String[]{mainColName});
 				for(int updateIndex = 0; updateIndex < updateValues.length; updateIndex++) {
 					updatePs.setObject(updateIndex+1, updateValues[updateIndex]);
 				}
@@ -147,6 +148,15 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+		      if(updatePs != null) {
+		          try {
+		        	  updatePs.close();
+		          } catch (SQLException e) {
+		            // TODO Auto-generated catch block
+		            e.printStackTrace();
+		          }
+		        }
 		}
 	}
 
@@ -174,9 +184,10 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		frame.addNewColumn(newHeaders, dataTypes, frame.getName());
 
 		ResultSet it = frame.execQuery(rowTotal.toString());
+		PreparedStatement updatePs = null;
 		try {
 			// create an update statement to set the systems which are centrally deployed to true
-			PreparedStatement updatePs = frame.createUpdatePreparedStatement(new String[]{"Total"}, new String[]{mainColName});
+			updatePs = frame.createUpdatePreparedStatement(new String[]{"Total"}, new String[]{mainColName});
 			while(it.next()) {
 				updatePs.setObject(1, it.getDouble(2));
 				updatePs.setObject(2, it.getString(1));
@@ -185,6 +196,15 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			updatePs.executeBatch();
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+		      if(updatePs != null) {
+		          try {
+		        	  updatePs.close();
+		          } catch (SQLException e) {
+		            // TODO Auto-generated catch block
+		            e.printStackTrace();
+		          }
+		        }
 		}
 
 		// now calculate the column totals
@@ -346,10 +366,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
-
-		try {
+		try (PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Last_Wave_For_System"}, new String[]{"System"});){
 			// create an update statement to set the systems last wave
-			PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Last_Wave_For_System"}, new String[]{"System"});
 			for(String system : lastWaveForSystem.keySet()) {
 				updatePs.setObject(1, lastWaveForSystem.get(system));
 				updatePs.setObject(2, system);
@@ -381,10 +399,10 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
-
+		PreparedStatement updatePs = null;
 		try {
 			// create an update statement to set all the values to false as default
-			PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Last_Wave_For_Site"}, new String[]{});
+			updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Last_Wave_For_Site"}, new String[]{});
 			updatePs.setObject(1, "-1");
 			updatePs.addBatch();
 			updatePs.executeBatch();
@@ -399,6 +417,15 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			updatePs.executeBatch();
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally { 
+		      if(updatePs != null) {
+		          try {
+		        	  updatePs.close();
+		          } catch (SQLException e) {
+		            // TODO Auto-generated catch block
+		            e.printStackTrace();
+		          }
+		        }
 		}
 
 		return mainSustainmentFrame;	
