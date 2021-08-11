@@ -479,7 +479,7 @@ public class FormulaExtractor extends AbstractFileReader {
 					workbook.close();
 				} catch (IOException e) {
 					e.printStackTrace();
-					throw new IOException("Could not close Excel workbook");
+					//throw new IOException("Could not close Excel workbook");
 				}
 			}
 		}
@@ -925,7 +925,7 @@ public class FormulaExtractor extends AbstractFileReader {
 					workbook.close();
 				} catch (IOException e) {
 					e.printStackTrace();
-					throw new IOException("Could not close Excel workbook");
+					//throw new IOException("Could not close Excel workbook");
 				}
 			}
 		}

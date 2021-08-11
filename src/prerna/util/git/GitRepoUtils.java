@@ -228,9 +228,10 @@ public class GitRepoUtils {
 	 * @param repositoryName
 	 */
 	public static void deleteRemoteRepositorySettings(String localRepository, String repositoryName) {
-		try {
-			File file = new File(localRepository);
-			Git gFile = Git.open(file);
+		File file = new File(localRepository);
+
+		try (Git gFile = Git.open(file)){
+			
 			RemoteRemoveCommand remover = gFile.remoteRemove();
 			remover.setName(repositoryName.split("/")[1]);
 			remover.call();
@@ -717,7 +718,9 @@ public class GitRepoUtils {
 	// find a particular commit in the folder
 	public static RevCommit findCommit(String gitFolder, String id) throws Exception
 	{
-		Git thisGit = Git.open(new File(gitFolder));
+		RevCommit comm = null;
+
+		try(Git thisGit = Git.open(new File(gitFolder))){
 		StringBuilder builder = new StringBuilder();
 		LogCommand lg = thisGit
 						.log()
@@ -728,7 +731,6 @@ public class GitRepoUtils {
 		
 		boolean first = true;
 		
-		RevCommit comm = null;
 		
 		while(commits.hasNext())
 		{
@@ -740,6 +742,7 @@ public class GitRepoUtils {
 			comm = null;
 		}
 
+		}
 		return comm;
 	}
 	
@@ -765,8 +768,7 @@ public class GitRepoUtils {
 	{
 		// list of lists
 		List builder = null;
-		try {
-			Git thisGit = Git.open(new File(gitFolder));
+		try (			Git thisGit = Git.open(new File(gitFolder))){
 			builder = new ArrayList();
 			List row = new ArrayList();
 			row.add("date");
@@ -831,8 +833,8 @@ public class GitRepoUtils {
 	public static List<Map<String, Object>> getCommits(String gitFolder, String fileName) {
 		// list of lists
 		List<Map<String, Object>> commitList = new Vector<>();
-		try {
-			Git thisGit = Git.open(new File(gitFolder));
+		try(Git thisGit = Git.open(new File(gitFolder))) {
+			
 			LogCommand lg = null;
 			if (fileName != null && !fileName.isEmpty())
 				lg = thisGit.log().addPath(fileName).all();
@@ -868,6 +870,10 @@ public class GitRepoUtils {
 	public static String getFile(String commId, String fileName, String gitFolder)
 	{
 		String output = null;
+		FileReader fis = null;
+		BufferedReader br = null; 
+		Git thisGit = null;
+		ObjectReader objectReader = null;
 		try {
 			
 			RevCommit comm = null;
@@ -884,8 +890,8 @@ public class GitRepoUtils {
 				
 				if(file.exists())
 				{
-					FileReader fis = new FileReader(file);
-					BufferedReader br = new BufferedReader(fis);
+					fis = new FileReader(file);
+					br = new BufferedReader(fis);
 					StringBuffer buff = new StringBuffer();
 					String temp = null;
 					while((temp = br.readLine()) != null)
@@ -900,17 +906,16 @@ public class GitRepoUtils {
 			}
 			else
 			{
-				Git thisGit = Git.open(new File(gitFolder));
+				thisGit = Git.open(new File(gitFolder));
 
 				comm = findCommit(gitFolder, commId);
 			
 				TreeWalk treeWalk = TreeWalk.forPath( thisGit.getRepository(), fileName, comm.getTree());
 				ObjectId blobId = treeWalk.getObjectId( 0 );
 				
-				ObjectReader objectReader = thisGit.getRepository().newObjectReader();
+				objectReader = thisGit.getRepository().newObjectReader();
 				ObjectLoader objectLoader = objectReader.open( blobId );
 				byte[] bytes = objectLoader.getBytes();
-				objectReader.close();
 				output = new String(bytes);
 			}			
 		} catch (MissingObjectException moe) {
@@ -925,6 +930,27 @@ public class GitRepoUtils {
 			logger.error(STACKTRACE, ioe);
 		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if(fis != null) {
+		          try {
+		        	  fis.close();
+		          } catch(IOException e) {
+		            logger.error(STACKTRACE, e);
+		          }
+		        }
+			if(br != null) {
+		          try {
+		        	  br.close();
+		          } catch(IOException e) {
+		            logger.error(STACKTRACE, e);
+		          }
+		        }
+			if(thisGit != null) {
+		          thisGit.close();
+		        }
+			if(objectReader != null) {
+				objectReader.close();
+		        }
 		}
 
 		return output;
@@ -939,6 +965,8 @@ public class GitRepoUtils {
 	public static byte[] getBinary(String commId, String fileName, String gitFolder)
 	{
 		byte[] bytes = null;
+		Git thisGit = null;
+		ObjectReader objectReader = null;
 		try {
 			
 			RevCommit comm = null;
@@ -957,17 +985,16 @@ public class GitRepoUtils {
 			}
 			else
 			{
-				Git thisGit = Git.open(new File(gitFolder));
+				thisGit = Git.open(new File(gitFolder));
 
 				comm = findCommit(gitFolder, commId);
 			
 				TreeWalk treeWalk = TreeWalk.forPath( thisGit.getRepository(), fileName, comm.getTree());
 				ObjectId blobId = treeWalk.getObjectId( 0 );
 				
-				ObjectReader objectReader = thisGit.getRepository().newObjectReader();
+				objectReader = thisGit.getRepository().newObjectReader();
 				ObjectLoader objectLoader = objectReader.open( blobId );
 				bytes = objectLoader.getBytes();
-				objectReader.close();
 			}			
 		} catch (MissingObjectException moe) {
 			logger.error(STACKTRACE, moe);
@@ -981,6 +1008,13 @@ public class GitRepoUtils {
 			logger.error(STACKTRACE, ioe);
 		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if(thisGit != null) {
+		          thisGit.close();
+		        }
+			if(objectReader != null) {
+				objectReader.close();
+		        }
 		}
 		
 		return bytes;
@@ -1136,8 +1170,10 @@ public class GitRepoUtils {
 	}
 
 	public static void revertCommit(String gitFolder, String comm1) {
+		
+		Git thisGit = null;
 		try {
-			Git thisGit = Git.open(new File(gitFolder));
+			thisGit = Git.open(new File(gitFolder));
 			RevCommit comm = findCommit(gitFolder, comm1);
 			// revert sets it up where you go back as if nothing has happened
 			//thisGit.reset().setRef(comm.getId().getName()).setMode(ResetType.HARD).call();
@@ -1168,15 +1204,20 @@ public class GitRepoUtils {
 			logger.error(STACKTRACE, gae);
 		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if (thisGit != null) {
+				thisGit.close();
+			}
 		}
 	}
 	
 	public static void resetCommit(String gitFolder, String comm1) 
 	{
+		Git thisGit = null;
 		try {
 			// this is a different animal.. we just want to make sure the user knows what they are doing
 			// if you dont do hard reset it doesn't give you shit
-			Git thisGit = Git.open(new File(gitFolder));
+			thisGit = Git.open(new File(gitFolder));
 			RevCommit comm = findCommit(gitFolder, comm1);
 			// revert sets it up where you go back as if nothing has happened
 			thisGit.reset().setRef(comm.getId().getName()).setMode(ResetType.HARD).call();
@@ -1188,6 +1229,10 @@ public class GitRepoUtils {
 			logger.error(STACKTRACE, gae);
 		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if (thisGit != null) {
+				thisGit.close();
+			}
 		}		
 	}
 	
@@ -1196,12 +1241,14 @@ public class GitRepoUtils {
 	public static String saveFileForDownload(String commId, String fileName, String gitFolder)
 	{
 		String output = null;
+		ObjectReader objectReader = null;
 		// this needs to change
 		String cacheFolder = gitFolder;
 		String cacheFileName = null;
-
+		Git thisGit = null;
+		FileOutputStream fos  = null;
 		try {
-			Git thisGit = Git.open(new File(gitFolder));
+			thisGit = Git.open(new File(gitFolder));
 			//ObjectId masterTreeId= thisGit.getRepository().resolve("refs/heads/master^" + commitID);
 
 			RevCommit comm = null;
@@ -1227,15 +1274,13 @@ public class GitRepoUtils {
 			TreeWalk treeWalk = TreeWalk.forPath( thisGit.getRepository(), fileName, comm.getTree());
 			ObjectId blobId = treeWalk.getObjectId( 0 );
 			
-			ObjectReader objectReader = thisGit.getRepository().newObjectReader();
+			objectReader = thisGit.getRepository().newObjectReader();
 			ObjectLoader objectLoader = objectReader.open( blobId );
 			
 			byte[] bytes = objectLoader.getBytes();
-			objectReader.close();
 			
-			FileOutputStream fos = new FileOutputStream(cacheFile);
+			fos = new FileOutputStream(cacheFile);
 			fos.write(bytes);
-			fos.close();
 			
 		} catch (MissingObjectException moe) {
 			logger.error(STACKTRACE, moe);
@@ -1249,6 +1294,21 @@ public class GitRepoUtils {
 			logger.error(STACKTRACE, ioe);
 		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
+		} finally {
+			if (thisGit != null) {
+				thisGit.close();
+			}
+			if (objectReader != null) {
+				objectReader.close();
+			}
+			if(fos != null) {
+		          try {
+		        	  fos.flush();
+		        	  fos.close();
+		          } catch(IOException e) {
+		            logger.error(STACKTRACE, e);
+		          }
+		        }
 		}
 		
 		return cacheFileName;
@@ -1279,16 +1339,17 @@ public class GitRepoUtils {
 
 	public static void checkout(String gitFolder, String comm) throws Exception
 	{
-		Git git = Git.open(new File(gitFolder));
+		try(Git git = Git.open(new File(gitFolder))){
 		git.checkout().setName(comm).call();
+		}
 		
 	}
 	
 	public static void resetCheckout(String gitFolder) throws Exception
 	{
-		Git git = Git.open(new File(gitFolder));
+		try(Git git = Git.open(new File(gitFolder))){
 		git.checkout().setName("master").call();
-		
+		}
 	}
 	
 	public static void init(String folder)
@@ -1311,18 +1372,27 @@ public class GitRepoUtils {
 	
 	public static void addGitIgnore(String folder)
 	{
+		BufferedWriter bw  = null;
 		try
 		{
 			File f = new File(folder + "/.gitignore");
-			BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+			bw = new BufferedWriter(new FileWriter(f));
 			bw.write("*.cache");
 			bw.newLine();
 			bw.write("*/Temp/*");
 			bw.newLine();
-			bw.close();
+		
 		}catch(Exception ex)
 		{
 			logger.error(STACKTRACE, ex);
+		} finally {
+			if(bw != null) {
+		          try {
+		            bw.close();
+		          } catch(IOException e) {
+		            logger.error(STACKTRACE, e);
+		          }
+		        }
 		}
 	}
 	

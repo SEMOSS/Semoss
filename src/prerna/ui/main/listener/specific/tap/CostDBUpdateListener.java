@@ -110,10 +110,11 @@ public class CostDBUpdateListener extends AbstractListener {
 
 		POIReader reader = new POIReader();
 		FileInputStream fileIn = null;
+		XSSFWorkbook book = null;
 		try {
 			//Delete all nodes/relationships of specified types
 			fileIn = new FileInputStream(file.replace(";", ""));
-			XSSFWorkbook book = new XSSFWorkbook(fileIn);
+			book = new XSSFWorkbook(fileIn);
 			XSSFSheet lSheet = book.getSheet("Loader");
 			int lastRow = lSheet.getLastRowNum();
 
@@ -236,7 +237,14 @@ public class CostDBUpdateListener extends AbstractListener {
 			}catch(IOException e) {
 				e.printStackTrace();
 			}
+			try{
+				if(book!=null)
+					book.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
+			
 	}
 
 	/**

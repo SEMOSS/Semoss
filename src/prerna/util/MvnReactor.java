@@ -132,8 +132,8 @@ public class MvnReactor extends AbstractReactor
 	public String composeErrorMessage(File file)
 	{
 		StringBuffer output = new StringBuffer();
-		try {
-			BufferedReader br = new BufferedReader(new FileReader(file));
+		try (BufferedReader br = new BufferedReader(new FileReader(file))){
+			
 			String data = null;
 			
 			while((data = br.readLine() ) != null)

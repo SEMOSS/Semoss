@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 
@@ -17,19 +18,21 @@ public class MavenCleaner {
 
 	public static void main(String[] args) throws IOException {
 		Set<Path> foldersToDelete = new HashSet<>();
-		Files.walk(Paths.get(PATH))
-        .filter(f -> f.toFile().getName().endsWith(".lastUpdated"))
-        .forEach(f -> foldersToDelete.add(f.getParent()));
-		foldersToDelete.forEach(f -> {
-			try {
-				FileUtils.deleteDirectory(f.toFile());
-				System.out.println("Deleted " + f.toString());
-//				logger.info("Deleted " + f.toString());
-			} catch (IOException e) {
-				e.printStackTrace();
-//				logger.error("StackTrace: ", e);
-			}
-		});
+		
+		try(Stream<Path> path = Files.walk(Paths.get(PATH))){
+			path.filter(f -> f.toFile().getName().endsWith(".lastUpdated"))
+	        .forEach(f -> foldersToDelete.add(f.getParent()));
+			foldersToDelete.forEach(f -> {
+				try {
+					FileUtils.deleteDirectory(f.toFile());
+					System.out.println("Deleted " + f.toString());
+//					logger.info("Deleted " + f.toString());
+				} catch (IOException e) {
+					e.printStackTrace();
+//					logger.error("StackTrace: ", e);
+				}
+			});
+		}
 	}
 	
 }

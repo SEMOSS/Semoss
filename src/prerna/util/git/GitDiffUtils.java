@@ -15,7 +15,10 @@ public class GitDiffUtils {
 
 	public static String printDiff(String gitFolder, String comm1, String comm2, String fileName) throws Exception
 	{
-		Git thisGit = Git.open(new File(gitFolder));
+		StringBuilder differ = new StringBuilder();
+
+		try(Git thisGit = Git.open(new File(gitFolder))) {
+		//Git thisGit = Git.open(new File(gitFolder));
 				
 		RevTree t1 = GitRepoUtils.findCommit(gitFolder, comm1).getTree();
 		RevTree t2 = GitRepoUtils.findCommit(gitFolder, comm2).getTree();
@@ -47,7 +50,6 @@ public class GitDiffUtils {
 		try( ObjectReader reader = repository.newObjectReader() ) {
 		  treeParser.reset( reader, treeId );
 		}		*/
-		StringBuilder differ = new StringBuilder();
 		
 		for(int entryIndex = 0;entryIndex < entries.size();entryIndex++)
 		{
@@ -71,6 +73,7 @@ public class GitDiffUtils {
 			System.out.println(">>>" + data);
 		}
 		*/
+		}
 		
 		return differ.toString();
 	}
