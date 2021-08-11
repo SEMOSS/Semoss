@@ -8,8 +8,10 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.imageio.ImageIO;
@@ -269,7 +271,7 @@ public class CouchUtil {
 			}
 			String attachmentName = "image." + fileExtension;
 			updateDocument(documentId, revisionId, docJson, attachmentName, 
-					contentType, FileUtils.readFileToByteArray(imageFile));
+					contentType, FileUtils.readFileToByteArray(imageFile), true);
 		} catch (IOException e) {
 			LOGGER.error(Constants.STACKTRACE, e);
 			throw new CouchException("Error processing upload", e);
@@ -326,7 +328,7 @@ public class CouchUtil {
 			
 			String attachmentName = "image." + imageFile.getContentType().split("/")[1];
 			updateDocument(documentId, revisionId, docJson, attachmentName, 
-					imageFile.getContentType(), IOUtils.toByteArray(imageFile.getInputStream()));
+					imageFile.getContentType(), IOUtils.toByteArray(imageFile.getInputStream()), true);
 		} catch (IOException e) {
 			LOGGER.error(Constants.STACKTRACE, e);
 			throw new CouchException("Error processing upload", e);
@@ -542,7 +544,7 @@ public class CouchUtil {
 				}
 				fileContent = FileUtils.readFileToByteArray(insightImageFile);
 			}
-			updateDocument(documentId, revisionId, documentData, attachmentName, contentType, fileContent);
+			updateDocument(documentId, revisionId, documentData, attachmentName, contentType, fileContent, false);
 			return fileContent;
 		} catch (IOException e) {
 			LOGGER.error(Constants.STACKTRACE, e);
@@ -589,6 +591,8 @@ public class CouchUtil {
 	 * @param attachmentBytes       The byte array contents of the attachment. These
 	 *                              will be Base64 encoded before being added to the
 	 *                              document data
+	 * @param ignoreExtension		Boolean if true, to ignore the extension and remove
+	 * 								all attachments that contains the same file name
 	 * @return A <a href="#{@link}">{@link CouchResponse}</a> wrapper for the HTTP
 	 *         response
 	 * @see CouchUtil#executeRequest
@@ -600,7 +604,7 @@ public class CouchUtil {
 	 * @throws CouchException           If another exception is encountered
 	 */
 	private static CouchResponse updateDocument(String documentId, String revisionId, ObjectNode documentData, String attachmentName, 
-			String attachmentContentType, byte[] attachmentBytes) throws CouchException {
+			String attachmentContentType, byte[] attachmentBytes, boolean ignoreExtension) throws CouchException {
 		String attachmentData = new String(Base64.encodeBase64(attachmentBytes));
 		
 		ObjectNode attachmentsNode = null;
@@ -610,10 +614,30 @@ public class CouchUtil {
 			attachmentsNode = documentData.putObject("_attachments");
 		}
 		
-		if(attachmentsNode.has(attachmentName)) {
-			attachmentsNode.remove(attachmentName);
+		if(!ignoreExtension) {
+			if(attachmentsNode.has(attachmentName)) {
+				attachmentsNode.remove(attachmentName);
+			}
+		} else {
+			// loop through and remove all attachments with the same name (minus extension)
+			// as what we are uploading
+			String attachmentNameNoExt = attachmentName.substring(0, attachmentName.lastIndexOf('.'));
+			Set<String> removeSet = new HashSet<>();
+			Iterator<String> existingAttachmentsIt = attachmentsNode.fieldNames();
+			while(existingAttachmentsIt.hasNext()) {
+				String existingAttachment = existingAttachmentsIt.next();
+				String existingAttachmentNameNoExt = existingAttachment.substring(0, existingAttachment.lastIndexOf('.'));
+				if(existingAttachmentNameNoExt.equals(attachmentNameNoExt)) {
+					removeSet.add(existingAttachment);
+				}
+			}
+			// remove all the existing keys
+			if(!removeSet.isEmpty()) {
+				attachmentsNode.remove(removeSet);
+			}
 		}
 		
+		// add the new attachment to the node
 		attachmentsNode = attachmentsNode
 				.putObject(attachmentName)
 				.put("content_type", attachmentContentType)
