@@ -71,7 +71,7 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 
 		Hashtable params = new Hashtable();
 		CsvQueryStruct qs = new CsvQueryStruct();
-
+		BufferedWriter target = null;
 		try {
 			String url_str = "https://graph.microsoft.com/v1.0/me/drive/items/"+msID+"/content";
 			BufferedReader br = AbstractHttpHelper.getHttpStream(url_str, accessToken, params, true);
@@ -83,7 +83,7 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 			filePath = filePath.replace("\\", "/");
 			File outputFile = new File(filePath);
 
-			BufferedWriter target = new BufferedWriter(new FileWriter(outputFile));
+			target = new BufferedWriter(new FileWriter(outputFile));
 			String data = null;
 
 
@@ -112,6 +112,15 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 			qs.setAdditionalTypes(additionalDataTypes);
 		} catch (IOException e) {
 			e.printStackTrace();
+		}finally {
+			if(target != null) {
+		          try {
+		        	  target.flush();
+		        	  target.close();
+		          } catch(IOException e) {
+		            logger.error(Constants.STACKTRACE, e);
+		          }
+		        }
 		}
 		return qs;
 	}

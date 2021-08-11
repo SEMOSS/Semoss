@@ -246,6 +246,14 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 					throw new IOException("Could not close Excel file stream");
 				}
 			}
+			if (workbook != null) {
+				try {
+					workbook.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+					throw new IOException("Could not close Excel workbook");
+				}
+			}
 		}
 	}
 	
