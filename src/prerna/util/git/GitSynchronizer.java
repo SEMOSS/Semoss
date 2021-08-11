@@ -362,8 +362,7 @@ public class GitSynchronizer {
 	 */
 	private static List<String> getConflictedFiles(String dbName) {
 		Vector <String> output = new Vector<String>();
-		try {
-			Git thisGit = Git.open(new File(dbName));
+		try(Git thisGit = Git.open(new File(dbName))) {
 			Status status = thisGit.status().call();
 			Iterator <String> cFiles = status.getConflicting().iterator();
 			while(cFiles.hasNext()) {
@@ -389,10 +388,9 @@ public class GitSynchronizer {
 		// https://stackoverflow.com/questions/3258243/check-if-pull-needed-in-git
 		// git remote update 
 		// git status uno
-		
-		try {
-			File dirFile = new File(dir);
-			Git thisGit = Git.open(dirFile);
+		File dirFile = new File(dir);
+
+		try(Git thisGit = Git.open(dirFile)) {
 
 			AbstractTreeIterator oldTreeParser = prepareTreeParser(thisGit.getRepository(), baseRepo);
 			AbstractTreeIterator newTreeParser = prepareTreeParser(thisGit.getRepository(), newRepo);		

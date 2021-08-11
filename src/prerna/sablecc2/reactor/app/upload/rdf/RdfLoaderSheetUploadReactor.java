@@ -228,7 +228,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 					workbook.close();
 				} catch (IOException e) {
 					e.printStackTrace();
-					throw new IOException("Could not close Excel file stream");
+					//throw new IOException("Could not close Excel file stream");
 				}
 			}
 		}
