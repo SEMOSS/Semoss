@@ -261,7 +261,7 @@ public class BaseFormsDataProcessor {
 				} catch (IOException e) {
 					LOGGER.info("hit IO Exception");
 					e.printStackTrace();
-					throw new IOException("Could not close Excel file stream");
+					//throw new IOException("Could not close Excel file stream");
 				}
 			}
 			

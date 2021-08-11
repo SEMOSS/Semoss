@@ -85,6 +85,8 @@ public class RecoupFunction extends UnivariateSvcOptFunction{
 				numerator = numerator + yearObj*(year) + yearBgt;
 				denominator = denominator + yearObj;
 			}
+			if(denominator == 0)
+				return Double.POSITIVE_INFINITY;
 			double breakeven = numerator/denominator;
 			return breakeven;
 		}
@@ -100,6 +102,8 @@ public class RecoupFunction extends UnivariateSvcOptFunction{
 				denominator = denominator +  yearObj;
 			}
 		}
+		if(denominator == 0)
+			return Double.POSITIVE_INFINITY;
 		double breakeven = 1/Math.log(mu)*Math.log(numerator/denominator)-1;
 		if(Double.isNaN(breakeven))
 			return Double.POSITIVE_INFINITY;

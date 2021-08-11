@@ -57,7 +57,9 @@ public class AOAHeatMapPlaySheet extends HeatMapPlaySheet{
 				avgSS += ((double) row[4]);
 				countNum++;
 			}
-			
+		    if(countNum == 0) {
+		        throw new IllegalArgumentException("countNum can not be 0");
+		      }
 			avgSS /= countNum;
 			
 			//declare RankingScore based on user given mission task rankings 

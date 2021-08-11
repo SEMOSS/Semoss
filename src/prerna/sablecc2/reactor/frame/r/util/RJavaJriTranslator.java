@@ -80,8 +80,8 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		if(retEngine == null) {
 			try {
 				ReentrantLock lock = getEngineLock("genId");
-				lock.lock();
 				try {
+					lock.lock();
 					// start the R Engine
 					logger.info("Starting R Connection... ");
 					retEngine = generateEngine();
