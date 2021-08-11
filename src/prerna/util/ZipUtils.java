@@ -254,25 +254,31 @@ public final class ZipUtils {
 		// grab list of files that are being unzipped
 		Map<String, List<String>> files = listFilesInZip(Paths.get(zipFilePath));
 		// unzip files
-		ZipFile zipIn = new ZipFile(zipFilePath);
-		Enumeration<? extends ZipEntry> entries = zipIn.entries();
-		while (entries.hasMoreElements()) {
-			ZipEntry entry = entries.nextElement();
-			String filePath = destination + FILE_SEPARATOR + Utility.normalizePath(entry.getName());
-			if (entry.isDirectory()) {
-				File file = new File(filePath);
-				file.mkdirs();
-			} else {
-				File parent = new File(filePath).getParentFile();
-				if (!parent.exists()) {
-					parent.mkdirs();
+		ZipFile zipIn = null;
+		try {
+			zipIn = new ZipFile(zipFilePath);
+			Enumeration<? extends ZipEntry> entries = zipIn.entries();
+			while (entries.hasMoreElements()) {
+				ZipEntry entry = entries.nextElement();
+				String filePath = destination + FILE_SEPARATOR + Utility.normalizePath(entry.getName());
+				if (entry.isDirectory()) {
+					File file = new File(filePath);
+					file.mkdirs();
+				} else {
+					File parent = new File(filePath).getParentFile();
+					if (!parent.exists()) {
+						parent.mkdirs();
+					}
+					InputStream is = zipIn.getInputStream(entry);
+					extractFile(is, filePath);
+					is.close();
 				}
-				InputStream is = zipIn.getInputStream(entry);
-				extractFile(is, filePath);
-				is.close();
+			}
+		} finally {
+			if(zipIn != null) {
+				zipIn.close();
 			}
 		}
-		zipIn.close();
 
 		return files;
 	}
@@ -285,15 +291,24 @@ public final class ZipUtils {
 	 * @throws IOException
 	 */
 	private static void extractFile(InputStream zipIn, String filePath) throws IOException {
-		BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(Utility.normalizePath(filePath)));
-		byte[] bytesIn = buffer;
-		int read = 0;
-		while ((read = zipIn.read(bytesIn)) != -1) {
-			bos.write(bytesIn, 0, read);
+		BufferedOutputStream bos = null;
+		try {
+			bos = new BufferedOutputStream(new FileOutputStream(Utility.normalizePath(filePath)));
+			byte[] bytesIn = buffer;
+			int read = 0;
+			while ((read = zipIn.read(bytesIn)) != -1) {
+				bos.write(bytesIn, 0, read);
+			}
+		} finally {
+			try{
+				if(bos!=null)
+					bos.close();
+			}catch(IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 		}
-		bos.close();
 	}
-	
+
 	/**
 	 * https://stackoverflow.com/questions/15667125/read-content-from-files-which-are-inside-zip-file
 	 * NOTE ::: Cleaning up paths to remove initial / to push files to git
@@ -302,46 +317,55 @@ public final class ZipUtils {
 	 * @throws IOException
 	 */
 	public static Map<String, List<String>> listFilesInZip(Path fromZip) throws IOException {
-		FileSystem zipFs = FileSystems.newFileSystem(fromZip, null);
+		FileSystem zipFs = null;
 		Map<String, List<String>> paths = new HashMap<>();
 		Vector<String> dirs = new Vector<>();
 		Vector<String> files = new Vector<>();
-		for (Path root : zipFs.getRootDirectories()) {
-			Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
-				@Override
-				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-					// clean file path for git
-					String filePath = file.toString();
-					if(file.startsWith("/")) {
-						filePath = filePath.replaceFirst("/", "");
-						if(!filePath.equals(""))
-							files.add(filePath);
-					}
-					return FileVisitResult.CONTINUE;
-				}
-
-				@Override
-				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-					// clean file path for git
-					String pathDir = dir.toString().replaceFirst("/", "");
-					if(!pathDir.equals("")) {
-						dirs.add(pathDir);
+		try {
+			zipFs = FileSystems.newFileSystem(fromZip, null);
+			for (Path root : zipFs.getRootDirectories()) {
+				Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+					@Override
+					public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+						// clean file path for git
+						String filePath = file.toString();
+						if(file.startsWith("/")) {
+							filePath = filePath.replaceFirst("/", "");
+							if(!filePath.equals(""))
+								files.add(filePath);
+						}
+						return FileVisitResult.CONTINUE;
 					}
 
-					return super.preVisitDirectory(dir, attrs);
-				}
-			});
+					@Override
+					public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+						// clean file path for git
+						String pathDir = dir.toString().replaceFirst("/", "");
+						if(!pathDir.equals("")) {
+							dirs.add(pathDir);
+						}
+
+						return super.preVisitDirectory(dir, attrs);
+					}
+				});
+			}
+		} finally {
+			try{
+				if(zipFs!=null)
+					zipFs.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
-		zipFs.close();
 		paths.put("DIR", dirs);
 		paths.put("FILE", files);
 		return paths;
 	}
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
-//		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
-//		dest = "C:\\Users\\SEMOSS\\workspace";
-//		dest = dest.replace("\\", "/");
+		//		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
+		//		dest = "C:\\Users\\SEMOSS\\workspace";
+		//		dest = dest.replace("\\", "/");
 		String zip = "C:\\Users\\mahkhalil\\Desktop\\Movie.zip";
 		zip = zip.replace("\\", "/");
 		Path zipUri = Paths.get(zip);		
