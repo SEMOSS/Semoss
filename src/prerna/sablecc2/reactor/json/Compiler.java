@@ -119,9 +119,9 @@ public class Compiler
 	public StringBuffer composeStringFromFile(String fileName)
 	{
 		StringBuffer bf = new StringBuffer();
-
+		BufferedReader br = null;
 		try {
-			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(fileName)));	
+			br = new BufferedReader(new InputStreamReader(new FileInputStream(fileName)));	
 			String data = "";
 			
 			while((data = br.readLine()) != null)
@@ -131,6 +131,14 @@ public class Compiler
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
+		} finally {
+			if(br != null) {
+		          try {
+		        	  br.close();
+		          } catch(IOException e) {
+		            e.printStackTrace();
+		          }
+		        }
 		}
 		bf.append(";");
 		

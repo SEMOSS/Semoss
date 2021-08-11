@@ -226,17 +226,19 @@ public class CommandReactor extends GitBaseReactor {
 					// we are in the right location process now
 					// add this to the properties
 					// get the root
+					FileInputStream fis = null;
+					FileOutputStream fos = null;
 					try {
 						File repoFile = new File(appBaseFolder + "/version/repoList.txt");
 						if(!repoFile.exists())
 							repoFile.createNewFile();
 						
 						Properties prop = new Properties();
-						FileInputStream fis = new FileInputStream(repoFile);
+						fis = new FileInputStream(repoFile);
 
 						prop.load(fis);
 						prop.put(dirName, repoURL);
-						FileOutputStream fos = new FileOutputStream(repoFile);
+						fos = new FileOutputStream(repoFile);
 						prop.store(fos, "Updating");
 						
 						// need to commit this file
@@ -249,8 +251,7 @@ public class CommandReactor extends GitBaseReactor {
 						this.insight.getCmdUtil().executeCommand("git add *");
 						this.insight.getCmdUtil().executeCommand("git commit -m \"adding repos\" "); // dont know if we need to add the author here else it complains on config
 						
-						fis.close();
-						fos.close();
+						
 						
 						
 					} catch (FileNotFoundException e) {
@@ -259,6 +260,21 @@ public class CommandReactor extends GitBaseReactor {
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
+					} finally {
+						try {
+							if(fis != null)
+								fis.close();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						try {
+							if(fos != null)
+								fos.close();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
 				}
 				
@@ -314,13 +330,14 @@ public class CommandReactor extends GitBaseReactor {
 	
 	private void cloneRepo(String repoName, String workingDir)
 	{
+		FileInputStream fis = null;
 		try {
 			File repoFile = new File(workingDir + "/version/repoList.txt");
 			
 			if(repoFile.exists())
 			{
 				Properties prop = new Properties();
-				FileInputStream fis = new FileInputStream(repoFile);
+				fis = new FileInputStream(repoFile);
 				prop.load(fis);
 				
 				
@@ -336,6 +353,14 @@ public class CommandReactor extends GitBaseReactor {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			try {
+				if(fis != null)
+					fis.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -349,9 +374,9 @@ public class CommandReactor extends GitBaseReactor {
 		if(repoFile.exists())
 		{
 			Properties prop = new Properties();
-			
+			FileInputStream fis = null;
 			try {
-				FileInputStream fis = new FileInputStream(repoFile);
+				fis = new FileInputStream(repoFile);
 				prop.load(fis);
 				
 				String repos = "While the directories are not shown, Following Repos are available:";
@@ -370,6 +395,14 @@ public class CommandReactor extends GitBaseReactor {
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+			} finally {
+				try {
+					if(fis != null)
+						fis.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 		return newOutput;

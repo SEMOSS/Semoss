@@ -18,6 +18,7 @@ import jep.SharedInterpreter;
 import prerna.ds.py.PyExecutorThread;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 
 public class JepTest implements Runnable {
@@ -31,8 +32,8 @@ public class JepTest implements Runnable {
 		DIHelper helper = DIHelper.getInstance();
 		System.out.println("Hello world");
 		Properties prop = new Properties();
-		try {
-			prop.load(new FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop"));
+		try(FileInputStream fileInput = new FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop")) {
+			prop.load(fileInput);
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -58,11 +59,18 @@ public class JepTest implements Runnable {
 		}
 		
 		SharedInterpreter.setConfig(aJepConfig);
-		SharedInterpreter interp = new SharedInterpreter();
 		
+		SharedInterpreter interp = null;
+		try {
+		interp = new SharedInterpreter();
 		interp.exec("from java.lang import System");
 	    interp.exec("s = 'Hello World'");
 	    interp.exec("System.out.println(s)");
+		} finally {
+		      if(interp != null) {
+		          interp.close();
+		        }
+		}
 	    
 		//JepTest j1 = new JepTest();
 		//j1.threadName = "Thread 1";

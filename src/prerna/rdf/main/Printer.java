@@ -30,6 +30,7 @@ package prerna.rdf.main;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 
@@ -69,89 +70,89 @@ import com.hp.hpl.jena.vocabulary.RDFS;
  */
 public class Printer {
 
-	/**
-	 * Method main.
-	 * @param args String[]
-	 */
-	public static void main(String [] args) throws Exception
-	{
-		String q2 = "SELECT ?Subject ?Predicate ?Object WHERE " +
-				"{" +
-				"{?Predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;} " +
-				"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
-				"{?Object  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
-				"{?Subject ?Predicate ?Object}" +
-				"} BINDINGS ?Subject {(<http://semoss.org/ontologies/Concept/Capability/Anesthesia_Documentation>)} " +
-				""; // working query
-
-		String conceptHierarchyForSubject = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
-		"{" +
-		"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Object}" +
-		//"{?Object <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>;}"+
-		"{?Subject ?Predicate ?Object}" + 
-		"} BINDINGS ?Subject {(<http://semoss.org/ontologies/Relation/Fulfill>)} " +
-		"";// working one
-
-
-		String relationHierarchy = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
-		"{" +
-		"{?Subject ?Predicate ?Object}" + 
-		"} BINDINGS ?Subject {(<http://semoss.org/ontologies/Relation/Fulfill>)} " +
-		"";// relation hierarcy
-
-		String predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-				//"BIND (<http://semoss.org/ontologies/Concept> AS ?Subject)" +
-		  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
-		  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
-		  //"{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
-		  //"{?Object " + "<http://semoss.org/ontologies/Relation>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-		  //"{?Subject ?Predicate <http://semoss.org/ontologies/Concept>}" +
-		  //"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Object}" +
-		  "{?Subject ?Predicate ?Object}"+
-		  "}";
-		//String propertyHierarchy = 
-		
-		String q4 = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
-		"{" +
-		"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
-		//"{?Object  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
-		//"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>}" +
-		"{?Subject ?Predicate ?Object}" +
-		"} BINDINGS ?Subject {(<http://semoss.org/ontologies/Concept/Capability/Anesthesia_Documentation>)} " +
-		"?Predicate {(<http://semoss.org/ontologies/Relation/Fulfill>)}" + 
-		"";
-		
-		String findPropertyRelationQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
-		"{" +
-		"{?Subject ?Predicate ?Object}" + 
-		"{?Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Contains>}" +
-		//"} BINDINGS ?Subject { " + predicates + " } " +
-		"}";// relation hierarcy
-
-
-		String q = findPropertyRelationQuery;
-		
-		
-		// +"{?Subject ?Predicate ?Object} } BINDINGS ?Predicate {(<http://semoss.org/ontologies/Relation/Fulfill>)}";
-		
-		System.out.println("Query");
-		System.out.println(q);
-		Printer printer = new Printer();
-		//printer.tryRDF();
-		printer.tryRDFSesame();
-		printer.tryPropTest();
-	}
-	
-	/**
-	 * Method tryPropTest.
-	 */
-	private void tryPropTest() throws Exception{
-		Properties prop = new Properties();
-		prop.load(new FileInputStream("Sample.prop"));
-		prop.put("Doh", "hello");
-		prop.store(new FileOutputStream("Sample.prop"), "Hello");
-		
-	}
+//	/**
+//	 * Method main.
+//	 * @param args String[]
+//	 */
+//	public static void main(String [] args) throws Exception
+//	{
+//		String q2 = "SELECT ?Subject ?Predicate ?Object WHERE " +
+//				"{" +
+//				"{?Predicate <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;} " +
+//				"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
+//				"{?Object  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
+//				"{?Subject ?Predicate ?Object}" +
+//				"} BINDINGS ?Subject {(<http://semoss.org/ontologies/Concept/Capability/Anesthesia_Documentation>)} " +
+//				""; // working query
+//
+//		String conceptHierarchyForSubject = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
+//		"{" +
+//		"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Object}" +
+//		//"{?Object <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>;}"+
+//		"{?Subject ?Predicate ?Object}" + 
+//		"} BINDINGS ?Subject {(<http://semoss.org/ontologies/Relation/Fulfill>)} " +
+//		"";// working one
+//
+//
+//		String relationHierarchy = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
+//		"{" +
+//		"{?Subject ?Predicate ?Object}" + 
+//		"} BINDINGS ?Subject {(<http://semoss.org/ontologies/Relation/Fulfill>)} " +
+//		"";// relation hierarcy
+//
+//		String predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+//				//"BIND (<http://semoss.org/ontologies/Concept> AS ?Subject)" +
+//		  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+//		  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
+//		  //"{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
+//		  //"{?Object " + "<http://semoss.org/ontologies/Relation>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+//		  //"{?Subject ?Predicate <http://semoss.org/ontologies/Concept>}" +
+//		  //"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Object}" +
+//		  "{?Subject ?Predicate ?Object}"+
+//		  "}";
+//		//String propertyHierarchy = 
+//		
+//		String q4 = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
+//		"{" +
+//		"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
+//		//"{?Object  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept>;}" +
+//		//"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>}" +
+//		"{?Subject ?Predicate ?Object}" +
+//		"} BINDINGS ?Subject {(<http://semoss.org/ontologies/Concept/Capability/Anesthesia_Documentation>)} " +
+//		"?Predicate {(<http://semoss.org/ontologies/Relation/Fulfill>)}" + 
+//		"";
+//		
+//		String findPropertyRelationQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
+//		"{" +
+//		"{?Subject ?Predicate ?Object}" + 
+//		"{?Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Contains>}" +
+//		//"} BINDINGS ?Subject { " + predicates + " } " +
+//		"}";// relation hierarcy
+//
+//
+//		String q = findPropertyRelationQuery;
+//		
+//		
+//		// +"{?Subject ?Predicate ?Object} } BINDINGS ?Predicate {(<http://semoss.org/ontologies/Relation/Fulfill>)}";
+//		
+//		System.out.println("Query");
+//		System.out.println(q);
+//		Printer printer = new Printer();
+//		//printer.tryRDF();
+//		printer.tryRDFSesame();
+//		printer.tryPropTest();
+//	}
+//	
+//	/**
+//	 * Method tryPropTest.
+//	 */
+//	private void tryPropTest() throws Exception{
+//		Properties prop = new Properties();
+//		prop.load(new FileInputStream("Sample.prop"));
+//		prop.put("Doh", "hello");
+//		prop.store(new FileOutputStream("Sample.prop"), "Hello");
+//		
+//	}
 
 	/**
 	 * Method tryRDF.
@@ -178,7 +179,7 @@ public class Printer {
 
 			// Sail reasoner = new ForwardChainingRDFSInferencer(new GraphSail(new TinkerGraph()));
 			// reasoner.initialize();
-
+			FileOutputStream fox = null;
 			try {
 				// SailConnection c = reasoner.getConnection();
 					Statement stmt = jenaModel.createStatement(city, RDFS.subClassOf, place);
@@ -225,7 +226,7 @@ public class Printer {
 					ResultSet rs = qex.execSelect();
 					
 					String [] var = getVariables(rs);
-					FileOutputStream fox = new FileOutputStream("output.txt");
+					fox = new FileOutputStream("output.txt");
 				    ResultSetFormatter.out(System.out, rs); 
 				    //ResultSetFormatter.out(fox, rs); 
 					
@@ -240,6 +241,16 @@ public class Printer {
 			}catch (Exception ex)
 			{
 				ex.printStackTrace();
+			} finally {
+				
+				try {
+					if(fox != null) {
+						fox.close();
+					}
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 			System.out.println("Jena End" + System.currentTimeMillis());
 
