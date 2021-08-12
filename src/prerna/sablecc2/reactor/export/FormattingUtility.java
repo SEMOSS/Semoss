@@ -281,6 +281,9 @@ public class FormattingUtility {
 						String type = getType(formatType);
 						double exponitalValue = exponentialType(formatType);
 
+					    if(exponitalValue == 0 || exponitalValue == 0.0 ) {
+					        throw new IllegalArgumentException("exponitalValue can not be 0");
+					      }
 						if (!Double.isNaN(numericValue)) {
 							BigDecimal bigD = new BigDecimal((Math.abs(numericValue) / exponitalValue));
 							formatted = bigD.setScale(2, BigDecimal.ROUND_HALF_EVEN).doubleValue();
