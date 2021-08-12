@@ -1279,9 +1279,9 @@ public class SchedulerDatabaseUtility {
 					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.alterTableAddColumn(SMSS_AUDIT_TRAIL, IS_LATEST, BOOLEAN_DATATYPE), true);
 					// being lazy - just update all the existing ones to be is_latest false
 					// in theory should go and find the last instance of each job id and update...
-					try{
-						PreparedStatement updateAuditTrailStatement = connection
-								.prepareStatement("UPDATE SMSS_AUDIT_TRAIL SET IS_LATEST=?");
+					try(PreparedStatement updateAuditTrailStatement = connection
+								.prepareStatement("UPDATE SMSS_AUDIT_TRAIL SET IS_LATEST=?")){
+						
 						updateAuditTrailStatement.setBoolean(1, false);
 						updateAuditTrailStatement.executeUpdate();
 					} catch (SQLException e) {
