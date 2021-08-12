@@ -662,6 +662,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		return engineConn !=null && this.engineConnected;
 	}
 
+	@Override
 	public boolean isConnectionPooling() {
 		return this.useConnectionPooling;
 	}
