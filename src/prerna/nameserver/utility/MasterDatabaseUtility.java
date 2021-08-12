@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -48,7 +49,7 @@ public class MasterDatabaseUtility {
 	// -----------------------------------------   RDBMS CALLS ---------------------------------------
 
 	public static void initLocalMaster() throws SQLException, IOException {
-		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		IRDBMSEngine database = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		LocalMasterOwlCreator owlCreator = new LocalMasterOwlCreator(database);
 		if(owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
@@ -284,7 +285,7 @@ public class MasterDatabaseUtility {
 	}
 
 	@Deprecated
-	private static void requireRemakeAndAlter(RDBMSNativeEngine database, 
+	private static void requireRemakeAndAlter(IRDBMSEngine database, 
 			Connection conn, 
 			AbstractSqlQueryUtil queryUtil, 
 			String schema, 
@@ -342,7 +343,7 @@ public class MasterDatabaseUtility {
 	}
 	
 	@Deprecated
-	private static void updateMetadataTable(RDBMSNativeEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil, String tableName, String schema) throws SQLException {
+	private static void updateMetadataTable(IRDBMSEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil, String tableName, String schema) throws SQLException {
 		if(queryUtil.tableExists(engine, tableName, schema)) {
 			boolean allowIfExists = queryUtil.allowIfExistsModifyColumnSyntax();
 			if(queryUtil.allowDropColumn()) {
@@ -2748,14 +2749,14 @@ public class MasterDatabaseUtility {
 		Hashtable<String, String> idHash = new Hashtable<>();
 		Hashtable<String, MetamodelVertex> nodeHash = new Hashtable<>();
 
-		try {
+		String nodeQuery = "SELECT c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property FROM "
+				+ "engineconcept ec, concept c, engine e " + "WHERE ec.engine=e.id " + "AND e.enginename=? "
+				+ "AND c.localconceptid=ec.localconceptid ORDER BY ec.property";
+		try(PreparedStatement statement = conn.prepareStatement(nodeQuery)){
 //			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property from "
 //					+ "engineconcept ec, concept c, engine e " + "where ec.engine=e.id " + "and e.enginename='"
 //					+ engineName + "' " + "and c.localconceptid=ec.localconceptid order by ec.property";
-			String nodeQuery = "SELECT c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property FROM "
-					+ "engineconcept ec, concept c, engine e " + "WHERE ec.engine=e.id " + "AND e.enginename=? "
-					+ "AND c.localconceptid=ec.localconceptid ORDER BY ec.property";
-			PreparedStatement statement = conn.prepareStatement(nodeQuery);
+			
 			statement.setString(1, engineName );
 			//stmt = conn.createStatement();
 			//rs = stmt.executeQuery(nodeQuery);
@@ -2800,16 +2801,16 @@ public class MasterDatabaseUtility {
 			closeStreams(null, rs);
 		}
 
-		try {
+		String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e WHERE e.id=er.engine AND "
+				+ "e.enginename = ?";
+		try(PreparedStatement statement = conn.prepareStatement(edgeQuery)) {
 			// get the edges next
 			// SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION
 			// er, engine e where e.id = er.engine and e.enginename = 'Mv1'
 //			String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e where e.id = er.engine and "
 //					+ "e.enginename = '" + engineName + "'";
-			String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e WHERE e.id=er.engine AND "
-					+ "e.enginename = ?";
-
-			PreparedStatement statement = conn.prepareStatement(edgeQuery);
+			
+			
 			statement.setString(1, engineName);
 			if (stmt == null) {
 				stmt = conn.createStatement();

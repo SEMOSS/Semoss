@@ -311,6 +311,11 @@ public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngi
 	public boolean isConnected() {
 		return getContext().isConnected();
 	}
+	
+	@Override
+	public boolean isConnectionPooling() {
+		return getContext().isConnectionPooling();
+	}
 
 	@Override
 	public void closeDB() {

@@ -108,4 +108,9 @@ public interface IRDBMSEngine extends IEngine {
 	 */
 	HikariDataSource getDataSource();
 	
+	/**
+	 * Get if the database is using connection pooling or a single connection
+	 * @return
+	 */
+	boolean isConnectionPooling();
 }

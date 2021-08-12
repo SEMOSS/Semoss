@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.sql.Statement;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -30,15 +31,26 @@ public class PersistentHash {
 
 	public void load() {
 		// this is only for local master!!!
+		Statement stmt = null;
 		try {
 			if(conn != null) {
-				ResultSet rs = conn.createStatement().executeQuery("SELECT K, V from " + TABLE_NAME);
+				stmt = conn.createStatement();
+				ResultSet rs = stmt.executeQuery("SELECT K, V from " + TABLE_NAME);
 				while(rs.next()) {
 					this.thisHash.put(rs.getString(1),rs.getString(2));
 				}	
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+		      try {
+		         if(stmt != null) {
+		        	 stmt.close();
+		              }
+		      } catch (SQLException e) {
+		              e.printStackTrace();
+		      }
+
 		}
 	}
 
@@ -58,17 +70,17 @@ public class PersistentHash {
 
 	public void persistBack() {
 		if(this.dirty) {
-			try {
+			try(Statement stmt = this.conn.createStatement()) {
 				String [] colNames = {"K","V"};
 				String [] types = {"varchar(800)", "varchar(800)"};
 				Enumeration <String> keys = thisHash.keys();
-				this.conn.createStatement().execute("DELETE from " + TABLE_NAME);
+				stmt.execute("DELETE from " + TABLE_NAME);
 				while(keys.hasMoreElements()) {
 					String key = keys.nextElement();
 					String value = thisHash.get(key);
 					String [] values = {key, value};
 					String insertString = RdbmsQueryBuilder.makeInsert(TABLE_NAME, colNames, types, values);
-					this.conn.createStatement().execute(insertString);
+					stmt.execute(insertString);
 				}
 				this.dirty = false;
 			} catch (SQLException e) {
