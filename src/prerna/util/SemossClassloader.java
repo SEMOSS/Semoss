@@ -61,13 +61,15 @@ public class SemossClassloader extends ClassLoader {
 			b = loadClassData(file);
 			// defineClass is inherited from the ClassLoader class
 			// and converts the byte array into a Class
-			Class<?> c = defineClass(name, b, 0, b.length);
-			resolveClass(c);
-			return c;
+			if(b != null) {
+				Class<?> c = defineClass(name, b, 0, b.length);
+				resolveClass(c);
+				return c;
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			return null;
 		}
+		return null;
 	}
 
 	/**
