@@ -728,7 +728,9 @@ public class User implements Serializable {
 								try 
 								{
 									// wait for it to start
-									Thread.sleep(logSleeper*1000);
+									//using this.wait because its recommended vs sleep
+									this.wait(logSleeper*1000);
+									//Thread.sleep(logSleeper*1000);
 									logSleeper++;
 								} catch (InterruptedException e) 
 								{
