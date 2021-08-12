@@ -48,6 +48,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
@@ -70,8 +71,6 @@ public class AddToMasterDB {
     private static final String STACKTRACE = "StackTrace: ";
     private static final String VARCHAR_255 = "varchar(255)";
 
-    private Connection conn = null;
-    private AbstractSqlQueryUtil queryUtil = null;
     private PersistentHash conceptIdHash = null;
 
 	/*
@@ -96,82 +95,99 @@ public class AddToMasterDB {
 
     public boolean registerEngineLocal(Properties prop, String engineUniqueId) {
         // grab the local master engine
-        IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+    	IRDBMSEngine localMaster = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
         // establish the connection
-        getConnection(localMaster);
+        Connection conn = null;
+        try {
+            conn = localMaster.makeConnection();
+            conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
+            
+            String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 
-        String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+            // we want to load in the OWL for the engine we want to synchronize into the
+            // the local master
+            // get the owl relative path from the base folder to get the full path
+            String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
 
-        // we want to load in the OWL for the engine we want to synchronize into the
-        // the local master
-        // get the owl relative path from the base folder to get the full path
-        String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
+            // owl is stored as RDF/XML file
+            RDFFileSesameEngine rfse = new RDFFileSesameEngine();
+            rfse.openFile(owlFile, null, null);
+            // we create the meta helper to facilitate querying the engine OWL
+            MetaHelper helper = new MetaHelper(rfse, null, null);
 
-        // owl is stored as RDF/XML file
-        RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-        rfse.openFile(owlFile, null, null);
-        // we create the meta helper to facilitate querying the engine OWL
-        MetaHelper helper = new MetaHelper(rfse, null, null);
+            // also get the last modified date of the OWL file to store
+            // into the local master
+            File file = new File(owlFile);
+            Date modDate = new Date(file.lastModified());
 
-        // also get the last modified date of the OWL file to store
-        // into the local master
-        File file = new File(owlFile);
-        Date modDate = new Date(file.lastModified());
+            // insert the engine first
+            // engine is a type of engine
+            // keep the engine URI
+    		logger.info("Starting to synchronize engine ::: " + Utility.cleanLogString(engineName));
 
-        // insert the engine first
-        // engine is a type of engine
-        // keep the engine URI
-		logger.info("Starting to synchronize engine ::: " + Utility.cleanLogString(engineName));
+            // grab the engine type
+            // if it is RDBMS vs RDF
+            IEngine.ENGINE_TYPE engineType = null;
+            String engineTypeString = null;
+            String propEngType = prop.getProperty("ENGINE_TYPE");
+            if (propEngType.contains("RDBMS") || propEngType.contains("Impala")) {
+                engineType = IEngine.ENGINE_TYPE.RDBMS;
+                engineTypeString = "TYPE:RDBMS";
+            } else if (propEngType.contains("Tinker")) {
+                engineType = IEngine.ENGINE_TYPE.TINKER;
+                engineTypeString = "TYPE:TINKER";
+            } else if (propEngType.contains("RNative")) {
+                engineType = IEngine.ENGINE_TYPE.R; // process it as a flat file I bet
+                engineTypeString = "TYPE:R";
+            } else if (propEngType.contains("Janus")) {
+                engineType = IEngine.ENGINE_TYPE.JANUS_GRAPH;
+                engineTypeString = "TYPE:JANUS_GRAPH";
+            } else {
+                engineType = IEngine.ENGINE_TYPE.SESAME;
+                engineTypeString = "TYPE:RDF";
+            }
 
-        // grab the engine type
-        // if it is RDBMS vs RDF
-        IEngine.ENGINE_TYPE engineType = null;
-        String engineTypeString = null;
-        String propEngType = prop.getProperty("ENGINE_TYPE");
-        if (propEngType.contains("RDBMS") || propEngType.contains("Impala")) {
-            engineType = IEngine.ENGINE_TYPE.RDBMS;
-            engineTypeString = "TYPE:RDBMS";
-        } else if (propEngType.contains("Tinker")) {
-            engineType = IEngine.ENGINE_TYPE.TINKER;
-            engineTypeString = "TYPE:TINKER";
-        } else if (propEngType.contains("RNative")) {
-            engineType = IEngine.ENGINE_TYPE.R; // process it as a flat file I bet
-            engineTypeString = "TYPE:R";
-        } else if (propEngType.contains("Janus")) {
-            engineType = IEngine.ENGINE_TYPE.JANUS_GRAPH;
-            engineTypeString = "TYPE:JANUS_GRAPH";
-        } else {
-            engineType = IEngine.ENGINE_TYPE.SESAME;
-            engineTypeString = "TYPE:RDF";
+            this.conceptIdHash.put(engineName + "_ENGINE", engineUniqueId);
+            String[] colNames = {"ID", "EngineName", "ModifiedDate", "Type"};
+            String[] types = {"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
+            Object[] engineData = {AbstractSqlQueryUtil.escapeForSQLStatement(engineUniqueId), AbstractSqlQueryUtil.escapeForSQLStatement(engineName), new java.sql.Timestamp(modDate.getTime()), AbstractSqlQueryUtil.escapeForSQLStatement(engineTypeString), "true"};
+            insertQuery(conn, "Engine", colNames, types, engineData);
+
+            // get the list of all the physical names
+            // false denotes getting the physical names
+            List<String> concepts = helper.getPhysicalConcepts();
+            List<String[]> relationships = helper.getPhysicalRelationships();
+    		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Concepts Found = " + concepts.size());
+    		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Relationships Found = " + relationships.size());
+
+            // iterate through all the concepts to insert into the local master
+            for (int conceptIndex = 0; conceptIndex < concepts.size(); conceptIndex++) {
+                String conceptPhysicalUri = concepts.get(conceptIndex);
+                logger.debug("Processing concept ::: " + conceptPhysicalUri);
+                masterConcept(conn, engineName, conceptPhysicalUri, helper, engineType);
+            }
+
+            for (int relIndex = 0; relIndex < relationships.size(); relIndex++) {
+                String[] relationshipToInsert = relationships.get(relIndex);
+                logger.debug("Processing relationship ::: " + Arrays.toString(relationshipToInsert));
+                masterRelationship(conn, engineName, relationshipToInsert, helper);
+            }
+
+            return true;
+        } catch (Exception e) {
+            logger.error(STACKTRACE, e);
+            throw new IllegalArgumentException("An error occurred establishing a connection to the local master database");
+        } finally {
+    		if(localMaster.isConnectionPooling()) {
+    			try {
+    				if(conn != null) {
+    					conn.close();
+    				}
+				} catch (SQLException e) {
+		            logger.error(STACKTRACE, e);
+				}
+    		}
         }
-
-        this.conceptIdHash.put(engineName + "_ENGINE", engineUniqueId);
-        String[] colNames = {"ID", "EngineName", "ModifiedDate", "Type"};
-        String[] types = {"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
-        Object[] engineData = {AbstractSqlQueryUtil.escapeForSQLStatement(engineUniqueId), AbstractSqlQueryUtil.escapeForSQLStatement(engineName), new java.sql.Timestamp(modDate.getTime()), AbstractSqlQueryUtil.escapeForSQLStatement(engineTypeString), "true"};
-        insertQuery("Engine", colNames, types, engineData);
-
-        // get the list of all the physical names
-        // false denotes getting the physical names
-        List<String> concepts = helper.getPhysicalConcepts();
-        List<String[]> relationships = helper.getPhysicalRelationships();
-		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Concepts Found = " + concepts.size());
-		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Relationships Found = " + relationships.size());
-
-        // iterate through all the concepts to insert into the local master
-        for (int conceptIndex = 0; conceptIndex < concepts.size(); conceptIndex++) {
-            String conceptPhysicalUri = concepts.get(conceptIndex);
-            logger.debug("Processing concept ::: " + conceptPhysicalUri);
-            masterConcept(engineName, conceptPhysicalUri, helper, engineType);
-        }
-
-        for (int relIndex = 0; relIndex < relationships.size(); relIndex++) {
-            String[] relationshipToInsert = relationships.get(relIndex);
-            logger.debug("Processing relationship ::: " + Arrays.toString(relationshipToInsert));
-            masterRelationship(engineName, relationshipToInsert, helper);
-        }
-
-        return true;
     }
 
     /**
@@ -188,7 +204,7 @@ public class AddToMasterDB {
      * @param helper
      * @param engineType
      */
-    private void masterConcept(String engineName, String conceptPhysicalUri, MetaHelper helper,
+    private void masterConcept(Connection conn, String engineName, String conceptPhysicalUri, MetaHelper helper,
                                IEngine.ENGINE_TYPE engineType) {
         String[] colNames = null;
         String[] types = null;
@@ -223,7 +239,7 @@ public class AddToMasterDB {
                 for (String logical : logicals) {
                     if (!curLogicals.contains(logical)) {
                         insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
-                        insertQuery("Concept", colNames, types, insertValues);
+                        insertQuery(conn, "Concept", colNames, types, insertValues);
                     }
                 }
             }
@@ -239,12 +255,12 @@ public class AddToMasterDB {
             // TODO: we need to also store multiple logical names at some point
             // right now, default is to add the conceptual name as a logical name
             insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName.toLowerCase()), "NewDomain", ""};
-            insertQuery("Concept", colNames, types, insertValues);
+            insertQuery(conn, "Concept", colNames, types, insertValues);
 
             // also add all the logical names
             for (String logical : logicals) {
                 insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
-                insertQuery("Concept", colNames, types, insertValues);
+                insertQuery(conn, "Concept", colNames, types, insertValues);
             }
         }
 
@@ -281,7 +297,7 @@ public class AddToMasterDB {
         		AbstractSqlQueryUtil.escapeForSQLStatement(engineConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), ignoreData, true, AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[0]), 
         		AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[1]), AbstractSqlQueryUtil.escapeForSQLStatement(adtlDataType)};
 
-        insertQuery("EngineConcept", colNames, types, conceptInstanceData);
+        insertQuery(conn, "EngineConcept", colNames, types, conceptInstanceData);
 
         // store it in the hash, we will need this for the engine relationships
         this.conceptIdHash.put(engineName + "_" + conceptPhysicalInstance + "_PHYSICAL", engineConceptGuid);
@@ -291,14 +307,14 @@ public class AddToMasterDB {
             colNames = new String[]{"PhysicalNameID", "Key", "Value"};
             types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
             insertValues = new String[]{engineConceptGuid, "logical", conceptualName.toLowerCase()};
-            insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+            insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
 
             if (!logicals.isEmpty()) {
                 colNames = new String[]{"PhysicalNameID", "Key", "Value"};
                 types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
                 for (String logical : logicals) {
                     insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(engineConceptGuid), "logical", AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase())};
-                    insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+                    insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
                 }
             }
             // add the description to the physical name id
@@ -311,7 +327,7 @@ public class AddToMasterDB {
                     desc = desc.substring(0, 19_996) + "...";
                 }
                 insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(engineConceptGuid), "description", AbstractSqlQueryUtil.escapeForSQLStatement(desc)};
-                insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+                insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
             }
         }
 
@@ -320,7 +336,7 @@ public class AddToMasterDB {
         for (int propIndex = 0; propIndex < properties.size(); propIndex++) {
             String propertyPhysicalUri = properties.get(propIndex);
             logger.debug("For concept = " + conceptPhysicalUri + ", adding property ::: " + propertyPhysicalUri);
-            masterProperty(engineName, conceptPhysicalUri, propertyPhysicalUri, engineConceptGuid,
+            masterProperty(conn, engineName, conceptPhysicalUri, propertyPhysicalUri, engineConceptGuid,
                     conceptPhysicalInstance, conceptGuid, semossName, helper, engineType);
         }
     }
@@ -338,7 +354,7 @@ public class AddToMasterDB {
      * @param helper
      * @param engineType
      */
-    private void masterProperty(String engineName, String conceptPhysicalUri, String propertyPhysicalUri,
+    private void masterProperty(Connection conn, String engineName, String conceptPhysicalUri, String propertyPhysicalUri,
                                 String parentEngineConceptGuid, String parentPhysicalName, String parentConceptGuid,
                                 String parentSemossName, MetaHelper helper, IEngine.ENGINE_TYPE engineType) {
         String[] colNames = null;
@@ -377,7 +393,7 @@ public class AddToMasterDB {
                 for (String logical : logicals) {
                     if (!curLogicals.contains(logical)) {
                         insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
-                        insertQuery("Concept", colNames, types, insertValues);
+                        insertQuery(conn, "Concept", colNames, types, insertValues);
                     }
                 }
             }
@@ -393,12 +409,12 @@ public class AddToMasterDB {
             // TODO: we need to also store multiple logical names at some point
             // right now, default is to add the conceptual name as a logical name
             insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName.toLowerCase()), "NewDomain", ""};
-            insertQuery("Concept", colNames, types, insertValues);
+            insertQuery(conn, "Concept", colNames, types, insertValues);
 
             // also add all the logical names
             for (String logical : logicals) {
                 insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
-                insertQuery("Concept", colNames, types, insertValues);
+                insertQuery(conn, "Concept", colNames, types, insertValues);
             }
         }
 
@@ -438,14 +454,14 @@ public class AddToMasterDB {
         		AbstractSqlQueryUtil.escapeForSQLStatement(propertyPhysicalInstance), AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid),
                 false, false, AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[0]), AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[1]), AbstractSqlQueryUtil.escapeForSQLStatement(adtlDataType)};
 
-        insertQuery("EngineConcept", colNames, types, conceptInstanceData);
+        insertQuery(conn, "EngineConcept", colNames, types, conceptInstanceData);
 
         {
             // add the conceptual as a logical name to the physical name id
             colNames = new String[]{"PhysicalNameID", "Key", "Value"};
             types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
             insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), "logical", AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName.toLowerCase())};
-            insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+            insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
 
             // add the logical to the physical name id
             if (!logicals.isEmpty()) {
@@ -453,7 +469,7 @@ public class AddToMasterDB {
                 types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
                 for (String logical : logicals) {
                     insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), "logical", AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase())};
-                    insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+                    insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
                 }
             }
             // add the description to the physical name id
@@ -466,7 +482,7 @@ public class AddToMasterDB {
                     desc = desc.substring(0, 19_996) + "...";
                 }
                 insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), "description", AbstractSqlQueryUtil.escapeForSQLStatement(desc)};
-                insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+                insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
             }
         }
     }
@@ -523,7 +539,7 @@ public class AddToMasterDB {
      * @param relationship
      * @param helper
      */
-    private void masterRelationship(String engineName, String[] relationship, MetaHelper helper) {
+    private void masterRelationship(Connection conn, String engineName, String[] relationship, MetaHelper helper) {
         String[] colNames = null;
         String[] types = null;
         String[] insertValues = null;
@@ -566,7 +582,7 @@ public class AddToMasterDB {
             String startConceptualGuid = this.conceptIdHash.get(pixelStartNodeName + "_CONCEPTUAL");
             String endConceptualGuid = this.conceptIdHash.get(pixelEndNodeName + "_CONCEPTUAL");
             insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(relationGuid), AbstractSqlQueryUtil.escapeForSQLStatement(startConceptualGuid), AbstractSqlQueryUtil.escapeForSQLStatement(endConceptualGuid), ""};
-            insertQuery("Relation", colNames, types, insertValues);
+            insertQuery(conn, "Relation", colNames, types, insertValues);
         }
 
         // since we are adding a new engine
@@ -584,7 +600,7 @@ public class AddToMasterDB {
         insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(engineId), AbstractSqlQueryUtil.escapeForSQLStatement(relationGuid), AbstractSqlQueryUtil.escapeForSQLStatement(engineRelationGuid), 
         		AbstractSqlQueryUtil.escapeForSQLStatement(startConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(endConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(pixelStartNodeName), 
         		AbstractSqlQueryUtil.escapeForSQLStatement(pixelEndNodeName), AbstractSqlQueryUtil.escapeForSQLStatement(Utility.getInstanceName(relationshipUri))};
-        insertQuery("EngineRelation", colNames, types, insertValues);
+        insertQuery(conn, "EngineRelation", colNames, types, insertValues);
     }
 
     /**
@@ -595,7 +611,7 @@ public class AddToMasterDB {
      * @param types
      * @param data
      */
-    private void insertQuery(String tableName, String[] colNames, String[] types, Object[] data) {
+    private void insertQuery(Connection conn, String tableName, String[] colNames, String[] types, Object[] data) {
         String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types, data);
         executeSql(conn, insertString);
     }
@@ -608,22 +624,6 @@ public class AddToMasterDB {
         }
     }
 
-    /**
-     * Get the local master RDBMS connection
-     *
-     * @param localMaster
-     * @return
-     */
-    private Connection getConnection(IEngine localMaster) {
-        try {
-            conn = ((RDBMSNativeEngine) localMaster).makeConnection();
-            conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
-            queryUtil = ((RDBMSNativeEngine) localMaster).getQueryUtil();
-        } catch (Exception e) {
-            logger.error(STACKTRACE, e);
-        }
-        return conn;
-    }
 
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -639,11 +639,12 @@ public class AddToMasterDB {
      */
     public Date getEngineDate(String engineId) {
         java.util.Date retDate = null;
-        RDBMSNativeEngine localMaster = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-        Connection conn = getConnection(localMaster);
+        IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+        Connection conn = null;
         Statement stmt = null;
         ResultSet rs = null;
         try {
+        	conn = localMaster.makeConnection();
             String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
             stmt = conn.createStatement();
             rs = stmt.executeQuery(query);
@@ -668,6 +669,15 @@ public class AddToMasterDB {
             } catch (SQLException e) {
                 logger.error(STACKTRACE, e);
             }
+            if(localMaster.isConnectionPooling()) {
+            	try {
+            		if(conn != null) {
+    					conn.close();
+    				}
+				} catch (SQLException e) {
+	                logger.error(STACKTRACE, e);
+				}
+            }
         }
         return retDate;
     }
@@ -686,26 +696,43 @@ public class AddToMasterDB {
         String[] types = new String[]{"varchar(800)", "varchar(20000)"};
 
         // check if fileName exists
-
-        IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-        getConnection(localMaster);
+        IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+        Connection conn = null;
+        Statement stmt = null;
         try {
+        	conn = localMaster.makeConnection();
+        	stmt = conn.createStatement();
             String configFile = MasterDatabaseUtility.getXrayConfigFile(fileName);
             if (configFile.length() > 0) {
                 // create update statement
                 String update = "UPDATE xrayconfigs SET config = '" + config + "' WHERE fileName = '" + fileName + "';";
-                int updateCount = conn.createStatement().executeUpdate(update);
-
+                stmt.executeUpdate(update);
             } else {
                 // make new insert
                 String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types,
                         new Object[]{fileName, config});
                 insertString += ";";
-                conn.createStatement().execute(insertString);
-
+                stmt.execute(insertString);
             }
         } catch (Exception e) {
             logger.error(STACKTRACE, e);
+        } finally {
+        	if(stmt != null) {
+        		try {
+					stmt.close();
+				} catch (SQLException e) {
+		            logger.error(STACKTRACE, e);
+				}
+        	}
+        	if(localMaster.isConnectionPooling()) {
+        		try {
+        			if(conn != null) {
+    					conn.close();
+    				}
+				} catch (SQLException e) {
+		            logger.error(STACKTRACE, e);
+				}
+        	}
         }
     }
 
@@ -725,9 +752,12 @@ public class AddToMasterDB {
 //		String[] types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
 
 		String localConceptID = MasterDatabaseUtility.getPhysicalConceptId(engineId, concept);
-		try {
-			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-			getConnection(localMaster);
+		
+		IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        try {
+        	conn = localMaster.makeConnection();
 			// check if key exists
 			String duplicateCheck = MasterDatabaseUtility.getMetadataValue(engineId, concept, key);
 			if (duplicateCheck == null) {
@@ -736,11 +766,11 @@ public class AddToMasterDB {
 //				if (validInsert > 0) {
 //					valid = true;
 //				}
-				PreparedStatement insertStatement = conn.prepareStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
-				insertStatement.setString(1, localConceptID);
-				insertStatement.setString(2, key);
-				insertStatement.setString(3, value);
-				valid = insertStatement.execute();
+				stmt = conn.prepareStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
+				stmt.setString(1, localConceptID);
+				stmt.setString(2, key);
+				stmt.setString(3, value);
+				valid = stmt.execute();
 			} // update
 			else {
 //				String update = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = \'"
@@ -749,39 +779,38 @@ public class AddToMasterDB {
 				String updateSql = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = ? "
 						+ " WHERE " + Constants.PHYSICAL_NAME_ID + " = ? " + " AND " + Constants.KEY
 						+ " = ? ";
-				PreparedStatement statement = conn.prepareStatement(updateSql);
-				statement.setString(1, value);
-				statement.setString(2, localConceptID);
-				statement.setString(3, Constants.KEY);
+				stmt = conn.prepareStatement(updateSql);
+				stmt.setString(1, value);
+				stmt.setString(2, localConceptID);
+				stmt.setString(3, Constants.KEY);
 				//int validInsert = conn.createStatement().executeUpdate(update + ";");
-				int validInsert = statement.executeUpdate();
+				int validInsert = stmt.executeUpdate();
 				if (validInsert > 0) {
 					valid = true;
 				}
 			}
-		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
-		}
+        } catch (SQLException e) {
+        	logger.error(STACKTRACE, e);
+        } finally {
+        	try {
+        		if(stmt != null) {
+        			stmt.close();
+        		}
+        	} catch (SQLException e) {
+            	logger.error(STACKTRACE, e);
+        	}
+        	if(localMaster.isConnectionPooling()) {
+        		try {
+            		if(conn != null) {
+                		conn.close();
+            		}
+            	} catch (SQLException e) {
+                	logger.error(STACKTRACE, e);
+            	}
+        	}
+        }
 		return valid;
 	}
-
-    public boolean setAppName(String appId, String newAppName) {
-        boolean update = false;
-        IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-        getConnection(localMaster);
-        String updateQuery = "UPDATE ENGINE SET ENGINENAME = \'" + newAppName + "\' WHERE ID = \'" + appId + "\';";
-        int validInsert;
-        try {
-            validInsert = conn.createStatement().executeUpdate(updateQuery);
-            if (validInsert > 0) {
-                update = true;
-            }
-        } catch (SQLException e) {
-            logger.error(STACKTRACE, e);
-        }
-
-        return update;
-    }
 
     //////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////

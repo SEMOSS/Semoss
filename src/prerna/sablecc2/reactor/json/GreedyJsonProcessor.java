@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -162,8 +163,8 @@ public class GreedyJsonProcessor extends GreedyJsonReactor {
 		
 		Hashtable finalHash = null;
 		Vector finalVector = null;
-		try {
-			ResultSet rs = conn.createStatement().executeQuery(query);
+		try (Statement stmt = conn.createStatement()){
+			ResultSet rs = stmt.executeQuery(query);
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int colCount = rsmd.getColumnCount();
 			Vector <String> outCols = new Vector<String>();
