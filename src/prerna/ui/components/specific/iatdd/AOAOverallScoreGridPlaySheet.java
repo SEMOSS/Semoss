@@ -271,6 +271,10 @@ public class AOAOverallScoreGridPlaySheet extends GridPlaySheet {
 			catch(Exception e){
 			}
 		}
+		
+	    if(denominator == 0) {
+	        throw new IllegalArgumentException("denominator can not be 0");
+	      }
 		overallvendorscore /= denominator ;	
 
 		//truncate trailing decimals caused by division 
