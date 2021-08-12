@@ -722,7 +722,7 @@ public class User implements Serializable {
 							jepThread = PyUtils.getInstance().getJep();
 							this.pyt = new PyTranslator();
 							this.pyt.setPy(jepThread);
-							int logSleeper = 1;
+							long logSleeper = 1;
 							while(!jepThread.isReady())
 							{
 								try 
