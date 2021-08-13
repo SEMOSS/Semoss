@@ -43,7 +43,9 @@ public class RdbmsReconnectReactor extends AbstractReactor {
 			rdbms.makeConnection().close();
 			rdbms.makeConnection();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+			noun.addAdditionalReturn(getError(e.getMessage()));
+			return noun;
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
