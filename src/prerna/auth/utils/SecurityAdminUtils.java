@@ -211,8 +211,22 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if(newEmail != null) {
 			newEmail = newEmail.toLowerCase();
 		}
-		Boolean adminChange = (Boolean) userInfo.get("admin");
-		Boolean publisherChange = (Boolean) userInfo.get("publisher");
+		Boolean adminChange = null;
+		if(userInfo.containsKey("admin")) {
+			if(userInfo.get("admin") instanceof Number) {
+				adminChange = ((Number) userInfo.get("admin")).intValue() == 1;
+			} else {
+				adminChange = Boolean.parseBoolean( userInfo.get("admin") + "");
+			}
+		}
+		Boolean publisherChange = null;
+		if(userInfo.containsKey("publisher")) {
+			if(userInfo.get("publisher") instanceof Number) {
+				publisherChange = ((Number) userInfo.get("publisher")).intValue() == 1;
+			} else {
+				publisherChange = Boolean.parseBoolean( userInfo.get("publisher") + "");
+			}
+		}
 
 		// validate new inputs and insert into selectors and values to use for update
 		List<IQuerySelector> selectors = new Vector<>();
