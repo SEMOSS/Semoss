@@ -1,4 +1,4 @@
-get_dataset_makeup<-function(df,nbr_int=10,method="mean"){
+get_dataset_makeup<-function(df,method="mean"){
 # Identifies column insights
 # Args
 # df - dataframe/table to search
@@ -9,6 +9,7 @@ get_dataset_makeup<-function(df,nbr_int=10,method="mean"){
 # with first element discretized data, second anomalies of the data 
 	library(data.table)
 	library(arules)
+	nbr_int<-round(nrow(df)^(1/3))
 	n<-ncol(df)
 	cols<-colnames(df)
 	out<-data.frame(Column=character(),Instance=character(),Frequency=integer(),Outlier=character(),stringsAsFactors=FALSE)
@@ -42,7 +43,7 @@ get_dataset_makeup<-function(df,nbr_int=10,method="mean"){
 }
 
 
-get_dataset_composition<-function(df,nbr_int=10){
+get_dataset_composition<-function(df){
 # Identifies column insights
 # Args
 # df - dataframe/table to search
@@ -53,6 +54,7 @@ get_dataset_composition<-function(df,nbr_int=10){
 # with first element discretized data, second anomalies of the data 
 	library(data.table)
 	library(arules)
+	nbr_int<-round(nrow(df)^(1/3))
 	n<-ncol(df)
 	cols<-colnames(df)
 	out<-data.frame(Column=character(),Instance=character(),Frequency=integer(),stringsAsFactors=FALSE)
@@ -82,7 +84,7 @@ get_dataset_composition<-function(df,nbr_int=10){
 	return(out)
 }
 
-get_dataset_outliers<-function(df,nbr_int=10,method="mean"){
+get_dataset_outliers<-function(df,method="mean"){
 # Identifies column insights
 # Args
 # df - dataframe/table to search
@@ -93,6 +95,7 @@ get_dataset_outliers<-function(df,nbr_int=10,method="mean"){
 # with first element discretized data, second anomalies of the data 
 	library(data.table)
 	library(arules)
+	nbr_int<-round(nrow(df)^(1/3))
 	n<-ncol(df)
 	cols<-colnames(df)
 	out<-data.frame(Column=character(),Outlier=character(),Frequency=integer(),stringsAsFactors=FALSE)
