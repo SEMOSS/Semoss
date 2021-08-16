@@ -42,21 +42,21 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(AdminUploadUsersReactor.class);
 	private static final String CLASS_NAME = AdminUploadUsersReactor.class.getName();
 
-	static final String NAME = "NAME";
-	static final String EMAIL = "EMAIL";
-	static final String TYPE = "TYPE";
-	static final String ID = "ID";
-	static final String PASSWORD = "PASSWORD";
-	static final String SALT = "SALT";
-	static final String USERNAME = "USERNAME";
-	static final String ADMIN = "ADMIN";
-	static final String PUBLISHER = "PUBLISHER";
+	static final String NAME_KEY = "NAME";
+	static final String EMAIL_KEY = "EMAIL";
+	static final String TYPE_KEY = "TYPE";
+	static final String ID_KEY = "ID";
+	static final String PASSWORD_KEY = "PASSWORD";
+	static final String SALT_KEY = "SALT";
+	static final String USERNAME_KEY = "USERNAME";
+	static final String ADMIN_KEY = "ADMIN";
+	static final String PUBLISHER_KEY = "PUBLISHER";
 	
 	private static String insertQuery = null;
 	private static Map<String, Integer> psIndex = new HashMap<>();
 	static {
-		String[] headers = new String[] {NAME, EMAIL, TYPE, ID, PASSWORD, SALT,
-				USERNAME, ADMIN, PUBLISHER};
+		String[] headers = new String[] {NAME_KEY, EMAIL_KEY, TYPE_KEY, ID_KEY, PASSWORD_KEY, 
+				SALT_KEY, USERNAME_KEY, ADMIN_KEY, PUBLISHER_KEY};
 		StringBuilder builder = new StringBuilder("INSERT INTO SMSS_USER (");
 		for(int i = 0; i < headers.length; i++) {
 			if(i > 0) {
@@ -187,15 +187,15 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 		String[] excelHeaders = helper.getHeaders();
 		List<String> excelHeadersList = Arrays.asList(excelHeaders);
 
-		int idxName = excelHeadersList.indexOf(NAME);
-		int idxEmail = excelHeadersList.indexOf(EMAIL);
-		int idxType = excelHeadersList.indexOf(TYPE);
-		int idxId = excelHeadersList.indexOf(ID);
-		int idxPassword = excelHeadersList.indexOf(PASSWORD);
-		int idxSalt = excelHeadersList.indexOf(SALT);
-		int idxUsername = excelHeadersList.indexOf(USERNAME);
-		int idxAdmin = excelHeadersList.indexOf(ADMIN);
-		int idxPublisher = excelHeadersList.indexOf(PUBLISHER);
+		int idxName = excelHeadersList.indexOf(NAME_KEY);
+		int idxEmail = excelHeadersList.indexOf(EMAIL_KEY);
+		int idxType = excelHeadersList.indexOf(TYPE_KEY);
+		int idxId = excelHeadersList.indexOf(ID_KEY);
+		int idxPassword = excelHeadersList.indexOf(PASSWORD_KEY);
+		int idxSalt = excelHeadersList.indexOf(SALT_KEY);
+		int idxUsername = excelHeadersList.indexOf(USERNAME_KEY);
+		int idxAdmin = excelHeadersList.indexOf(ADMIN_KEY);
+		int idxPublisher = excelHeadersList.indexOf(PUBLISHER_KEY);
 
 		if(idxName < 0 
 				|| idxEmail < 0
@@ -258,44 +258,44 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				}
 				
 				// these 2 are required
-				ps.setString(psIndex.get(TYPE), provider.toString());
-				ps.setString(psIndex.get(ID), id.trim());
+				ps.setString(psIndex.get(TYPE_KEY), provider.toString());
+				ps.setString(psIndex.get(ID_KEY), id.trim());
 				// boolean is always true/false and defaults to false for parseBoolean logic
-				ps.setBoolean(psIndex.get(ADMIN), admin);
-				ps.setBoolean(psIndex.get(PUBLISHER), publisher);
+				ps.setBoolean(psIndex.get(ADMIN_KEY), admin);
+				ps.setBoolean(psIndex.get(PUBLISHER_KEY), publisher);
 	
 				if(name == null) {
-					ps.setNull(psIndex.get(NAME), java.sql.Types.VARCHAR);
+					ps.setNull(psIndex.get(NAME_KEY), java.sql.Types.VARCHAR);
 				} else {
-					ps.setString(psIndex.get(NAME), name.trim());
+					ps.setString(psIndex.get(NAME_KEY), name.trim());
 				}
 				
 				if(email == null) {
-					ps.setNull(psIndex.get(EMAIL), java.sql.Types.VARCHAR);
+					ps.setNull(psIndex.get(EMAIL_KEY), java.sql.Types.VARCHAR);
 				} else {
-					ps.setString(psIndex.get(EMAIL), email.trim().toLowerCase());
+					ps.setString(psIndex.get(EMAIL_KEY), email.trim().toLowerCase());
 				}
 				
 				if(username == null) {
-					ps.setNull(psIndex.get(USERNAME), java.sql.Types.VARCHAR);
+					ps.setNull(psIndex.get(USERNAME_KEY), java.sql.Types.VARCHAR);
 				} else {
-					ps.setString(psIndex.get(USERNAME), username.trim());
+					ps.setString(psIndex.get(USERNAME_KEY), username.trim());
 				}
 				
 				// if password is there
 				// but no salt
 				// make the salt and store that
 				if(password != null && !password.isEmpty() && salt != null && !salt.isEmpty()) {
-					ps.setString(psIndex.get(PASSWORD), password.trim());
-					ps.setString(psIndex.get(SALT), salt.trim());
+					ps.setString(psIndex.get(PASSWORD_KEY), password.trim());
+					ps.setString(psIndex.get(SALT_KEY), salt.trim());
 				} else if(password != null && !password.isEmpty() && (salt == null || salt.isEmpty())) {
 					String genSalt = AbstractSecurityUtils.generateSalt();
 					String hashedPassword = (AbstractSecurityUtils.hash(password, genSalt));
-					ps.setString(psIndex.get(PASSWORD), hashedPassword.trim());
-					ps.setString(psIndex.get(SALT), genSalt.trim());
+					ps.setString(psIndex.get(PASSWORD_KEY), hashedPassword.trim());
+					ps.setString(psIndex.get(SALT_KEY), genSalt.trim());
 				} else {
-					ps.setNull(psIndex.get(PASSWORD), java.sql.Types.VARCHAR);
-					ps.setNull(psIndex.get(SALT), java.sql.Types.VARCHAR);
+					ps.setNull(psIndex.get(PASSWORD_KEY), java.sql.Types.VARCHAR);
+					ps.setNull(psIndex.get(SALT_KEY), java.sql.Types.VARCHAR);
 				}
 				
 				ps.addBatch();

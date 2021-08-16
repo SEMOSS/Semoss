@@ -36,14 +36,14 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = AdminUploadAppPermissionsReactor.class.getName();
 
-	static final String ENGINE_ID = "ENGINEID";
-	static final String USER_ID = "USERID";
-	static final String PERMISSION = "PERMISSION";
+	static final String ENGINE_ID_KEY = "ENGINEID";
+	static final String USER_ID_KEY = "USERID";
+	static final String PERMISSION_KEY = "PERMISSION";
 
 	private static String insertQuery = null;
 	private static Map<String, Integer> psIndex = new HashMap<>();
 	static {
-		String[] headers = new String[] {ENGINE_ID, USER_ID, PERMISSION};
+		String[] headers = new String[] {ENGINE_ID_KEY, USER_ID_KEY, PERMISSION_KEY};
 		StringBuilder builder = new StringBuilder("INSERT INTO ENGINEPERMISSION (");
 		for(int i = 0; i < headers.length; i++) {
 			if(i > 0) {
@@ -165,9 +165,9 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 			String[] excelHeaders = helper.getHeaders();
 			List<String> excelHeadersList = Arrays.asList(excelHeaders);
 
-			int idxEngine = excelHeadersList.indexOf(ENGINE_ID);
-			int idxUser = excelHeadersList.indexOf(USER_ID);
-			int idxRole = excelHeadersList.indexOf(PERMISSION);
+			int idxEngine = excelHeadersList.indexOf(ENGINE_ID_KEY);
+			int idxUser = excelHeadersList.indexOf(USER_ID_KEY);
+			int idxRole = excelHeadersList.indexOf(PERMISSION_KEY);
 
 			if(idxEngine < 0 
 					|| idxUser < 0
@@ -209,9 +209,9 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 				} else {
 					hasInsert = true;
 					// add to insert ps
-					insertPs.setString(psIndex.get(ENGINE_ID), engineId);
-					insertPs.setString(psIndex.get(USER_ID), userId);
-					insertPs.setInt(psIndex.get(PERMISSION), permission.getId());
+					insertPs.setString(psIndex.get(ENGINE_ID_KEY), engineId);
+					insertPs.setString(psIndex.get(USER_ID_KEY), userId);
+					insertPs.setInt(psIndex.get(PERMISSION_KEY), permission.getId());
 
 					insertPs.addBatch();
 				}
