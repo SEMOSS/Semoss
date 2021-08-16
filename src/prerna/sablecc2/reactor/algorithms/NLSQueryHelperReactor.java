@@ -15,14 +15,13 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
-import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -101,12 +100,10 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String databaseId = user.getAssetProjectId(user.getPrimaryLogin());
-			String databaseName = "Asset";
-			if (databaseId != null && !(databaseId.isEmpty())) {
-				IEngine assetDb = Utility.getEngine(databaseId);
-				savePath = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPullDatabaseFolder(assetDb, savePath);
+			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
+			if (assetId != null && !(assetId.isEmpty())) {
+				IProject assetProject = Utility.getUserAssetWorkspaceProject(assetId, true);
+				ClusterUtil.reactorPullUserWorkspace(assetProject, true);
 			}
 		}
 		savePath = savePath.replace("\\", "/"); 
@@ -170,12 +167,10 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		// push asset database
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String databaseId = user.getAssetProjectId(user.getPrimaryLogin());
-			String databaseName = "Asset";
-			if (databaseId != null && !(databaseId.isEmpty())) {
-				IEngine assetDb = Utility.getEngine(databaseId);
-				savePath = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPushDatabaseFolder(assetDb, savePath);
+			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
+			if (assetId != null && !(assetId.isEmpty())) {
+				IProject assetProject = Utility.getUserAssetWorkspaceProject(assetId, true);
+				ClusterUtil.reactorPushUserWorkspace(assetProject, true);
 			}
 		}
 
@@ -631,8 +626,8 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 		this.rJavaTranslator.runR(sessionTableBuilder.toString());
 		this.rJavaTranslator.executeEmptyR("rm( " + db + "," + joins + " ); gc();");
-
 	}
+	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
