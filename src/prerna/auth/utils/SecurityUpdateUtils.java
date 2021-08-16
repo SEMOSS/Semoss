@@ -992,19 +992,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				}
 				
 				// need to update any other permissions that were set for this user
-				String updateQuery = "UPDATE ENGINEPERMISSION SET USERID='" +  newId +"' WHERE USERID='" + oldId + "'";
-				try {
-					securityDb.insertData(updateQuery);
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				
-				// need to update all the places the user id is used
-				updateQuery = "UPDATE USERINSIGHTPERMISSION SET USERID='" +  newId +"' WHERE USERID='" + oldId + "'";
-				try {
-					securityDb.insertData(updateQuery);
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+				String[] queries = new String[] {
+						"UPDATE ENGINEPERMISSION SET USERID='" +  RdbmsQueryBuilder.escapeForSQLStatement(newId) 
+							+"' WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(oldId) + "'",
+						"UPDATE PROJECTPERMISSION SET USERID='" +  RdbmsQueryBuilder.escapeForSQLStatement(newId)
+							+"' WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(oldId) + "'",
+						"UPDATE USERINSIGHTPERMISSION SET USERID='" +  RdbmsQueryBuilder.escapeForSQLStatement(newId) 
+							+"' WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(oldId) + "'"
+				};
+				for(String updateQuery : queries) {
+					try {
+						securityDb.insertData(updateQuery);
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 				
 				securityDb.commit();
