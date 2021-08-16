@@ -9,7 +9,6 @@ get_dataset_makeup<-function(df,method="mean"){
 # with first element discretized data, second anomalies of the data 
 	library(data.table)
 	library(arules)
-	nbr_int<-round(nrow(df)^(1/3))
 	n<-ncol(df)
 	cols<-colnames(df)
 	out<-data.frame(Column=character(),Instance=character(),Frequency=integer(),Outlier=character(),stringsAsFactors=FALSE)
@@ -17,6 +16,7 @@ get_dataset_makeup<-function(df,method="mean"){
 		for(i in 1:n){
 			item<-list()
 			if(class(df[[i]]) %in% c("integer","numeric")){
+				nbr_int<-compute_bins_number(df[[i]])
 				item[[1]]<-table(discretize(df[[i]],method="interval",breaks=nbr_int))
 				item[[2]]<-get_univarible_outliers(item[[1]],method)
 			}else if(class(df[[i]]) %in% c("character","factor")){
@@ -26,6 +26,10 @@ get_dataset_makeup<-function(df,method="mean"){
 			}else if(class(df[[i]])=="logical"){
 				item[[1]]<-table(as.numeric(df[[i]]))
 				names(item[[1]])<-unname(sapply(names(out[[i]]),function(x) if(x=="0") "FALSE" else "TRUE"))
+				item[[2]]<-get_univarible_outliers(item[[1]],method)
+			}else if(class(df[[i]]) == "Date" ){
+				nbr_int<-compute_bins_number(as.numeric(df[[i]]))
+				item[[1]]<-table(discretize(df[[i]],method="interval",breaks=nbr_int))
 				item[[2]]<-get_univarible_outliers(item[[1]],method)
 			}
 			if(length(item)>0){
@@ -42,6 +46,12 @@ get_dataset_makeup<-function(df,method="mean"){
 	return(out)
 }
 
+compute_bins_number<-function(values){
+	values<-values[!is.na(values)]
+	q<-quantile(values)
+	bins<-round(length(values)^(1/3)*(q[5]-q[1])/(2*(q[4]-q[1])))
+	return(bins)
+}
 
 get_dataset_composition<-function(df){
 # Identifies column insights
@@ -54,7 +64,6 @@ get_dataset_composition<-function(df){
 # with first element discretized data, second anomalies of the data 
 	library(data.table)
 	library(arules)
-	nbr_int<-round(nrow(df)^(1/3))
 	n<-ncol(df)
 	cols<-colnames(df)
 	out<-data.frame(Column=character(),Instance=character(),Frequency=integer(),stringsAsFactors=FALSE)
@@ -62,6 +71,7 @@ get_dataset_composition<-function(df){
 		for(i in 1:n){	
 			item<-list()
 			if(class(df[[i]]) %in% c("integer","numeric")){
+				nbr_int<-compute_bins_number(df[[i]])
 				item[[cols[i]]]<-table(discretize(df[[i]],method="interval",breaks=nbr_int))	
 				
 			}else if(class(df[[i]]) %in% c("character","factor")){
@@ -72,6 +82,7 @@ get_dataset_composition<-function(df){
 				item[[cols[i]]]<-table(as.numeric(df[[i]]))
 				names(item[[cols[i]]])<-unname(sapply(names(out[[i]]),function(x) if(x=="0") "FALSE" else "TRUE"))
 			}else if(class(df[[i]]) == "Date" ){
+				nbr_int<-compute_bins_number(as.numeric(df[[i]]))
 				item[[cols[i]]]<-table(discretize(df[[i]],method="interval",breaks=nbr_int))
 			}
 			if(length(item)>0){
@@ -95,7 +106,6 @@ get_dataset_outliers<-function(df,method="mean"){
 # with first element discretized data, second anomalies of the data 
 	library(data.table)
 	library(arules)
-	nbr_int<-round(nrow(df)^(1/3))
 	n<-ncol(df)
 	cols<-colnames(df)
 	out<-data.frame(Column=character(),Outlier=character(),Frequency=integer(),stringsAsFactors=FALSE)
@@ -103,6 +113,7 @@ get_dataset_outliers<-function(df,method="mean"){
 		for(i in 1:n){
 			item<-list()
 			if(class(df[[i]]) %in% c("integer","numeric")){
+				nbr_int<-compute_bins_number(df[[i]])
 				item[[1]]<-table(discretize(df[[i]],method="interval",breaks=nbr_int))
 				item[[2]]<-get_univarible_outliers(item[[1]],method)
 				m<-length(item[[2]])
@@ -120,6 +131,14 @@ get_dataset_outliers<-function(df,method="mean"){
 			}else if(class(df[[i]])=="logical"){
 				item[[1]]<-table(as.numeric(df[[i]]))
 				names(item[[1]])<-unname(sapply(names(out[[i]]),function(x) if(x=="0") "FALSE" else "TRUE"))
+				item[[2]]<-get_univarible_outliers(item[[1]],method)
+				m<-length(item[[2]])
+				if(m>0){
+					out<-rbind(out,data.frame(Column=rep(names(df)[i],m),Outlier=names(item[[2]]),Frequency=unname(as.integer(item[[2]]))))
+				}
+			}else if(class(df[[i]]) == "Date" ){
+				nbr_int<-compute_bins_number(as.numeric(df[[i]]))
+				item[[1]]<-table(discretize(df[[i]],method="interval",breaks=nbr_int))
 				item[[2]]<-get_univarible_outliers(item[[1]],method)
 				m<-length(item[[2]])
 				if(m>0){
