@@ -42,7 +42,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
-import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -120,12 +119,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String projectId = user.getAssetProjectId(user.getPrimaryLogin());
-			String projectName = "Asset";
-			if (projectId != null && !(projectId.isEmpty())) {
-				IProject assetProject = Utility.getProject(projectId);
-				savePath = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPullProjectFolder(assetProject, savePath);
+			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
+			if (assetId != null && !(assetId.isEmpty())) {
+				IProject assetProject = Utility.getUserAssetWorkspaceProject(assetId, true);
+				ClusterUtil.reactorPullUserWorkspace(assetProject, true);
 			}
 		}
 		savePath = savePath.replace("\\", "/");
@@ -202,12 +199,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// push asset app
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String projectId = user.getAssetProjectId(user.getPrimaryLogin());
-			String projectName = "Asset";
-			if (projectId != null && !(projectId.isEmpty())) {
-				IProject assetProject = Utility.getProject(projectId);
-				savePath = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPushProjectFolder(assetProject, savePath);
+			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
+			if (assetId != null && !(assetId.isEmpty())) {
+				IProject assetProject = Utility.getUserAssetWorkspaceProject(assetId, true);
+				ClusterUtil.reactorPushUserWorkspace(assetProject, true);
 			}
 		}
 
