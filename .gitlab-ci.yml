@@ -93,7 +93,7 @@ build_dev:
   script:
     - ls
     - pwd
-    - rm -rf /var/lib/apt/lists/*
+    - apt-get --allow-releaseinfo-change update -y
     - apt-get update -y
     - apt-get install -y openjfx
     - mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT
