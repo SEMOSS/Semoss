@@ -932,18 +932,30 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		}
 
 		// generate the sql for the prepared statement
-		StringBuilder sql = new StringBuilder("INSERT INTO ");
-		sql.append(args[0]).append(" (").append(args[1]);
-		for(int colIndex = 2; colIndex < args.length; colIndex++) {
-			sql.append(", ");
-			sql.append(args[colIndex]);
+		String tableName = (String) args[0];
+		if(this.queryUtil.isSelectorKeyword(tableName)) {
+			tableName = this.queryUtil.getEscapeKeyword(tableName);
 		}
-		sql.append(") VALUES (?"); // remember, we already assumed one col
-		for(int colIndex = 2; colIndex < args.length; colIndex++) {
+		
+		StringBuilder sql = new StringBuilder("INSERT INTO ");
+		sql.append(tableName).append(" (");
+		for (int colIndex = 1; colIndex < args.length; colIndex++) {
+			String columnName = (String) args[colIndex];
+			if(this.queryUtil.isSelectorKeyword(columnName)) {
+				columnName = this.queryUtil.getEscapeKeyword(columnName);
+			}
+			sql.append(columnName);
+			if( (colIndex+1) != args.length) {
+				sql.append(", ");
+			}
+		}
+		sql.append(") VALUES (?"); 
+		// remember, we already assumed one col and first index is table name
+		for (int colIndex = 1; colIndex < args.length-1; colIndex++) {
 			sql.append(", ?");
 		}
 		sql.append(")");
-
+		
 		return getPreparedStatement(sql.toString());
 	}
 
