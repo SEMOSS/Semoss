@@ -92,9 +92,7 @@ build_dev:
   script:
     - ls
     - pwd
-    # TESTING THIS LINE TO SEE IF IT FIXES apt-get update
-    - rm -rf /var/lib/apt/lists/*
-    - apt-get update
+    - apt-get update -y
     - apt-get install -y openjfx
     - mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT
     # So that the cache takes up less space
