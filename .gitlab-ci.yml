@@ -68,7 +68,7 @@ version_commit:
   script:
     - ls
     - cat ver.txt
-    - rm -rf /var/lib/apt/lists/*
+    - apt-get --allow-releaseinfo-change update -y
     - apt-get update -y
     - apt-get install -y subversion
     - svn --username ${SVN_USER} --password ${SVN_PASS} checkout svn://107.170.10.188:8080/Semoss/dev SemossVer --depth empty
@@ -120,7 +120,7 @@ build_sonar:
   script:
     - ls
     - pwd
-    - rm -rf /var/lib/apt/lists/*
+    - apt-get --allow-releaseinfo-change update -y
     - apt-get update -y
     - apt-get install -y openjfx
     - mvn $MAVEN_CLI_OPTS verify -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT
@@ -155,7 +155,7 @@ build_junit:
   script:
     - ls
     - pwd
-    - rm -rf /var/lib/apt/lists/*
+    - apt-get --allow-releaseinfo-change update -y
     - apt-get update -y
     - apt-get install -y openjfx
     - mvn $MAVEN_CLI_OPTS verify -Dci.version=${VERSION}-SNAPSHOT
@@ -184,7 +184,7 @@ build_deploy:
     - pwd
     - cat /etc/debian_version
     - cat ver.txt
-    - rm -rf /var/lib/apt/lists/*
+    - apt-get --allow-releaseinfo-change update -y
     - apt-get update -y
     - apt-get install -y openjfx
     - apt-get install -y gnupg2
@@ -209,7 +209,7 @@ build_release:
   script:
     - ls
     - cat ver.txt
-    - rm -rf /var/lib/apt/lists/*
+    - apt-get --allow-releaseinfo-change update -y
     - apt-get update -y
     - apt-get install -y openjfx
     - apt-get install -y gnupg2
