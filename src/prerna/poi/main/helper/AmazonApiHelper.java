@@ -6,6 +6,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -143,6 +144,13 @@ public class AmazonApiHelper extends WebAPIHelper{
 			amazonApi = new URL(getApi());
 			System.out.println(currentPage + ". Amazon API: " +amazonApi);
 			XMLInputFactory factory = XMLInputFactory.newInstance();
+			// to be compliant, completely disable DOCTYPE declaration:
+			factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+			// or completely disable external entities declarations:
+			factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
+			// or prohibit the use of all protocols by external entities:
+			factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+			factory.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
 			reader = factory.createXMLStreamReader(amazonApi.openStream());
 			parseData();
 
