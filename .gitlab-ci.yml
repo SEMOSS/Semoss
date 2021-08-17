@@ -92,7 +92,7 @@ build_dev:
   script:
     - ls
     - pwd
-    - apt-get update -y
+    - apt update -y
     - apt-get install -y openjfx
     - mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT
     # So that the cache takes up less space
