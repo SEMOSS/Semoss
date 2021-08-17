@@ -16,7 +16,6 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -207,7 +206,12 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				getPreparedStatementArgs[headerIndex + 1] = headers[headerIndex];
 			}
 		}
-		PreparedStatement ps = (PreparedStatement) targetEngine.doAction(ACTION_TYPE.BULK_INSERT, getPreparedStatementArgs);
+		PreparedStatement ps = null;
+		try {
+			ps = ((IRDBMSEngine) targetEngine).bulkInsertPreparedStatement(getPreparedStatementArgs);
+		} catch (SQLException e) {
+			throw new IllegalArgumentException("An error occured creating the prepared statement with message = " + e.getMessage());
+		}
 
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
