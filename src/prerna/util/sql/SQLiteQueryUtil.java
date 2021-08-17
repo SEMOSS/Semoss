@@ -414,4 +414,18 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 		// sadly, sqlite does not provide the columns for the index
 		return "SELECT NAME, null AS COLUMN FROM SQLITE_MASTER WHERE TYPE='index' AND TBL_NAME='" + tableName + "';";
 	}
+	
+	@Override
+	public String modColumnName(String tableName, String curColName, String newColName) {
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(curColName)) {
+			curColName = getEscapeKeyword(curColName);
+		}
+		if(isSelectorKeyword(newColName)) {
+			newColName = getEscapeKeyword(newColName);
+		}
+		return "ALTER TABLE " + tableName + " RENAME COLUMN " + curColName + " TO " + newColName;
+	}
 }
