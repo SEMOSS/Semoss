@@ -1699,15 +1699,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// don't forget the low_name that is added for sorting
 		selectorStatement.append(", \"low_name\"");
 		StringBuffer mainQuery = new StringBuffer(selectorStatement);
-		mainQuery.append(" FROM ");
+		mainQuery.append(" FROM (");
 		for(int i = 0; i < unionQueries.size(); i++) {
 			if(i > 0) {
 				mainQuery.append(" UNION ");
 			}
-			mainQuery.append("( ")
-				.append(unionQueries.get(i))
-				.append(") ");
+			mainQuery.append(unionQueries.get(i));
 		}
+		mainQuery.append(")");
 		
 		// get the favorites for this user
 		SelectQueryStruct qs2 = new SelectQueryStruct();
