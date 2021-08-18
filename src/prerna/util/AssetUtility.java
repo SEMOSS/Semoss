@@ -233,25 +233,6 @@ public class AssetUtility {
 		return baseProjectFolder;
 	}
 	
-	public static String getUserAssetAndWorkspaceBaseFolder(String projectName, String projectId) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
-			baseFolder += DIR_SEPARATOR;
-		}
-		
-		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.USER_FOLDER + DIR_SEPARATOR 
-				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "app_root" );
-
-		File baseAppFolderFile = new File(baseProjectFolder);
-		if(!baseAppFolderFile.exists()) {
-			baseAppFolderFile.mkdir();
-			// if you are creating this.. there is a possibility we need to fix this engine
-			rehomeDB(projectName, projectId, baseProjectFolder);
-		}
-		// try to see if there is a version folder and if so move it into app_root
-		return baseProjectFolder;
-	}
-	
 	private static void rehomeDB(String projectName, String projectId, String newRoot) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
@@ -272,6 +253,35 @@ public class AssetUtility {
 				e.printStackTrace();
 			}
 		}		
+	}
+	
+	/*
+	 * USER ASSET METHODS
+	 */
+	
+	public static String getUserAssetAndWorkspaceVersionFolder(String projectName, String projectId) {
+		// get the base folder
+		String baseFodler = getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
+		return baseFodler + "/version";
+	}
+	
+	public static String getUserAssetAndWorkspaceBaseFolder(String projectName, String projectId) {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
+			baseFolder += DIR_SEPARATOR;
+		}
+		
+		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.USER_FOLDER + DIR_SEPARATOR 
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "app_root" );
+
+		File baseAppFolderFile = new File(baseProjectFolder);
+		if(!baseAppFolderFile.exists()) {
+			baseAppFolderFile.mkdir();
+			// if you are creating this.. there is a possibility we need to fix this engine
+			rehomeDB(projectName, projectId, baseProjectFolder);
+		}
+		// try to see if there is a version folder and if so move it into app_root
+		return baseProjectFolder;
 	}
 	
 }
