@@ -22,6 +22,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -104,6 +105,11 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			if (assetId != null && !(assetId.isEmpty())) {
 				IProject assetProject = Utility.getUserAssetWorkspaceProject(assetId, true);
 				ClusterUtil.reactorPullUserWorkspace(assetProject, true);
+				savePath = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
+				File saveDir = new File(savePath);
+				if(!saveDir.isDirectory() && !saveDir.exists()) {
+					saveDir.mkdirs();
+				}
 			}
 		}
 		savePath = savePath.replace("\\", "/"); 
