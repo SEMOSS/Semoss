@@ -442,6 +442,20 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("WORKSPACEENGINE", colNames, types));
 			}
 		}
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+		{
+			List<String> allCols = queryUtil.getTableColumns(conn, "WORKSPACEENGINE", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+				String updateColName = queryUtil.modColumnName("WORKSPACEENGINE", "ENGINEID", "PROJECTID");
+				securityDb.insertData(updateColName);
+			}
+		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
@@ -454,16 +468,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
 			}			
 		}
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "WORKSPACEENGINE", schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
-				String updateColName = queryUtil.modColumnName("WORKSPACEENGINE", "ENGINEID", "PROJECTID");
-				securityDb.insertData(updateColName);
-			}
-		}
+		
 		
 		// ASSETENGINE
 		colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
@@ -477,6 +482,20 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("ASSETENGINE", colNames, types));
 			}
 		}
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		{
+			List<String> allCols = queryUtil.getTableColumns(conn, "ASSETENGINE", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+				String updateColName = queryUtil.modColumnName("ASSETENGINE", "ENGINEID", "PROJECTID");
+				securityDb.insertData(updateColName);
+			}
+		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
@@ -487,16 +506,6 @@ public abstract class AbstractSecurityUtils {
 			}
 			if(!queryUtil.indexExists(securityDb, "ASSETENGINE_USERID_INDEX", "ASSETENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
-			}
-		}
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ASSETENGINE", schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
-				String updateColName = queryUtil.modColumnName("ASSETENGINE", "ENGINEID", "PROJECTID");
-				securityDb.insertData(updateColName);
 			}
 		}
 		
@@ -525,8 +534,12 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(addRecipeColumnSql);
 			}
 		}
-		
-		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
 			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHT", schema);
 			// this should return in all upper case
@@ -582,7 +595,9 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 		}
-		
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
 			List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", schema);
@@ -626,19 +641,8 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("INSIGHTMETA", colNames, types));
 			}
 		}
-		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
-			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
-			}
-		}
-		
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
 			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHTMETA", schema);
@@ -649,7 +653,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(updateColName);
 			}
 		}
-		
+		//END MODIFICATION
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
