@@ -2346,8 +2346,9 @@ public class Utility {
 
 			boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
 			boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
+			boolean isScheduler = engineId.equals(Constants.SCHEDULER_DB);
 			boolean isThemes = engineId.equals(Constants.THEMING_DB);
-			if (!isLocal && !isSecurity && !isThemes) {
+			if (!isLocal && !isSecurity && !isScheduler && !isThemes) {
 				// sync up the engine metadata now
 				synchronizeEngineMetadata(engineId);
 				SecurityUpdateUtils.addDatabase(engineId);
