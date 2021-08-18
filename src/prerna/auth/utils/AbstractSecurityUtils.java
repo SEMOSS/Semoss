@@ -431,7 +431,7 @@ public abstract class AbstractSecurityUtils {
 		 */
 
 		// WORKSPACEENGINE
-		colNames = new String[] {"TYPE", "USERID", "ENGINEID"};
+		colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
 		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("WORKSPACEENGINE", colNames, types));
@@ -466,7 +466,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// ASSETENGINE
-		colNames = new String[] {"TYPE", "USERID", "ENGINEID"};
+		colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
 		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ASSETENGINE", colNames, types));
