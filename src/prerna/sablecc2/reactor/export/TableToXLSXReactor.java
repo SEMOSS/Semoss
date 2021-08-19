@@ -405,15 +405,16 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		}catch (Exception ex)
 		{
 			ex.printStackTrace();
-		} finally {
-			if(wb != null) {
-		          try {
-		        	  wb.close();
-		          } catch(IOException e) {
-						e.printStackTrace();
-		          }
-		        }
 		}
+//		} finally {
+//			if(wb != null) {
+//		          try {
+//		        	  wb.close();
+//		          } catch(IOException e) {
+//						e.printStackTrace();
+//		          }
+//		        }
+//		}
 		return null;
 	}
 
