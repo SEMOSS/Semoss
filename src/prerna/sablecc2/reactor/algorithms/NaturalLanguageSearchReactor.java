@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.algorithms;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -114,24 +113,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				dbFilters = MasterDatabaseUtility.getAllDatabaseIds();
 			}
 		}
-
-		//pull asset app
-		//set default paths
-		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
-		if (AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
-			if (assetId != null && !(assetId.isEmpty())) {
-				IProject assetProject = Utility.getUserAssetWorkspaceProject(assetId, true);
-				ClusterUtil.reactorPullUserWorkspace(assetProject, true);
-				savePath = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
-				File saveDir = new File(savePath);
-				if(!saveDir.isDirectory() && !saveDir.exists()) {
-					saveDir.mkdirs();
-				}
-			}
-		}
-		savePath = savePath.replace("\\", "/");
 		
 		// init r tables for use between methods
 		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
@@ -139,10 +120,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// source the proper script
 		StringBuilder sb = new StringBuilder();
-		String wd = "wd" + Utility.getRandomString(5);
 		String rFolderPath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR;
-		sb.append(wd + "<- getwd();");
-		sb.append(("setwd(\"" + savePath + "\");").replace("\\", "/"));
 		sb.append(("source(\"" + rFolderPath + "template_assembly.R" + "\");").replace("\\", "/"));
 		if(global) {
 			sb.append(("source(\"" + rFolderPath + "template_db.R" + "\");").replace("\\", "/"));
@@ -151,32 +129,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 		
 		this.rJavaTranslator.runR(sb.toString());
-
-		// cluster tables if needed
-		String nldrPath1 = savePath + DIR_SEPARATOR + "nldr_membership.rds";
-		String nldrPath2 = savePath + DIR_SEPARATOR + "nldr_db.rds";
-		String nldrPath3 = savePath + DIR_SEPARATOR + "nldr_joins.rds";	
-		File nldrMembership = new File(nldrPath1);
-		File nldrDb = new File(nldrPath2);
-		File nldrJoins = new File(nldrPath3);
-		long replaceTime = System.currentTimeMillis() - ((long)1 * 24 * 60 * 60 * 1000);
-		
-		String nldrMembership2 = "exists('" + NLDR_MEMBERSHIP + "');";
-		StringBuilder script = new StringBuilder();
-		if(global) {
-			if(!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists() || nldrMembership.lastModified() < replaceTime ) {
-				logger.info(stepCounter + ". Updating database metadata");
-				stepCounter++;
-				createRdsFiles();
-			} else {
-				boolean nldrExists = this.rJavaTranslator.getBoolean(nldrMembership2);
-				if (!nldrExists) {
-					script.append(NLDR_MEMBERSHIP + " <- readRDS(\"nldr_membership.rds\")");
-					script.append(NLDR_DB + " <- readRDS(\"nldr_db.rds\")");
-					this.rJavaTranslator.runR(script.toString());
-				}
-			}
-		}
 		
 		String queryString = "";
 		query = buildNamedArray(query);
@@ -195,23 +147,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		
 		logger.info(stepCounter + ". Generating pixel return from results");
 		stepCounter++;
-		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable, global, panelId, queryString);
-
-		// reset working directory and run garbage cleanup
-		this.rJavaTranslator.executeEmptyR("setwd(" + wd + ");");
-		this.rJavaTranslator.executeEmptyR("rm(" + wd + "," + rSessionTable + "," + rSessionJoinTable + "); gc();");
+		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable, global, panelId, queryString);		
 		
-		
-		// push asset app
-		if (AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
-			if (assetId != null && !(assetId.isEmpty())) {
-				IProject assetProject = Utility.getUserAssetWorkspaceProject(assetId, true);
-				ClusterUtil.reactorPushUserWorkspace(assetProject, true);
-			}
-		}
-
 		return new NounMetadata(returnPixels, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
@@ -390,186 +327,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		return request;
 	}
 
-	private void createRdsFiles() {
-		StringBuilder sessionTableBuilder = new StringBuilder();
-
-		// use all the apps
-		List<String> databaseFilters = null;
-		if (AbstractSecurityUtils.securityEnabled()) {
-			databaseFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
-		} else {
-			databaseFilters = MasterDatabaseUtility.getAllDatabaseIds();
-		}
-		
-		// source the files
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String filePath = (baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR).replace("\\", "/");
-		sessionTableBuilder.append("source(\""+ filePath + "data_inquiry_guide.R\");");
-		sessionTableBuilder.append("source(\""+ filePath + "data_inquiry_assembly.R\");");
-
-		// first get the total number of cols and relationships
-		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(databaseFilters);
-		List<String[]> allRelations = MasterDatabaseUtility.getRelationships(databaseFilters);
-		int totalNumRels = allRelations.size();
-		int totalColCount = allTableCols.size();
-
-		// start building script
-		String rAppIds = "c(";
-		String rTableNames = "c(";
-		String rColNames = "c(";
-		String rColTypes = "c(";
-		String rPrimKey = "c(";
-
-		// create R vector of appid, tables, and columns
-		for (int i = 0; i < totalColCount; i++) {
-			Object[] entry = allTableCols.get(i);
-			String appId = entry[0].toString();
-			String table = entry[1].toString();
-			if (entry[0] != null && entry[1] != null && entry[2] != null && entry[3] != null && entry[4] != null) {
-				String column = entry[2].toString();
-				String dataType = entry[3].toString();
-				String pk = entry[4].toString().toUpperCase();
-
-				if (i == 0) {
-					rAppIds += "'" + appId + "'";
-					rTableNames += "'" + appId + "._." + table + "'";
-					rColNames += "'" + column + "'";
-					rColTypes += "'" + dataType + "'";
-					rPrimKey += "'" + pk + "'";
-				} else {
-					rAppIds += ",'" + appId + "'";
-					rTableNames += ",'" + appId + "._." + table + "'";
-					rColNames += ",'" + column + "'";
-					rColTypes += ",'" + dataType + "'";
-					rPrimKey += ",'" + pk + "'";
-				}
-			}
-		}
-
-		// create R vector of table columns and table rows
-		String rAppIDsJoin = "c(";
-		String rTbl1 = "c(";
-		String rTbl2 = "c(";
-		String rJoinBy1 = "c(";
-		String rJoinBy2 = "c(";
-
-		int firstRel = 0;
-		for (int i = 0; i < totalNumRels; i++) {
-			String[] entry = allRelations.get(i);
-			String databaseId = entry[0];
-			String rel = entry[3];
-
-			String[] relSplit = rel.split("\\.");
-			if (relSplit.length == 4) {
-				// this is RDBMS
-				String sourceTable = relSplit[0];
-				String sourceColumn = relSplit[1];
-				String targetTable = relSplit[2];
-				String targetColumn = relSplit[3];
-
-				// check by firstRel, not index of for loop
-				// loop increments even if relSplit.length != 4
-				// whereas firstRel only increases if something is added to frame
-				if (firstRel == 0) {
-					rAppIDsJoin += "'" + databaseId + "'";
-					rTbl1 += "'" + databaseId + "._." + sourceTable + "'";
-					rTbl2 += "'" + databaseId + "._." + targetTable + "'";
-					rJoinBy1 += "'" + sourceColumn + "'";
-					rJoinBy2 += "'" + targetColumn + "'";
-				} else {
-					rAppIDsJoin += ",'" + databaseId + "'";
-					rTbl1 += ",'" + databaseId + "._." + sourceTable + "'";
-					rTbl2 += ",'" + databaseId + "._." + targetTable + "'";
-					rJoinBy1 += ",'" + sourceColumn + "'";
-					rJoinBy2 += ",'" + targetColumn + "'";
-				}
-
-				if (sourceColumn.endsWith("_FK")) {
-					// if column ends with a _FK, then add it to NaturalLangTable also
-					rAppIds += ",'" + databaseId + "'";
-					rTableNames += ",'" + databaseId + "._." + sourceTable + "'";
-					rColNames += ",'" + sourceColumn + "'";
-					rColTypes += ", 'STRING' ";
-					rPrimKey += ", 'FALSE' ";
-				}
-				// no longer adding the first row to this data frame, increment..
-				firstRel++;
-			} else {
-				// this is an RDF or Graph
-				String sourceTable = entry[1];
-				String sourceColumn = entry[1];
-				String targetTable = entry[2];
-				String targetColumn = entry[2];
-				if (firstRel == 0) {
-					rAppIDsJoin += "'" + databaseId + "'";
-					rTbl1 += "'" + databaseId + "._." + sourceTable + "'";
-					rTbl2 += "'" + databaseId + "._." + targetTable + "'";
-					rJoinBy1 += "'" + sourceColumn + "'";
-					rJoinBy2 += "'" + targetColumn + "'";
-				} else {
-					rAppIDsJoin += ",'" + databaseId + "'";
-					rTbl1 += ",'" + databaseId + "._." + sourceTable + "'";
-					rTbl2 += ",'" + databaseId + "._." + targetTable + "'";
-					rJoinBy1 += ",'" + sourceColumn + "'";
-					rJoinBy2 += ",'" + targetColumn + "'";
-				}
-				// no longer adding the first row to this data frame, increment..
-				firstRel++;
-			}
-		}
-
-		// close all the arrays created
-		rAppIds += ")";
-		rTableNames += ")";
-		rColNames += ")";
-		rColTypes += ")";
-		rPrimKey += ")";
-		rAppIDsJoin += ")";
-		rTbl1 += ")";
-		rTbl2 += ")";
-		rJoinBy1 += ")";
-		rJoinBy2 += ")";
-		
-		// address where there were no rels
-		if(totalNumRels == 0) {
-			rAppIDsJoin = "character(0)";
-			rTbl1 = "character(0)";
-			rTbl2 = "character(0)";
-			rJoinBy1 = "character(0)";
-			rJoinBy2 = "character(0)";
-		}
-
-		// create the session tables
-		String db = "nldrDb" + Utility.getRandomString(5);
-		String joins = "nldrJoins" + Utility.getRandomString(5);
-		sessionTableBuilder.append(db + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames
-				+ " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", Key = " + rPrimKey
-				+ ", stringsAsFactors = FALSE);");
-		sessionTableBuilder.append(
-				joins + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = " + rJoinBy1
-						+ " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDsJoin + ", AppID2 = "
-						+ rAppIDsJoin+ ", stringsAsFactors = FALSE);");
-
-		
-		// run the cluster tables function
-		sessionTableBuilder.append(NLDR_MEMBERSHIP + "<- cluster_tables ("+db+","+joins+");");
-		sessionTableBuilder.append("saveRDS ("+db+",\"nldr_db.rds\");");
-		sessionTableBuilder.append(NLDR_DB + " <- " + db + ";");
-		sessionTableBuilder.append("saveRDS ("+joins+",\"nldr_joins.rds\");");
-		
-		this.rJavaTranslator.runR(sessionTableBuilder.toString());
-		
-		// pause file for 1 second to allow time to save
-		double startTime = System.currentTimeMillis();
-		double endTime = System.currentTimeMillis();
-		while(endTime < startTime + 5000) {
-			endTime = System.currentTimeMillis();
-		}
-		
-		this.rJavaTranslator.executeEmptyR("rm( " + db + "," + joins + " ); gc();");
-
-	}
-
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -596,8 +353,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// use the frame columns if not
 		if(global) {
 			rsb.append(rSessionTable + " <- " + NLDR_DB + ";");
-			//rsb.append(rSessionTable + " <- readRDS(\"nldr_db.rds\");");
-			rsb.append(rSessionJoinTable + " <- readRDS(\"nldr_joins.rds\");");
+			rsb.append(rSessionJoinTable + " <- " + NLDR_JOINS + ";");
 			
 			// filter the rds files to the engineFilters
 			String appFilters = "appFilters" + Utility.getRandomString(8);
@@ -1765,7 +1521,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String startPixel = "AddPanel ( " + addPanelText + " ) ;";
 		startPixel += "Panel ( " + panelId + " ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ;";
 		startPixel += "Panel ( " + panelId + " ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , "
-				+ "\"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" :"
+				+ "\"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" :"
 				+ " \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , "
 				+ "\"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; Panel ( " + panelId + " ) | RetrievePanelEvents ( ) ;";
 
