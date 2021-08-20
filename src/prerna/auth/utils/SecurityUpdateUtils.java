@@ -95,12 +95,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(engineExists) {
 			logger.info("Security database already contains database with alias = " + Utility.cleanLogString(databaseName));
 			return;
-		} else if(!engineExists) {
+		} else {
 			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
-		} else if(engineExists) {
-			// update database properties anyway ... in case global was shifted for example
-			updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
-		}
+		} 
+		
+		// TODO: need to see when we should be updating the database metadata
+//		if(engineExists) {
+//			// update database properties anyway ... in case global was shifted for example
+//			updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
+//		}
 		
 		logger.info("Finished adding database = " + Utility.cleanLogString(databaseId));
 	}
