@@ -116,7 +116,10 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				logger.error(Constants.STACKTRACE, e);
 			}
 			
-			int status = response.getStatusLine().getStatusCode();
+			int status = -1;
+			if(response != null && response.getStatusLine() != null) {
+				status = response.getStatusLine().getStatusCode();
+			}
 			
 			if (status == 200 ) {
 				success = true;
