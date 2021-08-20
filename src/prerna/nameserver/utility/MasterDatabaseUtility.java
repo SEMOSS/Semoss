@@ -57,8 +57,16 @@ public class MasterDatabaseUtility {
 		// Update OWL
 		OwlSeparatePixelFromConceptual.fixOwl(database.getProp());
 		
-		Connection conn = database.makeConnection();
-
+		Connection conn  = null;
+		try {
+			conn = database.makeConnection();
+			executeInitLocalMaster(database, conn);
+		} finally {
+			closeResources(database, conn, null, null);
+		}
+	}
+	
+	private static void executeInitLocalMaster(IRDBMSEngine database, Connection conn) throws SQLException {
 		String [] colNames = null;
 		String [] types = null;
 
@@ -362,7 +370,10 @@ public class MasterDatabaseUtility {
 
 				}
 			}
-			engine.commit();
+			
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
 		}
 	}
 
@@ -2175,7 +2186,7 @@ public class MasterDatabaseUtility {
 	}
 
 
-	private static void closeStreams(Statement stmt, ResultSet rs) {
+	private static void closeResources(IRDBMSEngine engine, Connection conn, Statement stmt, ResultSet rs) {
 		try {
 			if(rs != null) {
 				rs.close();
@@ -2186,6 +2197,13 @@ public class MasterDatabaseUtility {
 		try {
 			if(stmt != null) {
 				stmt.close();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		try {
+			if(engine != null && engine.isConnectionPooling() && conn != null) {
+				conn.close();
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -2408,7 +2426,7 @@ public class MasterDatabaseUtility {
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
-			closeStreams(stmt, rs);
+			closeResources(engine, conn, stmt, rs);
 		}
 		return map;
 	}
@@ -2674,7 +2692,7 @@ public class MasterDatabaseUtility {
 		} catch (SQLException ex) {
 			// Don't print stack trace... xrayConfigList table is missing if no config file exists
 		} finally {
-			closeStreams(stmt, rs);
+			closeResources(engine, conn, stmt, rs);
 		}
 		return configMap;
 	}
@@ -2708,7 +2726,7 @@ public class MasterDatabaseUtility {
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
-			closeStreams(stmt, rs);
+			closeResources(engine, conn, stmt, rs);
 		}
 		return configFile;
 	}
@@ -2798,7 +2816,7 @@ public class MasterDatabaseUtility {
 		} finally {
 			// do not close the stmt
 			// reuse it below
-			closeStreams(null, rs);
+			closeResources(null, null, null, rs);
 		}
 
 		String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e WHERE e.id=er.engine AND "
@@ -2852,7 +2870,7 @@ public class MasterDatabaseUtility {
 		} catch (SQLException ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
-			closeStreams(stmt, rs);
+			closeResources(engine, conn, stmt, rs);
 		}
 
 		return finalHash;
