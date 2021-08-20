@@ -231,7 +231,8 @@ public class CouchUtil {
 	 * @see CouchUtil#getSelectorString
 	 * @see CouchUtil#retrieveDocumentsInPartitionForSelector
 	 * @see CouchUtil#updateDocument
-	 * @throws IllegalArgumentException If the referenceData map is null or empty
+	 * @throws IllegalArgumentException If the referenceData map is null or invalid
+	 *                                  for the partition
 	 * @throws CouchException           If another exception is encountered
 	 */
 	public static void upload(String partitionId, Map<String, String> referenceData, File imageFile) throws CouchException {
@@ -296,7 +297,8 @@ public class CouchUtil {
 	 * @see CouchUtil#getSelectorString
 	 * @see CouchUtil#retrieveDocumentsInPartitionForSelector
 	 * @see CouchUtil#updateDocument
-	 * @throws IllegalArgumentException If the referenceData map is null or empty
+	 * @throws IllegalArgumentException If the referenceData map is null or invalid
+	 *                                  for the partition
 	 * @throws CouchException           If another exception is encountered
 	 */
 	public static void upload(String partitionId, Map<String, String> referenceData, FileItem imageFile) throws CouchException {
@@ -336,11 +338,10 @@ public class CouchUtil {
 	}
 	
 	/**
-	 * Delete a document from CouchDB in the given partition with the
-	 * matching document field data. The entries of the map are used to form a
-	 * document selector with key = value over all key-value pairs in the map. This
-	 * selector is used to query CouchDB for matching documents in the partition. If
-	 * a document is found, it is deleted.
+	 * Delete a document from CouchDB in the given partition with the matching
+	 * document field data. The entries of the map are used to form a document
+	 * selector used to query CouchDB for matching documents in the partition. If a
+	 * document is found, it is deleted.
 	 * 
 	 * @param partitionId   The partition of the database that will contain the
 	 *                      document
@@ -350,12 +351,6 @@ public class CouchUtil {
 	 * @see CouchUtil#getSelectorString
 	 * @see CouchUtil#retrieveDocumentsInPartitionForSelector
 	 * @see CouchUtil#deleteDocument
-	 * @see <a href=
-	 *      "https://docs.couchdb.org/en/stable/api/partitioned-dbs.html#db-partition-partition-id-find">Couch
-	 *      API Reference on Document Search in Partition</a>
-	 * @see <a href=
-	 *      "https://docs.couchdb.org/en/stable/api/document/common.html#delete--db-docid">Couch
-	 *      API Reference on Document Deletes</a>
 	 * @throws IllegalArgumentException If the referenceData map is null or empty
 	 * @throws CouchException           If another exception is encountered
 	 */
@@ -385,6 +380,33 @@ public class CouchUtil {
 		} catch (JsonProcessingException e) {
 			LOGGER.error(Constants.STACKTRACE, e);
 			throw new CouchException("Error processing delete", e);
+		}
+	}
+	
+	/**
+	 * Verify if a document with the given selector exists in the CouchDB partition.
+	 * 
+	 * @param partitionId   The partition of the database to query for the document
+	 * @param searchSelector The JSON string of the search selector
+	 * @return A boolean representing if the document exists or not
+	 * @see CouchUtil#retrieveDocumentsInPartitionForSelector
+	 * @throws IllegalArgumentException If the searchSelector is null or empty
+	 * @throws CouchException           If another exception is encountered
+	 */
+	public static boolean documentExists(String partitionId, String searchSelector) throws CouchException {
+		if(searchSelector == null || searchSelector.isEmpty()) {
+			throw new IllegalArgumentException("Invalid searchSelector");
+		}
+		try {
+			CouchResponse searchResponse = CouchUtil.retrieveDocumentsInPartitionForSelector(partitionId,
+					searchSelector);
+			JsonNode searchRespJson;
+				searchRespJson = MAPPER.readTree(searchResponse.getResponseBody());
+			ObjectNode docJson = (ObjectNode) searchRespJson.path("docs").get(0);
+			return docJson != null;
+		} catch (JsonProcessingException e) {
+			LOGGER.error(Constants.STACKTRACE, e);
+			throw new CouchException("Error processing search", e);
 		}
 	}
 	
@@ -431,9 +453,9 @@ public class CouchUtil {
 	 * @return The byte[] of image contents
 	 * @see CouchUtil#retrieveDocumentInfo
 	 * @see CouchUtil#updateDocument
-	 * @see InsightUtility.findImageFile
-	 * @see TextToGraphic.buildBufferedImage
-	 * @see AbstractSecurityUtils.getStockImage
+	 * @see InsightUtility#findImageFile
+	 * @see TextToGraphic#buildBufferedImage
+	 * @see AbstractSecurityUtils#getStockImage
 	 * @throws CouchException If an exception is encountered
 	 */
 	private static byte[] createDefault(String partitionId, ObjectNode documentData) throws CouchException {
