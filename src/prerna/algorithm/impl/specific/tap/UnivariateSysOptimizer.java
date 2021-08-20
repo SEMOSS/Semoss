@@ -870,7 +870,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		
 		allHash.put("lat", var[1]);
 		allHash.put("lon", var[2]);
-		if (var.length > 3 && !var[3].equals(null))
+		if (var.length > 3 && var[3] != null)
 			allHash.put("size", var[3]);
 		else
 			allHash.put("size", "");

@@ -55,6 +55,9 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
 			if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				engine = qs.retrieveQueryStructEngine();
+				if(engine == null) {
+					throw new NullPointerException("No engine passed in to execute the query");
+				}
 				if (!(engine instanceof BigDataEngine || engine instanceof RDBMSNativeEngine)) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
@@ -65,8 +68,10 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
 		}
 
+		// used for audit but we dont use this for admin databases
 		boolean update = false;
 		boolean custom = false;
+		
 		String query = null;
 		// grab query && determine how to store in audit db
 		if (qs instanceof HardSelectQueryStruct) {
@@ -83,10 +88,6 @@ public class AdminExecQueryReactor extends AbstractReactor {
 		}
 
 		logger.info("EXEC QUERY.... " + query);
-		if(engine == null) {
-			throw new NullPointerException("No engine passed in to execute the query");
-		}
-		
 		try {
 			engine.insertData(query);
 		} catch (Exception e) {
