@@ -22,7 +22,7 @@ public class BaseDatabaseCreator {
 	public static final String TIME_URL = "http://semoss.org/ontologies/Concept/TimeStamp";
 	
 	private RDFFileSesameEngine baseEng;
-	private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
+	private final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
 	
 	//open without connection
 	public BaseDatabaseCreator(String owlFile) {
