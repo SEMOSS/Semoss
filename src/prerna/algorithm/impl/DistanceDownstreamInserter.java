@@ -716,34 +716,30 @@ public class DistanceDownstreamInserter {
 				networkWeight = 0;
 			}
 			/**
-			 * Determines if the input node has the same value as this node.
+			 * Determines if the input has the same value as this node.
 			 * 
 			 * @param in
 			 * @return
 			 */
-			public boolean equals(Node in)
-			{
-				
-				if(this.value.equals(in.value))
-				{
-					return true;
+			@Override
+			public boolean equals(Object in) {
+				if(in == null) {
+					return false;
 				}
+				
+				if(in instanceof Node) {
+					if(this.value.equals( ((Node) in).value)){
+						return true;
+					}
+				} else if(in instanceof String) {
+					if(this.value.equals(in.toString())) {
+						return true;
+					}
+				}
+				
 				return false;
 			}
-			/**
-			 * Determines if the input string is equal to the value of the node.
-			 * @param in
-			 * @return
-			 */
-			public boolean equals(String in)
-			{
-				
-				if(this.value.equals(in))
-				{
-					return true;
-				}
-				return false;
-			}
+
 			/**
 			 * Prints a verbose representation of the node to the console.
 			 */
