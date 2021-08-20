@@ -16,7 +16,7 @@ public class PersistentHash {
 	// simple hash table that saves and gets values from the database
 	private static final String TABLE_NAME = "KVSTORE";
 
-	private Connection conn = null;
+	private RDBMSNativeEngine engine = null;
 
 	public Hashtable<String, String> thisHash = new Hashtable<String, String>();
 	boolean dirty = false;
@@ -25,16 +25,20 @@ public class PersistentHash {
 
 	}
 
-	public void setConnection(Connection conn) {
-		this.conn = conn;
+	public void setEngine(RDBMSNativeEngine engine) {
+		this.engine = engine;
 	}
 
 	public void load() {
+		if (engine == null) {
+			return;
+		}
+		
 		// this is only for local master!!!
-		Statement stmt = null;
+		Connection conn = null;
 		try {
-			if(conn != null) {
-				stmt = conn.createStatement();
+			conn = engine.getConnection();
+			try (Statement stmt = conn.createStatement()) {
 				ResultSet rs = stmt.executeQuery("SELECT K, V from " + TABLE_NAME);
 				while(rs.next()) {
 					this.thisHash.put(rs.getString(1),rs.getString(2));
@@ -43,14 +47,13 @@ public class PersistentHash {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-		      try {
-		         if(stmt != null) {
-		        	 stmt.close();
-		              }
-		      } catch (SQLException e) {
-		              e.printStackTrace();
-		      }
-
+			try {
+				if (engine.isConnectionPooling() && conn != null) {
+					conn.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -69,22 +72,34 @@ public class PersistentHash {
 	}
 
 	public void persistBack() {
-		if(this.dirty) {
-			try(Statement stmt = this.conn.createStatement()) {
-				String [] colNames = {"K","V"};
-				String [] types = {"varchar(800)", "varchar(800)"};
-				Enumeration <String> keys = thisHash.keys();
-				stmt.execute("DELETE from " + TABLE_NAME);
-				while(keys.hasMoreElements()) {
-					String key = keys.nextElement();
-					String value = thisHash.get(key);
-					String [] values = {key, value};
-					String insertString = RdbmsQueryBuilder.makeInsert(TABLE_NAME, colNames, types, values);
-					stmt.execute(insertString);
+		if(engine != null && this.dirty) {
+			Connection conn = null;
+			try {
+				conn = engine.getConnection();
+				try(Statement stmt = conn.createStatement()) {
+					String [] colNames = {"K","V"};
+					String [] types = {"varchar(800)", "varchar(800)"};
+					Enumeration <String> keys = thisHash.keys();
+					stmt.execute("DELETE from " + TABLE_NAME);
+					while(keys.hasMoreElements()) {
+						String key = keys.nextElement();
+						String value = thisHash.get(key);
+						String [] values = {key, value};
+						String insertString = RdbmsQueryBuilder.makeInsert(TABLE_NAME, colNames, types, values);
+						stmt.execute(insertString);
+					}
+					this.dirty = false;
 				}
-				this.dirty = false;
 			} catch (SQLException e) {
 				e.printStackTrace();
+			} finally {
+				try {
+					if (engine.isConnectionPooling() && conn != null) {
+						conn.close();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -95,16 +110,30 @@ public class PersistentHash {
 	 * @return
 	 */
 	public static boolean canInit(RDBMSNativeEngine engine) {
+		if(engine == null) {
+			return false;
+		}
+		
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		if(queryUtil == null) {
 			return false;
 		}
 
-		// make sure the KVSTORE table exists
+		Connection conn = null;
 		try {
-			return queryUtil.tableExists(engine.getConnection(), TABLE_NAME, engine.getSchema());
+			conn = engine.getConnection();
+			// make sure the KVSTORE table exists
+			return queryUtil.tableExists(conn, TABLE_NAME, engine.getSchema());
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				if(engine.isConnectionPooling() && conn != null) {
+					conn.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 		return false;
 	}

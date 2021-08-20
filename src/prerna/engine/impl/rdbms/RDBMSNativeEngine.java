@@ -110,6 +110,8 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	private int poolMinSize = 1;
 	private int poolMaxSize = 16;
 	private int queryTimeout = -1;
+	
+	private long leakDetectionThresholdMilliseconds = 30_000;
 
 	private AbstractSqlQueryUtil queryUtil = null;
 
@@ -203,6 +205,16 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
 				} catch(Exception e) {
 					System.out.println("Error occured trying to parse and get the query timeout");
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			// leak detection threshold
+			if(prop.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
+				String leakDetectionStr = prop.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS);
+				try {
+					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
+				} catch(Exception e) {
+					System.out.println("Error occured trying to parse and get the leak detection threshold");
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -318,7 +330,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	protected void setDataSourceProperties(HikariDataSource dataSource) {
 		dataSource.setMinimumIdle(this.poolMinSize);
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
-		dataSource.setLeakDetectionThreshold(30_000);
+		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);
 		//		dataSource.setRemoveAbandonedOnBorrow(true);
 		//		dataSource.setRemoveAbandonedOnMaintenance(true);
 		//		dataSource.setRemoveAbandonedTimeout(5);
@@ -977,14 +989,13 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	}
 
 	@Override
-	// does not account for a pooled connection need to ensure
 	public Connection makeConnection() throws SQLException {
 		Connection retObject = getConnection();
 		if(conceptIdHash == null && Constants.LOCAL_MASTER_DB_NAME.equals(this.engineId)) {
 			if(PersistentHash.canInit(this)) {
 				conceptIdHash = new PersistentHash();
 				try {
-					conceptIdHash.setConnection(retObject);
+					conceptIdHash.setEngine(this);
 					conceptIdHash.load();
 				} catch(Exception ex) {
 					ex.printStackTrace();

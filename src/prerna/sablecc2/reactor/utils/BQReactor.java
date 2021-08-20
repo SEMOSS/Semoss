@@ -56,6 +56,13 @@ public class BQReactor extends AbstractReactor {
 					e.printStackTrace();
 				}
 			}
+			if(engine.isConnectionPooling() && conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		
 		if(!embed.isEmpty()) {

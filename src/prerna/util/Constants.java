@@ -462,6 +462,7 @@ public class Constants {
 	public static final String FETCH_SIZE = "FETCH_SIZE";
 	public static final String POOL_MIN_SIZE = "POOL_MIN_SIZE";
 	public static final String POOL_MAX_SIZE = "POOL_MAX_SIZE";
+	public static final String LEAK_DETECTION_THRESHOLD_MILLISECONDS = "LEAK_DETECTION_THRESHOLD_MILLISECONDS";
 	public static final String CONNECTION_QUERY_TIMEOUT = "CONNECTION_QUERY_TIMEOUT";
 
 	// Auto generate queries
