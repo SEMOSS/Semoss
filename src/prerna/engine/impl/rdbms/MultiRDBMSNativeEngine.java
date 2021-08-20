@@ -216,12 +216,16 @@ public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngi
 						logger.error(Constants.STACKTRACE, e);
 					} finally {
 						try {
-							rs.close();
+							if(rs != null) {
+								rs.close();
+							}
 						} catch (SQLException e) {
 							logger.error(Constants.STACKTRACE, e);
 						}
 						try {
-							ps.close();
+							if(ps != null) {
+								ps.close();
+							}
 						} catch (SQLException e) {
 							logger.error(Constants.STACKTRACE, e);
 						}
