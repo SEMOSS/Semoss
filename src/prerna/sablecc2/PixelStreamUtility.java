@@ -583,6 +583,9 @@ public class PixelStreamUtility {
 						
 						// set this as an error in the pixel object
 						pixelObj.setReturnedError(true);
+						
+						// close resources before returning
+						task.cleanUp();
 						return;
 					}
 
@@ -644,6 +647,9 @@ public class PixelStreamUtility {
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(noun.getOpType()));
 				ps.flush();
+				
+				// done with the task data
+				task.cleanUp();
 			}
 			// if we do not have a task
 			// we just have data to send

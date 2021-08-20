@@ -48,9 +48,10 @@ public class DeleteFromMasterDB {
 
 	public boolean deleteEngineRDBMS(String engineId) {
 		logger.info("Removing engine from Local Master " + Utility.cleanLogString(engineId));
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = null;
 		try {
-			RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-			Connection conn = engine.makeConnection();
+			conn = engine.makeConnection();
 			String metaDeleteSql = "DELETE FROM conceptmetadata WHERE physicalnameid in (SELECT physicalnameid FROM engineconcept WHERE engine = ?)";
 			String relationDeleteSql = "DELETE FROM enginerelation WHERE engine = ?";
 			String conceptDeleteSql = "DELETE FROM engineconcept WHERE engine = ?";
@@ -144,6 +145,14 @@ public class DeleteFromMasterDB {
 		} catch(Exception ex) {
 			ex.printStackTrace();
 			return false;
+		} finally {
+			try {
+				if(engine != null && engine.isConnectionPooling() && conn != null) {
+					conn.close();
+				}
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 		}
 		return true;
 	}
