@@ -652,10 +652,10 @@ public class FormulaExtractor extends AbstractFileReader {
 	public String getCell(XSSFCell thisCell) {
 		if(thisCell != null && thisCell.getCellType() != CellType.BLANK)
 		{
-			if(thisCell.getCellType() == CellType.BLANK) {
+			if(thisCell.getCellType() == CellType.STRING) {
 				return thisCell.getStringCellValue();
 			}
-			else if(thisCell.getCellType() == CellType.BLANK) {
+			else if(thisCell.getCellType() == CellType.NUMERIC) {
 				return thisCell.getNumericCellValue() + "";
 			}
 		}
@@ -694,8 +694,8 @@ public class FormulaExtractor extends AbstractFileReader {
 						if(!newTypePred.equals(type) && type != null) {
 							// this means there are multiple types in one column
 							// assume it is a string 
-							if( (type.equals("BOOLEAN") || type.equals("INT") || type.equals("DOUBLE")) && 
-									(newTypePred.equals("INT") || newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ){
+							if( (type.equals("INT") || type.equals("DOUBLE")) && 
+									(newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ){
 								// for simplicity, make it a double and call it a day
 								// TODO: see if we want to impl the logic to choose the greater of the newest
 								// this would require more checks though

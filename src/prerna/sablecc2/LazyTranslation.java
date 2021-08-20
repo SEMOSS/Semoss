@@ -699,7 +699,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    	// modify the parent such that the signature has the correct
 	    	// value of the numerical without any extra spaces
 	    	// plain string will always modify to a integer even if we return double value
-	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
+	    	curReactor.modifySignature(node.toString().trim(), BigDecimal.valueOf(retNum.doubleValue()).toPlainString());
     	} else {
     		// looks like you just have a number...
     		// i guess i will return this?
@@ -720,7 +720,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    	// modify the parent such that the signature has the correct
 	    	// value of the numerical without any extra spaces
 	    	// plain string will always modify to a integer even if we return double value
-	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
+	    	curReactor.modifySignature(node.toString().trim(), BigDecimal.valueOf(retNum.doubleValue()).toPlainString());
     	} else {
     		NounMetadata noun = new NounMetadata(retNum.doubleValue(), PixelDataType.CONST_DECIMAL);
     		this.planner.addVariable(this.resultKey, noun);

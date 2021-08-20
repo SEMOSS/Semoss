@@ -972,7 +972,7 @@ public class OldInsight extends Insight {
 			List<ISEMOSSTransformation> preList = dmc.getPreTrans();
 			for(int transIdx = preList.size() - 1; transIdx >= 0 && !hitFirst; transIdx -- ){
 				ISEMOSSTransformation trans = preList.get(transIdx);
-				if(!(trans instanceof JoinTransformation) && !(trans instanceof FilterTransformation) && !(trans instanceof FilterTransformation)){
+				if(!(trans instanceof JoinTransformation) && !(trans instanceof FilterTransformation)){
 					transToRedo.add(trans);
 					String id = trans.getId();
 					this.undoProcesses(Arrays.asList(new String[]{id}));
