@@ -89,7 +89,7 @@ public class TaskStoreAdapter extends AbstractSemossTypeAdapter<TaskStore> {
 					taskType = in.nextString();
 					
 				} else if(key.equals("task")) {
-					if(taskType.equals(BASIC)) {
+					if(taskType == null || taskType.equals(BASIC)) {
 						BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
 						adapter.setInsight(this.insight);
 						adapter.setCurMode(BasicIteratorTaskAdapter.MODE.CONTINUE_PREVIOUS_ITERATING);

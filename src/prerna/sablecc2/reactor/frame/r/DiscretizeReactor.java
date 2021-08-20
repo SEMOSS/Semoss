@@ -77,12 +77,12 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 
 			// validate that if breaks specified, then it doesn't contain
 			// any alpahbetical characters
-			if (breaks == null || breaks == "") {
+			if (breaks == null || breaks.isEmpty()) {
 				// breaks var was not specified
 				listSB.append("list(");
 			} else {
 				breaks = breaks.replaceAll("[()]", "").trim();
-				if (breaks != null && breaks != "" && breaks.matches(".*[a-zA-z]+.*") == true) {
+				if (breaks != null && !breaks.isEmpty() && breaks.matches(".*[a-zA-z]+.*") == true) {
 					throw new IllegalArgumentException("Breaks should be either a numerical integer or a "
 							+ "numerical vector. No alphabetical characters allowed.");
 				} else {
@@ -98,8 +98,8 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 			// validate that if labels specified, then valid breaks variable
 			// is available also
 			boolean isValidLabels = false;
-			if (labels != null && labels != "") {
-				if (breaks == null || breaks == "" || breaks.matches(".*[a-zA-z]+.*") == true) {
+			if (labels != null && !labels.isEmpty()) {
+				if (breaks == null || breaks.isEmpty() || breaks.matches(".*[a-zA-z]+.*") == true) {
 					throw new IllegalArgumentException("Please specify breaks (cannot contain "
 							+ "alphabetical characters) - breaks are required if labels are provided.");
 				} else {
@@ -119,7 +119,7 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 			}
 			
 			// validate that if numDigits specified AND labels is absent, then numDigits is a positive integer > 0
-			if (numDigitsStr == null || numDigitsStr == "" || isValidLabels == true) {
+			if (numDigitsStr == null || numDigitsStr.isEmpty() || isValidLabels == true) {
 				listSB.append(")");
 			} else {
 				try {

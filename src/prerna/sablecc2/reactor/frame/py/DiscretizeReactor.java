@@ -51,12 +51,12 @@ public class DiscretizeReactor extends AbstractPyFrameReactor {
 		List<String> colNames = Arrays.asList(frame.getColumnHeaders());  // check if this is the same as R's frame.getColumnNames()
 		List<Object> reqList = this.curRow.getValuesOfType(PixelDataType.MAP);
 
-		StringBuilder inputListSB = new StringBuilder();
+//		StringBuilder inputListSB = new StringBuilder();
 		for (int i = 0; i < reqList.size(); i++) {
 			StringBuilder listSB = new StringBuilder();
 			Map<String, Object> parsedMap = (Map<String, Object>) reqList.get(i);
 			String name = (String) parsedMap.get("column");
-			if (name == null || name == "") {
+			if (name == null || (name = name.trim()).isEmpty()) {
 				throw new IllegalArgumentException("Column name needs to be specified.");
 			} else if (!colNames.contains(name)) {
 				throw new IllegalArgumentException("Specified column name, " + name + ", is unavailable in the data frame.");
@@ -80,11 +80,11 @@ public class DiscretizeReactor extends AbstractPyFrameReactor {
 
 			// validate that if breaks specified, then it doesn't contain
 			// any alpahbetical characters
-			if (breaks == null || breaks == "") {
+			if (breaks == null || breaks.isEmpty()) {
 				// breaks var was not specified
 			} else {
 				breaks = breaks.replaceAll("[()]", "").trim();
-				if (breaks != null && breaks != "" && breaks.matches(".*[a-zA-z]+.*") == true) {
+				if (breaks != null && !breaks.isEmpty() && breaks.matches(".*[a-zA-z]+.*") == true) {
 					throw new IllegalArgumentException("Breaks should be either a numerical integer or a "
 							+ "numerical vector. No alphabetical characters allowed.");
 				} else {
@@ -101,8 +101,8 @@ public class DiscretizeReactor extends AbstractPyFrameReactor {
 			// validate that if labels specified, then valid breaks variable
 			// is available also
 			boolean isValidLabels = false;
-			if (labels != null && labels != "") {
-				if (breaks == null || breaks == "" || breaks.matches(".*[a-zA-z]+.*") == true) {
+			if (labels != null && !labels.isEmpty()) {
+				if (breaks == null || breaks.isEmpty() || breaks.matches(".*[a-zA-z]+.*") == true) {
 					throw new IllegalArgumentException("Please specify breaks (cannot contain "
 							+ "alphabetical characters) - breaks are required if labels are provided.");
 				} else {
@@ -121,7 +121,7 @@ public class DiscretizeReactor extends AbstractPyFrameReactor {
 			}
 			
 			// validate that if numDigits specified AND labels is absent, then numDigits is a positive integer > 0
-			if (numDigitsStr == null || numDigitsStr == "" || isValidLabels == true) {
+			if (numDigitsStr == null || numDigitsStr.isEmpty() || isValidLabels == true) {
 			} else {
 				try {
 					int numDigits = Integer.parseInt(numDigitsStr);
