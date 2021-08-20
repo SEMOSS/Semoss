@@ -37,7 +37,24 @@ import java.util.Vector;
  */
 public interface IEngine extends IExplorable {
 	
-	public enum ENGINE_TYPE {APP, JENA, SESAME, RDBMS, IMPALA, R, TINKER, NEO4J, NEO4J_EMBEDDED, DATASTAX_GRAPH, JANUS_GRAPH, JMES_API, JSON, JSON2, WEB, REMOTE_SEMOSS, 
+	public enum ENGINE_TYPE {
+		@Deprecated
+		APP, // this is now just an IProject
+		JENA, 
+		SESAME, 
+		RDBMS, 
+		IMPALA, 
+		R, 
+		TINKER, 
+		NEO4J, 
+		NEO4J_EMBEDDED, 
+		DATASTAX_GRAPH, 
+		JANUS_GRAPH, 
+		JMES_API, 
+		JSON, 
+		JSON2, 
+		WEB, 
+		REMOTE_SEMOSS, 
 		// THIS IS THE OLD ONE THAT ISN'T USED ANYMORE!!!
 		SEMOSS_SESAME_REMOTE};
 	
