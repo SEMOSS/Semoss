@@ -24,6 +24,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class AbstractEngineCreator {
 
@@ -86,19 +87,21 @@ public class AbstractEngineCreator {
 		// open db will fill in the parameterization for us!
 		if(this.queryUtil == null || this.queryUtil.getConnectionUrl() == null || this.queryUtil.getConnectionUrl().isEmpty()) {
 			prop.put(Constants.CONNECTION_URL, RDBMSUtility.getH2BaseConnectionURL2());
+			prop.put(Constants.USERNAME, "sa");
+			prop.put(Constants.PASSWORD, "");
+			prop.put(Constants.RDBMS_TYPE, RdbmsTypeEnum.H2_DB.toString());
 		} else {
 			prop.put(Constants.CONNECTION_URL, this.queryUtil.getConnectionUrl());
+			prop.put(Constants.USERNAME, queryUtil.getUsername());
+			prop.put(Constants.PASSWORD, queryUtil.getPassword());
+			prop.put(Constants.DRIVER, queryUtil.getDriver());
+			prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
 		}
 		prop.put(Constants.ENGINE, appID);
 		prop.put(Constants.ENGINE_ALIAS, appName);
-		prop.put(Constants.USERNAME, queryUtil.getUsername());
-		prop.put(Constants.PASSWORD, queryUtil.getPassword());
-		prop.put(Constants.DRIVER, queryUtil.getDriver());
-		prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
 		prop.put("TEMP", "TRUE");
 		engine.setProp(prop);
 		engine.openDB(null);
-		
 	}
 
 	private void createNewRdfEngine(String appName, String appID) throws Exception {

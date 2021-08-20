@@ -202,7 +202,7 @@ public class Project implements IProject {
 		}
 		
 		// remove the symbolic link
-		if(this.projectId != null && this.projectId != null) {
+		if(this.projectId != null && this.projectName != null) {
 			String public_home = DIHelper.getInstance().getProperty(Constants.PUBLIC_HOME);
 			if(public_home != null) {
 				String fileName = public_home + java.nio.file.FileSystems.getDefault().getSeparator() 
@@ -813,15 +813,13 @@ public class Project implements IProject {
 		return retReac;
 	}
 	
-	private void makeMvnClassloader()
-	{
+	private void makeMvnClassloader() {
 		if(mvnClassLoader == null) // || if the classes folder is newer than the dependency file name
 		{
 			// now load the classloader
 			// add the jars
 			// locate all the reactors
 			// and keep access to it
-			
 
 			mvnClassLoader = new JarClassLoader();
 			// get all the new jars first
@@ -840,14 +838,16 @@ public class Project implements IProject {
 			// get the libraries
 			// run maven dependency:list to get all the dependencies and process
 			List <String> classpaths = composeClasspath(appRoot, versionFolder, mvnHome);
-			
-			for(int classPathIndex = 0;classPathIndex < classpaths.size();classPathIndex++) // add all the libraries
-				mvnClassLoader.add(classpaths.get(classPathIndex));
+			if(classpaths != null) {
+				for(int classPathIndex = 0;classPathIndex < classpaths.size();classPathIndex++) {
+					// add all the libraries
+					mvnClassLoader.add(classpaths.get(classPathIndex));
+				}
+			}
 			
 			// lastly add the classes folder
 			mvnClassLoader.add(appRoot + File.pathSeparator + "classes/");
 		}
-
 	}
 	
 	private List <String> composeClasspath(String appRoot, String versionFolder, String mvnHome)

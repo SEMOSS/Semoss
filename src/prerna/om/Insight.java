@@ -312,7 +312,10 @@ public class Insight implements Serializable {
 							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
 						List<Pixel> returnedPixelList = runner.getReturnPixelList();
 						if(!returnedPixelList.isEmpty() && !returnedPixelList.get(returnedPixelList.size()-1).isMeta()) {
-							getWorkspaceCacheThread().addToQueue(this.pixelList.getPixelRecipe());
+							SaveInsightIntoWorkspace thread = getWorkspaceCacheThread();
+							if(thread != null) {
+								thread.addToQueue(this.pixelList.getPixelRecipe());
+							}
 						}
 					}
 				}
@@ -1484,6 +1487,9 @@ public class Insight implements Serializable {
 		
 		if(this.pyt == null) {
 			this.pyt = user.getPyTranslator();
+			if(this.pyt == null) {
+				throw new NullPointerException("Could not create python translator");
+			}
 			// need to recreate the translator
 			if(this.pyt instanceof TCPPyTranslator) {
 				Client nc1 = ((TCPPyTranslator)pyt).nc;

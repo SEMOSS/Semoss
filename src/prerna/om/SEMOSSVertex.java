@@ -460,7 +460,16 @@ public class SEMOSSVertex{
 		navHash.put(edgeType, vertHash);
 	}
 	
-	public boolean equals(SEMOSSVertex vert) {
-		return this.getURI().equals(vert.getURI());
+	@Override
+	public boolean equals(Object obj) {
+		if(obj == null || this.getURI() == null) {
+			return false;
+		}
+		
+		if(obj instanceof SEMOSSVertex) {
+			return this.getURI().equals( ((SEMOSSVertex) obj).getURI());
+		}
+		
+		return false;
 	}
 }
