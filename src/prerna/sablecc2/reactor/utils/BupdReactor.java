@@ -55,6 +55,13 @@ public class BupdReactor extends AbstractReactor {
 					e.printStackTrace();
 				}
 			}
+			if(engine.isConnectionPooling() && conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		return new NounMetadata("Updated " + this.keyValue.get("fancy"), PixelDataType.CONST_STRING);
 	}
