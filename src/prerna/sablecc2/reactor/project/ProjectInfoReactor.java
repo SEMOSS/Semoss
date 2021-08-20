@@ -44,7 +44,7 @@ public class ProjectInfoReactor extends AbstractReactor {
 //			baseInfo = SecurityQueryUtils.getAllDatabaseList(projectId);
 //		}
 		
-		if(baseInfo.isEmpty()) {
+		if(baseInfo == null || baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any project data");
 		}
 		

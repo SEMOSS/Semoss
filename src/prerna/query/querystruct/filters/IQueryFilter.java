@@ -311,6 +311,11 @@ public interface IQueryFilter {
 				|| comparator.equals("==") || comparator.equals("=");
 	}
 
+	public static boolean comparatorIsNotEquals(String comparator) {
+		// we assume empty as equals
+		return comparator.equals("!=") || comparator.equals("<>");
+	}
+	
 	////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////
