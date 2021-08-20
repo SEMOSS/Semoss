@@ -191,8 +191,8 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 			DIHelper.getInstance().setDbProperty(appId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
 			logger.info(step + ") Grabbing app structure");
 			Utility.synchronizeEngineMetadata(appId);
-			logger.info(step + ") Done");
 			SecurityUpdateUtils.addDatabase(appId, !AbstractSecurityUtils.securityEnabled());
+			logger.info(step + ") Done");
 		} catch(Exception e) {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);

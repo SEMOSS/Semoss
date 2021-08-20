@@ -227,7 +227,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				}
 				String id = null;
 				if(idObj instanceof Number) {
-					id = new BigDecimal( ((Number) idObj).doubleValue() ).toPlainString();
+					id = BigDecimal.valueOf( ((Number) idObj).doubleValue() ).toPlainString();
 				} else {
 					id = idObj + "";
 				}

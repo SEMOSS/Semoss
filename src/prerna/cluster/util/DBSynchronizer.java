@@ -146,9 +146,10 @@ public class DBSynchronizer extends ZKClient
 	
 	public static DBSynchronizer getInstance(String semossHome)
 	{
-		semossHome = semossHome;
-		if(singleton == null)
+		if(singleton == null) {
 			singleton = new DBSynchronizer();
+		}
+		singleton.semossHome = semossHome;
 		singleton.init();
 		singleton.initCurator();
 		return singleton;

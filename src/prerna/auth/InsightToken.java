@@ -25,7 +25,7 @@ public class InsightToken {
 		return onetime;
 	}
 	
-	public void setOnetime()
+	public void setOnetime(boolean onetime)
 	{
 		this.onetime = onetime;
 	}
