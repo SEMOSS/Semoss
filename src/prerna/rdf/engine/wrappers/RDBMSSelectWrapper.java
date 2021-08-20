@@ -218,7 +218,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 
 		// there has to some way where I can say.. this is valid column type
 		// we dont have this at this point.. for now I am just saying if this is 
-		if(!value.toString().isEmpty() && (type == Types.LONGNVARCHAR || type == Types.VARCHAR || type == Types.CHAR || type == Types.LONGNVARCHAR || type == Types.NCHAR) && table!=null)
+		if(!value.toString().isEmpty() && (type == Types.LONGNVARCHAR || type == Types.VARCHAR || type == Types.CHAR || type == Types.NCHAR) && table!=null)
 		{
 			return Constants.CONCEPT_URI + pk + table + "/" + value;
 		} else {
