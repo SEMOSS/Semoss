@@ -2496,6 +2496,9 @@ public class Utility {
 			adder.registerEngineLocal(prop);
 			adder.commit(localMaster);
 		}
+		
+		// clear the caching of engine metadata
+		EngineSyncUtility.clearEngineCache(engineId);
 	}
 
 	/**
