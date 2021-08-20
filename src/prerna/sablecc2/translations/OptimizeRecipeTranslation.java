@@ -231,7 +231,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 					// try casting to integer
 					// annoying...
 					try {
-						thisPanelOptions = (Map<String, Object>) inputMap.get(Integer.parseInt(panel + ""));
+						thisPanelOptions = (Map<String, Object>) inputMap.get( Integer.parseInt(panel) + "");
 					} catch(Exception e) {
 						//ignore
 					}

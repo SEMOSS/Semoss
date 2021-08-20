@@ -298,14 +298,14 @@ public class ConstantTaskCreationHelper {
 		String[] labelArray = new String[] {label};
 		alignmentMap.put("label", labelArray);
 		//size is optional
-		if (z == null || z == "") {
+		if (z == null || z.isEmpty()) {
 			alignmentMap.put("z", new String[]{});
 		} else {
 			String[] zArray = new String[] {z};
 			alignmentMap.put("z", zArray);
 		}
 		//color is optional
-		if (series == null || series == "") {
+		if (series == null || series.isEmpty()) {
 			alignmentMap.put("series", new String[]{});
 		} else {
 			String[] seriesArray = new String[] {series};

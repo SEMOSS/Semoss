@@ -1207,7 +1207,6 @@ public class ReactorFactory {
 		rFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.r.ExtractLettersReactor.class);
 		rFrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.r.ExtractNumbersReactor.class);
 		rFrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.r.JoinColumnsReactor.class);
-		rFrameHash.put("Concatenate", prerna.sablecc2.reactor.frame.r.ConcatenateReactor.class);
 		rFrameHash.put("Pivot", prerna.sablecc2.reactor.frame.r.PivotReactor.class);
 		rFrameHash.put("RegexReplaceColumnValue", prerna.sablecc2.reactor.frame.r.RegexReplaceColumnValueReactor.class);
 		rFrameHash.put("RemoveDuplicateRows", prerna.sablecc2.reactor.frame.r.RemoveDuplicateRowsReactor.class);
