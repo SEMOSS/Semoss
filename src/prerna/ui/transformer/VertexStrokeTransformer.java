@@ -29,7 +29,6 @@ package prerna.ui.transformer;
 
 import java.awt.BasicStroke;
 import java.awt.Stroke;
-import java.util.Hashtable;
 
 import org.apache.commons.collections15.Transformer;
 
@@ -39,8 +38,7 @@ import prerna.om.SEMOSSVertex;
  */
 public class VertexStrokeTransformer implements Transformer <SEMOSSVertex, Stroke> {
 	
-	
-	Hashtable <String, SEMOSSVertex> vertices = null;
+//	Hashtable <String, SEMOSSVertex> vertices = null;
 	
 	/**
 	 * Constructor for VertexStrokeTransformer.
@@ -50,14 +48,14 @@ public class VertexStrokeTransformer implements Transformer <SEMOSSVertex, Strok
 		
 	}
 	
-	/**
-	 * Method setEdges.
-	 * @param edges Hashtable<String,DBCMVertex>
-	 */
-	public void setEdges(Hashtable <String, SEMOSSVertex> edges)
-	{
-		this.vertices = vertices;
-	}
+//	/**
+//	 * Method setEdges.
+//	 * @param edges Hashtable<String,DBCMVertex>
+//	 */
+//	public void setEdges(Hashtable <String, SEMOSSVertex> edges)
+//	{
+//		this.vertices = vertices;
+//	}
 	
 
 	/**

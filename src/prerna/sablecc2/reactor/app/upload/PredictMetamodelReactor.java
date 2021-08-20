@@ -107,14 +107,7 @@ public class PredictMetamodelReactor extends AbstractReactor {
 		}
 
 		for (int i = 0; i < columnHeaders.length; i++) {
-			SemossDataType datatype = dataTypeMap.get(columnHeaders[i]);
-			// run comparisons for strings
-			if (datatype == SemossDataType.STRING) {
-				runAllComparisons(columnHeaders, i, matches, columnPropMap, dataTypeMap, data);
-			} else {
-				// run comparisons for non string types
-				runAllComparisons(columnHeaders, i, matches, columnPropMap, dataTypeMap, data);
-			}
+			runAllComparisons(columnHeaders, i, matches, columnPropMap, dataTypeMap, data);
 		}
 
 		// Format metamodel data
