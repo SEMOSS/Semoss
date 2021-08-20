@@ -57,8 +57,8 @@ public class DistanceCalculator {
 	}
 
 	private BigDecimal sqrt(BigDecimal num) {
-		BigDecimal val = new BigDecimal(Math.sqrt(num.doubleValue()));
-		return val.add(new BigDecimal(num.subtract(val.multiply(val)).doubleValue() / (val.doubleValue() * 2.0) ));
+		BigDecimal val = BigDecimal.valueOf(Math.sqrt(num.doubleValue()));
+		return val.add( BigDecimal.valueOf(num.subtract(val.multiply(val)).doubleValue() / (val.doubleValue() * 2.0)) );
 	}
 
 	public double calculateEuclidianDistance(double[] values1, double[] values2) throws IllegalArgumentException {
