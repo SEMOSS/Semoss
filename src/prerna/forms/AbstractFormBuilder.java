@@ -27,7 +27,6 @@ public abstract class AbstractFormBuilder {
 
 	public static final String FORM_BUILDER_ENGINE_NAME = "form_builder_engine";
 	protected static final String AUDIT_FORM_SUFFIX = "_FORM_LOG";
-	protected static final DateFormat DATE_DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSSS");
 	protected static final String OVERRIDE = "override";
 	protected static final String ADD = "Added";
 	protected static final String REMOVE = "Removed";
@@ -40,6 +39,8 @@ public abstract class AbstractFormBuilder {
 	protected List<String> tagValues;
 	
 	protected IEngine engine;
+	
+	protected final DateFormat DATE_DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSSS");
 	
 	protected AbstractFormBuilder(IEngine engine) {
 		this.formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);

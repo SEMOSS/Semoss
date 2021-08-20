@@ -378,10 +378,11 @@ public final class NaturalLanguageProcessingHelper {
 			if(noun == gov )
 			{
 				String fullNoun = getFullNoun(dep);
-				if(fullNoun.equalsIgnoreCase(dep.value()))
+				if(dep != null && dep.value() != null && fullNoun.equalsIgnoreCase(dep.value())) {
 					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(dep, nodeHash);
-				else
+				} else {
 					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(dep, nodeHash).replace(dep.value(), "");
+				}
 			}
 		}
 		return retString;
@@ -410,10 +411,11 @@ public final class NaturalLanguageProcessingHelper {
 			if(noun == gov )
 			{				 
 				String fullNoun = getFullNoun(dep);
-				if(fullNoun.equalsIgnoreCase(dep.value()))
+				if(dep != null && dep.value() != null && fullNoun.equalsIgnoreCase(dep.value())) {
 					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(dep, nodeHash);
-				else
+				} else {
 					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun;
+				}
 			}
 		}
 		return retString;
