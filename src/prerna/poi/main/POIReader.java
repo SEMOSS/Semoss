@@ -559,8 +559,8 @@ public class POIReader extends AbstractFileReader {
 						if(!newTypePred.equals(type) && type != null) {
 							// this means there are multiple types in one column
 							// assume it is a string 
-							if( (type.equals("BOOLEAN") || type.equals("INT") || type.equals("DOUBLE")) && 
-									(newTypePred.equals("INT") || newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ){
+							if( (type.equals("INT") || type.equals("DOUBLE")) && 
+									(newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ){
 								// for simplicity, make it a double and call it a day
 								// TODO: see if we want to impl the logic to choose the greater of the newest
 								// this would require more checks though

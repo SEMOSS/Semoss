@@ -1104,7 +1104,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			} else if(rVal == null) {
 				return true;
 			}
-		} else if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+		} else if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 			NounMetadata lComp = filter.getLComparison();
 			Object lVal = lComp.getValue();
 			if(lVal instanceof List) {
@@ -1133,7 +1133,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 				} else {
 					valuesList.add(rVal);
 				}
-			} else if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+			} else if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 				NounMetadata lComp = filter.getLComparison();
 				Object lVal = lComp.getValue();
 				if(lVal instanceof List) {
@@ -1166,7 +1166,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 				} else {
 					valuesList.add(rVal);
 				}
-			} else if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+			} else if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 				NounMetadata lComp = filter.getLComparison();
 				Object lVal = lComp.getValue();
 				if(lVal instanceof List) {

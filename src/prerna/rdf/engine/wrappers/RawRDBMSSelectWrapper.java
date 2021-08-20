@@ -342,10 +342,13 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			try {
 				if(this.dataSource != null) {
 					connection = this.dataSource.getConnection();
-					statement = connection.createStatement();
 				} else {
-					statement = this.conn.createStatement();
+					connection = this.conn;
 				}
+				if(connection == null) {
+					throw new NullPointerException("The connection is not defined (null)");
+				}
+				statement = connection.createStatement();
 				resultSet = statement.executeQuery(query);
 				if(resultSet.next()) {
 					this.numRows = resultSet.getLong(1);
