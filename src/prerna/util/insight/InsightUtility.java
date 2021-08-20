@@ -291,7 +291,7 @@ public class InsightUtility {
 	 * @param insight
 	 * @return
 	 */
-	public static NounMetadata clearInsight(Insight insight, boolean noOpType) {
+	public static NounMetadata clearInsight(final Insight insight, boolean noOpType) {
 		synchronized(insight) {
 			logger.info("Start clearning insight " + insight.getInsightId());
 
@@ -372,7 +372,7 @@ public class InsightUtility {
 		}
 	}
 	
-	public static NounMetadata dropInsight(Insight insight) {
+	public static NounMetadata dropInsight(final Insight insight) {
 		synchronized(insight) {
 			logger.info("Droping insight " + insight.getInsightId());
 	

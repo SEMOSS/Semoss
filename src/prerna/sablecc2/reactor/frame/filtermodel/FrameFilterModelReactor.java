@@ -168,7 +168,7 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 							SimpleQueryFilter fCopy = (SimpleQueryFilter) filter.copy();
 							fCopy.reverseComparator();
 
-							if(fCopy.getComparator() == "!=" && !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
+							if(IQueryFilter.comparatorIsNotEquals(fCopy.getComparator()) && !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
 								// include a show of null
 								// so we need to add this fCopy with a null find
 								NounMetadata nullLComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);

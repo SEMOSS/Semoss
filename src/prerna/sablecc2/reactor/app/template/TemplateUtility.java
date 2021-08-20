@@ -130,7 +130,9 @@ public class TemplateUtility {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
-				out.close();
+				if(out != null) {
+					out.close();
+				}
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
