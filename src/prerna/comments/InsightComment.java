@@ -24,7 +24,6 @@ public class InsightComment {
 	
 	private static Logger logger = LogManager.getLogger(InsightComment.class);
 	private static Gson gson = new GsonBuilder().setPrettyPrinting().create();
-	private static DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	// extension
@@ -46,6 +45,11 @@ public class InsightComment {
 	private static final String USER_KEY = "user";
 	private static final String CREATED_TIME_STAMP_KEY = "createdTimeStamp";
 
+	// comment types
+	public static final String ADD_ACTION = "add";
+	public static final String DELETE_ACTION = "edit";
+	public static final String EDIT_ACTION = "delete";
+	
 	// class variables
 	private String id;
 	private String nextId;
@@ -62,12 +66,7 @@ public class InsightComment {
 	private String user;
 	private String createdTimeStamp;
 	
-	// comment types
-	public static final String ADD_ACTION = "add";
-	public static final String DELETE_ACTION = "edit";
-	public static final String EDIT_ACTION = "delete";
-	
-
+	private DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
 	
 	/**
 	 * Constructor will generate the random comment id
@@ -151,7 +150,7 @@ public class InsightComment {
 	 * Get current date from given format
 	 * @return
 	 */
-	public static String getCurrentDate() {
+	public String getCurrentDate() {
 		return formatter.format(new Date());
 	}
 	

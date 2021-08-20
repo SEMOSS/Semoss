@@ -127,7 +127,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			}
 		}
 
-		String engines = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
 		File tempSmss = null;
@@ -151,8 +151,8 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			finalSmss = new File(Utility.normalizePath(projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
-			if (!(engines.startsWith(projectId) || engines.contains(";" + projectId + ";") || engines.endsWith(";" + projectId))) {
-				String newEngines = engines + ";" + projectId;
+			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";") || projects.endsWith(";" + projectId))) {
+				String newEngines = projects + ";" + projectId;
 				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, newEngines);
 			} else {
 				SemossPixelException exception = new SemossPixelException(
@@ -179,7 +179,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
 			if(error) {
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, projects);
 				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempProjectFolder, logger);
 			} else {
 				// just delete the temp project folder
@@ -189,10 +189,9 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 
 		try {
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
-			logger.info(step + ") Grabbing app structure");
-			Utility.synchronizeEngineMetadata(projectId);
+			logger.info(step + ") Grabbing project insights");
+			SecurityUpdateUtils.addProject(projectId, !AbstractSecurityUtils.securityEnabled());
 			logger.info(step + ") Done");
-			SecurityUpdateUtils.addDatabase(projectId, !AbstractSecurityUtils.securityEnabled());
 		} catch(Exception e) {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);
@@ -202,7 +201,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 				// delete all the resources
 				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempProjectFolder, logger);
 				// remove from DIHelper
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, projects);
 				// delete from local master
 				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
 				lmDeleter.deleteEngineRDBMS(projectId);
@@ -215,13 +214,13 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
-				SecurityUpdateUtils.addDatabaseOwner(projectId, user.getAccessToken(ap).getId());
+				SecurityUpdateUtils.addProjectOwner(projectId, user.getAccessToken(ap).getId());
 			}
 		}
 
-		ClusterUtil.reactorPushDatabase(projectId);
+		ClusterUtil.reactorPushProject(projectId);
 
-		Map<String, Object> retMap = UploadUtilities.getDatabaseReturnData(this.insight.getUser(), projectId);
+		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);	
 	}
 	

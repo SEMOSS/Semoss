@@ -34,9 +34,6 @@ public final class FormBuilder {
 	public static final String FORM_BUILDER_ENGINE_NAME = "form_builder_engine";
 	public static final String AUDIT_FORM_SUFFIX = "_FORM_LOG";
 	
-	private static final DateFormat DATE_DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSSS");
-	private static final DateFormat SIMPLE_DATE_DF = new SimpleDateFormat("yyyy-MM-dd");
-	private static final DateFormat GENERIC_DF = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSSSS'Z'");
 	private static final String UPSTREAM = "upstream";
 	private static final String DOWNSTREAM = "downstream";
 	private static final String OVERRIDE = "override";
@@ -148,6 +145,10 @@ public final class FormBuilder {
 	 * @param user 
 	 */
 	private static void saveRDFFormData(IEngine engine, String baseURI, String relationBaseURI, String propertyBaseURI, List<HashMap<String, Object>> nodes, List<HashMap<String, Object>> relationships, List<HashMap<String, Object>> removeNodes, List<HashMap<String, Object>> removeRelationships, IEngine formEng, String auditLogTableName, String user) {
+		final DateFormat DATE_DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSSS");
+//		final DateFormat SIMPLE_DATE_DF = new SimpleDateFormat("yyyy-MM-dd");
+//		final DateFormat GENERIC_DF = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSSSS'Z'");
+
 		String startNode;
 		String endNode;
 		String subject;
@@ -181,7 +182,8 @@ public final class FormBuilder {
 			
 			boolean deleteUnconnectedConcepts = false;
 			boolean removeNode = false;
-			overrideRDFRelationship(engine, instanceSubjectURI, subject, instanceObjectURI, object, baseRelationshipURI, true, deleteUnconnectedConcepts, removeNode, formEng, auditLogTableName, user);
+			overrideRDFRelationship(engine, instanceSubjectURI, subject, instanceObjectURI, object, baseRelationshipURI, true, 
+					deleteUnconnectedConcepts, removeNode, formEng, auditLogTableName, user,DATE_DF);
 		}
 		
 		// for deleting existing concepts
@@ -200,8 +202,8 @@ public final class FormBuilder {
 				// need to delete all properties before deleting concept
 				Set<String> uriBindingList = new HashSet<String>();
 				uriBindingList.add(instanceConceptURI);
-				deleteAllRDFConnectionsToConcept(engine, uriBindingList, formEng, auditLogTableName, user);
-				removeRDFNodeAndAllProps(engine, uriBindingList, formEng, auditLogTableName, user);
+				deleteAllRDFConnectionsToConcept(engine, uriBindingList, formEng, auditLogTableName, user, DATE_DF);
+				removeRDFNodeAndAllProps(engine, uriBindingList, formEng, auditLogTableName, user, DATE_DF);
 			} else if(deleteConcept.containsKey("properties")) {
 				List<HashMap<String, Object>> properties = (List<HashMap<String, Object>>) deleteConcept.get("properties");
 
@@ -337,7 +339,9 @@ public final class FormBuilder {
 	 * @param removeNode 
 	 * @param deleteUnconnectedConcepts 
 	 */
-	private static void overrideRDFRelationship(IEngine engine, String instanceSubjectURI, String subjectTypeURI, String instanceObjectURI, String objectTypeURI, String baseRelationshipURI, boolean deleteDownstream, boolean deleteUnconnectedConcepts, boolean removeNode, IEngine formEng, String auditLogTableName, String user) {
+	private static void overrideRDFRelationship(IEngine engine, String instanceSubjectURI, String subjectTypeURI, String instanceObjectURI, 
+			String objectTypeURI, String baseRelationshipURI, boolean deleteDownstream, boolean deleteUnconnectedConcepts, 
+			boolean removeNode, IEngine formEng, String auditLogTableName, String user, final DateFormat DATE_DF) {
 		StringBuilder query = new StringBuilder("SELECT DISTINCT ?SUB ?PRED ?OBJ ?LABEL ?PROP ?VAL WHERE { ");
 //		if(deleteDownstream) {
 			query.append("BIND(<" + instanceSubjectURI + "> AS ?SUB) ");
@@ -410,14 +414,14 @@ public final class FormBuilder {
 		}
 		
 		if(removeNode) {
-			deleteAllRDFConnectionsToConcept(engine, uriBindingList, formEng, auditLogTableName, user);
+			deleteAllRDFConnectionsToConcept(engine, uriBindingList, formEng, auditLogTableName, user, DATE_DF);
 		} else if(deleteUnconnectedConcepts) {
-			removeUnconnectedRDFNodes(engine, uriBindingList, formEng, auditLogTableName, user);
+			removeUnconnectedRDFNodes(engine, uriBindingList, formEng, auditLogTableName, user, DATE_DF);
 		}
 		
 	}
 	
-	private static void deleteAllRDFConnectionsToConcept(IEngine engine, Set<String> uriBindingList, IEngine formEng, String auditLogTableName, String user) {
+	private static void deleteAllRDFConnectionsToConcept(IEngine engine, Set<String> uriBindingList, IEngine formEng, String auditLogTableName, String user, final DateFormat DATE_DF) {
 		String[] queries = new String[]{
 				generateDeleteAllRDFConnectionsToConceptQuery(uriBindingList, true),
 				generateDeleteAllRDFConnectionsToConceptQuery(uriBindingList, false)};
@@ -456,7 +460,7 @@ public final class FormBuilder {
 		}
 		
 		// lastly, remove the node and all its props
-		removeRDFNodeAndAllProps(engine, uriBindingList, formEng, auditLogTableName, user);
+		removeRDFNodeAndAllProps(engine, uriBindingList, formEng, auditLogTableName, user, DATE_DF);
 	}
 
 //	private static void deleteAllRDFConnectionsToConcept(IEngine engine, String conceptURI) {
@@ -544,7 +548,7 @@ public final class FormBuilder {
 //		return query.toString();
 //	}
 	
-	private static void removeUnconnectedRDFNodes(IEngine engine, Set<String> uriBindingList, IEngine formEng, String auditLogTableName, String user) {
+	private static void removeUnconnectedRDFNodes(IEngine engine, Set<String> uriBindingList, IEngine formEng, String auditLogTableName, String user, final DateFormat DATE_DF) {
 		if(uriBindingList.isEmpty()) {
 			return;
 		}
@@ -606,7 +610,7 @@ public final class FormBuilder {
 		allNodes.removeAll(connectedNodes);
 		if(allNodes.size() > 0) {
 			// made sure has no upstream or downstream, so delete it and all its properties
-			removeRDFNodeAndAllProps(engine, allNodes, formEng, auditLogTableName, user);
+			removeRDFNodeAndAllProps(engine, allNodes, formEng, auditLogTableName, user, DATE_DF);
 		}
 	}
 	
@@ -658,7 +662,7 @@ public final class FormBuilder {
 //		}
 //	}
 	
-	private static void removeRDFNodeAndAllProps(IEngine engine, Set<String> uriBindingList, IEngine formEng, String auditLogTableName, String user) {
+	private static void removeRDFNodeAndAllProps(IEngine engine, Set<String> uriBindingList, IEngine formEng, String auditLogTableName, String user, final DateFormat DATE_DF) {
 		if(uriBindingList.isEmpty()) {
 			return;
 		}
@@ -742,7 +746,13 @@ public final class FormBuilder {
 	 * @param auditLogTableName 
 	 * @param formEng 
 	 */
-	private static void saveRDBMSFormData(IEngine engine, String baseURI, String relationURI, String conceptBaseURI, String propertyBaseURI, List<HashMap<String, Object>> nodes, List<HashMap<String, Object>> relationships, IEngine formEng, String auditLogTableName, String user) {
+	private static void saveRDBMSFormData(IEngine engine, String baseURI, String relationURI, String conceptBaseURI, String propertyBaseURI, 
+			List<HashMap<String, Object>> nodes, List<HashMap<String, Object>> relationships, IEngine formEng, String auditLogTableName, String user) {
+		
+		final DateFormat DATE_DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSSS");
+		final DateFormat SIMPLE_DATE_DF = new SimpleDateFormat("yyyy-MM-dd");
+		final DateFormat GENERIC_DF = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSSSS'Z'");
+		
 		String tableName;
 		String tableColumn;
 		String tableValue;
@@ -793,7 +803,7 @@ public final class FormBuilder {
 			}
 
 			if(override && RDBMSEngineCreationHelper.conceptExists(engine, tableName, tableColumn, tableValue)) {
-				String updateQuery = createUpdateStatement(tableName, tableColumn, tableValue, propNames, propValues, types);
+				String updateQuery = createUpdateStatement(tableName, tableColumn, tableValue, propNames, propValues, types, DATE_DF, GENERIC_DF, SIMPLE_DATE_DF);
 				//TODO: need to enable modifying the actual instance name as opposed to only its properties.. this would set the updateQuery to never return back an empty string
 				if(!updateQuery.isEmpty()) {
 					try {
@@ -807,7 +817,7 @@ public final class FormBuilder {
 					}
 				}
 			} else {
-				String insertQuery = createInsertStatement(tableName, tableColumn, tableValue, propNames, propValues, types);
+				String insertQuery = createInsertStatement(tableName, tableColumn, tableValue, propNames, propValues, types, DATE_DF, GENERIC_DF, SIMPLE_DATE_DF);
 				try {
 					engine.insertData(insertQuery);
 				} catch (Exception e) {
@@ -1125,7 +1135,8 @@ public final class FormBuilder {
 		queryBuilder.setLength(0);
 	}
 
-	private static String createInsertStatement(String tableName, String tableColumn, String tableValue, List<String> propNames, List<Object> propValues, List<String> types) {
+	private static String createInsertStatement(String tableName, String tableColumn, String tableValue, List<String> propNames, 
+			List<Object> propValues, List<String> types, final DateFormat DATE_DF, final DateFormat GENERIC_DF, final DateFormat SIMPLE_DATE_DF) {
 		StringBuilder insertQuery = new StringBuilder();
 		insertQuery.append("INSERT INTO ");
 		insertQuery.append(tableName.toUpperCase());
@@ -1192,7 +1203,8 @@ public final class FormBuilder {
 		return insertQuery.toString();
 	}
 
-	private static String createUpdateStatement(String tableName, String tableColumn, String tableValue, List<String> propNames, List<Object> propValues, List<String> types) {
+	private static String createUpdateStatement(String tableName, String tableColumn, String tableValue, List<String> propNames, 
+			List<Object> propValues, List<String> types, final DateFormat DATE_DF, final DateFormat GENERIC_DF, final DateFormat SIMPLE_DATE_DF) {
 		if(propNames.size() == 0) {
 			return "";
 		}

@@ -590,7 +590,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			}
 			int statementTimeout = -1;
 			try {
-				statementTimeout = stmt.getQueryTimeout();
+				if(stmt != null) {
+					statementTimeout = stmt.getQueryTimeout();
+				}
 			} catch(Exception e2) {
 				// ignore
 			}
