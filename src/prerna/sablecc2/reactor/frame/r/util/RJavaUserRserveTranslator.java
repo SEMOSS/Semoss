@@ -612,21 +612,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 							values[colNum] = data[i];
 						}
 					}
-				} else if(val.isFactor()) {
-					RFactor data = val.asFactor();
-					if(retArr.isEmpty()) {
-						for(int i = 0; i < data.size(); i++) {
-							Object[] values = new Object[numColumns];
-							values[colNum] = data.at(i);
-							retArr.add(values);
-						}
-					} else {
-						for(int i = 0; i < data.size(); i++) {
-							Object[] values = retArr.get(i);
-							values[colNum] = data.at(i);
-						}
-					}
-				}
+				} 
 			}
 		} catch(REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to the proper data type.", e);

@@ -43,7 +43,7 @@ public class OpSumIf extends OpBasic {
 			}
 		}
 		
-		BigDecimal sum = new BigDecimal(0);
+		BigDecimal sum = BigDecimal.valueOf(0);
 		
 		// first, lets get the criteria type
 		PixelDataType criteriaType = this.curRow.getMeta(1);
@@ -106,7 +106,7 @@ public class OpSumIf extends OpBasic {
 						String rangeVal = range[i].toString();
 						Number sumVal = (Number) sumRange[i];
 						if(rangeVal.matches(criteriaExpression)) {
-							sum = sum.add(new BigDecimal(sumVal.doubleValue()));
+							sum = sum.add(BigDecimal.valueOf(sumVal.doubleValue()));
 						}
 					}
 					
@@ -122,7 +122,7 @@ public class OpSumIf extends OpBasic {
 						String rangeVal = range[i].toString();
 						Number sumVal = (Number) sumRange[i];
 						if(rangeVal.equals(criteriaExpression)) {
-							sum = sum.add(new BigDecimal(sumVal.doubleValue()));
+							sum = sum.add(BigDecimal.valueOf(sumVal.doubleValue()));
 						}
 					}
 				}
@@ -140,7 +140,7 @@ public class OpSumIf extends OpBasic {
 				Number rangeVal = (Number) range[i];
 				Number sumVal = (Number) sumRange[i];
 				if(rangeVal.equals(criteriaDouble)) {
-					sum = sum.add(new BigDecimal(sumVal.doubleValue()));
+					sum = sum.add(BigDecimal.valueOf(sumVal.doubleValue()));
 				}
 			}
 		}
@@ -176,51 +176,51 @@ public class OpSumIf extends OpBasic {
 		
 		if(filterPrefix.equals(">")) {
 			if(rangeVal.doubleValue() > filterNum.doubleValue()) {
-				ret = new BigDecimal(sumVal.doubleValue());
+				ret = BigDecimal.valueOf(sumVal.doubleValue());
 			} else {
-				ret = new BigDecimal(0);
+				ret = BigDecimal.valueOf(0);
 			}
 		} else if(filterPrefix.equals(">=")) {
 			if(rangeVal.doubleValue() >= filterNum.doubleValue()) {
-				ret = new BigDecimal(sumVal.doubleValue());
+				ret = BigDecimal.valueOf(sumVal.doubleValue());
 			} else {
-				ret = new BigDecimal(0);
+				ret = BigDecimal.valueOf(0);
 			}
 		} else if(filterPrefix.equals("<")) {
 			if(rangeVal.doubleValue() < filterNum.doubleValue()) {
-				ret = new BigDecimal(sumVal.doubleValue());
+				ret = BigDecimal.valueOf(sumVal.doubleValue());
 			} else {
-				ret = new BigDecimal(0);
+				ret = BigDecimal.valueOf(0);
 			}
 		} else if(filterPrefix.equals("<=")) {
 			if(rangeVal.doubleValue() <= filterNum.doubleValue()) {
-				ret = new BigDecimal(sumVal.doubleValue());
+				ret = BigDecimal.valueOf(sumVal.doubleValue());
 			} else {
-				ret = new BigDecimal(0);
+				ret = BigDecimal.valueOf(0);
 			}
 		} else if(filterPrefix.equals("!=")) {
 			if(rangeVal.doubleValue() != filterNum.doubleValue()) {
-				ret = new BigDecimal(sumVal.doubleValue());
+				ret = BigDecimal.valueOf(sumVal.doubleValue());
 			} else {
-				ret = new BigDecimal(0);
+				ret = BigDecimal.valueOf(0);
 			}
 		} else if(filterPrefix.equals("<>")) {
 			if(rangeVal.doubleValue() != filterNum.doubleValue()) {
-				ret = new BigDecimal(sumVal.doubleValue());
+				ret = BigDecimal.valueOf(sumVal.doubleValue());
 			} else {
-				ret = new BigDecimal(0);
+				ret = BigDecimal.valueOf(0);
 			}
 		} else if(filterPrefix.equals("=")) {
 			if(rangeVal.doubleValue() == filterNum.doubleValue()) {
-				ret = new BigDecimal(sumVal.doubleValue());
+				ret = BigDecimal.valueOf(sumVal.doubleValue());
 			} else {
-				ret = new BigDecimal(0);
+				ret = BigDecimal.valueOf(0);
 			}
 		} else if(filterPrefix.equals("==")) {
 			if(rangeVal.doubleValue() == filterNum.doubleValue()) {
-				ret = new BigDecimal(sumVal.doubleValue());
+				ret = BigDecimal.valueOf(sumVal.doubleValue());
 			} else {
-				ret = new BigDecimal(0);
+				ret = BigDecimal.valueOf(0);
 			}
 		}
 		

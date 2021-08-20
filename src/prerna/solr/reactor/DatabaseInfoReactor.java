@@ -45,7 +45,7 @@ public class DatabaseInfoReactor extends AbstractReactor {
 			baseInfo = SecurityQueryUtils.getAllDatabaseList(databaseId);
 		}
 		
-		if(baseInfo.isEmpty()) {
+		if(baseInfo == null || baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any database data");
 		}
 		
