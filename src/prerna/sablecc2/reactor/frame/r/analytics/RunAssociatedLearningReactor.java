@@ -191,13 +191,13 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 		List<String> retList = new ArrayList<String>();
 
 		// check if list input was entered with key or not
-		GenRowStruct columnGrs = (input == "0") ? this.store.getNoun(keysToGet[0]) : this.store.getNoun(input);
+		GenRowStruct columnGrs = input.equals("0") ? this.store.getNoun(keysToGet[0]) : this.store.getNoun(input);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				retList.add(noun.getValue().toString());
 			}
 		} else {
-			if (input == "0") {
+			if (input.equals("0")) {
 				throw new IllegalArgumentException("Attribute(s) that make up a transaction must be specified.");
 			}
 		}

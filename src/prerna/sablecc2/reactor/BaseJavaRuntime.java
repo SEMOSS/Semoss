@@ -48,9 +48,9 @@ public class BaseJavaRuntime {
 
 	public boolean compareString(String lString, String comparator, String rString) {
 		if (comparator.equals("==")) {
-			return lString == rString;
+			return lString.equals(rString);
 		} else {
-			return lString != rString;
+			return !lString.equals(rString);
 		}
 	}
 	

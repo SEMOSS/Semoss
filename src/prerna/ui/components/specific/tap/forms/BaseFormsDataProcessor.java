@@ -632,7 +632,7 @@ public class BaseFormsDataProcessor {
 				//here is the change not in the QueryProcessor.java file
 				//loops through the column headers from the query and stores everything for the row (except the key) in an arraylist
 				for(int i = 2; i < values.length; i++) {
-					if (sjss.getVar(values[i]).toString() != "") {
+					if (!sjss.getVar(values[i]).toString().isEmpty()) {
 						//for each column in the specific MAIN key, add a new key value pair. The new key is the column header and the value is the value for the column
 						finalMap.get(firstKey).get(secondKey).put(values[i], sjss.getVar(values[i]).toString());
 					}

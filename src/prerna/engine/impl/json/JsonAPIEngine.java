@@ -34,6 +34,7 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 
+import cern.colt.Arrays;
 import net.minidev.json.JSONArray;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
@@ -397,7 +398,7 @@ public class JsonAPIEngine extends AbstractEngine {
 			
 		retHash.put(COUNT, totalRows);
 
-		logger.info("Output..  " + Utility.cleanLogString(data.toString()));
+		logger.info("Output..  " + Utility.cleanLogString(Arrays.toString(data)));
 		
 		return retHash;
 	}
