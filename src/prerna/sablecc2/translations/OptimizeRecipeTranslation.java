@@ -713,7 +713,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				if(origMapTaskIndices != null) {
 					// we need to check to see if the last task for that panel has changed
 					Integer currentLastTaskForPanel = origMapTaskIndices.get(origMapTaskIndices.size()-1);
-					if(currentLastTaskForPanel != origTaskIndex) {
+					if(!currentLastTaskForPanel.equals(origTaskIndex)) {
 						// add back the original task
 						addToExpressions(origTaskIndex);
 						// and add the clone

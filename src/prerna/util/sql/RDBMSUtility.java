@@ -185,7 +185,7 @@ public class RDBMSUtility {
 			}
 			if(isr != null) {
 				try {
-					is.close();
+					isr.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

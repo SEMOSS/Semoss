@@ -157,7 +157,7 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 				//cell.setCellValue(key1);
 				//LOGGER.info("Printing ICD Map");
 				//mapofStrToString(valueMap1);
-				if (valueMap2.get("DCSite") == "" || valueMap2.get("DCSite") == null) {
+				if (valueMap2.get("DCSite").isEmpty() || valueMap2.get("DCSite") == null) {
 					//there is no DC site
 					LOGGER.info("DCSite == null, key1: " + Utility.cleanLogString(key1.toString()));
 					addInterfaceName(row, key1);

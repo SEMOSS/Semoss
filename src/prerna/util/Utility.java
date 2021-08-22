@@ -1731,15 +1731,18 @@ public class Utility {
 				retObject = new Object[2];
 				retObject[0] = "double";
 				retObject[1] = retO;
-			} else if ((retO = getCurrency(input)) != null) {
-
-				retObject = new Object[2];
-				if (retO instanceof String)
-					retObject[0] = "varchar(800)";
-				else
-					retObject[0] = "double";
-				retObject[1] = retO;
-			} else {
+			} 
+			// get currency always returns null... so commenting out
+//			else if ( (retO = getCurrency(input)) != null) {
+//
+//				retObject = new Object[2];
+//				if (retO instanceof String)
+//					retObject[0] = "varchar(800)";
+//				else
+//					retObject[0] = "double";
+//				retObject[1] = retO;
+//			} 
+			else {
 				retObject = new Object[2]; // need to do some more stuff to determine this
 				retObject[0] = "varchar(800)";
 				retObject[1] = input;
@@ -2190,23 +2193,21 @@ public class Utility {
 
 	public static boolean isDoubleType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("NUMBER") || dataType.startsWith("MONEY") || dataType.startsWith("SMALLMONEY")
-				|| dataType.startsWith("FLOAT")
-
-				// DECIMAL TYPE
-				|| dataType.startsWith("DECIMAL") || dataType.startsWith("NUMBER") || dataType.startsWith("DEC")
+		if (dataType.startsWith("NUMBER") 
+				|| dataType.startsWith("MONEY") 
+				|| dataType.startsWith("SMALLMONEY")
+				|| dataType.startsWith("DECIMAL") 
+				|| dataType.startsWith("DEC")
 				|| dataType.startsWith("NUMERIC")
-
-				// DOUBLE TYPE
-				|| dataType.startsWith("DOUBLE") || dataType.startsWith("PRECISION") || dataType.startsWith("FLOAT")
+				|| dataType.startsWith("DOUBLE") 
+				|| dataType.startsWith("PRECISION") 
+				|| dataType.startsWith("FLOAT")
 				|| dataType.startsWith("FLOAT8")
-
 				// REAL TYPE
-				|| dataType.startsWith("REAL") || dataType.startsWith("FLOAT4")
-
+				|| dataType.startsWith("REAL") 
+				|| dataType.startsWith("FLOAT4")
 				// PANDAS
 				|| dataType.contains("DTYPE('FLOAT64')")
-
 		) {
 			return true;
 		}

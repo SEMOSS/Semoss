@@ -485,7 +485,7 @@ public abstract class AbstractReactor implements IReactor {
 			if(replaceType == PixelDataType.CONST_DECIMAL || 
 					replaceType == PixelDataType.CONST_INT) {
 				// big decimal is easiest way i have seen to do this formatting
-				replaceValue = new BigDecimal( ((Number) replaceValue).doubleValue()).toPlainString();
+				replaceValue = BigDecimal.valueOf( ((Number) replaceValue).doubleValue()).toPlainString();
 			} else {
 				replaceValue = replaceValue + "";
 			}
