@@ -55,7 +55,7 @@ public class RingsButtonListener implements ActionListener {
 	 * Constructor for RingsButtonListener.
 	 */
 	public RingsButtonListener(){
-		this.view = view;
+
 	}
 
 	/**

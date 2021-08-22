@@ -83,7 +83,7 @@ public class OpSumIf extends OpBasic {
 				for(int i = 0; i < arrLength; i++) {
 					Number rangeVal = (Number) range[i];
 					Number sumVal = (Number) sumRange[i];
-					sum.add(evalNumericalExpression(rangeVal, filterPrefix, filterNum, sumVal));
+					sum = sum.add(evalNumericalExpression(rangeVal, filterPrefix, filterNum, sumVal));
 				}
 				
 			} else {

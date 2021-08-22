@@ -120,7 +120,7 @@ public class NodeDetailsReactor extends AbstractRFrameReactor {
 
 		ConstantDataTask taskData = ConstantTaskCreationHelper.getGridData(panelId, new String[]{"Metric", "Value"}, gridData);
 		// store it in the insight
-		if(panelId != "temp") {
+		if(!panelId.equals("temp")) {
 			this.insight.getTaskStore().addTask(taskData);
 		}
 		
