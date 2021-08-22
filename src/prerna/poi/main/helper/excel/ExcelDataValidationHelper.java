@@ -538,7 +538,7 @@ public class ExcelDataValidationHelper {
 			trimmedComment = commentToClean.substring(commentToClean.indexOf("Comment:") + 8);
 			trimmedComment = trimmedComment.replace("\n", "").replace("\r", "");
 			trimmedComment = trimmedComment.replaceAll(regex, "");
-			trimmedComment.trim();
+			trimmedComment = trimmedComment.trim();
 		}
 		return trimmedComment;
 	}
