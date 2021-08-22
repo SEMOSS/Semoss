@@ -141,38 +141,31 @@ public class MgmtUtil {
         return -1;
 	}
 	
-	public static long getFreeMemory()
-	{
-		if(freeMemory == -1)
-		{
+	public static long getFreeMemory() {
+		if(freeMemory == -1) {
 			freeMemory = gm.getAvailable();
 			
 			// convert to gigs
 			freeMemory = freeMemory / (1024*1024*1024);
-			
 			// give a 2GB limit
-			if(DIHelper.getInstance().getProperty(Settings.RESERVED_JAVA_MEMORY) != null)
-			{
-				long javaReservedMemory = Long.parseLong(DIHelper.getInstance().getProperty(Settings.RESERVED_JAVA_MEMORY));
+			String reservedJavaMem = DIHelper.getInstance().getProperty(Settings.RESERVED_JAVA_MEM);
+			if(reservedJavaMem != null && !(reservedJavaMem=reservedJavaMem.trim()).isEmpty()) {
+				long javaReservedMemory = Long.parseLong(reservedJavaMem);
 				freeMemory = freeMemory - javaReservedMemory;
-			}			
+			}
 		}
 		return freeMemory;
 	}
 	
-	public static long getAFreeMemory()
-	{
+	public static long getAFreeMemory() {
 		return gm.getAvailable();
 	}
 
-
-	public static long getTotalMemory()
-	{
+	public static long getTotalMemory() {
         return gm.getTotal();
 	}
 	
-	public static int getPidByPort(int port)
-	{
+	public static int getPidByPort(int port) {
 		SecurityManager priorManager = System.getSecurityManager();
 		System.setSecurityManager(null);
 		File tempFile = new File(Temp_FOLDER + Utility.getRandomString(12) + ".txt");
