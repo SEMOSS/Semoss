@@ -176,7 +176,7 @@ public class NettyChromeDriverClient extends ChromeDriverUtility{
 
 	
 	public static void setSessionCookie(String sessionCookie) {
-		sessionCookie = sessionCookie;
+		NettyChromeDriverClient.sessionCookie = sessionCookie;
 	}
 
 

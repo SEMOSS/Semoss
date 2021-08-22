@@ -124,7 +124,7 @@ public interface IQuerySelector {
 			return QueryArithmeticSelector.class;
 		} else if(type == SELECTOR_TYPE.CONSTANT) {
 			return QueryConstantSelector.class;
-		} else if(type == SELECTOR_TYPE.CONSTANT) {
+		} else if(type == SELECTOR_TYPE.IF_ELSE) {
 			return QueryIfSelector.class;
 		}
 		
