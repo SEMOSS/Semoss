@@ -1025,7 +1025,7 @@ public class RSyntaxHelper {
 		}
 		
 		//persist the millisecond decimal place option alongside the R date format
-		if (optionsMiliSeconds != "") {
+		if (!optionsMiliSeconds.isEmpty()) {
 			rFormat += "|" + optionsMiliSeconds ;
 		} else {
 			rFormat += "|NULL" ;

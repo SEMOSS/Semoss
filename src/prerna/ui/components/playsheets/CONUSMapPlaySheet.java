@@ -185,8 +185,9 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 		alignHash.put(labelString, names[0]);
 		alignHash.put(latString, names[1]);
 		alignHash.put(lonString, names[2]);
-		if (names.length > 3 && !names[3].equals(null))
+		if (names.length > 3 && names[3] != null) {
 			alignHash.put(sizeString, names[3]);
+		}
 		return alignHash;
 	}
 }

@@ -26,10 +26,10 @@ public class AOAOverallScoreMap extends HashMap<String, Object> {
 				packageHash = reqHash.get(requirement);
 				if (packageHash.containsKey(packages)) {
 					infoHash = packageHash.get(packages);
-					if (ANDPackage != ""){
+					if (!ANDPackage.isEmpty()){
 						((ArrayList<String>) infoHash.get(AND_PACKAGE_ARRAY)).add(ANDPackage);
 					}
-					if (ORPackage != ""){
+					if (!ORPackage.isEmpty()){
 						((ArrayList<String>) infoHash.get(OR_PACKAGE_ARRAY)).add(ORPackage);
 					}
 					infoHash.put(FULFILLMENT_SCORE, fScore);
@@ -37,12 +37,12 @@ public class AOAOverallScoreMap extends HashMap<String, Object> {
 				} else {
 					infoHash = new HashMap<String, Object>();
 					ArrayList<String> andPackageList = new ArrayList<String>();
-					if (ANDPackage != ""){
+					if (!ANDPackage.isEmpty()){
 						andPackageList.add(ANDPackage);
 					}
 					infoHash.put(AND_PACKAGE_ARRAY, andPackageList);
 					ArrayList<String> orPackageList = new ArrayList<String>();
-					if (ORPackage != ""){
+					if (!ORPackage.isEmpty()){
 						orPackageList.add(ORPackage);
 					}
 					infoHash.put(OR_PACKAGE_ARRAY, orPackageList);
@@ -53,12 +53,12 @@ public class AOAOverallScoreMap extends HashMap<String, Object> {
 			} else {
 				infoHash = new HashMap<String, Object>();
 				ArrayList<String> andPackageList = new ArrayList<String>();
-				if (ANDPackage != ""){
+				if (!ANDPackage.isEmpty()){
 					andPackageList.add(ANDPackage);
 				}
 				infoHash.put(AND_PACKAGE_ARRAY, andPackageList);
 				ArrayList<String> orPackageList = new ArrayList<String>();
-				if (ORPackage != ""){
+				if (!ORPackage.isEmpty()){
 					orPackageList.add(ORPackage);
 				}
 				infoHash.put(OR_PACKAGE_ARRAY, orPackageList);

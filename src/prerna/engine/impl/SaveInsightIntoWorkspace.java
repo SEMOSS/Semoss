@@ -89,7 +89,7 @@ public class SaveInsightIntoWorkspace {
 
 class InsightCacher implements Runnable {
 
-	private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd h:mm:ss a");
+	private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd h:mm:ss a");
 
 	private BlockingQueue<List<String>> queue;
 
