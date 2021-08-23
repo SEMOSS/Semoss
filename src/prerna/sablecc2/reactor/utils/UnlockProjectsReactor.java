@@ -9,12 +9,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.EngineSyncUtility;
+import prerna.util.ProjectSyncUtility;
 
-public class UnlockDatabasesReactor extends AbstractReactor {
+public class UnlockProjectsReactor extends AbstractReactor {
 
-	public UnlockDatabasesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
+	public UnlockProjectsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
 	
 	@Override
@@ -26,11 +26,11 @@ public class UnlockDatabasesReactor extends AbstractReactor {
 		}
 		
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 		
 		boolean retBool = false;
-		ConcurrentMap<String, ReentrantLock> locks = EngineSyncUtility.getAllLocks(this.insight.getUser());
-		if(databaseId == null) {
+		ConcurrentMap<String, ReentrantLock> locks = ProjectSyncUtility.getAllLocks(this.insight.getUser());
+		if(projectId == null) {
 			// unlock any current locks in use
 			for(String key : locks.keySet()) {
 				locks.get(key).unlock();
@@ -38,11 +38,11 @@ public class UnlockDatabasesReactor extends AbstractReactor {
 			locks.clear();
 			retBool = true;
 		} else {
-			ReentrantLock lock = locks.remove(databaseId);
+			ReentrantLock lock = locks.remove(projectId);
 			lock.unlock();
 			retBool = true;
 		}
-		
+
 		return new NounMetadata(retBool, PixelDataType.BOOLEAN);
 	}
 	
