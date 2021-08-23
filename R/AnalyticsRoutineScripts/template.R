@@ -113,12 +113,10 @@ get_single_cols<-function(df){
 }
 
 get_component_alternatives<-function(df){
-	COMPONENTS<-c('aggregate column','where column is value','top n column','bottom n column','- top n column','- bottom n column',
-	'sort column direction','based on aggregate column','group column','having column is value')
-	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','where column is value'),'3'=c('aggregate column','group column'),
-	'4'=c('select column','aggregate column','group column'),'5'=c('top n column','based on aggregate column'),
-	'6'=c('bottom n column','based on aggregate column'),'7'=c('- top n column','based on aggregate column'),
-	'8'=c('- bottom n column','based on aggregate column'),'9'=c('distribution column','based on aggregate column'))
+COMPONENTS<-c('aggregate','filter by','top','bottom','excluding top','excluding bottom',
+	'sort','based on','group by','filter by aggregate')
+	REQUEST_COMPONENTS<-list('1'='column','2'=c('column','filter by'),'3'=c('column','based on'),'4'=c('top','based on'),
+	'5'=c('bottom','based on'),'6'=c('excluding top','based on'),'7'=c('excluding bottom','based on'),'8'=c('distribution','based on'))
 	if(nrow(df)==0){
 		# for the first run only select components available
 		out<-REQUEST_COMPONENTS
