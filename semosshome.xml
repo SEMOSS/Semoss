@@ -75,6 +75,14 @@
       <outputDirectory>upload</outputDirectory>
     </fileSet>
     <fileSet>
+      <directory>project</directory>
+      <outputDirectory>project</outputDirectory>
+    </fileSet>
+    <fileSet>
+      <directory>user</directory>
+      <outputDirectory>user</outputDirectory>
+    </fileSet>
+    <fileSet>
       <directory>WordNet-3.1</directory>
       <outputDirectory>WordNet-3.1</outputDirectory>
     </fileSet>
