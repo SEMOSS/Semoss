@@ -19,13 +19,10 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.project.api.IProject;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -41,7 +38,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
-import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -499,6 +495,16 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if(global) {
+					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setEngineId(currDatabaseId);
+				} else {
+					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+				}
+				qsList.put(label, curQs);
+			} else if (!combined && currDatabaseId != null && currDatabaseId.equals(rowDatabaseId) && !qsList.containsKey(label)) {
+				// How do we handle multiple queries from the same database
+				curQs = new SelectQueryStruct();
+				if (global) {
 					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 					curQs.setEngineId(currDatabaseId);
 				} else {
