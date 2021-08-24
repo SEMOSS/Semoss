@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.frame.py;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -17,22 +17,21 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class RankReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor ranks the data based on a given column(s) and sort direction. The inputs to
-	 * the reactor are:
-	 * 1) the column(s) to be used for rank 
-	 * 2) the name of the rank column
-	 * 3) the sorting order for each column
+	 * This reactor ranks the data based on a given column(s) and sort
+	 * direction. The inputs to the reactor are: 1) the column(s) to be used for
+	 * rank 2) the name of the rank column 3) the sorting order for each column
+	 * 4) the partition column's to be used for rank
 	 */
 
-	private static final String PARTITION_BY_COL = "partitionByCol";
+	private static final String PARTITION_BY_COLS = "partitionByCols";
 	private static final String ASC = "ASC";
 	private static final String DESC = "DESC";
-	
+
 	public RankReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey(), 
-				ReactorKeysEnum.SORT.getKey(), PARTITION_BY_COL};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey(),
+				ReactorKeysEnum.SORT.getKey(), PARTITION_BY_COLS };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -44,36 +43,52 @@ public class RankReactor extends AbstractPyFrameReactor {
 		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
-		List<String> columns = getColumns();
-		String newColName = keyValue.get(this.keysToGet[1]);
+		List<String> columns = getCols(ReactorKeysEnum.COLUMNS.getKey());
+		// at least one column should be there
+		if (columns.isEmpty()) {
+			throw new IllegalArgumentException("Must pass at least one column for the rank");
+		}
 
+		String newColName = keyValue.get(this.keysToGet[1]);
 		// checks
 		if (newColName == null || newColName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the new column name");
 		}
-
-		// clean colName
-		if (newColName.contains("__")) {
-			String[] split = newColName.split("__");
-			newColName = split[1];
-		}
 		// clean the column name to ensure that it is valid
 		newColName = getCleanNewColName(frame, newColName);
-		//partition by ex.(by=\"Age_Range\")
-		String partitionbyCol = this.keyValue.get(PARTITION_BY_COL);
 		
+		// partition by ex.(by=\"Age_Range\")
+		// String partitionbyCol = this.keyValue.get(PARTITION_BY_COLS);
+		List<String> partitionbyCols = getCols(PARTITION_BY_COLS);
+
 		StringBuilder finalRankScript = new StringBuilder();
 		StringBuilder sortByRankScript = new StringBuilder();
 		StringBuilder colsArrayScript = new StringBuilder();
-		StringBuilder dropTempRankColsScript = new StringBuilder();	
-		
-		if (partitionbyCol != null && !partitionbyCol.equals("")) {
+		StringBuilder dropTempRankColsScript = new StringBuilder();
+
+		if (!partitionbyCols.isEmpty()) {
+			// it will form the following script
+			// ex.(groupby(\"Age_Range\",\"Relationship\"))
 
 			StringBuilder sortValues = new StringBuilder();
 			StringBuilder tempRankScript = new StringBuilder();
-			colsArrayScript.append("['").append(partitionbyCol).append("'");
+			StringBuilder partitionByScript = new StringBuilder();
 
-			sortValues.append("[True ");
+			colsArrayScript.append("[");
+
+			sortValues.append("[");
+
+			for (int i = 0; i < partitionbyCols.size(); i++) {
+				colsArrayScript.append("'").append(partitionbyCols.get(i)).append("'");
+				sortValues.append("True");
+				partitionByScript.append("'").append(partitionbyCols.get(i)).append("'");
+				if (i != partitionbyCols.size() - 1) {
+					colsArrayScript.append(",");
+					sortValues.append(",");
+					partitionByScript.append(",");
+
+				}
+			}
 
 			for (int i = 0; i < columns.size(); i++) {
 				colsArrayScript.append(", '" + columns.get(i) + "'");
@@ -93,10 +108,10 @@ public class RankReactor extends AbstractPyFrameReactor {
 			// Subtracting the minimum rank within each 'key' then gives the
 			// desired ranking within group
 			finalRankScript.append(frame.getName()).append("['").append(newColName).append("']").append("=")
-					.append(frame.getName()).append("['TempRank'] - ").append(frame.getName()).append(".groupby('")
-					.append(partitionbyCol).append("')['TempRank'].transform('min') + 1");
+					.append(frame.getName()).append("['TempRank'] - ").append(frame.getName()).append(".groupby(")
+					.append("[" + partitionByScript + "]").append(")['TempRank'].transform('min') + 1");
 
-			sortByRankScript.append(frame.getName()).append(".sort_values(['").append(partitionbyCol).append("','")
+			sortByRankScript.append(frame.getName()).append(".sort_values([").append(partitionByScript).append(",'")
 					.append(newColName).append("'], inplace=True)");
 
 			dropTempRankColsScript.append(frame.getName()).append(" = ").append(frame.getName())
@@ -137,7 +152,7 @@ public class RankReactor extends AbstractPyFrameReactor {
 			frame.runScript(colsArrayScript.toString());
 
 		}
-		
+
 		// running script to generate final rank
 		frame.runScript(finalRankScript.toString());
 
@@ -147,9 +162,10 @@ public class RankReactor extends AbstractPyFrameReactor {
 		// run script to drop intermediate rank columns as we only need the
 		// final rank
 		frame.runScript(dropTempRankColsScript.toString());
-		
-		//update wrapperFrameName it will end up frame name with 'w'
-		frame.runScript(wrapperFrameName+".cache['data'][['"+newColName+"']]"+"="+frame.getName()+"['"+newColName+"']");;
+
+		// update wrapperFrameName it will end up frame name with 'w'
+		frame.runScript(wrapperFrameName + ".cache['data'][['" + newColName + "']]" 
+				+ "=" + frame.getName() + "['" + newColName + "']");
 
 		// update meta data
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
@@ -159,9 +175,9 @@ public class RankReactor extends AbstractPyFrameReactor {
 		metaData.setDataTypeToProperty(frameName + "__" + newColName, SemossDataType.DOUBLE.toString());
 		metaData.setDerivedToProperty(frameName + "__" + newColName, true);
 		frame.syncHeaders();
-        //to avoid the sorting of first column by default
-//		this.insight.getPragmap().put("IMPLICIT_ORDER", false);
-		
+		// to avoid the sorting of first column by default
+		// this.insight.getPragmap().put("IMPLICIT_ORDER", false);
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Rank",
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
@@ -169,50 +185,47 @@ public class RankReactor extends AbstractPyFrameReactor {
 		// return the output
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
 				PixelOperationType.FRAME_DATA_CHANGE);
-
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully performed Rank"));
 		return retNoun;
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-		
-	private List<String> getColumns() {
-		//first input is the columns on which rank will be applied
-		List<String> columns = new Vector<String>();
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
+
+	private List<String> getCols(String key) {
+		// first input is the columns on which rank will be applied
+		List<String> columns = new ArrayList<>();
+		GenRowStruct colGrs = this.store.getNoun(key);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
 				columns.add(column);
 			}
-		} else {
-			throw new IllegalArgumentException("Need to define the columns");
 		}
 		return columns;
 	}
-	
-	
-	//get the sort order for each column
-	private String getSortOrder(int index,String key) {
-		//third input is the sorting to be applied to each column
+
+	// get the sort order for each column
+	private String getSortOrder(int index, String key) {
+		// third input is the sorting to be applied to each column
 		GenRowStruct grs = this.store.getNoun(key);
 
-		//if no sort order is passed, ascending order will be applied
-		if(grs == null || grs.isEmpty() || index>=grs.size()) {				
-			return "True";			
+		// if no sort order is passed, ascending order will be applied
+		if (grs == null || grs.isEmpty() || index >= grs.size()) {
+			return "True";
 		} else {
-			//if sort order other than ASC or DESC, throw error
-			if(!grs.get(index).toString().isEmpty() && grs.get(index).toString() != null
+			// if sort order other than ASC or DESC, throw error
+			if (!grs.get(index).toString().isEmpty() && grs.get(index).toString() != null
 					&& !(grs.get(index).toString().equalsIgnoreCase(ASC)
 							|| grs.get(index).toString().equalsIgnoreCase(DESC))) {
 				throw new IllegalArgumentException("Column order not valid");
 			} else {
-				//if sort = ASC or blank, then order will be ascending else it will be descending
-				if(grs.get(index).toString().equalsIgnoreCase(ASC) || grs.get(index).toString().isEmpty()) {
+				// if sort = ASC or blank, then order will be ascending else it
+				// will be descending
+				if (grs.get(index).toString().equalsIgnoreCase(ASC) || grs.get(index).toString().isEmpty()) {
 					return "True";
 				} else {
 					return "False";
@@ -223,10 +236,10 @@ public class RankReactor extends AbstractPyFrameReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(PARTITION_BY_COL)) {
-			return "This column used for partitioning the Rank";
+		if (key.equals(PARTITION_BY_COLS)) {
+			return "The columns used for partitioning the rank";
 		}
 		return super.getDescriptionForKey(key);
 	}
-	
+
 }
