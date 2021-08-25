@@ -601,7 +601,7 @@ public class SchedulerDatabaseUtility {
 //		return true;
 //	}
 
-	public static Map<String, Map<String, String>> retrieveJobsForApp(String appId, List<String> jobTags ) {
+	public static Map<String, Map<String, String>> retrieveJobsForProject(String appId, List<String> jobTags ) {
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 
@@ -631,7 +631,7 @@ public class SchedulerDatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveUsersJobsForApp(String appId, String userId, List<String> jobTags) {
+	public static Map<String, Map<String, String>> retrieveUsersJobsForProject(String appId, String userId, List<String> jobTags) {
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = conn
