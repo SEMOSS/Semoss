@@ -451,12 +451,11 @@ public class AZClient extends CloudClient {
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				
-				//TODO kunal: below calls will break
 				for(String sqliteFile : sqliteFileNames){
-					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder + "/" + sqliteFile, appRcloneConfig + ":"+ appId);
+					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder + "/" + sqliteFile, appRcloneConfig + ":"+ DB_CONTAINER_PREFIX+ appId);
 				}
 			} else if(e == RdbmsTypeEnum.H2_DB){
-				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder + "/database.mv.db", appRcloneConfig + ":"+appId);
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder + "/database.mv.db", appRcloneConfig + ":"+DB_CONTAINER_PREFIX+appId);
 			} else{
 				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
 			}
@@ -501,10 +500,10 @@ public class AZClient extends CloudClient {
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				//TODO kunal: below calls will break
 				for(String sqliteFile : sqliteFileNames){			
-					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/"+sqliteFile, appFolder);
+					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+DB_CONTAINER_PREFIX+appId+"/"+sqliteFile, appFolder);
 				}
 			} else if(e == RdbmsTypeEnum.H2_DB){
-				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/database.mv.db", appFolder);
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":" + DB_CONTAINER_PREFIX+appId+"/database.mv.db", appFolder);
 			} else{
 				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
 			}
