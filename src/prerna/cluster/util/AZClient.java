@@ -251,8 +251,8 @@ public class AZClient extends CloudClient {
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+appId+"/"+ owlFile.getName(), appFolder);
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+appId+"/"+ AbstractEngine.OWL_POSITION_FILENAME, appFolder);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX +appId+"/"+ owlFile.getName(), appFolder);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX + appId+"/"+ AbstractEngine.OWL_POSITION_FILENAME, appFolder);
 
 		}  finally {
 			try {
@@ -265,8 +265,7 @@ public class AZClient extends CloudClient {
 				} else {
 					throw new IllegalArgumentException("Pull failed. OWL for engine " + appId + " was not found");
 				}
-			}
-			finally {
+			} finally {
 				// always unlock regardless of errors
 				lock.unlock();
 				logger.info("App "+ appId + " is unlocked");
@@ -352,7 +351,7 @@ public class AZClient extends CloudClient {
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig  + ":" + projectId + "/" + insightDB, thisProjectFolder);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig  + ":" + PROJECT_CONTAINER_PREFIX + projectId + "/" + insightDB, thisProjectFolder);
 
 		}  finally {
 			try {
@@ -400,7 +399,7 @@ public class AZClient extends CloudClient {
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", thisProjectFolder+"/"+ insightDB, appRcloneConfig + ":" + projectId);			 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", thisProjectFolder+"/"+ insightDB, appRcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId);			 
 		}
 		finally {
 			try {
@@ -451,6 +450,8 @@ public class AZClient extends CloudClient {
 			logger.info("Pushing database for " + alias + " from remote=" + appId);
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
+				
+				//TODO kunal: below calls will break
 				for(String sqliteFile : sqliteFileNames){
 					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder + "/" + sqliteFile, appRcloneConfig + ":"+ appId);
 				}
@@ -498,6 +499,7 @@ public class AZClient extends CloudClient {
 			logger.info("Pulling database for " + alias + " from remote=" + appId);
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
+				//TODO kunal: below calls will break
 				for(String sqliteFile : sqliteFileNames){			
 					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/"+sqliteFile, appFolder);
 				}
@@ -543,7 +545,7 @@ public class AZClient extends CloudClient {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
 			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + appId);
 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+  "/" + remoteRelativePath, absolutePath);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX +appId+  "/" + remoteRelativePath, absolutePath);
 		} finally {
 			try {
 				if (appRcloneConfig != null) {
@@ -587,7 +589,7 @@ public class AZClient extends CloudClient {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
 			logger.info("Pushing folder for " + remoteRelativePath + " to remote=" + appId);
 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":"+appId+  "/" + remoteRelativePath);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":"+DB_CONTAINER_PREFIX+appId+  "/" + remoteRelativePath);
 		} finally {
 			try {
 				if (appRcloneConfig != null) {
@@ -624,7 +626,7 @@ public class AZClient extends CloudClient {
 			appRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
 			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + projectId);
 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+projectId+  "/" + remoteRelativePath, absolutePath);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+PROJECT_CONTAINER_PREFIX+projectId+  "/" + remoteRelativePath, absolutePath);
 		} finally {
 			try {
 				if (appRcloneConfig != null) {
@@ -669,7 +671,7 @@ public class AZClient extends CloudClient {
 			appRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
 			logger.info("Pushing folder for " + remoteRelativePath + " to remote=" + projectId);
 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":"+projectId+  "/" + remoteRelativePath);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":" + PROJECT_CONTAINER_PREFIX+projectId+  "/" + remoteRelativePath);
 		} finally {
 			try {
 				if (appRcloneConfig != null) {
@@ -1125,7 +1127,7 @@ public class AZClient extends CloudClient {
 
 				// Now pull the smss
 				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + userFolder);
-				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE PROJECT FOLDER
+				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE USER FOLDER
 				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":", userFolder);
 				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + userFolder);
 			} finally {
