@@ -495,8 +495,8 @@ public class Insight implements Serializable {
 	// gets the user folder as well
 	public String getUserFolder() {
 		AuthProvider provider = user.getPrimaryLogin();
-		String appId = user.getAssetProjectId(provider);
-		this.userFolder = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", appId);
+		String projectId = user.getAssetProjectId(provider);
+		this.userFolder = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", projectId);
 		return userFolder;
 	}
 	
