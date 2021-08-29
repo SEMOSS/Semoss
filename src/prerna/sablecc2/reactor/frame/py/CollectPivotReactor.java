@@ -115,7 +115,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
 			File tempDir = new File(dir);
 			if(!tempDir.exists()) {
-				tempDir.mkdir();
+				tempDir.mkdirs();
 			}
 			outputFile = dir + "/" + fileName + ".csv";
 			Utility.writeResultToFile(outputFile, this.task, typesMap, ",");
