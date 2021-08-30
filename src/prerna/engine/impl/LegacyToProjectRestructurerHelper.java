@@ -76,7 +76,7 @@ public class LegacyToProjectRestructurerHelper {
 		//this.engine = engine;
 		String dbDir = baseFolder + ENGINE_DIRECTORY;
 		String projectDir = baseFolder + PROJECT_DIRECTORY;
-		String userDir = baseFolder + PROJECT_DIRECTORY;
+		String userDir = baseFolder + USER_DIRECTORY;
 		createProjectStructure(dbDir, projectDir, userDir);
 		System.out.println("DONE APP/PROJECT RESTRUCTURE");
 	}
