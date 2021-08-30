@@ -47,12 +47,12 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 		
-		String schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
-		if(schema == null || schema.isEmpty()) {
-			throw new RuntimeException("Must pass in schema name");
+		String database = (String) configMap.get(AbstractSqlQueryUtil.DATABASE);
+		if(database == null || database.isEmpty()) {
+			throw new RuntimeException("Must pass in the database name");
 		}
 		
-		connectionString = urlPrefix+"://"+hostname+"/DATABASE="+schema;
+		connectionString = urlPrefix+"://"+hostname+"/DATABASE="+database;
 		
 		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {
@@ -83,12 +83,12 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 		
-		String schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
-		if(schema == null || schema.isEmpty()) {
-			throw new RuntimeException("Must pass in schema name");
+		String database = (String) prop.get(AbstractSqlQueryUtil.DATABASE);
+		if(database == null || database.isEmpty()) {
+			throw new RuntimeException("Must pass in the database name");
 		}
 		
-		connectionString = urlPrefix+"://"+hostname+"/DATABASE="+schema;
+		connectionString = urlPrefix+"://"+hostname+"/DATABASE="+database;
 		
 		String additonalProperties = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {

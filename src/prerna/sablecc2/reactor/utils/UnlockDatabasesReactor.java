@@ -3,8 +3,6 @@ package prerna.sablecc2.reactor.utils;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -19,16 +17,11 @@ public class UnlockDatabasesReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if(adminUtils == null) {
-			throw new IllegalArgumentException("User must be an admin to perform this function");
-		}
-		
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		
 		boolean retBool = false;
+		// this method checks if you are an admin
 		ConcurrentMap<String, ReentrantLock> locks = EngineSyncUtility.getAllLocks(this.insight.getUser());
 		if(databaseId == null) {
 			// unlock any current locks in use

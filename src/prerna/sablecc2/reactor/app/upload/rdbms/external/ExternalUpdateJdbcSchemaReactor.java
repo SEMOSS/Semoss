@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.app.upload.rdbms.external;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -86,7 +85,6 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		}
 		
 		RdbmsTypeEnum driverEnum = nativeDatabase.getDbType();
-//		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, connection, connectionUrl, driverEnum);
 		String schemaFilter = nativeDatabase.getSchema();
 
 		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(connection, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
@@ -217,10 +215,8 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 				}
 			}
 		} finally {
-			try {
+			if(tableViewIterator != null) {
 				tableViewIterator.close();
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 			if(connection != null) {
 				try {

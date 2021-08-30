@@ -272,10 +272,8 @@ public class RDBMSEngineCreationHelper {
 				tableColumnMap.put(tableOrView, colDetails);
 			}
 		} finally {
-			try {
+			if(tableViewIterator != null) {
 				tableViewIterator.close();
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		}
 

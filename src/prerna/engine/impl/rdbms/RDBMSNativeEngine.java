@@ -103,6 +103,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	private String password = null;
 	private String driver = null;
 	private String connectionURL = null;
+	private String database = null;
 	private String schema = null;
 	// parameterized in SMSS
 	// fetch size -1 which will 
@@ -345,26 +346,36 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	@Override
 	public String getSchema() {
 		if(this.schema == null) {
-			DatabaseMetaData meta = getConnectionMetadata();
-			if(meta != null) {
-				Connection conn = null;
-				try {
-					conn = getConnection();
-					this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
-				} catch(SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(this.datasourceConnected && conn != null) {
-						try {
-							conn.close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-						try {
-							meta.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-							e.printStackTrace();
+			// first see if set in the properties file directly
+			if(this.prop != null) {
+				this.schema = this.prop.getProperty(AbstractSqlQueryUtil.SCHEMA.toUpperCase());
+				if(this.schema == null) {
+					this.schema = this.prop.getProperty(AbstractSqlQueryUtil.SCHEMA);
+				}
+			}
+			// else try to predict
+			if(this.schema == null) {
+				DatabaseMetaData meta = getConnectionMetadata();
+				if(meta != null) {
+					Connection conn = null;
+					try {
+						conn = getConnection();
+						this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
+					} catch(SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						if(this.datasourceConnected && conn != null) {
+							try {
+								conn.close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+							try {
+								meta.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+								e.printStackTrace();
+							}
 						}
 					}
 				}
