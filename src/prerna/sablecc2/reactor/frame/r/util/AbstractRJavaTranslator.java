@@ -418,6 +418,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		String rScript = "required_packages<- c('" + StringUtils.join(packages,"','") + "');"
 				+ "required_packages[!(required_packages %in% rownames(installed.packages()))]";
 		String[] missingPackages = this.getStringArray(rScript);
+		runR("rm(required_packages)");
 		
 		if (missingPackages.length > 0) {
 			packageError += StringUtils.join(missingPackages, "\n");

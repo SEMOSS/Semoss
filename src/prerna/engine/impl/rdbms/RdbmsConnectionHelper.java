@@ -374,15 +374,17 @@ public class RdbmsConnectionHelper {
 			tablesRs = stmt.executeQuery(query);
 		} else if (driver == RdbmsTypeEnum.ATHENA){
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL_TABLE", "VIEW" });
-		} else if (driver == RdbmsTypeEnum.SQL_SERVER) {
-			// do not pass in the schema...
-			tablesRs = meta.getTables(catalogFilter, null, null, new String[] { "TABLE", "VIEW"});
-		} else if(driver == RdbmsTypeEnum.MYSQL){
+		} 
+//		else if (driver == RdbmsTypeEnum.SQL_SERVER) {
+//			// do not pass in the schema...
+//			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW"});
+//		} 
+		else if(driver == RdbmsTypeEnum.MYSQL){
 			// these take the schema as a proper regex search
 			tablesRs = meta.getTables(catalogFilter, "^" + schemaFilter + "$", null, new String[] { "TABLE", "VIEW" });
 		} else if (driver == RdbmsTypeEnum.CASSANDRA){
 			if(catalogFilter.isEmpty()) {
-			tablesRs = meta.getTables("cassandra", schemaFilter, null, new String[] { "TABLE", "VIEW" });
+				tablesRs = meta.getTables("cassandra", schemaFilter, null, new String[] { "TABLE", "VIEW" });
 			} else {
 				tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
 			}
@@ -402,15 +404,17 @@ public class RdbmsConnectionHelper {
 	 * @return
 	 */
 	public static String[] getTableKeys(RdbmsTypeEnum driver) {
-		String[] arr = new String[3];
+		String[] arr = new String[4];
 		if(driver == RdbmsTypeEnum.SNOWFLAKE|| driver == RdbmsTypeEnum.CLICKHOUSE ||driver == RdbmsTypeEnum.ATHENA || driver == RdbmsTypeEnum.CASSANDRA) {
 			arr[0] = "TABLE_NAME";
 			arr[1] = "TABLE_TYPE";
 			arr[2] = "TABLE_SCHEM";
+			arr[3] = "TABLE_CAT";
 		} else {
 			arr[0] = "table_name";
 			arr[1] = "table_type";
 			arr[2] = "table_schem";
+			arr[3] = "table_cat";
 		}
 		return arr;
 	}
@@ -431,7 +435,7 @@ public class RdbmsConnectionHelper {
 	 */
 	public static ResultSet getColumns(DatabaseMetaData meta, String tableOrView, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {
 		ResultSet columnsRs;
-		if (driver == RdbmsTypeEnum.ORACLE || driver == RdbmsTypeEnum.SQL_SERVER) {
+		if (driver == RdbmsTypeEnum.ORACLE) { // || driver == RdbmsTypeEnum.SQL_SERVER) {
 			// do not pass in schema
 			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
 		} else if(driver == RdbmsTypeEnum.SNOWFLAKE) {

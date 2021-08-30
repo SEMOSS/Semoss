@@ -58,9 +58,9 @@ public class InsightCacheUtility {
 	
 	public static String getInsightCacheFolderPath(Insight insight) {
 		String rdbmsId = insight.getRdbmsId();
-		String engineId = insight.getProjectId();
-		String engineName = insight.getProjectName();
-		return getInsightCacheFolderPath(engineId, engineName, rdbmsId);
+		String projectId = insight.getProjectId();
+		String projectName = insight.getProjectName();
+		return getInsightCacheFolderPath(projectId, projectName, rdbmsId);
 	}
 	
 	public static String getInsightCacheFolderPath(String projectId, String projectName, String rdbmsId) {
@@ -76,10 +76,10 @@ public class InsightCacheUtility {
 	 */
 	public static File cacheInsight(Insight insight, Set<String> varsToExclude) throws IOException {
 		String rdbmsId = insight.getRdbmsId();
-		String engineId = insight.getProjectId();
-		String engineName = insight.getProjectName();
+		String projectId = insight.getProjectId();
+		String projectName = insight.getProjectName();
 		
-		if(engineId == null || rdbmsId == null || engineName == null) {
+		if(projectId == null || rdbmsId == null || projectName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 		
