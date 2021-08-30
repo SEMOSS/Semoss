@@ -1,17 +1,25 @@
 package prerna.util.sql;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -20,6 +28,8 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.Join;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 
@@ -52,6 +62,62 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		typeConversionMap.put("FACTOR", "VARCHAR(800)");
 
 		typeConversionMap.put("BOOLEAN", "BOOLEAN");
+	}
+	
+	/**
+	 * Method to get the table and views for this connection
+	 * @param con
+	 * @param connectionUrl
+	 * @param logger
+	 * @return
+	 */
+	@Override
+	public Map<String, List<String>> getTablesAndViews(Connection con, Statement tableStmt, ResultSet tablesRs, 
+			Map<String, Object> connectionDetails, Logger logger) {
+		// keep a list of tables and views
+		List<String> tableSchemas = new ArrayList<String>();
+		List<String> tables = new ArrayList<String>();
+		List<String> viewSchemas = new ArrayList<String>();
+		List<String> views = new ArrayList<String>();
+
+		String[] tableKeys = RdbmsConnectionHelper.getTableKeys(this.dbType);
+		final String TABLE_NAME_STR = tableKeys[0];
+		final String TABLE_TYPE_STR = tableKeys[1];
+		final String TABLE_SCHEMA_STR = tableKeys[2];
+		try {
+			while (tablesRs.next()) {
+				String table = tablesRs.getString(TABLE_NAME_STR);
+				// this will be table or view
+				String tableType = tablesRs.getString(TABLE_TYPE_STR).toUpperCase();
+				// get schema
+				String tableSchema = tablesRs.getString(TABLE_SCHEMA_STR).toUpperCase();
+				if(tableType.toUpperCase().contains("TABLE")) {
+					logger.info("Found table = " + Utility.cleanLogString(table));
+					tables.add(table);
+					tableSchemas.add(tableSchema);
+				} else {
+					// there may be views built from sys or information schema
+					// we want to ignore these
+					logger.info("Found view = " + Utility.cleanLogString(table));
+					views.add(table);
+					viewSchemas.add(tableSchema);
+				}
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			closeAutoClosable(tablesRs, logger);
+			closeAutoClosable(tableStmt, logger);
+			closeAutoClosable(con, logger);
+		}
+		logger.info("Done parsing database metadata");
+		
+		Map<String, List<String>> ret = new HashMap<String, List<String>>();
+		ret.put("tables", tables);
+		ret.put("tableSchemas", tableSchemas);
+		ret.put("views", views);
+		ret.put("viewSchemas", viewSchemas);
+		return ret;
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
