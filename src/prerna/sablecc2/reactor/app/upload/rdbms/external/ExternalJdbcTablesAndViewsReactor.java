@@ -6,8 +6,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +20,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
-import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
@@ -74,10 +71,6 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-		// keep a list of tables and views
-		List<String> tables = new ArrayList<String>();
-		List<String> views = new ArrayList<String>();
-
 		DatabaseMetaData meta;
 		boolean close = false;
 		try {
@@ -88,7 +81,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		} finally {
 			if(close) {
-				closeAutoClosable(con, logger);
+				queryUtil.closeAutoClosable(con, logger);
 			}
 		}
 		
@@ -100,7 +93,10 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		
-		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
+		String schemaFilter = (String) connectionDetails.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schemaFilter == null) {
+			schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
+		}
 		Statement tableStmt = null;
 		ResultSet tablesRs = null;
 		try {
@@ -111,60 +107,16 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		} finally {
 			if(close) {
-				closeAutoClosable(tablesRs, logger);
-				closeAutoClosable(tableStmt, logger);
-				closeAutoClosable(con, logger);
+				queryUtil.closeAutoClosable(tablesRs, logger);
+				queryUtil.closeAutoClosable(tableStmt, logger);
+				queryUtil.closeAutoClosable(con, logger);
 			}
 		}
 		
-		String[] tableKeys = RdbmsConnectionHelper.getTableKeys(driverEnum);
-		final String TABLE_NAME_STR = tableKeys[0];
-		final String TABLE_TYPE_STR = tableKeys[1];
-
-		try {
-			while (tablesRs.next()) {
-				String table = tablesRs.getString(TABLE_NAME_STR);
-				// this will be table or view
-				String tableType = tablesRs.getString(TABLE_TYPE_STR).toUpperCase();
-				if(tableType.toUpperCase().contains("TABLE")) {
-					logger.info("Found table = " + Utility.cleanLogString(table));
-					tables.add(table);
-				} else {
-					// there may be views built from sys or information schema
-					// we want to ignore these
-					logger.info("Found view = " + Utility.cleanLogString(table));
-					views.add(table);
-				}
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			closeAutoClosable(tablesRs, logger);
-			closeAutoClosable(tableStmt, logger);
-			closeAutoClosable(con, logger);
-		}
-		logger.info("Done parsing database metadata");
-		
-		Map<String, List<String>> ret = new HashMap<String, List<String>>();
-		ret.put("tables", tables);
-		ret.put("views", views);
+		Map<String, List<String>> ret = queryUtil.getTablesAndViews(con, tableStmt, tablesRs, connectionDetails, logger);
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
-	
-	/**
-	 * Close a connection, statement, or result set
-	 * @param closeable
-	 */
-	private void closeAutoClosable(AutoCloseable closeable, Logger logger) {
-		if(closeable != null) {
-			try {
-				closeable.close();
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-	}
-	
+
 	private Map<String, Object> getConDetails() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {

@@ -197,6 +197,30 @@ public abstract class AbstractSqlQueryUtil {
 		return conn;
 	}
 	
+	/**
+	 * Close a connection, statement, or result set
+	 * @param closeable
+	 */
+	public void closeAutoClosable(AutoCloseable closeable, Logger logger) {
+		if(closeable != null) {
+			try {
+				closeable.close();
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param con
+	 * @param tableStmt
+	 * @param tablesRs
+	 * @param connectionDetails
+	 * @param logger
+	 * @return
+	 */
+	public abstract Map<String, List<String>> getTablesAndViews(Connection con, Statement tableStmt, ResultSet tablesRs, Map<String, Object> connectionDetails, Logger logger);
 	
 	/**
 	 * Use this when we need to make any modifications to the connection object for

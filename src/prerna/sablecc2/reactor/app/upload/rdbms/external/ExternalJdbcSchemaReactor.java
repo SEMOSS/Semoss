@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.app.upload.rdbms.external;
 
 import java.io.File;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -102,8 +101,11 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		
-		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
-
+		String schemaFilter = (String) connectionDetails.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schemaFilter == null) {
+			schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
+		}
+		
 		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
 		
 		final String TABLE_KEY = "table";
@@ -232,10 +234,8 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				}
 			}
 		} finally {
-			try {
+			if(tableViewIterator != null) {
 				tableViewIterator.close();
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 			if(con != null) {
 				try {
