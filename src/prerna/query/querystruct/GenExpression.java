@@ -226,11 +226,12 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					buf.append(qs.userTableAlias).append(".");
 				} else if(qs.userTableName != null && !qs.userTableName.isEmpty()) {
 					buf.append(qs.userTableName).append(".");
-				} else if(qs.tableAlias != null && !qs.tableAlias.isEmpty()) {
-					buf.append(qs.tableAlias).append(".");
-				} else if(qs.tableName != null && !qs.tableName.isEmpty()){
-					buf.append(qs.tableName).append(".");
 				}
+//				else if(qs.tableAlias != null && !qs.tableAlias.isEmpty()) {
+//					buf.append(qs.tableAlias).append(".");
+//				} else if(qs.tableName != null && !qs.tableName.isEmpty()){
+//					buf.append(qs.tableName).append(".");
+//				}
 				
 				buf.append(columnName);
 				if(qs.leftAlias != null && qs.leftAlias.length() > 0) {
