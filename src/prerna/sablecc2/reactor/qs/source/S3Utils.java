@@ -4,29 +4,27 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
-import com.amazonaws.services.s3.model.S3Object;
 
 import prerna.util.DIHelper;
 
 
 public class S3Utils {
 	
-	private static final Logger LOGGER = LogManager.getLogger(S3Utils.class.getName());
-	
-	private static Properties socialData = null;
-	private static S3Utils instance;
 	private static final String AWS_ACCOUUNT = "aws_account";
 	private static final String AWS_KEY = "aws_key";
-	
-	private static AWSCredentials awsCreds = null;
+
+	private static Properties socialData = null;
+	private static S3Utils instance;
+	private static AWSCredentialsProviderChain awsCredsChain = null;
 	
 	private S3Utils() {
 		loadProps();
@@ -39,7 +37,6 @@ public class S3Utils {
 		
 		return instance;
 	}
-
 	
 	private void loadProps() {
 		File f = new File(DIHelper.getInstance().getProperty("SOCIAL"));
@@ -67,19 +64,18 @@ public class S3Utils {
 			}
 		}	
 		
-		S3Object fullObject = null;
-
+		List<AWSCredentialsProvider> credProviders = new ArrayList<>();
 		String account = socialData.getProperty(AWS_ACCOUUNT);
 		String key = socialData.getProperty(AWS_KEY);
 		if (account != null && account.length() > 0 && key != null && key.length() > 0) {
-		 awsCreds = new BasicAWSCredentials(account, key);
-		} else{ 
-			 awsCreds = new EnvironmentVariableCredentialsProvider().getCredentials();
+			credProviders.add(new AWSStaticCredentialsProvider(new BasicAWSCredentials(account, key)));
 		}
+		credProviders.add(new EnvironmentVariableCredentialsProvider());
+		awsCredsChain = new AWSCredentialsProviderChain(credProviders);
 	}
-
-	public AWSCredentials getS3Creds(){
-		return awsCreds;
+	
+	public AWSCredentialsProviderChain getAwsCredsChain() {
+		return awsCredsChain;
 	}
-
+	
 }
