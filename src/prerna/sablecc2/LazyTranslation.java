@@ -699,7 +699,11 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    	// modify the parent such that the signature has the correct
 	    	// value of the numerical without any extra spaces
 	    	// plain string will always modify to a integer even if we return double value
-	    	curReactor.modifySignature(node.toString().trim(), BigDecimal.valueOf(retNum.doubleValue()).toPlainString());
+    		String replacementString = BigDecimal.valueOf(retNum.doubleValue()).toPlainString();
+    		if(replacementString.endsWith(".0")) {
+    			replacementString = replacementString.substring(0, replacementString.length()-2);
+    		}
+	    	curReactor.modifySignature(node.toString().trim(), replacementString);
     	} else {
     		// looks like you just have a number...
     		// i guess i will return this?
