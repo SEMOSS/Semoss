@@ -66,7 +66,7 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
 			
 			AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 					.withRegion(clientRegion)
-					.withCredentials(new AWSStaticCredentialsProvider(S3Utils.getInstance().getS3Creds()))
+					.withCredentials(S3Utils.getInstance().getAwsCredsChain())
 					.build();
 
 			// Get an object and print its contents.
