@@ -7,7 +7,6 @@ import java.util.Map;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
@@ -18,38 +17,59 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 
-public class S3ListFilesReactor extends AbstractReactor{
-
-
-	AmazonS3 s3Client = null; 
-
+public class S3ListFilesReactor extends AbstractS3Reactor {
+	
+	private static final String BUCKET = "bucket";
+	private static final String PATH = "path";
+	private static final String RECURSIVE = "recursive";
+	private static final String LIMIT = "limit";
+	
 	public S3ListFilesReactor() {
-		this.keysToGet = new String[] { "region" , "bucket", "path" };
+		this.keysToGet = getS3KeysToGet(new String[] { BUCKET, PATH, RECURSIVE, LIMIT });
 	}
-
+	
+	@Override
+	public String getDescriptionForKey(String key) {
+		if(key.equals(BUCKET)) {
+			return "S3 bucket name";
+		} else if(key.equals(PATH)) {
+			return "S3 path to list files from";
+		} else if(key.equals(RECURSIVE)) {
+			return "Boolean flag to indicate if objects should be listed recursively (default false)";
+		} else if(key.equals(LIMIT)) {
+			return "Max number of results to list (default 100). Use -1 for unlimited";
+		}
+		return super.getDescriptionForKey(key);
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "List the files in an S3 bucket. Credentials can be optionally set via a profile path/name, or with an explicit access key and secret. Otherwise, credentials from environment variables or social properties are used.";
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String clientRegion = this.keyValue.get(this.keysToGet[0]);
-		String bucketName = this.keyValue.get(this.keysToGet[1]);
-		String path = this.keyValue.get(this.keysToGet[2]);
-		if(clientRegion == null || clientRegion.isEmpty() || bucketName == null || bucketName.isEmpty()  || path == null){
-			throw new IllegalArgumentException("Region and Path cannot be empty");
+		String bucketName = this.keyValue.get(BUCKET);
+		String path = this.keyValue.get(PATH);
+		if(bucketName == null || bucketName.isEmpty() || path == null){
+			throw new IllegalArgumentException("Bucket and Path cannot be empty");
 		}
-
-
-		Map<String, Object> returnMap = new HashMap<String, Object>();
+		
+		int limit = 100;
+		String limitString = this.keyValue.get(LIMIT);
+		if(limitString != null && !limitString.isEmpty()) {
+			try {
+				limit = Integer.parseInt(limitString);
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException("Limit must be an integer");
+			}
+		}
+		
 		List <Map<String, Object>> output = new ArrayList <Map<String, Object>>();
-
-		AWSCredentials creds = S3Utils.getInstance().getS3Creds();
-		if (creds != null );
 		try{
-			s3Client = AmazonS3ClientBuilder.standard()
-					.withRegion(clientRegion)
-					.withCredentials(new AWSStaticCredentialsProvider(creds))
-					.build();
+			AmazonS3 s3Client = getS3Client();
 
 			Boolean isTopLevel = false;
 			String delimiter = "/";
@@ -60,14 +80,19 @@ public class S3ListFilesReactor extends AbstractReactor{
 				path += delimiter;
 			}
 
-			ListObjectsRequest listObjectsRequest = null;
-			if (isTopLevel) {
-				listObjectsRequest =
-						new ListObjectsRequest().withBucketName(bucketName).withDelimiter(delimiter);
-			} else {
-				listObjectsRequest = new ListObjectsRequest().withBucketName(bucketName).withPrefix(path)
-						.withDelimiter(delimiter);
+			ListObjectsRequest listObjectsRequest = new ListObjectsRequest().withBucketName(bucketName);
+			if(!Boolean.parseBoolean(this.keyValue.get(RECURSIVE))) {
+				listObjectsRequest.setDelimiter(delimiter);
 			}
+			
+			if (!isTopLevel) {
+				listObjectsRequest.setPrefix(path);
+			}
+			
+			if(limit > 0) {
+				listObjectsRequest.setMaxKeys(limit);
+			}
+			
 			com.amazonaws.services.s3.model.ObjectListing objects = s3Client.listObjects(listObjectsRequest);
 
 			List<String> folders = objects.getCommonPrefixes();
@@ -92,25 +117,13 @@ public class S3ListFilesReactor extends AbstractReactor{
 				fileMap.put("type", "file");
 				output.add(fileMap);
 			}
-
-
-		} catch (AmazonServiceException e) {
-			// The call was transmitted successfully, but Amazon S3 couldn't process 
-			// it, so it returned an error response.
-			e.printStackTrace();
 		} catch (SdkClientException e) {
-			// Amazon S3 couldn't be contacted for a response, or the client
-			// couldn't parse the response from Amazon S3.
 			e.printStackTrace();
-		}catch (Exception e) {
-			e.printStackTrace();
+			return getError("Error occurred listing files: " + e.getMessage());
 		}
-
-
-		// TODO Auto-generated method stub
+		
 		NounMetadata noun = new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.S3);
 		return noun;
-
 	}
 
 	public static void main(String[] args){
