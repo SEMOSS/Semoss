@@ -4,8 +4,7 @@ import java.io.File;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.transfer.MultipleFileUpload;
@@ -24,8 +23,6 @@ import prerna.util.AssetUtility;
 
 public class PushAssetToS3Reactor  extends AbstractReactor {
 
-
-
 	public PushAssetToS3Reactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), "bucket", "region"};
 	}
@@ -43,15 +40,12 @@ public class PushAssetToS3Reactor  extends AbstractReactor {
 		String bucketName = this.keyValue.get(this.keysToGet[2]);
 		String clientRegion = this.keyValue.get(this.keysToGet[3]);
 
-
-
-
-		AWSCredentials creds = S3Utils.getInstance().getS3Creds();
+		AWSCredentialsProviderChain creds = S3Utils.getInstance().getAwsCredsChain();
 
 		if (creds != null ) {
 			AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 					.withRegion(clientRegion)
-					.withCredentials(new AWSStaticCredentialsProvider(creds))
+					.withCredentials(creds)
 					.build();
 			if (relativeAssetPath != null && relativeAssetPath.length() > 0) {
 
