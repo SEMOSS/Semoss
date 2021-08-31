@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -71,11 +72,11 @@ public class ToS3Reactor extends TaskBuilderReactor {
 
 		File fileToPush = new File(this.fileLocation);
 
-		AWSCredentials creds = S3Utils.getInstance().getS3Creds();
+		AWSCredentialsProvider creds = S3Utils.getInstance().getAwsCredsChain();
 		if (creds != null ) {
 			AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 					.withRegion(clientRegion)
-					.withCredentials(new AWSStaticCredentialsProvider(creds))
+					.withCredentials(creds)
 					.build();
 			TransferManager xferMgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
 			try {
