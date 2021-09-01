@@ -6,6 +6,8 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +22,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
@@ -81,7 +84,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		} finally {
 			if(close) {
-				queryUtil.closeAutoClosable(con, logger);
+				closeAutoClosable(con, logger);
 			}
 		}
 		
@@ -107,14 +110,70 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		} finally {
 			if(close) {
-				queryUtil.closeAutoClosable(tablesRs, logger);
-				queryUtil.closeAutoClosable(tableStmt, logger);
-				queryUtil.closeAutoClosable(con, logger);
+				closeAutoClosable(tablesRs, logger);
+				closeAutoClosable(tableStmt, logger);
+				closeAutoClosable(con, logger);
 			}
 		}
 		
-		Map<String, List<String>> ret = queryUtil.getTablesAndViews(con, tableStmt, tablesRs, connectionDetails, logger);
+		// keep a list of tables and views
+		List<String> tableSchemas = new ArrayList<String>();
+		List<String> tables = new ArrayList<String>();
+		List<String> viewSchemas = new ArrayList<String>();
+		List<String> views = new ArrayList<String>();
+
+		String[] tableKeys = RdbmsConnectionHelper.getTableKeys(driverEnum);
+		final String TABLE_NAME_STR = tableKeys[0];
+		final String TABLE_TYPE_STR = tableKeys[1];
+		final String TABLE_SCHEMA_STR = tableKeys[2];
+		try {
+			while (tablesRs.next()) {
+				String table = tablesRs.getString(TABLE_NAME_STR);
+				// this will be table or view
+				String tableType = tablesRs.getString(TABLE_TYPE_STR).toUpperCase();
+				// get schema
+				String tableSchema = tablesRs.getString(TABLE_SCHEMA_STR).toUpperCase();
+				if(tableType.toUpperCase().contains("TABLE")) {
+					logger.info("Found table = " + Utility.cleanLogString(table));
+					tables.add(table);
+					tableSchemas.add(tableSchema);
+				} else {
+					// there may be views built from sys or information schema
+					// we want to ignore these
+					logger.info("Found view = " + Utility.cleanLogString(table));
+					views.add(table);
+					viewSchemas.add(tableSchema);
+				}
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			closeAutoClosable(tablesRs, logger);
+			closeAutoClosable(tableStmt, logger);
+			closeAutoClosable(con, logger);
+		}
+		logger.info("Done parsing database metadata");
+		
+		Map<String, List<String>> ret = new HashMap<String, List<String>>();
+		ret.put("tables", tables);
+		ret.put("tableSchemas", tableSchemas);
+		ret.put("views", views);
+		ret.put("viewSchemas", viewSchemas);
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
+	
+	/**
+	 * Close a connection, statement, or result set
+	 * @param closeable
+	 */
+	private void closeAutoClosable(AutoCloseable closeable, Logger logger) {
+		if(closeable != null) {
+			try {
+				closeable.close();
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
 	}
 
 	private Map<String, Object> getConDetails() {

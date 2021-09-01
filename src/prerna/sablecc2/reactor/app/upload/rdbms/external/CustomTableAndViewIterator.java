@@ -79,7 +79,7 @@ public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable
 				String tableSchema = this.tablesRs.getString(this.tableKeys[2]);
 				
 				if(tableAndViewFilters != null && !tableAndViewFilters.isEmpty()) {
-					if(tableOrViewName.contains(tableOrViewName)) {
+					if(tableAndViewFilters.contains(tableOrViewName)) {
 						nextRow = new String[] {tableOrViewName, tableType, tableSchema};
 						findValidRow = false;
 					}
