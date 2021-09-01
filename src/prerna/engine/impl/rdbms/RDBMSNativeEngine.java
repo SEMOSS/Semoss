@@ -113,7 +113,8 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	private int queryTimeout = -1;
 	
 	private long leakDetectionThresholdMilliseconds = 30_000;
-
+	private long idelTimeout = 60_000;
+	
 	private AbstractSqlQueryUtil queryUtil = null;
 
 	private String fileDB = null;
@@ -216,6 +217,16 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
 				} catch(Exception e) {
 					System.out.println("Error occured trying to parse and get the leak detection threshold");
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			// idle timeout
+			if(prop.getProperty(Constants.IDLE_TIMEOUT) != null) {
+				String idleTimeoutStr = prop.getProperty(Constants.IDLE_TIMEOUT);
+				try {
+					this.idelTimeout = Long.parseLong(idleTimeoutStr);
+				} catch(Exception e) {
+					System.out.println("Error occured trying to parse and get the idle timeout");
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -332,6 +343,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		dataSource.setMinimumIdle(this.poolMinSize);
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);
+		dataSource.setIdleTimeout(this.idelTimeout);
 		//		dataSource.setRemoveAbandonedOnBorrow(true);
 		//		dataSource.setRemoveAbandonedOnMaintenance(true);
 		//		dataSource.setRemoveAbandonedTimeout(5);
