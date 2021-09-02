@@ -164,6 +164,18 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			// since this will help with getting the correct keys for the connection
 			this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType);
 
+			// get the database so we have it - can be used for filtering tables/columns
+			this.database = prop.getProperty(AbstractSqlQueryUtil.DATABASE.toUpperCase());
+			if(this.database == null) {
+				this.database = prop.getProperty(AbstractSqlQueryUtil.DATABASE);
+			}
+			
+			// get the schema so we have it - can be used for filtering tables/columns
+			this.schema = prop.getProperty(AbstractSqlQueryUtil.SCHEMA.toUpperCase());
+			if(this.schema == null) {
+				this.schema = prop.getProperty(AbstractSqlQueryUtil.SCHEMA);
+			}
+			
 			// grab the username/password
 			// keys can be username/password
 			// but some will have it as accessKey/secretKey
@@ -181,14 +193,15 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
 				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
 			}
-			// see if connection pooling
-			this.useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
-
+			
 			// make a check to see if it is asking to use file
 			boolean useFile = false;
 			if(prop.containsKey(USE_FILE)) {
 				useFile = Boolean.valueOf(prop.getProperty(USE_FILE));
 			}
+
+			// see if connection pooling
+			this.useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
 
 			// fetch size
 			if(prop.getProperty(Constants.FETCH_SIZE) != null) {
@@ -344,10 +357,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);
 		dataSource.setIdleTimeout(this.idelTimeout);
-		//		dataSource.setRemoveAbandonedOnBorrow(true);
-		//		dataSource.setRemoveAbandonedOnMaintenance(true);
-		//		dataSource.setRemoveAbandonedTimeout(5);
-		//		dataSource.setMaxWaitMillis(30_000);
+//		dataSource.setConnectionTimeout(connectionTimeoutMs);
 	}
 
 	@Override
@@ -357,37 +367,29 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	@Override
 	public String getSchema() {
+		// if not set in the prop file
+		// try to grab from the connection details
 		if(this.schema == null) {
-			// first see if set in the properties file directly
-			if(this.prop != null) {
-				this.schema = this.prop.getProperty(AbstractSqlQueryUtil.SCHEMA.toUpperCase());
-				if(this.schema == null) {
-					this.schema = this.prop.getProperty(AbstractSqlQueryUtil.SCHEMA);
-				}
-			}
-			// else try to predict
-			if(this.schema == null) {
-				DatabaseMetaData meta = getConnectionMetadata();
-				if(meta != null) {
-					Connection conn = null;
-					try {
-						conn = getConnection();
-						this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
-					} catch(SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					} finally {
-						if(this.datasourceConnected && conn != null) {
-							try {
-								conn.close();
-							} catch (SQLException e) {
-								logger.error(Constants.STACKTRACE, e);
-							}
-							try {
-								meta.getConnection().close();
-							} catch (SQLException e) {
-								logger.error(Constants.STACKTRACE, e);
-								e.printStackTrace();
-							}
+			DatabaseMetaData meta = getConnectionMetadata();
+			if(meta != null) {
+				Connection conn = null;
+				try {
+					conn = getConnection();
+					this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
+				} catch(SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				} finally {
+					if(this.datasourceConnected && conn != null) {
+						try {
+							conn.close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+						try {
+							meta.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+							e.printStackTrace();
 						}
 					}
 				}
@@ -1047,8 +1049,8 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		}
 	}
 
-	public Clob createClob() throws SQLException {
-		return this.makeConnection().createClob();
+	public Clob createClob(Connection connection) throws SQLException {
+		return connection.createClob();
 	}
 
 	public void setQueryUtil(AbstractSqlQueryUtil queryUtil) {
