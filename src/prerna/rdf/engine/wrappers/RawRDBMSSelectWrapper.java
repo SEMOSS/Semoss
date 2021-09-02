@@ -1,5 +1,6 @@
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Array;
 import java.sql.Connection;
@@ -28,6 +29,7 @@ import prerna.om.HeadersDataRow;
 import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.sql.RDBMSUtility;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
@@ -130,11 +132,14 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				int type = colTypes[colNum-1];
 				if(type == Types.INTEGER) {
 					val = rs.getInt(colNum);
-				} else if (type == Types.BIGINT ) {
+				} 
+				else if (type == Types.BIGINT ) {
 					val = rs.getLong(colNum);
-				}else if(type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.REAL) {
+				} 
+				else if(type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.REAL) {
 					val = rs.getDouble(colNum);
-				} else if(type == Types.DATE) {
+				} 
+				else if(type == Types.DATE) {
 					try {
 						Date dVal = rs.getDate(colNum);
 						if(dVal == null) {
@@ -155,7 +160,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							logger.error(Constants.STACKTRACE, e2);
 						}
 					}
-				} else if(type == Types.TIMESTAMP) {
+				} 
+				else if(type == Types.TIMESTAMP) {
 					try {
 						Timestamp dVal = rs.getTimestamp(colNum);
 						if(dVal == null) {
@@ -176,14 +182,30 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							logger.error(Constants.STACKTRACE, e2);
 						}
 					}
-				} else if(type == Types.CLOB) {
+				} 
+				else if(type == Types.CLOB) {
 					val = rs.getClob(colNum);
-				} else if(type == Types.ARRAY) {
+					try {
+						val = RDBMSUtility.flushClobToString((java.sql.Clob) val);
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				} 
+				else if(type == Types.BLOB) {
+					val = rs.getClob(colNum);
+					try {
+						val = RDBMSUtility.flushBlobToString((java.sql.Blob) val);
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				} 
+				else if(type == Types.ARRAY) {
 					Array arrVal = rs.getArray(colNum);
 					if(arrVal != null) {
 						val = arrVal.getArray();
 					}
-				} else if(type == Types.VARBINARY) {
+				} 
+				else if(type == Types.VARBINARY) {
 					byte[] bytes = rs.getBytes(colNum);
 					if(bytes != null) {
 						try {
