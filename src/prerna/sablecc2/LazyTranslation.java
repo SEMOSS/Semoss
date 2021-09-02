@@ -685,12 +685,20 @@ public class LazyTranslation extends DepthFirstAdapter {
     	} else {
     		fraction = "0";
     	}
-		Number retNum = new BigDecimal(whole + "." + fraction);
+    	BigDecimal retNum = new BigDecimal(whole + "." + fraction);
     	NounMetadata noun = null;
     	if(isDouble) {
     		noun = new NounMetadata(retNum.doubleValue(), PixelDataType.CONST_DECIMAL);
     	} else {
-    		noun = new NounMetadata(retNum.intValue(), PixelDataType.CONST_INT);
+    		try {
+    			noun = new NounMetadata(retNum.intValueExact(), PixelDataType.CONST_INT);
+    		} catch(Exception e1) {
+    			try {
+    				noun = new NounMetadata(retNum.longValueExact(), PixelDataType.CONST_INT);
+    			} catch(Exception e2) {
+    	    		noun = new NounMetadata(retNum.doubleValue(), PixelDataType.CONST_DECIMAL);
+    			}
+    		}
     	}
     	// if its an assignment
     	// just put in results in case we are doing a |
