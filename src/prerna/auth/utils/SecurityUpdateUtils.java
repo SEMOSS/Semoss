@@ -248,6 +248,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, row[2].toString());
 					ps.setBoolean(parameterIndex++, (boolean) row[4]);
 					
+					// **** WITH RECENT UPDATES - THE RAW WRAPPER SHOULD NOT BE GIVING US BACK A CLOB
 					// need to determine if our input is a clob
 					// and if the database allows a clob data type
 					// use the utility method generated
