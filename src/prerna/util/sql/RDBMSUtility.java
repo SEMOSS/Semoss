@@ -36,6 +36,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
@@ -71,9 +72,27 @@ public class RDBMSUtility {
 		if(value == null) {
 			ps.setNull(parameterIndex, java.sql.Types.CLOB);
 		}
+		
+		// grab the connection used in the prepared statement
+		// in case we are doing pooling
+		Connection conn = ps.getConnection();
+		
+		// DUE TO NOT RETURNING CLOB FROM THE WRAPPER BUT FLUSHING IT OUT
+		// THIS IS THE ONLY BLOCK THAT SHOULD GET ENTERED
+		if(value instanceof String) {
+			if(queryUtil.allowClobJavaObject()) {
+				Clob engineClob = engine.createClob(conn);
+				engineClob.setString(1, (String) value);
+				ps.setClob(parameterIndex, engineClob);
+			} else {
+				ps.setString(parameterIndex, (String) value);
+			}
+			return;
+		}
+		
 		// do we allow clob data types?
 		if(queryUtil.allowClobJavaObject()) {
-			Clob engineClob = engine.createClob();
+			Clob engineClob = engine.createClob(conn);
 
 			boolean canTransfer = false;
 			// is our input also a clob?
