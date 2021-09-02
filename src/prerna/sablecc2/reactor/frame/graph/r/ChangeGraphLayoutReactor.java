@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r.graph;
+package prerna.sablecc2.reactor.frame.graph.r;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
