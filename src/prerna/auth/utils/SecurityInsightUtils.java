@@ -673,7 +673,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
-				Clob clob = securityDb.createClob();
+				Clob clob = securityDb.createClob(ps.getConnection());
 				clob.setString(1, securityGson.toJson(recipe));
 				ps.setClob(parameterIndex++, clob);
 			} else {
@@ -687,15 +687,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
-					if(securityDb.isConnectionPooling()) {
-						try {
-							ps.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -732,15 +732,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
-					if(securityDb.isConnectionPooling()) {
-						try {
-							ps.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -771,7 +771,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, layout);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
-				Clob clob = securityDb.createClob();
+				Clob clob = securityDb.createClob(ps.getConnection());
 				clob.setString(1, securityGson.toJson(recipe));
 				ps.setClob(parameterIndex++, clob);
 			} else {
