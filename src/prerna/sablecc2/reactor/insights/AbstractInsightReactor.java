@@ -22,7 +22,6 @@ import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.couch.CouchException;
 import prerna.io.connector.couch.CouchUtil;
@@ -390,16 +389,16 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	/**
 	 * Update the recipe to save the files in the insight location
 	 * @param insightPixelList
-	 * @param appId
+	 * @param projectId
+	 * @param projectName
 	 * @param newInsightId
+	 * @param deleteOrigFile
 	 * @return
 	 */
-	protected boolean saveFilesInInsight(PixelList insightPixelList, String appId, String newInsightId, boolean deleteOrigFile) {
+	protected boolean saveFilesInInsight(PixelList insightPixelList, String projectId, String projectName, String newInsightId, boolean deleteOrigFile) {
 		boolean filesSaved = false;
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-		
-		String appName = SecurityQueryUtils.getDatabaseAliasForId(appId);
 		
 		for(Pixel p : insightPixelList) {
 			// use the metadata captured to determine if this is a file read
@@ -441,12 +440,12 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 						String filename = baseFile + "." + extension;
 						// we only want to shift if it is an insight file
 						// or if it is a user file
-						// if app - keep in current app folder
+						// if project - keep in current project folder
 						boolean isUserSpace = space != null && space.toUpperCase().equals(AssetUtility.USER_SPACE_KEY);
 						if(space == null || space.isEmpty() || isUserSpace) {
 							File origF = new File(fileLoc);
 							String newFileLoc = BASE + DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR + 
-													SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + 
+													SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + 
 													"app_root" + DIR_SEPARATOR + "version" + DIR_SEPARATOR +
 													newInsightId + DIR_SEPARATOR + 
 													"data";
