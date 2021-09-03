@@ -78,15 +78,15 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	@Override
 	public void write(JsonWriter out, Insight value) throws IOException {
 		String rdbmsId = value.getRdbmsId();
-		String engineId = value.getProjectId();
-		String engineName = value.getProjectName();
+		String projectId = value.getProjectId();
+		String projectName = value.getProjectName();
 		
-		if(engineId == null || rdbmsId == null || engineName == null) {
+		if(projectId == null || rdbmsId == null || projectName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folderDir = InsightCacheUtility.getInsightCacheFolderPath(engineId, engineName, rdbmsId);
+		String folderDir = InsightCacheUtility.getInsightCacheFolderPath(projectId, projectName, rdbmsId);
 		if(!(new File(Utility.normalizePath(folderDir)).exists())) {
 			new File(Utility.normalizePath(folderDir)).mkdirs();
 		}
@@ -94,9 +94,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// start insight object
 		out.beginObject();
 		// write engine id
-		out.name("engineId").value(engineId);
+		out.name("projectId").value(projectId);
 		// write engine name
-		out.name("engineName").value(engineName);
+		out.name("projectName").value(projectName);
 		// write rdbms id
 		out.name("rdbmsId").value(rdbmsId);
 		
@@ -122,9 +122,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		for(FrameCacheHelper fObj : frames) {
 			CachePropFileFrameObject saveFrame = fObj.getFrame().save(folderDir);
 			out.beginObject();
-			out.name("file").value(parameterizePath(saveFrame.getFrameCacheLocation(), baseFolder, engineName, engineId));
-			out.name("meta").value(parameterizePath(saveFrame.getFrameMetaCacheLocation(), baseFolder, engineName, engineId));
-			out.name("state").value(parameterizePath(saveFrame.getFrameStateCacheLocation(), baseFolder, engineName, engineId));
+			out.name("file").value(parameterizePath(saveFrame.getFrameCacheLocation(), baseFolder, projectName, projectId));
+			out.name("meta").value(parameterizePath(saveFrame.getFrameMetaCacheLocation(), baseFolder, projectName, projectId));
+			out.name("state").value(parameterizePath(saveFrame.getFrameStateCacheLocation(), baseFolder, projectName, projectId));
 			out.name("type").value(saveFrame.getFrameType());
 			out.name("name").value(saveFrame.getFrameName());
 			out.name("keys");
@@ -228,11 +228,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		in.beginObject();
 		in.nextName();
 		// engine id, engine name, rdbms id
-		String engineId = in.nextString();
-		insight.setProjectId(engineId);
+		String projectId = in.nextString();
+		insight.setProjectId(projectId);
 		in.nextName();
-		String engineName = in.nextString();
-		insight.setProjectName(Utility.getEngine(engineId).getEngineName());
+		String projectName = in.nextString();
+		insight.setProjectName(projectName);
 		in.nextName();
 		String rdbmsId = in.nextString();
 		insight.setRdbmsId(rdbmsId);
@@ -259,7 +259,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			while(in.hasNext()) {
 				String k = in.nextName();
 				if(k.equals("file")) {
-					String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
+					String path = deparameterizePath(in.nextString(), baseFolder, projectName, projectId);
 					String normalizedPath = Utility.normalizePath(path);
 
 					if(!(new File(normalizedPath).exists())) {
@@ -267,7 +267,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 					}
 					cf.setFrameCacheLocation(path);
 				} else if(k.equals("meta")) {
-					String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
+					String path = deparameterizePath(in.nextString(), baseFolder, projectName, projectId);
 					String normalizedPath = Utility.normalizePath(path);
 
 					if(!(new File(normalizedPath).exists())) {
@@ -284,7 +284,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 					if(peek == JsonToken.NULL) {
 						in.nextNull();
 					} else {
-						String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
+						String path = deparameterizePath(in.nextString(), baseFolder, projectName, projectId);
 						String normalizedPath = Utility.normalizePath(path);
 
 						if(!(new File(normalizedPath).exists())) {
