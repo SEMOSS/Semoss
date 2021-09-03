@@ -574,15 +574,15 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			if(stmt != null) {
 				try {
 					stmt.close();
-					if(securityDb.isConnectionPooling()) {
-						try {
-							stmt.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						stmt.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -629,6 +629,13 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 					ps.close();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
