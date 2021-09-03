@@ -14,7 +14,6 @@ import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
-import prerna.engine.impl.SmssUtilities;
 import prerna.om.MosfetFile;
 import prerna.om.PixelList;
 import prerna.project.api.IProject;
@@ -27,7 +26,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -114,6 +112,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			}
 		}
 		
+		IProject project = Utility.getProject(projectId);
+		
 		// WE DO NOT NEED TO SAVE THE FILES
 		// THEY SHOULD ALREADY BE LOADED INTO THE INSIGHT SPACE
 		// SINCE THIS IS AN EXISTING INSIGHTX
@@ -123,7 +123,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(insightPixelList != null) {
 			try {
 				// we will delete and move the files used in this insight space to the data folder
-				if(saveFilesInInsight(insightPixelList, projectId, existingId, true)) {
+				if(saveFilesInInsight(insightPixelList, projectId, project.getProjectName(), existingId, true)) {
 					// need to pull the new saved recipe
 					recipeToSave = insightPixelList.getPixelRecipe();
 				}
@@ -138,8 +138,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(params != null && !params.isEmpty()) {
 			recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
 		}
-		
-		IProject project = Utility.getProject(projectId);
 		
 		//Pull the insights db again incase someone just saved something 
 		ClusterUtil.reactorPullInsightsDB(projectId);
