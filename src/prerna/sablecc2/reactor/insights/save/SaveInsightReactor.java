@@ -136,21 +136,17 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			}
 		}
 		
+		IProject project = Utility.getProject(projectId);
+
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
 		// get the new insight id
 		String newInsightId = UUID.randomUUID().toString();
-		
-		// pull the insights db again incase someone just saved something 
-		IProject project = Utility.getProject(projectId);
-		ClusterUtil.reactorPullInsightsDB(projectId);
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
-		
 		if(insightPixelList != null) {
 			try {
 				// if we are saving a saved insight as another insight
 				// do not delete the file from this insight
-				if(saveFilesInInsight(insightPixelList, projectId, newInsightId, !this.insight.isSavedInsight())) {
+				if(saveFilesInInsight(insightPixelList, projectId, project.getProjectName(), newInsightId, !this.insight.isSavedInsight())) {
 					// need to pull the new saved recipe
 					recipeToSave = insightPixelList.getPixelRecipe();
 				}
@@ -169,6 +165,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("An error occured trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
 			}
 		}
+		
+		// pull the insights db again incase someone just saved something 
+		ClusterUtil.reactorPullInsightsDB(projectId);
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 		
 		int stepCounter = 1;
 		// add the recipe to the insights database
