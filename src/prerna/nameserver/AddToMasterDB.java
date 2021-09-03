@@ -59,22 +59,17 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AddToMasterDB {
 
     private static final Logger logger = LogManager.getLogger(AddToMasterDB.class);
 
-    // For testing, change to your own local directories
-    private static final String WS_DIRECTORY = "C:/Users/pkapaleeswaran/Workspacej3";
-    private static final String DB_DIRECTORY = WS_DIRECTORY + "/SemossWeb/db";
-    private static final String STACKTRACE = "StackTrace: ";
-    private static final String VARCHAR_255 = "varchar(255)";
-
     private PersistentHash conceptIdHash = null;
 
 	/*
-	 *  a.	Need multiple primary keys
+	 *
+	 * 
+	    a.	Need multiple primary keys
 		b.	Need a way to specify property with same name across the multiple concepts
 		c.	Need for multiple foreign keys
 		d.	Being able to handle loop elegantly
@@ -148,10 +143,15 @@ public class AddToMasterDB {
             }
 
             this.conceptIdHash.put(engineName + "_ENGINE", engineUniqueId);
-            String[] colNames = {"ID", "EngineName", "ModifiedDate", "Type"};
-            String[] types = {"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
-            Object[] engineData = {AbstractSqlQueryUtil.escapeForSQLStatement(engineUniqueId), AbstractSqlQueryUtil.escapeForSQLStatement(engineName), new java.sql.Timestamp(modDate.getTime()), AbstractSqlQueryUtil.escapeForSQLStatement(engineTypeString), "true"};
-            insertQuery(conn, "Engine", colNames, types, engineData);
+            String enginePsQuery = "INSERT INTO ENGINE (ID, ENGINENAME, MODIFIEDDATE, TYPE) VALUES (?,?,?,?)";
+            try(PreparedStatement ps = conn.prepareStatement(enginePsQuery)) {
+            	int parameterIndex = 1;
+				ps.setString(parameterIndex++, engineUniqueId);
+				ps.setString(parameterIndex++, engineName);
+				ps.setTimestamp(parameterIndex++, new java.sql.Timestamp(modDate.getTime()));
+				ps.setString(parameterIndex++, engineTypeString);
+				ps.execute();
+            }
 
             // get the list of all the physical names
             // false denotes getting the physical names
@@ -160,22 +160,46 @@ public class AddToMasterDB {
     		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Concepts Found = " + concepts.size());
     		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Relationships Found = " + relationships.size());
 
+            String conceptPsQuery = "INSERT INTO CONCEPT (LOCALCONCEPTID, CONCEPTUALNAME, LOGICALNAME, DOMAINNAME, GLOBALID) VALUES (?,?,?,?,?)";
+            String engineConceptPsQuery = "INSERT INTO ENGINECONCEPT (ENGINE, PARENTSEMOSSNAME, SEMOSSNAME, PARENTPHYSICALNAME, "
+            		+ "PARENTPHYSICALNAMEID, PARENTLOCALCONCEPTID, PHYSICALNAME, PHYSICALNAMEID, LOCALCONCEPTID, "
+            		+ "IGNORE_DATA, PK, ORIGINAL_TYPE, PROPERTY_TYPE, ADDITIONAL_TYPE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            String conceptMetadataPsQuery = "INSERT INTO CONCEPTMETADATA (PHYSICALNAMEID, KEY, VALUE) VALUES (?,?,?)";
+    		
+            PreparedStatement conceptPs = conn.prepareStatement(conceptPsQuery);
+            PreparedStatement engineConceptPs = conn.prepareStatement(engineConceptPsQuery);
+            PreparedStatement conceptMetaDataPs = conn.prepareStatement(conceptMetadataPsQuery);
+
             // iterate through all the concepts to insert into the local master
             for (int conceptIndex = 0; conceptIndex < concepts.size(); conceptIndex++) {
                 String conceptPhysicalUri = concepts.get(conceptIndex);
                 logger.debug("Processing concept ::: " + conceptPhysicalUri);
-                masterConcept(conn, engineName, conceptPhysicalUri, helper, engineType);
+                masterConcept(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, conceptPhysicalUri, helper, engineType);
             }
 
+            String relationPsQuery = "INSERT INTO RELATION (ID, SOURCEID, TARGETID, GLOBALID) VALUES (?,?,?,?)";
+            String engineRelationPsQuery = "INSERT INTO ENGINERELATION (Engine, RelationID, InstanceRelationID, SourceConceptID, "
+            		+ "TargetConceptID, SourceProperty, TargetProperty, RelationName) VALUES (?,?,?,?,?,?,?,?)";
+            
+            PreparedStatement relationPs = conn.prepareStatement(relationPsQuery);
+            PreparedStatement engineRelationPs = conn.prepareStatement(engineRelationPsQuery);
+            
             for (int relIndex = 0; relIndex < relationships.size(); relIndex++) {
                 String[] relationshipToInsert = relationships.get(relIndex);
                 logger.debug("Processing relationship ::: " + Arrays.toString(relationshipToInsert));
-                masterRelationship(conn, engineName, relationshipToInsert, helper);
+                masterRelationship(relationPs, engineRelationPs, engineName, relationshipToInsert, helper);
             }
 
+            // execute all of the inserts
+            conceptPs.executeBatch();
+            engineConceptPs.executeBatch();
+            conceptMetaDataPs.executeBatch();
+            relationPs.executeBatch();
+            engineRelationPs.executeBatch();
+            
             return true;
         } catch (Exception e) {
-            logger.error(STACKTRACE, e);
+            logger.error(Constants.STACKTRACE, e);
             throw new IllegalArgumentException("An error occurred establishing a connection to the local master database");
         } finally {
     		if(localMaster.isConnectionPooling()) {
@@ -184,7 +208,7 @@ public class AddToMasterDB {
     					conn.close();
     				}
 				} catch (SQLException e) {
-		            logger.error(STACKTRACE, e);
+		            logger.error(Constants.STACKTRACE, e);
 				}
     		}
         }
@@ -203,13 +227,12 @@ public class AddToMasterDB {
      * @param conceptPhysicalUri
      * @param helper
      * @param engineType
+     * @throws SQLException 
      */
-    private void masterConcept(Connection conn, String engineName, String conceptPhysicalUri, MetaHelper helper,
-                               IEngine.ENGINE_TYPE engineType) {
-        String[] colNames = null;
-        String[] types = null;
-        String[] insertValues = null;
-
+    private void masterConcept(PreparedStatement conceptPs, PreparedStatement engineConceptPs, PreparedStatement conceptMetaDataPs, 
+    		String engineName, String conceptPhysicalUri, MetaHelper helper, IEngine.ENGINE_TYPE engineType) throws SQLException {
+    	int parameterIndex = 1;
+    	
         // I need to add the concept into the CONCEPT table
         // The CONCEPT table is engine agnostic
         // So if I have Movie_RDBMS and Movie_RDF, and both have Title
@@ -233,13 +256,15 @@ public class AddToMasterDB {
             Collection<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualName);
             // add new logicals
             if (!logicals.isEmpty()) {
-                colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
-                types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-
                 for (String logical : logicals) {
                     if (!curLogicals.contains(logical)) {
-                        insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
-                        insertQuery(conn, "Concept", colNames, types, insertValues);
+                    	parameterIndex = 1;
+        				conceptPs.setString(parameterIndex++, conceptGuid);
+        				conceptPs.setString(parameterIndex++, conceptualName);
+        				conceptPs.setString(parameterIndex++, logical.toLowerCase());
+        				conceptPs.setString(parameterIndex++, "NewDomain");
+        				conceptPs.setString(parameterIndex++, "");
+        				conceptPs.addBatch();
                     }
                 }
             }
@@ -248,19 +273,26 @@ public class AddToMasterDB {
             conceptGuid = UUID.randomUUID().toString();
             // store it in the hash
             this.conceptIdHash.put(conceptualName + "_CONCEPTUAL", conceptGuid);
-
             // now insert it into the table
-            colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
-            types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
             // TODO: we need to also store multiple logical names at some point
             // right now, default is to add the conceptual name as a logical name
-            insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName.toLowerCase()), "NewDomain", ""};
-            insertQuery(conn, "Concept", colNames, types, insertValues);
-
+            parameterIndex = 1;
+			conceptPs.setString(parameterIndex++, conceptGuid);
+			conceptPs.setString(parameterIndex++, conceptualName);
+			conceptPs.setString(parameterIndex++, conceptualName.toLowerCase());
+			conceptPs.setString(parameterIndex++, "NewDomain");
+			conceptPs.setString(parameterIndex++, "");
+			conceptPs.addBatch();
+            
             // also add all the logical names
             for (String logical : logicals) {
-                insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
-                insertQuery(conn, "Concept", colNames, types, insertValues);
+            	parameterIndex = 1;
+				conceptPs.setString(parameterIndex++, conceptGuid);
+				conceptPs.setString(parameterIndex++, conceptualName);
+				conceptPs.setString(parameterIndex++, logical.toLowerCase());
+				conceptPs.setString(parameterIndex++, "NewDomain");
+				conceptPs.setString(parameterIndex++, "");
+				conceptPs.addBatch();
             }
         }
 
@@ -285,49 +317,55 @@ public class AddToMasterDB {
 
         // this is a concept
         // and it has no parent
-        colNames = new String[]{"Engine", "ParentSemossName", "SemossName", "ParentPhysicalName",
-                "ParentPhysicalNameID", "ParentLocalConceptID", "PhysicalName", "PhysicalNameID", "LocalConceptID",
-                "Ignore_Data", "PK", "Original_Type", "Property_Type", "Additional_Type"};
-
-        types = new String[]{VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
-                VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, "boolean", "boolean", VARCHAR_255,
-                VARCHAR_255, VARCHAR_255};
-
-        Object[] conceptInstanceData = {AbstractSqlQueryUtil.escapeForSQLStatement(engineId), null, AbstractSqlQueryUtil.escapeForSQLStatement(semossName), null, null, null, AbstractSqlQueryUtil.escapeForSQLStatement(conceptPhysicalInstance),
-        		AbstractSqlQueryUtil.escapeForSQLStatement(engineConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), ignoreData, true, AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[0]), 
-        		AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[1]), AbstractSqlQueryUtil.escapeForSQLStatement(adtlDataType)};
-
-        insertQuery(conn, "EngineConcept", colNames, types, conceptInstanceData);
-
+        parameterIndex = 1;
+        engineConceptPs.setString(parameterIndex++, engineId);
+        engineConceptPs.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+        engineConceptPs.setString(parameterIndex++, semossName);
+        engineConceptPs.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+        engineConceptPs.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+        engineConceptPs.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+        engineConceptPs.setString(parameterIndex++, conceptPhysicalInstance);
+        engineConceptPs.setString(parameterIndex++, engineConceptGuid);
+        engineConceptPs.setString(parameterIndex++, conceptGuid);
+        engineConceptPs.setBoolean(parameterIndex++, ignoreData);
+        engineConceptPs.setBoolean(parameterIndex++, true);
+        engineConceptPs.setString(parameterIndex++, dataTypes[0]);
+        engineConceptPs.setString(parameterIndex++, dataTypes[1]);
+        engineConceptPs.setString(parameterIndex++, adtlDataType);
+		engineConceptPs.addBatch();
+        
         // store it in the hash, we will need this for the engine relationships
         this.conceptIdHash.put(engineName + "_" + conceptPhysicalInstance + "_PHYSICAL", engineConceptGuid);
 
         {
             // add the conceptual as a logical name to the physical name id
-            colNames = new String[]{"PhysicalNameID", "Key", "Value"};
-            types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
-            insertValues = new String[]{engineConceptGuid, "logical", conceptualName.toLowerCase()};
-            insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
-
+            parameterIndex = 1;
+			conceptMetaDataPs.setString(parameterIndex++, engineConceptGuid);
+			conceptMetaDataPs.setString(parameterIndex++, "logical");
+			conceptMetaDataPs.setString(parameterIndex++, conceptualName.toLowerCase());
+			conceptMetaDataPs.addBatch();
+			
             if (!logicals.isEmpty()) {
-                colNames = new String[]{"PhysicalNameID", "Key", "Value"};
-                types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
                 for (String logical : logicals) {
-                    insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(engineConceptGuid), "logical", AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase())};
-                    insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
+                    parameterIndex = 1;
+    				conceptMetaDataPs.setString(parameterIndex++, engineConceptGuid);
+    				conceptMetaDataPs.setString(parameterIndex++, "logical");
+    				conceptMetaDataPs.setString(parameterIndex++, logical.toLowerCase());
+    				conceptMetaDataPs.addBatch();
                 }
             }
             // add the description to the physical name id
             String desc = helper.getDescription(conceptPhysicalUri);
             if (desc != null && !desc.trim().isEmpty()) {
-                colNames = new String[]{"PhysicalNameID", "Key", "Value"};
-                types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
-                desc = desc.trim();
+            	desc = desc.trim();
                 if (desc.length() > 20_000) {
                     desc = desc.substring(0, 19_996) + "...";
                 }
-                insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(engineConceptGuid), "description", AbstractSqlQueryUtil.escapeForSQLStatement(desc)};
-                insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
+                parameterIndex = 1;
+				conceptMetaDataPs.setString(parameterIndex++, engineConceptGuid);
+				conceptMetaDataPs.setString(parameterIndex++, "description");
+				conceptMetaDataPs.setString(parameterIndex++, desc);
+				conceptMetaDataPs.addBatch();
             }
         }
 
@@ -336,7 +374,8 @@ public class AddToMasterDB {
         for (int propIndex = 0; propIndex < properties.size(); propIndex++) {
             String propertyPhysicalUri = properties.get(propIndex);
             logger.debug("For concept = " + conceptPhysicalUri + ", adding property ::: " + propertyPhysicalUri);
-            masterProperty(conn, engineName, conceptPhysicalUri, propertyPhysicalUri, engineConceptGuid,
+            masterProperty(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, 
+            		conceptPhysicalUri, propertyPhysicalUri, engineConceptGuid,
                     conceptPhysicalInstance, conceptGuid, semossName, helper, engineType);
         }
     }
@@ -353,14 +392,13 @@ public class AddToMasterDB {
      * @param parentEngineConceptGuid
      * @param helper
      * @param engineType
+     * @throws SQLException 
      */
-    private void masterProperty(Connection conn, String engineName, String conceptPhysicalUri, String propertyPhysicalUri,
-                                String parentEngineConceptGuid, String parentPhysicalName, String parentConceptGuid,
-                                String parentSemossName, MetaHelper helper, IEngine.ENGINE_TYPE engineType) {
-        String[] colNames = null;
-        String[] types = null;
-        String[] insertValues = null;
-
+    private void masterProperty(PreparedStatement conceptPs, PreparedStatement engineConceptPs, PreparedStatement conceptMetaDataPs, 
+    		String engineName, String conceptPhysicalUri, String propertyPhysicalUri,
+            String parentEngineConceptGuid, String parentPhysicalName, String parentConceptGuid,
+            String parentSemossName, MetaHelper helper, IEngine.ENGINE_TYPE engineType) throws SQLException {
+    	int parameterIndex = 1;
         // I need to add the property into the CONCEPT table
         // The CONCEPT table is engine agnostic
         // So if I have Movie_RDBMS and Movie_RDF, and both have Title with property
@@ -387,13 +425,15 @@ public class AddToMasterDB {
             Collection<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(propertyConceptualName);
             // add new logicals
             if (!logicals.isEmpty()) {
-                colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
-                types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-
                 for (String logical : logicals) {
                     if (!curLogicals.contains(logical)) {
-                        insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
-                        insertQuery(conn, "Concept", colNames, types, insertValues);
+                        parameterIndex = 1;
+            			conceptPs.setString(parameterIndex++, propertyGuid);
+            			conceptPs.setString(parameterIndex++, propertyConceptualName);
+            			conceptPs.setString(parameterIndex++, logical.toLowerCase());
+            			conceptPs.setString(parameterIndex++, "NewDomain");
+            			conceptPs.setString(parameterIndex++, "");
+            			conceptPs.addBatch();
                     }
                 }
             }
@@ -404,17 +444,25 @@ public class AddToMasterDB {
             this.conceptIdHash.put(propertyConceptualName, propertyGuid);
 
             // now insert it into the table
-            colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
-            types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
             // TODO: we need to also store multiple logical names at some point
             // right now, default is to add the conceptual name as a logical name
-            insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName.toLowerCase()), "NewDomain", ""};
-            insertQuery(conn, "Concept", colNames, types, insertValues);
-
+            parameterIndex = 1;
+			conceptPs.setString(parameterIndex++, propertyGuid);
+			conceptPs.setString(parameterIndex++, propertyConceptualName);
+			conceptPs.setString(parameterIndex++, propertyConceptualName.toLowerCase());
+			conceptPs.setString(parameterIndex++, "NewDomain");
+			conceptPs.setString(parameterIndex++, "");
+			conceptPs.addBatch();
+            
             // also add all the logical names
             for (String logical : logicals) {
-                insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
-                insertQuery(conn, "Concept", colNames, types, insertValues);
+                parameterIndex = 1;
+    			conceptPs.setString(parameterIndex++, propertyGuid);
+    			conceptPs.setString(parameterIndex++, propertyConceptualName);
+    			conceptPs.setString(parameterIndex++, logical.toLowerCase());
+    			conceptPs.setString(parameterIndex++, "NewDomain");
+    			conceptPs.setString(parameterIndex++, "");
+    			conceptPs.addBatch();
             }
         }
 
@@ -441,48 +489,53 @@ public class AddToMasterDB {
         // get the engine id
         String engineId = this.conceptIdHash.get(engineName + "_ENGINE");
 
-        colNames = new String[]{"Engine", "ParentSemossName", "SemossName", "ParentPhysicalName",
-                "ParentPhysicalNameID", "ParentLocalConceptID", "PhysicalName", "PhysicalNameID", "LocalConceptID",
-                "Ignore_Data", "PK", "Original_Type", "Property_Type", "Additional_Type"};
-
-        types = new String[]{VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
-                VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, "boolean", "boolean", VARCHAR_255,
-                VARCHAR_255, VARCHAR_255};
-
-        Object[] conceptInstanceData = {AbstractSqlQueryUtil.escapeForSQLStatement(engineId), AbstractSqlQueryUtil.escapeForSQLStatement(parentSemossName), AbstractSqlQueryUtil.escapeForSQLStatement(propertySemossName), 
-        		AbstractSqlQueryUtil.escapeForSQLStatement(parentPhysicalName), AbstractSqlQueryUtil.escapeForSQLStatement(parentEngineConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(parentConceptGuid), 
-        		AbstractSqlQueryUtil.escapeForSQLStatement(propertyPhysicalInstance), AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid),
-                false, false, AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[0]), AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[1]), AbstractSqlQueryUtil.escapeForSQLStatement(adtlDataType)};
-
-        insertQuery(conn, "EngineConcept", colNames, types, conceptInstanceData);
-
+        parameterIndex = 1;
+        engineConceptPs.setString(parameterIndex++, engineId);
+        engineConceptPs.setString(parameterIndex++, parentSemossName);
+        engineConceptPs.setString(parameterIndex++, propertySemossName);
+        engineConceptPs.setString(parameterIndex++, parentPhysicalName);
+        engineConceptPs.setString(parameterIndex++, parentEngineConceptGuid);
+        engineConceptPs.setString(parameterIndex++, parentConceptGuid);
+        engineConceptPs.setString(parameterIndex++, propertyPhysicalInstance);
+        engineConceptPs.setString(parameterIndex++, enginePropertyGuid);
+        engineConceptPs.setString(parameterIndex++, propertyGuid);
+        engineConceptPs.setBoolean(parameterIndex++, false);
+        engineConceptPs.setBoolean(parameterIndex++, false);
+        engineConceptPs.setString(parameterIndex++, dataTypes[0]);
+        engineConceptPs.setString(parameterIndex++, dataTypes[1]);
+        engineConceptPs.setString(parameterIndex++, adtlDataType);
+		engineConceptPs.addBatch();
+        
         {
             // add the conceptual as a logical name to the physical name id
-            colNames = new String[]{"PhysicalNameID", "Key", "Value"};
-            types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
-            insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), "logical", AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName.toLowerCase())};
-            insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
-
+            parameterIndex = 1;
+			conceptMetaDataPs.setString(parameterIndex++, enginePropertyGuid);
+			conceptMetaDataPs.setString(parameterIndex++, "logical");
+			conceptMetaDataPs.setString(parameterIndex++, propertyConceptualName.toLowerCase());
+			conceptMetaDataPs.addBatch();
+            
             // add the logical to the physical name id
             if (!logicals.isEmpty()) {
-                colNames = new String[]{"PhysicalNameID", "Key", "Value"};
-                types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
                 for (String logical : logicals) {
-                    insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), "logical", AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase())};
-                    insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
+                    parameterIndex = 1;
+        			conceptMetaDataPs.setString(parameterIndex++, enginePropertyGuid);
+        			conceptMetaDataPs.setString(parameterIndex++, "logical");
+        			conceptMetaDataPs.setString(parameterIndex++, logical.toLowerCase());
+        			conceptMetaDataPs.addBatch();
                 }
             }
             // add the description to the physical name id
             String desc = helper.getDescription(propertyPhysicalUri);
             if (desc != null && !desc.trim().isEmpty()) {
-                colNames = new String[]{"PhysicalNameID", "Key", "Value"};
-                types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
-                desc = desc.trim();
+            	desc = desc.trim();
                 if (desc.length() > 20_000) {
                     desc = desc.substring(0, 19_996) + "...";
                 }
-                insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), "description", AbstractSqlQueryUtil.escapeForSQLStatement(desc)};
-                insertQuery(conn, "CONCEPTMETADATA", colNames, types, insertValues);
+                parameterIndex = 1;
+    			conceptMetaDataPs.setString(parameterIndex++, enginePropertyGuid);
+    			conceptMetaDataPs.setString(parameterIndex++, "description");
+    			conceptMetaDataPs.setString(parameterIndex++, desc);
+    			conceptMetaDataPs.addBatch();
             }
         }
     }
@@ -538,11 +591,11 @@ public class AddToMasterDB {
      * @param engineName
      * @param relationship
      * @param helper
+     * @throws SQLException 
      */
-    private void masterRelationship(Connection conn, String engineName, String[] relationship, MetaHelper helper) {
-        String[] colNames = null;
-        String[] types = null;
-        String[] insertValues = null;
+    private void masterRelationship(PreparedStatement relationPs, PreparedStatement engineRelationPs, 
+    		String engineName, String[] relationship, MetaHelper helper) throws SQLException {
+    	int parameterIndex = 1;
 
         String startNodePhysicalUri = relationship[0];
         String endNodePhysicalUri = relationship[1];
@@ -575,52 +628,55 @@ public class AddToMasterDB {
 
             // store it in the hash
             this.conceptIdHash.put(pixelStartNodeName + "_" + pixelEndNodeName + "_RELATION", relationGuid);
-
-            colNames = new String[]{"ID", "SourceID", "TargetID", "GlobalID"};
-            types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-
             String startConceptualGuid = this.conceptIdHash.get(pixelStartNodeName + "_CONCEPTUAL");
             String endConceptualGuid = this.conceptIdHash.get(pixelEndNodeName + "_CONCEPTUAL");
-            insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(relationGuid), AbstractSqlQueryUtil.escapeForSQLStatement(startConceptualGuid), AbstractSqlQueryUtil.escapeForSQLStatement(endConceptualGuid), ""};
-            insertQuery(conn, "Relation", colNames, types, insertValues);
+
+            parameterIndex = 1;
+            relationPs.setString(parameterIndex++, relationGuid);
+            relationPs.setString(parameterIndex++, startConceptualGuid);
+            relationPs.setString(parameterIndex++, endConceptualGuid);
+            relationPs.setString(parameterIndex++, "");
+            relationPs.addBatch();
         }
 
         // since we are adding a new engine
         // there is no check needed
         // just add the engine
-        colNames = new String[]{"Engine", "RelationID", "InstanceRelationID", "SourceConceptID", "TargetConceptID",
-                "SourceProperty", "TargetProperty", "RelationName"};
-        types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)",
-                "varchar(800)", "varchar(800)", "varchar(800)"};
-
         String startConceptGuid = this.conceptIdHash.get(engineName + "_" + startNodePhysicalInstance + "_PHYSICAL");
         String endConceptGuid = this.conceptIdHash.get(engineName + "_" + endNodePhysicalInstance + "_PHYSICAL");
         String engineId = this.conceptIdHash.get(engineName + "_ENGINE");
         String engineRelationGuid = UUID.randomUUID().toString();
-        insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(engineId), AbstractSqlQueryUtil.escapeForSQLStatement(relationGuid), AbstractSqlQueryUtil.escapeForSQLStatement(engineRelationGuid), 
-        		AbstractSqlQueryUtil.escapeForSQLStatement(startConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(endConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(pixelStartNodeName), 
-        		AbstractSqlQueryUtil.escapeForSQLStatement(pixelEndNodeName), AbstractSqlQueryUtil.escapeForSQLStatement(Utility.getInstanceName(relationshipUri))};
-        insertQuery(conn, "EngineRelation", colNames, types, insertValues);
+        
+        parameterIndex = 1;
+        engineRelationPs.setString(parameterIndex++, engineId);
+        engineRelationPs.setString(parameterIndex++, relationGuid);
+        engineRelationPs.setString(parameterIndex++, engineRelationGuid);
+        engineRelationPs.setString(parameterIndex++, startConceptGuid);
+        engineRelationPs.setString(parameterIndex++, endConceptGuid);
+        engineRelationPs.setString(parameterIndex++, pixelStartNodeName);
+        engineRelationPs.setString(parameterIndex++, pixelEndNodeName);
+        engineRelationPs.setString(parameterIndex++, Utility.getInstanceName(relationshipUri));
+        engineRelationPs.addBatch();
     }
 
-    /**
-     * Executes a query
-     *
-     * @param tableName
-     * @param colNames
-     * @param types
-     * @param data
-     */
-    private void insertQuery(Connection conn, String tableName, String[] colNames, String[] types, Object[] data) {
-        String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types, data);
-        executeSql(conn, insertString);
-    }
+//    /**
+//     * Executes a query
+//     *
+//     * @param tableName
+//     * @param colNames
+//     * @param types
+//     * @param data
+//     */
+//    private void insertQuery(Connection conn, String tableName, String[] colNames, String[] types, Object[] data) {
+//        String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types, data);
+//        executeSql(conn, insertString);
+//    }
 
     public void commit(IEngine localMaster) {
         try {
             ((RDBMSNativeEngine) localMaster).commitRDBMS();
         } catch (Exception e) {
-            logger.error(STACKTRACE, e);
+            logger.error(Constants.STACKTRACE, e);
         }
     }
 
@@ -653,21 +709,21 @@ public class AddToMasterDB {
                 retDate = new java.util.Date(modDate.getTime());
             }
         } catch (Exception ex) {
-            logger.error(STACKTRACE, ex);
+            logger.error(Constants.STACKTRACE, ex);
         } finally {
             try {
                 if (rs != null) {
                     rs.close();
                 }
             } catch (SQLException e) {
-                logger.error(STACKTRACE, e);
+                logger.error(Constants.STACKTRACE, e);
             }
             try {
                 if (stmt != null) {
                     stmt.close();
                 }
             } catch (SQLException e) {
-                logger.error(STACKTRACE, e);
+                logger.error(Constants.STACKTRACE, e);
             }
             if(localMaster.isConnectionPooling()) {
             	try {
@@ -675,7 +731,7 @@ public class AddToMasterDB {
     					conn.close();
     				}
 				} catch (SQLException e) {
-	                logger.error(STACKTRACE, e);
+	                logger.error(Constants.STACKTRACE, e);
 				}
             }
         }
@@ -715,13 +771,13 @@ public class AddToMasterDB {
                 stmt.execute(insertString);
             }
         } catch (Exception e) {
-            logger.error(STACKTRACE, e);
+            logger.error(Constants.STACKTRACE, e);
         } finally {
         	if(stmt != null) {
         		try {
 					stmt.close();
 				} catch (SQLException e) {
-		            logger.error(STACKTRACE, e);
+		            logger.error(Constants.STACKTRACE, e);
 				}
         	}
         	if(localMaster.isConnectionPooling()) {
@@ -730,7 +786,7 @@ public class AddToMasterDB {
     					conn.close();
     				}
 				} catch (SQLException e) {
-		            logger.error(STACKTRACE, e);
+		            logger.error(Constants.STACKTRACE, e);
 				}
         	}
         }
@@ -790,14 +846,14 @@ public class AddToMasterDB {
 				}
 			}
         } catch (SQLException e) {
-        	logger.error(STACKTRACE, e);
+        	logger.error(Constants.STACKTRACE, e);
         } finally {
         	try {
         		if(stmt != null) {
         			stmt.close();
         		}
         	} catch (SQLException e) {
-            	logger.error(STACKTRACE, e);
+            	logger.error(Constants.STACKTRACE, e);
         	}
         	if(localMaster.isConnectionPooling()) {
         		try {
@@ -805,25 +861,12 @@ public class AddToMasterDB {
                 		conn.close();
             		}
             	} catch (SQLException e) {
-                	logger.error(STACKTRACE, e);
+                	logger.error(Constants.STACKTRACE, e);
             	}
         	}
         }
 		return valid;
 	}
-
-    //////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////
-
-    private static void executeSql(Connection conn, String sql) {
-        try (PreparedStatement statement = conn.prepareStatement(sql)) {
-            statement.execute();
-        } catch (Exception e) {
-            logger.error(STACKTRACE, e);
-        }
-    }
 
     //////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////
@@ -837,16 +880,19 @@ public class AddToMasterDB {
         // System.getProperty("user.dir")
         DIHelper.getInstance().loadCoreProp(rdfMapDir + "/RDF_Map.prop");
 
+        final String WS_DIRECTORY = "C:/Users/pkapaleeswaran/Workspacej3";
+        final String DB_DIRECTORY = WS_DIRECTORY + "/SemossWeb/db";
+
         // load the local master database
-        Properties localMasterProp = loadEngineProp(Constants.LOCAL_MASTER_DB_NAME);
-        IEngine localMaster = Utility.loadEngine(determineSmssPath(Constants.LOCAL_MASTER_DB_NAME), localMasterProp);
+        Properties localMasterProp = loadEngineProp(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME);
+        IEngine localMaster = Utility.loadEngine(determineSmssPath(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME), localMasterProp);
 
         // test loading in a new engine to the master database
 
         // get the new engine
         String engineName = "Mv1";
-        Properties engineProp = loadEngineProp(engineName);
-        Utility.loadEngine(determineSmssPath(engineName), engineProp);
+        Properties engineProp = loadEngineProp(DB_DIRECTORY, engineName);
+        Utility.loadEngine(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
 
         // delete the engine from the master db so that we can re-add it fresh for
         // testing purposes
@@ -854,8 +900,8 @@ public class AddToMasterDB {
         deleter.deleteEngineRDBMS(engineName);
 
         String engineName2 = "actor";
-        Properties engineProp2 = loadEngineProp(engineName2);
-        Utility.loadEngine(determineSmssPath(engineName), engineProp);
+        Properties engineProp2 = loadEngineProp(DB_DIRECTORY, engineName2);
+        Utility.loadEngine(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
 
         // delete the engine from the master db so that we can re-add it fresh for
         // testing purposes
@@ -874,15 +920,15 @@ public class AddToMasterDB {
         // adder.testMaster(localMaster);
     }
 
-    private static Properties loadEngineProp(String engineName) throws IOException {
-        try (FileInputStream fis = new FileInputStream(new File(determineSmssPath(engineName)))) {
+    private static Properties loadEngineProp(final String DB_DIRECTORY, String engineName) throws IOException {
+        try (FileInputStream fis = new FileInputStream(new File(determineSmssPath(DB_DIRECTORY, engineName)))) {
             Properties prop = new Properties();
             prop.load(fis);
             return prop;
         }
     }
 
-    private static String determineSmssPath(String engineName) {
+    private static String determineSmssPath(final String DB_DIRECTORY, String engineName) {
         return DB_DIRECTORY + "/" + engineName + ".smss";
     }
 
