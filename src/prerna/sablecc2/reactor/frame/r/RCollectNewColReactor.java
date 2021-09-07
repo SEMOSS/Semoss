@@ -73,7 +73,7 @@ public class RCollectNewColReactor extends TaskBuilderReactor {
 		// and then add it as a var on the frame
 	
 		String mainQuery = query.split("<-")[1];
-		mainQuery = mainQuery.replace("unique", "");
+		mainQuery = mainQuery.replaceFirst("unique", "");
 		
 		// need to get the query struct
 		// there should be only one selector
