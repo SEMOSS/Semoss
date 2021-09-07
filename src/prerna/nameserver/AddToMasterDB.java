@@ -196,7 +196,9 @@ public class AddToMasterDB {
             conceptMetaDataPs.executeBatch();
             relationPs.executeBatch();
             engineRelationPs.executeBatch();
-            
+            if(!conn.getAutoCommit()) {
+            	conn.commit();
+            }
             return true;
         } catch (Exception e) {
             logger.error(Constants.STACKTRACE, e);
