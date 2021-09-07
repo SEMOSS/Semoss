@@ -189,6 +189,10 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 						val = RDBMSUtility.flushClobToString((java.sql.Clob) val);
 					} catch (IOException e) {
 						logger.error(Constants.STACKTRACE, e);
+					} catch (NullPointerException e) {
+						if(!rs.wasNull()) {
+							val = rs.getString(colNum);
+						}
 					}
 				} 
 				else if(type == Types.BLOB) {
@@ -197,6 +201,10 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 						val = RDBMSUtility.flushBlobToString((java.sql.Blob) val);
 					} catch (IOException e) {
 						logger.error(Constants.STACKTRACE, e);
+					} catch (NullPointerException e) {
+						if(!rs.wasNull()) {
+							val = rs.getString(colNum);
+						}
 					}
 				} 
 				else if(type == Types.ARRAY) {
