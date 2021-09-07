@@ -2,6 +2,7 @@ package prerna.ui.components.specific.tap.genesisdeployment;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -160,19 +161,21 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 	}
 
 	private void updateSystemFixedCostValues(String query, String endYear) {
-		ResultSet fixedCostData = mainSustainmentFrame.execQuery(query);
+		ResultSet fixedCostDataRs = mainSustainmentFrame.execQuery(query);
 		try {
 			// then iterate add up all the data
-			while(fixedCostData.next()) {
+			while(fixedCostDataRs.next()) {
 				// iterate through and get the row data
 				double[] newValues = new double[numColumns];
 				for(int i = 0; i < numColumns; i++) {
-					newValues[i] = fixedCostData.getDouble(i+1) * (1.0 - percentRealized);
+					newValues[i] = fixedCostDataRs.getDouble(i+1) * (1.0 - percentRealized);
 				}
 				MhsGenesisDeploymentSavingsProcessor.updateCostValues(siteDeploymentSavings, "Fixed_Sustainment_Cost", newValues, endYear, this.siteDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			closeRs(fixedCostDataRs);
 		}
 	}
 
@@ -211,6 +214,8 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
+			} finally {
+				closeRs(rs);
 			}
 			siteSystemFilter.append(")");
 			
@@ -275,17 +280,17 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 	}
 	
 	private void updateSiteCostValues(String query, String endYear, double percentRealized) {
-		ResultSet siteData = mainSustainmentFrame.execQuery(query);
+		ResultSet siteDataRs = mainSustainmentFrame.execQuery(query);
 		try {
 			// then iterate add up all the data
-			while(siteData.next()) {
+			while(siteDataRs.next()) {
 				// get the system
-				String site = siteData.getString(1);
+				String site = siteDataRs.getString(1);
 
 				// iterate through and get the row data
 				double[] newValues = new double[numColumns];
 				for(int i = 1; i <= numColumns; i++) {
-					newValues[i-1] = siteData.getDouble(i+1) * percentRealized;
+					newValues[i-1] = siteDataRs.getDouble(i+1) * percentRealized;
 				}
 				
 				// this will handle the specific site and values and perform the consolidation
@@ -294,6 +299,8 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			closeRs(siteDataRs);
 		}
 	}
 
@@ -303,18 +310,18 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 	 * @param endYear
 	 */
 	private void updateSiteSpecificSystemCostValues(String query, String endYear) {
-		ResultSet systemSiteData = systemSiteSustainmentFrame.execQuery(query);
+		ResultSet systemSiteDataRs = systemSiteSustainmentFrame.execQuery(query);
 		try {
 			// then iterate add up all the data
-			while(systemSiteData.next()) {
+			while(systemSiteDataRs.next()) {
 				// get the system
-				String system = systemSiteData.getString(1);
-				String site = systemSiteData.getString(2);
+				String system = systemSiteDataRs.getString(1);
+				String site = systemSiteDataRs.getString(2);
 				// iterate through and get the row data
 				double[] newValues = new double[numColumns];
 				// we have a plus one below because we need to grab the system
 				for(int i = 2; i <= numColumns+1; i++) {
-					newValues[i-2] = systemSiteData.getDouble(i+1);
+					newValues[i-2] = systemSiteDataRs.getDouble(i+1);
 				}
 				
 				// this will handle the specific system and values and perform the consolidation
@@ -329,10 +336,37 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			closeRs(systemSiteDataRs);
 		}
 	}
 	
-	
+	/**
+	 * Close the result set and grab its statement to close
+	 * @param rs
+	 */
+	private static void closeRs(ResultSet rs) {
+		Statement stmt = null;
+		if(rs != null) {
+			try {
+				stmt = rs.getStatement();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			try {
+				rs.close();
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		if(stmt != null) {
+			try {
+				stmt.close();
+			} catch(SQLException e1) {
+				e1.printStackTrace();
+			}
+		}
+	}
 	
 	
 	/////////////////////////////////////////////////////////////////////////////////////////////
