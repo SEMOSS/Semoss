@@ -1,5 +1,6 @@
 package prerna.om;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -167,6 +168,18 @@ public class OldInsight extends Insight {
 			logger.error("Invalid insight. No insight makeup available");
 		}
 	}
+	
+	/**
+	 * Takes the input stream for the N-Triples string to create the insight makeup database
+	 * @param insightMakeup
+	 */
+	public void setMakeup(String insightMakeup) {
+		if(insightMakeup != null){
+			this.makeupEngine = createMakeupEngine(insightMakeup);
+		} else{
+			logger.error("Invalid insight. No insight makeup available");
+		}
+	}
 
 	/**
 	 * Sets the parameters the user has selected for the insight 
@@ -228,6 +241,15 @@ public class OldInsight extends Insight {
 	 */
 	public List<SEMOSSParam> getInsightParameters() {
 		return this.insightParameters;
+	}
+	
+	/**
+	 * Generates an in-memory database based on the N-Triples makeup input stream for the insight
+	 * @param nTriples				The inputstream holding the N-Triples string
+	 * @return
+	 */
+	public InMemorySesameEngine createMakeupEngine(String nTriples) {
+		return createMakeupEngine(new ByteArrayInputStream(nTriples.getBytes()));
 	}
 	
 	/**
