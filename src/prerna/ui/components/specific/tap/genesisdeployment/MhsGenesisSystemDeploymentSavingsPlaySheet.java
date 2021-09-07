@@ -2,6 +2,7 @@ package prerna.ui.components.specific.tap.genesisdeployment;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -120,7 +121,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 	private Object systemListMapData(String fyQueryString, String fyLabel) {
 		String mapSystemQuery = "SELECT DISTINCT System, Last_Wave_For_System, " + fyQueryString + "  FROM "
 				+ mainSustainmentFrame.getName();
-		ResultSet mapSystemQS = mainSustainmentFrame.execQuery(mapSystemQuery);
+		ResultSet mapSystemRs = mainSustainmentFrame.execQuery(mapSystemQuery);
 		LOGGER.info("Executing query for map system data from mainSustainmentFrame" + mapSystemQuery);
 		Hashtable systemListData = new Hashtable();
 
@@ -128,12 +129,12 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 			String system = "";
 			String lastWaveForSystem = "";
 			double value = 0;
-			while (mapSystemQS.next()) {
+			while (mapSystemRs.next()) {
 				Hashtable systemData = new Hashtable();
 
-				system = mapSystemQS.getString(1);
-				lastWaveForSystem = mapSystemQS.getString(2);
-				value = mapSystemQS.getDouble(3);
+				system = mapSystemRs.getString(1);
+				lastWaveForSystem = mapSystemRs.getString(2);
+				value = mapSystemRs.getDouble(3);
 
 				// aggregated status
 				String status = "Not Started";
@@ -156,10 +157,11 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				systemData.put("TCostSystem", value);
 				systemListData.put(system, systemData);
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
-		}		
+		} finally {
+			closeRs(mapSystemRs);
+		}
 		return systemListData;
 	}
 
@@ -168,15 +170,15 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 
 		String mapSiteQuery = "SELECT DISTINCT HostSiteAndFloater, " + fyQueryString + ", Wave FROM "
 				+ mainSustainmentFrame.getName();
-		ResultSet mapSiteQS = mainSustainmentFrame.execQuery(mapSiteQuery);
+		ResultSet mapSiteRs = mainSustainmentFrame.execQuery(mapSiteQuery);
 		LOGGER.info("Executing query for map site data from mainSustainmentFrame" + mapSiteQuery);
 		Hashtable fysData = new Hashtable();
 		try {
 			String site = "";
-			while (mapSiteQS.next()) {
-				site = mapSiteQS.getString(1);
-				double value = mapSiteQS.getDouble(2);
-				String wave = mapSiteQS.getString(3);
+			while (mapSiteRs.next()) {
+				site = mapSiteRs.getString(1);
+				double value = mapSiteRs.getDouble(2);
+				String wave = mapSiteRs.getString(3);
 				if (site != null) {
 					Hashtable siteData = new Hashtable();
 					String[] startDate = waveStartEndDate.get(wave);
@@ -209,10 +211,11 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 					siteListData.put(site, siteData);
 				}
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
-		}		
+		} finally {
+			closeRs(mapSiteRs);
+		}
 		return siteListData;
 	}
 
@@ -226,20 +229,20 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		systemQuery = systemQuery.substring(0, systemQuery.length()-2).toString();
 		systemQuery +=" FROM " + systemDeploymentSavings.getName() + ";";
 		
-		ResultSet systemRS = systemDeploymentSavings.execQuery(systemQuery.toString());
+		ResultSet systemRs = systemDeploymentSavings.execQuery(systemQuery.toString());
 		LOGGER.info("Executing query for system data from systemDeploymentSavings" + systemQuery);
 		ArrayList systemDataList = new ArrayList();
 		try {
-			while (systemRS.next()) {
+			while (systemRs.next()) {
 				Hashtable data = new Hashtable();
 //				double total = 0;
 				for (int i = 0; i < systemHeaders.size(); i++) {
 					if (i == 0 || i == systemHeaders.size() - 1) {
-						String string = systemRS.getString(i+1);
+						String string = systemRs.getString(i+1);
 						//TODO HOSTSItie-Floater
 						data.put(systemHeaders.get(i), string);
 					} else {
-						double value = systemRS.getDouble(i+1);
+						double value = systemRs.getDouble(i+1);
 						data.put(systemHeaders.get(i), value+"");
 //						total += value;
 					}
@@ -248,9 +251,10 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 //				data.put("Total", total);
 				systemDataList.add(data);
 			}
-		}
-		catch(Exception e) {
+		} catch(Exception e) {
 			e.printStackTrace();
+		} finally {
+			closeRs(systemRs);
 		}
 		return systemDataList;
 	}
@@ -299,29 +303,30 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		siteQuery = siteQuery.substring(0, siteQuery.length()-2).toString();
 		siteQuery +=" FROM " + systemSiteSustainmentFrame.getName() + ";";
 		
-		ResultSet siteRS = systemSiteSustainmentFrame.execQuery(siteQuery.toString());
+		ResultSet siteRs = systemSiteSustainmentFrame.execQuery(siteQuery.toString());
 		LOGGER.info("Executing query for site data " + siteQuery);
 		ArrayList siteDataList = new ArrayList();
 		try {
-			while (siteRS.next()) {
+			while (siteRs.next()) {
 				Hashtable data = new Hashtable();
 				double total = 0;
 				for (int i = 0; i < siteHeaders.size(); i++) {
 					if (i == 0) {
-						String site = siteRS.getString(i+1);
+						String site = siteRs.getString(i+1);
 						//TODO HOSTSItie-Floater
 						data.put(siteHeaders.get(i), site);
 					} else {
-						double value = siteRS.getDouble(i+1);
+						double value = siteRs.getDouble(i+1);
 						data.put(siteHeaders.get(i), value+"");
 						total += value;
 					}
 				}
 				siteDataList.add(data);
 			}
-		}
-		catch(Exception e) {
+		} catch(Exception e) {
 			e.printStackTrace();
+		} finally {
+			closeRs(siteRs);
 		}
 		return siteDataList;
 	}
@@ -472,6 +477,8 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
+			} finally {
+				closeRs(rs);
 			}
 			siteSystemFilter.append(")");
 			
@@ -510,17 +517,17 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 	 * @param endYear
 	 */
 	private void updateSystemCostValues(String query, String endYear, double percentRealized) {
-		ResultSet systemData = mainSustainmentFrame.execQuery(query);
+		ResultSet systemDataRs = mainSustainmentFrame.execQuery(query);
 		try {
 			// then iterate add up all the data
-			while(systemData.next()) {
+			while(systemDataRs.next()) {
 				// get the system
-				String system = systemData.getString(1);
+				String system = systemDataRs.getString(1);
 
 				// iterate through and get the row data
 				double[] newValues = new double[numColumns];
 				for(int i = 1; i <= numColumns; i++) {
-					newValues[i-1] = systemData.getDouble(i+1) * percentRealized;
+					newValues[i-1] = systemDataRs.getDouble(i+1) * percentRealized;
 				}
 				
 				// this will handle the specific system and values and perform the consolidation
@@ -529,6 +536,8 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			closeRs(systemDataRs);
 		}
 	}
 	
@@ -538,16 +547,16 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 	 * @param endYear
 	 */
 	private void updateSiteSpecificSystemCostValues(String query, String endYear) {
-		ResultSet systemData = systemSiteSustainmentFrame.execQuery(query);
+		ResultSet systemDataRs = systemSiteSustainmentFrame.execQuery(query);
 		try {
 			// then iterate add up all the data
-			while(systemData.next()) {
+			while(systemDataRs.next()) {
 				// get the system
-				String system = systemData.getString(1);
+				String system = systemDataRs.getString(1);
 				// iterate through and get the row data
 				double[] newValues = new double[numColumns];
 				for(int i = 1; i <= numColumns; i++) {
-					newValues[i-1] = systemData.getDouble(i+1);
+					newValues[i-1] = systemDataRs.getDouble(i+1);
 				}
 				
 				// this will handle the specific system and values and perform the consolidation
@@ -562,6 +571,8 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			closeRs(systemDataRs);
 		}
 	}
 	
@@ -572,17 +583,17 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 	 * @param endYear
 	 */
 	private void updateSystemFixedCostValues(String query, String endYear) {
-		ResultSet systemData = mainSustainmentFrame.execQuery(query);
+		ResultSet systemDataRs = mainSustainmentFrame.execQuery(query);
 		try {
 			// then iterate add up all the data
-			while(systemData.next()) {
+			while(systemDataRs.next()) {
 				// get the system
-				String system = systemData.getString(1);
+				String system = systemDataRs.getString(1);
 
 				// iterate through and get the row data
 				double[] newValues = new double[numColumns];
 				for(int i = 1; i <= numColumns; i++) {
-					newValues[i-1] = systemData.getDouble(i+1) * (1.0 - percentRealized);
+					newValues[i-1] = systemDataRs.getDouble(i+1) * (1.0 - percentRealized);
 				}
 				
 				String modEndYear = endYear;
@@ -593,11 +604,38 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			closeRs(systemDataRs);
 		}
 	}
 
 
-
+	/**
+	 * Close the result set and grab its statement to close
+	 * @param rs
+	 */
+	private static void closeRs(ResultSet rs) {
+		Statement stmt = null;
+		if(rs != null) {
+			try {
+				stmt = rs.getStatement();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			try {
+				rs.close();
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		if(stmt != null) {
+			try {
+				stmt.close();
+			} catch(SQLException e1) {
+				e1.printStackTrace();
+			}
+		}
+	}
 	
 	
 	

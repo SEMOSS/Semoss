@@ -30,6 +30,7 @@ package prerna.ui.components.specific.tap.genesisdeployment;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +105,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 						oldValues[i] = curSavingRs.getDouble(headers[i+1]);
 					}
 				}
+				closeRs(curSavingRs);
 			}
 			// need to figure out based on the wave
 			// which indices in updateValues to add to oldValues
@@ -149,14 +151,13 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-		      if(updatePs != null) {
-		          try {
-		        	  updatePs.close();
-		          } catch (SQLException e) {
-		            // TODO Auto-generated catch block
-		            e.printStackTrace();
-		          }
-		        }
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
@@ -183,28 +184,28 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		// we will merge the new headers into our existing frame
 		frame.addNewColumn(newHeaders, dataTypes, frame.getName());
 
-		ResultSet it = frame.execQuery(rowTotal.toString());
+		ResultSet rs = frame.execQuery(rowTotal.toString());
 		PreparedStatement updatePs = null;
 		try {
 			// create an update statement to set the systems which are centrally deployed to true
 			updatePs = frame.createUpdatePreparedStatement(new String[]{"Total"}, new String[]{mainColName});
-			while(it.next()) {
-				updatePs.setObject(1, it.getDouble(2));
-				updatePs.setObject(2, it.getString(1));
+			while(rs.next()) {
+				updatePs.setObject(1, rs.getDouble(2));
+				updatePs.setObject(2, rs.getString(1));
 				updatePs.addBatch();
 			}
 			updatePs.executeBatch();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-		      if(updatePs != null) {
-		          try {
-		        	  updatePs.close();
-		          } catch (SQLException e) {
-		            // TODO Auto-generated catch block
-		            e.printStackTrace();
-		          }
-		        }
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			closeRs(rs);
 		}
 
 		// now calculate the column totals
@@ -213,13 +214,13 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			colTotals.append(", SUM(").append(headers[i]).append(")");
 		}
 		colTotals.append(" FROM ").append(frame.getName());
-		it = frame.execQuery(colTotals.toString());
+		rs = frame.execQuery(colTotals.toString());
 		Object[] colTotalArr = new Object[headers.length];
 		colTotalArr[0] = "Total";
 		try {
-			while(it.next()) {
+			while(rs.next()) {
 				for(int i = 1; i < headers.length; i++) {
-					colTotalArr[i] = it.getObject(i);
+					colTotalArr[i] = rs.getObject(i);
 				}
 			}
 			frame.addRow(colTotalArr, headers);
@@ -442,6 +443,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
+		ResultSet siteSpecificSystemsIterator = null;
 		PreparedStatement updatePs = null;
 		try {
 			// create an update statement to set all the values to false as default
@@ -449,12 +451,12 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			updatePs.setObject(1, "FALSE");
 			updatePs.addBatch();
 			updatePs.executeBatch();
-
+			updatePs.close();
 			StringBuilder siteSpecificSystems = new StringBuilder();
 			siteSpecificSystems.append("SELECT DISTINCT System FROM " + systemSiteSustainmentFrame.getName());
 
 			// get an iterator for the systems which we have site specific data
-			ResultSet siteSpecificSystemsIterator = systemSiteSustainmentFrame.execQuery(siteSpecificSystems.toString());
+			siteSpecificSystemsIterator = systemSiteSustainmentFrame.execQuery(siteSpecificSystems.toString());
 
 			// create an update statement to set the systems which are centrally deployed to true
 			updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Site_Specific"}, new String[]{"System"});
@@ -467,14 +469,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-		      try {
-		          if(updatePs != null) {
-		        	  updatePs.close();
-		               }
-		       } catch (SQLException e) {
-		               e.printStackTrace();
-		       }
-
+			try {
+				if(updatePs != null) {
+					updatePs.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			closeRs(siteSpecificSystemsIterator);
 		}
 
 		return mainSustainmentFrame;
@@ -659,11 +661,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			try {
-				rs.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+			closeRs(rs);
 		}
 
 		// ASSUMPTION ::: We will only consider FY above 15
@@ -740,8 +738,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 					sysCostValues[position] = cost;
 				}
 				// close the connection as we are making quite a few of them
-				rs.close();
-
+				closeRs(rs);
+				
 				// all the values in the array have been filled based on
 				// what sits in the cost databases
 				// now we will fill based on the inflation values that we have
@@ -946,11 +944,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 					} catch (SQLException e) {
 						e.printStackTrace();
 					} finally {
-						try {
-							rs.close();
-						} catch (SQLException e) {
-							e.printStackTrace();
-						}
+						closeRs(rs);
 					}
 
 					try {
@@ -1010,7 +1004,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 								sysCostValues[position] = cost;
 							}
 							// close the connection as we are making quite a few of them
-							rs.close();
+							closeRs(rs);
 
 							// all the values in the array have been filled based on
 							// what sits in the cost databases
@@ -1057,6 +1051,33 @@ public class MhsGenesisDeploymentSavingsProcessor {
 						rawWrapper.cleanUp();
 					}
 				}
+			}
+		}
+	}
+	
+	/**
+	 * Close the result set and grab its statement to close
+	 * @param rs
+	 */
+	private static void closeRs(ResultSet rs) {
+		Statement stmt = null;
+		if(rs != null) {
+			try {
+				stmt = rs.getStatement();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			try {
+				rs.close();
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		if(stmt != null) {
+			try {
+				stmt.close();
+			} catch(SQLException e1) {
+				e1.printStackTrace();
 			}
 		}
 	}
