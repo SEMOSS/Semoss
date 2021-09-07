@@ -2,6 +2,7 @@ package prerna.ds.export.gexf;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Map;
 
 import prerna.ds.rdbms.h2.H2Frame;
@@ -40,6 +41,9 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 				if(this.nodeRs.next()) {
 					return true;
 				} else {
+					// close the connection
+					closeRs(this.nodeRs);
+					
 					// we finished going through for all the nodes
 					if(this.nodeIndex >= this.nodeMapSplit.length) {
 						return false;
@@ -118,6 +122,9 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 				if(this.edgeRs.next()) {
 					return true;
 				} else {
+					// close the connection
+					closeRs(this.edgeRs);
+					
 					// we finished going through for all the nodes
 					if(this.edgeIndex >= this.edgeMapSplit.length) {
 						return false;
@@ -197,5 +204,32 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 		}
 		sql.append(" FROM ").append(dataframe.getName());
 		return sql.toString();
+	}
+	
+	/**
+	 * Close the result set and grab its statement to close
+	 * @param rs
+	 */
+	private void closeRs(ResultSet rs) {
+		Statement stmt = null;
+		if(rs != null) {
+			try {
+				stmt = rs.getStatement();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			try {
+				rs.close();
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		if(stmt != null) {
+			try {
+				stmt.close();
+			} catch(SQLException e1) {
+				e1.printStackTrace();
+			}
+		}
 	}
 }
