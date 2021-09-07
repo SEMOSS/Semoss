@@ -386,20 +386,30 @@ public class H2Frame extends AbstractRdbmsFrame {
 	 * Legacy calls
 	 */
 
+	/**
+	 * Execute and get back a result set
+	 * Responsibility of the method to grab the statement and close it 
+	 * from the result set
+	 * @param query
+	 * @return
+	 */
 	public ResultSet execQuery(String query) {
 		PreparedStatement stmt = null;
+		boolean error = false;
 		try {
 			//Statement stmt = this.conn.createStatement();
 			stmt = this.conn.prepareStatement(query);
 			return stmt.executeQuery();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			error = true;
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(stmt != null){
+			// it is the responsibility of the code executing this 
+			// to take the statement and close it if no error
+			if(error && stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
