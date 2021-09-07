@@ -1,11 +1,11 @@
 package prerna.project.impl;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -13,8 +13,6 @@ import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Clob;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -300,15 +298,16 @@ public class Project implements IProject {
 					String rdbmsId = values[0] + "";
 					String insightName = values[1] + "";
 					
-					Clob insightMakeup = (Clob) values[2];
-					InputStream insightMakeupIs = null;
-					if(insightMakeup != null) {
-						try {
-							insightMakeupIs = insightMakeup.getAsciiStream();
-						} catch (SQLException e) {
-							e.printStackTrace();
-						}
-					}
+					String insightMakeup = (String) values[2];
+//					Clob insightMakeup = (Clob) values[2];
+//					InputStream insightMakeupIs = null;
+//					if(insightMakeup != null) {
+//						try {
+//							insightMakeupIs = insightMakeup.getAsciiStream();
+//						} catch (SQLException e) {
+//							e.printStackTrace();
+//						}
+//					}
 					String layout = values[4] + "";
 					String dataTableAlign = values[6] + "";
 					String dataMakerName = values[7] + "";
@@ -319,18 +318,19 @@ public class Project implements IProject {
 					if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
 						pixel = (Object[]) values[9];
 					} else {
-						Clob pixelArray = (Clob) values[9];
-						InputStream pixelArrayIs = null;
-						if(pixelArray != null) {
-							try {
-								pixelArrayIs = pixelArray.getAsciiStream();
-							} catch (SQLException e) {
-								e.printStackTrace();
-							}
-						}
+//						Clob pixelArray = (Clob) values[9];
+						String pixelArray = (String) values[9];
+//						InputStream pixelArrayIs = null;
+//						if(pixelArray != null) {
+//							try {
+//								pixelArrayIs = pixelArray.getAsciiStream();
+//							} catch (SQLException e) {
+//								e.printStackTrace();
+//							}
+//						}
 						// flush input stream to string
 						Gson gson = new Gson();
-						InputStreamReader reader = new InputStreamReader(pixelArrayIs);
+						InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(pixelArray.getBytes()));
 						pixel = gson.fromJson(reader, String[].class);
 					}
 					
@@ -343,7 +343,7 @@ public class Project implements IProject {
 						in.setRdbmsId(rdbmsId);
 						in.setInsightName(insightName);
 						((OldInsight) in).setOutput(layout);
-						((OldInsight) in).setMakeup(insightMakeupIs);
+						((OldInsight) in).setMakeup(insightMakeup);
 //						in.setPerspective(perspective);
 //						in.setOrder(order);
 						((OldInsight) in).setDataTableAlign(dataTableAlign);
