@@ -75,5 +75,23 @@ public enum SemossDataType {
 
 		return null;
 	}
+	
+	public static PixelDataType convertToPixelDataType(SemossDataType type) {
+		if(type == BOOLEAN) {
+			return PixelDataType.BOOLEAN;
+		} else if(type == INT) {
+			return PixelDataType.CONST_INT;
+		} else if(type == DOUBLE) {
+			return PixelDataType.CONST_DECIMAL;
+		} else if(type == STRING) {
+			return PixelDataType.CONST_STRING;
+		} else if(type == DATE) {
+			return PixelDataType.CONST_DATE;
+		} else if(type == TIMESTAMP) {
+			return PixelDataType.CONST_TIMESTAMP;
+		}
+
+		return null;
+	}
 
 }
