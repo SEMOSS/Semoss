@@ -39,7 +39,6 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
-import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
@@ -721,10 +720,6 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		} catch (InstantiationException | IllegalAccessException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
-		if(this.frame != null) {
-			subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
-		}
-
 		if (innerInterpreter == null) {
 			throw new NullPointerException("innerInterpreter cannot be null here.");
 		}
