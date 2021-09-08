@@ -167,6 +167,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter interp = new RInterpreter();
+		interp.setFrame(this);
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
