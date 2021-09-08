@@ -14,7 +14,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.BetweenQueryFilter;
@@ -40,7 +42,7 @@ import prerna.util.Utility;
 
 public class RInterpreter extends AbstractQueryInterpreter {
 
-	private static final Logger logger = LogManager.getLogger(RInterpreter.class);
+	private static final Logger classLogger = LogManager.getLogger(RInterpreter.class);
 	
 	private String dataTableName = null;
 	private Map<String, SemossDataType> colDataTypes;
@@ -76,6 +78,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	// this is the temp var name that we create
 	// this is because we have to make operations on operations
 	private String tempVarName = null;
+
+	// this is because we need to handle subquery
+	private transient RDataTable rDataTable;
 	
 	@Override
 	public String composeQuery() {
@@ -179,11 +184,11 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			query.append(this.tempVarName).append(";");
 		}
 
-		if(logger.isDebugEnabled()) {
+		if(this.logger.isDebugEnabled()) {
 			if(query.length() > 500) {
-				logger.debug("R QUERY....  " + query.substring(0,  500) + "...");
+				this.logger.debug("R QUERY....  " + query.substring(0,  500) + "...");
 			} else {
-				logger.debug("R QUERY....  " + query);
+				this.logger.debug("R QUERY....  " + query);
 			}
 		}
 		
@@ -432,7 +437,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			ITask innerTask = null;
 			try {
 				innerTask = ((SubQueryExpression) constant).generateQsTask();
-				innerTask.setLogger(logger);
+				innerTask.setLogger(this.logger);
 				if(innerTask.hasNext()) {
 					Object value = innerTask.next().getValues()[0];
 					if(value instanceof Number) {
@@ -616,7 +621,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			return processAndQueryFilter((AndQueryFilter) filter, tableName, useAlias, captureColumns);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
 			return processOrQueryFilter((OrQueryFilter) filter, tableName, useAlias, captureColumns);
-		}else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.BETWEEN) {
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.BETWEEN) {
 			return processBetweenQueryFilter((BetweenQueryFilter) filter, tableName, useAlias);
 		}
 		return null;
@@ -684,7 +689,12 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
 			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias, captureColumns);
-		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
+		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
+			return addSelectorToQueryFilter(leftComp, rightComp, thisComparator, tableName, useAlias, captureColumns);
+		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
+			return addSelectorToQueryFilter(rightComp, leftComp, thisComparator, tableName, useAlias, captureColumns);
+		}
+		else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 		}
 		return null;
@@ -1009,6 +1019,29 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		return filterBuilder;
 	}
 	
+	/**
+	 * Flush the subquery to a list of values and add a normal filter
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 * @param tableName
+	 * @param useAlias
+	 * @param captureColumns
+	 * @return
+	 */
+	private StringBuilder addSelectorToQueryFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean captureColumns) {
+		// flush out the right side to a list of values
+		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
+		IRawSelectWrapper subQueryValues = this.rDataTable.query(subQs);
+		List<Object> values = new ArrayList<>();
+		while(subQueryValues.hasNext()) {
+			values.add(subQueryValues.next().getValues()[0]);
+		}
+		NounMetadata newRightComp = new NounMetadata(values, SemossDataType.convertToPixelDataType(subQueryValues.getTypes()[0]));
+		
+		return addSelectorToValuesFilter(leftComp, newRightComp, thisComparator, tableName, useAlias, captureColumns);
+	}
+	
 	//////////////////////////////////// end adding filters /////////////////////////////////////
 	
 	
@@ -1149,6 +1182,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		return this.convertedDates;
 	}
 	
+	public void setFrame(RDataTable rDataTable) {
+		this.rDataTable = rDataTable;
+	}
+	
 	public static void main(String[] args) {
 //		SelectQueryStruct qsTest = new SelectQueryStruct();
 //		qsTest.addSelector("Title", null);
@@ -1265,8 +1302,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	}
 	
 	public String getMainQuery() {
-		
 		return this.mainQuery.toString();
 	}
+
 }
 
