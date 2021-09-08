@@ -692,7 +692,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
 			return addSelectorToQueryFilter(leftComp, rightComp, thisComparator, tableName, useAlias, captureColumns);
 		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
-			return addSelectorToQueryFilter(rightComp, leftComp, thisComparator, tableName, useAlias, captureColumns);
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			return addSelectorToQueryFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias, captureColumns);
 		}
 		else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
@@ -1182,7 +1183,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		return this.convertedDates;
 	}
 	
-	public void setFrame(RDataTable rDataTable) {
+	public void setRDataTable(RDataTable rDataTable) {
 		this.rDataTable = rDataTable;
 	}
 	
