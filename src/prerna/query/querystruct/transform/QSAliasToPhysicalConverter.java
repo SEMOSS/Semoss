@@ -409,19 +409,25 @@ public class QSAliasToPhysicalConverter {
 
 	private static SimpleQueryFilter convertSimpleQueryFilter(SimpleQueryFilter queryFilter, OwlTemporalEngineMeta meta, String customTableName) {
 		NounMetadata newL = null;
-		NounMetadata newR = null;
-
 		NounMetadata origL = queryFilter.getLComparison();
 		if(origL.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
 			newL = new NounMetadata( convertSelector((IQuerySelector) origL.getValue(), meta, customTableName) , PixelDataType.COLUMN);
+		} else if(origL.getNounType() == PixelDataType.QUERY_STRUCT) {
+			SelectQueryStruct newQs = getPhysicalQs((SelectQueryStruct) origL.getValue(), meta);
+			newL = new NounMetadata(newQs, PixelDataType.QUERY_STRUCT);
 		} else {
 			newL = origL;
 		}
+		
+		NounMetadata newR = null;
 		NounMetadata origR = queryFilter.getRComparison();
 		if(origR.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
 			newR = new NounMetadata( convertSelector((IQuerySelector) origR.getValue(), meta, customTableName) , PixelDataType.COLUMN);
+		} else if(origR.getNounType() == PixelDataType.QUERY_STRUCT) {
+			SelectQueryStruct newQs = getPhysicalQs((SelectQueryStruct) origR.getValue(), meta);
+			newR = new NounMetadata(newQs, PixelDataType.QUERY_STRUCT);
 		} else {
 			newR = origR;
 		}
