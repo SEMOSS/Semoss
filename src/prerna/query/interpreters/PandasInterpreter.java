@@ -10,6 +10,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.BetweenQueryFilter;
@@ -131,19 +132,23 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	// cache of all the keys
 	List keyCache = new ArrayList();
 	
-	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap)
-	{
+	// this is because we need to handle subquery
+	private transient PandasFrame pandasFrame;
+	
+	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap) {
 		this.colDataTypes = dataTypeMap;
 	}
 	
-	public void setKeyCache(List keyCache)
-	{
+	public void setKeyCache(List keyCache) {
 		this.keyCache = keyCache;
 	}
 	
-	public boolean isScalar()
-	{
+	public boolean isScalar() {
 		return scalar;
+	}
+	
+	public void setPandasFrame(PandasFrame pandasFrame) {
+		this.pandasFrame = pandasFrame;
 	}
 	
 	@Override
@@ -1131,6 +1136,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			return createLambdaFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName);
 		} else if (fType == FILTER_TYPE.COL_TO_COL) {
 			// TODO
+		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
+			return createSubqueryLambdaFilter(leftComp, rightComp, thisComparator, tableName);
+		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
+			return createSubqueryLambdaFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName);
 		}
 		return null;
 	}
@@ -1263,6 +1272,29 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		return retBuilder;
+	}
+	
+	/**
+	 * Flush the subquery to a list of values and add a normal filter
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 * @param tableName
+	 * @param useAlias
+	 * @param captureColumns
+	 * @return
+	 */
+	private StringBuilder createSubqueryLambdaFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName) {
+		// flush out the right side to a list of values
+		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
+		IRawSelectWrapper subQueryValues = this.pandasFrame.query(subQs);
+		List<Object> values = new ArrayList<>();
+		while(subQueryValues.hasNext()) {
+			values.add(subQueryValues.next().getValues()[0]);
+		}
+		NounMetadata newRightComp = new NounMetadata(values, SemossDataType.convertToPixelDataType(subQueryValues.getTypes()[0]));
+		
+		return createLambdaFilter(leftComp, newRightComp, thisComparator, tableName);
 	}
 	
 	/**

@@ -167,13 +167,14 @@ public class RDataTable extends AbstractTableDataFrame {
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter interp = new RInterpreter();
-		interp.setFrame(this);
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
 //		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
-		
+		// need to do this for subqueries where we flush the values into a filter
+		interp.setRDataTable(this);
+
 		boolean cache = true;
 		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache")) {
 			cache = ((String)qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true:false;
