@@ -402,6 +402,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		interp.setKeyCache(keyCache);
 		// I should also possibly set up pytranslator so I can run command for creating filter
 		interp.setPyTranslator(pyt);
+		// need to do this for subqueries where we flush the values into a filter
+		interp.setPandasFrame(this);
 		return processInterpreter(interp, qs);
 	}
 	
