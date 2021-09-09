@@ -271,7 +271,12 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			String keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
 			String keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
 			if(keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {
-				sslContextBuilder.loadKeyMaterial(new File(keyStore), keyStorePass.toCharArray(), keyStorePass.toCharArray());
+				File keyStoreF = new File(keyStore);
+				if(!keyStoreF.exists() && !keyStoreF.isFile()) {
+					logger.warn("Scheduler defined a keystore to use in the request but the file " + keyStoreF.getAbsolutePath() + " does not exist");
+				} else {
+					sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(), keyStorePass.toCharArray());
+				}
 			}
 			
 			connFactory = new SSLConnectionSocketFactory(
