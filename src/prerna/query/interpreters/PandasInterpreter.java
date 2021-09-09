@@ -1470,6 +1470,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, tableName, useAlias, useTable);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias, useTable);
+		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
+			return addSelectorToQueryFilter(leftComp, rightComp, thisComparator, tableName, useAlias, useTable);
+		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
+			return addSelectorToQueryFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias, useTable);
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 		}
@@ -1556,7 +1560,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	 * @param useTable
 	 * @return
 	 */
-	
 	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, 
 			boolean useAlias, boolean...useTable) {
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
@@ -1694,6 +1697,29 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 		return retBuilder;
+	}
+	
+	/**
+	 * Flush the subquery to a list of values and add a normal filter
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 * @param tableName
+	 * @param useAlias
+	 * @param useTable
+	 * @return
+	 */
+	private StringBuilder addSelectorToQueryFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean...useTable) {
+		// flush out the right side to a list of values
+		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
+		IRawSelectWrapper subQueryValues = this.pandasFrame.query(subQs);
+		List<Object> values = new ArrayList<>();
+		while(subQueryValues.hasNext()) {
+			values.add(subQueryValues.next().getValues()[0]);
+		}
+		NounMetadata newRightComp = new NounMetadata(values, SemossDataType.convertToPixelDataType(subQueryValues.getTypes()[0]));
+		
+		return addSelectorToValuesFilter(leftComp, newRightComp, thisComparator, tableName, useAlias, useTable);
 	}
 
 	
