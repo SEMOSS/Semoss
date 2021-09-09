@@ -41,10 +41,11 @@ import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
 import prerna.auth.AccessToken;
+import prerna.util.Constants;
 
 public abstract class AbstractHttpHelper {
 
-	private static final Logger LOGGER = LogManager.getLogger(AbstractHttpHelper.class.getName());
+	private static final Logger logger = LogManager.getLogger(AbstractHttpHelper.class.getName());
 	private static ObjectMapper mapper = new ObjectMapper();
 	
 	/////////////////////////////////////////////////////
@@ -67,6 +68,7 @@ public abstract class AbstractHttpHelper {
 	public static AccessToken getAccessToken(String url, Map<String, String> params, boolean json, boolean extract) {
 		AccessToken tok = null;
 		CloseableHttpClient httpclient = null;
+		String result = null;
 		try {
 			// default client
 			httpclient = HttpClients.createDefault();
@@ -80,37 +82,41 @@ public abstract class AbstractHttpHelper {
 
 			CloseableHttpResponse response = httpclient.execute(httppost);
 			int status = response.getStatusLine().getStatusCode();
-			LOGGER.info("Request for access token at " + url + " returned status code = " + status);
+			logger.info("Request for access token at " + url + " returned status code = " + status);
 
-			String result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-			LOGGER.info("Request response = " + result);
+			result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+			logger.info("Request response = " + result);
 			
 			// this will set the token to use
 			if(status == 200 && extract) {
 				if(json) {
-					tok = getJAccessToken(result.toString());
+					tok = getJAccessToken(result);
 				} else {
-					tok = getAccessToken(result.toString());
+					tok = getAccessToken(result);
 				}
 			}
 		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (ClientProtocolException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (UnsupportedOperationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
-		          try {
-		            httpclient.close();
-		          } catch(IOException e) {
-		              e.printStackTrace();
-		          }
-		        }
+				try {
+					httpclient.close();
+				} catch(IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
+		if(tok != null && tok.getAccess_token() == null) {
+			logger.warn("Error occured grabbing the access token: " + result);
+		}
+		
 		// send back the token
 		return tok;
 	}
@@ -187,7 +193,7 @@ public abstract class AbstractHttpHelper {
 			}
 			tok.init();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return tok;
 	}
@@ -231,8 +237,7 @@ public abstract class AbstractHttpHelper {
 				try {
 					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 				
 				first = false;
@@ -264,9 +269,9 @@ public abstract class AbstractHttpHelper {
 		    retString = str.toString();
 		    System.out.println(retString);	
 		} catch (MalformedURLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		return retString;
@@ -295,8 +300,7 @@ public abstract class AbstractHttpHelper {
 				try {
 					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 				
 				first = false;
@@ -323,11 +327,9 @@ public abstract class AbstractHttpHelper {
 		    
 		    return br;
 		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -389,7 +391,7 @@ public abstract class AbstractHttpHelper {
 		          try {
 		            httpclient.close();
 		          } catch(IOException e) {
-		              e.printStackTrace();
+		              logger.error(Constants.STACKTRACE, e);
 		          }
 		        }
 		}
@@ -430,7 +432,7 @@ public abstract class AbstractHttpHelper {
 			          try {
 			            httpclient.close();
 			          } catch(IOException e) {
-			              e.printStackTrace();
+			              logger.error(Constants.STACKTRACE, e);
 			          }
 			        }
 			}
@@ -472,7 +474,7 @@ public abstract class AbstractHttpHelper {
 		          try {
 		            httpclient.close();
 		          } catch(IOException e) {
-		              e.printStackTrace();
+		              logger.error(Constants.STACKTRACE, e);
 		          }
 		        }
 		}
@@ -513,7 +515,7 @@ public abstract class AbstractHttpHelper {
 		          try {
 		            httpclient.close();
 		          } catch(IOException e) {
-		              e.printStackTrace();
+		              logger.error(Constants.STACKTRACE, e);
 		          }
 		        }
 		}
