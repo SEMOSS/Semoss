@@ -17,6 +17,7 @@ import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.util.Utility;
 
 public class FileReadReactor extends AbstractQueryStructReactor {
 
@@ -56,7 +57,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		Map<String, String> newHeaders = getHeaders(); 
 		Map<String, String> dataTypes = getDataTypes();
 		Map<String, String> additionalDataTypes = getAdditionalDataTypes();
-		String fileLocation = UploadInputUtility.getFilePath(this.store, this.insight);
+		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
 		if(!new File(fileLocation).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}

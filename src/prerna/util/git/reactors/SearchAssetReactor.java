@@ -6,6 +6,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 import prerna.util.git.GitAssetUtils;
 
 public class SearchAssetReactor extends AbstractReactor {
@@ -28,7 +29,7 @@ public class SearchAssetReactor extends AbstractReactor {
 		// get specific search location
 		String location = assetFolder;
 		if (keyValue.containsKey(keysToGet[1])) {
-			location = assetFolder + "/" + keyValue.get(keysToGet[1]);
+			location = assetFolder + "/" + Utility.normalizePath(keyValue.get(keysToGet[1]));
 			location = location.replaceAll("\\\\", "/");
 		}
 
