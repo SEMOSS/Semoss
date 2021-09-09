@@ -2,6 +2,7 @@ package prerna.rpa.quartz.jobs.insight;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpCookie;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -14,17 +15,22 @@ import java.util.UUID;
 
 import javax.net.ssl.HostnameVerifier;
 
+import org.apache.http.Header;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
@@ -49,6 +55,8 @@ public class RunPixelJobFromDB implements InterruptableJob {
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	public static final String OUT_INSIGHT_ID_KEY = CommonDataKeys.INSIGHT_ID;
 
+	private static boolean FETCH_CSRF = false;
+	
 	private String jobId;
 	private String jobGroup;
 	
@@ -73,16 +81,68 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				throw new IllegalArgumentException("Must define the scheduler endpoint to run scheduled jobs");
 			}
 			url = url.trim();
+			
+			String csrfToken = null;
+			CookieStore cookieStore = null;
+			if(FETCH_CSRF){
+				CloseableHttpClient httpclient = getCustomClient(null);
+				String fetchUrl = url;
+				if(fetchUrl.endsWith("/")) {
+					fetchUrl += "api/config/fetchCsrf";
+				} else {
+					fetchUrl += "/api/config/fetchCsrf";
+				}
+				HttpGet httpget = new HttpGet(url);
+				httpget.addHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
+				httpget.addHeader("X-CSRF-Token","fetch");
+				cookieStore = new BasicCookieStore();
+				CloseableHttpResponse response = null;
+				try {
+					response = httpclient.execute(httpget);
+					Header[] allheaders = response.getAllHeaders();
+					for(Header h : allheaders) {
+						if(h.getName().equals("X-CSRF-Token")) {
+							csrfToken = h.getValue();
+						} else if(h.getName().equals("Set-Cookie")) {
+							// move over all the cookies
+							List<HttpCookie> cookies = HttpCookie.parse(h.getValue());
+							for(HttpCookie c : cookies) {
+								BasicClientCookie cookie = new BasicClientCookie(c.getName(), c.getValue());
+								cookie.setSecure(c.getSecure());
+								cookie.setPath(c.getPath());
+								cookie.setDomain(c.getDomain());
+								cookieStore.addCookie(cookie);
+							}
+						}
+					}
+				} catch (ClientProtocolException e) {
+					logger.error(Constants.STACKTRACE, e);
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				} finally {
+					if(response != null) {
+						try {
+							response.close();
+						} catch (IOException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
+			}
+			
 			if(url.endsWith("/")) {
 				url += "api/schedule/executePixel";
 			} else {
 				url += "/api/schedule/executePixel";
 			}
 			
-//			CloseableHttpClient httpclient = HttpClients.createDefault();
-			CloseableHttpClient httpclient = getCustomClient();
+			CloseableHttpClient httpclient = getCustomClient(cookieStore);
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
+			if(csrfToken != null) {
+				httppost.addHeader("X-CSRF-Token",csrfToken);
+			}
+			
 			// add the body
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 			paramList.add(new BasicNameValuePair(JobConfigKeys.EXEC_ID, execId));
@@ -187,8 +247,11 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				+ " job. However, there is nothing to interrupt for this job.");
 	}
 	
-	private CloseableHttpClient getCustomClient() {
+	private CloseableHttpClient getCustomClient(CookieStore cookieStore) {
 		HttpClientBuilder builder = HttpClients.custom();
+		if(cookieStore != null) {
+			builder.setDefaultCookieStore(cookieStore);
+		}
 		
 		TrustStrategy trustStrategy = new TrustStrategy() {
 			
@@ -240,4 +303,9 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		builder.setSSLSocketFactory(connFactory);
 		return builder.build();
 	}
+	
+	public static void setFetchCsrf(boolean fetchCsrf) {
+		RunPixelJobFromDB.FETCH_CSRF = fetchCsrf;
+	}
+
 }
