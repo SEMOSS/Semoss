@@ -74,7 +74,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 
 		// creating a temp folder to unzip db folder and smss
 		String temporaryAppId = UUID.randomUUID().toString();
-		String dbFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db";
+		String dbFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + Constants.DATABASE_FOLDER;
 		String tempDbFolderPath = dbFolderPath + DIR_SEPARATOR + temporaryAppId;
 		File tempDbFolder = new File(tempDbFolderPath);
 
@@ -127,9 +127,10 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 			}
 		}
 
-		String engines = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		String appId = null;
-		String appName = null;
+		//String engines = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+		String engines = (String) DIHelper.getInstance().getDbProperty(Constants.ENGINES);
+		String databaseId = null;
+		String databseName = null;
 		File tempSmss = null;
 		File tempEngFolder = null;
 		File finalSmss = null;
@@ -138,30 +139,30 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 		try {
 			logger.info(step + ") Reading smss");
 			Properties prop = Utility.loadProperties(smssFileLoc);
-			appId = prop.getProperty(Constants.ENGINE);
-			appName = prop.getProperty(Constants.ENGINE_ALIAS);
+			databaseId = prop.getProperty(Constants.ENGINE);
+			databseName = prop.getProperty(Constants.ENGINE_ALIAS);
 			logger.info(step + ") Done");
 			step++;
 
 			// zip file has the smss and db folder on the same level
 			// need to move these files around
-			String oldDbFolderPath = tempDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId);
+			String oldDbFolderPath = tempDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(databseName, databaseId);
 			tempEngFolder = new File(Utility.normalizePath(oldDbFolderPath));
-			finalEngFolder = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)));
-			finalSmss = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + Constants.SEMOSS_EXTENSION));
+			finalEngFolder = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(databseName, databaseId)));
+			finalSmss = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(databseName, databaseId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
-			if (!(engines.startsWith(appId) || engines.contains(";" + appId + ";") || engines.endsWith(";" + appId))) {
-				String newEngines = engines + ";" + appId;
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, newEngines);
+			if (!(engines.startsWith(databaseId) || engines.contains(";" + databaseId + ";") || engines.endsWith(";" + databaseId))) {
+				String newEngines = engines + ";" + databaseId;
+				DIHelper.getInstance().setDbProperty(Constants.ENGINES, newEngines);
 			} else {
 				SemossPixelException exception = new SemossPixelException(
-						NounMetadata.getErrorNounMessage("App ID already exists"));
+						NounMetadata.getErrorNounMessage("Database id already exists"));
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
 			// move database folder
-			logger.info(step + ") Moving app folder");
+			logger.info(step + ") Moving database folder");
 			FileUtils.copyDirectory(tempEngFolder, finalEngFolder);
 			logger.info(step + ") Done");
 			step++;
@@ -169,7 +170,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 			// move smss file
 			logger.info(step + ") Moving smss file");
 			tempSmss = new File(Utility.normalizePath(tempDbFolder + DIR_SEPARATOR 
-					+ SmssUtilities.getUniqueName(appName, appId) + Constants.SEMOSS_EXTENSION));
+					+ SmssUtilities.getUniqueName(databseName, databaseId) + Constants.SEMOSS_EXTENSION));
 			FileUtils.copyFile(tempSmss, finalSmss);
 			logger.info(step + ") Done");
 			step++;
@@ -179,7 +180,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
 			if(error) {
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+				DIHelper.getInstance().setDbProperty(Constants.ENGINES, engines);
 				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempDbFolder, logger);
 			} else {
 				// just delete the temp db folder
@@ -188,10 +189,10 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setDbProperty(appId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
-			logger.info(step + ") Grabbing app structure");
-			Utility.synchronizeEngineMetadata(appId);
-			SecurityUpdateUtils.addDatabase(appId, !AbstractSecurityUtils.securityEnabled());
+			DIHelper.getInstance().setDbProperty(databaseId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
+			logger.info(step + ") Grabbing database structure");
+			Utility.synchronizeEngineMetadata(databaseId);
+			SecurityUpdateUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled());
 			logger.info(step + ") Done");
 		} catch(Exception e) {
 			error = true;
@@ -202,12 +203,12 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 				// delete all the resources
 				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempDbFolder, logger);
 				// remove from DIHelper
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+				DIHelper.getInstance().setDbProperty(Constants.ENGINES, engines);
 				// delete from local master
 				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
-				lmDeleter.deleteEngineRDBMS(appId);
+				lmDeleter.deleteEngineRDBMS(databaseId);
 				// delete from security
-				SecurityUpdateUtils.deleteDatabase(appId);
+				SecurityUpdateUtils.deleteDatabase(databaseId);
 			}
 		}
 		
@@ -215,13 +216,13 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
-				SecurityUpdateUtils.addDatabaseOwner(appId, user.getAccessToken(ap).getId());
+				SecurityUpdateUtils.addDatabaseOwner(databaseId, user.getAccessToken(ap).getId());
 			}
 		}
 
-		ClusterUtil.reactorPushDatabase(appId);
+		ClusterUtil.reactorPushDatabase(databaseId);
 
-		Map<String, Object> retMap = UploadUtilities.getDatabaseReturnData(this.insight.getUser(), appId);
+		Map<String, Object> retMap = UploadUtilities.getDatabaseReturnData(this.insight.getUser(), databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);	
 	}
 	
