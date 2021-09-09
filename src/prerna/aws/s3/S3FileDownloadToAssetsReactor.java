@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs.source;
+package prerna.aws.s3;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,9 +15,10 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 
-public class S3FileDownloadToAssetsReactor extends AbstractS3Reactor {
+public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 	
 	private static final String BUCKET = "bucket";
 	private static final String PATH = "path";
@@ -28,7 +29,7 @@ public class S3FileDownloadToAssetsReactor extends AbstractS3Reactor {
 	private static final String SSE_KEY_64 = "sseKey64";
 	
 	public S3FileDownloadToAssetsReactor() {
-		this.keysToGet = getS3KeysToGet(new String[] { BUCKET, PATH, TARGET_SPACE, SSE_KEY_PATH, SSE_KEY_64 });
+		this.keysToGet = S3Utils.addCommonS3Keys(new String[] { BUCKET, PATH, TARGET_SPACE, SSE_KEY_PATH, SSE_KEY_64 });
 	}
 	
 	@Override
@@ -43,6 +44,11 @@ public class S3FileDownloadToAssetsReactor extends AbstractS3Reactor {
 			return "File path to a custom encryption key";
 		} else if(key.equals(SSE_KEY_64)) {
 			return "Base-64 encoding of a custom encryption key";
+		} else {
+			String commonDescription = S3Utils.getDescriptionForCommonS3Key(key);
+			if(commonDescription != null) {
+				return commonDescription;
+			}
 		}
 		return super.getDescriptionForKey(key);
 	}
@@ -74,7 +80,7 @@ public class S3FileDownloadToAssetsReactor extends AbstractS3Reactor {
 		File localFile = new File(filePath);
 		
 		try {
-			AmazonS3 s3Client = getS3Client();
+			AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
 			
 			GetObjectRequest request = new GetObjectRequest(bucketName, path);
 			

@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs.source;
+package prerna.aws.s3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,11 +11,21 @@ import com.amazonaws.services.s3.model.Bucket;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.AbstractReactor;
 
-public class S3ListBucketsReactor extends AbstractS3Reactor {
+public class S3ListBucketsReactor extends AbstractReactor {
 
 	public S3ListBucketsReactor() {
-		this.keysToGet = getS3KeysToGet(null);
+		this.keysToGet = S3Utils.addCommonS3Keys(null);
+	}
+	
+	@Override
+	public String getDescriptionForKey(String key) {
+		String commonDescription = S3Utils.getDescriptionForCommonS3Key(key);
+		if(commonDescription != null) {
+			return commonDescription;
+		}
+		return super.getDescriptionForKey(key);
 	}
 	
 	@Override
@@ -29,7 +39,7 @@ public class S3ListBucketsReactor extends AbstractS3Reactor {
 				
 		List<HashMap<String, Object>> bucketList = new ArrayList<HashMap<String, Object>>();
 		try{
-			AmazonS3 s3Client = getS3Client();
+			AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
 			
 			List<Bucket> buckets = s3Client.listBuckets();
 			for (Bucket b : buckets) {
