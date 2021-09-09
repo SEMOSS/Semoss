@@ -34,7 +34,7 @@ public class RDFFileSourceReactor extends AbstractQueryStructReactor {
 	protected AbstractQueryStruct createQueryStruct() {
 		organizeKeys();
 
-		String filePath = this.keyValue.get(this.keysToGet[0]);
+		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		filePath = this.insight.getAbsoluteInsightFolderPath(filePath);
 		File file = new File(filePath);
 		if(!file.exists()) {

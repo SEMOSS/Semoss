@@ -12,6 +12,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 public class GetImageAssetReactor extends AbstractReactor {
@@ -48,7 +49,7 @@ public class GetImageAssetReactor extends AbstractReactor {
 		}
 
 		// specify a file
-		String asset = keyValue.get(keysToGet[0]);
+		String asset = Utility.normalizePath(keyValue.get(keysToGet[0]));
 		// grab the version
 		String version = null;
 		if (keyValue.containsKey(keysToGet[1])) {

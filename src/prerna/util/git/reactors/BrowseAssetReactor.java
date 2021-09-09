@@ -21,6 +21,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.git.GitAssetUtils;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class BrowseAssetReactor extends AbstractReactor {
 
@@ -45,7 +46,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 		// specific folder to browse
 		String locFolder = assetFolder;
 		if (keyValue.containsKey(keysToGet[0])) {
-			locFolder = assetFolder + "/" + keyValue.get(keysToGet[0]);
+			locFolder = assetFolder + "/" + Utility.normalizePath( keyValue.get(keysToGet[0]));
 			locFolder = locFolder.replaceAll("\\\\", "/");
 		}
 		
