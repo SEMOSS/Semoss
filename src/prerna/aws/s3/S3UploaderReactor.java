@@ -1,29 +1,22 @@
-package prerna.sablecc2.reactor.export;
+package prerna.aws.s3;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.aws.s3.S3UploaderReactor;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -33,115 +26,75 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class S3UploaderReactor extends TaskBuilderReactor {
-
-	
-	private static Properties socialData = null;
-	private static final String AWS_ACCOUUNT = "aws_account";
-	private static final String AWS_KEY = "aws_key";
-
-	
-	public S3UploaderReactor() {
-		this.keysToGet = new String[] { "fileName", "bucket", "region" };
-	}
-
 	
 	private static final String CLASS_NAME = S3UploaderReactor.class.getName();
 	private static final String STACKTRACE = "StackTrace: ";
-
+	private static final String FILE_NAME = "fileName";
+	private static final String BUCKET = "bucket";
+	
 	private String fileLocation = null;
 	private Logger logger;
-	private String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
-	private String [] beanProps = {"id", "name", "type"}; // add is done when you have a list
-	private String jsonPattern = "[id, name, mimeType]";
-
+	
+	public S3UploaderReactor() {
+		this.keysToGet = S3Utils.addCommonS3Keys(new String[] { FILE_NAME, BUCKET });
+	}
+	
+	@Override
+	public String getDescriptionForKey(String key) {
+		if (key.equals(FILE_NAME)) {
+			return "Base file name to use for S3 object";
+		} else if(key.equals(BUCKET)) {
+			return "S3 bucket name";
+		} else {
+			String commonDescription = S3Utils.getDescriptionForCommonS3Key(key);
+			if(commonDescription != null) {
+				return commonDescription;
+			}
+		}
+		return super.getDescriptionForKey(key);
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Upload task data as a CSV to an S3 bucket. Credentials can be set via a profile path/name or with an explicit access key and secret";
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		
 		String fileName = keyValue.get(keysToGet[0]);		
-
 		String bucketName = this.keyValue.get(this.keysToGet[1]);
-		String clientRegion = this.keyValue.get(this.keysToGet[2]);
-
 		if (fileName == null || fileName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file name");
 		}
 		if (bucketName == null || bucketName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify bucket");
 		}
-		if (clientRegion == null || clientRegion.length() <= 0) {
-			throw new IllegalArgumentException("Need to specify region");
-		}
-
+		
 		logger = getLogger(CLASS_NAME);
 		this.task = getTask();
-
-		// get a random file name
 		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + fileName + ".csv";
+		
 		//make file
 		buildTask();
-
-
-
-		File f = new File(DIHelper.getInstance().getProperty("SOCIAL"));
-		FileInputStream fis = null;
-
-		try {
-			if(f.exists()) {
-				socialData = new Properties();
-				fis = new FileInputStream(f);
-				socialData.load(fis);
-			}
-		} catch (FileNotFoundException fnfe) {
-			logger.error(STACKTRACE, fnfe);
-		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
-		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
-		} finally {
-			if(fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
-				}
-			}
-		}
 		
-		S3Object fullObject = null;
-
-		String account = socialData.getProperty(AWS_ACCOUUNT);
-		String key = socialData.getProperty(AWS_KEY);
-		
+		AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
 		File fileToPush = new File(this.fileLocation);
-
-		if (account != null && account.length() > 0 && key != null && key.length() > 0) {
-			BasicAWSCredentials awsCreds = new BasicAWSCredentials(account, key);
-			AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-					.withRegion(clientRegion)
-					.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-					.build();
-			TransferManager xferMgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
-			try {
-				Upload xfer = xferMgr.upload(bucketName, fileToPush.getName(), fileToPush);
-				try {
-					xfer.waitForCompletion();
-				} catch (AmazonServiceException e) {
-					logger.error("Amazon service error: " + e.getMessage());
-				} catch (AmazonClientException e) {
-					logger.error("Amazon client error: " + e.getMessage());
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					logger.error("Transfer interrupted: " + e.getMessage());
-				}
-			} catch (AmazonServiceException e) {
-				logger.error(e.getErrorMessage());
-				System.exit(1);
-			}
-			xferMgr.shutdownNow();
+		TransferManager xferMgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
+		boolean transferFailure = false;
+		try {
+			Upload xfer = xferMgr.upload(bucketName, fileToPush.getName(), fileToPush);
+			xfer.waitForCompletion();
+		} catch (AmazonClientException | InterruptedException e) {
+			logger.error("Amazon upload failure: " + e.getMessage());
+			transferFailure = true;
 		}
+		xferMgr.shutdownNow();
 		
-
-
+		if(transferFailure) {
+			return getError("Error occurred during upload");
+		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.SUCCESS);
 	}
 
