@@ -31,7 +31,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String uploadedFilePath = this.keyValue.get(this.keysToGet[0]);
+		String uploadedFilePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		if(uploadedFilePath == null || uploadedFilePath.isEmpty()) {
 			throw new IllegalArgumentException("Must input file path for the user file");
 		}

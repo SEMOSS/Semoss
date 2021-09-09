@@ -11,6 +11,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 public class GetAssetCommentReactor extends AbstractReactor {
@@ -41,7 +42,7 @@ public class GetAssetCommentReactor extends AbstractReactor {
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 
 		// specify a file
-		String filePath = relativePath + "/" + this.keyValue.get(this.keysToGet[0]);
+		String filePath = relativePath + "/" + Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 
 		// get comments
 		List<Map<String, Object>> comments = GitRepoUtils.getCommits(assetFolder, filePath);

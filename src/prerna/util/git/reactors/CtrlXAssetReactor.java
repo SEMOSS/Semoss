@@ -5,6 +5,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 public class CtrlXAssetReactor extends AbstractReactor {
 
@@ -20,7 +21,7 @@ public class CtrlXAssetReactor extends AbstractReactor {
 		if(user == null)
 			return NounMetadata.getErrorNounMessage("You have to be logged in to perform this action ");
 
-		String filePath = this.keyValue.get(this.keysToGet[0]);
+		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
