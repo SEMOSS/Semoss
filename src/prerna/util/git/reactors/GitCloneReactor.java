@@ -30,7 +30,7 @@ public class GitCloneReactor extends AbstractReactor {
 			throw exception;
 		}
 		// get base asset folder path
-		String filePath = this.keyValue.get(this.keysToGet[1]);
+		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
 		String space = this.keyValue.get(this.keysToGet[2]);
 		// if security is enabled, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations

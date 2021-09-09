@@ -39,7 +39,7 @@ public class CommitAssetReactor extends AbstractReactor {
 			email = accessToken.getEmail();
 			author = accessToken.getUsername();
 		}
-		String filePath = this.keyValue.get(this.keysToGet[0]);
+		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		String comment = this.keyValue.get(this.keysToGet[1]);
 		String space = this.keyValue.get(this.keysToGet[2]);
 		if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
