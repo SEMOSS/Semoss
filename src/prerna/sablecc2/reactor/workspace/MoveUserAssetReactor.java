@@ -24,7 +24,7 @@ public class MoveUserAssetReactor extends AbstractReactor{
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String currentFilePath = this.keyValue.get(this.keysToGet[0]);
+		String currentFilePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		if(currentFilePath == null || currentFilePath.isEmpty()) {
 			throw new IllegalArgumentException("Must input file path for the user file");
 		}

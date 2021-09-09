@@ -20,6 +20,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.qs.source.S3Utils;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 public class PushAssetToS3Reactor  extends AbstractReactor {
 
@@ -35,7 +36,7 @@ public class PushAssetToS3Reactor  extends AbstractReactor {
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 		String pushPath = assetFolder;
 		// if a specific file is specified for download
-		String relativeAssetPath = keyValue.get(keysToGet[0]);		
+		String relativeAssetPath = Utility.normalizePath(keyValue.get(keysToGet[0]));		
 
 		String bucketName = this.keyValue.get(this.keysToGet[2]);
 		String clientRegion = this.keyValue.get(this.keysToGet[3]);

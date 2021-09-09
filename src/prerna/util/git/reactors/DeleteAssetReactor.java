@@ -54,7 +54,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 		}
 
 		// get the file path to delete
-		String fileName = keyValue.get(keysToGet[0]);
+		String fileName = Utility.normalizePath(keyValue.get(keysToGet[0]));
 		String comment = this.keyValue.get(this.keysToGet[1]);
 
 		List<String> files = new Vector<>();
