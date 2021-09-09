@@ -138,6 +138,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		IProject project = Utility.getProject(projectId);
 
+		
+		// pull the insights db again incase someone just saved something 
+		ClusterUtil.reactorPullInsightsDB(projectId);
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
+		
+		
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
 		// get the new insight id
@@ -165,11 +171,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("An error occured trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
 			}
 		}
-		
-		// pull the insights db again incase someone just saved something 
-		ClusterUtil.reactorPullInsightsDB(projectId);
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
-		
+
 		int stepCounter = 1;
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
