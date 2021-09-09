@@ -74,7 +74,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 
 		// creating a temp folder to unzip project folder and smss
 		String temporaryProjectId = UUID.randomUUID().toString();
-		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "project";
+		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + Constants.PROJECT_FOLDER;
 		String tempProjectFolderPath = projectFolderPath + DIR_SEPARATOR + temporaryProjectId;
 		File tempProjectFolder = new File(tempProjectFolderPath);
 
@@ -152,11 +152,11 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 
 			// need to ignore file watcher
 			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";") || projects.endsWith(";" + projectId))) {
-				String newEngines = projects + ";" + projectId;
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, newEngines);
+				String newProjects = projects + ";" + projectId;
+				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
 			} else {
 				SemossPixelException exception = new SemossPixelException(
-						NounMetadata.getErrorNounMessage("App ID already exists"));
+						NounMetadata.getErrorNounMessage("Project id already exists"));
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
@@ -179,7 +179,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
 			if(error) {
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, projects);
+				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
 				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempProjectFolder, logger);
 			} else {
 				// just delete the temp project folder
@@ -201,7 +201,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 				// delete all the resources
 				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempProjectFolder, logger);
 				// remove from DIHelper
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, projects);
+				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
 				// delete from local master
 				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
 				lmDeleter.deleteEngineRDBMS(projectId);
