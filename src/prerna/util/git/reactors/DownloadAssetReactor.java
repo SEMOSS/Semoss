@@ -15,6 +15,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
 public class DownloadAssetReactor extends AbstractReactor {
@@ -35,7 +36,7 @@ public class DownloadAssetReactor extends AbstractReactor {
 				+ DIR_SEPARATOR + "ZIPs";
 		String zipPath = OUTPUT_PATH + DIR_SEPARATOR + this.insight.getInsightName() + ".zip";
 		// if a specific file is specified for download
-		String relativeAssetPath = keyValue.get(keysToGet[0]);
+		String relativeAssetPath =Utility.normalizePath(keyValue.get((keysToGet[0])));
 		if (relativeAssetPath != null && relativeAssetPath.length() > 0) {
 			downloadPath = assetFolder + DIR_SEPARATOR + relativeAssetPath;
 			File assetToDownload = new File(downloadPath);
