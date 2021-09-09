@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs.source;
+package prerna.aws.s3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,8 +17,9 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.AbstractReactor;
 
-public class S3ListFilesReactor extends AbstractS3Reactor {
+public class S3ListFilesReactor extends AbstractReactor {
 	
 	private static final String BUCKET = "bucket";
 	private static final String PATH = "path";
@@ -26,7 +27,7 @@ public class S3ListFilesReactor extends AbstractS3Reactor {
 	private static final String LIMIT = "limit";
 	
 	public S3ListFilesReactor() {
-		this.keysToGet = getS3KeysToGet(new String[] { BUCKET, PATH, RECURSIVE, LIMIT });
+		this.keysToGet = S3Utils.addCommonS3Keys(new String[] { BUCKET, PATH, RECURSIVE, LIMIT });
 	}
 	
 	@Override
@@ -39,6 +40,11 @@ public class S3ListFilesReactor extends AbstractS3Reactor {
 			return "Boolean flag to indicate if objects should be listed recursively (default false)";
 		} else if(key.equals(LIMIT)) {
 			return "Max number of results to list (default 100). Use -1 for unlimited";
+		} else {
+			String commonDescription = S3Utils.getDescriptionForCommonS3Key(key);
+			if(commonDescription != null) {
+				return commonDescription;
+			}
 		}
 		return super.getDescriptionForKey(key);
 	}
@@ -69,7 +75,7 @@ public class S3ListFilesReactor extends AbstractS3Reactor {
 		
 		List <Map<String, Object>> output = new ArrayList <Map<String, Object>>();
 		try{
-			AmazonS3 s3Client = getS3Client();
+			AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
 
 			Boolean isTopLevel = false;
 			String delimiter = "/";
