@@ -1,13 +1,10 @@
-package prerna.sablecc2.reactor.qs.source;
+package prerna.aws.s3;
 
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.logging.log4j.Logger;
-
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -16,8 +13,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
 
+import prerna.aws.s3.S3FileRetrieverReactor;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -27,63 +24,61 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
-
-	private static final String CLASS_NAME = S3FileRetrieverReactor.class.getName();
-
-
+public class S3FileRetrieverReactor extends AbstractQueryStructReactor {
+	
+	private static final String BUCKET = "bucket";
+	private static final String PATH = "path";
+	
 	public S3FileRetrieverReactor() {
-		this.keysToGet = new String[] { "bucket","path", "region" };
+		this.keysToGet = S3Utils.addCommonS3Keys(new String[] { BUCKET, PATH });
 	}
+	
+	@Override
+	public String getDescriptionForKey(String key) {
+		if(key.equals(BUCKET)) {
+			return "S3 bucket name";
+		} else if(key.equals(PATH)) {
+			return "S3 path to download from";
+		} else {
+			String commonDescription = S3Utils.getDescriptionForCommonS3Key(key);
+			if(commonDescription != null) {
+				return commonDescription;
+			}
+		}
+		return super.getDescriptionForKey(key);
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Download and load a csv file from an S3 bucket. Credentials can be optionally set via a profile path/name, or with an explicit access key and secret. Otherwise, credentials from environment variables or social properties are used.";
+	}
+	
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
-		//get keys
-		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		String bucketName = this.keyValue.get(this.keysToGet[0]);
 		String path = this.keyValue.get(this.keysToGet[1]);
-		String clientRegion = this.keyValue.get(this.keysToGet[2]);
 
 		if (bucketName == null || bucketName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify bucket name");
 		}	
 		if (path == null || path.length() <= 0) {
-			throw new IllegalArgumentException("Need to file path on s3");
+			throw new IllegalArgumentException("Need to give file path on s3");
 		}
-		if (clientRegion == null || clientRegion.length() <= 0) {
-			throw new IllegalArgumentException("Need to specify region");
-		}
-
 
 		String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + DIR_SEPARATOR 
 				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		
 		filePath += DIR_SEPARATOR + Utility.getRandomString(10) + ".csv";
 
-
-
 		try {
-			
-			AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-					.withRegion(clientRegion)
-					.withCredentials(S3Utils.getInstance().getAwsCredsChain())
-					.build();
+			AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
 
-			// Get an object and print its contents.
-			System.out.println("Downloading an object");
 			File localFile = new File(filePath);
-
-			ObjectMetadata object = s3Client.getObject(new GetObjectRequest(bucketName, path), localFile);
-
-
-
-		} catch (AmazonServiceException e) {
+			s3Client.getObject(new GetObjectRequest(bucketName, path), localFile);
+		} catch (SdkClientException e) {
 			// The call was transmitted successfully, but Amazon S3 couldn't process 
 			// it, so it returned an error response.
-			e.printStackTrace();
-		} catch (SdkClientException e) {
-			// Amazon S3 couldn't be contacted for a response, or the client
-			// couldn't parse the response from Amazon S3.
 			e.printStackTrace();
 		}
 		
@@ -107,16 +102,12 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
 		return qs;
 	}
 
-
 	public static void main(String[] args) throws IOException {
 		Regions clientRegion = ***REMOVED***;
 		String bucketName = "sample";
 		String key = "frame_export2.csv";
 
-		S3Object fullObject = null;
-
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials("test", "test");
-
 
 		try {
 			AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
@@ -131,24 +122,11 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
 			ObjectMetadata object = s3Client.getObject(new GetObjectRequest(bucketName, key), localFile);
 
 			System.out.println("Content-Type: " + object.getContentType());
-
-
-
-		} catch (AmazonServiceException e) {
-			// The call was transmitted successfully, but Amazon S3 couldn't process 
-			// it, so it returned an error response.
-			e.printStackTrace();
 		} catch (SdkClientException e) {
 			// Amazon S3 couldn't be contacted for a response, or the client
 			// couldn't parse the response from Amazon S3.
 			e.printStackTrace();
-		} finally {
-			// To ensure that the network connection doesn't remain open, close any open input streams.
-			if (fullObject != null) {
-				fullObject.close();
-			}
 		}
 	}
-
 
 }
