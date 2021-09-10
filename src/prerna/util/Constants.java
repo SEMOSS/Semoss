@@ -562,6 +562,8 @@ public class Constants {
 	public static final String USE_PYTHON = "USE_PYTHON";
 	public static final String PY_WORKER_CP = "PY_WORKER_CP";
 	public static final String TCP_WORKER_CP = "TCP_WORKER_CP";
+	public static final String NETTY_PYTHON = "NETTY_PYTHON";
+	
 	//if spark is enabled
 	public static final String SPARK = "SPARK";
 	public static final String USE_SPARK = "USE_SPARK";
@@ -570,6 +572,7 @@ public class Constants {
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
+	public static final String NETTY_R = "NETTY_R";
 	
 	// disable terminal and user code inputs
 	public static final String DISABLE_TERMINAL = "DISABLE_TERMINAL";
