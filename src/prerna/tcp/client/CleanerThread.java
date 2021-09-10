@@ -4,46 +4,42 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 
-public class CleanerThread extends Thread{
+import prerna.util.Constants;
+
+public class CleanerThread extends Thread {
 	
-	
-	// takes command and executes it
-	// quite simple
+	// store the folder to delete
 	public String folder = null;
 	
-	public static final Logger LOGGER = LogManager.getLogger(CleanerThread.class.getName());
+	private static final Logger logger = LogManager.getLogger(CleanerThread.class);
 	
-	public CleanerThread(String folder)
-	{
+	public CleanerThread(String folder) {
 		this.folder = folder;
 	}
 
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
 		int attempt = 1;
 		boolean deleted = false;
-		while(attempt < 10 && !deleted)
-		{
+		while(attempt < 10 && !deleted) {
 			try {
 				FileUtils.deleteDirectory(folder);
 				deleted = true;
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
+			} catch (Exception ignored) {
 				attempt++;
 				try {
 					Thread.sleep(attempt * 1000);
 				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+					logger.error(Constants.STACKTRACE, e1);
 				}
 			}
-		}		
+		}
 		
-		if(attempt >= 10)
-			LOGGER.info("Unable to delete Directory " + folder);
-		else
-			LOGGER.info("Deleted directory " + folder);
+		if(attempt >= 10) {
+			logger.error(Constants.STACKTRACE, "Unable to delete directory on netty cleanup: " + folder);
+		} else {
+			logger.info("Deleted directory " + folder);
+		}
 	}
 
 }

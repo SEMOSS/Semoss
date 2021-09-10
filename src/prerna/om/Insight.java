@@ -674,7 +674,7 @@ public class Insight implements Serializable {
 				// now set the netty client
 				if(this.user != null)
 				{
-					((TCPRTranslator)this.rJavaTranslator).nc = this.user.getTCPServer();
+					((TCPRTranslator)this.rJavaTranslator).nc = this.user.getTCPServer(true);
 				}
 				else
 				{
@@ -1534,17 +1534,15 @@ public class Insight implements Serializable {
 
 	///////////////////////////////////////// END PYTHON SPECIFIC METHODS ///////////////////////////////////////////
 
-	public ChromeDriverUtility getChromeDriver()
-	{
-		if(this.chromeUtil == null)
-		{
+	public ChromeDriverUtility getChromeDriver() {
+		if(this.chromeUtil == null) {
 			boolean useNettyChrome = DIHelper.getInstance().getProperty("NETTY_CHROME") != null
 					&& DIHelper.getInstance().getProperty("NETTY_CHROME").equalsIgnoreCase("true");
 			if(useNettyChrome) {
 				ChromeDriverUtility.useNetty = true;
 				Client tcp = null;
 				if(user != null) {
-					tcp = user.getTCPServer();
+					tcp = user.getTCPServer(true);
 				}
 				else {
 					tcp = PySingleton.getTCPServer();
