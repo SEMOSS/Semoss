@@ -43,8 +43,8 @@ public class PySingleton {
 				if (PyUtils.pyEnabled()) 
 				{
 		
-					boolean useNettyPy = DIHelper.getInstance().getProperty("NETTY_PYTHON") != null
-							&& DIHelper.getInstance().getProperty("NETTY_PYTHON").equalsIgnoreCase("true");
+					boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
+							&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 					
 					if (!useNettyPy) {
 						PyExecutorThread jepThread = null;
