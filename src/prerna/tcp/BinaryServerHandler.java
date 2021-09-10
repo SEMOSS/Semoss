@@ -55,35 +55,27 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 	Map <String, Integer> attemptCount = new HashMap<String, Integer>();
 	Map <String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
 	
-	
 	public  Logger LOGGER = null;
-		
 	
-	public void setMainFolder(String mainFolder)
-	{
+	public void setMainFolder(String mainFolder) {
 		this.mainFolder = mainFolder;
 	}
 	
-	public void setLogger(Logger LOGGER)
-	{
+	public void setLogger(Logger LOGGER) {
 		this.LOGGER = LOGGER;
 	}
 	
-	public void setPyExecutorThread(PyExecutorThread pt)
-	{
+	public void setPyExecutorThread(PyExecutorThread pt) {
 		this.pt = pt;
 		this.pyt = new PyTranslator();
 		pyt.setPy(pt);;
-		
 	}
 
 	@Override
-	public void channelRead(ChannelHandlerContext ctx, Object msg)
-	{
+	public void channelRead(ChannelHandlerContext ctx, Object msg) {
 			ByteBuf in = (ByteBuf)msg;
 			
-			if(buf == null)
-			{
+			if(buf == null) {
 				//System.err.print("." + in.readableBytes());
 				//synchronized(lock)
 				{
@@ -150,12 +142,14 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 		    		{
 		    			LOGGER.info("Not sending the ps - not empty but null");
 		    		}
-		    	}catch (Exception ex)
+		    	} 
+		    	catch (Exception ex)
 		    	{
 		    		// how does it even get here ?
 		    		LOGGER.info("exception while sending " + ex);
 		    		ex.printStackTrace();
-		    	}finally 
+		    	} 
+		    	finally 
 		    	{
 	    			writeResponse(ctx, ps2);
 		    	}
@@ -403,46 +397,43 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
     	if(!test)
     	{
     		LOGGER.info("Starting shutdown " );
-            ctx.close(); // close the context and take out everything else
-            Iterator <String> envKeys = rtMap.keySet().iterator();
-            while(envKeys.hasNext())
-            {
-            	String env = envKeys.next();
-            	AbstractRJavaTranslator rt = rtMap.get(env);            	
-				if(rt != null)
-					rt.endR();
-            }
-			if(this.pt != null)
-			{
-				this.pt.killThread();
-				processCommand("'logout now'"); // this should trigger it and kill it
-			}
+    		ctx.close(); // close the context and take out everything else
+    		Iterator <String> envKeys = rtMap.keySet().iterator();
+    		while(envKeys.hasNext())
+    		{
+    			String env = envKeys.next();
+    			AbstractRJavaTranslator rt = rtMap.get(env);            	
+    			if(rt != null)
+    				rt.endR();
+    		}
+    		if(this.pt != null)
+    		{
+    			this.pt.killThread();
+    			processCommand("'logout now'"); // this should trigger it and kill it
+    		}
+    	}
+    	// stop the logger
+    	//LogManager.shutdown();
 
-            }
-            // stop the logger
-			//LogManager.shutdown();
-			
-			ctx.channel().close();
-			ctx.channel().parent().close();
+    	ctx.channel().close();
+    	ctx.channel().parent().close();
 
-			bossGroup.shutdownGracefully();
-			workerGroup.shutdownGracefully();
-			
-			// dont delete output log
-			// do it later
-			File file = new File(mainFolder + "/output.log");
-			file.deleteOnExit();
-			
-			try {
-				FileUtils.deleteDirectory(new File(mainFolder));
-			} catch (IOException ignore) {
-				// TODO Auto-generated catch block
-				//e.printStackTrace();
-			}
-			
-			
-			// exit out
-			System.exit(1);
+    	bossGroup.shutdownGracefully();
+    	workerGroup.shutdownGracefully();
+
+    	// dont delete output log
+    	// do it later
+    	File file = new File(mainFolder + "/output.log");
+    	file.delete();
+
+    	try {
+    		FileUtils.deleteDirectory(new File(mainFolder));
+    	} catch (IOException ignore) {
+    		//e.printStackTrace();
+    	}
+
+    	// exit out
+    	System.exit(1);
     }	
     
     // process the command
