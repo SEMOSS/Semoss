@@ -482,8 +482,8 @@ public class User implements Serializable {
 		this.tcpServer = nc;
 	}
 	
-	public Client getTCPServer() {
-		if(this.tcpServer == null) {
+	public Client getTCPServer(boolean create) {
+		if(this.tcpServer == null && create) {
 			startTCPServer();
 		}
 		return this.tcpServer;
@@ -707,8 +707,8 @@ public class User implements Serializable {
 	}
 
 	public PyTranslator getPyTranslator(boolean create) {
-		boolean useNettyPy = DIHelper.getInstance().getProperty("NETTY_PYTHON") != null
-				&& DIHelper.getInstance().getProperty("NETTY_PYTHON").equalsIgnoreCase("true");
+		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
+				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is set to false for this instance");
 		}
@@ -744,7 +744,7 @@ public class User implements Serializable {
 					// check to see if the py translator needs to be set ?
 					else {
 						this.pyt = new TCPPyTranslator();
-						((TCPPyTranslator) pyt).nc = getTCPServer(); // starts it
+						((TCPPyTranslator) pyt).nc = getTCPServer(true); // starts it
 					}
 				}
 			}
