@@ -21,7 +21,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MyDatabasesReactor extends AbstractReactor {
 	
@@ -78,7 +77,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 				String databaseId = (String) data[0];
 
 				String metaKey = (String) data[1];
-				String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[2]);
+				String value = (String) data[2];
 				if(value == null) {
 					continue;
 				}
