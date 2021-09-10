@@ -42,7 +42,9 @@ public class RJavaTranslatorFactory {
 	private static Boolean attemptConnection = null;
 	// boolean for using jri or not
 	private static boolean useJri = false;
-
+	// boolean for using netty or not
+	private static boolean useNetty = false;
+	
 	// value for r mem size
 	public static String rMemory = "4096"; 
 
@@ -55,7 +57,6 @@ public class RJavaTranslatorFactory {
 	 */
 	private static void init() {
 		String useRStr =  DIHelper.getInstance().getProperty(Constants.USE_R);
-		String netty =  DIHelper.getInstance().getProperty("NETTY_R");
 		if(useRStr != null) {
 			RJavaTranslatorFactory.USE_R = Boolean.parseBoolean(useRStr);
 			if(!RJavaTranslatorFactory.USE_R) {
@@ -68,6 +69,11 @@ public class RJavaTranslatorFactory {
 		if(rMemory != null) {
 			RJavaTranslatorFactory.rMemory = rMemory; 
 		}
+		
+		String nettyStr =  DIHelper.getInstance().getProperty(Constants.NETTY_R);
+		if(nettyStr != null) {
+			useNetty = Boolean.parseBoolean(nettyStr);
+		}
 
 		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
 		if(useJriStr != null) {
@@ -77,24 +83,15 @@ public class RJavaTranslatorFactory {
 		final String basePackage = "prerna.sablecc2.reactor.frame.r.util.";
 		String className = null;
 		// making netty take precedence so we dont need to set multiple variabled
-		if (netty != null && Boolean.parseBoolean(netty)) {
-			
+		if(useNetty) {
 			className = basePackage + "TCPRTranslator";
-			
-		} 
-		else if(useJri) {
-			
+		} else if(useJri) {
 			className = basePackage + "RJavaJriTranslator";
-			
 		} else if (RserveUtil.IS_USER_RSERVE) {
 			className = basePackage + "RJavaUserRserveTranslator";
-			
 		} else if (Boolean.parseBoolean(System.getenv("REMOTE_RSERVE"))) {
-			
 			className = basePackage + "RJavaRemoteRserveTranslator";
-			
 		} else{
- 
 			className = basePackage + "RJavaRserveTranslator";
 		}
 
