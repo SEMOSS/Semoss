@@ -34,7 +34,6 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 
@@ -236,8 +235,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 			wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
 			while(wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
-				
-				String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[2]);
+				String value = (String) values[2];
 				
 				if(values[1].toString().equals("tag")) {
 					tags.add(value);
