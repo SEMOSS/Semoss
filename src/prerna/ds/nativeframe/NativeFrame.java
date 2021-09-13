@@ -332,7 +332,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				doubleAggregation = true;
 				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 			}
-		} 
+		}
 		// normal combination
 		if(!doubleAggregation) {
 			// only convert at the beginning
