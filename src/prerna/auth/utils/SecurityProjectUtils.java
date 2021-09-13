@@ -763,8 +763,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
-				String metaKey = data[0].toString();
-				String metaValue = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[1]);
+				String metaKey = (String) data[0];
+				String metaValue = (String) data[1];
 
 				// AS THIS LIST EXPANDS
 				// WE NEED TO KNOW IF THESE ARE MULTI VALUED OR SINGLE
