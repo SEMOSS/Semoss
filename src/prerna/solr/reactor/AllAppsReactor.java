@@ -14,7 +14,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AllAppsReactor extends AbstractReactor {
 	
@@ -66,7 +65,7 @@ public class AllAppsReactor extends AbstractReactor {
 				String appId = (String) data[0];
 
 				String metaKey = (String) data[1];
-				String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[2]);
+				String value = (String) data[2];
 				if(value == null) {
 					continue;
 				}
