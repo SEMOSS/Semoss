@@ -3254,6 +3254,12 @@ public class Utility {
 		if(stringToNormalize == null ) {
 			return stringToNormalize;
 		}
+		//replacing \\ with /
+		stringToNormalize=stringToNormalize.replace("\\", "/");
+		//ensuring no double //
+		while(stringToNormalize.contains("//")){
+			stringToNormalize=stringToNormalize.replace("//", "/");
+		}
 		String normalizedString = FilenameUtils.normalize(stringToNormalize);
 
 		if (normalizedString == null) {

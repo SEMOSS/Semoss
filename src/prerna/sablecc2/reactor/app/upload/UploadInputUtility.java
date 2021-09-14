@@ -101,7 +101,9 @@ public class UploadInputUtility {
 			throw new IllegalArgumentException("Must pass in the relative file path as " + keyToGrab + "=[\"input_path\"]");
 		}
 		
-		String fileLocation =  Utility.normalizePath( fileGrs.get(0).toString());
+		String fileLocation =   fileGrs.get(0).toString();
+		//normalize
+		fileLocation=Utility.normalizePath(fileLocation);
 		if(new File(fileLocation).exists()) {
 			return fileLocation;
 		} 
