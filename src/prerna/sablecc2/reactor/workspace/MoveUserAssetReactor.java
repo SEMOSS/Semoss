@@ -28,17 +28,19 @@ public class MoveUserAssetReactor extends AbstractReactor{
 		if(currentFilePath == null || currentFilePath.isEmpty()) {
 			throw new IllegalArgumentException("Must input file path for the user file");
 		}
+		currentFilePath = Utility.normalizePath(currentFilePath);
 
 		String newFilePath = this.keyValue.get(this.keysToGet[1]);
 		if(newFilePath == null || newFilePath.isEmpty()) {
 			throw new IllegalArgumentException("Must provide new file path or name for file");
 		}
-
+		newFilePath = Utility.normalizePath(newFilePath);
+		
 		File currentFile = new File(currentFilePath);
 		if(!currentFile.exists()){
 			throw new IllegalArgumentException("File does not exist at this location");
 		}
-		
+
 		String assetProjectId = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
