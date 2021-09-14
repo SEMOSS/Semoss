@@ -35,10 +35,13 @@ public class UploadUserFileReactor extends AbstractReactor {
 		if(uploadedFilePath == null || uploadedFilePath.isEmpty()) {
 			throw new IllegalArgumentException("Must input file path for the user file");
 		}
-
+		uploadedFilePath = Utility.normalizeParam(uploadedFilePath);
+		
 		String relativeFilePath = this.keyValue.get(this.keysToGet[1]);
 		if(relativeFilePath == null || relativeFilePath.isEmpty()) {
 			relativeFilePath = "";
+		} else {
+			relativeFilePath = Utility.normalizeParam(relativeFilePath);
 		}
 
 		File uploadedFile = new File(uploadedFilePath);
