@@ -12,6 +12,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class PySourceReactor extends AbstractPyFrameReactor {
 
@@ -30,7 +31,7 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 			 };
 		}
 		
-		String relativePath = this.keyValue.get(this.keysToGet[0]);
+		String relativePath =  Utility.normalizePath( this.keyValue.get(this.keysToGet[0]));
 		String path = getBaseFolder() + "/Py/" + relativePath;
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);

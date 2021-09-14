@@ -9,6 +9,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class PyLoadReactor extends AbstractReactor {
 
@@ -19,7 +20,7 @@ public class PyLoadReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String relativePath = this.keyValue.get(this.keysToGet[0]);
+		String relativePath =  Utility.normalizePath( this.keyValue.get(this.keysToGet[0]));
 		String path = getBaseFolder() + "/Py/" + relativePath;
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
