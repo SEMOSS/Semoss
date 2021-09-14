@@ -30,10 +30,10 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String relativeFilePath = this.keyValue.get(this.keysToGet[0]);
-		
 		if(relativeFilePath == null || relativeFilePath.isEmpty()  ) {
 			throw new IllegalArgumentException("Must input file path and file name to delete");
 		}
+		relativeFilePath = Utility.normalizePath(relativeFilePath);
 		
 		String assetProjectId = null;
 		if(AbstractSecurityUtils.securityEnabled()) {

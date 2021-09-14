@@ -32,6 +32,8 @@ public class NewDirReactor extends AbstractReactor {
 
 		if(relativePath == null || relativePath.isEmpty() ) {
 			throw new IllegalArgumentException("Must input file path and file name to delete");
+		} else {
+			relativePath = Utility.normalizeParam(relativePath);
 		}
 
 		String assetProjectId = null;
