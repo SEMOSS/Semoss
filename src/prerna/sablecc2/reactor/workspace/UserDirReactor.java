@@ -29,7 +29,6 @@ public class UserDirReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-
 		organizeKeys();
 		String relativePath = this.keyValue.get(this.keysToGet[0]);
 
@@ -37,6 +36,8 @@ public class UserDirReactor extends AbstractReactor {
 		if(relativePath == null || relativePath.isEmpty() || relativePath.equals("/")) {
 			relativePath = "";
 			isRoot=true;
+		} else {
+			relativePath = Utility.normalizePath(relativePath);
 		}
 
 		String assetEngineID = null;
