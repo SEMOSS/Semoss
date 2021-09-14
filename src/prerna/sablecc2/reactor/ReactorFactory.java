@@ -348,7 +348,6 @@ import prerna.sablecc2.reactor.qs.source.SharePointSiteSelectorReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointWebDavPullReactor;
 import prerna.sablecc2.reactor.qs.source.URLSourceReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
-import prerna.sablecc2.reactor.runtime.codeexec.CodeExecReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
 import prerna.sablecc2.reactor.scheduler.PauseJobTriggerReactor;
 import prerna.sablecc2.reactor.scheduler.ResumeJobTriggerReactor;
@@ -1131,7 +1130,6 @@ public class ReactorFactory {
 		//reactorHash.put("RunLSI", RunLSIReactor.class); 
 		
 		// General Code Execution
-		reactorHash.put("CodeExec", CodeExecReactor.class);
 		reactorHash.put("Py", PyReactor.class);
 		reactorHash.put("R", RReactor.class);
 		reactorHash.put("CancelR", CancelRReactor.class);
