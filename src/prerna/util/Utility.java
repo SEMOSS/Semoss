@@ -3264,7 +3264,7 @@ public class Utility {
 
 		if (normalizedString == null) {
 			logger.error("File path: " + Utility.cleanLogString(stringToNormalize) + " could not be normalized");
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("The filepath passed in is invalid");
 		}
 		normalizedString = normalizedString.replace("\\", "/");
 
