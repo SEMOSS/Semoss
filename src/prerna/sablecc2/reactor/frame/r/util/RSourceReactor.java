@@ -11,6 +11,7 @@ import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RSourceReactor extends AbstractRFrameReactor {
 
@@ -21,7 +22,7 @@ public class RSourceReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String relativePath = this.keyValue.get(this.keysToGet[0]);
+		String relativePath = Utility.normalizePath( this.keyValue.get(this.keysToGet[0])) ;
 
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
