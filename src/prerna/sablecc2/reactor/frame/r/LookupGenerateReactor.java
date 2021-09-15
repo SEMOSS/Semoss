@@ -11,6 +11,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class LookupGenerateReactor extends AbstractRFrameReactor {
 	private static final String CLASS_NAME = LookupGenerateReactor.class.getName();
@@ -54,7 +55,7 @@ public class LookupGenerateReactor extends AbstractRFrameReactor {
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
-		String fileName = this.keyValue.get(keysToGet[1]);
+		String fileName =  Utility.normalizePath(this.keyValue.get(keysToGet[1]));
 		String filePath = assetFolder + "/" + fileName;
 
 		// load the script

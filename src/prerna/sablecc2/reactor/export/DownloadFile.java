@@ -20,6 +20,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public class DownloadFile extends AbstractReactor {
 
@@ -39,7 +40,7 @@ public class DownloadFile extends AbstractReactor {
 
 		try {
 			if (keyValue.containsKey(keysToGet[0])) {
-				fileName = keyValue.get(keysToGet[0]);
+				fileName =  Utility.normalizePath(keyValue.get(keysToGet[0]));
 			}
 			if (keyValue.containsKey(keysToGet[1])) {
 				disclaimer = keyValue.get(keysToGet[1]);
