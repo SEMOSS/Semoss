@@ -164,9 +164,9 @@ public class Client implements Runnable{
 
     public Object executeCommand(PayloadStruct ps)
     {
-    	if(killall)
+    	if(killall) {
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
-    	
+    	}
     	
     	int attempt = 0;
     	String id = "ps"+ count.getAndIncrement();
@@ -175,18 +175,18 @@ public class Client implements Runnable{
     	
     	while(ctx == null && attempt < 6)
     	{
-    		logger.info("Python not yet available.. will sleep" + attempt);
-    		try
-    		{
+    		logger.info("R or Python not yet available.. will sleep" + attempt);
+    		try {
     			Thread.sleep(attempt * 500);
     			attempt++;
-    		}catch(Exception ignored)
-    		{
-    			
+    		} catch(Exception ignored) {
+    			// ignored
     		}
     	}
-    	if(ctx == null)// need a way to kill this thread as well
+    	// need a way to kill this thread as well
+    	if(ctx == null) {
     		logger.info( "Connection failed to get the context.!! ");
+    	}
     	//else
     	//	logger.info("Context is set !!");
     	
@@ -317,17 +317,16 @@ public class Client implements Runnable{
     	// make the connected to be false
     	// take everything that is waiting on it
     	// go through request map and start pushing
-    	Iterator keyIterator = requestMap.keySet().iterator();
-    	while(keyIterator.hasNext())
-    	{
-    		PayloadStruct ps = (PayloadStruct)requestMap.remove(keyIterator.next());
+    	for(Object k : requestMap.keySet()) {
+    		PayloadStruct ps = (PayloadStruct)requestMap.get(k);
     		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
     		
-    		synchronized(ps)
-    		{
+    		synchronized(ps) {
     			ps.notifyAll();
     		}
     	}
+    	requestMap.clear();
+    	
     	this.connected = false;
     	killall = true;
     	status = "crashed";
