@@ -44,8 +44,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public void startR() {
-		if(nc != null && !started)
-		{
+		if(nc != null && !started) {
 			// initialize the environment
 			initREnv(this.env);
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
@@ -58,10 +57,10 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			{
 				logger.info(ps.ex);
 			}
-			else if(ps != null)
+			else if(ps != null) {
 				started = true;
+			}
 		}
-
 	}
 
 	@Override
