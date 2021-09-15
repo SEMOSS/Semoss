@@ -37,7 +37,7 @@ public class SaveAssetReactor extends AbstractReactor {
 		// if security is enabled, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
-		String fileName = keyValue.get(keysToGet[0]);
+		String fileName = Utility.normalizePath(keyValue.get(keysToGet[0]));
 		String filePath = assetFolder + "/" + fileName;
 		String content = keyValue.get(keysToGet[1]);
 

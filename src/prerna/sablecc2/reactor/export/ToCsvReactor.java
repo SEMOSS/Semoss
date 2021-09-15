@@ -8,6 +8,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class ToCsvReactor extends AbstractExportTxtReactor {
 
@@ -30,7 +31,7 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		insightFile.setFileKey(downloadKey);
 		
 		// get a random file name
-		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		String exportName = getExportFileName(prefixName, "csv");
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());

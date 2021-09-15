@@ -72,11 +72,11 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		int shapeIndex = -1;
 
 		if(keyValue.containsKey(ReactorKeysEnum.FILE_PATH.getKey())) {
-			insightFolder = (String)keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+			insightFolder =  Utility.normalizePath((String)keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
 			insightFile.setDeleteOnInsightClose(false);
 		}
 		if(keyValue.containsKey(ReactorKeysEnum.FILE_NAME.getKey())) {
-			fileName = (String)keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+			fileName =  Utility.normalizePath((String)keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		}
 
 		String baseUrl = this.insight.getBaseURL();

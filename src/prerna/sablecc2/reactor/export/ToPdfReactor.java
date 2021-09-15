@@ -84,7 +84,7 @@ public class ToPdfReactor extends AbstractReactor {
 		insightFile.setFileKey(downloadKey);
 		
 		// get a random file name
-		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pdf");
 		// grab file path to write the file
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
