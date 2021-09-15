@@ -26,7 +26,7 @@ public class USAJobsByStateDownload extends AbstractReactor {
 		
 		String fileName = null;
 		if(keyValue.containsKey(keysToGet[2])) {
-			fileName = keyValue.get(keysToGet[2]);
+			fileName = Utility.normalizePath(keyValue.get(keysToGet[2]));
 		} else {
 			fileName = Utility.getRandomString(5) + ".csv";
 		}
