@@ -78,7 +78,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 
 		String insightFolder = this.insight.getInsightFolder();
 		if(keyValue.containsKey(ReactorKeysEnum.FILE_PATH.getKey())) {
-			insightFolder = (String)keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+			insightFolder =  Utility.normalizePath((String)keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
 			insightFile.setDeleteOnInsightClose(false);
 		}
 
@@ -277,7 +277,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			if (exportAudit) {
 				makeParamSheet(wb, this.insight, false,exportMap);
 			}
-			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+			String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 			String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 
