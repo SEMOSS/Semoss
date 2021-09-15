@@ -1,8 +1,5 @@
 package prerna.sablecc2.reactor.algorithms.xray;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -27,7 +24,6 @@ public class GetXrayConfigFileReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.FILE_NAME.getKey());
 		}
 		String configFile = MasterDatabaseUtility.getXrayConfigFile(configFileID);
-		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 		return new NounMetadata(configFile, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 
