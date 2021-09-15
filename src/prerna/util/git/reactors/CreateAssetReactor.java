@@ -7,6 +7,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 import prerna.util.git.GitAssetMaker;
 import prerna.util.git.GitUtils;
 
@@ -34,7 +35,7 @@ public class CreateAssetReactor extends GitBaseReactor {
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Logging In...");
 		String repoName = this.keyValue.get(this.keysToGet[0]);
-		String fileName = this.keyValue.get(this.keysToGet[1]);
+		String fileName =  Utility.normalizePath( this.keyValue.get(this.keysToGet[1]) );
 		String content = this.keyValue.get(this.keysToGet[2]);
 		
 		
