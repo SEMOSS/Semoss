@@ -100,20 +100,16 @@ public class UploadInputUtility {
 		if(fileGrs == null || fileGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the relative file path as " + keyToGrab + "=[\"input_path\"]");
 		}
-		
-		String fileLocation =   fileGrs.get(0).toString();
+		String fileLocation =  fileGrs.get(0).toString();
 		//normalize
-		fileLocation=Utility.normalizePath(fileLocation);
-		if(new File(fileLocation).exists()) {
-			return fileLocation;
-		} 
+		fileLocation = Utility.normalizePath(fileLocation);
+		
 		GenRowStruct spaceGrs = store.getNoun(SPACE);
 		if (fileGrs == null || fileGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the file path using key " + keyToGrab);
 		}
 
 		String filePrefix = null;
-		
 		// grabbing the space
 		// and using the asset utility to get the location
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
