@@ -158,10 +158,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		insightFile.setFileKey(downloadKey);
 		
 		// get a random file name
-		String prefixName = exportMap.get("FILE_NAME") + ""; 
+		String prefixName =  Utility.normalizePath(exportMap.get("FILE_NAME") + ""); 
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 		// grab file path to write the file
-		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+		String fileLocation =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
 		
 		boolean exportAudit = false;
 		// check if the export audit has been selected for export

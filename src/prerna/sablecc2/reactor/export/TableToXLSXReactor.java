@@ -148,9 +148,9 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			sheetName = keyValue.get(ReactorKeysEnum.SHEET.getKey());
 		}
 		if(keyValue.containsKey(ReactorKeysEnum.FILE_NAME.getKey())) {
-			fileName = keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+			fileName =  Utility.normalizePath(keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		} else if(exportMap.containsKey("FILE_NAME")) {
-			fileName = (String)exportMap.get("FILE_NAME");
+			fileName =  Utility.normalizePath((String)exportMap.get("FILE_NAME"));
 		}
 		
 		if(fileName == null || fileName.length() == 0) {

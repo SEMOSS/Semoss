@@ -6,6 +6,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 /**
  * Get X-ray configuration stored in LocalMaster by specifying the filename 
@@ -19,7 +20,7 @@ public class GetXrayConfigFileReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String configFileID = this.keyValue.get(this.keysToGet[0]);
+		String configFileID =  Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		if(configFileID == null) {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.FILE_NAME.getKey());
 		}
