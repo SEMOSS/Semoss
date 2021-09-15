@@ -30,6 +30,7 @@ public class PredictDataTypesReactor extends AbstractReactor {
 		if(!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
+		
 		String delimiter = UploadInputUtility.getDelimiter(this.store);
 		char delim = delimiter.charAt(0);
 		boolean rowCount = UploadInputUtility.getRowCount(this.store);
