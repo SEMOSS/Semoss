@@ -664,7 +664,7 @@ public class SqlParser2 {
 		}
 		// only the binary expression has 2 sides
 		else if(joinExpr instanceof BinaryExpression && 
-				!IQueryFilter.comparatorIsValidSQL(((BinaryExpression) joinExpr).getStringExpression()))
+				IQueryFilter.comparatorIsValidSQL(((BinaryExpression) joinExpr).getStringExpression()))
 		{
 			boolean paramBinary = true;
 			
