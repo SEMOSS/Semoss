@@ -3831,7 +3831,8 @@ public class Utility {
 			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
 			// pb.command(commands);
 
-			if(!(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+			// need to make sure we are not windows cause ulimit will not work
+			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
 				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
 				StringBuilder sb = new StringBuilder();
 				for (String str : commands) {
