@@ -663,7 +663,8 @@ public class SqlParser2 {
 			//System.err.println("Expression.. " + aExpr.getStringExpression());
 		}
 		// only the binary expression has 2 sides
-		else if(joinExpr instanceof BinaryExpression)
+		else if(joinExpr instanceof BinaryExpression && 
+				!IQueryFilter.comparatorIsValidSQL(((BinaryExpression) joinExpr).getStringExpression()))
 		{
 			boolean paramBinary = true;
 			
@@ -776,6 +777,10 @@ public class SqlParser2 {
 					else if ((((GenExpression) sqs).getOperation().equalsIgnoreCase("function"))) {
 						// Casting to FunctionExpression to get the expression data
 						FunctionExpression fnsqs = (FunctionExpression) sqs;
+						// in case we have function inside function
+						while(fnsqs.expressions.size() > 0 && fnsqs.expressions.get(0).getOperation().equals("function")) {
+							fnsqs = (FunctionExpression) fnsqs.expressions.get(0);
+						}
 						if (fnsqs.expressions.size() > 0) {
 							// Going with the normal flow
 							if (fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("column")) {
@@ -784,8 +789,19 @@ public class SqlParser2 {
 								columnName = full_from;
 								tableName = fnsqs.expressions.get(0).tableName;
 								aliasName = columnName;
-								if (fnsqs.expressions.get(0).userTableAlias != null)
+								if (fnsqs.expressions.get(0).userTableAlias != null) {
 									aliasName = fnsqs.expressions.get(0).userTableAlias;
+								}
+							} else if(fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("cast")) {
+								GenExpression innerExpression = (GenExpression) fnsqs.expressions.get(0).leftItem;
+								full_from = innerExpression.aQuery;
+								column = true;
+								columnName = innerExpression.getLeftExpr();
+								tableName = innerExpression.tableName;
+								aliasName = columnName;
+								if (fnsqs.expressions.get(0).userTableAlias != null) {
+									aliasName = fnsqs.expressions.get(0).userTableAlias;
+								}
 							} else if ((((GenExpression) fnsqs.expressions.get(0)).getOperation()
 									.equalsIgnoreCase("string"))
 									|| (((GenExpression) fnsqs.expressions.get(0)).getOperation()
@@ -835,6 +851,10 @@ public class SqlParser2 {
 					else if ((((GenExpression) sqs2).getOperation().equalsIgnoreCase("function"))) {
 						// Casting to FunctionExpression to get the expression data
 						FunctionExpression fnsqs2 = (FunctionExpression) sqs2;
+						// in case we have function inside function
+						while(fnsqs2.expressions.size() > 0 && fnsqs2.expressions.get(0).getOperation().equals("function")) {
+							fnsqs2 = (FunctionExpression) fnsqs2.expressions.get(0);
+						}
 						if (fnsqs2.expressions.size() > 0) {
 							// Going with the normal flow
 							if (((GenExpression) fnsqs2.expressions.get(0)).getOperation().equalsIgnoreCase("column")) {
@@ -843,9 +863,20 @@ public class SqlParser2 {
 								columnName = full_from;
 								tableName = ((GenExpression) fnsqs2.expressions.get(0)).tableName;
 								aliasName = columnName;
-								if (fnsqs2.expressions.get(0).userTableAlias != null)
+								if (fnsqs2.expressions.get(0).userTableAlias != null) {
 									aliasName = ((GenExpression) fnsqs2.expressions.get(0)).userTableAlias;
-							} else if ((((GenExpression) fnsqs2.expressions.get(0)).getOperation()
+								}
+							} else if(fnsqs2.expressions.get(0).getOperation().equalsIgnoreCase("cast")) {
+								GenExpression innerExpression = (GenExpression) fnsqs2.expressions.get(0).leftItem;
+								full_from = innerExpression.aQuery;
+								column = true;
+								columnName = innerExpression.getLeftExpr();
+								tableName = innerExpression.tableName;
+								aliasName = columnName;
+								if (fnsqs2.expressions.get(0).userTableAlias != null) {
+									aliasName = fnsqs2.expressions.get(0).userTableAlias;
+								}
+							}else if ((((GenExpression) fnsqs2.expressions.get(0)).getOperation()
 									.equalsIgnoreCase("string"))
 									|| (((GenExpression) fnsqs2.expressions.get(0)).getOperation()
 											.equalsIgnoreCase("double"))

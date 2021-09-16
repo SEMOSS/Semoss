@@ -280,6 +280,24 @@ public interface IQueryFilter {
 		return false;
 	}
 	
+	public static boolean comparatorIsValidSQL(String comparator) {
+		if(comparator.equals("=")
+				|| comparator.equals("in")
+				|| comparator.equals("!=")
+				|| comparator.equals("<>")
+				|| comparator.equals(">")
+				|| comparator.equals(">=")
+				|| comparator.equals("<")
+				|| comparator.equals("<=")
+				|| comparator.equals("like")
+				|| comparator.equals("and")
+				|| comparator.equals("or")
+				) {
+			return true;
+		}
+		return false;
+	}
+	
 	public static boolean comparatorIsSameSide(String comparator1, String comparator2) {
 		if(comparator1.equals(">")) {
 			if(comparator2.equals(">") || comparator2.equals(">=")) {
