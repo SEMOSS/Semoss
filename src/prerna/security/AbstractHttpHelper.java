@@ -121,6 +121,73 @@ public abstract class AbstractHttpHelper {
 		return tok;
 	}
 	
+	
+	/**
+	 * Make a request to get an id token
+	 * Uses hashtable for list of params
+	 * @param url
+	 * @param params
+	 * @param json
+	 * @param extract
+	 * @return
+	 */
+	public static AccessToken getIdToken(String url, Map<String, String> params, boolean json, boolean extract) {
+		//still using accessToken object
+		AccessToken tok = null;
+		CloseableHttpClient httpclient = null;
+		String result = null;
+		try {
+			// default client
+			httpclient = HttpClients.createDefault();
+			// this is a post
+			HttpPost httppost = new HttpPost(url);
+			// loop through all keys and add as basic name value pair 
+			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
+			params.keySet().stream().forEach(param -> paramList.add(new BasicNameValuePair(param, params.get(param))));
+			// set within post
+			httppost.setEntity(new UrlEncodedFormEntity(paramList));
+
+			CloseableHttpResponse response = httpclient.execute(httppost);
+			int status = response.getStatusLine().getStatusCode();
+			logger.info("Request for access token at " + url + " returned status code = " + status);
+
+			result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+			logger.info("Request response = " + result);
+			
+			// this will set the token to use
+			if(status == 200 && extract) {
+				if(json) {
+					tok = getJIDToken(result);
+				} else {
+					tok = getIDToken(result);
+				}
+			}
+		} catch (UnsupportedEncodingException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (ClientProtocolException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (UnsupportedOperationException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(httpclient != null) {
+				try {
+					httpclient.close();
+				} catch(IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		if(tok != null && tok.getAccess_token() == null) {
+			logger.warn("Error occured grabbing the id token: " + result);
+		}
+		
+		// send back the token
+		return tok;
+	}
+	
 	/**
 	 * Get access token from a basic string
 	 * @param input
@@ -128,6 +195,15 @@ public abstract class AbstractHttpHelper {
 	 */
 	public static AccessToken getAccessToken(String input) {
 		return getAccessToken(input, "access_token");
+	}
+	
+	/**
+	 * Get id token from a basic string
+	 * @param input
+	 * @return
+	 */
+	public static AccessToken getIDToken(String input) {
+		return getAccessToken(input, "id_token");
 	}
 	
 	/**
@@ -165,6 +241,15 @@ public abstract class AbstractHttpHelper {
 	}
 	
 	/**
+	 * Get the id token from a json
+	 * @param input
+	 * @return
+	 */
+	public static AccessToken getJIDToken(String input) {
+		return getJAccessToken(input, "[id_token, token_type, expires_in]");
+	}
+	
+	/**
 	 * Get the access token from a json
 	 * @param json
 	 * @param nameOfToken
@@ -197,6 +282,7 @@ public abstract class AbstractHttpHelper {
 		}
 		return tok;
 	}
+	
 	
 	
 	/////////////////////////////////////////////////////
