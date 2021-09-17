@@ -109,7 +109,7 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", runner);
-		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.RERUN_INSIGHT_RECIPE);
+		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.PARAMETER_EXECUTION);
 		return noun;
 	}
 	
