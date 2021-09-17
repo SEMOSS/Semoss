@@ -16,6 +16,7 @@ public enum AuthProvider {
 	NATIVE,
 	FORGEROCK,
 	SAML,
+	ADFS,
 	
 	// this one is kinda special ...
 	CAC, 
