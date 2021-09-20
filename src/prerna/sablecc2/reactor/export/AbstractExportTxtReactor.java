@@ -51,6 +51,17 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 		return Utility.normalizePath("SEMOSS_Export_" + modifiedDate) + "." + extension;
 	}
 
+
+	public static String getExportFileName(String customName, String extension, boolean appendTimestamp) {
+		if(appendTimestamp) {
+			return  getExportFileName( customName,  extension);
+		} else {
+		if(customName != null && !customName.trim().isEmpty()) {
+			return Utility.normalizePath(customName.trim()) + "." + extension;
+		}
+		return Utility.normalizePath("SEMOSS_Export") + "." + extension;
+		}
+	}
 	@Override
 	protected void buildTask() {
 		if (delimiter == null) {
