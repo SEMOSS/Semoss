@@ -1,21 +1,27 @@
 package prerna.sablecc2.reactor.export;
 
 import java.io.File;
+import java.util.List;
 import java.util.UUID;
 
 import prerna.om.InsightFile;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+
 import prerna.util.Utility;
 
 public class ToCsvReactor extends AbstractExportTxtReactor {
 
 	private static final String CLASS_NAME = ToCsvReactor.class.getName();
-	
+	private static final String APPEND_TIMESTAMP = "appendTimestamp";
+
+	private boolean appendTimestamp = true;
+
 	public ToCsvReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), APPEND_TIMESTAMP};
 	}
 	
 	@Override
@@ -23,6 +29,9 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		organizeKeys();
 		this.logger = getLogger(CLASS_NAME);
 		this.task = getTask();
+		
+		this.appendTimestamp = appendTimeStamp();
+		
 		// set to comma separated
 		this.setDelimiter(",");
 		
@@ -32,7 +41,9 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		
 		// get a random file name
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = getExportFileName(prefixName, "csv");
+		String exportName = getExportFileName(prefixName, "csv", appendTimestamp);
+
+
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
@@ -48,6 +59,7 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		} else {
 			this.fileLocation += DIR_SEPARATOR + exportName;
 			insightFile.setDeleteOnInsightClose(false);
+
 		}
 		insightFile.setFilePath(this.fileLocation);
 		buildTask();
@@ -60,6 +72,25 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
 		return retNoun;
+	}
+	
+
+	
+	private boolean appendTimeStamp() {
+		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[3]);
+		if(boolGrs != null) {
+			if(boolGrs.size() > 0) {
+				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
+				return (boolean) val.get(0);
+			}
+		}
+		
+		List<NounMetadata> booleanInput = this.curRow.getNounsOfType(PixelDataType.BOOLEAN);
+		if(booleanInput != null && !booleanInput.isEmpty()) {
+			return (boolean) booleanInput.get(0).getValue();
+		}
+		
+		return true;
 	}
 
 }
