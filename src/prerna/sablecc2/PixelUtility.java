@@ -650,6 +650,29 @@ public class PixelUtility {
 	}
 	
 	/**
+	 * Append preApplied parameter to the recipe list
+	 * @param in
+	 * @param additionalSteps
+	 */
+	public static List<String> appendPreAppliedParameter(Insight in, List<String> additionalSteps) {
+		VarStore varStore = in.getVarStore();
+		List<String> params = varStore.getPreDefinedParametersKeys();
+		// loop through the keys and gson it
+		for(String paramKey : params) {
+			NounMetadata paramNoun = varStore.get(paramKey);
+			ParamStruct param = (ParamStruct) paramNoun.getValue();
+			// also adjust for the new optimized id if it is set
+			param.swapOptimizedIds();
+			additionalSteps.add("META | AddPreAppliedParameter(" + gson.toJson(param) + ");");
+			// swap back for this instance of the insight
+			// since we make a new pixel list object all together 
+			// during the save process
+			param.swapOptimizedIds();
+		}
+		return additionalSteps;
+	}
+	
+	/**
 	 * Add set insight config to the recipe list
 	 * @param in
 	 * @param additionalSteps

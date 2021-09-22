@@ -1025,6 +1025,7 @@ public class Insight implements Serializable {
 			setRunSavedInsightMode(true);
 			
 			Map<String, NounMetadata> currentParameters = this.varStore.pullParameters();
+			Map<String, NounMetadata> preAppliedParameters = this.varStore.pullPreAppliedParameters();
 			
 			// always add the insight config
 			boolean hasInsightConfig = false;
@@ -1069,6 +1070,12 @@ public class Insight implements Serializable {
 			// so that we can set the value inside of them
 			for(String paramKey : currentParameters.keySet()) {
 				this.varStore.put(paramKey, currentParameters.get(paramKey));
+			}
+			
+			// add back the preApplied parameters
+			// so that we can set the value inside of them
+			for(String paramKey : preAppliedParameters.keySet()) {
+				this.varStore.put(paramKey, preAppliedParameters.get(paramKey));
 			}
 			
 			// execution
