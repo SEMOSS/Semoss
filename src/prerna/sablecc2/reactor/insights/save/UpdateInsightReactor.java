@@ -139,6 +139,9 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
 		}
 		
+		// to append preApplied parameters to the save recipe
+		recipeToSave = PixelUtility.appendPreAppliedParameter(this.insight, recipeToSave);
+		
 		//Pull the insights db again incase someone just saved something 
 		ClusterUtil.reactorPullInsightsDB(projectId);
 		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));

@@ -7,10 +7,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,10 +52,16 @@ import cz.vutbr.web.css.Term;
 import cz.vutbr.web.css.TermColor;
 import cz.vutbr.web.css.TermLength;
 import cz.vutbr.web.css.TermPercent;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -1079,7 +1087,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			Sheet aSheet = wb.getSheetAt(sheetIndex);
 			String sheetName = aSheet.getSheetName();
 			// skipping template sheets only to read Data Sheet
-			if (sheetName.equalsIgnoreCase(HEADER) || sheetName.equalsIgnoreCase(PLACE_HOLDER) || sheetName.equalsIgnoreCase(FOOTER) || wb.isSheetHidden(sheetIndex)) {
+			if (sheetName.equalsIgnoreCase(HEADER) || sheetName.equalsIgnoreCase(PLACE_HOLDER) || !sheetName.contains("Sheet") || sheetName.equalsIgnoreCase(FOOTER) || wb.isSheetHidden(sheetIndex)) {
 				continue;
 			}
 
@@ -1124,7 +1132,6 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	 */
 	public void fillPlaceholders(Workbook wb, Map exportMap, Map<String, List<String>> placeHolderData) {
 
-		Sheet headerTemplateSheet = wb.getSheet(HEADER);
 		for (int sheetIndex = 0; sheetIndex < wb.getNumberOfSheets(); sheetIndex++) {
 			Sheet sheet = wb.getSheetAt(sheetIndex);
 			String sheetName = sheet.getSheetName();
@@ -1132,41 +1139,70 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			if (sheetName.equalsIgnoreCase(HEADER) || sheetName.equalsIgnoreCase(PLACE_HOLDER) || sheetName.equalsIgnoreCase(FOOTER) || wb.isSheetHidden(sheetIndex)) {
 				continue;
 			}
-			for (List<String> placeHolderValues : placeHolderData.values()) {
+			for (Map.Entry<String,List<String>> placeHolderMap : placeHolderData.entrySet()) {
 				// fetching cell reference/position since index 1 will hold place holder
 				// position
-				CellReference cellRef = new CellReference(placeHolderValues.get(1));
-				int rowIndex = cellRef.getRow();
-				int colIndex = cellRef.getCol();
-
-				// identifying the required row in the target sheet
-				Row row = sheet.getRow(rowIndex);
-				// Identifying the required row in the template sheet
-				Row headerTemplateRow = headerTemplateSheet.getRow(rowIndex);
-
-				if (row == null) {
-					// creating a new target row
-					row = sheet.createRow(rowIndex);
+				List<String> placeHolderValues = placeHolderMap.getValue();
+				String placeholderLabel = placeHolderMap.getKey();
+				String rsSheet = "header";
+				String targetCellRef = placeHolderValues.get(1);
+				if(null != targetCellRef && targetCellRef.contains("!")) {
+					String[] result = targetCellRef.split("!");
+					rsSheet = result[0];
+					targetCellRef = result[1];
+					if(sheetName.equalsIgnoreCase(rsSheet) || rsSheet.contains("Sheet")) {
+						// resolve the sheets with the target cells to place in it
+						fillTargetCells(targetCellRef, placeHolderMap, sheet, wb.getSheet(rsSheet));
+					}
 				}
-				if (headerTemplateRow == null)
-					headerTemplateRow = headerTemplateSheet.createRow(rowIndex);
-
-				// Identifying the required cell in the template sheet
-				Cell headerTemplateCell = headerTemplateRow.getCell(colIndex);
-				// identifying the required cell in the target sheet
-				Cell cell = row.getCell(colIndex);
-				if (cell == null) {
-					// creating a new target cell
-					cell = row.createCell(colIndex);
-				}
-				// retain the cell style provided in the header template
-				CellStyle headCellStyle = getPreferredCellStyle(headerTemplateCell);
-				cell.setCellStyle(headCellStyle);
-				// fetching place holder value since index 0 will hold the value
-				String resolvedValue = resolvePlaceHolderValue(placeHolderValues.get(0));
-				cell.setCellValue(resolvedValue);
 			}
 		}
+	}
+	
+	/** 
+	 * This method will Fill target cells based on the target sheet and target cell ref
+	 * @param workBook
+	 */	
+	public void fillTargetCells(String targetCellRef, Entry<String, List<String>> placeHolderMap, Sheet targetSheet, Sheet templateSheet) {
+		List<String> placeHolderValues = placeHolderMap.getValue();
+		String placeholderLabel = placeHolderMap.getKey();
+		String placeholderValue = placeHolderValues.get(0);
+		String rowValueType = "";
+		if(null != placeHolderValues.get(2)) {
+			rowValueType = placeHolderValues.get(2);
+		}
+		CellReference cellRef = new CellReference(targetCellRef);
+		int rowIndex = cellRef.getRow();
+		int colIndex = cellRef.getCol();
+
+		// identifying the required row in the target sheet
+		Row row = targetSheet.getRow(rowIndex);
+		// Identifying the required row in the template sheet
+		Row headerTemplateRow = templateSheet.getRow(rowIndex);
+
+		if (row == null) {
+			// creating a new target row
+			row = targetSheet.createRow(rowIndex);
+		}
+		if (headerTemplateRow == null)
+			headerTemplateRow = templateSheet.createRow(rowIndex);
+
+		// Identifying the required cell in the template sheet
+		Cell headerTemplateCell = headerTemplateRow.getCell(colIndex);
+		// identifying the required cell in the target sheet
+		Cell cell = row.getCell(colIndex);
+		if (cell == null) {
+			// creating a new target cell
+			cell = row.createCell(colIndex);
+		}
+		// retain the cell style provided in the header template
+		if (headerTemplateCell != null ) {
+			CellStyle headCellStyle = getPreferredCellStyle(headerTemplateCell);
+			cell.setCellStyle(headCellStyle);
+		}
+		// fetching place holder value since index 0 will hold the value
+		String resolvedValue = resolvePlaceHolderValue(placeholderValue, rowValueType, placeholderLabel);
+		cell.setCellValue(resolvedValue);
 	}
 
 	/** 
@@ -1191,36 +1227,114 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	/** 
 	 * This method will resolve the place holder value parameters with dynamic filter values
 	 * @param placeHolderValue
+	 * @param rowValueType 
 	 * @return
 	 */
-	private String resolvePlaceHolderValue(String placeHolderValue) {
+	private String resolvePlaceHolderValue(String placeHolderValue, String rowValueType, String placeholderLabel) {
 		// the dynamic params with format <param> will be resolved
+		String result = null;
+		String databaseId = null;
 		Pattern pattern = Pattern.compile("<[a-z_0-9]+>", Pattern.CASE_INSENSITIVE);
 		Matcher matcher = pattern.matcher(placeHolderValue);
 		Iterator<String> insightParamKeys = insight.getVarStore().getInsightParameterKeys().iterator();
-
 		while (matcher.find()) {
-			// fetching the value if parameter from ExportParamutility
+			// fetching the value of parameter from ExportParamutility
 			String paramName = matcher.group();
 			paramName = paramName.replace("<", "");
 			paramName = paramName.replace(">", "");
-
 			// ok.. now I have the param name as if insight has it
 			NounMetadata param = insight.getVarStore().get(VarStore.PARAM_STRUCT_PREFIX + paramName);
-			String result = null;
-			if(param != null)
-			{
-				ParamStruct ps = (ParamStruct)param.getValue();
+			if (param != null) {
+				ParamStruct ps = (ParamStruct) param.getValue();
 				// going to get just the first psd and get data from that
 				result = ps.getDetailsList().get(0).getCurrentValue() + "";
+				databaseId = ps.getModelAppId();
+			} else {
+				// check for PREAPPLIED filters if param not there in paramterized store
+				param = insight.getVarStore()
+						.get(VarStore.PARAM_STRUCT_PD_PREFIX + paramName);
+				if (param != null) {
+					ParamStruct ps = (ParamStruct) param.getValue();
+					if (ps.isPreApplied() && !ps.isPopulateInAudit()) {
+						// only fields having isPopulateInAudit() as 'NO' is taken, rest is resolved in
+						// makeParamSheet()
+						result = ps.getDetailsList().get(0).getCurrentValue() + "";
+						databaseId = ps.getModelAppId();
+					}
+				}
 			}
-			//String result = ExportParamUtility.getParamValue(matcher.group(), insight);
-			if (result != null) //  && !result.isEmpty() - empty can be legit value
+			if (result != null) // && !result.isEmpty() - empty can be legit value
 			{
 				placeHolderValue = placeHolderValue.replaceAll(matcher.group(), result);
+			} else {
+				placeHolderValue = placeHolderValue.replaceAll(matcher.group(), "");
 			}
 		}
+		// for getting data from Query mentioned in Template
+		if (rowValueType.equalsIgnoreCase("Query")) {
+			placeHolderValue = (String) resolveQueryFromDB(placeHolderValue, placeholderLabel, databaseId);
+		}
 		return placeHolderValue;
+	}
+	
+	/** This method will resolve the query string from excel to return value
+	 * @param queryToResolve 
+	 * @param placeholderLabel 
+	 * @param databaseId 
+	 * @return
+	 */
+	private Object resolveQueryFromDB(String queryToResolve, String placeholderLabel, String databaseId) {
+		String resolvedVal = "";
+		if (AbstractSecurityUtils.securityEnabled()) {
+			if (!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException(
+						"Database " + databaseId + " does not exist or user does not have access to database");
+			}
+		} 
+		if (databaseId != null) {
+			IRawSelectWrapper wrapper = null;
+			long rowIndex = 0;
+			try {
+				// triggering the query to get result set
+				wrapper = WrapperManager.getInstance().getRawWrapper(Utility.getEngine(databaseId), queryToResolve);
+				while (wrapper.hasNext()) {
+					Object[] values = wrapper.next().getValues();
+					String[] headers = wrapper.getHeaders();
+					String disclaimerHeaders = "";
+					if (placeholderLabel.equalsIgnoreCase("Disclaimer")) {
+						for (int i = 0; i < values.length; i++) {
+							int numRows = Integer.parseInt(values[i].toString());
+							if (numRows > 100) {
+								disclaimerHeaders = disclaimerHeaders + headers[i] + ",";
+							}
+						}
+						if(disclaimerHeaders != "") {
+							// this message can be derived from env variables later
+							resolvedVal = "There are more than 100 " + disclaimerHeaders + " for this master segment. For assistance, please contact your Anthem Sales and Account Management Representative.";
+						} else {
+							resolvedVal = "";
+						}
+					} else {
+						rowIndex++;
+						if(rowIndex <= 100) { // to show only first 100 records from DB
+							resolvedVal = resolvedVal + values[0] + ",";
+						} else {
+							break;
+						}
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
+			}
+		}
+		if (!resolvedVal.isEmpty()) {
+			resolvedVal= resolvedVal.substring(0, resolvedVal.length() -1);
+		}
+		return resolvedVal;
 	}
 
 	/** This method will capture the place holder details from Pixel parameter
@@ -1310,44 +1424,54 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		paramValCellHeader.setCellValue(PARAMETER_VALUE);
 		// fill the rows. 
 		// Ideally we can drop the section, but later
-		Iterator<String> insightParamKeys = insight.getVarStore().getInsightParameterKeys().iterator();
+		List<String> insightParamKeys = insight.getVarStore().getInsightParameterKeys();
+		List<String> preAppliedParamKeys = insight.getVarStore().getPreDefinedParametersKeys();
+		List<String> allParameters = new ArrayList<String>();
+		// add preApplied parameters to loop for Audit
+		allParameters.addAll(insightParamKeys);
+		allParameters.addAll(preAppliedParamKeys);
+		Iterator<String> parameterKeys = allParameters.iterator();
 		CellStyle input = getCellStyle(wb);
 		
 		int rowIndex = startRowIndex + 1;
-		while(insightParamKeys.hasNext())
+		while(parameterKeys.hasNext())
 		{
-			String paramName = insightParamKeys.next();
+			String paramName = parameterKeys.next();
 			if (paramName != null) 
 			{
 				// extracting parameter structure from meta data
 				ParamStruct insightParamStruct = (ParamStruct) insight.getVarStore().get(paramName).getValue();
-				for (ParamStructDetails paramStructDetails : insightParamStruct.getDetailsList()) 
-				{
-					row = paramSheet.createRow(rowIndex);
-					// Friendly name given to param from UI
-					String friendlyParamName = paramStructDetails.getColumnName();
-					String paramValue = paramStructDetails.getCurrentValue() != null
-							? paramStructDetails.getCurrentValue() + ""
-									: null;
-					String operator = paramStructDetails.getOperator();
-					if(operator == null || operator.length() == 0)
-						operator = "=="; // forcing equals
-					
-					// set the values
-					Cell paramNameCell = row.createCell(START_COLUMN_INDEX + 1);
-					paramNameCell.setCellValue(friendlyParamName);					
-					Cell paramOperatorCell = row.createCell(START_COLUMN_INDEX + 2);
-					paramOperatorCell.setCellValue(IQueryFilter.getDisplayNameForComparator(operator));
-					Cell paramValueCell = row.createCell(START_COLUMN_INDEX + 3);
-					input = wb.createCellStyle();
-					input.setDataFormat((short)0);
-					// Calling formatAndSetCellType() instead of just setting the string value in the Cell.
-					formatAndSetCellType(wb, input, paramValueCell, paramValue);
+				if(insightParamStruct.isPopulateInAudit()) {
+					for (ParamStructDetails paramStructDetails : insightParamStruct.getDetailsList()) 
+					{
+						row = paramSheet.createRow(rowIndex);
+						// Friendly name given to param from UI
+						String friendlyParamName = paramStructDetails.getColumnName();
+						String paramValue = paramStructDetails.getCurrentValue() != null
+								? paramStructDetails.getCurrentValue() + ""
+										: null;
+						String operator = paramStructDetails.getOperator();
+						if(operator == null || operator.length() == 0)
+							operator = "=="; // forcing equals
+						
+						// set the values
+						Cell paramNameCell = row.createCell(START_COLUMN_INDEX + 1);
+						paramNameCell.setCellValue(friendlyParamName);					
+						Cell paramOperatorCell = row.createCell(START_COLUMN_INDEX + 2);
+						paramOperatorCell.setCellValue(IQueryFilter.getDisplayNameForComparator(operator));
+						Cell paramValueCell = row.createCell(START_COLUMN_INDEX + 3);
+						input = wb.createCellStyle();
+						input.setDataFormat((short)0);
+						// Calling formatAndSetCellType() instead of just setting the string value in the Cell.
+						formatAndSetCellType(wb, input, paramValueCell, paramValue);
 
-					// next row
-					rowIndex++;
+						// next row
+						rowIndex++;
 
-					// set eh styles
+						// set eh styles
+					}
+				} else {
+					continue;
 				}
 			}
 		}
@@ -1360,6 +1484,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		exportMap.put(paramSheet.getSheetName() + "COLUMN_COUNT", START_COLUMN_INDEX+4);
 
 	}
+	
 
     // default color and font to the audit sheet headers
 	private CellStyle getCellStyle(Workbook wb) {
