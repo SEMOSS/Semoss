@@ -171,6 +171,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("An error occured trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
 			}
 		}
+		
+		// to append preApplied parameters to the save recipe
+		recipeToSave = PixelUtility.appendPreAppliedParameter(this.insight, recipeToSave);
 
 		int stepCounter = 1;
 		// add the recipe to the insights database
