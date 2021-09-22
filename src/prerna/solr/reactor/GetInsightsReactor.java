@@ -42,20 +42,18 @@ public class GetInsightsReactor extends AbstractReactor {
 		if (projectFilterGrs != null && !projectFilterGrs.isEmpty()) {
 			projectFilters = new Vector<String>();
 			for (int i = 0; i < projectFilterGrs.size(); i++) {
-				String engineFilter = projectFilterGrs.get(i).toString();
+				String pFilter = projectFilterGrs.get(i).toString();
 				if (AbstractSecurityUtils.securityEnabled()) {
-					engineFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
-					if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
-						projectFilters.add(engineFilter);
+					pFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), pFilter);
+					if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), pFilter)) {
+						projectFilters.add(pFilter);
 					} else {
 						// store warnings
-						warningNouns.add(NounMetadata.getWarningNounMessage(engineFilter + " does not exist or user does not have access to project."));
+						warningNouns.add(NounMetadata.getWarningNounMessage(pFilter + " does not exist or user does not have access to project."));
 					}
-				} 
-//				else {
-//					engineFilter = MasterDatabaseUtility.testDatabaseIdIfAlias(engineFilter);
-//					eFilters.add(engineFilter);
-//				}
+				} else {
+					projectFilters.add(pFilter);
+				}
 			}
 		}
 		String searchTerm = this.keyValue.get(this.keysToGet[1]);
