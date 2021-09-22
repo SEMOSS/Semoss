@@ -51,6 +51,9 @@ public enum PixelDataType {
 	// param struct
 	PARAM_STRUCT ("PARAM_STRUCT", ReactorKeysEnum.PARAM_STRUCT),
 	
+	// param struct
+	PREAPPLIED_PARAM_STRUCT ("PREAPPLIED_PARAM_STRUCT", ReactorKeysEnum.PREDEFINED_PARAM_STRUCT),
+	
 	SQLE ("SQLE", null), 													// sql expression
 	E ("E", null), 															// some other expression
 	FILTER ("FILTER", ReactorKeysEnum.FILTERS), 							// filter object

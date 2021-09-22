@@ -72,6 +72,8 @@ public class ParamStruct {
 	private String modelLabel = null; // how do you want to ask your user what to do ?
 	private boolean required = true;
 	private Object defaultValue = null;
+	private boolean populateInAudit = true; // to include the param in audit sheet or not
+	private boolean isPreApplied = false;  // to know wether its preapplied on payload
 
 	private FILL_TYPE fillType = null;
 	
@@ -155,6 +157,22 @@ public class ParamStruct {
 		this.required = required;
 	}
 	
+	public boolean isPopulateInAudit() {
+		return populateInAudit;
+	}
+
+	public void setPopulateInAudit(boolean populateInAudit) {
+		this.populateInAudit = populateInAudit;
+	}
+
+	public boolean isPreApplied() {
+		return isPreApplied;
+	}
+
+	public void setPreApplied(boolean isPreApplied) {
+		this.isPreApplied = isPreApplied;
+	}
+
 	public FILL_TYPE getFillType() {
 		return fillType;
 	}
@@ -206,6 +224,8 @@ public class ParamStruct {
 		String modelDisplay = (String) mapInputs.get("modelDisplay");
 		String modelLabel = (String) mapInputs.get("modelLabel");
 		Boolean required = (Boolean) mapInputs.get("required");
+		Boolean populateInAudit = (Boolean) mapInputs.get("populateInAudit");
+		Boolean isPreApplied = (Boolean) mapInputs.get("isPreApplied");
 		
 		// these are enums
 		String fillType = (String) mapInputs.get("fillType");
@@ -229,6 +249,14 @@ public class ParamStruct {
 		pStruct.setModelLabel(modelLabel);
 		if(required != null) {
 			pStruct.setRequired(required);
+		}
+		if(populateInAudit != null && !populateInAudit) {
+			pStruct.setPopulateInAudit(false);
+		} else {
+			pStruct.setPopulateInAudit(true);
+		}
+		if(isPreApplied != null && isPreApplied) {
+			pStruct.setPreApplied(true);
 		}
 		
 		// now need to handle the details
