@@ -112,11 +112,12 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		while(allPanelsIterator.hasNext()) {
 			InsightPanel thisPanel = allPanelsIterator.next();
 			TaskOptions options = thisPanel.getLastTaskOptions();
-			String chartLayout = options.getLayout(thisPanel.getPanelId());
-			System.err.println("Layout is set to " + chartLayout);
-
-			if(chartLayout.equalsIgnoreCase("PivotTable")) {
-				pivotPanelsBySheet.put(thisPanel.getSheetId(), thisPanel);
+			// options can be null - example is text widget
+			if(options != null) {
+				String chartLayout = options.getLayout(thisPanel.getPanelId());
+				if(chartLayout.equalsIgnoreCase("PivotTable")) {
+					pivotPanelsBySheet.put(thisPanel.getSheetId(), thisPanel);
+				}
 			}
 		}
 
