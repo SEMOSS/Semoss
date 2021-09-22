@@ -22,6 +22,7 @@ import prerna.sablecc2.reactor.storage.MapHeaderDataRowIterator;
 public class VarStore implements InMemStore<String, NounMetadata> {
 
 	public static final String PARAM_STRUCT_PREFIX = "$PARAM_STRUCT_";
+	public static final String PARAM_STRUCT_PD_PREFIX  = "$PD_PARAM_STRUCT_";
 	
 	// the main object where all the nouns are stored
 	private Map<String, NounMetadata> varMap;
@@ -37,10 +38,14 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	// storing the varnames for all insight parameters
 	private List<String> insightParametersKeys;
 	
+	// storing the varnames for all pre-defined insight parameters
+	private List<String> preDefinedParametersKeys;
+	
 	public VarStore() {
 		varMap = new HashMap<>();
 		frameKeys = new ArrayList<>();
 		insightParametersKeys = new ArrayList<>();
+		preDefinedParametersKeys = new ArrayList<>();
 		allCreatedFrames = new HashSet<>();
 	}
 	
@@ -66,6 +71,10 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 			if(!insightParametersKeys.contains(varName)) {
 				insightParametersKeys.add(varName);
 			}
+		} else if(variable.getNounType() == PixelDataType.PREAPPLIED_PARAM_STRUCT) {
+			if(!preDefinedParametersKeys.contains(varName)) {
+				preDefinedParametersKeys.add(varName);
+			}
 		}
 	}
 	
@@ -73,6 +82,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		varMap.putAll(otherStore.varMap);
 		frameKeys.addAll(otherStore.frameKeys);
 		insightParametersKeys.addAll(otherStore.insightParametersKeys);
+		preDefinedParametersKeys.addAll(otherStore.preDefinedParametersKeys);
 	}
 	
 	@Override
@@ -116,6 +126,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		// also try to remove from frameSet if its a frame
 		this.frameKeys.remove(varName);
 		this.insightParametersKeys.remove(varName);
+		this.preDefinedParametersKeys.remove(varName);
 		return varMap.remove(varName);
 	}
 	
@@ -127,6 +138,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		// also try to remove from frameSet if its a frame
 		this.frameKeys.removeAll(keys);
 		this.insightParametersKeys.removeAll(keys);
+		this.preDefinedParametersKeys.removeAll(keys);
 		this.varMap.keySet().removeAll(keys);
 	}
 	
@@ -134,6 +146,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	public synchronized void clear() {
 		this.frameKeys.clear();
 		this.insightParametersKeys.clear();
+		this.preDefinedParametersKeys.clear();
 		this.varMap.clear();
 	}
 	
@@ -188,6 +201,11 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		return Collections.unmodifiableList(insightParametersKeys);
 	}
 	
+	public List<String> getPreDefinedParametersKeys() {
+		return Collections.unmodifiableList(preDefinedParametersKeys);
+	}
+
+
 	/**
 	 * Used to get all keys that point to the same object
 	 * @param obj
@@ -214,6 +232,19 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	public Map<String, NounMetadata> pullParameters() {
 		Map<String, NounMetadata> retMap = new LinkedHashMap<>();
 		for(String paramKey : this.insightParametersKeys) {
+			retMap.put(paramKey, this.varMap.get(paramKey));
+		}
+		
+		return retMap;
+	}
+	
+	/**
+	 * Pull the preApplied parameters
+	 * @return
+	 */
+	public Map<String, NounMetadata> pullPreAppliedParameters() {
+		Map<String, NounMetadata> retMap = new LinkedHashMap<>();
+		for(String paramKey : this.preDefinedParametersKeys) {
 			retMap.put(paramKey, this.varMap.get(paramKey));
 		}
 		
