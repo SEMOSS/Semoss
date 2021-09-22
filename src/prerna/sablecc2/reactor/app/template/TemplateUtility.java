@@ -332,6 +332,9 @@ public class TemplateUtility {
 	public static Map<String, List<String>> extractPlaceHolderInfo(XSSFSheet sheet) {
 		Map<String, List<String>> placeHolderData = new HashMap<String, List<String>>();
 		Iterator<Row> rows = sheet.iterator(); // iterating over place holder sheet
+		if(rows.hasNext()) {
+			rows.next(); // skips the first row as its a header label
+		}
 		while (rows.hasNext()) {
 			Row row = rows.next();
 			List<String> placeholderValueAndPosition = new ArrayList<>();
@@ -351,12 +354,18 @@ public class TemplateUtility {
 				placeholderPosition = row.getCell(2).getStringCellValue();
 				placeholderValueAndPosition.add(placeholderPosition);
 			}
+			// retrieve the label placeholder position from cell index 2 from place holder sheet
+			if(row.getCell(3) != null) {
+				placeholderPosition = row.getCell(3).getStringCellValue();
+				placeholderValueAndPosition.add(placeholderPosition);
+			}
 			if(!(placeholderName.isEmpty() || placeholderPosition.isEmpty())) {
 				placeHolderData.put(placeholderName, placeholderValueAndPosition);
 			}
 		}
 		
-		// returns the complete place holder data with key as placeholder label name and values containing place holder default value, cell position
+		// returns the complete place holder data with key as placeholder label name and values 
+		// containing place holder default value, cell position
 		return placeHolderData;
 	}
 
