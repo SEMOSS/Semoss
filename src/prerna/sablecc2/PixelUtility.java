@@ -897,8 +897,8 @@ public class PixelUtility {
 		// add panel tasks
 		for(String panelId : panels.keySet()) {
 			InsightPanel panel = panels.get(panelId);
-
-			boolean isVisualizaiton = panel.getPanelView().equalsIgnoreCase("visualization");
+			
+			boolean isVisualizaiton = (panel.getPanelView() != null && panel.getPanelView().equalsIgnoreCase("visualization"));
 			if(isVisualizaiton) {
 				Map<String, SelectQueryStruct> qsMap = panel.getLayerQueryStruct();
 				Map<String, TaskOptions> tOptionsMap = panel.getLayerTaskOption();
