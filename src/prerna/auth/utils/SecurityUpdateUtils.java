@@ -997,18 +997,27 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				
 				// need to update any other permissions that were set for this user
 				String[] queries = new String[] {
-						"UPDATE ENGINEPERMISSION SET USERID='" +  RdbmsQueryBuilder.escapeForSQLStatement(newId) 
-							+"' WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(oldId) + "'",
-						"UPDATE PROJECTPERMISSION SET USERID='" +  RdbmsQueryBuilder.escapeForSQLStatement(newId)
-							+"' WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(oldId) + "'",
-						"UPDATE USERINSIGHTPERMISSION SET USERID='" +  RdbmsQueryBuilder.escapeForSQLStatement(newId) 
-							+"' WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(oldId) + "'"
+						"UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
+						"UPDATE PROJECTPERMISSION SET USERID=? WHERE USERID=?",
+						"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?",
 				};
 				for(String updateQuery : queries) {
+					PreparedStatement ps = null;
 					try {
-						securityDb.insertData(updateQuery);
+						int parameterIndex = 1;
+						ps = securityDb.getPreparedStatement(updateQuery);
+						ps.setString(parameterIndex++, newId);
+						ps.setString(parameterIndex++, oldId);
+						ps.execute();
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						if(ps != null) {
+							ps.close();
+						}
+						if(ps != null && securityDb.isConnectionPooling()) {
+							ps.getConnection().close();
+						}
 					}
 				}
 				
