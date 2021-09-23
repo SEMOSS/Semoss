@@ -130,9 +130,15 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			while (tablesRs.next()) {
 				String table = tablesRs.getString(TABLE_NAME_STR);
 				// this will be table or view
-				String tableType = tablesRs.getString(TABLE_TYPE_STR).toUpperCase();
+				String tableType = tablesRs.getString(TABLE_TYPE_STR);
+				if(tableType != null) {
+					tableType = tableType.toUpperCase();
+				}
 				// get schema
-				String tableSchema = tablesRs.getString(TABLE_SCHEMA_STR).toUpperCase();
+				String tableSchema = tablesRs.getString(TABLE_SCHEMA_STR);
+				if(tableSchema != null) {
+					tableSchema = tableSchema.toUpperCase();
+				}
 				if(tableType.toUpperCase().contains("TABLE")) {
 					logger.info("Found table = " + Utility.cleanLogString(table));
 					tables.add(table);
