@@ -817,30 +817,40 @@ public class User implements Serializable {
 				pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
 			}
 			
-			Client nc = new Client();
-			this.setTCPServer(nc);
-
-			nc.connect("127.0.0.1", Integer.parseInt(port), false);
-			
-			//nc.run(); - you cannot do this because then the client goes into listener mode
-			Thread t = new Thread(nc);
-			t.start();
-
-			while(!nc.isReady())
+			// instrumenting the client class also now
+			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
+			if(pyClient == null)
+				pyClient = "prerna.tcp.client.Client";
+			try
 			{
-				synchronized(nc)
+				Client nc = (Client)Class.forName(pyClient).newInstance();
+				this.setTCPServer(nc);
+	
+				nc.connect("127.0.0.1", Integer.parseInt(port), false);
+				
+				//nc.run(); - you cannot do this because then the client goes into listener mode
+				Thread t = new Thread(nc);
+				t.start();
+	
+				while(!nc.isReady())
 				{
-					try 
+					synchronized(nc)
 					{
-						nc.wait();
-						logger.info("Setting the netty client ");
-					} catch (InterruptedException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}								
+						try 
+						{
+							nc.wait();
+							logger.info("Setting the netty client ");
+						} catch (InterruptedException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}								
+					}
 				}
+				
+				setPyPort(Integer.parseInt(port));
+			}catch(Exception ex)
+			{
+				ex.printStackTrace();
 			}
-			
-			setPyPort(Integer.parseInt(port));
 		}
 	}
 

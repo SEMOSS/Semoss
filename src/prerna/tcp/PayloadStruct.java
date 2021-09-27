@@ -5,7 +5,7 @@ import java.io.Serializable;
 public class PayloadStruct implements Serializable{
 	
 	public String epoc = null;
-	public enum ENGINE {R, PYTHON, CHROME};
+	public enum ENGINE {R, PYTHON, CHROME, ECHO};
 	public ENGINE engine = ENGINE.R; // setting default to R
 	public String methodName = "method";
 	public Object [] payload = null;

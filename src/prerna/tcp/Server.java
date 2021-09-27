@@ -21,8 +21,10 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.oio.OioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
@@ -34,6 +36,7 @@ import prerna.ds.py.PyExecutorThread;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class Server 
@@ -65,6 +68,9 @@ public class Server
 
 	static boolean test = false;
 
+    EventLoopGroup bossGroup = null;
+    EventLoopGroup workerGroup = null;
+
 	
 	public static void main(String [] args)
 	{
@@ -84,8 +90,8 @@ public class Server
 		if(args == null || args.length == 0)
 		{
 			args = new String[4];
-			args[0] = "C:\\workspace3\\Semoss_Dev\\InsightCache\\aaaaaaa_please_keep_it";
-			args[1] = "C:\\workspace3\\Semoss_Dev\\RDF_MAP.prop";
+			args[0] = "C:\\users\\pkapaleeswaran\\workspacej3\\SemossDev\\config";
+			args[1] = "C:\\users\\pkapaleeswaran\\workspacej3\\SemossDev\\RDF_Map.prop";;
 			args[2] = "9999";
 			//args[3] = "py";
 			args[3] = "r";
@@ -176,8 +182,20 @@ public class Server
         // Configure SSL.
         // Configure the server.
 		LOGGER = LogManager.getLogger(CLASS_NAME);
-        EventLoopGroup bossGroup = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup(20);
+        
+		boolean blocking = DIHelper.getInstance().getProperty(Settings.BLOCKING) != null && DIHelper.getInstance().getProperty(Settings.BLOCKING).equalsIgnoreCase("true");
+        
+        if(blocking)
+        {
+        	bossGroup = new OioEventLoopGroup();
+        	workerGroup = new OioEventLoopGroup();
+        }
+        else
+        {
+    		bossGroup = new NioEventLoopGroup();
+            workerGroup = new NioEventLoopGroup(20);
+        }
+        
         try {
             final SslContext sslCtx;
             if (SSL) {
@@ -188,38 +206,78 @@ public class Server
             }
 
             ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
-             .channel(NioServerSocketChannel.class)
-             .option(ChannelOption.SO_BACKLOG, 100)
-             .option(ChannelOption.TCP_NODELAY, true)
-             .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(800*1024, 1024*1024))
-
-            // .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(256*1024, 512*1024))
-//             .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, (1024*1024))
-//             .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, (512*1024))
-             .handler(new LoggingHandler(LogLevel.INFO))
-             .childHandler(new ChannelInitializer<SocketChannel>() {
-                 @Override
-                 public void initChannel(SocketChannel ch) throws Exception {
-                     ChannelPipeline p = ch.pipeline();
-                     if (sslCtx != null) {
-                         p.addLast(sslCtx.newHandler(ch.alloc()));
-                     }
-                	 // start the R engine
-                     //TCPRServerHandler tsh = new TCPRServerHandler();
-                     BinaryServerHandler tsh = new BinaryServerHandler();
-                     tsh.setBossGroup(bossGroup);
-                     tsh.setWorkerGroup(workerGroup);
-                     tsh.setLogger(LOGGER);
-                     //tsh.setRJavaTranslator(rt);
-                     tsh.setPyExecutorThread(pt);
-                     tsh.setMainFolder(mainFolder);
-                     tsh.setTest(test);
-                     p
-                     .addLast(new LengthFieldPrepender(4))
-                     .addLast(tsh);
-                 }
-             });
+            if(blocking)
+            {
+	            b.group(bossGroup, workerGroup)
+	             //.channel(NioServerSocketChannel.class)
+	             .channel(OioServerSocketChannel.class)
+	             .option(ChannelOption.SO_BACKLOG, 100)
+	             .option(ChannelOption.TCP_NODELAY, true)
+	             .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(800*1024, 1024*1024))
+	
+	            // .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(256*1024, 512*1024))
+	//             .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, (1024*1024))
+	//             .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, (512*1024))
+	             .handler(new LoggingHandler(LogLevel.INFO))
+	             .childHandler(new ChannelInitializer<SocketChannel>() {
+	                 @Override
+	                 public void initChannel(SocketChannel ch) throws Exception {
+	                     ChannelPipeline p = ch.pipeline();
+	                     if (sslCtx != null) {
+	                         p.addLast(sslCtx.newHandler(ch.alloc()));
+	                     }
+	                	 // start the R engine
+	                     //TCPRServerHandler tsh = new TCPRServerHandler();
+	                     BinaryServerHandler tsh = new BinaryServerHandler();
+	                     tsh.setBossGroup(bossGroup);
+	                     tsh.setWorkerGroup(workerGroup);
+	                     tsh.setLogger(LOGGER);
+	                     //tsh.setRJavaTranslator(rt);
+	                     tsh.setPyExecutorThread(pt);
+	                     tsh.setMainFolder(mainFolder);
+	                     tsh.setTest(test);
+	                     p
+	                     .addLast(new LengthFieldPrepender(4))
+	                     .addLast(tsh);
+	                 }
+	             });
+            }
+            else
+            {
+	            b.group(bossGroup, workerGroup)
+	             .channel(NioServerSocketChannel.class)
+	             .option(ChannelOption.SO_BACKLOG, 100)
+	             .option(ChannelOption.TCP_NODELAY, true)
+	             .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(800*1024, 1024*1024))
+	
+	            // .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(256*1024, 512*1024))
+	//             .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, (1024*1024))
+	//             .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, (512*1024))
+	             .handler(new LoggingHandler(LogLevel.INFO))
+	             .childHandler(new ChannelInitializer<SocketChannel>() {
+	                 @Override
+	                 public void initChannel(SocketChannel ch) throws Exception {
+	                     ChannelPipeline p = ch.pipeline();
+	                     if (sslCtx != null) {
+	                         p.addLast(sslCtx.newHandler(ch.alloc()));
+	                     }
+	                	 // start the R engine
+	                     //TCPRServerHandler tsh = new TCPRServerHandler();
+	                     BinaryServerHandler tsh = new BinaryServerHandler();
+	                     tsh.setBossGroup(bossGroup);
+	                     tsh.setWorkerGroup(workerGroup);
+	                     tsh.setLogger(LOGGER);
+	                     //tsh.setRJavaTranslator(rt);
+	                     tsh.setPyExecutorThread(pt);
+	                     tsh.setMainFolder(mainFolder);
+	                     tsh.setTest(test);
+	                     p
+	                     .addLast(new LengthFieldPrepender(4))
+	                     .addLast(tsh);
+	                 }
+	             });
+            	
+            }
             
             // create the engines
         	startPyExecutor();
