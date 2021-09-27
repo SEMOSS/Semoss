@@ -3,6 +3,7 @@ package prerna.util;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
@@ -45,6 +46,30 @@ public class FstUtil
     	}
     	return null;
 	}
+	
+	public static byte[] packBytes(Object obj) {
+		byte[] psBytes = FstUtil.serialize(obj);
+
+		// get the length
+		int length = psBytes.length;
+
+		// make this into array
+		byte[] lenBytes = ByteBuffer.allocate(4).putInt(length).array();
+
+		// pack both of these
+		byte[] finalByte = new byte[psBytes.length + lenBytes.length];
+
+		for (int lenIndex = 0; lenIndex < lenBytes.length; lenIndex++)
+			finalByte[lenIndex] = lenBytes[lenIndex];
+
+		for (int lenIndex = 0; lenIndex < psBytes.length; lenIndex++)
+			finalByte[lenIndex + lenBytes.length] = psBytes[lenIndex];
+
+		return finalByte;
+	}
+
+	
+	
 	
 	
 }
