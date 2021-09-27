@@ -10,6 +10,7 @@ public class InsightSheet {
 	private int borderSize = 2;
 	private String height;
 	private String width;
+	private int gutterSize = 2;
 	
 	/*
 	 * Basic setter/getters for the sheet state
@@ -83,4 +84,13 @@ public class InsightSheet {
 	public void setWidth(String width) {
 		this.width = width;
 	}
+
+	public int getGutterSize() {
+		return gutterSize;
+	}
+
+	public void setGutterSize(int gutterSize) {
+		this.gutterSize = gutterSize;
+	}
+	
 }
