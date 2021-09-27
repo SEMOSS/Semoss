@@ -41,12 +41,17 @@ public final class PyExecutorThread extends Thread {
 		while (this.keepAlive) {
 			try {
 				synchronized (daLock) {
+					
 					logger.debug("Waiting for next command");
 					ready = true;
-					curState = ThreadState.wait;
-					daLock.wait();
-					response.clear();
-
+					
+					if(command == null || command.length == 0)
+					{
+						curState = ThreadState.wait;
+						daLock.wait();
+						response.clear();
+					}
+					
 					curState = ThreadState.run;
 					// if someone wakes up
 					// process the command
