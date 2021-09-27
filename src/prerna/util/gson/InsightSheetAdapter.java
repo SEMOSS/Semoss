@@ -21,6 +21,7 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 		int borderSize = value.getBorderSize();
 		String height = value.getHeight();
 		String width = value.getWidth();
+		int gutterSize = value.getGutterSize();
 		
 		out.beginObject();
 		out.name("sheetId").value(sheetId);
@@ -56,6 +57,8 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 		}
 		// border size has default of 2
 		out.name("borderSize").value(borderSize);
+		// gutter size has default of 2
+		out.name("gutterSize").value(gutterSize);
 		
 		out.endObject();
 	}
@@ -70,6 +73,7 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 		Integer borderSize = null;
 		String height = null;
 		String width = null;
+		Integer gutterSize = null;
 		
 		in.beginObject();
 		while(in.hasNext()) {
@@ -95,6 +99,8 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 				height = in.nextString();
 			} else if(key.equals("width")) {
 				width = in.nextString();
+			} else if(key.equals("gutterSize")) {
+				gutterSize = in.nextInt();
 			}
 		}
 		in.endObject();
@@ -104,11 +110,14 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 		sheet.setBackgroundColor(backgroundColor);
 		sheet.setHideHeaders(hideHeaders);
 		sheet.setHideBorders(hideBorders);
+		sheet.setHeight(height);
+		sheet.setWidth(width);
 		if(borderSize != null) {
 			sheet.setBorderSize(borderSize);
 		}
-		sheet.setHeight(height);
-		sheet.setWidth(width);
+		if(gutterSize != null) {
+			sheet.setGutterSize(gutterSize);
+		}
 		return sheet;
 	}
 
