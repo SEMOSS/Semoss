@@ -14,6 +14,8 @@ public class Settings {
 	public static final String JAVA_HOME = "JAVA_HOME";
 	public static final String MVN_HOME = "MVN_HOME";
 	public static final String REPO_HOME = "REPO_HOME";
+	public static final String BLOCKING = "BLOCKING";
+	public static final String TCP_CLIENT = "TCP_CLIENT";
 	
 	
 	
