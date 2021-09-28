@@ -224,4 +224,14 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		return "select column_name, data_type from information_schema.columns where table_schema='" + schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "'";
 	}
 	
+	@Override
+	public String tableConstraintExistsQuery(String constraintName, String tableName, String schema) {
+		return "select constraint_name from information_schema.table_constraints where constraint_name = '" + constraintName.toLowerCase() + "' and table_name = '" + tableName.toLowerCase() + "' and table_schema='" + schema.toLowerCase() + "'";
+	}
+
+	@Override
+	public String referentialConstraintExistsQuery(String constraintName, String schema) {
+		return "select constraint_name from information_schema.referential_constraints where constraint_name = '" + constraintName.toLowerCase() + "' and constraint_schema='" + schema.toLowerCase() + "'";
+	}
+	
 }
