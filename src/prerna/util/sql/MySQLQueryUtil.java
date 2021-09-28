@@ -153,6 +153,16 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String tableConstraintExistsQuery(String constraintName, String tableName, String schema) {
+		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName + "' AND TABLE_NAME = '" + tableName + "' AND CONSTRAINT_SCHEMA='" + schema + "'";
+	}
+
+	@Override
+	public String referentialConstraintExistsQuery(String constraintName, String schema) {
+		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName + "' AND CONSTRAINT_SCHEMA='" + schema + "'";
+	}
+	
+	@Override
 	public String getAllColumnDetails(String tableName, String schema) {
 		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='" + schema + "' AND TABLE_NAME = '" + tableName + "';";
 	}
