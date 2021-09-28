@@ -1597,6 +1597,18 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
+	public String tableConstraintExistsQuery(String constraintName, String tableName, String schema) {
+		// there is no commonality that i have found for this
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+	}
+
+	@Override
+	public String referentialConstraintExistsQuery(String constraintName, String schema) {
+		// there is no commonality that i have found for this
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+	}
+	
+	@Override
 	public String getAllColumnDetails(String tableName, String schema) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
@@ -1626,9 +1638,4 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 	
-	@Override
-	public String constraintExistsQuery(String constraintName) {
-		// there is no commonality that i have found for this
-		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
-	}
 }
