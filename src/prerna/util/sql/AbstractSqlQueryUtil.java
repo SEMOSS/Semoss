@@ -1082,8 +1082,8 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 
 	/**
-	 * Query to execute If has next, the table exists The schema input is optional
-	 * and only required by certain engines
+	 * Query to execute if has next, the table exists 
+	 * The schema input is optional and only required by certain engines
 	 * 
 	 * @param tableName
 	 * @param schema
@@ -1092,9 +1092,29 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String tableExistsQuery(String tableName, String schema);
 
 	/**
-	 * Query to get the list of column names for a table The schema input is
-	 * optional and only required by certain engines Returns the column name and
-	 * column type
+	 * Query to execute if has next, the table constraint exists
+	 * The schema input is optional and only required by certain engines
+	 * @param constraintName
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	public abstract String tableConstraintExistsQuery(String constraintName, String tableName, String schema);
+	
+	/**
+	 * Query to execute if has next, the referential constraint exists
+	 * The schema input is optional and only required by certain engines
+	 * 
+	 * @param constraintName
+	 * @param schema
+	 * @return
+	 */
+	public abstract String referentialConstraintExistsQuery(String constraintName, String schema);
+	
+	/**
+	 * Query to get the list of column names for a table 
+	 * The schema input is optional and only required by certain engines
+	 * Returns the column name and column type
 	 * 
 	 * @param tableName
 	 * @param schema
@@ -1103,8 +1123,8 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getAllColumnDetails(String tableName, String schema);
 
 	/**
-	 * Query to execute to get the column details Can also imply if the query
-	 * returns that the column exists
+	 * Query to execute to get the column details 
+	 * Can also imply if the query returns that the column exists
 	 * 
 	 * @param tableName
 	 * @param columnName
@@ -1144,13 +1164,6 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract String allIndexForTableQuery(String tableName, String schema);
 
-	/**
-	 * Query to get if a constraint exists
-	 * @param constraintName
-	 * @return
-	 */
-	public abstract String constraintExistsQuery(String constraintName);
-	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -1256,10 +1269,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * 
 	 * @param conn
 	 * @param constraintName
+	 * @param tableName
+	 * @param schema
 	 * @return
 	 */
-	public boolean constraintExists(Connection conn, String constraintName) {
-		String query = this.constraintExistsQuery(constraintName);
+	public boolean tableConstraintExists(Connection conn, String constraintName, String tableName, String schema) {
+		String query = this.tableConstraintExistsQuery(constraintName, tableName, schema);
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
@@ -1291,12 +1306,13 @@ public abstract class AbstractSqlQueryUtil {
 	 * Test on the engine if a constraint exists
 	 * 
 	 * @param engine
+	 * @param constraintName
 	 * @param tableName
 	 * @param schema
 	 * @return
 	 */
-	public boolean constraintExists(IEngine engine, String constraintName) {
-		String query = this.constraintExistsQuery(constraintName);
+	public boolean tableConstraintExists(IEngine engine, String constraintName, String tableName, String schema) {
+		String query = this.tableConstraintExistsQuery(constraintName, tableName, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
@@ -1314,6 +1330,70 @@ public abstract class AbstractSqlQueryUtil {
 		return false;
 	}
 
+	/**
+	 * Test on the connection if a constraint exists
+	 * 
+	 * @param conn
+	 * @param constraintName
+	 * @param schema
+	 * @return
+	 */
+	public boolean referentialConstraintExists(Connection conn, String constraintName, String schema) {
+		String query = this.referentialConstraintExistsQuery(constraintName, schema);
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+
+			return rs.next();
+		} catch (SQLException e) {
+			return false;
+		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Test on the engine if a constraint exists
+	 * 
+	 * @param engine
+	 * @param constraintName
+	 * @param schema
+	 * @return
+	 */
+	public boolean referentialConstraintExists(IEngine engine, String constraintName, String schema) {
+		String query = this.referentialConstraintExistsQuery(constraintName, schema);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+
+		return false;
+	}
+	
 	/**
 	 * Get all the table columns Will return them all upper cased
 	 * 
