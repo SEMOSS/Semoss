@@ -26,7 +26,6 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
@@ -194,20 +193,20 @@ public class BasicIteratorTask extends AbstractTask {
 			x.cleanUp();
 		}
 
-		// help java gc
-		this.taskOptions = null;
-		if(this.headerInfo != null) {
-			this.headerInfo.clear();
-			this.headerInfo = null;
-		}
-		if(this.sortInfo != null) {
-			this.sortInfo.clear();
-			this.sortInfo = null;
-		}
-		if(this.filterInfo != null) {
-			this.filterInfo.clear();
-			this.filterInfo = null;
-		}
+//		// help java gc
+//		this.taskOptions = null;
+//		if(this.headerInfo != null) {
+//			this.headerInfo.clear();
+//			this.headerInfo = null;
+//		}
+//		if(this.sortInfo != null) {
+//			this.sortInfo.clear();
+//			this.sortInfo = null;
+//		}
+//		if(this.filterInfo != null) {
+//			this.filterInfo.clear();
+//			this.filterInfo = null;
+//		}
 	}
 	
 	@Override
