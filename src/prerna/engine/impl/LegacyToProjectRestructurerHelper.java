@@ -201,7 +201,7 @@ public class LegacyToProjectRestructurerHelper {
 			throw new IllegalArgumentException("No old smss file found for the db - " + dbSmssFileName);
 		}
 		
-		userCreateProjectSmssFile(projectName, projectId, isAsset, dbSmssFileName);
+		userCreateProjectSmssFile(projectName, projectId, isAsset, dbSmssFile);
 //		modifyOldDBSmss(dbSmssFile, dbSmssFileName);
 	}
 
