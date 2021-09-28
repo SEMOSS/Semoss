@@ -222,6 +222,18 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String tableConstraintExistsQuery(String constraintName, String tableName, String schema) {
+		// do not need to use the schema
+		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName.toUpperCase() + "' AND TABLE_NAME = '" + tableName.toUpperCase() + "'";
+	}
+
+	@Override
+	public String referentialConstraintExistsQuery(String constraintName, String schema) {
+		// do not need to use the schema
+		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName.toUpperCase() + "'";
+	}
+	
+	@Override
 	public String getAllColumnDetails(String tableName, String schema) {
 		// do not need to use the schema
 		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "';";
