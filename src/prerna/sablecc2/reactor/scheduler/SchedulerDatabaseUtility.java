@@ -201,8 +201,8 @@ public class SchedulerDatabaseUtility {
 		try {
 			createQuartzTables(conn, schema);
 			createSemossTables(conn, schema);
-			addAllPrimaryKeys();
-			addAllForeignKeys();
+			addAllPrimaryKeys(conn, schema);
+			addAllForeignKeys(conn, schema);
 		} finally {
 			if(schedulerDb.isConnectionPooling()) {
 				conn.close();
@@ -1333,7 +1333,7 @@ public class SchedulerDatabaseUtility {
 		return arrays;
 	}
 	
-	private static void addAllPrimaryKeys() {
+	private static void addAllPrimaryKeys(Connection conn, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		if(queryUtil.allowIfExistsAddConstraint()) {
 			String query1 = "ALTER TABLE QRTZ_CALENDARS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_CALENDARS PRIMARY KEY ( SCHED_NAME, CALENDAR_NAME);";
@@ -1374,59 +1374,79 @@ public class SchedulerDatabaseUtility {
 			String query10 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT PK_QRTZ_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
 
 			try {
-				schedulerDb.insertData(query1);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_CALENDARS", "QRTZ_CALENDARS", schema)) {
+					schedulerDb.insertData(query1);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query2);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_CRON_TRIGGERS", "QRTZ_CRON_TRIGGERS", schema)) {
+					schedulerDb.insertData(query2);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query3);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_FIRED_TRIGGERS", "QRTZ_FIRED_TRIGGERS", schema)) {
+					schedulerDb.insertData(query3);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query4);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_PAUSED_TRIGGER_GRPS", "QRTZ_PAUSED_TRIGGER_GRPS", schema)) {
+					schedulerDb.insertData(query4);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query5);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SCHEDULER_STATE", "QRTZ_SCHEDULER_STATE", schema)) {
+					schedulerDb.insertData(query5);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query6);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_LOCKS", "QRTZ_LOCKS", schema)) {
+					schedulerDb.insertData(query6);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query7);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_JOB_DETAILS", "QRTZ_JOB_DETAILS", schema)) {
+					schedulerDb.insertData(query7);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query8);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SIMPLE_TRIGGERS", "QRTZ_SIMPLE_TRIGGERS", schema)) {
+					schedulerDb.insertData(query8);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query9);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SIMPROP_TRIGGERS", "QRTZ_SIMPROP_TRIGGERS", schema)) {
+					schedulerDb.insertData(query9);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query10);
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_TRIGGERS", "QRTZ_TRIGGERS", schema)) {
+					schedulerDb.insertData(query10);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 		}
 	}
 
-	private static void addAllForeignKeys() {
+	private static void addAllForeignKeys(Connection conn, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		if(queryUtil.allowIfExistsAddConstraint()) {
 			String query1 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
@@ -1449,24 +1469,32 @@ public class SchedulerDatabaseUtility {
 			String query4 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS FOREIGN KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP ) REFERENCES QRTZ_JOB_DETAILS ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
 
 			try {
-				schedulerDb.insertData(query1);
+				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS", schema)) {
+					schedulerDb.insertData(query1);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query2);
+				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS", schema)) {
+					schedulerDb.insertData(query2);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query3);
+				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS", schema)) {
+					schedulerDb.insertData(query3);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				schedulerDb.insertData(query4);
+				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS", schema)) {
+					schedulerDb.insertData(query4);
+				}
 			} catch (SQLException se) {
-//				logger.error(Constants.STACKTRACE, se);
+				logger.error(Constants.STACKTRACE, se);
 			}
 		}
 	}
