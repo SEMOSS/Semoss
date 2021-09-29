@@ -256,6 +256,20 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		cdt.setFormat("TABLE");
 		cdt.setTaskOptions(task.getTaskOptions());
 		cdt.setHeaderInfo(new ArrayList<>(task.getHeaderInfo()));
+		// return the correct header info with the wrapped around math that is used on the column
+		for(Map<String, Object> header : cdt.getHeaderInfo()) {
+			String alias = (String) header.get("alias");
+			for(Map<String, String> value : valuesList) {
+				if(value.get("math") == null || value.get("math").isEmpty()) {
+					continue;
+				}
+				if(alias != null && alias.equals(value.get("alias"))) {
+					header.put("calculatedBy", alias);
+					header.put("math", value.get("math"));
+					header.put("derived", true);
+				}
+			}
+		}
 		cdt.setSortInfo(new ArrayList<>(task.getSortInfo()));
 		cdt.setId(task.getId());
 		Map<String, Object> formatMap = new Hashtable<String, Object>();
