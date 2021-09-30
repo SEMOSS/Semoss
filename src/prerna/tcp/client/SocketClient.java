@@ -130,6 +130,9 @@ public class SocketClient extends Client implements Runnable
     	if(killall)
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     	
+    	if(!connected)
+        	throw new SemossPixelException("Your micro-process is not available. Please logout and try again. !");
+
     	
     	int attempt = 0;
     	String id = "ps"+ count.getAndIncrement();

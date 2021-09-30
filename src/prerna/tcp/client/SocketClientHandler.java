@@ -146,9 +146,15 @@ public class SocketClientHandler implements Runnable
 					int bytesRead = in.read(lenBytes, lenBytesReadSoFar, (lenBytes.length - lenBytesReadSoFar)); // block
 					lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
 				}	
+				
+				if(readBytes < 0) // stream is closed kill this thread
+				{
+					done = true;
+					this.nc.connected = false;
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				System.err.println("Time to die !!");
+				System.err.println("Server Stream is closed!!");
 				done = true; // ba bye
 				// at some point we can relisten if we want.. 
 			}
