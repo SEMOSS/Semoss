@@ -531,7 +531,7 @@ public class SocketServerHandler implements Runnable
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				// something abruptly disconnected
-				System.err.println("Time to die !!");
+				System.err.println("Client socket has been closed !");
 				synchronized(server.crash)
 				{
 	
@@ -545,7 +545,8 @@ public class SocketServerHandler implements Runnable
 					}
 				}
 				// dont quit.. work hard
-				System.exit(1);
+				if(!this.server.multi)
+					System.exit(1);
 			}
 		}
 	}
