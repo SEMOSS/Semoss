@@ -32,22 +32,17 @@ public class SocketServer implements Runnable
 	List <String> commandList = new ArrayList<String>(); // this is giving the file name and that too relative
 	public  static Logger LOGGER = null;
 
-	String internalLock = "Internal Lock";
-	private static boolean first = true;
 	public Jep jep = null;
 	boolean SSL = false;
 	
-	public String [] command = null;
-	public Hashtable <String, Object> response = new Hashtable<String, Object>();
 	
 	public volatile boolean keepAlive = true;
 	public volatile boolean ready = false;
 	public Object driverMonitor = null;
 	
 	Properties prop = null; // this is basically reference to the RDF Map
-	List foldersBeingWatched = new ArrayList();
 	public String mainFolder = null;
-	PyExecutorThread pt = null;
+	//PyExecutorThread pt = null;
 	RJavaJriTranslator rt = null;
 
 	static boolean test = false;
@@ -60,6 +55,8 @@ public class SocketServer implements Runnable
 	Object crash = new Object();
 	
 	SocketServerHandler ssh = new SocketServerHandler();
+	
+	static boolean multi = false; // allow multiple threads at the same time
 	
 	public static void main(String [] args)
 	{
@@ -85,6 +82,7 @@ public class SocketServer implements Runnable
 			//args[3] = "py";
 			args[3] = "r";
 			test = true;
+			multi = true;
 				
 		}
 		
@@ -135,14 +133,19 @@ public class SocketServer implements Runnable
 		}
 		worker.mainFolder = args[0];
 		String engine = "r"; // setting it up for r
-		if(args.length == 4)
+		if(args.length >= 4)
 			engine = args[3];
+		
+		if(args.length >= 5)
+			worker.multi = args[4].equalsIgnoreCase("multi");
+		
 		worker.bootServer(Integer.parseInt(args[2]), engine);
 	}
 	
-	public void startPyExecutor()
+	public PyExecutorThread startPyExecutor()
 	{
-		if(this.pt== null)
+		PyExecutorThread pt = null;
+		//if(this.pt== null)
 		{
 			pt = new PyExecutorThread();
 			//pt.getJep();
@@ -161,6 +164,8 @@ public class SocketServer implements Runnable
 			}
 			LOGGER.info("PyThread Started");
 		}
+		
+		return pt;
 	}
 	
 	
@@ -168,7 +173,6 @@ public class SocketServer implements Runnable
 	{
 		LOGGER = LogManager.getLogger(CLASS_NAME);
 
-        startPyExecutor();
 
         try {
             serverSocket = new ServerSocket(PORT);
@@ -189,7 +193,7 @@ public class SocketServer implements Runnable
 		// do the listening here and then spawn the thread
 		while(!done)
 		{
-			if(this.clientSocket == null)
+			if(this.clientSocket == null || multi)
 			{
 		        try {
 		            clientSocket = serverSocket.accept();
@@ -208,6 +212,9 @@ public class SocketServer implements Runnable
 				}   
 		        
 		        // start processing
+		        // start a new thread
+		        PyExecutorThread pt = startPyExecutor();
+
 		        ssh.setPyExecutorThread(pt);
 		        ssh.is = is;
 		        ssh.socket = serverSocket;
