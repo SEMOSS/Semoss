@@ -663,7 +663,7 @@ public class PixelUtility {
 			ParamStruct param = (ParamStruct) paramNoun.getValue();
 			// also adjust for the new optimized id if it is set
 			param.swapOptimizedIds();
-			additionalSteps.add("META | AddPreAppliedParameter(" + gson.toJson(param) + ");");
+			additionalSteps.add("META | AddPreDefinedParameter(" + gson.toJson(param) + ");");
 			// swap back for this instance of the insight
 			// since we make a new pixel list object all together 
 			// during the save process
