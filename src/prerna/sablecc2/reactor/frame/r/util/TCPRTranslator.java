@@ -53,12 +53,15 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			//if(rScript.equalsIgnoreCase("yo"))
 			ps.hasReturn = false;
 			ps = (PayloadStruct)nc.executeCommand(ps);
-			if(ps != null  &&  ps.ex!= null)
-			{
+			if(ps != null  &&  ps.ex!= null) {
 				logger.info(ps.ex);
-			}
-			else if(ps != null) {
+			} else if(ps != null) {
 				started = true;
+			}
+			
+			// set the memory limit
+			if(started) {
+				setMemoryLimit();
 			}
 		}
 	}
