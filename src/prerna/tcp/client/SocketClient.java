@@ -251,17 +251,16 @@ public class SocketClient extends Client implements Runnable
     	// make the connected to be false
     	// take everything that is waiting on it
     	// go through request map and start pushing
-    	Iterator keyIterator = requestMap.keySet().iterator();
-    	while(keyIterator.hasNext())
-    	{
-    		PayloadStruct ps = (PayloadStruct)requestMap.remove(keyIterator.next());
+    	for(Object k : requestMap.keySet()) {
+    		PayloadStruct ps = (PayloadStruct)requestMap.get(k);
     		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
     		
-    		synchronized(ps)
-    		{
+    		synchronized(ps) {
     			ps.notifyAll();
     		}
     	}
+    	requestMap.clear();
+    	
     	this.connected = false;
     	killall = true;
     	status = "crashed";
