@@ -483,8 +483,11 @@ public class User implements Serializable {
 	}
 	
 	public Client getTCPServer(boolean create) {
-		if(this.tcpServer == null && create) {
+		if((this.tcpServer == null && create) || (this.tcpServer != null && !this.tcpServer.isConnected() && create)) {
+			PyUtils.getInstance().userTupleMap.remove(this); // remove it from user tuple map so it will restart
 			startTCPServer();
+			this.pyt = new TCPPyTranslator();
+			((TCPPyTranslator) pyt).nc = this.tcpServer; // starts it
 		}
 		return this.tcpServer;
 	}
@@ -743,8 +746,9 @@ public class User implements Serializable {
 					// check to see if the py translator needs to be set ?
 					// check to see if the py translator needs to be set ?
 					else {
-						this.pyt = new TCPPyTranslator();
-						((TCPPyTranslator) pyt).nc = getTCPServer(true); // starts it
+						//this.pyt = new TCPPyTranslator();
+						//((TCPPyTranslator) pyt).nc = 
+						getTCPServer(true); // starts it
 					}
 				}
 			}
@@ -800,8 +804,8 @@ public class User implements Serializable {
 		return this.cmdUtil;
 	}
 	
-	private void startTCPServer() {
-		if (tcpServer == null)  // start only if it not already in progress
+	public void startTCPServer() {
+		if (tcpServer == null || !tcpServer.isConnected())  // start only if it not already in progress
 		{
 			logger.info("Starting the TCP Server !! ");
 			port = DIHelper.getInstance().getProperty("FORCE_PORT"); // this means someone has

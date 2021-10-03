@@ -24,7 +24,7 @@ public class PyUtils {
 	
 	private static Boolean pyEnabled = null;
 	private static PyUtils instance;
-	Map userTupleMap = new Hashtable();
+	public Map userTupleMap = new Hashtable();
 	Map userProcessMap = new Hashtable();
 	
 	private PyUtils() {
@@ -126,7 +126,7 @@ public class PyUtils {
 
 	public String startTCPServe(Object user, String dir, String port)
 	{
-		if(user != null && !userTupleMap.containsKey(user))
+		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
 		{
 			try {
 				LOGGER.info(">>>STARTING PyServe USER<<<");
