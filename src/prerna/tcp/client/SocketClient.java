@@ -1,8 +1,10 @@
 package prerna.tcp.client;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Iterator;
@@ -193,9 +195,10 @@ public class SocketClient extends Client implements Runnable
     	try
     	{
     		os.write(psBytes);
-    	}catch(Exception ex)
+    	}catch(IOException ex)
     	{
     		ex.printStackTrace();
+    		crash();
     	}
     }
     

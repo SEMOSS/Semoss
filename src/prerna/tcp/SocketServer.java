@@ -55,7 +55,7 @@ public class SocketServer implements Runnable
 	Object crash = new Object();
 	
 	SocketServerHandler ssh = new SocketServerHandler();
-	
+		
 	static boolean multi = false; // allow multiple threads at the same time
 	
 	public static void main(String [] args)
@@ -162,6 +162,7 @@ public class SocketServer implements Runnable
 					e.printStackTrace();
 				}
 			}
+			
 			LOGGER.info("PyThread Started");
 		}
 		
@@ -177,7 +178,7 @@ public class SocketServer implements Runnable
         try {
             serverSocket = new ServerSocket(PORT);
         } catch (IOException e) {
-            System.err.println("Could not listen on port: 4444.");
+            System.err.println("Could not listen on port: " + PORT);
             System.exit(1);
         }
 
@@ -208,14 +209,14 @@ public class SocketServer implements Runnable
 					is = clientSocket.getInputStream();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					e.printStackTrace(); 
 				}   
 		        
 		        // start processing
 		        // start a new thread
-		        PyExecutorThread pt = startPyExecutor();
+		        //PyExecutorThread pt = startPyExecutor();
 
-		        ssh.setPyExecutorThread(pt);
+		        //ssh.setPyExecutorThread(pt);
 		        ssh.is = is;
 		        ssh.socket = serverSocket;
 		        ssh.server = this;
