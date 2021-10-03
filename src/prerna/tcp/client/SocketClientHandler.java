@@ -151,11 +151,14 @@ public class SocketClientHandler implements Runnable
 				{
 					done = true;
 					this.nc.connected = false;
+					this.nc.crash();
 				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				System.err.println("Server Stream is closed!!");
-				done = true; // ba bye
+				done = true;
+				this.nc.connected = false;
+				this.nc.crash();
 				// at some point we can relisten if we want.. 
 			}
 		}
