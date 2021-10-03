@@ -10,6 +10,7 @@ import prerna.ds.py.TCPPyTranslator;
 import prerna.tcp.client.Client;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class PySingleton {
@@ -110,28 +111,46 @@ public class PySingleton {
 				}
 				pyTupleSpace = PyUtils.getInstance().startTCPServe(nouser, pyTupleSpace, port);
 			}
-			
-			Client nc = new Client();
-			tcpServer = nc;
 
-			nc.connect("127.0.0.1", Integer.parseInt(port), false);
+			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
+			if(pyClient == null)
+				pyClient = "prerna.tcp.client.Client";
 			
-			//nc.run(); - you cannot do this because then the client goes into listener mode
-			Thread t = new Thread(nc);
-			t.start();
-
-			while(!nc.isReady())
-			{
-				synchronized(nc)
-				{
-					try 
+			try {
+					Client nc = (Client)Class.forName(pyClient).newInstance();
+					tcpServer = nc;
+	
+					nc.connect("127.0.0.1", Integer.parseInt(port), false);
+					
+					//nc.run(); - you cannot do this because then the client goes into listener mode
+					Thread t = new Thread(nc);
+					t.start();
+	
+					while(!nc.isReady())
 					{
-						nc.wait();
-						logger.info("Setting the netty client ");
-					} catch (InterruptedException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}								
-				}
+						synchronized(nc)
+						{
+							try 
+							{
+								nc.wait();
+								logger.info("Setting the netty client ");
+							} catch (InterruptedException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}								
+						}
+					}
+			} catch (NumberFormatException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InstantiationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 		return tcpServer;
