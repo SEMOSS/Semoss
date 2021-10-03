@@ -121,7 +121,7 @@ public class SocketServerHandler implements Runnable
 				if(ps.engine == PayloadStruct.ENGINE.PYTHON)
 				{
 					// get the py translator for the first time
-					//getPyTranslator();
+					getPyTranslator();
 					try
 					{
 						Method method = findPyMethod(ps.methodName, ps.payloadClasses);
@@ -452,27 +452,9 @@ public class SocketServerHandler implements Runnable
 	{
 		if(this.pt== null)
 		{
-			pt = new PyExecutorThread();
-			//pt.getJep();
-			// make it blocking
-			pt.run();
-			
-			
-			while(!pt.isReady())
-			{
-				try {
-					// sleep until we get the py
-					Thread.sleep(200);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			
-			
-			LOGGER.info("PyThread Started");
-			pyt = new PyTranslator();
-			pyt.setPy(pt);
+			this.pt = server.startPyExecutor();
+			setPyExecutorThread(this.pt);
+			System.err.println("Got the py thread");
 		}
 	}
 	
