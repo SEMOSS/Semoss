@@ -140,35 +140,7 @@ public class SocketServer implements Runnable
 			worker.multi = args[4].equalsIgnoreCase("multi");
 		
 		worker.bootServer(Integer.parseInt(args[2]), engine);
-	}
-	
-	public PyExecutorThread startPyExecutor()
-	{
-		PyExecutorThread pt = null;
-		//if(this.pt== null)
-		{
-			pt = new PyExecutorThread();
-			//pt.getJep();
-			pt.start();
-			
-			
-			while(!pt.isReady())
-			{
-				try {
-					// sleep until we get the py
-					Thread.sleep(200);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			
-			LOGGER.info("PyThread Started");
-		}
-		
-		return pt;
-	}
-	
+	}	
 	
 	public void bootServer(int PORT, String engine)
 	{
