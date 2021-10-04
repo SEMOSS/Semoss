@@ -452,12 +452,27 @@ public class SocketServerHandler implements Runnable
 	{
 		if(this.pt== null)
 		{
-			this.pt = server.startPyExecutor();
+			pt = new PyExecutorThread();
+			//pt.getJep();
+			pt.start();
+			
+			while(!pt.isReady())
+			{
+				try {
+					// sleep until we get the py
+					Thread.sleep(200);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			LOGGER.info("PyThread Started");
 			setPyExecutorThread(this.pt);
 			System.err.println("Got the py thread");
 		}
-	}
-	
+	}	
+
 	public void setOutputStream(OutputStream os)
 	{
 		this.os = os;
