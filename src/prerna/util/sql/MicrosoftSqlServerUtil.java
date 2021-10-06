@@ -26,6 +26,7 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 		super.initTypeConverstionMap();
 		typeConversionMap.put("TIMESTAMP", "DATETIME");
 		typeConversionMap.put("BOOLEAN", "BIT");
+		typeConversionMap.put("DOUBLE", "DECIMAL(20,4)");
 	}
 
 	@Override
