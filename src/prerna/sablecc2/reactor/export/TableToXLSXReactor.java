@@ -1293,35 +1293,14 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		} 
 		if (databaseId != null) {
 			IRawSelectWrapper wrapper = null;
-			long rowIndex = 0;
 			try {
 				// triggering the query to get result set
 				wrapper = WrapperManager.getInstance().getRawWrapper(Utility.getEngine(databaseId), queryToResolve);
 				while (wrapper.hasNext()) {
 					Object[] values = wrapper.next().getValues();
-					String[] headers = wrapper.getHeaders();
-					String disclaimerHeaders = "";
-					if (placeholderLabel.equalsIgnoreCase("Disclaimer")) {
-						for (int i = 0; i < values.length; i++) {
-							int numRows = Integer.parseInt(values[i].toString());
-							if (numRows > 100) {
-								disclaimerHeaders = disclaimerHeaders + headers[i] + ",";
-							}
-						}
-						if(disclaimerHeaders != "") {
-							// this message can be derived from env variables later
-							resolvedVal = "There are more than 100 " + disclaimerHeaders + " for this master segment. For assistance, please contact your Anthem Sales and Account Management Representative.";
-						} else {
-							resolvedVal = "";
-						}
-					} else {
-						rowIndex++;
-						if(rowIndex <= 100) { // to show only first 100 records from DB
-							resolvedVal = resolvedVal + values[0] + ",";
-						} else {
-							break;
-						}
-					}
+						if(values[0] != null) { 
+							resolvedVal = values[0].toString();
+						} 
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -1330,9 +1309,6 @@ public class TableToXLSXReactor	extends AbstractReactor {
 					wrapper.cleanUp();
 				}
 			}
-		}
-		if (!resolvedVal.isEmpty()) {
-			resolvedVal= resolvedVal.substring(0, resolvedVal.length() -1);
 		}
 		return resolvedVal;
 	}
