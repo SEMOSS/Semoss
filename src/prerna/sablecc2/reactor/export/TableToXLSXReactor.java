@@ -1255,9 +1255,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 						.get(VarStore.PARAM_STRUCT_PD_PREFIX + paramName);
 				if (param != null) {
 					ParamStruct ps = (ParamStruct) param.getValue();
-					if (ps.isPreApplied() && !ps.isPopulateInAudit()) {
-						// only fields having isPopulateInAudit() as 'NO' is taken, rest is resolved in
-						// makeParamSheet()
+					if (ps.isPreApplied()) {
 						result = ps.getDetailsList().get(0).getCurrentValue() + "";
 						databaseId = ps.getModelAppId();
 					}
@@ -1271,7 +1269,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			}
 		}
 		// for getting data from Query mentioned in Template
-		if (rowValueType.equalsIgnoreCase("Query")) {
+		if (rowValueType.equalsIgnoreCase("Query") && databaseId != null) {
 			placeHolderValue = (String) resolveQueryFromDB(placeHolderValue, placeholderLabel, databaseId);
 		}
 		return placeHolderValue;
