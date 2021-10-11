@@ -94,8 +94,6 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 							Map<String, Object> paramMap = new HashMap<String, Object>();
 							Map<String, Object> paramDetailsMap = new HashMap<String, Object>();
 							List<Map<String, Object>> detailsList = new ArrayList<Map<String,Object>>();
-							// get the parameter as a map of key=value pairs
-							// paramMap.put((String) values[0], values[1]);
 							paramMap.put("paramName", values[0]);
 							paramMap.put("fillType", "MANUAL");
 							paramMap.put("modelDisplay", "freetext");
@@ -105,8 +103,12 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 							paramMap.put("appId", databaseId);
 							// set flag to distinguish between original param and predefined param
 							paramMap.put("isPreApplied", true);
-							// can change to values[2] if we include business name in the query
-							paramDetailsMap.put("columnName", values[0]);
+							// can make to values[2] if we include business name in the query
+							if(values.length == 3 && values[2] != null) {
+								paramDetailsMap.put("columnName", values[2]);
+							} else {
+								paramDetailsMap.put("columnName", values[0]);
+							}
 							paramDetailsMap.put("currentValue", values[1]);
 							paramDetailsMap.put("appId", databaseId);
 							paramDetailsMap.put("operator", "=");
