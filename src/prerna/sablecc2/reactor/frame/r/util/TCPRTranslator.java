@@ -59,10 +59,10 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 				started = true;
 			}
 			
-			// set the memory limit
-			if(started) {
-				setMemoryLimit();
-			}
+//			// set the memory limit
+//			if(started) {
+//				setMemoryLimit();
+//			}
 		}
 	}
 

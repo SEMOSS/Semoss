@@ -10,9 +10,11 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,9 +56,7 @@ import cz.vutbr.web.css.TermLength;
 import cz.vutbr.web.css.TermPercent;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
@@ -96,7 +96,6 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	public static final String FOOTER = "footer";
 	public static final String PLACE_HOLDER = "placeholders";
 	
-
 	Map colspanMatrix = new HashMap();
 	Map rowspanMatrix = new HashMap();
 	Map <Sheet, List<CellRangeAddress>> mergeAreas = new HashMap<Sheet, List <CellRangeAddress>>();
@@ -104,10 +103,9 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	String sheetName = null;
 	String html = null;
 
-	
 	Map <Integer, Integer> columnToWidth = new HashMap<Integer, Integer>();
-
 	Map <String, CellStyle> styleHash = new HashMap<String, CellStyle>();
+	
 	public TableToXLSXReactor() {
 		// keep open specifies whether to keep this open or close it. if kept open then this will return open as noun metadata
 		// need to add table level header and tabel level footer
@@ -1400,12 +1398,14 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		// Ideally we can drop the section, but later
 		List<String> insightParamKeys = insight.getVarStore().getInsightParameterKeys();
 		List<String> preAppliedParamKeys = insight.getVarStore().getPreDefinedParametersKeys();
-		List<String> allParameters = new ArrayList<String>();
-		// add preApplied parameters to loop for Audit
+		// to make unique set of keys giving priority to insight paramkeys using Set
+		Set<String> allParameters = new LinkedHashSet<>();
 		allParameters.addAll(insightParamKeys);
+		// add unique preApplied parameters to loop for Audit
 		allParameters.addAll(preAppliedParamKeys);
 		Iterator<String> parameterKeys = allParameters.iterator();
 		CellStyle input = getCellStyle(wb);
+		List<String> uniqueParamNames = new ArrayList<String>();
 		
 		int rowIndex = startRowIndex + 1;
 		while(parameterKeys.hasNext())
@@ -1415,7 +1415,9 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			{
 				// extracting parameter structure from meta data
 				ParamStruct insightParamStruct = (ParamStruct) insight.getVarStore().get(paramName).getValue();
-				if(insightParamStruct.isPopulateInAudit()) {
+				// giving preference to Insight Params created by User to show in Audit page if both(Insight and PreApplied) exists
+				if(insightParamStruct.isPopulateInAudit() && !uniqueParamNames.contains(insightParamStruct.getParamName())) {
+					uniqueParamNames.add(insightParamStruct.getParamName());
 					for (ParamStructDetails paramStructDetails : insightParamStruct.getDetailsList()) 
 					{
 						row = paramSheet.createRow(rowIndex);
