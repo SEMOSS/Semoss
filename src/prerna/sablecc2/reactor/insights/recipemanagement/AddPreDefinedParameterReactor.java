@@ -48,6 +48,14 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 			paramList.add(paramMap);
 		}
 		
+		VarStore varStore = this.insight.getVarStore();
+		List<String> preDefinedKeys = varStore.getPreDefinedParametersKeys();
+		// TODO: not sure if this is accurate?
+		// remove all the previous predefined keys to store new updated ones for the current frame
+		if(!preDefinedKeys.isEmpty()) {
+			this.insight.getVarStore().removeAll(preDefinedKeys);
+		}
+		
 		for (Map<String, Object> pMap : paramList) {
 			// turn this into a param struct object
 			ParamStruct paramStruct = ParamStruct.generateParamStruct(pMap);
@@ -57,12 +65,6 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 				throw new IllegalArgumentException("Parameter name is not defined");
 			}
 			String variableName = VarStore.PARAM_STRUCT_PD_PREFIX + paramName;
-			// TODO: is this valid?
-			if (this.insight.getVarStore().getPreDefinedParametersKeys().contains(variableName)) {
-				// skipping in case of multiple payloads parameters
-				continue; 
-			}
-			
 			NounMetadata pStructNoun = new NounMetadata(paramStruct, PixelDataType.PREAPPLIED_PARAM_STRUCT);
 			this.insight.getVarStore().put(variableName, pStructNoun);
 		}
@@ -127,7 +129,7 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 							PixelList pixelList = this.insight.getPixelList();
 							for (Pixel pixel : pixelList) {
 								String expression = pixel.getPixelString();
-								if (expression.contains(databaseId)) {
+								if (expression.contains(databaseId) && expression.contains("frame")) {
 									paramDetailsMap.put("pixelId", pixel.getId());
 									paramDetailsMap.put("pixelString", expression);
 								}
