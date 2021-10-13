@@ -139,9 +139,9 @@ public class MgmtUtil {
 	public static long getFreeMemory() {
 		if(freeMemory.longValue() == -1) {
 			long availableMemory = gm.getAvailable();
-			logger.info("Server total available memory = " + availableMemory);
 			// convert to gigs
 			freeMemory.set( availableMemory / (1024*1024*1024) );
+			logger.info("Server total available memory = " + freeMemory.longValue() + " GB");
 			// give a 2GB limit
 			String reservedJavaMem = DIHelper.getInstance().getProperty(Settings.RESERVED_JAVA_MEM);
 			if(reservedJavaMem != null && !(reservedJavaMem=reservedJavaMem.trim()).isEmpty()) {
