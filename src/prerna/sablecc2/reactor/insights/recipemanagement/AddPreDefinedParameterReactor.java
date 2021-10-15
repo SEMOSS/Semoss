@@ -52,7 +52,7 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 		List<String> preDefinedKeys = varStore.getPreDefinedParametersKeys();
 		// TODO: not sure if this is accurate?
 		// remove all the previous predefined keys to store new updated ones for the current frame
-		if(!preDefinedKeys.isEmpty()) {
+		if(exportVariables != null && !preDefinedKeys.isEmpty()) {
 			this.insight.getVarStore().removeAll(preDefinedKeys);
 		}
 		
