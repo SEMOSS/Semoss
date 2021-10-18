@@ -274,8 +274,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			this.chartPanelLayout.get(sheetId).put(panelId, panelChartMap);
 			String plotType = taskOptions.getLayout(panelId);
 			//condition for stack bar chart its expecting different data format for stack
-			if (plotType != null && plotType.equals("Stack")) {
-				writeStackBarChartData(workbook, task, sheetId, panelId, panel.getPanelFormatValues());
+			if (plotType != null && (plotType.equals("Stack") || plotType.equals("MultiLine"))) {
+				writeChartCategoryData(workbook, task, sheetId, panelId, panel.getPanelFormatValues());
 			} else {
 				writeData(workbook, task, sheetId, panelId, panel.getPanelFormatValues());
 			}
@@ -498,7 +498,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		try
 		{
 			String plotType = tOptions.getLayout(panelId);
-			if (plotType.equals("Line")) {
+			if (plotType.equals("Line")||plotType.equals("MultiLine")) {
 				insertLineChart(sheet, dataSheet, options, panel);
 			} else if (plotType.equals("Scatter")) {
 				insertScatterChart(sheet, dataSheet,options, panel);
@@ -704,6 +704,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
 		AxisCrosses leftAxisCrosses = AxisCrosses.AUTO_ZERO;
 		ChartTypes chartType = ChartTypes.LINE;
+		
+		//get the options data
+		Map<String, Object> optionData	=(Map<String, Object>) options.get(panelId);
 
 		// Parse input data
 		// label is name of column of x vals
@@ -727,7 +730,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
+				if ("MultiLine".equals(optionData.get("layout"))) {
+					leftAxis.setTitle(String.join(", ", (List<String>) ((Map) optionData.get("alignment")).get("value")).replace("_",
+							" "));
+				} else {
+					leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
+				}
 			}
 		}
 		// Add X Axis Title
@@ -1559,8 +1567,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		return colorByValueMap;
 	}
 	
-	//transform the data for stackbar chart
-	private void writeStackBarChartData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId, Map<String, Map<String, String>> panelFormatting) {
+	//transform the data for stackbar and multiline chart
+	private void writeChartCategoryData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId, Map<String, Map<String, String>> panelFormatting) {
 		CreationHelper createHelper = workbook.getCreationHelper();
 		String sheetName = sheetAlias.get(sheetId);
 		XSSFSheet sheet = workbook.getSheet(sheetName);
@@ -1763,8 +1771,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		for (String header : currentHeaderValues) {
 			Map<String, Object> columnMap = new HashMap<>();
 			columnMap.put("startRow", endRow + 1);
-			// -2 for the extra line break between the data
-			columnMap.put("endRow", excelRowCounter - 2);
+			// -3 for the extra line break between the data
+			columnMap.put("endRow", excelRowCounter - 3);
 			int headerIndex = currentHeaderValues.indexOf(header);
 			columnMap.put("startCol", headerIndex);
 			columnMap.put("endCol", headerIndex);
