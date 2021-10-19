@@ -20,6 +20,7 @@ import static prerna.util.sql.RdbmsTypeEnum.POSTGRES;
 import static prerna.util.sql.RdbmsTypeEnum.REDSHIFT;
 import static prerna.util.sql.RdbmsTypeEnum.SAP_HANA;
 import static prerna.util.sql.RdbmsTypeEnum.SNOWFLAKE;
+import static prerna.util.sql.RdbmsTypeEnum.SYNAPSE;
 import static prerna.util.sql.RdbmsTypeEnum.SPARK;
 import static prerna.util.sql.RdbmsTypeEnum.SQLITE;
 import static prerna.util.sql.RdbmsTypeEnum.SQL_SERVER;
@@ -92,7 +93,9 @@ public class SqlQueryUtilFactory {
 			queryUtil = new SparkQueryUtil();
 		} else if(dbType == SNOWFLAKE) {
 			queryUtil = new SnowFlakeQueryUtil();
-		} else if(dbType == SQL_SERVER) {
+		} else if(dbType == SYNAPSE) {
+			queryUtil = new SynapseQueryUtil();
+		}  else if(dbType == SQL_SERVER) {
 			queryUtil = new MicrosoftSqlServerUtil();
 		} else if(dbType == TERADATA) {
 			queryUtil = new TeradataQueryUtil();
@@ -152,6 +155,8 @@ public class SqlQueryUtilFactory {
 			queryUtil = new SparkQueryUtil(connectionUrl, username, password);
 		} else if(dbType == SNOWFLAKE) {
 			queryUtil = new SnowFlakeQueryUtil(connectionUrl, username, password);
+		} else if(dbType == SYNAPSE) {
+			queryUtil = new SynapseQueryUtil(connectionUrl, username, password);
 		} else if(dbType == SQL_SERVER) {
 			queryUtil = new MicrosoftSqlServerUtil(connectionUrl, username, password);
 		} else if(dbType == TERADATA) {
