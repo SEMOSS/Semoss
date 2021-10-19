@@ -155,6 +155,9 @@ public class RdbmsConnectionHelper {
 		else if (rdbmsType == RdbmsTypeEnum.SNOWFLAKE) {
 			connectionUrl += "://HOST:PORT/?db=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
+		else if (rdbmsType == RdbmsTypeEnum.SYNAPSE) {
+			connectionUrl += "://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
 		else if (rdbmsType == RdbmsTypeEnum.SQL_SERVER) {
 			connectionUrl += "://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}

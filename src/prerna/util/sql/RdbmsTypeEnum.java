@@ -24,6 +24,7 @@ public enum RdbmsTypeEnum {
 	SPARK("SPARK", "com.simba.spark.jdbc41.Driver", "jdbc:spark"),
 	SQLITE("SQLITE", "org.sqlite.JDBC", "jdbc:sqlite"),
 	SNOWFLAKE("SNOWFLAKE","net.snowflake.client.jdbc.SnowflakeDriver", "jdbc:snowflake"),
+	SYNAPSE("SYNAPSE", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
 	SQL_SERVER("SQL_SERVER", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
 	TERADATA("TERADATA", "com.teradata.jdbc.TeraDriver", "jdbc:teradata"),
 	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver", "jdbc:compositesw:dbapi");
