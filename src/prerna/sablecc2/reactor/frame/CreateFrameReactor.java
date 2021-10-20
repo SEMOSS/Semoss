@@ -59,7 +59,12 @@ public class CreateFrameReactor extends AbstractReactor {
 		try {
 			newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+			String message = "Error occured trying to create frame of type " + frameType;
+			String cause = e.getMessage();
+			if(cause != null && !cause.isEmpty()) {
+				message += ". Detailed error message = " + cause;
+			}
+			throw new IllegalArgumentException(message, e);
 		}
 		
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
