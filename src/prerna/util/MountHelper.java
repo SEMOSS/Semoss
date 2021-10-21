@@ -13,8 +13,8 @@ public class MountHelper {
 		// TODO Auto-generated method stub
 		//String sourceDirName = "c:/users/pkapaleeswaran/workspacej3";
 		//String targetDirName = "c:/users/pkapaleeswaran/workspacej3/mysession";
-		String sourceDirName = "/home/prabhuk/db1"; // the mainbootstrap directory
-		String targetDirName = "/home/prabhuk/session";
+		String sourceDirName = "/stable-chroot"; // the mainbootstrap directory
+		String targetDirName = "/home/";
 
 		// we can instrument the maindebootstrap folder through RDF Map here
 		
@@ -22,27 +22,64 @@ public class MountHelper {
 		MountHelper maker = new MountHelper(targetDirName);
 
 		//make the target
-//		maker.mountTarget(sourceDirName);
+		maker.mountTarget(sourceDirName);
+		System.out.println("Source Dir: " + sourceDirName);
+		System.out.println("Target Dir: " + targetDirName);
+
 //		maker.mountDir("/proc", targetDirName + "/proc", true);
 //		maker.mountDir("/dev", targetDirName + "/dev", true);
 		
 		
 		
 		// remove the target
-		maker.unmountTarget();
-		maker.unmountDir(targetDirName + "/proc", true);
-		maker.unmountDir(targetDirName + "/dev", true);
+	//	maker.unmountTarget();
+	//	maker.unmountDir(targetDirName + "/proc", true);
+	//	maker.unmountDir(targetDirName + "/dev", true);
 //		
 //		// delete the target
 //		maker.deleteTarget(true);
+	}
+	
+	public MountHelper(String targetDirName, String user)
+	{
+		this.targetDirName = targetDirName;
+		File targetDir = new File(targetDirName);
+		if(!targetDir.exists()) {
+			System.out.println("Target folder doesn't exist. Making folder now at: " + targetDirName);
+
+			boolean success = targetDir.mkdir(); // make directory
+			
+			System.out.println("Target folder creation " + success);
+
+		}
+
+		// also create the semoss home folder
+		String appHome = this.targetDirName + "/" + "semoss";
+		targetDir = new File(appHome);
+		if(!targetDir.exists())
+			targetDir.mkdir(); // make app home directory 
+		
+		
+		// also create the semoss home folder
+		String appHome2 = this.targetDirName + "/" + user;
+		targetDir = new File(appHome2);
+		if(!targetDir.exists())
+			targetDir.mkdir(); // make app home directory 
+		
 	}
 	
 	public MountHelper(String targetDirName)
 	{
 		this.targetDirName = targetDirName;
 		File targetDir = new File(targetDirName);
-		if(!targetDir.exists())
-			targetDir.mkdir(); // make directory
+		if(!targetDir.exists()) {
+			System.out.println("Target folder doesn't exist. Making folder now at: " + targetDirName);
+
+			boolean success = targetDir.mkdir(); // make directory
+			
+			System.out.println("Target folder creation " + success);
+
+		}
 
 		// also create the semoss home folder
 		String appHome = this.targetDirName + "/" + "semoss";
@@ -57,7 +94,7 @@ public class MountHelper {
 	{
 		File sourceDir = new File(sourceDirName);
 		if(!sourceDir.exists())
-			throw new RuntimeException("Source directory not available" + sourceDirName);
+			System.out.println("Source directory not available" + sourceDirName);
 				
 		// list files from source file and make a copy
 		String [] allSourceFiles = sourceDir.list();
@@ -73,7 +110,7 @@ public class MountHelper {
 				
 				File thisTargetFile = new File(targetPath);
 				thisTargetFile.mkdir();
-				mountDir(srcPath, targetPath, true);
+				mountDir(srcPath, targetPath, false);
  			}
 		}
 		
@@ -86,9 +123,9 @@ public class MountHelper {
 		try {
 			ProcessBuilder pb = null;
 			if(sudo)
-				pb = new ProcessBuilder(new String[] {"sudo", "mount", "--bind", "-o", "ro", srcDir, tgtDir});
+				pb = new ProcessBuilder(new String[] {"sudo", "bindfs", "-r", srcDir, tgtDir});
 			else
-				pb = new ProcessBuilder(new String[] {"mount", "--bind", "-o", "ro", srcDir, tgtDir});	
+				pb = new ProcessBuilder(new String[] {"bindfs", "-r", srcDir, tgtDir});	
 			//Process pb = Runtime.getRuntime().exec(new String[] {"mkdir", "/home/prabhuk/mn1/bin2"});
 			Process p = pb.start();
 			//Thread.sleep(5000);
