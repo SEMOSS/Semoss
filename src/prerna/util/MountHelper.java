@@ -1,8 +1,10 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import java.util.Properties;
 
 public class MountHelper {
 
@@ -17,6 +19,7 @@ public class MountHelper {
 		String targetDirName = "/home/";
 
 		// we can instrument the maindebootstrap folder through RDF Map here
+		DIHelper.getInstance().loadCoreProp("/mnt/c/users/pkapaleeswaran/workspacej3/SemossDev/RDF_Map.prop");
 		
 		
 		MountHelper maker = new MountHelper(targetDirName);
@@ -32,12 +35,13 @@ public class MountHelper {
 		
 		
 		// remove the target
-	//	maker.unmountTarget();
-	//	maker.unmountDir(targetDirName + "/proc", true);
-	//	maker.unmountDir(targetDirName + "/dev", true);
-//		
+		maker.unmountTarget();
+		maker.unmountDir(targetDirName + "/proc", true);
+		maker.unmountDir(targetDirName + "/dev", true);
 //		// delete the target
 //		maker.deleteTarget(true);
+		maker.createCustomRDFMap();
+		
 	}
 	
 	public MountHelper(String targetDirName, String user)
@@ -204,6 +208,45 @@ public class MountHelper {
 			{
 				unmountDir(tgtPath, true);
  			}
+		}
+	}
+	
+	// move the R and Py folders
+	// create a custom RDF Map
+	public void createCustomRDFMap()
+	{
+		// properties I need in a string array
+		String [] propsNeeded = new String[] {Constants.BASE_FOLDER, Constants.NETTY_R, Constants.NETTY_PYTHON, Constants.USE_R, Constants.USE_PYTHON, Constants.R_MEM_LIMIT, Settings.MVN_HOME,Settings.REPO_HOME};
+		
+		Properties prop = new Properties();
+		for(int propIndex = 0;propIndex < propsNeeded.length;propIndex++)
+		{
+			String key = propsNeeded[propIndex];
+			String value = DIHelper.getInstance().getProperty(key);
+			
+			if(key != null && value != null)
+				prop.put(key, value);
+			System.err.println("Writing Value " + key + " <> " + value);
+		}
+		
+		// set the base folder
+		// forcing it to be /semoss
+		prop.put(Constants.BASE_FOLDER, "/semoss");
+		
+		// write this out as RDF_MAP
+		File file = new File("/semoss/RDF_MAP.prop");
+		try {
+			FileOutputStream fos = new FileOutputStream(file);
+			prop.store(fos, "Chrooted Output");
+			fos.flush();
+			fos.close();
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 }
