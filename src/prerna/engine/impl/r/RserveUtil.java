@@ -62,7 +62,7 @@ public class RserveUtil {
 	//////////////////////////////////////////////////////////////////////
 	
 	public static final String IS_USER_RSERVE_KEY = "IS_USER_RSERVE";
-	public static final boolean IS_USER_RSERVE = Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_USER_RSERVE_KEY));
+	public static final boolean IS_USER_RSERVE = Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_USER_RSERVE_KEY) + "");
 			
 	public static final String R_USER_CONNECTION_TYPE_KEY = "R_USER_CONNECTION_TYPE";
 	public static final String R_USER_CONNECTION_TYPE = DIHelper.getInstance().getProperty(R_USER_CONNECTION_TYPE_KEY) != null
@@ -75,10 +75,10 @@ public class RserveUtil {
 			: 12;
 			
 	public static final String R_USER_RECOVERY_DEFAULT_KEY = "R_USER_RECOVERY_DEFAULT";
-	public static final boolean R_USER_RECOVERY_DEFAULT = Boolean.parseBoolean(DIHelper.getInstance().getProperty(R_USER_RECOVERY_DEFAULT_KEY));
+	public static final boolean R_USER_RECOVERY_DEFAULT = Boolean.parseBoolean(DIHelper.getInstance().getProperty(R_USER_RECOVERY_DEFAULT_KEY) + "");
 	
 	public static final String R_KILL_ON_STARTUP_KEY = "R_KILL_ON_STARTUP";
-	public static final boolean R_KILL_ON_STARTUP = Boolean.parseBoolean(DIHelper.getInstance().getProperty(R_KILL_ON_STARTUP_KEY));
+	public static final boolean R_KILL_ON_STARTUP = Boolean.parseBoolean(DIHelper.getInstance().getProperty(R_KILL_ON_STARTUP_KEY) + "");
 	
 	//////////////////////////////////////////////////////////////////////
 	// Connections
