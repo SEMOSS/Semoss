@@ -189,6 +189,8 @@ build_deploy:
     - apt-get install -y openjfx
     - apt-get install -y gnupg2
     - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
+    - echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
+    - gpg2 --refresh-key
     - gpg --list-keys
     - mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT
     # So that the cache takes up less space
@@ -215,6 +217,8 @@ build_release:
     - apt-get install -y openjfx
     - apt-get install -y gnupg2
     - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
+    - echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
+    - gpg2 --refresh-key
     - mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
