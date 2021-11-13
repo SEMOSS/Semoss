@@ -62,6 +62,7 @@ public class PipelineTranslation extends LazyTranslation {
 		qsReactors.add("Import");
 		qsReactors.add("Merge");
 		qsReactors.add("FuzzyMerge");
+		qsReactors.add("Union");
 		
 		// file + database importing
 		fileReactors.add("ToCsv");
