@@ -63,3 +63,4 @@ Java,pipeline-codeblock
 RunDataQuality,quality-report
 ReplaceFrameFilter,filter
 CollectNewCol,add
+Union,pipeline-union
