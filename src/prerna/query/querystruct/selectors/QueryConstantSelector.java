@@ -20,6 +20,11 @@ public class QueryConstantSelector extends AbstractQuerySelector {
 	public QueryConstantSelector(Object constant) {
 		this.constant = constant;
 	}
+	
+	public QueryConstantSelector(Object constant, String alias) {
+		this.constant = constant;
+		setAlias(alias);
+	}
 
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
