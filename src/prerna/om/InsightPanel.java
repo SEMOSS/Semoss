@@ -62,6 +62,9 @@ public class InsightPanel {
 	// the default # to collect from tasks on this panel
 	private int numCollect = 2000;
 
+	// set temporary filter model state
+	private transient GenRowFilters tempFilterModelGrf;
+	
 	public InsightPanel(String panelId, String sheetId) {
 		this.panelId = panelId;
 		this.sheetId = sheetId;
@@ -74,6 +77,8 @@ public class InsightPanel {
 		this.colorByValue = new ArrayList<ColorByValueRule>();
 		this.grf = new GenRowFilters();
 		this.orderBys = new ArrayList<IQuerySort>();
+		
+		this.tempFilterModelGrf = new GenRowFilters();
 	}
 	
 	/**
@@ -541,6 +546,22 @@ public class InsightPanel {
 
 	public void setNumCollect(int numCollect) {
 		this.numCollect = numCollect;
+	}
+	
+	/**
+	 * Get the temp filter model grf
+	 * @return
+	 */
+	public GenRowFilters getTempFilterModelGrf() {
+		return tempFilterModelGrf;
+	}
+
+	/**
+	 * Set the temp filter model grf
+	 * @param tempFilterModelGrf
+	 */
+	public void setTempFilterModelGrf(GenRowFilters tempFilterModelGrf) {
+		this.tempFilterModelGrf = tempFilterModelGrf;
 	}
 
 	/**
