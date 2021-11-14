@@ -271,7 +271,12 @@ public abstract class AbstractReactor implements IReactor {
 		return inputMap;
 	}
 	
-    private Map<String, Object> processNounMetadata(NounMetadata noun) {
+	/**
+	 * Get a json friendly version of the noun metadata
+	 * @param noun
+	 * @return
+	 */
+    public Map<String, Object> processNounMetadata(NounMetadata noun) {
 		PixelDataType type = noun.getNounType();
 		if(type == PixelDataType.LAMBDA) {
 			return processLambdaNounMap(noun);

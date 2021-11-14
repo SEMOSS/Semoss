@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.panel.filter;
+package prerna.sablecc2.reactor.frame.filtermodel2;
 
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.BooleanValMetadata;
@@ -9,9 +9,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 
-public class AddPanelFilterReactor extends AbstractFilterReactor {
+public class AddFilterModelStateReactor extends AbstractFilterReactor {
 
-	public AddPanelFilterReactor() {
+	public AddFilterModelStateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.FILTERS.getKey() };
 	}
 
@@ -29,7 +29,7 @@ public class AddPanelFilterReactor extends AbstractFilterReactor {
 		}
 
 		// get existing filters
-		GenRowFilters existingFilters = panel.getPanelFilters();
+		GenRowFilters existingFilters = panel.getTempFilterModelGrf();
 		
 		// add the new filters by merging into the existing state
 		mergeFilters(newFiltersToAdd, existingFilters);
@@ -40,5 +40,5 @@ public class AddPanelFilterReactor extends AbstractFilterReactor {
 		NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
 		return noun;
 	}
-
+	
 }
