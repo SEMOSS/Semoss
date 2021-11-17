@@ -21,9 +21,9 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class NativeUserSecurityUtils extends AbstractSecurityUtils {
+public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(NativeUserSecurityUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityNativeUserUtils.class);
 
 	private static final String SMSS_USER_ID_KEY = "SMSS_USER__ID";
 	private static final String SMSS_USER_NAME_KEY = "SMSS_USER__NAME";
@@ -34,7 +34,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	private static final String SMSS_USER_PASSWORD_KEY = "SMSS_USER__PASSWORD";
 	private static final String SMSS_USER_SALT_KEY = "SMSS_USER__SALT";
 
-	private NativeUserSecurityUtils() {
+	private SecurityNativeUserUtils() {
 
 	}
 
