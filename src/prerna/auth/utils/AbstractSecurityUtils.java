@@ -748,6 +748,70 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
+		/*
+		 * We need to store when a user comes in
+		 * if they are part of a group
+		 * what level of permission does this give the user
+		 * for a respective database or project or insight
+		 * 
+		 * We do not need to store the user -> group mapping (yet - will think about future custom groups)
+		 * The SOT will be the IDP that will give us the updated groups each time the user logs in
+		 */
+		
+		// GROUP TABLE
+		colNames = new String[] { "ID", "TYPE" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_GROUP", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "SMSS_GROUP", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("SMSS_GROUP", colNames, types));
+			}
+		}
+		
+		// GROUP DATABASE PERMISSION
+		// TODO::: look into how we want to allow user hiding of dbs that are assigned at group lvl
+		colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPENGINEPERMISSION", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "GROUPENGINEPERMISSION", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("GROUPENGINEPERMISSION", colNames, types));
+			}
+		}
+		
+		// GROUP PROJECT PERMISSION
+		// TODO::: look into how we want to allow user hiding of projects that are assigned at group lvl
+		colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPPROJECTPERMISSION", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "GROUPPROJECTPERMISSION", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("GROUPPROJECTPERMISSION", colNames, types));
+			}
+		}
+		
+		// GROUP INSIGHT PERMISSION
+		colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "GROUPINSIGHTPERMISSION", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("GROUPINSIGHTPERMISSION", colNames, types));
+			}
+		}
+		
 		// ACCESSREQUEST
 		colNames = new String[] { "ID", "SUBMITTEDBY", "ENGINE", "PERMISSION" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
