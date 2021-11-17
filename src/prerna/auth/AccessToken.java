@@ -1,23 +1,34 @@
 package prerna.auth;
 
 import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AccessToken implements Serializable {
 
-	AuthProvider provider = null;
+	private AuthProvider provider = null;
 	
-	String id = null;
-	String username = null;
-	String access_token = null;
-	int expires_in = 0; // this is in seconds
-	String token_type = "Bearer";
-	long startTime = -1;
+	// this will store all the groups that the user has
+	// will be provided to us when the user logs in 
+	// from an IDP
+	private Set<String> userGroups = null;
 	
-	String email = null;
-	String name = null;
-	String profile = null;
-	String gender = null;
-	String locale = null;
+	private String id = null;
+	private String username = null;
+	private String access_token = null;
+	private int expires_in = 0; // this is in seconds
+	private String token_type = "Bearer";
+	private long startTime = -1;
+	
+	private String email = null;
+	private String name = null;
+	private String profile = null;
+	private String gender = null;
+	private String locale = null;
+	
+	public AccessToken() {
+		this.userGroups = new HashSet<>();
+	}
 	
 	public void setAccess_token(String accessToken) {
 		this.access_token = accessToken;
@@ -25,6 +36,22 @@ public class AccessToken implements Serializable {
 
 	public String getAccess_token() {
 		return this.access_token;
+	}
+
+	public AuthProvider getProvider() {
+		return provider;
+	}
+
+	public void setProvider(AuthProvider provider) {
+		this.provider = provider;
+	}
+	
+	public Set<String> getUserGroups() {
+		return userGroups;
+	}
+
+	public void setUserGroups(Set<String> userGroups) {
+		this.userGroups = userGroups;
 	}
 
 	public void setExpires_in(int expires_in) {
@@ -37,14 +64,6 @@ public class AccessToken implements Serializable {
 	
 	public void init() {
 		startTime = System.currentTimeMillis();
-	}
-
-	public AuthProvider getProvider() {
-		return provider;
-	}
-
-	public void setProvider(AuthProvider provider) {
-		this.provider = provider;
 	}
 
 	public long getStartTime() {

@@ -28,6 +28,12 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PROJECT");
 		conceptsRequired.add("PROJECTPERMISSION");
 		conceptsRequired.add("PROJECTMETA");
+		
+		// new group tables
+		conceptsRequired.add("SMSS_GROUP");
+		conceptsRequired.add("GROUPENGINEPERMISSION");
+		conceptsRequired.add("GROUPPROJECTPERMISSION");
+		conceptsRequired.add("GROUPINSIGHTPERMISSION");
 	}
 	
 	private IEngine securityDb;
@@ -246,6 +252,43 @@ public class SecurityOwlCreator {
 		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.INSIGHTID.INSIGHTMETA.INSIGHTID");
 		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.PROJECTID.INSIGHTMETA.PROJECTID");
 		
+		// new group details
+		// SMSS_GROUP
+		owler.addConcept("SMSS_GROUP", null, null);
+		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
+		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
+		
+		// GROUPENGINEPERMISSION
+		owler.addConcept("GROUPENGINEPERMISSION", null, null);
+		owler.addProp("GROUPENGINEPERMISSION", "ID", "VARCHAR(255)");
+		owler.addProp("GROUPENGINEPERMISSION", "TYPE", "VARCHAR(255)");
+		owler.addProp("GROUPENGINEPERMISSION", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("GROUPENGINEPERMISSION", "PERMISSION", "INT");
+
+		// GROUPPROJECTPERMISSION
+		owler.addConcept("GROUPPROJECTPERMISSION", null, null);
+		owler.addProp("GROUPPROJECTPERMISSION", "ID", "VARCHAR(255)");
+		owler.addProp("GROUPPROJECTPERMISSION", "TYPE", "VARCHAR(255)");
+		owler.addProp("GROUPPROJECTPERMISSION", "PROJECTID", "VARCHAR(255)");
+		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSION", "INT");
+		
+		// GROUPPROJECTPERMISSION
+		owler.addConcept("GROUPINSIGHTPERMISSION", null, null);
+		owler.addProp("GROUPINSIGHTPERMISSION", "ID", "VARCHAR(255)");
+		owler.addProp("GROUPINSIGHTPERMISSION", "TYPE", "VARCHAR(255)");
+		owler.addProp("GROUPINSIGHTPERMISSION", "PROJECTID", "VARCHAR(255)");
+		owler.addProp("GROUPINSIGHTPERMISSION", "INSIGHTID", "VARCHAR(255)");
+		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSION", "INT");
+		
+		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.ID.GROUPENGINEPERMISSION.ID");
+		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.TYPE.GROUPENGINEPERMISSION.TYPE");
+		
+		owler.addRelation("SMSS_GROUP", "GROUPPROJECTPERMISSION", "SMSS_GROUP.ID.GROUPPROJECTPERMISSION.ID");
+		owler.addRelation("SMSS_GROUP", "GROUPPROJECTPERMISSION", "SMSS_GROUP.TYPE.GROUPPROJECTPERMISSION.TYPE");
+		
+		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.ID.GROUPINSIGHTPERMISSION.ID");
+		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.TYPE.GROUPINSIGHTPERMISSION.TYPE");
+
 		owler.commit();
 		owler.export();
 	}
