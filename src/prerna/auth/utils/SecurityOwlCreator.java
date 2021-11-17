@@ -84,6 +84,11 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PROJECTID/INSIGHT")) {
 				return true;
 			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_GROUP");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/SMSS_GROUP")) {
+				return true;
+			}
 		}
 		return !check1;
 	}
@@ -257,7 +262,8 @@ public class SecurityOwlCreator {
 		owler.addConcept("SMSS_GROUP", null, null);
 		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
-		
+		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
+
 		// GROUPENGINEPERMISSION
 		owler.addConcept("GROUPENGINEPERMISSION", null, null);
 		owler.addProp("GROUPENGINEPERMISSION", "ID", "VARCHAR(255)");
