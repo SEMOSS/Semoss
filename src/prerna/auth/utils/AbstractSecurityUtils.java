@@ -759,8 +759,8 @@ public abstract class AbstractSecurityUtils {
 		 */
 		
 		// GROUP TABLE
-		colNames = new String[] { "ID", "TYPE" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)" };
+		colNames = new String[] { "ID", "TYPE", "DESCRIPTION" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_GROUP", colNames, types));
 		} else {
@@ -768,6 +768,20 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.tableExists(conn, "SMSS_GROUP", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("SMSS_GROUP", colNames, types));
+			}
+		}
+		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
+		{
+			List<String> allCols = queryUtil.getTableColumns(conn, "SMSS_GROUP", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("DESCRIPTION") && !allCols.contains("description")) {
+				String addDescriptionColumn = queryUtil.alterTableAddColumn("SMSS_GROUP", "DESCRIPTION", CLOB_DATATYPE_NAME);
+				securityDb.insertData(addDescriptionColumn);
 			}
 		}
 		
