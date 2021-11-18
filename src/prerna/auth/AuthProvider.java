@@ -8,6 +8,7 @@ public enum AuthProvider {
 	GOOGLE, 
 	GOOGLE_MAP,
 	GITHUB,
+	GITLAB,
 	MS, // this is azure graph
 	SF, // this is salesforce 
 	SITEMINDER,
