@@ -227,6 +227,20 @@ public interface IQueryFilter {
 		return false;
 	}
 	
+	public static boolean comparatorsCanCombine(String existingComparator, String newComparator) {
+		if(existingComparator.equals("==") && newComparator.equals("==")) {
+			return true;
+		} else if( (newComparator.equals("!=") || newComparator.equals("<>")) && 
+				(existingComparator.equals("!=") || existingComparator.equals("<>")) ) {
+			return true;
+		} else if(existingComparator.equals("?like") && newComparator.equals("?like")) {
+			return true;
+		} else if(existingComparator.equals("?nlike") && newComparator.equals("?nlike")) {
+			return true;
+		}
+		return false;
+	}
+	
 	public static boolean comparatorsAreConflicting(String comparator1, String comparator2) {
 		if( (comparator1.equals("==") || comparator1.equals("?like")) && (comparator2.equals("!=") || comparator2.equals("<>") || comparator2.equals("?nlike"))) {
 			return true;

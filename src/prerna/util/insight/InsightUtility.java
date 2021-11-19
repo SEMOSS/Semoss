@@ -840,4 +840,20 @@ public class InsightUtility {
 		};
 		return baseFolder.listFiles(imageExtensionFilter);
 	}
+	
+	/**
+	 * All insight panels that have a temp filter model referencing a frame should be reset
+	 * @param insight
+	 * @param frame
+	 */
+	public static void clearPanelTempFilterModel(Insight insight, ITableDataFrame frame) {
+		Map<String, InsightPanel> insightPanels = insight.getInsightPanels();
+		for(String key : insightPanels.keySet()) {
+			InsightPanel panel = insightPanels.get(key);
+			if(panel.getTempFitlerModelFrame() == frame) {
+				panel.getTempFilterModelGrf().clear();
+			}
+		}
+	}
+	
 }
