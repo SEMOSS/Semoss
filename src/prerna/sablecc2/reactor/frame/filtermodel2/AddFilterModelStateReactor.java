@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.filtermodel2;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.BooleanValMetadata;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -12,7 +13,7 @@ import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 public class AddFilterModelStateReactor extends AbstractFilterReactor {
 
 	public AddFilterModelStateReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.FILTERS.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.FILTERS.getKey() };
 	}
 
 	@Override
@@ -27,13 +28,16 @@ public class AddFilterModelStateReactor extends AbstractFilterReactor {
 		if (newFiltersToAdd.isEmpty()) {
 			throw new IllegalArgumentException("No filter found to add to panel");
 		}
+		
+		// get the frame (or default frame)
+		ITableDataFrame frame = getFrame();
 
 		// get existing filters
 		GenRowFilters existingFilters = panel.getTempFilterModelGrf();
-		
 		// add the new filters by merging into the existing state
 		mergeFilters(newFiltersToAdd, existingFilters);
 		
+		panel.setTempFitlerModelFrame(frame);
 		BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
 		pFilterVal.setName(panel.getPanelId());
 		pFilterVal.setFilterVal(true);

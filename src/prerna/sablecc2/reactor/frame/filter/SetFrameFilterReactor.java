@@ -10,6 +10,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.insight.InsightUtility;
 
 public class SetFrameFilterReactor extends AbstractFilterReactor {
 
@@ -46,6 +47,9 @@ public class SetFrameFilterReactor extends AbstractFilterReactor {
 		
 		// we got to this point, apply the filter
 		frame.setFilter(grf);
+		
+		// clear panel temp filter model state
+		InsightUtility.clearPanelTempFilterModel(this.insight, frame);
 		
 		BooleanValMetadata fFilterVal = BooleanValMetadata.getFrameVal();
 		fFilterVal.setName(frame.getName());
