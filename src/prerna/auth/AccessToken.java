@@ -12,6 +12,7 @@ public class AccessToken implements Serializable {
 	// will be provided to us when the user logs in 
 	// from an IDP
 	private Set<String> userGroups = null;
+	private String userGroupType = null;
 	
 	private String id = null;
 	private String username = null;
@@ -52,6 +53,14 @@ public class AccessToken implements Serializable {
 
 	public void setUserGroups(Set<String> userGroups) {
 		this.userGroups = userGroups;
+	}
+
+	public String getUserGroupType() {
+		return userGroupType;
+	}
+
+	public void setUserGroupType(String userGroupType) {
+		this.userGroupType = userGroupType;
 	}
 
 	public void setExpires_in(int expires_in) {
