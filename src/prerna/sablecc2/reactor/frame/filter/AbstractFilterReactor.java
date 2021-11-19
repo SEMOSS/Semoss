@@ -252,6 +252,14 @@ public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 				orFilter.addFilter(simpleAdd);
 				return orFilter;
 			}
+			// if we have two expressions and the comparators are the same
+			else if(IQueryFilter.comparatorsCanCombine(curFilter.getComparator(), simpleAdd.getComparator())) {
+				// we can ignore this filter
+				addFiltersToIgnore.add(addFilterIndex);
+				
+				// and we can merge the filters
+				curFilter.merge(simpleAdd);
+			}
 		}
 		
 		return null;
