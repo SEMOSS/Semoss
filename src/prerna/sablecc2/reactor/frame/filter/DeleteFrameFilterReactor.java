@@ -12,6 +12,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.insight.InsightUtility;
 
 public class DeleteFrameFilterReactor extends AbstractFilterReactor {
 
@@ -39,6 +40,9 @@ public class DeleteFrameFilterReactor extends AbstractFilterReactor {
 			filters.removeFilter(indexList.get(i - 1).intValue());
 		}
 
+		// clear panel temp filter model state
+		InsightUtility.clearPanelTempFilterModel(this.insight, frame);
+		
 		BooleanValMetadata fFilterVal = BooleanValMetadata.getFrameVal();
 		fFilterVal.setName(frame.getName());
 		fFilterVal.setFilterVal(true);
