@@ -11,6 +11,7 @@ import prerna.ds.export.graph.IGraphExporter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CollectGraphReactor extends CollectReactor {
@@ -19,8 +20,10 @@ public class CollectGraphReactor extends CollectReactor {
 	 * This class is responsible for collecting all graph data from a frame
 	 */
 	
-	private static final String FRAME_KEY = "frame";
-
+	public CollectGraphReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.FRAME.getKey()};
+	}
+	
 	public NounMetadata execute() {
 		this.task = getTask();
 
@@ -56,7 +59,7 @@ public class CollectGraphReactor extends CollectReactor {
 	
 	private ITableDataFrame getFrame() {
 		// try the key
-		GenRowStruct fGrs = store.getNoun(FRAME_KEY);
+		GenRowStruct fGrs = store.getNoun(this.keysToGet[0]);
 		if(fGrs != null && !fGrs.isEmpty()) {
 			return (ITableDataFrame) fGrs.get(0);
 		}
