@@ -182,10 +182,14 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		qs2.setOffSet(offset);
 		qs2.addOrderBy(new QueryColumnOrderBySelector(tableCol));
 
-		// add the filter word as a like filter
-		if (filterWord != null && !filterWord.trim().isEmpty()) {
-			baseFilters.addFilters(wFilter);
-		}
+//		// add the filter word as a like filter
+//		if (filterWord != null && !filterWord.trim().isEmpty()) {
+//			baseFilters.addFilters(wFilter);
+//		}
+		
+		// TODO: need to fix and update the final set of filters
+		// so the panel filters will take precedence if there are conflicts
+		
 		// now merge the current filter state that is already stored
 		baseFilters.merge(panel.getTempFilterModelGrf());
 
