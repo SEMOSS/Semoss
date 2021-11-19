@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
@@ -62,6 +63,8 @@ public class InsightPanel {
 	// the default # to collect from tasks on this panel
 	private int numCollect = 2000;
 
+	// set temporary filter model state frame
+	private transient ITableDataFrame tempFitlerModelFrame;
 	// set temporary filter model state
 	private transient GenRowFilters tempFilterModelGrf;
 	
@@ -562,6 +565,22 @@ public class InsightPanel {
 	 */
 	public void setTempFilterModelGrf(GenRowFilters tempFilterModelGrf) {
 		this.tempFilterModelGrf = tempFilterModelGrf;
+	}
+	
+	/**
+	 * Get the temp filter model frame
+	 * @return
+	 */
+	public ITableDataFrame getTempFitlerModelFrame() {
+		return tempFitlerModelFrame;
+	}
+
+	/**
+	 * Set the temp filter model frame
+	 * @param tempFitlerModelFrame
+	 */
+	public void setTempFitlerModelFrame(ITableDataFrame tempFitlerModelFrame) {
+		this.tempFitlerModelFrame = tempFitlerModelFrame;
 	}
 
 	/**
