@@ -192,15 +192,11 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		
 		// now merge the current filter state that is already stored
 		baseFilters.merge(panel.getTempFilterModelGrf());
-
-		// figure out the selected values
-		List<Object> selectedValues = new ArrayList<Object>();
-		if (filterWord != null && !filterWord.trim().isEmpty()) {
-			baseFilters.addFilters(wFilter);
-		}
 		// this is just the values of the column given the current filters
 		qs2.setExplicitFilters(baseFilters);
-
+				
+		// figure out the selected values
+		List<Object> selectedValues = new ArrayList<Object>();
 		// now run and flush out the values
 		IRawSelectWrapper unFilterValuesIt = null;
 		try {
