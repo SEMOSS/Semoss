@@ -179,9 +179,6 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		// Need to figure out if I am trying to delete the image and URI encode it at some point.. 
 
 		ConstantDataTask cdt = new ConstantDataTask();
-		// need to do all the sets
-		cdt.setFormat("TABLE");
-
 		// TaskOptions options = new TaskOptions(optionMap);
 		// need to do all the sets
 		cdt.setFormat("TABLE");
