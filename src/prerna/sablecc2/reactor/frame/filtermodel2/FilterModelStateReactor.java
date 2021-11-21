@@ -93,7 +93,6 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		retMap.put("filterWord", filterWord);
 
 		// get the base filters that are being applied that we are concerned
-		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
 		GenRowFilters baseFiltersExcludeCol = dataframe.getFrameFilters().copy();
 		baseFiltersExcludeCol.removeColumnFilter(tableCol);
 
@@ -182,16 +181,18 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		qs2.setOffSet(offset);
 		qs2.addOrderBy(new QueryColumnOrderBySelector(tableCol));
 
+		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
+		// extract the current filters on this column
+		GenRowFilters extractedCurrentFilters = baseFilters.extractColumnFilters(tableCol);
+		// then deconflict with what is being proposed
+		mergeFilters(panel.getTempFilterModelGrf(), extractedCurrentFilters);
+		// then merge back with the other filters
+		baseFilters.merge(extractedCurrentFilters);
 //		// add the filter word as a like filter
 //		if (filterWord != null && !filterWord.trim().isEmpty()) {
 //			baseFilters.addFilters(wFilter);
 //		}
-		
-		// TODO: need to fix and update the final set of filters
-		// so the panel filters will take precedence if there are conflicts
-		
-		// now merge the current filter state that is already stored
-		baseFilters.merge(panel.getTempFilterModelGrf());
+
 		// this is just the values of the column given the current filters
 		qs2.setExplicitFilters(baseFilters);
 				
