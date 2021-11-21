@@ -192,10 +192,12 @@ public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 		if(curFilter.equivalentColumnModifcation(simpleAdd, false)) {
 			// are they any direct conflicts
 			if(IQueryFilter.comparatorsDirectlyConflicting(curFilter.getComparator(), simpleAdd.getComparator())) {
-				curFilter.subtractInstanceFilters(simpleAdd);
+				boolean completeOverlap = curFilter.subtractInstanceFilters(simpleAdd);
 				// we removed from the existing filter
 				// don't need to add to the overall filters
-				addFiltersToIgnore.add(addFilterIndex);
+				if(completeOverlap) {
+					addFiltersToIgnore.add(addFilterIndex); 
+				}
 				// but is the entire filter gone now?
 				if (curFilter.isEmptyFilterValues()) {
 					// grab the index
@@ -264,6 +266,5 @@ public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 		
 		return null;
 	}
-
 
 }
