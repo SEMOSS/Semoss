@@ -178,40 +178,84 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 	 * @return boolean 		did we remove any filters
 	 */
 	public boolean removeColumnFilter(String column) {
-		if(this.filteredColumns.contains(column)) {
-			// we have an existing filter that affects this column
-			// get an iterator so we can remove while we iterate
-			boolean recreateFilterCols = false;
-			Iterator<IQueryFilter> filterIt = this.filterVec.iterator();
-			while(filterIt.hasNext()) {
-				IQueryFilter filter = filterIt.next();
-				if(filter.containsColumn(column)) {
-					filterIt.remove();
-					this.filteredColumns.remove(column);
-					this.qsFilteredColumns.remove(column);
-					if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-						// if its simple
-						// we will only need to recreate the filtered columns
-						// if it is a col-to-col since the other col may no longer be filtered
-						if( ((SimpleQueryFilter) filter).getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
-							recreateFilterCols = true;
-						}
-					} else {
-						// if we have a complex filter
-						// just recreate all the filter cols
-						// might come back and try to recalculate this
-						recreateFilterCols = true;
-					}
-				}
-			}
-			
-			if(recreateFilterCols) {
-				redetermineFilteredColumns();
-			}
-			return true;
-		} else {
+		if(!this.filteredColumns.contains(column)) {
 			return false;
 		}
+		// we have an existing filter that affects this column
+		// get an iterator so we can remove while we iterate
+		boolean recreateFilterCols = false;
+		Iterator<IQueryFilter> filterIt = this.filterVec.iterator();
+		while(filterIt.hasNext()) {
+			IQueryFilter filter = filterIt.next();
+			if(filter.containsColumn(column)) {
+				filterIt.remove();
+				this.filteredColumns.remove(column);
+				this.qsFilteredColumns.remove(column);
+				if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+					// if its simple
+					// we will only need to recreate the filtered columns
+					// if it is a col-to-col since the other col may no longer be filtered
+					if( ((SimpleQueryFilter) filter).getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
+						recreateFilterCols = true;
+					}
+				} else {
+					// if we have a complex filter
+					// just recreate all the filter cols
+					// might come back and try to recalculate this
+					recreateFilterCols = true;
+				}
+			}
+		}
+		
+		if(recreateFilterCols) {
+			redetermineFilteredColumns();
+		}
+		return true;
+	}
+	
+	/**
+	 * Remove any filters that touch a specific column
+	 * @param columnName
+	 * @return boolean 		did we remove any filters
+	 */
+	public GenRowFilters extractColumnFilters(String column) {
+		GenRowFilters extractedGrf = new GenRowFilters();
+		if(!this.filteredColumns.contains(column)) {
+			return extractedGrf;
+		}
+		// we have an existing filter that affects this column
+		// get an iterator so we can remove while we iterate
+		boolean recreateFilterCols = false;
+		Iterator<IQueryFilter> filterIt = this.filterVec.iterator();
+		while(filterIt.hasNext()) {
+			IQueryFilter filter = filterIt.next();
+			if(filter.containsColumn(column)) {
+				// store the filter
+				extractedGrf.addFilters(filter);
+				// remove the filter
+				filterIt.remove();
+				this.filteredColumns.remove(column);
+				this.qsFilteredColumns.remove(column);
+				if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+					// if its simple
+					// we will only need to recreate the filtered columns
+					// if it is a col-to-col since the other col may no longer be filtered
+					if( ((SimpleQueryFilter) filter).getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
+						recreateFilterCols = true;
+					}
+				} else {
+					// if we have a complex filter
+					// just recreate all the filter cols
+					// might come back and try to recalculate this
+					recreateFilterCols = true;
+				}
+			}
+		}
+		
+		if(recreateFilterCols) {
+			redetermineFilteredColumns();
+		}
+		return extractedGrf;
 	}
 	
 	/**
