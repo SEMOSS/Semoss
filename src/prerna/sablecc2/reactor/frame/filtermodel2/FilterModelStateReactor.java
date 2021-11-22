@@ -92,52 +92,17 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		retMap.put("offset", offset);
 		retMap.put("filterWord", filterWord);
 
-		// get the base filters that are being applied that we are concerned
-		GenRowFilters baseFiltersExcludeCol = dataframe.getFrameFilters().copy();
-		baseFiltersExcludeCol.removeColumnFilter(tableCol);
-
-		// unique count function for table col
-		QueryFunctionSelector uCountFunc = new QueryFunctionSelector();
-		uCountFunc.setDistinct(true);
-		uCountFunc.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
-		QueryColumnSelector inner = new QueryColumnSelector(tableCol);
-		uCountFunc.addInnerSelector(inner);
-
-		// get total count of options
-		SelectQueryStruct totalCountQS = new SelectQueryStruct();
-		totalCountQS.addSelector(uCountFunc);
-		
-		// if search add to totalCount
-		// add the filter word as a like filter
 		SimpleQueryFilter wFilter = null;
 		if (filterWord != null && !filterWord.trim().isEmpty()) {
 			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
 			String comparator = "?like";
 			NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
 			wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
-			totalCountQS.addExplicitFilter(wFilter);
-		}
-		if(dynamic) {
-			totalCountQS.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
 		
-//		int totalCount = 0;
-//		IRawSelectWrapper totalCountIt = null;
-//		try {
-//			totalCountIt = dataframe.query(totalCountQS);
-//			while (totalCountIt.hasNext()) {
-//				Object numUnique = totalCountIt.next().getValues()[0];
-//				totalCount = ((Number) numUnique).intValue();
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		} finally {
-//			if(totalCountIt != null) {
-//				totalCountIt.cleanUp();
-//			}
-//		}
-//		
-//		retMap.put("totalCount", totalCount);
+		// get the base filters that are being applied that we are concerned
+		GenRowFilters baseFiltersExcludeCol = dataframe.getFrameFilters().copy();
+		baseFiltersExcludeCol.removeColumnFilter(tableCol);
 
 		// set the base info in the query struct to collect values
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -170,6 +135,44 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 			}
 		}
 		retMap.put("options", options);
+		
+		// unique count function for table col
+		QueryFunctionSelector uCountFunc = new QueryFunctionSelector();
+		uCountFunc.setDistinct(true);
+		uCountFunc.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
+		QueryColumnSelector inner = new QueryColumnSelector(tableCol);
+		uCountFunc.addInnerSelector(inner);
+
+		// get total count of options
+		SelectQueryStruct totalCountQS = new SelectQueryStruct();
+		totalCountQS.addSelector(uCountFunc);
+		
+		// if search add to totalCount
+		// add the filter word as a like filter
+		if (filterWord != null && !filterWord.trim().isEmpty()) {
+			totalCountQS.addExplicitFilter(wFilter);
+		}
+		if(dynamic) {
+			totalCountQS.mergeImplicitFilters(baseFiltersExcludeCol);
+		}
+		
+		int totalCount = 0;
+		IRawSelectWrapper totalCountIt = null;
+		try {
+			totalCountIt = dataframe.query(totalCountQS);
+			while (totalCountIt.hasNext()) {
+				Object numUnique = totalCountIt.next().getValues()[0];
+				totalCount = ((Number) numUnique).intValue();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(totalCountIt != null) {
+				totalCountIt.cleanUp();
+			}
+		}
+		
+		retMap.put("totalCount", totalCount);
 
 		////////////////////////////////////////
 		//// get options
@@ -215,30 +218,29 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 
 		retMap.put("selectedValues", selectedValues);
 
-//		// get selected count
-//		SelectQueryStruct selectedCountQS = new SelectQueryStruct();
-//		selectedCountQS.addSelector(uCountFunc);
-//		selectedCountQS.setExplicitFilters(baseFilters);
-//		
-//		int selectedCount = 0;
-//		IRawSelectWrapper selectedCountIt = null;
-//		try {
-//			selectedCountIt = dataframe.query(selectedCountQS);
-//			while (selectedCountIt.hasNext()) {
-//				Object numUnique = selectedCountIt.next().getValues()[0];
-//				selectedCount = ((Number) numUnique).intValue();
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		} finally {
-//			if(selectedCountIt != null) {
-//				selectedCountIt.cleanUp();
-//			}
-//		}
-//		retMap.put("selectedCount", selectedCount);
+		// get selected count
+		SelectQueryStruct selectedCountQS = new SelectQueryStruct();
+		selectedCountQS.addSelector(uCountFunc);
+		selectedCountQS.setExplicitFilters(baseFilters);
+		
+		int selectedCount = 0;
+		IRawSelectWrapper selectedCountIt = null;
+		try {
+			selectedCountIt = dataframe.query(selectedCountQS);
+			while (selectedCountIt.hasNext()) {
+				Object numUnique = selectedCountIt.next().getValues()[0];
+				selectedCount = ((Number) numUnique).intValue();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(selectedCountIt != null) {
+				selectedCountIt.cleanUp();
+			}
+		}
+		retMap.put("selectedCount", selectedCount);
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
 	}
-	
 	
 }
