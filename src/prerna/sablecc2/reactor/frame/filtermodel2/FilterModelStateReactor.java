@@ -121,23 +121,23 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 			totalCountQS.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
 		
-		int totalCount = 0;
-		IRawSelectWrapper totalCountIt = null;
-		try {
-			totalCountIt = dataframe.query(totalCountQS);
-			while (totalCountIt.hasNext()) {
-				Object numUnique = totalCountIt.next().getValues()[0];
-				totalCount = ((Number) numUnique).intValue();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(totalCountIt != null) {
-				totalCountIt.cleanUp();
-			}
-		}
-		
-		retMap.put("totalCount", totalCount);
+//		int totalCount = 0;
+//		IRawSelectWrapper totalCountIt = null;
+//		try {
+//			totalCountIt = dataframe.query(totalCountQS);
+//			while (totalCountIt.hasNext()) {
+//				Object numUnique = totalCountIt.next().getValues()[0];
+//				totalCount = ((Number) numUnique).intValue();
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		} finally {
+//			if(totalCountIt != null) {
+//				totalCountIt.cleanUp();
+//			}
+//		}
+//		
+//		retMap.put("totalCount", totalCount);
 
 		// set the base info in the query struct to collect values
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -215,27 +215,27 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 
 		retMap.put("selectedValues", selectedValues);
 
-		// get selected count
-		SelectQueryStruct selectedCountQS = new SelectQueryStruct();
-		selectedCountQS.addSelector(uCountFunc);
-		selectedCountQS.setExplicitFilters(baseFilters);
-		
-		int selectedCount = 0;
-		IRawSelectWrapper selectedCountIt = null;
-		try {
-			selectedCountIt = dataframe.query(selectedCountQS);
-			while (selectedCountIt.hasNext()) {
-				Object numUnique = selectedCountIt.next().getValues()[0];
-				selectedCount = ((Number) numUnique).intValue();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(selectedCountIt != null) {
-				selectedCountIt.cleanUp();
-			}
-		}
-		retMap.put("selectedCount", selectedCount);
+//		// get selected count
+//		SelectQueryStruct selectedCountQS = new SelectQueryStruct();
+//		selectedCountQS.addSelector(uCountFunc);
+//		selectedCountQS.setExplicitFilters(baseFilters);
+//		
+//		int selectedCount = 0;
+//		IRawSelectWrapper selectedCountIt = null;
+//		try {
+//			selectedCountIt = dataframe.query(selectedCountQS);
+//			while (selectedCountIt.hasNext()) {
+//				Object numUnique = selectedCountIt.next().getValues()[0];
+//				selectedCount = ((Number) numUnique).intValue();
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		} finally {
+//			if(selectedCountIt != null) {
+//				selectedCountIt.cleanUp();
+//			}
+//		}
+//		retMap.put("selectedCount", selectedCount);
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
 	}
