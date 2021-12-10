@@ -6,6 +6,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,9 +16,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 
 public class SecurityGroupUtils extends AbstractSecurityUtils {
@@ -39,16 +44,38 @@ public class SecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Add placeholder groups
-	 * @param groupIds
-	 * @param type
+	 * Filter a collection of typed groups to those that are in the SMSS_GROUP table
+	 * @return
 	 */
-	public static void addGroups(Set<String> groupIds, String type, String description) {
-		for(String groupId : groupIds) {
-			instance.addGroup(groupId, type, description);
+	public static Set<String> getMatchingGroupsByType(Collection<String> groupIds, String groupType) {
+		Set<String> results = new HashSet<>();
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupIds));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					results.add(val.toString());
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to retrieve matching security groups", e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
+		return results;
 	}
-
+	
 	/**
 	 * Add a group with description
 	 * @param groupId
