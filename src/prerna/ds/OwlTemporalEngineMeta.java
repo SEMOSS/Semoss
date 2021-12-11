@@ -241,7 +241,7 @@ public class OwlTemporalEngineMeta {
 	 * since we need to construct the selector type to get the syntax
 	 */
 	
-	public void setSelectorComplex(String vertexName, boolean isComplex) {
+	public void setSelectorComplexToVertex(String vertexName, boolean isComplex) {
 		String sub = "";
 		String pred = "";
 		boolean obj = false;
@@ -265,13 +265,49 @@ public class OwlTemporalEngineMeta {
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setSelectorObject(String vertexName, String jsonSelectorObject) {
+	public void setSelectorObjectToVertex(String vertexName, String jsonSelectorObject) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
 		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
+		pred = QUERY_SELECTOR_AS_STRING_PRED;
+		obj = jsonSelectorObject;
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
+	public void setSelectorComplexToProperty(String vertexName, boolean isComplex) {
+		String sub = "";
+		String pred = "";
+		boolean obj = false;
+		
+		// store the unique name as a concept
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + vertexName;
+		pred = QUERY_SELECTOR_COMPLEX_PRED;
+		obj = isComplex;
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
+	public void setSelectorTypeToProperty(String vertexName, SELECTOR_TYPE selectorType) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// store the unique name as a concept
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + vertexName;
+		pred = QUERY_SELECTOR_TYPE_PRED;
+		obj = selectorType.toString();
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
+	public void setSelectorObjectToProperty(String vertexName, String jsonSelectorObject) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// store the unique name as a concept
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + vertexName;
 		pred = QUERY_SELECTOR_AS_STRING_PRED;
 		obj = jsonSelectorObject;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
@@ -747,11 +783,17 @@ public class OwlTemporalEngineMeta {
 				+ "?queryType "
 				+ "?queryJson "
 				+ "where {"
-				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
-				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
-				+ "{?header <" + QUERY_SELECTOR_TYPE_PRED + "> ?queryType}"
-				+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
+				+ "{"
+					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
+					+ "{?header <" + QUERY_SELECTOR_TYPE_PRED + "> ?queryType}"
+					+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
+				+ "} UNION {"
+					+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
+					+ "{?header <" + QUERY_SELECTOR_TYPE_PRED + "> ?queryType}"
+					+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
+				+ "}"
 				+ "}";
 		
 		IRawSelectWrapper it = null;
