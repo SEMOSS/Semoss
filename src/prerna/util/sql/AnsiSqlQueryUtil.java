@@ -231,6 +231,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
+	public String getCurrentTimestamp() {
+		return "CURRENT_TIMESTAMP";
+	}
+	
+	@Override
 	public String getDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
 		return "DATEADD('" + timeUnit + "'," + value + "," + dateToModify + ")";
 	}
