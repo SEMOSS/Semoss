@@ -34,6 +34,9 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("GROUPENGINEPERMISSION");
 		conceptsRequired.add("GROUPPROJECTPERMISSION");
 		conceptsRequired.add("GROUPINSIGHTPERMISSION");
+		
+		// trusted token security
+		conceptsRequired.add("TOKENS");
 	}
 	
 	private IEngine securityDb;
@@ -295,6 +298,12 @@ public class SecurityOwlCreator {
 		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.ID.GROUPINSIGHTPERMISSION.ID");
 		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.TYPE.GROUPINSIGHTPERMISSION.TYPE");
 
+		// TOKEN
+		owler.addConcept("TOKEN", null, null);
+		owler.addProp("TOKEN", "IPADDR", "VARCHAR(255)");
+		owler.addProp("TOKEN", "VAL", "VARCHAR(255)");
+		owler.addProp("TOKEN", "DATEADDED", "TIMESTAMP");
+		
 		owler.commit();
 		owler.export();
 	}
