@@ -124,6 +124,7 @@ public abstract class AbstractSecurityUtils {
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
+		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		
 		// 2021-08-06
 		// on h2 when you renmae a column it doens't update/change anything on the index name
@@ -836,6 +837,27 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.tableExists(conn, "ACCESSREQUEST", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
+			}
+		}
+		
+		// TOKENS
+		colNames = new String[] { "IPADDR", "VAL", "DATEADDED" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("TOKEN", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "TOKEN", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("TOKEN", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", schema)) {
+				securityDb.insertData(queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
 			}
 		}
 		

@@ -140,6 +140,11 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getCurrentTimestamp() {
+		return "DATETIME('now')";
+	}
+	
+	@Override
 	public String getDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
 		return "DATE(" + dateToModify + ", '" + value + " " + timeUnit + "')";
 	}
