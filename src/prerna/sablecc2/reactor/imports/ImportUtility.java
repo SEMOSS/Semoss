@@ -124,7 +124,7 @@ public class ImportUtility {
 	 * This is used for both H2 (any rdbms really) and R
 	 */
 	
-	public static void parseQueryStructToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName, Iterator<IHeadersDataRow> it) {
+	public static void parseQueryStructToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName, Iterator<IHeadersDataRow> it, boolean temporalSelectors) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine
 		if(qsType == QUERY_STRUCT_TYPE.ENGINE || qsType == QUERY_STRUCT_TYPE.DIRECT_API_QUERY) {
@@ -138,7 +138,7 @@ public class ImportUtility {
 		}
 		// frame
 		else if(qsType == QUERY_STRUCT_TYPE.FRAME) {
-			parseFrameQsToFlatTable(dataframe, qs, frameTableName);
+			parseFrameQsToFlatTable(dataframe, qs, frameTableName, temporalSelectors);
 		} 
 		// frame with raw query
 		else if(qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
@@ -271,7 +271,7 @@ public class ImportUtility {
 	 * @param qs
 	 * @param frameTableName
 	 */
-	private static void parseFrameQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName) {
+	private static void parseFrameQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName, boolean temporalSelectors) {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String source = "FRAME_QUERY";
 		
@@ -315,6 +315,12 @@ public class ImportUtility {
 			
 			// all values from a frame are considered derived
 			metaData.setDerivedToProperty(uniqueHeader, true);
+			
+			if(temporalSelectors) {
+				metaData.setSelectorComplexToProperty(uniqueHeader, true);
+				metaData.setSelectorTypeToProperty(uniqueHeader, selector.getSelectorType());
+				metaData.setSelectorObjectToProperty(uniqueHeader, GsonUtility.getDefaultGson().toJson(selector));
+			}
 		}
 	}
 	
@@ -1173,9 +1179,9 @@ public class ImportUtility {
 				// and get it back later
 				// FE will only use the alias to utilize this selector
 				// so i will go ahead and generate the original selector
-				metaData.setSelectorComplex(alias, true);
+				metaData.setSelectorComplexToVertex(alias, true);
 				metaData.setSelectorTypeToVertex(alias, selector.getSelectorType());
-				metaData.setSelectorObject(alias, GsonUtility.getDefaultGson().toJson(selector));
+				metaData.setSelectorObjectToVertex(alias, GsonUtility.getDefaultGson().toJson(selector));
 			}
 		}
 		
@@ -1517,7 +1523,7 @@ public class ImportUtility {
 		}
 		
 		// once we have the updated QS, just use the normal method to update
-		parseQueryStructToFlatTable(dataframe, updatedQsForJoins, tableName, it);
+		parseQueryStructToFlatTable(dataframe, updatedQsForJoins, tableName, it, false);
 	}
 
 	private static void parseRawQsToFlatTableWithJoin(ITableDataFrame dataframe, String frameTableName, IRawSelectWrapper it, List<Join> joins, String source) {
