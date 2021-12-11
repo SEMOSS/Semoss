@@ -68,7 +68,7 @@ public class RdbmsImporter extends AbstractImporter {
 
 	@Override
 	public void insertData() {
-		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getName(), this.it);
+		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getName(), this.it, false);
 		processInsertData();
 	}
 	
