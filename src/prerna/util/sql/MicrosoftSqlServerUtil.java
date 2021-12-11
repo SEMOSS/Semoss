@@ -191,6 +191,11 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getCurrentTimestamp() {
+		return "CURRENT_TIMESTAMP";
+	}
+	
+	@Override
 	public boolean allowBlobDataType() {
 		return false;
 	}
