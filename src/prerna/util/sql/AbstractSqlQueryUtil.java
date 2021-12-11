@@ -501,6 +501,8 @@ public abstract class AbstractSqlQueryUtil {
 	// date functions - require more complex inputs
 	public abstract String getCurrentDate();
 	
+	public abstract String getCurrentTimestamp();
+	
 	public abstract String getDateAddFunctionSyntax(String timeUnit, int value, String  dateTimeField);
 	
 	/////////////////////////////////////////////////////////////////////////////////////
