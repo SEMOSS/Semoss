@@ -52,7 +52,7 @@ public class CollectNewTemporalColReactor extends TaskBuilderReactor {
 		}
 		
 		// merge the results inside
-		ImportUtility.parseQueryStructToFlatTable(frame, pqs, frame.getName(), this.task);
+		ImportUtility.parseQueryStructToFlatTable(frame, pqs, frame.getName(), this.task, true);
 
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
 		noun.addAdditionalReturn(getSuccess("Added Col " + allSelectors.get(0).getAlias()));
