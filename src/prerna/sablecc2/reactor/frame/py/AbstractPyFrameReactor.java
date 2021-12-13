@@ -21,7 +21,8 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		// grab the existing metadata from the frame
 		Map<String, String> additionalDataTypes = frame.getMetaData().getHeaderToAdtlTypeMap();
 		Map<String, List<String>> sources = frame.getMetaData().getHeaderToSources();
-		
+		Map<String, String[]> complexSelectors = frame.getMetaData().getComplexSelectorsMap();
+
 		String frameName = frame.getName();
 		PandasFrame newFrame = frame; 
 		// I am just going to try to recreate the frame here
@@ -46,7 +47,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		
 		// create the pandas frame
 		// and set up everything else
-		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName, additionalDataTypes, sources);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName, additionalDataTypes, sources, complexSelectors);
 		if (override) {
 			this.insight.setDataMaker(newFrame);
 		}
