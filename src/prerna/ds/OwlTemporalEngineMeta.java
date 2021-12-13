@@ -265,6 +265,18 @@ public class OwlTemporalEngineMeta {
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
+	public void setSelectorTypeToVertex(String vertexName, String selectorType) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// store the unique name as a concept
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
+		pred = QUERY_SELECTOR_TYPE_PRED;
+		obj = selectorType;
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
 	public void setSelectorObjectToVertex(String vertexName, String jsonSelectorObject) {
 		String sub = "";
 		String pred = "";
@@ -298,6 +310,18 @@ public class OwlTemporalEngineMeta {
 		sub = SEMOSS_PROPERTY_PREFIX + "/" + vertexName;
 		pred = QUERY_SELECTOR_TYPE_PRED;
 		obj = selectorType.toString();
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
+	public void setSelectorTypeToProperty(String vertexName, String selectorType) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// store the unique name as a concept
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + vertexName;
+		pred = QUERY_SELECTOR_TYPE_PRED;
+		obj = selectorType;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
@@ -403,6 +427,18 @@ public class OwlTemporalEngineMeta {
 		sub = SEMOSS_PROPERTY_PREFIX + "/" + oropertyName;
 		pred = QUERY_STRUCT_PRED;
 		obj = engineName + ":::" + qsName;
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
+	public void setFullQueryStructNameToProperty(String oropertyName, String concatenatedQsInfo) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// store the unique name as a concept
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + oropertyName;
+		pred = QUERY_STRUCT_PRED;
+		obj = concatenatedQsInfo;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
@@ -1270,7 +1306,7 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "}";
 		
-		Map<String, List<String>> returnMap = new HashMap<String, List<String>>();
+		Map<String, List<String>> returnMap = new HashMap<>();
 		
 		IRawSelectWrapper it = null;
 		try {
@@ -1288,6 +1324,54 @@ public class OwlTemporalEngineMeta {
 					sources.add(qsInfo);
 					returnMap.put(header, sources);
 				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
+		return returnMap;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public Map<String, String[]> getComplexSelectorsMap() {
+		Map<String, String[]> returnMap = new HashMap<>();
+		
+		String query = "select distinct "
+				+ "?header "
+				+ "?alias "
+				+ "?dataType "
+				+ "?qsInfo "
+				+ "?queryType "
+				+ "?queryJson "
+				+ "where {"
+					+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
+					+ "{?header <" + ALIAS_PRED + "> ?alias}"
+					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+					+ "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}"
+					+ "{?header <" + QUERY_SELECTOR_TYPE_PRED + "> ?queryType}"
+					+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
+					+ "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}"
+				+ "}";
+		
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				String header = (String) row[0];
+				String alias = (String) row[1];
+				String dataType = (String) row[2];
+				String qsInfo = (String) row[3];
+				String qType = (String) row[4];
+				String qJson = (String) row[5];
+				returnMap.put(header, new String[] {alias, dataType, qsInfo, qType, qJson});
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
