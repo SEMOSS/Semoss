@@ -482,7 +482,7 @@ public class ImportUtility {
 	 */
 	public static void parseTableColumnsAndTypesToFlatTable(OwlTemporalEngineMeta metaData, String[] columns, String[] types, String frameTableName) {
 		// define the frame table name as a primary key within the meta
-		parseTableColumnsAndTypesToFlatTable(metaData, columns, types, frameTableName, null, null);
+		parseTableColumnsAndTypesToFlatTable(metaData, columns, types, frameTableName, null, null, null);
 	}
 	
 	/**
@@ -490,14 +490,16 @@ public class ImportUtility {
 	 * We can create a new meta using the column names, types, and the table name
 	 * 
 	 * Example use: Pivot/Unpivot in R which drastically modifies the table
-	 * 
 	 * @param metaData
 	 * @param columns
 	 * @param types
 	 * @param frameTableName
+	 * @param adtlDAtaTypes
+	 * @param sourcesMap
+	 * @param complexSelectors
 	 */
 	public static void parseTableColumnsAndTypesToFlatTable(OwlTemporalEngineMeta metaData, String[] columns, String[] types, String frameTableName, 
-			Map<String, String> adtlDAtaTypes, Map<String, List<String>> sourcesMap) {
+			Map<String, String> adtlDAtaTypes, Map<String, List<String>> sourcesMap, Map<String, String[]> complexSelectors) {
 		// define the frame table name as a primary key within the meta
 		metaData.addVertex(frameTableName);
 		metaData.setPrimKeyToVertex(frameTableName, true);
@@ -538,6 +540,31 @@ public class ImportUtility {
 				}
 			} else {
 				metaData.setQueryStructNameToProperty(uniqueHeader, "UNKNOWN", frameTableName);
+			}
+		}
+		
+		// add the complex selectors as well
+		if(complexSelectors != null) {
+			for(String header : complexSelectors.keySet()) {
+				String[] complexDetails = complexSelectors.get(header);
+				if(header.contains("__")) {
+					header = header.split("__")[1];
+				}
+				String alias = (String) complexDetails[0];
+				String dataType = (String) complexDetails[1];
+				String qsInfo = (String) complexDetails[2];
+				String qType = (String) complexDetails[3];
+				String qJson = (String) complexDetails[4];
+				
+				String uniqueHeader = frameTableName + "__" + alias;
+				metaData.addProperty(frameTableName, uniqueHeader);
+				metaData.setFullQueryStructNameToProperty(uniqueHeader, qsInfo);
+				metaData.setAliasToProperty(uniqueHeader, alias);
+				metaData.setDataTypeToProperty(uniqueHeader, dataType);
+				metaData.setDerivedToProperty(uniqueHeader, true);
+				metaData.setSelectorComplexToProperty(uniqueHeader, true);
+				metaData.setSelectorTypeToProperty(uniqueHeader, qType);
+				metaData.setSelectorObjectToProperty(uniqueHeader, qJson);
 			}
 		}
 	}
