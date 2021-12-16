@@ -4,8 +4,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -35,7 +35,7 @@ public class AddMetaTagsReactor extends AbstractMetaDBReactor {
 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), engineId)) {
+			if(!SecurityUserDatabaseUtils.userCanEditDatabase(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 		} else {

@@ -13,8 +13,8 @@ import org.h2.store.fs.FileUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
@@ -33,6 +33,8 @@ import prerna.util.ZipUtils;
 import prerna.util.git.GitRepoUtils;
 
 public class UploadInsightReactor extends AbstractInsightReactor {
+	
+	// TODO: change to project from database
 	
 	private static final String CLASS_NAME = UploadInsightReactor.class.getName();
 
@@ -55,7 +57,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				throwAnonymousUserError();
 			}
-			if (!SecurityDatabaseUtils.userCanEditDatabase(user, projectId)) {
+			if (!SecurityUserDatabaseUtils.userCanEditDatabase(user, projectId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the proejct");
 			}
 			// Get the user's email

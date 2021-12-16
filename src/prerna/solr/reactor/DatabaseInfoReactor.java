@@ -5,8 +5,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -33,7 +33,7 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityUserDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
 			}
@@ -51,7 +51,7 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
-		databaseInfo.putAll(SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId));
+		databaseInfo.putAll(SecurityUserDatabaseUtils.getAggregateDatabaseMetadata(databaseId));
 		databaseInfo.putIfAbsent("description", "");
 		databaseInfo.putIfAbsent("tags", new Vector<String>());
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);

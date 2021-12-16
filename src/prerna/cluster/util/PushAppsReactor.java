@@ -8,7 +8,7 @@ import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -47,7 +47,7 @@ public class PushAppsReactor extends AbstractReactor{
 		
 		
 		//Get all Engines
-		List<String> appIds = SecurityDatabaseUtils.getAllDatabaseIds();
+		List<String> appIds = SecurityUserDatabaseUtils.getAllDatabaseIds();
 
 		try {
 			CloudClient cc = CloudClient.getClient();

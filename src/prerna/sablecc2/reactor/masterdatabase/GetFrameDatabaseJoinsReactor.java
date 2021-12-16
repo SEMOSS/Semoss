@@ -7,8 +7,8 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -32,7 +32,7 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			String specificAppFilter = getApp();
 			if(specificAppFilter != null) {
-				if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), specificAppFilter)) {
+				if(!SecurityUserDatabaseUtils.userCanViewDatabase(this.insight.getUser(), specificAppFilter)) {
 					throw new IllegalArgumentException("Database " + specificAppFilter + " does not exist or user does not have access to database");
 				}
 				appFilters = new Vector<String>();
