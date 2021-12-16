@@ -4,9 +4,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -15,6 +15,8 @@ import prerna.util.Constants;
 
 public class CopyInsightPermissionsReactor extends AbstractReactor {
 
+	// TODO: RENAME APP -> PROJECT
+	
 	private static final Logger logger = LogManager.getLogger(CopyInsightPermissionsReactor.class);
 	
 	private static String SOURCE_APP = "sourceApp";
@@ -41,10 +43,10 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 		String targetInsightId = this.keyValue.get(this.keysToGet[3]);
 
 		// must be an editor for both to run this
-		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
+		if(!SecurityUserDatabaseUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
 			throw new IllegalArgumentException("You do not have edit access to the source database");
 		}
-		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
+		if(!SecurityUserDatabaseUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
 			throw new IllegalArgumentException("You do not have edit access to the target database");
 		}
 		
