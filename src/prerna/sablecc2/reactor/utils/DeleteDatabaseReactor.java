@@ -6,9 +6,9 @@ import java.util.Vector;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteAppRunner;
@@ -46,7 +46,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 				databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
 				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 				if(!isAdmin) {
-					boolean isOwner = SecurityDatabaseUtils.userIsOwner(user, databaseId);
+					boolean isOwner = SecurityUserDatabaseUtils.userIsOwner(user, databaseId);
 					if(!isOwner) {
 						throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");
 					}
