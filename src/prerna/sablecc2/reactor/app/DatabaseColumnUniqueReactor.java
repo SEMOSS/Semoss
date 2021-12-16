@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -36,7 +36,7 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
+			if(!SecurityUserDatabaseUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
 			}
 		} else {

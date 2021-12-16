@@ -27,9 +27,9 @@ import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class SecurityDatabaseUtils extends AbstractSecurityUtils {
+public class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityDatabaseUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityUserDatabaseUtils.class);
 
 	/**
 	 * Get what permission the user has for a given database
@@ -506,7 +506,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static boolean setDatabaseGlobal(User user, String databaseId, boolean isPublic) throws IllegalAccessException {
-		if(!SecurityDatabaseUtils.userIsOwner(user, databaseId)) {
+		if(!SecurityUserDatabaseUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
 		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
@@ -524,7 +524,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean setDatabaseName(User user, String databaseId, String newDatabaseName) {
-		if(!SecurityDatabaseUtils.userIsOwner(user, databaseId)) {
+		if(!SecurityUserDatabaseUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to change the database name. Only the owner or an admin can perform this action.");
 		}
 		newDatabaseName = RdbmsQueryBuilder.escapeForSQLStatement(newDatabaseName);
