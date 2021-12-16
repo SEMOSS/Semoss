@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -27,7 +27,7 @@ public class SetDatabaseTagsReactor extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), appId)) {
+			if(!SecurityUserDatabaseUtils.userCanEditDatabase(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 		} else {
@@ -35,7 +35,7 @@ public class SetDatabaseTagsReactor extends AbstractReactor {
 		}
 		
 		List<String> tags = getTags();
-		SecurityDatabaseUtils.updateDatabaseTags(appId, tags);
+		SecurityUserDatabaseUtils.updateDatabaseTags(appId, tags);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new tags for app"));
 		return noun;

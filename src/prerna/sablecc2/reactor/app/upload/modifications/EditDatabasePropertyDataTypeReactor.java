@@ -1,8 +1,8 @@
 package prerna.sablecc2.reactor.app.upload.modifications;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineModifier;
 import prerna.engine.impl.modifications.EngineModificationFactory;
@@ -33,7 +33,7 @@ public class EditDatabasePropertyDataTypeReactor extends AbstractReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityUserDatabaseUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
 			}
 		} else {
