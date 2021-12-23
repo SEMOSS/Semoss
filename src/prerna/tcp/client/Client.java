@@ -32,8 +32,11 @@ import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 import prerna.util.Settings;
 
-public class Client implements Runnable{
+public class Client implements Runnable {
 
+	private static final String CLASS_NAME = Client.class.getName();
+	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
+	
 	ChannelFuture f = null;
 	EventLoopGroup group = null;
 	public ChannelHandlerContext ctx = null;
@@ -47,8 +50,6 @@ public class Client implements Runnable{
     Map responseMap = new HashMap();
     boolean ready = false;
     boolean connected = false;
-	private static final String CLASS_NAME = Client.class.getName();
-	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
 	AtomicInteger count = new AtomicInteger(0);
 	long averageMillis = 200;
 	boolean warmup;
@@ -335,7 +336,7 @@ public class Client implements Runnable{
     	return this.connected;
     }
     
-    public void crash()
+    public void crash(boolean close)
     {
     	// this happens when the client has completely crashed
     	// make the connected to be false
@@ -355,7 +356,11 @@ public class Client implements Runnable{
     	killall = true;
     	status = "crashed";
     	
-    	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+    	if(close) {
+    		throw new SemossPixelException("Analytic engine has been programmatically closed (likely due to session being closed)");
+    	} else {
+    		throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+    	}
     }
     
     public void warmup()
