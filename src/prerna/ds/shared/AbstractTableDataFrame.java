@@ -863,6 +863,12 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public String getFilterString() {
 		return "";
 	}
+	
+	// need to be overridden by specific frame
+	public Object querySQL(String query)
+	{
+		return null;
+	}
 
 //	@Override
 //	@Deprecated
