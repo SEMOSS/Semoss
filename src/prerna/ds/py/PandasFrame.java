@@ -45,6 +45,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public static final String NUMPY_IMPORT_STRING = "import numpy as " + NUMPY_IMPORT_VAR;
 	
 	static Map<String, SemossDataType> pyS = new Hashtable<String, SemossDataType>();
+	static Map<String, Object> pyJ = new Hashtable<String, Object>();
 	static Map<Object, String> spy = new Hashtable<Object, String>();
 	
 	// gets all the commands in one fell swoop 
@@ -64,6 +65,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
 		pyS.put("datetime64", SemossDataType.DATE);
+		
+
+		pyJ.put("object", java.lang.String.class);
+		pyJ.put("category", java.lang.String.class);
+		pyJ.put("int64", java.lang.Integer.class);
+		pyJ.put("float64", java.lang.Double.class);
+		pyJ.put("datetime64", java.util.Date.class);
+
 		
 		spy.put(SemossDataType.STRING, "'str'");
 		spy.put(SemossDataType.INT, "np.int64");
@@ -768,6 +777,94 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 */
 	public void replaceWrapperDataFromFrame() {
 		pyt.runScript(wrapperFrameName + ".cache['data'] = "  + frameName );
+	}
+	
+	
+	
+	@Override
+	public Object querySQL(String sql)
+	{
+		// columns
+		// types
+		// data
+		if(sql.toUpperCase().startsWith("SELECT"))
+		{
+			Map retMap = new HashMap();
+			
+			String loadsqlDF = "from pandasql import sqldf";
+			String frameName = Utility.getRandomString(5);
+			String newFrame = frameName + "= sqldf('" + sql + "')";
+			String addColumnTypes = frameName + "_types = " + frameName + ".dtypes.to_dict()";
+			String dict = frameName + "_dict = " + frameName + ".to_dict('split')";
+			String dictColumns = frameName + "_dict['types'] = " + frameName + "_types";
+			
+			String deleteAll = "delete " + frameName + ", " + frameName + "_types, " + frameName + "_dict";
+			
+			pyt.runEmptyPy(loadsqlDF, newFrame, addColumnTypes, dict, dictColumns);
+			
+			Object retObject = pyt.runScript(frameName + "_dict"); // get the dictionary back
+			
+			// will delete later
+			pyt.runEmptyPy(deleteAll);
+			
+			if(retObject instanceof Map)
+			{
+				System.err.println("Valid Output");
+				retMap = (Map)retObject;
+			}
+			// convert types to java object
+			Map typeMap = (Map)retMap.get("types");
+			Iterator keys = typeMap.keySet().iterator();
+			while(keys.hasNext())
+			{
+				String column = (String)keys.next();
+				String value = (String)typeMap.get(column);
+				
+				if(pyJ.containsKey(value))
+					typeMap.put(column, pyJ.get(value));
+				else
+					typeMap.put(column, java.lang.String.class);
+			}
+			
+			retMap.put("types", typeMap);
+			return retMap;
+		}
+		else
+		{
+
+			Map retMap = new HashMap();
+
+			String [] commands = sql.split("\\R");
+			// execute each command and drop the result
+			List <String> columns = new ArrayList<String>();
+			columns.add("Command");
+			columns.add("Output");
+			
+			Map typeMap = new HashMap();
+			typeMap.put("Command", java.lang.String.class);
+			typeMap.put("Output", java.lang.Object.class);
+			
+			List <List<Object>> data = new ArrayList<List<Object>>();
+			
+			for(int commandIndex = 0;commandIndex < commands.length;commandIndex++)
+			{
+				List <Object> row = new ArrayList <Object>();
+				String thisCommand = commands[commandIndex];
+				Object output = pyt.runScript(thisCommand);
+				
+				row.add(thisCommand);
+				row.add(output);
+				
+				data.add(row);
+			}
+			
+			retMap.put("data", data);
+			retMap.put("types", typeMap);
+			retMap.put("columns", columns);
+			
+			return retMap;
+		}
+		
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////
