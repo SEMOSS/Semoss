@@ -53,6 +53,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -1566,6 +1567,23 @@ public class Insight implements Serializable {
 	@Override
 	protected void finalize() throws Throwable {
 		logger.info("Insight " + this.insightId + " is being gc'd");
+	}
+	
+	
+	// query the frame and get the data
+	public Object query(String sql, String srcFrameName)
+	{
+		ITableDataFrame curFrame = getCurFrame();
+		
+		if(curFrame.getFrameType() == DataFrameTypeEnum.PYTHON)
+		{
+			// procedure to query python
+			// later this if would be gone. the querySQL is part of the interface
+			return curFrame.querySQL(sql);
+			
+		}
+		
+		return null;
 	}
 	
 }

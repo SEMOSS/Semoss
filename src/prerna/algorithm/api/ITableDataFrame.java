@@ -265,4 +265,6 @@ public interface ITableDataFrame extends IDataMaker {
 //	@Deprecated
 //	void performAnalyticAction(IAnalyticActionRoutine routine) throws RuntimeException;
 	
+	public Object querySQL(String sql);
+	
 }
