@@ -6,13 +6,16 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.tcp.PayloadStruct;
+import prerna.util.Constants;
 import prerna.util.FstUtil;
 
-public class SocketClientHandler implements Runnable
-{
+public class SocketClientHandler implements Runnable {
+
+	private static final Logger logger = LogManager.getLogger(SocketClientHandler.class);
 
     String inputSoFar = "";
     String endChar = "<o>";
@@ -29,21 +32,16 @@ public class SocketClientHandler implements Runnable
 	byte[] curBytes = null;
 	int bytesReadSoFar = 0;
 	
-    
     Client nc = null;
-	public  Logger LOGGER = null;
+//	public  Logger LOGGER = null;
 
     // I think we should move this also into stream reader or move stream reader here
 
-    public void setClient(Client nc)
-    {
+    public void setClient(Client nc) {
     	this.nc = nc;
     }
     
-
-	
-	public void printObject(Object obj)
-	{
+	public void printObject(Object obj) {
 		// we know this is a payload struct
 		// just print it
 		PayloadStruct ps = (PayloadStruct)obj;
@@ -51,8 +49,7 @@ public class SocketClientHandler implements Runnable
 		
 		// this is where we inform the nc that this is done
 		// will come to it 
-		try
-		{
+		try {
 			if(ps != null)
 			{
 				if(ps.ex != null)
@@ -81,27 +78,22 @@ public class SocketClientHandler implements Runnable
 					}
 				}
 			}		
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			ex.printStackTrace();
 		}		
 	}
 	
-	public void setInputStream(InputStream in)
-	{
+	public void setInputStream(InputStream in) {
 		this.in = in;
 	}
 	
-	public void setLogger(Logger LOGGER)
-	{
-		this.LOGGER = LOGGER;
-	}
+//	public void setLogger(Logger LOGGER) {
+//		this.LOGGER = LOGGER;
+//	}
 	
 	@Override
-	public void run()
-	{
-		while(!done)
-		{
+	public void run() {
+		while(!done) {
 			try
 			{
 				int bytesToRead = offset;
@@ -113,7 +105,7 @@ public class SocketClientHandler implements Runnable
 						curBytes = new byte[bytesToRead]; // initialize only if it is not null
 
 					readBytes = in.read(curBytes, bytesReadSoFar, (curBytes.length - bytesReadSoFar)); // block
-					LOGGER.info("  Need bytes " + curBytes.length  + " <> Got bytes " + readBytes);
+					logger.info("  Need bytes " + curBytes.length  + " <> Got bytes " + readBytes);
 					bytesReadSoFar = bytesReadSoFar + readBytes;
 					
 					if(bytesReadSoFar == curBytes.length && readBytes != -1)
@@ -131,11 +123,11 @@ public class SocketClientHandler implements Runnable
 							}
 							else
 							{
-								LOGGER.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);								
+								logger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);								
 							}
-						}catch(Exception ex)
-						{
-							LOGGER.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);
+						} catch(Exception ex) {
+							logger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);
+							logger.error(Constants.STACKTRACE, ex);
 						}
 					}
 				}
@@ -151,14 +143,13 @@ public class SocketClientHandler implements Runnable
 				{
 					done = true;
 					this.nc.connected = false;
-					this.nc.crash();
+					this.nc.crash(false);
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				System.err.println("Server Stream is closed!!");
+				logger.error(Constants.STACKTRACE, e);
 				done = true;
 				this.nc.connected = false;
-				this.nc.crash();
+				this.nc.crash(true);
 				// at some point we can relisten if we want.. 
 			}
 		}

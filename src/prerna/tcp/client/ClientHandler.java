@@ -25,8 +25,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter //MessageToMessa
     int filledIndex = 0;
     int loop = 1;
     
-    
-    
     Client nc = null;
 
     /**
@@ -46,11 +44,8 @@ public class ClientHandler extends ChannelInboundHandlerAdapter //MessageToMessa
     
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-    	
     	nc.ctx = ctx;
-    }    
-    
-    
+    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
@@ -59,7 +54,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter //MessageToMessa
         ctx.close();
         
         // need to also inform all the users back
-        nc.crash();
+        nc.crash(false);
     }
 	
 	@Override

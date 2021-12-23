@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.net.SocketException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Iterator;
@@ -22,20 +21,15 @@ import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 import prerna.util.Settings;
 
-public class SocketClient extends Client implements Runnable 
-{
+public class SocketClient extends Client implements Runnable {
 
-	private static final String CLASS_NAME = SocketClient.class.getName();
-	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
+	private static final Logger logger = LogManager.getLogger(SocketClient.class);
 	boolean done = false;
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
 	
-	
-	
 	boolean killall = false; // use this if the server is dead or it has crashed
-	
     
     public void connect(String HOST, int PORT, boolean SSL)
     {
@@ -81,7 +75,6 @@ public class SocketClient extends Client implements Runnable
 	    		this.os = clientSocket.getOutputStream();
 	    		sch.setClient(this);
 	    		sch.setInputStream(is);
-	    		sch.setLogger(logger);
 	    		
 	    		// start this thread
 	    		Thread readerThread = new Thread(sch);
@@ -98,20 +91,16 @@ public class SocketClient extends Client implements Runnable
 	            {
 	            	this.notifyAll();
 	            }
-	    	}catch(Exception ex)
-	    	{
+	    	} catch(Exception ex) {
 	    		attempt++;
-	    		
 	    		logger.info("Attempting Number " + attempt);
 	    		// see if sleeping helps ?
-	    		try
-	    		{
+	    		try {
 	    			// sleeping only for 1 second here
 	    			// but the py executor sleeps in 2 second increments
 	    			Thread.sleep(attempt*SLEEP_TIME);
-	    		}catch(Exception ex2)
-	    		{
-	    			
+	    		} catch(Exception ex2) {
+	    			// ignored
 	    		}
 	    	}
     	}
@@ -120,13 +109,10 @@ public class SocketClient extends Client implements Runnable
             logger.info("CLIENT Connection Failed !!!!!!!");
     }	
     
-    public boolean isReady()
-    {
+    public boolean isReady() {
     	return this.ready;
     }
  
-    
-
     public Object executeCommand(PayloadStruct ps)
     {
     	if(killall)
