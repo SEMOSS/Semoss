@@ -1,6 +1,7 @@
 package prerna.ds.r;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,12 +34,14 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.util.Utility;
 
 public class RDataTable extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "RDataTable";
 	
 	private RFrameBuilder builder;
+	Map <String, Object> rJMap = null;
 
 	// THIS CONSTRUCTOR IS USED FOR TESTING
 //	public RDataTable(String name) {
@@ -452,6 +455,108 @@ public class RDataTable extends AbstractTableDataFrame {
 	public DataFrameTypeEnum getFrameType() {
 		return DataFrameTypeEnum.R;
 	}
+	
+	
+	@Override
+	public Object querySQL(String sql)
+	{
+		// columns
+		// types
+		// data
+		if(sql.toUpperCase().startsWith("SELECT"))
+		{
+			Map retMap = new HashMap();
+			
+			String loadsqlDF = "library(sqldf);";
+			String frameName = Utility.getRandomString(5);
+			String newFrame = frameName + "<- sqldf('" + sql + "')";
+			
+			String deleteAll = "rm(" + frameName + ")";
+			
+			this.builder.getRJavaTranslator().executeEmptyR(loadsqlDF);
+			this.builder.getRJavaTranslator().executeEmptyR(newFrame);
+			
+			String [] columns = getColumnNames(newFrame);
+			String [] types = getColumnTypes(newFrame);
+			
+			List <Object[]> retObject = getBulkDataRow(newFrame, columns); //(frameName + "_dict"); // get the dictionary back
+			
+			// will delete later
+			this.builder.getRJavaTranslator().executeEmptyR(deleteAll);
+			
+			Object [] convertedTypeArray = new Object[columns.length];
+			
+			//https://www.tutorialspoint.com/r/r_data_types.htm
+			getRJMap();
+			for(int columnIndex = 0;columnIndex < columns.length;columnIndex++)
+			{
+				String thisColumn = columns[columnIndex];
+				String thisType = types[columnIndex];
+
+				// convert this to type array
+				// for now will just move this all to string
+				Object javaType = rJMap.get(thisType);
+				if(javaType != null)
+					convertedTypeArray[columnIndex] = javaType;
+				else
+					convertedTypeArray[columnIndex] = java.lang.String.class;
+				
+			}
+			
+			retMap.put("columns", columns);
+			retMap.put("types", convertedTypeArray);
+			retMap.put("dataArray", retObject);
+			
+			return retMap;
+		}
+		else
+		{
+
+			Map retMap = new HashMap();
+
+			String [] commands = sql.split("\\R");
+			// execute each command and drop the result
+			String [] columns = new String [] {"Command", "Output"};
+			Object [] types = new Object [] {java.lang.String.class, java.lang.String.class};
+			
+			List <List<Object>> data = new ArrayList<List<Object>>();
+			
+			for(int commandIndex = 0;commandIndex < commands.length;commandIndex++)
+			{
+				List <Object> row = new ArrayList <Object>();
+				String thisCommand = commands[commandIndex];
+				Object output = this.builder.getRJavaTranslator().runRAndReturnOutput(thisCommand);
+				
+				row.add(thisCommand);
+				row.add(output);
+				
+				data.add(row);
+			}
+			
+			retMap.put("data", data);
+			retMap.put("types", types);
+			retMap.put("columns", columns);
+			
+			return retMap;
+		}
+		
+	}
+
+	
+	private Map getRJMap()
+	{
+		if(this.rJMap == null)
+		{
+			rJMap = new HashMap();
+			rJMap.put("integer", java.lang.Integer.class);
+			rJMap.put("character", java.lang.String.class);
+			rJMap.put("numeric", java.lang.Double.class);
+			rJMap.put("logical", java.lang.Boolean.class);
+			rJMap.put("factor", java.lang.String.class);
+		}
+		return rJMap;
+	}
+	
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
