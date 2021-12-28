@@ -826,7 +826,21 @@ public class PandasFrame extends AbstractTableDataFrame {
 					typeMap.put(column, java.lang.String.class);
 			}
 			
-			retMap.put("types", typeMap);
+			List <String> columns = null;
+			columns = (List <String>)retMap.get("columns");
+			
+			String [] colArray = new String[columns.size()];
+			Object [] typesArray = new Object[columns.size()];
+			
+			for(int columnIndex = 0;columnIndex < columns.size();columnIndex++)
+			{
+				String thisColumn = columns.get(columnIndex);
+				Object colType = typeMap.get(thisColumn);
+				typesArray[columnIndex] = colType;
+				colArray[columnIndex] = thisColumn;
+			}
+			retMap.put("columns", colArray);
+			retMap.put("types", typesArray);
 			return retMap;
 		}
 		else
@@ -836,13 +850,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 			String [] commands = sql.split("\\R");
 			// execute each command and drop the result
-			List <String> columns = new ArrayList<String>();
-			columns.add("Command");
-			columns.add("Output");
-			
-			Map typeMap = new HashMap();
-			typeMap.put("Command", java.lang.String.class);
-			typeMap.put("Output", java.lang.Object.class);
+			String [] columns = new String [] {"Command", "Output"};
+			Object [] types = new Object [] {java.lang.String.class, java.lang.String.class};
 			
 			List <List<Object>> data = new ArrayList<List<Object>>();
 			
@@ -857,9 +866,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 				
 				data.add(row);
 			}
-			
 			retMap.put("data", data);
-			retMap.put("types", typeMap);
+			retMap.put("types", types);
 			retMap.put("columns", columns);
 			
 			return retMap;

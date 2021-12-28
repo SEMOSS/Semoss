@@ -1582,6 +1582,14 @@ public class Insight implements Serializable {
 			return curFrame.querySQL(sql);
 			
 		}
+		else if(curFrame.getFrameType() == DataFrameTypeEnum.R)
+		{
+			// procedure to query python
+			// later this if would be gone. the querySQL is part of the interface
+			return curFrame.querySQL(sql);
+			
+		}
+
 		
 		return null;
 	}
