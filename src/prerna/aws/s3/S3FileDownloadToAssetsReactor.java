@@ -1,10 +1,12 @@
 package prerna.aws.s3;
 
+import static prerna.aws.s3.S3Utils.BUCKET;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-
-import org.apache.commons.io.FilenameUtils;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
@@ -19,19 +21,18 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 
 public class S3FileDownloadToAssetsReactor extends AbstractReactor {
-	
-	private static final String BUCKET = "bucket";
-	private static final String PATH = "path";
-	
-	private static final String TARGET_SPACE = "targetSpace";
-	
-	private static final String SSE_KEY_PATH = "sseKeyPath";
-	private static final String SSE_KEY_64 = "sseKey64";
-	
+
+	public static final String PATH = "path";
+
+	public static final String TARGET_SPACE = "targetSpace";
+
+	public static final String SSE_KEY_PATH = "sseKeyPath";
+	public static final String SSE_KEY_64 = "sseKey64";
+
 	public S3FileDownloadToAssetsReactor() {
 		this.keysToGet = S3Utils.addCommonS3Keys(new String[] { BUCKET, PATH, TARGET_SPACE, SSE_KEY_PATH, SSE_KEY_64 });
 	}
-	
+
 	@Override
 	public String getDescriptionForKey(String key) {
 		if(key.equals(BUCKET)) {
@@ -52,38 +53,41 @@ public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 		}
 		return super.getDescriptionForKey(key);
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return "Download a file in an S3 bucket to an asset folder. If a custom server-side encryption was used, it can be provided via a base-64 encoded string or with a file path to the key on the local filesystem. Credentials can be set via a profile path/name or with an explicit access key and secret";
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		String bucketName = this.keyValue.get(BUCKET);
 		String path = this.keyValue.get(PATH);
 		if (bucketName == null || bucketName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify bucket name");
-		}	
+		}
 		if (path == null || path.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file path on s3");
 		}
-		
+
 		String space = this.keyValue.get(TARGET_SPACE);
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
 		if(assetFolder == null || assetFolder.isEmpty()) {
 			return getError("Unable to retrieve asset directory");
 		}
-		String filePath = assetFolder += "/" + FilenameUtils.getName(path);
+
+		Path targetPath = Paths.get(assetFolder, path).normalize();
+		String bucketKey = Paths.get(assetFolder).relativize(targetPath).toString().replace('\\', '/');
+
+		String filePath = targetPath.toString();
 		File localFile = new File(filePath);
-		
 		try {
 			AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
-			
-			GetObjectRequest request = new GetObjectRequest(bucketName, path);
-			
+
+			GetObjectRequest request = new GetObjectRequest(bucketName, bucketKey);
+
 			// add custom decryption, if needed
 			String sseKeyPath = this.keyValue.get(SSE_KEY_PATH);
 			String sseKey64 = this.keyValue.get(SSE_KEY_64);
@@ -97,13 +101,13 @@ public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 			} else if(sseKey64 != null && !sseKey64.isEmpty()) {
 				request.setSSECustomerKey(new SSECustomerKey(sseKey64));
 			}
-			
+
 			s3Client.getObject(request, localFile);
 		} catch (SdkClientException e) {
 			e.printStackTrace();
 			return getError("Error occurred downloading from S3: " + e.getMessage());
 		}
-		
+
 		NounMetadata noun = new NounMetadata("File downloaded successfully to " + filePath, PixelDataType.CONST_STRING, PixelOperationType.S3);
 		return noun;
 	}
