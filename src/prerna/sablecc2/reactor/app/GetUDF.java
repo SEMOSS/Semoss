@@ -1,6 +1,10 @@
 package prerna.sablecc2.reactor.app;
 
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -16,35 +20,40 @@ public class GetUDF extends AbstractReactor {
 	// I need to accomodate for when I should over ride
 	// for instance a user could have saved a recipe with some mapping and then later, they would like to use a different mapping
 
-	public GetUDF()
-	{
+	public GetUDF() {
 		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
 		this.keyRequired = new int[]{1};
 	}
 	
-	
 	@Override
-	public NounMetadata execute() 
-	{
-		
+	public NounMetadata execute() {
 		organizeKeys();
-		
-		String databaseName = keyValue.get(keysToGet[0]);
-		String databaseId = Utility.getEngineData(databaseName);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		// we may have the alias
+		if(AbstractSecurityUtils.securityEnabled()) {
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			if(!SecurityUserDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
+			}
+		} else {
+			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
+			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
+			}
+		}
 		
 		IEngine database = Utility.getEngine(databaseId);
 
-		if(database != null)
-		{
+		if(database != null) {
 			String [] output = database.getUDF();
-			if(output != null)
+			if(output != null) {
 				return new NounMetadata(output, PixelDataType.VECTOR, PixelOperationType.OPERATION);
-			else
-				return getError("Database " + database + " - Does not have any user defined functions ");
+			} else {
+				return getError("Database " + databaseId + " - Does not have any user defined functions ");
+			}
+		} else {
+			return getError("No database " + databaseId + " - Please check your spelling / case");
 		}
-		else
-			return getError("No database " + databaseName + " - Please check your spelling / case");
-		
 	}
 
 }
