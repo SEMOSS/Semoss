@@ -125,7 +125,6 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.NotFoundException;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
@@ -163,7 +162,6 @@ public class Utility {
 	private static final Logger logger = LogManager.getLogger(prerna.util.Utility.class);
 
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
-	private static Map <String, String> engineIdMap = new HashMap<String, String>();
 
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
@@ -3526,18 +3524,22 @@ public class Utility {
 
 				// ClassInfoList classes =
 				// sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
-				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
-
-				Map<String, Class> reactors = new HashMap<>();
-				// add the path to the insight classes so only this guy can load it
-				pool.insertClassPath(classesFolder);
-
-				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-					// this will load the whole thing
-					Class newClass = cl.loadClass(classes.get(classIndex).getName());
-					String name = classes.get(classIndex).getSimpleName();
-
-					thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+				
+				String[] subclassLookup = new String[] {
+						"prerna.sablecc2.reactor.AbstractReactor",
+						"prerna.sablecc2.reactor.frame.AbstractFrameReactor"};
+				for(String subclass : subclassLookup) {
+					ClassInfoList classes = sr.getSubclasses(subclass);
+					Map<String, Class> reactors = new HashMap<>();
+					// add the path to the insight classes so only this guy can load it
+					pool.insertClassPath(classesFolder);
+					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
+						// this will load the whole thing
+						Class newClass = cl.loadClass(classes.get(classIndex).getName());
+						String name = classes.get(classIndex).getSimpleName();
+	
+						thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+					}
 				}
 			}
 		} catch (Exception ex) {
@@ -4296,26 +4298,6 @@ public class Utility {
 //		}
 //	}
 
-	public static String getEngineData(String queryEngine)
-	{
-		if(engineIdMap.size() == 0)
-		{
-			List <Map<String, Object>> allEngines = SecurityQueryUtils.getAllDatabaseList();
-	
-			for(int engineIndex = 0;engineIndex < allEngines.size();engineIndex++)
-			{
-				Map <String, Object> engineValues = allEngines.get(engineIndex);
-				String engineName = (String)engineValues.get("app_name");
-				String engineId = (String)engineValues.get("app_id");
-				
-			
-				engineIdMap.put(engineName, engineId);
-			}
-		}
-		return engineIdMap.get(queryEngine);
-
-	}
-	
 	/**
 	 * Checks each object value is null(for all types) or NaN (for double type)
 	 * @param obj 
