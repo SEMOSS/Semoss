@@ -58,6 +58,8 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
@@ -209,7 +211,8 @@ public class Insight implements Serializable {
 	private String baseURL = null;
 	
 	// cmd util proxy
-	CmdExecUtil cmdUtil = null;
+	private CmdExecUtil cmdUtil = null;
+	private String contextProjectId = null;
 	
 	// chrome proxy
 	private transient ChromeDriverUtility chromeUtil = null;
@@ -1203,12 +1206,17 @@ public class Insight implements Serializable {
 				logger.error(Constants.STACKTRACE, e);
 			}
 			
-			// else try to find it the specific db
+			// else try to find it the specific project
 			// loading it inside of version/classes
-			// check with all the engines used
 			if(projectId != null) {
 				IProject project = Utility.getProject(projectId);
 				retReac = project.getReactor(className, null);				
+			}
+
+			// or grab the specific context
+			if(this.contextProjectId != null) {
+				IProject project = Utility.getProject(this.contextProjectId);
+				retReac = project.getReactor(className, null);		
 			}
 			
 			//TODO:
@@ -1425,29 +1433,42 @@ public class Insight implements Serializable {
 	 * @param context
 	 * @return
 	 */
-	public boolean setContext(String context) {
+	public boolean setContext(String projectId) {
 		// sets the context space for the user
 		// also set rhe cmd context right here
+		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
+			throw new IllegalArgumentException("Already in the context");
+		}
 		if(this.user != null) {
+			String context = null;
 			Map <String, StringBuffer> varMap = this.user.getVarMap();
-			if(!varMap.containsKey(context)) {
+			if(!varMap.containsKey(projectId)) {
 				// assume the context is currently the project id
 				// and we will add it and get back the varname that was used
 				// which will then be the actual context that is set
-				context = this.user.addVarMap(context); 
+				context = this.user.addVarMap(projectId); 
 			}
 			if(varMap.containsKey(context)) {
 				this.user.setContext(context);
+				this.contextProjectId = projectId;
 				return true;
 			}
 			return false;
 		}
 		// should we allow this if no one is logged in?
 		else {
-			String id = Utility.getEngineData(context);
-			String mountDir = AssetUtility.getProjectAssetVersionFolder(context, id);
+			String projectName = null;
+			String id = SecurityProjectUtils.getProjectAliasForId(projectId);
+			if(id != null) {
+				projectName = projectId;
+				projectId = id;
+			} else {
+				projectName = SecurityQueryUtils.getProjectAliasForId(projectId);
+			}
+			String mountDir = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 	
-			this.cmdUtil = new CmdExecUtil(context, mountDir);
+			this.cmdUtil = new CmdExecUtil(projectId, mountDir);
+			this.contextProjectId = projectId;
 			return true;
 		}
 	}
