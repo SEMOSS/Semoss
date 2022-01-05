@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,6 +17,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -188,7 +190,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info(stepCounter + ") Regsiter insight...");
-			registerInsightAndMetadata(project, newRdbmsId, insightName, layout, cacheable, recipeToSave, description, tags);
+			registerInsightAndMetadata(project, newRdbmsId, insightName, layout, cacheable, recipeToSave, description, tags, this.insight.getVarStore().getFrames());
 			logger.info(stepCounter + ") Done...");
 		} else {
 			logger.info(stepCounter + ") Insight is hidden ... do not add to solr");
@@ -296,9 +298,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param layout
 	 * @param description
 	 * @param tags
+	 * @param insightFrames 
 	 */
 	private void registerInsightAndMetadata(IProject project, String insightIdToSave, String insightName, String layout, 
-			boolean cacheable, List<String> recipe, String description, List<String> tags) {
+			boolean cacheable, List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
 		String projectId = project.getProjectId();
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
 		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, cacheable, layout, recipe);
@@ -313,6 +316,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(tags != null) {
 			admin.updateInsightTags(insightIdToSave, tags);
 			SecurityInsightUtils.updateInsightTags(projectId, insightIdToSave, tags);
+		}
+		if(insightFrames != null && !insightFrames.isEmpty()) {
+			SecurityInsightUtils.updateInsightFrames(projectId, insightIdToSave, insightFrames);
 		}
 	}
 }

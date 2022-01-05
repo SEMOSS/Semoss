@@ -9,11 +9,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -829,7 +832,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -867,7 +872,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -913,6 +920,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 			updateCount = ps.getUpdateCount();
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -945,6 +955,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, description);
 				ps.setInt(parameterIndex++, 0);
 				ps.execute();
+				if(!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
 			} catch(SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
@@ -964,8 +977,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
-		securityDb.commit();
 	}
 	
 	/**
@@ -987,7 +998,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -1025,7 +1038,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			
 			ps.executeBatch();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -1065,7 +1080,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -1101,8 +1118,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setInt(parameterIndex++, i);
 				ps.addBatch();
 			}
-			
 			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -1124,31 +1143,138 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Update the frame information in the insight frames table
+	 * @param projectId
+	 * @param insightId
+	 * @param insightFrames
+	 */
+	public static void updateInsightFrames(String projectId, String insightId, Set<ITableDataFrame> insightFrames) {
+		// first do a delete
+		String query = "DELETE FROM INSIGHTFRAMES WHERE INSIGHTID =? AND PROJECTID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		
+		// now we do the new insert with the order of the tags
+		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTFRAMES", 
+				new String[]{"PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", "COLUMNTYPE"});
+		ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			// loop through an add all the frames
+			for(ITableDataFrame frame : insightFrames) {
+				String tableName = frame.getName();
+				String tableType = frame.getFrameType().getTypeAsString();
+				Map<String, SemossDataType> colToTypeMap = frame.getMetaData().getHeaderToTypeMap();
+				
+				for(String colName : colToTypeMap.keySet()) {
+					String colType = colToTypeMap.get(colName).toString().toUpperCase();
+					if(colName.contains("__")) {
+						colName = colName.split("__")[1];
+					}
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, insightId);
+					ps.setString(parameterIndex++, tableName);
+					ps.setString(parameterIndex++, tableType);
+					ps.setString(parameterIndex++, colName);
+					ps.setString(parameterIndex++, colType);
+					ps.addBatch();
+				}
+			}
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		
+	}
+	
+	/**
 	 * 
 	 * @param projectId
 	 * @param insightId
 	 */
 	public static void deleteInsight(String projectId, String insightId) {
-		String query = "DELETE FROM INSIGHT WHERE INSIGHTID ='" + insightId + "' AND PROJECTID='" + projectId + "'";
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}		
-		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID ='" + insightId + "' AND PROJECTID='" + projectId + "'";
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		query = "DELETE FROM INSIGHTMETA WHERE INSIGHTID ='" + insightId + "' AND PROJECTID='" + projectId + "'";
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+		String[] deleteQueries = new String[] {
+				"DELETE FROM INSIGHT WHERE INSIGHTID =? AND PROJECTID=?",
+				"DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID =? AND PROJECTID=?",
+				"DELETE FROM INSIGHTMETA WHERE INSIGHTID =? AND PROJECTID=?",
+				"DELETE FROM INSIGHTFRAMES WHERE INSIGHTID =? AND PROJECTID=?",
+		};
+		
+		for(String dQuery : deleteQueries) {
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(dQuery);
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, projectId);
+				ps.execute();
+				if(!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+			
 		}
 	}
 	

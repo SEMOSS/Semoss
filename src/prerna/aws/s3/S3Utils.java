@@ -47,8 +47,8 @@ public class S3Utils {
 
 	public static S3Utils getInstance() throws IllegalArgumentException {
 		if(INSTANCE == null) {
-				INSTANCE = new S3Utils();
-			}
+			INSTANCE = new S3Utils();
+		}
 		return INSTANCE;
 	}
 
