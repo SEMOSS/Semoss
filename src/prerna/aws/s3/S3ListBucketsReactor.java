@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
@@ -12,9 +15,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 
 public class S3ListBucketsReactor extends AbstractReactor {
 
+	private static final Logger logger = LogManager.getLogger(S3ListBucketsReactor.class);
+	
 	public S3ListBucketsReactor() {
 		this.keysToGet = S3Utils.addCommonS3Keys(null);
 	}
@@ -46,10 +52,10 @@ public class S3ListBucketsReactor extends AbstractReactor {
 				HashMap<String, Object> tempMap = new HashMap<String, Object>();
 				tempMap.put("name", b.getName());
 				bucketList.add(tempMap);
-				System.out.println("* " + b.getName());
+				logger.debug("* " + b.getName());
 			}
 		} catch (SdkClientException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			return getError("Error occurred listing buckets: " + e.getMessage());
 		}
 		
