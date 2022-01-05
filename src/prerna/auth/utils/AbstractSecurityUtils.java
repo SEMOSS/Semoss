@@ -667,7 +667,32 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
 			}
 		}
-
+		
+		// INSIGHTFRAMES
+		colNames = new String[] { "PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", "COLUMNTYPE" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTFRAMES", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "INSIGHTFRAMES", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("INSIGHTFRAMES", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTFRAMES", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTFRAMES", "PROJECTID"));
+			}
+			if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTMETA", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTFRAMES", "INSIGHTID"));
+			}
+		}
+		
 		// SMSS_USER
 		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN", "PUBLISHER" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
