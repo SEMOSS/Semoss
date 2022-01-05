@@ -8,6 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -19,13 +22,14 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 
+	private static final Logger logger = LogManager.getLogger(S3FileDownloadToAssetsReactor.class);
+
 	public static final String PATH = "path";
-
 	public static final String TARGET_SPACE = "targetSpace";
-
 	public static final String SSE_KEY_PATH = "sseKeyPath";
 	public static final String SSE_KEY_64 = "sseKey64";
 
@@ -85,7 +89,6 @@ public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 		File localFile = new File(filePath);
 		try {
 			AmazonS3 s3Client = S3Utils.getInstance().getS3Client(this.keyValue);
-
 			GetObjectRequest request = new GetObjectRequest(bucketName, bucketKey);
 
 			// add custom decryption, if needed
@@ -104,7 +107,7 @@ public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 
 			s3Client.getObject(request, localFile);
 		} catch (SdkClientException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			return getError("Error occurred downloading from S3: " + e.getMessage());
 		}
 
