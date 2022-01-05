@@ -22,6 +22,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("ASSETENGINE");
 		conceptsRequired.add("INSIGHT");
 		conceptsRequired.add("INSIGHTMETA");
+		conceptsRequired.add("INSIGHTFRAMES");
 		conceptsRequired.add("USERINSIGHTPERMISSION");
 		conceptsRequired.add("SMSS_USER");
 		conceptsRequired.add("PERMISSION");
@@ -218,6 +219,15 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTMETA", "METAVALUE", "CLOB");
 		owler.addProp("INSIGHTMETA", "METAORDER", "INT");
 		
+		// INSIGHTFRAMES
+		owler.addConcept("INSIGHTFRAMES", null, null);
+		owler.addProp("INSIGHTFRAMES", "INSIGHTID", "VARCHAR(255)");
+		owler.addProp("INSIGHTFRAMES", "PROJECTID", "VARCHAR(255)");
+		owler.addProp("INSIGHTFRAMES", "TABLENAME", "VARCHAR(255)");
+		owler.addProp("INSIGHTFRAMES", "TABLETYPE", "VARCHAR(255)");
+		owler.addProp("INSIGHTFRAMES", "COLUMNNAME", "VARCHAR(255)");
+		owler.addProp("INSIGHTFRAMES", "COLUMNTYPE", "VARCHAR(255)");
+		
 		// USER
 		owler.addConcept("SMSS_USER", null, null);
 		owler.addProp("SMSS_USER", "ID", "VARCHAR(255)");
@@ -259,6 +269,9 @@ public class SecurityOwlCreator {
 		
 		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.INSIGHTID.INSIGHTMETA.INSIGHTID");
 		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.PROJECTID.INSIGHTMETA.PROJECTID");
+		
+		owler.addRelation("INSIGHT", "INSIGHTFRAMES", "INSIGHT.INSIGHTID.INSIGHTFRAMES.INSIGHTID");
+		owler.addRelation("INSIGHT", "INSIGHTFRAMES", "INSIGHT.PROJECTID.INSIGHTFRAMES.PROJECTID");
 		
 		// new group details
 		// SMSS_GROUP

@@ -4,11 +4,13 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cache.InsightCacheUtility;
@@ -159,7 +161,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info("2) Updated registered insight...");
-			editRegisteredInsightAndMetadata(project, existingId, insightName, layout, recipeToSave, description, tags);
+			editRegisteredInsightAndMetadata(project, existingId, insightName, layout, recipeToSave, description, tags, this.insight.getVarStore().getFrames());
 			logger.info("2) Done...");
 		}
 		
@@ -205,9 +207,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param layout
 	 * @param description
 	 * @param tags
+	 * @param insightFrames 
 	 */
 	private void editRegisteredInsightAndMetadata(IProject project, String existingRdbmsId, String insightName, String layout, 
-			List<String> recipe, String description, List<String> tags) {
+			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
 		String projectId = project.getProjectId();
 		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, true, layout, recipe);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
@@ -218,6 +221,9 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(tags != null) {
 			admin.updateInsightTags(existingRdbmsId, tags);
 			SecurityInsightUtils.updateInsightTags(projectId, existingRdbmsId, tags);
+		}
+		if(insightFrames != null && !insightFrames.isEmpty()) {
+			SecurityInsightUtils.updateInsightFrames(projectId, existingRdbmsId, insightFrames);
 		}
 	}
 	
