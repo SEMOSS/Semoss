@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -18,9 +21,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 
 public class S3ListFilesReactor extends AbstractReactor {
 	
+	private static final Logger logger = LogManager.getLogger(S3ListFilesReactor.class);
+
 	private static final String BUCKET = "bucket";
 	private static final String PATH = "path";
 	private static final String RECURSIVE = "recursive";
@@ -124,7 +130,7 @@ public class S3ListFilesReactor extends AbstractReactor {
 				output.add(fileMap);
 			}
 		} catch (SdkClientException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			return getError("Error occurred listing files: " + e.getMessage());
 		}
 		

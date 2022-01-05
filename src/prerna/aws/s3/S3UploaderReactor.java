@@ -16,7 +16,6 @@ import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.aws.s3.S3UploaderReactor;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -28,7 +27,6 @@ import prerna.util.DIHelper;
 public class S3UploaderReactor extends TaskBuilderReactor {
 	
 	private static final String CLASS_NAME = S3UploaderReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
 	private static final String FILE_NAME = "fileName";
 	private static final String BUCKET = "bucket";
 	
@@ -108,7 +106,7 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 			try {
 				f.createNewFile();
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 
 			FileWriter writer = null;
@@ -195,7 +193,7 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 				}
 
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				try {
 					if(bufferedWriter != null) {
@@ -205,14 +203,14 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 						writer.close();
 					}
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 
 			long end = System.currentTimeMillis();
 			logger.info("Time to output file = " + (end-start) + " ms");
 		} catch(Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			if(f.exists()) {
 				f.delete();
 			}
