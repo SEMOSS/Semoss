@@ -197,6 +197,21 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		return referenceSet;
 	}
 	
+	/**
+	 * Get a set of all the frames
+	 * @return
+	 */
+	public Set<ITableDataFrame> getFrames() {
+		Set<ITableDataFrame> frames = new HashSet<>();
+		for(String frameKey : frameKeys) {
+			NounMetadata frameNoun = this.varMap.get(frameKey);
+			ITableDataFrame frame = (ITableDataFrame) frameNoun.getValue();
+			frames.add(frame);
+		}
+		
+		return frames;
+	}
+	
 	public List<String> getInsightParameterKeys() {
 		return Collections.unmodifiableList(insightParametersKeys);
 	}
