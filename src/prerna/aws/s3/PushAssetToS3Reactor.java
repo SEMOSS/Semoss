@@ -4,6 +4,9 @@ import static prerna.aws.s3.S3Utils.BUCKET;
 
 import java.io.File;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.transfer.MultipleFileUpload;
@@ -19,8 +22,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 public class PushAssetToS3Reactor extends AbstractReactor {
+
+	private static final Logger logger = LogManager.getLogger(PushAssetToS3Reactor.class);
 
 	public PushAssetToS3Reactor() {
 		this.keysToGet = S3Utils.addCommonS3Keys(new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), BUCKET});
@@ -79,7 +85,8 @@ public class PushAssetToS3Reactor extends AbstractReactor {
 					xfer.waitForCompletion();
 				}
 			} catch (AmazonClientException | InterruptedException e) {
-				System.err.println("Amazon upload failure: " + e.getMessage());
+				logger.info("Amazon upload failure: " + e.getMessage());
+				logger.error(Constants.STACKTRACE, e);
 				transferFailure = true;
 			}
 			xfer_mgr.shutdownNow();
