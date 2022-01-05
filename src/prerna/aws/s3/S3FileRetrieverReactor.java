@@ -5,6 +5,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -14,7 +17,6 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
-import prerna.aws.s3.S3FileRetrieverReactor;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -26,6 +28,8 @@ import prerna.util.Utility;
 
 public class S3FileRetrieverReactor extends AbstractQueryStructReactor {
 	
+	private static final Logger logger = LogManager.getLogger(S3FileRetrieverReactor.class);
+
 	private static final String BUCKET = "bucket";
 	private static final String PATH = "path";
 	
@@ -79,7 +83,7 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor {
 		} catch (SdkClientException e) {
 			// The call was transmitted successfully, but Amazon S3 couldn't process 
 			// it, so it returned an error response.
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		CSVFileHelper helper = new CSVFileHelper();
