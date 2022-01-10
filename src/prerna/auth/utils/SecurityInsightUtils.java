@@ -2318,6 +2318,27 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
+	/**
+	 * Get the insight frames
+	 * @param projectId
+	 * @param insightId
+	 * @return
+	 */
+	public static List<Object[]> getInsightFrames(String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__INSIGHTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__PROJECTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__TABLENAME"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__TABLETYPE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__COLUMNNAME"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__COLUMNTYPE"));
+		// filters
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__PROJECTID", "==", projectId));
+		return QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
+	}
+	
 	//////////////////////////////////////////////////////////////////
 	
 	/*
