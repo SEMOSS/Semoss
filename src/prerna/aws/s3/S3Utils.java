@@ -10,7 +10,6 @@ import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
@@ -75,7 +74,7 @@ public class S3Utils {
 		if (account != null && account.length() > 0 && key != null && key.length() > 0) {
 			credProviders.add(new AWSStaticCredentialsProvider(new BasicAWSCredentials(account, key)));
 		}
-		credProviders.add(new EnvironmentVariableCredentialsProvider());
+		credProviders.add(DefaultAWSCredentialsProviderChain.getInstance());
 		AWS_CREDS_CHAIN = new AWSCredentialsProviderChain(credProviders);
 
 		// endpoint
