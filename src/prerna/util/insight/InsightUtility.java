@@ -635,10 +635,14 @@ public class InsightUtility {
 		while(frameKeys.hasNext()) {
 			String frameName = frameKeys.next();
 			NounMetadata noun = varStore.get(frameName);
-			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-			if(!retMap.containsKey(frame.getName())) {
-				Map<String, Object> headers = frame.getFrameHeadersObject();
-				retMap.put(frame.getName(), headers);
+			if(noun.getValue() instanceof ITableDataFrame) {
+				ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+				if(!retMap.containsKey(frame.getName())) {
+					Map<String, Object> headers = frame.getFrameHeadersObject();
+					retMap.put(frame.getName(), headers);
+				}
+			} else {
+				logger.info("You are grabbing frame headers but the noun doesn't refer to a frame... very vey weird....");
 			}
 		}
 
