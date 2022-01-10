@@ -9,6 +9,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
@@ -129,7 +130,7 @@ public class S3Utils {
 			if(sharedCredsChain != null) {
 				credProviders.add(sharedCredsChain);
 			} else {
-				credProviders.add(new EnvironmentVariableCredentialsProvider());
+				credProviders.add(DefaultAWSCredentialsProviderChain.getInstance());
 			}
 		}
 
