@@ -6,7 +6,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -48,8 +48,8 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			for (int i = 0; i < projectGrsFilters.size(); i++) {
 				String engineFilter = projectGrsFilters.get(i).toString();
 				if (AbstractSecurityUtils.securityEnabled()) {
-					engineFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
-					if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
+					engineFilter = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
+					if (SecurityUserProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
 						pFilters.add(engineFilter);
 					} else {
 						// store warnings

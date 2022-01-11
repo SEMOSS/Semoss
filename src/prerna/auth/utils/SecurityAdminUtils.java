@@ -512,7 +512,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void addProjectUser(String newUserId, String projectId, String permission) {
 		// make sure user doesn't already exist for this project
-		if(SecurityProjectUtils.getUserProjectPermission(newUserId, projectId) != null) {
+		if(SecurityUserProjectUtils.getUserProjectPermission(newUserId, projectId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this project. Please edit the existing permission level.");
 		}
@@ -582,7 +582,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void grantAllProjects(String userId, String permission, boolean isAddNew) {
 		if(isAddNew) {
 			List<String> currentProjectAccess = getProjectsUserHasExplicitAccess(userId);
-			List<String> projectIds = SecurityProjectUtils.getAllProjectIds();
+			List<String> projectIds = SecurityUserProjectUtils.getAllProjectIds();
 			String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
 			int permissionLevel = AccessPermission.getIdByPermission(permission);
 			boolean visible = true;
@@ -1035,7 +1035,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void editProjectUserPermission(String existingUserId, String projectId, String newPermission) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityProjectUtils.getUserProjectPermission(existingUserId, projectId);
+		Integer existingUserPermission = SecurityUserProjectUtils.getUserProjectPermission(existingUserId, projectId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the project");
 		}
@@ -1085,7 +1085,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void removeProjectUser(String existingUserId, String projectId) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityProjectUtils.getUserProjectPermission(existingUserId, projectId);
+		Integer existingUserPermission = SecurityUserProjectUtils.getUserProjectPermission(existingUserId, projectId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the project");
 		}

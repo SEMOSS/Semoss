@@ -22,7 +22,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
@@ -73,7 +73,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			if(!SecurityUserProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the project");
 			}
 			// Get the user's email

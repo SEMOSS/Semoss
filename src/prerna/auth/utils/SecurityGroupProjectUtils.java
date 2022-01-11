@@ -130,7 +130,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		}
 		
 		if(bestGroupProjectPermission == null && bestUserProjectPermission == null) {
-			if(SecurityProjectUtils.projectIsGlobal(projectId)) {
+			if(SecurityUserProjectUtils.projectIsGlobal(projectId)) {
 				return AccessPermission.READ_ONLY.getId();
 			}
 			return null;
