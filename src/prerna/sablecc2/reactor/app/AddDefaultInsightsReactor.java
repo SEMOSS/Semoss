@@ -8,8 +8,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUserDatabaseUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -58,7 +58,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			if(!SecurityUserProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the project");
 			}
 			if(!addAll && insightsToAdd.size()==1 && insightsToAdd.contains(INSIGHT_STATS)) {

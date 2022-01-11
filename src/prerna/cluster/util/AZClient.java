@@ -27,8 +27,8 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -852,7 +852,7 @@ public class AZClient extends CloudClient {
 		// We need to push the folder alias__appId and the file alias__appId.smss
 		String alias = project.getProjectName();
 		if(alias == null) {
-			alias = SecurityProjectUtils.getProjectAliasForId(projectId);
+			alias = SecurityUserProjectUtils.getProjectAliasForId(projectId);
 		}
 
 		String aliasProjectId = alias + "__" + projectId;
