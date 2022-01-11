@@ -12,8 +12,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.common.io.Files;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -832,7 +832,7 @@ public class S3Client extends CloudClient {
 
 		String alias = project.getProjectName();
 		if(alias == null) {
-			alias = SecurityProjectUtils.getProjectAliasForId(projectId);
+			alias = SecurityUserProjectUtils.getProjectAliasForId(projectId);
 		}
 
 		String normalizedAlias = Utility.normalizePath(alias);

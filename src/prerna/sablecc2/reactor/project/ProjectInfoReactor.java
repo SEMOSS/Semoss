@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -30,13 +30,13 @@ public class ProjectInfoReactor extends AbstractReactor {
 		List<Map<String, Object>> baseInfo = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			if(!SecurityUserProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 				// you dont have access
 				throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 			}
 			// user has access!
-			baseInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
+			baseInfo = SecurityUserProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
 		}
 //		else {
 //			projectId = MasterDatabaseUtility.testEngineIdIfAlias(projectId);
@@ -50,7 +50,7 @@ public class ProjectInfoReactor extends AbstractReactor {
 		
 		// we filtered to a single project
 		Map<String, Object> projectInfo = baseInfo.get(0);
-		projectInfo.putAll(SecurityProjectUtils.getAggregateProjectMetadata(projectId));
+		projectInfo.putAll(SecurityUserProjectUtils.getAggregateProjectMetadata(projectId));
 		projectInfo.putIfAbsent("description", "");
 		projectInfo.putIfAbsent("tags", new Vector<String>());
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);

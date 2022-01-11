@@ -9,8 +9,8 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 
 public class ProjectWatcher extends AbstractFileWatcher {
@@ -42,7 +42,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		if (!ClusterUtil.IS_CLUSTER) {
 			// if projects are removed from the file system
 			// remove them
-			List<String> projects = SecurityProjectUtils.getAllProjectIds();
+			List<String> projects = SecurityUserProjectUtils.getAllProjectIds();
 			for(String project : projects) {
 				if(!ArrayUtilityMethods.arrayContainsValue(projectIds, project)) {
 					SecurityUpdateUtils.deleteProject(project);
