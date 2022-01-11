@@ -6,7 +6,7 @@ import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -29,7 +29,7 @@ public class GetAvailableTagsReactor extends AbstractReactor {
 		List<String> projectFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appliedProjectFilters = new Vector<>();
-			projectFilters = SecurityProjectUtils.getFullUserProjectIds(this.insight.getUser());
+			projectFilters = SecurityUserProjectUtils.getFullUserProjectIds(this.insight.getUser());
 			if(!inputFilters.isEmpty()) {
 				// loop through and compare what the user has access to
 				for(String inputAppFilter : inputFilters) {

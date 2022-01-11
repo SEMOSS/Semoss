@@ -22,8 +22,8 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
@@ -578,7 +578,7 @@ public class ClusterUtil {
 					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 					return images[0];
 				} else {
-					String alias = SecurityProjectUtils.getProjectAliasForId(projectId);
+					String alias = SecurityUserProjectUtils.getProjectAliasForId(projectId);
 					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects" + DIR_SEPARATOR + projectId + ".png";
 
 					if(alias != null) {

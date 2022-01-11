@@ -9,7 +9,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -60,12 +60,12 @@ public class AssetUtility {
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
 					if(editRequired) {
-						if(!SecurityProjectUtils.userCanEditProject(in.getUser(), projectId)) {
+						if(!SecurityUserProjectUtils.userCanEditProject(in.getUser(), projectId)) {
 							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					} else {
 						// only read access
-						if(!SecurityProjectUtils.userCanViewProject(in.getUser(), projectId)) {
+						if(!SecurityUserProjectUtils.userCanViewProject(in.getUser(), projectId)) {
 							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					}
@@ -130,12 +130,12 @@ public class AssetUtility {
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
 					if(editRequired) {
-						if(!SecurityProjectUtils.userCanEditProject(in.getUser(), space)) {
+						if(!SecurityUserProjectUtils.userCanEditProject(in.getUser(), space)) {
 							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					} else {
 						// only read access
-						if(!SecurityProjectUtils.userCanViewProject(in.getUser(), space)) {
+						if(!SecurityUserProjectUtils.userCanViewProject(in.getUser(), space)) {
 							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					}
