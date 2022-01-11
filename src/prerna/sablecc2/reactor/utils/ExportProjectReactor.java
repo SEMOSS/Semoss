@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
@@ -44,10 +44,10 @@ public class ExportProjectReactor extends AbstractReactor {
 
 		User user = this.insight.getUser();
 		if (AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			if (!isAdmin) {
-				boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
+				boolean isOwner = SecurityUserProjectUtils.userIsOwner(user, projectId);
 				if (!isOwner)
 					throw new IllegalArgumentException("Project " + projectId + "does not exist.");
 			}

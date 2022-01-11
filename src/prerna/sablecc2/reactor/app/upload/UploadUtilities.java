@@ -28,9 +28,9 @@ import com.google.gson.GsonBuilder;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractEngine;
@@ -1821,7 +1821,7 @@ public class UploadUtilities {
 	 * @return
 	 */
 	public static Map<String, Object> getProjectReturnData(User user, String projectId) {
-		List<Map<String, Object>> baseInfo = SecurityProjectUtils.getUserProjectList(user, projectId);
+		List<Map<String, Object>> baseInfo = SecurityUserProjectUtils.getUserProjectList(user, projectId);
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}

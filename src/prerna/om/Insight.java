@@ -58,8 +58,8 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
@@ -1458,7 +1458,7 @@ public class Insight implements Serializable {
 		// should we allow this if no one is logged in?
 		else {
 			String projectName = null;
-			String id = SecurityProjectUtils.getProjectAliasForId(projectId);
+			String id = SecurityUserProjectUtils.getProjectAliasForId(projectId);
 			if(id != null) {
 				projectName = projectId;
 				projectId = id;

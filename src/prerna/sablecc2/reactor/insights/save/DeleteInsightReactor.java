@@ -15,7 +15,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
@@ -55,8 +55,8 @@ public class DeleteInsightReactor extends AbstractReactor {
 		}
 		String projectId = projectGrs.get(0).toString();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
-			if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(user, projectId);
+			if(!SecurityUserProjectUtils.userCanViewProject(user, projectId)) {
 				throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to the project");
 			}
 			// Get the user's email
