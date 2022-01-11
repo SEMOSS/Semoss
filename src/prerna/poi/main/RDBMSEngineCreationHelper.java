@@ -1,6 +1,5 @@
 package prerna.poi.main;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -12,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
@@ -100,9 +99,9 @@ public class RDBMSEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray);
-				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
-				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
+				SecurityUserInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray);
+				SecurityUserInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
+				SecurityUserInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("Caught exception while adding question.................");

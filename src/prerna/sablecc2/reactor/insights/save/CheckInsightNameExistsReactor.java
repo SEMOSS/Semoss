@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.insights.save;
 import java.util.HashMap;
 import java.util.Map;
 
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -32,13 +32,13 @@ public class CheckInsightNameExistsReactor extends AbstractReactor {
 			return new NounMetadata(retMap, PixelDataType.MAP);
 		}
 		
-		String existingInsightId = SecurityInsightUtils.insightNameExists(projectId, insightName);
+		String existingInsightId = SecurityUserInsightUtils.insightNameExists(projectId, insightName);
 		Map<String, Object> retMap = new HashMap<>();
 		if(existingInsightId != null) {
 			retMap.put("exists", true);
 			retMap.put("projectId", projectId);
 			retMap.put("insightId", existingInsightId);
-			boolean canEdit = SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingInsightId);
+			boolean canEdit = SecurityUserInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingInsightId);
 			retMap.put("userCanEdit", canEdit);
 		} else {
 			retMap.put("exists", false);

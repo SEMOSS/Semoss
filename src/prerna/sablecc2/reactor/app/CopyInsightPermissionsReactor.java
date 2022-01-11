@@ -4,9 +4,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUserDatabaseUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -63,7 +63,7 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 		
 		// now perform the operation
 		try {
-			SecurityInsightUtils.copyInsightPermissions(sourceAppId, sourceInsightId, targetAppId, targetInsightId);
+			SecurityUserInsightUtils.copyInsightPermissions(sourceAppId, sourceInsightId, targetAppId, targetInsightId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured copying the insight permissions.  Detailed error: " + e.getMessage());
