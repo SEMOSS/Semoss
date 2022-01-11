@@ -5,7 +5,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -81,9 +81,9 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 		SelectQueryStruct qs = null;
 		// method handles if filters are null or not
 		if (AbstractSecurityUtils.securityEnabled()) {
-			qs = SecurityInsightUtils.searchUserInsightsUsage(this.insight.getUser(), pFilters, searchTerm, tagFilters);
+			qs = SecurityUserInsightUtils.searchUserInsightsUsage(this.insight.getUser(), pFilters, searchTerm, tagFilters);
 		} else {
-			qs = SecurityInsightUtils.searchInsightsUsage(pFilters, searchTerm, tagFilters);
+			qs = SecurityUserInsightUtils.searchInsightsUsage(pFilters, searchTerm, tagFilters);
 		}
 		
 		IEngine securityDb = (IEngine) DIHelper.getInstance().getLocalProp(Constants.SECURITY_DB);

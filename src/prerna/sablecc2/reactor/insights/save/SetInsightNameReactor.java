@@ -9,7 +9,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
@@ -45,7 +45,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
+			if(!SecurityUserInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
 				throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
 			}
 		} 
@@ -61,7 +61,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		
-		if(SecurityInsightUtils.insightNameExistsMinusId(projectId, insightName, existingId)) {
+		if(SecurityUserInsightUtils.insightNameExistsMinusId(projectId, insightName, existingId)) {
 			throw new IllegalArgumentException("Insight name already exists");
 		}
 		
@@ -82,7 +82,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		logger.info("1) Done");
 		
 		logger.info("2) Updating insight in index");
-		SecurityInsightUtils.updateInsightName(projectId, existingId, insightName);
+		SecurityUserInsightUtils.updateInsightName(projectId, existingId, insightName);
 		logger.info("2) Done");
 		
 		logger.info("3) Update mosfet file for collaboration");

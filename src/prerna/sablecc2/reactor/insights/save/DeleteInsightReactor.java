@@ -14,7 +14,7 @@ import org.apache.commons.io.FileUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
@@ -82,7 +82,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		for (int i = 0; i < size; i++) {
 			String insightId = grs.get(i).toString();
 			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
+				if(!SecurityUserInsightUtils.userCanEditInsight(user, projectId, insightId)) {
 					throw new IllegalArgumentException("User does not have permission to edit this insight");
 				}
 			}
@@ -130,7 +130,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 			
 			// now delete from security db
-			SecurityInsightUtils.deleteInsight(projectId, insightId);
+			SecurityUserInsightUtils.deleteInsight(projectId, insightId);
 		}
 		
 		ClusterUtil.reactorPushInsightDB(projectId);
