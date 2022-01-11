@@ -13,8 +13,8 @@ import org.h2.store.fs.FileUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityUserDatabaseUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
@@ -152,9 +152,9 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		step++;
 
 		logger.info(step + ") Regsiter insight...");
-		SecurityInsightUtils.addInsight(projectId, newInsightId, insightName, true, Utility.getApplicationCacheInsight(), layout, pixelRecipeToSave);
+		SecurityUserInsightUtils.addInsight(projectId, newInsightId, insightName, true, Utility.getApplicationCacheInsight(), layout, pixelRecipeToSave);
 		if (this.insight.getUser() != null) {
-			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, newInsightId);
+			SecurityUserInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, newInsightId);
 		}
 		logger.info(step + ") Done...");
 		step++;

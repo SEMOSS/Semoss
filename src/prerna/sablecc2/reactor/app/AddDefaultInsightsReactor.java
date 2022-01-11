@@ -7,8 +7,8 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityUserDatabaseUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -234,9 +234,9 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	}
 	
 	private void registerInsightAndMetadata(String projectId, String insightIdToSave, String insightName, String layout, boolean cacheable, List<String> recipe) {
-		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, cacheable, layout, recipe);
+		SecurityUserInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, cacheable, layout, recipe);
 		if(this.insight.getUser() != null) {
-			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
+			SecurityUserInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
 		}
 	}
 	
