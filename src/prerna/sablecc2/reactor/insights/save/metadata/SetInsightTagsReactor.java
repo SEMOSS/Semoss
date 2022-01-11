@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.insights.save.metadata;
 import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.project.api.IProject;
@@ -31,7 +31,7 @@ public class SetInsightTagsReactor extends AbstractInsightReactor {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
+			if(!SecurityUserInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
 		}
@@ -40,7 +40,7 @@ public class SetInsightTagsReactor extends AbstractInsightReactor {
 		IProject project = Utility.getProject(projectId);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		admin.updateInsightTags(existingId, tags);
-		SecurityInsightUtils.updateInsightTags(projectId, existingId, tags);
+		SecurityUserInsightUtils.updateInsightTags(projectId, existingId, tags);
 		
 		//need to push insight db for this
 		ClusterUtil.reactorPushInsightDB(projectId);

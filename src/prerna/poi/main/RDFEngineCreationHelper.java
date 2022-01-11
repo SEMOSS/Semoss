@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
@@ -73,9 +73,9 @@ public class RDFEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray);
-				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
-				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
+				SecurityUserInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray);
+				SecurityUserInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
+				SecurityUserInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -155,9 +155,9 @@ public class RDFEngineCreationHelper {
 				}
 					
 				// insight security
-				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray); 
-				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
-				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
+				SecurityUserInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray); 
+				SecurityUserInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
+				SecurityUserInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");

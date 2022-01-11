@@ -43,9 +43,9 @@ import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class SecurityInsightUtils extends AbstractSecurityUtils {
+public class SecurityUserInsightUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityInsightUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityUserInsightUtils.class);
 	
 	/**
 	 * See if the insight name exists within the engine
@@ -520,7 +520,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void setInsightFavorite(User user, String projectId, String insightId, boolean isFavorite) throws SQLException, IllegalAccessException {
-		if(!SecurityInsightUtils.userCanViewInsight(user, projectId, insightId)) {
+		if(!SecurityUserInsightUtils.userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify this insight");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
