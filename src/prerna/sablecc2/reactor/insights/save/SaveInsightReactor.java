@@ -21,7 +21,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
@@ -87,7 +87,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		
-		if(SecurityInsightUtils.insightNameExists(projectId, insightName) != null) {
+		if(SecurityUserInsightUtils.insightNameExists(projectId, insightName) != null) {
 			throw new IllegalArgumentException("Insight name already exists");
 		}
 		
@@ -304,21 +304,21 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			boolean cacheable, List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
 		String projectId = project.getProjectId();
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, cacheable, layout, recipe);
+		SecurityUserInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, cacheable, layout, recipe);
 		if(this.insight.getUser() != null) {
-			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
+			SecurityUserInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
 		}
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if(description != null) {
 			admin.updateInsightDescription(insightIdToSave, description);
-			SecurityInsightUtils.updateInsightDescription(projectId, insightIdToSave, description);
+			SecurityUserInsightUtils.updateInsightDescription(projectId, insightIdToSave, description);
 		}
 		if(tags != null) {
 			admin.updateInsightTags(insightIdToSave, tags);
-			SecurityInsightUtils.updateInsightTags(projectId, insightIdToSave, tags);
+			SecurityUserInsightUtils.updateInsightTags(projectId, insightIdToSave, tags);
 		}
 		if(insightFrames != null && !insightFrames.isEmpty()) {
-			SecurityInsightUtils.updateInsightFrames(projectId, insightIdToSave, insightFrames);
+			SecurityUserInsightUtils.updateInsightFrames(projectId, insightIdToSave, insightFrames);
 		}
 	}
 }

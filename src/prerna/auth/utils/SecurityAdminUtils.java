@@ -1217,7 +1217,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void addInsightUser(String newUserId, String projectId, String insightId, String permission) {
 		// make sure user doesn't already exist for this insight
-		if(SecurityInsightUtils.getUserInsightPermission(newUserId, projectId, insightId) != null) {
+		if(SecurityUserInsightUtils.getUserInsightPermission(newUserId, projectId, insightId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
 		}
@@ -1293,7 +1293,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void editInsightUserPermission(String existingUserId, String projectId, String insightId, String newPermission) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, projectId, insightId);
+		Integer existingUserPermission = SecurityUserInsightUtils.getUserInsightPermission(existingUserId, projectId, insightId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
 		}
@@ -1321,7 +1321,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void removeInsightUser(String existingUserId, String projectId, String insightId) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, projectId, insightId);
+		Integer existingUserPermission = SecurityUserInsightUtils.getUserInsightPermission(existingUserId, projectId, insightId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
 		}

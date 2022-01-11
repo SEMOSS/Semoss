@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -126,7 +126,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 					throwAnonymousUserError();
 				}
 				
-				if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
+				if(!SecurityUserInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
 					throw new IllegalArgumentException("User does not have permission to edit this insight");
 				}
 			}
