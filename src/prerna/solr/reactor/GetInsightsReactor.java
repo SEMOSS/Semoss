@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -78,10 +78,10 @@ public class GetInsightsReactor extends AbstractReactor {
 		List<Map<String, Object>> results = null;
 		// method handles if filters are null or not
 		if (AbstractSecurityUtils.securityEnabled()) {
-			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), projectFilters, searchTerm, 
+			results = SecurityUserInsightUtils.searchUserInsights(this.insight.getUser(), projectFilters, searchTerm, 
 					tagFilters, favoritesOnly, sortBy, limit, offset);
 		} else {
-			results = SecurityInsightUtils.searchInsights(projectFilters, searchTerm, tagFilters, sortBy, limit, offset);
+			results = SecurityUserInsightUtils.searchInsights(projectFilters, searchTerm, tagFilters, sortBy, limit, offset);
 		}
 		
 		// this entire block is to add the additional metadata to the insights
@@ -117,7 +117,7 @@ public class GetInsightsReactor extends AbstractReactor {
 			
 			// grab the wrapper for all the meta information for all the project + insights in one go
 			if(!projectIdsToInsight.isEmpty()) {
-				IRawSelectWrapper wrapper = SecurityInsightUtils.getInsightMetadataWrapper(projectIdsToInsight, META_KEYS_LIST);
+				IRawSelectWrapper wrapper = SecurityUserInsightUtils.getInsightMetadataWrapper(projectIdsToInsight, META_KEYS_LIST);
 				while(wrapper.hasNext()) {
 					Object[] data = wrapper.next().getValues();
 					String metaKey = (String) data[2];

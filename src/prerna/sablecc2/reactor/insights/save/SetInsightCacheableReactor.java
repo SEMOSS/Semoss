@@ -6,7 +6,7 @@ import java.util.Map;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
@@ -38,7 +38,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
+			if(!SecurityUserInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
 				throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
 			}
 		} 
@@ -56,7 +56,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		logger.info("1) Done");
 
 		logger.info("2) Updating insight in index");
-		SecurityInsightUtils.updateInsightCache(projectId, existingId, cache);
+		SecurityUserInsightUtils.updateInsightCache(projectId, existingId, cache);
 		logger.info("2) Done");
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();

@@ -8,7 +8,7 @@ import java.nio.file.StandardCopyOption;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
@@ -51,7 +51,7 @@ public class AssetUtility {
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
-				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+				if(editRequired && in.isSavedInsight() && !SecurityUserInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 					throw new IllegalArgumentException("User does not have permission for this insight");
 				}
 			} else {
@@ -81,7 +81,7 @@ public class AssetUtility {
 			// FE very rarely sends the INSIGHT_SPACE_KEY
 			// and edit is required
 			// make sure user has access
-			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+			if(!SecurityUserInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 				throw new IllegalArgumentException("User does not have permission for this insight");
 			}
 		}
@@ -121,7 +121,7 @@ public class AssetUtility {
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
-				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+				if(editRequired && in.isSavedInsight() && !SecurityUserInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 					throw new IllegalArgumentException("User does not have permission for this insight");
 				}
 			} else {
@@ -150,7 +150,7 @@ public class AssetUtility {
 			// FE very rarely sends the INSIGHT_SPACE_KEY
 			// and edit is required
 			// make sure user has access
-			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+			if(!SecurityUserInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 				throw new IllegalArgumentException("User does not have permission for this insight");
 			}
 		}
