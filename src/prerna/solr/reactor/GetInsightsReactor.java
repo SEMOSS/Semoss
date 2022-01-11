@@ -7,7 +7,7 @@ import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -44,8 +44,8 @@ public class GetInsightsReactor extends AbstractReactor {
 			for (int i = 0; i < projectFilterGrs.size(); i++) {
 				String pFilter = projectFilterGrs.get(i).toString();
 				if (AbstractSecurityUtils.securityEnabled()) {
-					pFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), pFilter);
-					if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), pFilter)) {
+					pFilter = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), pFilter);
+					if (SecurityUserProjectUtils.userCanViewProject(this.insight.getUser(), pFilter)) {
 						projectFilters.add(pFilter);
 					} else {
 						// store warnings

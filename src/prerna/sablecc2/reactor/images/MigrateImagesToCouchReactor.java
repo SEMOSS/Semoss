@@ -18,8 +18,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUserDatabaseUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.io.connector.couch.CouchException;
@@ -66,7 +66,7 @@ public class MigrateImagesToCouchReactor extends AbstractReactor {
 		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases",
 				SecurityUserDatabaseUtils.getAllDatabaseIds(), CouchUtil.DATABASE, outcomes);
 		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects",
-				SecurityProjectUtils.getAllProjectIds(), CouchUtil.PROJECT, outcomes);
+				SecurityUserProjectUtils.getAllProjectIds(), CouchUtil.PROJECT, outcomes);
 		
 		return new NounMetadata(outcomes, PixelDataType.VECTOR);
 	}

@@ -124,7 +124,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
+		if(SecurityUserProjectUtils.userIsOwner(userIds, projectId)) {
 			return AccessPermission.OWNER.getPermission();
 		}
 		
@@ -169,7 +169,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserEditableInsighs(User user, String projectId) {
-		String permission = SecurityProjectUtils.getActualUserProjectPermission(user, projectId);
+		String permission = SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
 		if(permission == null || permission.equals(AccessPermission.READ_ONLY.getPermission())) {
 			return new Vector<>();
 		}
@@ -274,7 +274,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
+		if(SecurityUserProjectUtils.userIsOwner(userIds, projectId)) {
 			return true;
 		}
 		
@@ -320,7 +320,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
+		if(SecurityUserProjectUtils.userIsOwner(userIds, projectId)) {
 			return true;
 		}
 		
@@ -371,7 +371,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// if user is owner of app
 		// they can do whatever they want
-		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
+		if(SecurityUserProjectUtils.userIsOwner(userIds, projectId)) {
 			return true;
 		}
 		
@@ -422,7 +422,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// if user is owner of the app
 		// they can do whatever they want
-		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
+		if(SecurityUserProjectUtils.userIsOwner(userIds, projectId)) {
 			// owner of project is owner of all the insights
 			return AccessPermission.OWNER.getId();
 		}
