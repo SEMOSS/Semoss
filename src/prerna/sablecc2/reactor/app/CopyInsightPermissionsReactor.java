@@ -5,8 +5,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.auth.utils.SecurityUserInsightUtils;
+import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -15,18 +15,16 @@ import prerna.util.Constants;
 
 public class CopyInsightPermissionsReactor extends AbstractReactor {
 
-	// TODO: RENAME APP -> PROJECT
-	
 	private static final Logger logger = LogManager.getLogger(CopyInsightPermissionsReactor.class);
 	
-	private static String SOURCE_APP = "sourceApp";
+	private static String SOURCE_PROJECT = "sourceProject";
 	private static String SOURCE_INSIGHT = "sourceInsight";
 
-	private static String TARGET_APP = "targetApp";
+	private static String TARGET_PROJECT = "targetProject";
 	private static String TARGET_INSIGHT = "targetInsight";
 
 	public CopyInsightPermissionsReactor() {
-		this.keysToGet = new String[]{ SOURCE_APP, SOURCE_INSIGHT, TARGET_APP, TARGET_INSIGHT };
+		this.keysToGet = new String[]{ SOURCE_PROJECT, SOURCE_INSIGHT, TARGET_PROJECT, TARGET_INSIGHT };
 	}
 
 	@Override
@@ -37,21 +35,21 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String sourceAppId = this.keyValue.get(this.keysToGet[0]);
+		String sourceProjectId = this.keyValue.get(this.keysToGet[0]);
 		String sourceInsightId = this.keyValue.get(this.keysToGet[1]);
-		String targetAppId = this.keyValue.get(this.keysToGet[2]);
+		String targetProjectId = this.keyValue.get(this.keysToGet[2]);
 		String targetInsightId = this.keyValue.get(this.keysToGet[3]);
 
 		// must be an editor for both to run this
-		if(!SecurityUserDatabaseUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
-			throw new IllegalArgumentException("You do not have edit access to the source database");
+		if(!SecurityUserProjectUtils.userCanEditProject(this.insight.getUser(), sourceProjectId)) {
+			throw new IllegalArgumentException("You do not have edit access to the source project");
 		}
-		if(!SecurityUserDatabaseUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
-			throw new IllegalArgumentException("You do not have edit access to the target database");
+		if(!SecurityUserProjectUtils.userCanEditProject(this.insight.getUser(), targetProjectId)) {
+			throw new IllegalArgumentException("You do not have edit access to the target project");
 		}
 		
-		String sourceInsightName = SecurityQueryUtils.getInsightNameForId(sourceAppId, sourceInsightId);
-		String targetInsightName = SecurityQueryUtils.getInsightNameForId(targetAppId, targetInsightId);
+		String sourceInsightName = SecurityQueryUtils.getInsightNameForId(sourceProjectId, sourceInsightId);
+		String targetInsightName = SecurityQueryUtils.getInsightNameForId(targetProjectId, targetInsightId);
 		
 		// if the insight name is null, then it doesn't exist
 		if(sourceInsightName == null) {
@@ -63,30 +61,30 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 		
 		// now perform the operation
 		try {
-			SecurityUserInsightUtils.copyInsightPermissions(sourceAppId, sourceInsightId, targetAppId, targetInsightId);
+			SecurityUserInsightUtils.copyInsightPermissions(sourceProjectId, sourceInsightId, targetProjectId, targetInsightId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured copying the insight permissions.  Detailed error: " + e.getMessage());
 		}
 
-		String sourceApp = SecurityQueryUtils.getDatabaseAliasForId(sourceAppId);
-		String targetApp = SecurityQueryUtils.getDatabaseAliasForId(targetAppId);
+		String sourceProject = SecurityQueryUtils.getProjectAliasForId(sourceProjectId);
+		String targetProject = SecurityQueryUtils.getProjectAliasForId(targetProjectId);
 		
-		return new NounMetadata("Copied permissions from app " + sourceApp  + "__" + sourceAppId 
-				+ " insight \"" + sourceInsightName + "\" to " + targetApp + "__" + targetAppId 
+		return new NounMetadata("Copied permissions from project " + sourceProject + "__" + sourceProjectId 
+				+ " insight \"" + sourceInsightName + "\" to " + targetProject + "__" + targetProjectId 
 				+ " insight \"" + targetInsightName + "\"", PixelDataType.CONST_STRING);
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(SOURCE_APP)) {
-			return "The app id that is used to provide information";
-		} else if(key.equals(TARGET_APP)) {
-			return "The app id that the operation is applied on";
+		if(key.equals(SOURCE_PROJECT)) {
+			return "The project id that is used to provide information";
+		} else if(key.equals(TARGET_PROJECT)) {
+			return "The project id that the operation is applied on";
 		} else if(key.equals(SOURCE_INSIGHT)) {
-			return "The insight id in the source app to provide information";
+			return "The insight id in the source project to provide information";
 		} else if(key.equals(TARGET_INSIGHT)) {
-			return "The insight id in the target app that the operation is applied on";
+			return "The insight id in the target project that the operation is applied on";
 		}
 		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}

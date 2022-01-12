@@ -7,7 +7,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserDatabaseUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityUserInsightUtils;
 import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -64,7 +64,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			if(!addAll && insightsToAdd.size()==1 && insightsToAdd.contains(INSIGHT_STATS)) {
 				// do not need a database for this situation
 				pullDatabase = false;
-			} else if(!SecurityUserDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			} else if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("User does not have permission to view the database");
 			}
 		}

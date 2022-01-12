@@ -4,8 +4,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -14,15 +14,19 @@ import prerna.util.Constants;
 
 public class CopyDatabasePermissionsReactor extends AbstractReactor {
 
-	// TODO: RENAME APP -> DATABASE
-	
+	// TODO: make equivalent for project permissions
+	// TODO: make equivalent for project permissions
+	// TODO: make equivalent for project permissions
+	// TODO: make equivalent for project permissions
+	// TODO: make equivalent for project permissions
+
 	private static final Logger logger = LogManager.getLogger(CopyDatabasePermissionsReactor.class);
 	
-	private static String SOURCE_APP = "sourceApp";
-	private static String TARGET_APP = "targetApp";
+	private static String SOURCE_DATABASE = "sourceDatabase";
+	private static String TARGET_DATABASE = "targetDatabase";
 	
 	public CopyDatabasePermissionsReactor() {
-		this.keysToGet = new String[]{ SOURCE_APP, TARGET_APP };
+		this.keysToGet = new String[]{ SOURCE_DATABASE, TARGET_DATABASE };
 	}
 
 	@Override
@@ -33,37 +37,39 @@ public class CopyDatabasePermissionsReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String sourceAppId = this.keyValue.get(this.keysToGet[0]);
-		String targetAppId = this.keyValue.get(this.keysToGet[1]);
+		String sourceDatabaseId = this.keyValue.get(this.keysToGet[0]);
+		String targetDatabaseId = this.keyValue.get(this.keysToGet[1]);
 
 		// must be an editor for both to run this
-		if(!SecurityUserDatabaseUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
+		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), sourceDatabaseId)) {
 			throw new IllegalArgumentException("You do not have edit access to the source database");
 		}
-		if(!SecurityUserDatabaseUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
+		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), targetDatabaseId)) {
 			throw new IllegalArgumentException("You do not have edit access to the target database");
 		}
 		
 		// now perform the operation
 		try {
-			SecurityUserDatabaseUtils.copyDatabasePermissions(sourceAppId, targetAppId);
+			SecurityDatabaseUtils.copyDatabasePermissions(sourceDatabaseId, targetDatabaseId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured copying the app permissions.  Detailed error: " + e.getMessage());
 		}
 
-		String sourceApp = SecurityQueryUtils.getDatabaseAliasForId(sourceAppId);
-		String targetApp = SecurityQueryUtils.getDatabaseAliasForId(targetAppId);
+		String sourceDatabase = SecurityQueryUtils.getDatabaseAliasForId(sourceDatabaseId);
+		String targetDatabase = SecurityQueryUtils.getDatabaseAliasForId(targetDatabaseId);
 
-		return new NounMetadata("Copied permissions from app " + sourceApp  + "__" + sourceAppId + " to " + targetApp + "__" + targetAppId, PixelDataType.CONST_STRING);
+		return new NounMetadata("Copied permissions from database " 
+				+ sourceDatabase  + "__" + sourceDatabaseId + " to " + targetDatabase + "__" + targetDatabaseId, 
+				PixelDataType.CONST_STRING);
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(SOURCE_APP)) {
-			return "The app id that is used to provide information";
-		} else if(key.equals(TARGET_APP)) {
-			return "The app id that the operation is applied on";
+		if(key.equals(SOURCE_DATABASE)) {
+			return "The database id that is used to provide information";
+		} else if(key.equals(TARGET_DATABASE)) {
+			return "The database id that the operation is applied on";
 		}
 		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}
