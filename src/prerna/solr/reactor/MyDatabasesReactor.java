@@ -11,8 +11,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.PixelDataType;
@@ -71,7 +71,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 		
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = SecurityUserDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), META_KEYS_LIST);
+			wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), META_KEYS_LIST);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String databaseId = (String) data[0];

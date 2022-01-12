@@ -18,7 +18,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserDatabaseUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -59,7 +59,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!	
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityUserDatabaseUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
+			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}
