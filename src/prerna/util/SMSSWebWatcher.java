@@ -39,8 +39,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.OwlPrettyPrintFixer;
@@ -347,7 +347,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				}
 			}
 			
-			engines = SecurityUserDatabaseUtils.getAllDatabaseIds();
+			engines = SecurityDatabaseUtils.getAllDatabaseIds();
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
 					logger.info("Deleting the engine from security..... " + Utility.cleanLogString(engine));

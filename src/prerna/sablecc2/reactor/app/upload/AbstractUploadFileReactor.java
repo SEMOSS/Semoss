@@ -11,9 +11,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.auth.utils.SecurityUserDatabaseUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -87,7 +87,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			if (security) {
 				// check if input is alias since we are adding ot existing
 				databaseIdOrName = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseIdOrName);
-				if (!SecurityUserDatabaseUtils.userCanEditDatabase(user, databaseIdOrName)) {
+				if (!SecurityDatabaseUtils.userCanEditDatabase(user, databaseIdOrName)) {
 					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 					SemossPixelException err = new SemossPixelException(noun);
 					err.setContinueThreadOfExecution(false);
