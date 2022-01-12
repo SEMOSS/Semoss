@@ -752,7 +752,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void grantAllDatabases(String userId, String permission, boolean isAddNew) {
 		if(isAddNew) {
 			List<String> currentDatabaseAccess = getDatabasesUserHasExplicitAccess(userId);
-			List<String> databaseIds = SecurityUserDatabaseUtils.getAllDatabaseIds();
+			List<String> databaseIds = SecurityDatabaseUtils.getAllDatabaseIds();
 			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
 			int permissionLevel = AccessPermission.getIdByPermission(permission);
 			boolean visible = true;

@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermission;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityUserDatabaseUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.excel.ExcelBlock;
 import prerna.poi.main.helper.excel.ExcelRange;
@@ -202,7 +202,7 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 
 
 				// check if the ID already exists
-				if(SecurityUserDatabaseUtils.checkUserHasAccessToDatabase(engineId, userId)) {
+				if(SecurityDatabaseUtils.checkUserHasAccessToDatabase(engineId, userId)) {
 					//TODO: update based on user id instead of continue?
 					logger.info("User id = " + userId + " alraedy exists for app = " + engineId + " - skipping record for upload");
 					continue;
