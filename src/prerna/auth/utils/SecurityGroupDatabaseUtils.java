@@ -130,7 +130,7 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 		}
 		
 		if(bestGroupDatabasePermission == null && bestUserDatabasePermission == null) {
-			if(SecurityUserDatabaseUtils.databaseIsGlobal(databaseId)) {
+			if(SecurityDatabaseUtils.databaseIsGlobal(databaseId)) {
 				return AccessPermission.READ_ONLY.getId();
 			}
 			return null;
