@@ -23,6 +23,9 @@ import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.InsightFile;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.GenRowStruct;
@@ -49,7 +52,11 @@ public class ToPPTReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
-
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		String insightFolder = this.insight.getInsightFolder();
 		String baseUrl = this.keyValue.get(this.keysToGet[0]);
 		List<String> urls = getUrls();
