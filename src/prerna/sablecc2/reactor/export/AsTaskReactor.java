@@ -7,6 +7,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -27,6 +30,11 @@ public class AsTaskReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		NounMetadata inputValue = getInputValue();
 		List<Object[]> dataValues = new Vector<Object[]>();
 		dataValues.add(new Object[]{inputValue.getValue()});
