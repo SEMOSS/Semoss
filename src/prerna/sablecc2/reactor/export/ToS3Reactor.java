@@ -16,12 +16,16 @@ import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.aws.s3.S3UploaderReactor;
 import prerna.aws.s3.S3Utils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -63,7 +67,11 @@ public class ToS3Reactor extends TaskBuilderReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		String fileName = keyValue.get(keysToGet[0]);		
 		String bucketName = this.keyValue.get(this.keysToGet[1]);
 		if (fileName == null || fileName.length() <= 0) {

@@ -10,6 +10,7 @@ import java.util.Map;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -25,6 +26,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
@@ -65,7 +67,11 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				throw new IllegalArgumentException("Database " + this.engineId + " does not exist");
 			}
 		}
-		
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		this.targetTable = getTargetTable();
 		// clean up the table name
 		this.targetTable = Utility.makeAlphaNumeric(this.targetTable);

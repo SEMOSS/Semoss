@@ -54,8 +54,10 @@ import cz.vutbr.web.css.Term;
 import cz.vutbr.web.css.TermColor;
 import cz.vutbr.web.css.TermLength;
 import cz.vutbr.web.css.TermPercent;
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.query.parsers.ParamStruct;
@@ -125,7 +127,11 @@ public class TableToXLSXReactor	extends AbstractReactor {
 
 	public NounMetadata execute() {
 		organizeKeys();
-
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		String fileName = Utility.getRandomString(5);
 		exportTemplate = null;
 
