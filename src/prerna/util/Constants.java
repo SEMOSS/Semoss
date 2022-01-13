@@ -477,6 +477,7 @@ public class Constants {
 	public static final String SECURITY_ENABLED = "security-enabled";
 	public static final String ADMIN_SET_PUBLIC = "admin-set-public";
 	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
+	public static final String ADMIN_SET_EXPORTER = "admin-set-exporter";
 	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
 	public static final String ANONYMOUS_USER_UPLOAD_DATA = "anonymous-users-upload-data";
 	public static final String USE_LOGOUT_PAGE = "use-logout-page";
