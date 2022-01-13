@@ -4,13 +4,16 @@ import java.io.File;
 import java.util.List;
 import java.util.UUID;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.InsightFile;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-
+import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
 public class ToCsvReactor extends AbstractExportTxtReactor {
@@ -27,6 +30,11 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		this.logger = getLogger(CLASS_NAME);
 		this.task = getTask();
 		
