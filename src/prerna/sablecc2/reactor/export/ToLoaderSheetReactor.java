@@ -22,6 +22,9 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -56,6 +59,11 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		String app = this.keyValue.get(this.keysToGet[0]);
 		if(app == null) {
 			throw new IllegalArgumentException("Need to specify the app to export");

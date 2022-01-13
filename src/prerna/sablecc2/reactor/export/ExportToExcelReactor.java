@@ -63,6 +63,9 @@ import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.ColorByValueRule;
@@ -81,6 +84,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -148,6 +152,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		// get the map also
 		getMap(insight.getInsightId());
 		processPayload();

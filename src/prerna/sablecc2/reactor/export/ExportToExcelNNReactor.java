@@ -35,6 +35,9 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openqa.selenium.chrome.ChromeDriver;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightFile;
@@ -48,6 +51,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
@@ -70,7 +74,11 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		// Open excel
 		// embed each of the sheet
 		organizeKeys();
-
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);

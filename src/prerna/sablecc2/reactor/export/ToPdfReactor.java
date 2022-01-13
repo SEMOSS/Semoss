@@ -17,6 +17,9 @@ import org.jsoup.select.Elements;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.PageSizeUnits;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.InsightFile;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -40,6 +43,11 @@ public class ToPdfReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		// location for pdf resources
 		String insightFolder = this.insight.getInsightFolder();
 		String htmlToParse = this.keyValue.get(ReactorKeysEnum.HTML.getKey());

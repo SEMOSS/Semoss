@@ -61,6 +61,9 @@ import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
@@ -105,6 +108,11 @@ public class ExportToPPTReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		util = this.insight.getChromeDriver();
 		
 		String downloadKey = UUID.randomUUID().toString();
