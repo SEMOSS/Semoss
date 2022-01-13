@@ -104,6 +104,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
 		return getSimpleQuery(qs);
@@ -219,12 +220,22 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				adminChange = Boolean.parseBoolean( userInfo.get("admin") + "");
 			}
 		}
+
 		Boolean publisherChange = null;
 		if(userInfo.containsKey("publisher")) {
 			if(userInfo.get("publisher") instanceof Number) {
 				publisherChange = ((Number) userInfo.get("publisher")).intValue() == 1;
 			} else {
 				publisherChange = Boolean.parseBoolean( userInfo.get("publisher") + "");
+			}
+		}
+		
+		Boolean exporterChange = Boolean.TRUE;
+		if(userInfo.containsKey("exporter")) {
+			if(userInfo.get("exporter") instanceof Number) {
+				exporterChange = ((Number) userInfo.get("exporter")).intValue() == 1;
+			} else {
+				exporterChange = Boolean.parseBoolean( userInfo.get("exporter") + "");
 			}
 		}
 
@@ -311,6 +322,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			selectors.add(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
 			values.add(publisherChange);
 		}
+		if(exporterChange != null) {
+			selectors.add(new QueryColumnSelector("SMSS_USER__EXPORTER"));
+			values.add(exporterChange);
+		}
+		
 		if(error != null && !error.isEmpty()) {
 			throw new IllegalArgumentException(error);
 		}
@@ -363,7 +379,22 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured setting this insight global");
+			throw new IllegalArgumentException("An error occured setting this user as a publisher");
+		}
+	}
+	
+	/**
+	 * Set the user's exporting rights
+	 * @param userId
+	 * @param isExporter
+	 */
+	public void setUserExporter(String userId, boolean isExporter) {
+		String query = "UPDATE SMSS_USER SET EXPORTER=" + isExporter + " WHERE ID ='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured setting this user as an exporter");
 		}
 	}
 	

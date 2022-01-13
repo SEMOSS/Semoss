@@ -765,6 +765,15 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	/**
+	 * Throw error since user doesn't have access to export
+	 */
+	public static void throwUserNotExporterError() {
+		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User does not have access to export data"));
+		exception.setContinueThreadOfExecution(false);
+		throw exception;
+	}
+	
+	/**
 	 * Throw login required error
 	 * @param details
 	 */

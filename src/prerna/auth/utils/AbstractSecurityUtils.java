@@ -40,6 +40,7 @@ public abstract class AbstractSecurityUtils {
 	static RDBMSNativeEngine securityDb;
 	static boolean securityEnabled = false;
 	static boolean adminSetPublisher = false;
+	static boolean adminSetExporter = false;
 	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
 	static boolean anonymousUsersEnabled = false;
 	static boolean anonymousUsersUploadData = false;
@@ -91,6 +92,13 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			adminSetPublisher = (adminSetsPublisher instanceof Boolean && ((boolean) adminSetsPublisher) ) || (Boolean.parseBoolean(adminSetsPublisher.toString()));
 		}
+		
+		Object adminSetsExporter = DIHelper.getInstance().getLocalProp(Constants.ADMIN_SET_EXPORTER);
+		if(adminSetsExporter == null) {
+			adminSetExporter = false;
+		} else {
+			adminSetExporter = (adminSetsExporter instanceof Boolean && ((boolean) adminSetsExporter) ) || (Boolean.parseBoolean(adminSetsExporter.toString()));
+		}
 	}
 
 	public static boolean securityEnabled() {
@@ -107,6 +115,10 @@ public abstract class AbstractSecurityUtils {
 	
 	public static boolean adminSetPublisher() {
 		return securityEnabled && adminSetPublisher;
+	}
+	
+	public static boolean adminSetExporter() {
+		return securityEnabled && adminSetExporter;
 	}
 	
 	public static void initialize() throws Exception {
@@ -694,8 +706,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// SMSS_USER
-		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN", "PUBLISHER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN", "PUBLISHER", "EXPORTER" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
 		// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 		// but some rdbms types (postgres) does not allow it
 		// so i am going ahead and moving over user to smss_user
@@ -712,6 +724,15 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 		}
+		// 2022-01-11 altering table need to check if a column exists, if not add it in
+		List<String> smssUserCols = queryUtil.getTableColumns(conn, "SMSS_USER", schema);
+		// this should return in all upper case
+		// ... but sometimes it is not -_- i.e. postgres always lowercases
+		if(!smssUserCols.contains("EXPORTER") && !smssUserCols.contains("exporter")) {
+			String addColumnSql = queryUtil.alterTableAddColumnWithDefault("SMSS_USER", "EXPORTER", BOOLEAN_DATATYPE_NAME, true);
+			securityDb.insertData(addColumnSql);
+		}
+		
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
 		} else {
