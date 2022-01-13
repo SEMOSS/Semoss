@@ -28,6 +28,9 @@ import org.apache.poi.xslf.usermodel.XSLFTextRun;
 import org.apache.poi.xslf.usermodel.XSLFTextShape;
 import org.openqa.selenium.chrome.ChromeDriver;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -58,7 +61,11 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		// embed each of the sheet
 		// need to introduce width and height
 		organizeKeys();
-		
+		User user = this.insight.getUser();
+		// throw error is user doesn't have rights to export data
+		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+			AbstractReactor.throwUserNotExporterError();
+		}
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
