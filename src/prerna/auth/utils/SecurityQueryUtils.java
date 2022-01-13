@@ -854,6 +854,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
 
 		Map<String, Map<String, Object>> userMap = new HashMap<>();
@@ -975,6 +976,32 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__PUBLISHER", "==", "TRUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+
+		return false;
+	}
+	
+	/**
+	 * Determine if the user has exporting rights
+	 * @param user
+	 * @return
+	 */
+	public static boolean userIsExporter(User user) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EXPORTER", "==", "TRUE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
 		
 		IRawSelectWrapper wrapper = null;
