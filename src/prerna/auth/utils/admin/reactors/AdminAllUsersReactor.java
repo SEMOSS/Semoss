@@ -55,6 +55,7 @@ public class AdminAllUsersReactor extends ToExcelReactor {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PASSWORD"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__SALT"));
 

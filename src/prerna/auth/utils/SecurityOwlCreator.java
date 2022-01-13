@@ -239,6 +239,7 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "USERNAME", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "ADMIN", "BOOLEAN");
 		owler.addProp("SMSS_USER", "PUBLISHER", "BOOLEAN");
+		owler.addProp("SMSS_USER", "EXPORTER", "BOOLEAN");
 
 		// PERMISSION
 		owler.addConcept("PERMISSION", null, null);
