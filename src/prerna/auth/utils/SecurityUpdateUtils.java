@@ -1056,7 +1056,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// need to prevent 2 threads attempting to add the same user
 					userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 					if(!userExists) {
-						query = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?)";
+						query = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER) VALUES (?,?,?,?,?,?,?,?)";
 						PreparedStatement ps = null;
 						try {
 							ps = securityDb.getPreparedStatement(query);
@@ -1068,6 +1068,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setString(parameterIndex++, newUser.getProvider().toString());
 							ps.setBoolean(parameterIndex++, false);
 							ps.setBoolean(parameterIndex++, !adminSetPublisher());
+							//default exporter to true
+							ps.setBoolean(parameterIndex++, true);
 							ps.execute();
 							securityDb.commit();
 						} catch (SQLException e) {
@@ -1157,10 +1159,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param type
 	 * @param admin
 	 * @param publisher
+	 * @param exporter
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static boolean registerUser(String id, String name, String email, String password, String type, boolean admin, boolean publisher) throws IllegalArgumentException {
+	public static boolean registerUser(String id, String name, String email, String password, String type, boolean admin, boolean publisher, boolean exporter) throws IllegalArgumentException {
 		boolean isExistingUser = SecurityQueryUtils.checkUserExist(id);
 		if(isExistingUser) {
 			return false;
@@ -1207,7 +1210,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(salt == null) salt = "";
 		if(type == null) type = "";
 
-		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER, EXPORTER) VALUES (?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -1221,6 +1224,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, type);
 			ps.setBoolean(parameterIndex++, admin);
 			ps.setBoolean(parameterIndex++, publisher);
+			ps.setBoolean(parameterIndex++, exporter);
 			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {
