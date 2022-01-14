@@ -23,15 +23,17 @@ public class PivotReactor extends AbstractPyFrameReactor {
 	 * 2) the column to turn into values for the selected pivot column
 	 * 3) the aggregate function
 	 * 4) the other columns to maintain
+	 * 5) the optional no value replace
 	 */
 
 	private static final String PIVOT_COLUMN_KEY = "pivotCol";
 	private static final String VALUE_COLUMN_KEY = "valueCol";
 	private static final String AGGREGATE_FUNCTION_KEY = "function";
+	private static final String NA_REPLACE_KEY = "naReplace";
 
 	public PivotReactor() {
 		this.keysToGet = new String[] { PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(),
-				AGGREGATE_FUNCTION_KEY };
+				AGGREGATE_FUNCTION_KEY, NA_REPLACE_KEY };
 	}
 
 	/*
@@ -158,14 +160,35 @@ public class PivotReactor extends AbstractPyFrameReactor {
 			frame.runScript(newFrame + ".columns = " + sb.toString());
 			// remove duplicate header names
 			frame.runScript(PandasSyntaxHelper.removeDuplicateColumns(newFrame, newFrame));
-
 		}
 
 		// assign it back
 		String colScript = table + " = " + newFrame;
 		frame.runScript(colScript);
-
 		frame = (PandasFrame) recreateMetadata(frame);
+		
+		// get the optional replace value for na values
+		// for the pivoted column new values
+		String naReplace = getNaReplace();
+		if (naReplace != null) {
+			StringBuilder pyReplaceScript = new StringBuilder();
+			List<String> finalHeaders = (List<String>) frame.runScript(PandasSyntaxHelper.getColumns(table));
+
+			// see if naReplace string is numeric
+			if (!isNumeric(naReplace)) {
+				naReplace = "\"" + naReplace + "\"";
+			}
+
+			for (String possibleHeader : finalHeaders) {
+				if (!colsToKeep.contains(possibleHeader)) {
+					// py script to replace a value within the pivot column
+					// df['DataFrame Column'] = df['DataFrame Column'].fillna(0)
+					pyReplaceScript.append(table + "['" + possibleHeader + "'] = " + table + "['" + possibleHeader + "'].fillna(" + naReplace + ")");
+				}
+			}
+			frame.runScript(pyReplaceScript.toString());
+		}
+		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Pivot",
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
@@ -225,7 +248,6 @@ public class PivotReactor extends AbstractPyFrameReactor {
 	// aggregate function is optional, uses key "AGGREGATE_FUNCTION_KEY"
 	private String getAggregateFunction() {
 		GenRowStruct functionInput = this.store.getNoun(AGGREGATE_FUNCTION_KEY);
-
 		// need some way to change this to py specific if it is not the same
 		if (functionInput != null) {
 			String function = functionInput.getNoun(0).getValue().toString();
@@ -235,6 +257,17 @@ public class PivotReactor extends AbstractPyFrameReactor {
 		return "";
 	}
 
+	// NA Replace is optional, uses key "NA_REPLACE_KEY"
+	private String getNaReplace() {
+		GenRowStruct naReplaceInput = this.store.getNoun(NA_REPLACE_KEY);
+		if (naReplaceInput != null && !naReplaceInput.isEmpty()) {
+			String naReplace = naReplaceInput.getNoun(0).getValue().toString();
+			return naReplace;
+		}
+		//don't throw an error because this input is optional
+		return null;
+	}
+	
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
@@ -250,4 +283,18 @@ public class PivotReactor extends AbstractPyFrameReactor {
 		}
 	}
 
+	////////////////////// HELPER METHODS  //////////////////////////////////
+	
+	public static boolean isNumeric(String strNum) {
+	    if (strNum == null) {
+	        return false;
+	    }
+	    try {
+	        Double.parseDouble(strNum);
+	    } catch (NumberFormatException nfe) {
+	        return false;
+	    }
+	    return true;
+	}
+	
 }
