@@ -25,15 +25,16 @@ public class PivotReactor extends AbstractRFrameReactor {
 	 * 2) the column to turn into values for the selected pivot column
 	 * 3) the aggregate function
 	 * 4) the other columns to maintain
-	 
+	 * 5) the optional no value replace
 	 */
 	
 	private static final String PIVOT_COLUMN_KEY = "pivotCol";
 	private static final String VALUE_COLUMN_KEY = "valueCol";
 	private static final String AGGREGATE_FUNCTION_KEY = "function";
+	private static final String NA_REPLACE_KEY = "naReplace";
 	
 	public PivotReactor() {
-		this.keysToGet = new String[] { PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(), AGGREGATE_FUNCTION_KEY };
+		this.keysToGet = new String[] { PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(), AGGREGATE_FUNCTION_KEY, NA_REPLACE_KEY };
 	}
 	
 	@Override
@@ -60,7 +61,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 		if (valuesCol.contains("__")) {
 			valuesCol = valuesCol.split("__")[1];
 		} 
-			
+				
 		// keep track of the columns to keep
 		List<String> colsToKeep = getKeepCols();
 		// get the aggregate function if it exists; if it does not exist
@@ -128,12 +129,38 @@ public class PivotReactor extends AbstractRFrameReactor {
 		String script = newFrame + " <- dcast(" + table + keepString + aggregateString + ");";
 		script += RSyntaxHelper.asDataTable(newFrame, newFrame);
 		script += table + " <- " + newFrame + ";";
-		if(dropColumn) {
+		if (dropColumn) {
 			// drop the . column
 			script += table + " <- " + table + "[,.:=NULL];";
 		}
 		this.rJavaTranslator.runR(script);
 		frame.recreateMeta();
+
+		// get the optional replace value for na values
+		// for the pivoted column new values
+		String naReplace = getNaReplace();
+		if (naReplace != null) {
+			StringBuilder rReplaceScript = new StringBuilder();
+			String[] finalHeaders = frame.getColumnHeaders();
+
+			// see if naReplace string is numeric
+			if (!isNumeric(naReplace)) {
+				naReplace = "\"" + naReplace + "\"";
+			}
+
+			for (String possibleHeader : finalHeaders) {
+				if (!colsToKeep.contains(possibleHeader)) {
+					// r script to replace a value within the pivot column
+					// dataFrame["Column_B"][dataFrame["Column_B"] == oldValue] <- newValue
+					rReplaceScript.append(table + "[\"" + possibleHeader + "\"][" + table + "[\"" + possibleHeader
+							+ "\"] == NA] <- " + naReplace + "; ");
+					rReplaceScript.append(table + "[\"" + possibleHeader + "\"][" + table + "[\"" + possibleHeader
+							+ "\"] == NaN] <- " + naReplace + "; ");
+				}
+			}
+			this.rJavaTranslator.runR(rReplaceScript.toString());
+		}
+
 		
 		//clean up temp r variables
 		StringBuilder cleanUpScript = new StringBuilder();
@@ -209,6 +236,17 @@ public class PivotReactor extends AbstractRFrameReactor {
 		return "";
 	}
 	
+	// NA Replace is optional, uses key "NA_REPLACE_KEY"
+	private String getNaReplace() {
+		GenRowStruct naReplaceInput = this.store.getNoun(NA_REPLACE_KEY);
+		if (naReplaceInput != null && !naReplaceInput.isEmpty()) {
+			String naReplace = naReplaceInput.getNoun(0).getValue().toString();
+			return naReplace;
+		}
+		//don't throw an error because this input is optional
+		return null;
+	}
+	
 	///////////////////////// KEYS /////////////////////////////////////
 	
 	@Override
@@ -219,8 +257,24 @@ public class PivotReactor extends AbstractRFrameReactor {
 			return "The column to turn into values for the selected pivot column";
 		} else if (key.equals(AGGREGATE_FUNCTION_KEY)) {
 			return "The function used to aggregate columns";
+		} else if (key.equals(NA_REPLACE_KEY)) {
+			return "The value used to replace n/a in a column";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
+	}
+	
+	////////////////////// HELPER METHODS  //////////////////////////////////
+	
+	public static boolean isNumeric(String strNum) {
+	    if (strNum == null) {
+	        return false;
+	    }
+	    try {
+	        Double.parseDouble(strNum);
+	    } catch (NumberFormatException nfe) {
+	        return false;
+	    }
+	    return true;
 	}
 }
