@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -279,4 +280,21 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		return params;
 	}
 	
+	// need to find why the frames is not a hashmap and/or 2 list and instead a set and list
+	public ITableDataFrame getFrame(String name)
+	{
+		ITableDataFrame retFrame = null;
+		Iterator <ITableDataFrame> allFrames = allCreatedFrames.iterator();
+		while(allFrames.hasNext())
+		{
+			ITableDataFrame thisFrame = allFrames.next();
+			if(thisFrame.getName().contentEquals(name))
+			{
+				retFrame = thisFrame;
+				break;
+			}
+		}
+		return retFrame;
+	}
+
 }
