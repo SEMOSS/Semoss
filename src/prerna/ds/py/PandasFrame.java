@@ -27,7 +27,6 @@ import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -469,20 +468,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	// create a subframe for the purposes of variables
 	@Override
-	public String createVarFrame()
-	{
+	public String createVarFrame() {
 		PandasInterpreter interp = new PandasInterpreter();
-
 		SelectQueryStruct qs = getMetaData().getFlatTableQs(true);
-
 		// add all the frame filter
-		Iterator <IQueryFilter> filterIt = getFrameFilters().iterator();
-		while(filterIt.hasNext())
-			qs.addExplicitFilter(filterIt.next());
-		
+		qs.setExplicitFilters(this.grf.copy());
 		// convert to physical
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		
 		
 		interp.setDataTableName(this.frameName, this.wrapperFrameName + ".cache['data']");
 		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
@@ -495,18 +487,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		String query = interp.composeQuery();
 		query = query.substring(0, query.indexOf(".drop_duplicates"));
-		
 		String newFrame = Utility.getRandomString(6);
 		String command = newFrame  + " = " + query;
-		
 		pyt.runScript(command);
-		
 		return newFrame;
 	}
 
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
 		String query = interp.composeQuery();
-		
 		
 		// make it into a full frame
 		String frameName = Utility.getRandomString(6);

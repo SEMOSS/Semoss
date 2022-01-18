@@ -25,10 +25,8 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -543,12 +541,9 @@ public class RDataTable extends AbstractTableDataFrame {
 		}
 		
 	}
-
 	
-	private Map getRJMap()
-	{
-		if(this.rJMap == null)
-		{
+	private Map getRJMap() {
+		if(this.rJMap == null) {
 			rJMap = new HashMap();
 			rJMap.put("integer", java.lang.Integer.class);
 			rJMap.put("character", java.lang.String.class);
@@ -560,20 +555,13 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public String createVarFrame()
-	{
+	public String createVarFrame() {
 		RInterpreter interp = new RInterpreter();
-
 		SelectQueryStruct qs = getMetaData().getFlatTableQs(true);
-
 		// add all the frame filter
-		Iterator <IQueryFilter> filterIt = getFrameFilters().iterator();
-		while(filterIt.hasNext())
-			qs.addExplicitFilter(filterIt.next());
-		
+		qs.setExplicitFilters(this.grf.copy());
 		// convert to physical
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
@@ -583,16 +571,12 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setRDataTable(this);
 		
 		String query = interp.composeQuery();
-		
 		String newFrame = Utility.getRandomString(6);
 		String command = newFrame  + " = " + query;
-
 		// create the frame
 		builder.getRJavaTranslator().executeEmptyR(command);
-		
 		return newFrame;
 	}
-
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
