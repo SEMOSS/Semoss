@@ -27,6 +27,7 @@ import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -465,16 +466,67 @@ public class PandasFrame extends AbstractTableDataFrame {
 		rpw.setPandasIterator(pi);
 		return rpw	;
 	}
+	
+	// create a subframe for the purposes of variables
+	@Override
+	public String createVarFrame()
+	{
+		PandasInterpreter interp = new PandasInterpreter();
+
+		SelectQueryStruct qs = getMetaData().getFlatTableQs(true);
+
+		// add all the frame filter
+		Iterator <IQueryFilter> filterIt = getFrameFilters().iterator();
+		while(filterIt.hasNext())
+			qs.addExplicitFilter(filterIt.next());
+		
+		// convert to physical
+		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+		
+		
+		interp.setDataTableName(this.frameName, this.wrapperFrameName + ".cache['data']");
+		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
+		interp.setQueryStruct(qs);
+		interp.setKeyCache(keyCache);
+		// I should also possibly set up pytranslator so I can run command for creating filter
+		interp.setPyTranslator(pyt);
+		// need to do this for subqueries where we flush the values into a filter
+		interp.setPandasFrame(this);
+		
+		String query = interp.composeQuery();
+		query = query.substring(0, query.indexOf(".drop_duplicates"));
+		
+		String newFrame = Utility.getRandomString(6);
+		String command = newFrame  + " = " + query;
+		
+		pyt.runScript(command);
+		
+		return newFrame;
+	}
 
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
 		String query = interp.composeQuery();
+		
+		
+		// make it into a full frame
+		String frameName = Utility.getRandomString(6);
+		// assign query to frame
+		// the command that is coming in has the sort values and other things attached to it
+		// need to get rid of it before I can get the frame
+		// and then slap it back to get the values back
+		//ascszng = d[['bp.1d','bp.1s','bp.2d','bp.2s','chol','Drug','frame','gender','glyhb','hdl','height','hip','id','location','ratio','stab.glu','time.ppn','waist','weight']]
+		// .drop_duplicates().sort_values(['bp.1d'],ascending=[True]).iloc[0:2000].to_dict('split')
+		// need to get rid of everything from drop_duplicates
+		// if that is not available then sort values
+		// make the query to be just the new frameName
+		// query = frameName;
+		
 		CachedIterator ci = null;
 		IRawSelectWrapper retWrapper = null;
 		
-		
 		if(!queryCache.containsKey(query) || !cache)
-		{
-			
+		{			
+			// run the query
 			Object output = pyt.runScript(query);
 			
 			// need to see if this is a parquet format as well
@@ -871,6 +923,24 @@ public class PandasFrame extends AbstractTableDataFrame {
 			retMap.put("columns", columns);
 			
 			return retMap;
+		}
+		
+	}
+	
+	// recalibrate variables
+	public void recalculateVariables(String [] formulas, String oldName, String newName)
+	{
+		// this is a string replacement unfortunately
+		// this is again why we may need better frame variable names
+		String [] returnCommands = new String[formulas.length + 1];
+		
+		for(int varIndex = 0;varIndex < formulas.length;varIndex++)
+		{
+			String thisVar = formulas[varIndex];
+			thisVar = thisVar.replace(oldName, newName);
+			System.err.println("Running command " + thisVar);
+			returnCommands[varIndex + 1] = thisVar;
+			pyt.runScript(thisVar);
 		}
 		
 	}
