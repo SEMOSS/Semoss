@@ -265,6 +265,12 @@ public interface ITableDataFrame extends IDataMaker {
 //	@Deprecated
 //	void performAnalyticAction(IAnalyticActionRoutine routine) throws RuntimeException;
 	
+	// JDBC Support
 	public Object querySQL(String sql);
+	
+	// support for variable text
+	// returns the new frame
+	public String createVarFrame();
+	
 	
 }
