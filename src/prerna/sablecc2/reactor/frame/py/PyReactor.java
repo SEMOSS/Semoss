@@ -82,6 +82,8 @@ public class PyReactor extends AbstractPyFrameReactor {
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
 		
 		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		//forcing smart sync to true
+		smartSync = true;
 
 		if(smartSync)
 		{

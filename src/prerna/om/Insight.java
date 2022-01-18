@@ -32,6 +32,7 @@ import java.io.Serializable;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -216,6 +217,9 @@ public class Insight implements Serializable {
 	
 	// chrome proxy
 	private transient ChromeDriverUtility chromeUtil = null;
+	
+	// adding place for variables
+	private Map <String, Variable> vars = new HashMap<String, Variable>();
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -1479,6 +1483,40 @@ public class Insight implements Serializable {
 		} else {
 			return this.cmdUtil;
 		}
+	}
+	
+	public ITableDataFrame getFrame(String frameName)
+	{
+		return this.varStore.getFrame(frameName);
+	}
+	
+	public boolean addVariable(Variable var)
+	{
+		// check to see if the frames are there
+		// they may want to use it with a non-semoss frame ?
+		List <String> varFrames = var.getFrames();
+		boolean frameFound = true;
+		for(int frameIndex = 0;frameIndex < varFrames.size() && frameFound;frameFound = frameFound && getFrame(varFrames.get(frameIndex)) != null, frameIndex++);
+		
+		if(frameFound)		
+			this.vars.put(var.getName(), var);
+
+		return frameFound;
+	}
+	
+	public Variable getVariable(String name)
+	{
+		return this.vars.get(name);
+	}
+
+	public void removeVariable(String name)
+	{
+		this.vars.remove(name);
+	}
+	
+	public List getAllVars()
+	{
+		return Arrays.asList(this.vars.keySet().toArray());
 	}
 
 	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
