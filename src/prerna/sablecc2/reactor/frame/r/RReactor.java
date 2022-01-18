@@ -53,6 +53,8 @@ public final class RReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator = this.insight.getRJavaTranslator(logger);
 		rJavaTranslator.startR();
 		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		// forcing smartSync to be true all the time
+		smartSync = true;
 		if(smartSync)
 		{
 			// see if the var has been set for first time
