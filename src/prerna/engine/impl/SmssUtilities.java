@@ -596,10 +596,13 @@ public class SmssUtilities {
 	 * Does validation that:
 	 * 1) The input is not null/empty
 	 * 2) That the project folder doesn't exist in the file directory
+	 * @param user
 	 * @param projectName
+	 * @param projectId
+	 * @return
 	 * @throws IOException
 	 */
-	public static void validateProject(User user, String projectName, String projectId) throws IOException {
+	public static File validateProject(User user, String projectName, String projectId) throws IOException {
 		if(projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
@@ -616,12 +619,14 @@ public class SmssUtilities {
 
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		// need to make sure app folder doesn't already exist
-		String appLocation = baseFolder + Constants.PROJECT_FOLDER +  SmssUtilities.getUniqueName(projectName, projectId);
-		File appFolder = new File(appLocation);
-		if(appFolder.exists()) {
+		String projectLocation = baseFolder + Constants.PROJECT_FOLDER +  SmssUtilities.getUniqueName(projectName, projectId);
+		File projectFolder = new File(projectLocation);
+		if(projectFolder.exists()) {
 			throw new IOException("Project folder already contains a project directory with the same name. "
 					+ "Please delete the existing project folder or provide a unique project name");
 		}
+		
+		return projectFolder;
 	}
 
 	/**
