@@ -618,8 +618,11 @@ public class SmssUtilities {
 		}
 
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if(!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
+			baseFolder += DIR_SEPARATOR;
+		}
 		// need to make sure app folder doesn't already exist
-		String projectLocation = baseFolder + Constants.PROJECT_FOLDER +  SmssUtilities.getUniqueName(projectName, projectId);
+		String projectLocation = baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId);
 		File projectFolder = new File(projectLocation);
 		if(projectFolder.exists()) {
 			throw new IOException("Project folder already contains a project directory with the same name. "
