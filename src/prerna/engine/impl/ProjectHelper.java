@@ -75,7 +75,8 @@ public class ProjectHelper {
 		}
 		
 		try {
-			SmssUtilities.validateProject(user, projectName, projectId);
+			File newProjectFolder = SmssUtilities.validateProject(user, projectName, projectId);
+			newProjectFolder.mkdirs();
 		} catch (IOException e) {
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
