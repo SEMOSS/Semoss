@@ -11,7 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -42,10 +42,10 @@ public class MyProjectsReactor extends AbstractReactor {
 		List<Map<String, Object>> projectInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			projectInfo = SecurityUserProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly);
+			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly);
 			this.insight.getUser().setProjects(projectInfo);
 		} else {
-			projectInfo = SecurityUserProjectUtils.getAllProjectList();
+			projectInfo = SecurityProjectUtils.getAllProjectList();
 		}
 
 		int size = projectInfo.size();
@@ -64,7 +64,7 @@ public class MyProjectsReactor extends AbstractReactor {
 
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = SecurityUserProjectUtils.getProjectMetadataWrapper(index.keySet(), META_KEYS_LIST);
+			wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), META_KEYS_LIST);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String projectId = (String) data[0];

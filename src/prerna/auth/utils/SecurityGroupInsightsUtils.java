@@ -18,6 +18,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 
 public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
@@ -25,37 +26,175 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	private static final Logger logger = LogManager.getLogger(SecurityGroupInsightsUtils.class);
 	
 	/**
-	 * Determine if a user can view a insight including group permissions
+	 * Determine if group can view insight
 	 * @param user
+	 * @param projectId
 	 * @param insightId
 	 * @return
 	 */
-	public static boolean userCanViewInsight(User user, String projectId, String insightId) {
-		Integer bestUserInsightPermission = getBestInsightPermission(user, projectId, insightId);
-		return bestUserInsightPermission != null;
+	public static boolean userGroupCanViewInsight(User user, String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		List<AuthProvider> logins = user.getLogins();
+		for(AuthProvider login : logins) {
+			AndQueryFilter andFilter = new AndQueryFilter();
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+			orFilter.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilter);
+		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					// actually do not care what the value is - we have a record so that means we can at least view
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Determine if group can edit insight
+	 * @param user
+	 * @param projectId
+	 * @param insightId
+	 * @return
+	 */
+	public static boolean userGroupCanEditInsight(User user, String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		List<AuthProvider> logins = user.getLogins();
+		for(AuthProvider login : logins) {
+			AndQueryFilter andFilter = new AndQueryFilter();
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+			orFilter.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilter);
+		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
+		IRawSelectWrapper wrapper = null;
+		Integer bestGroupDatabasePermission = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					bestGroupDatabasePermission  = ((Number) val).intValue();
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+
+		if(bestGroupDatabasePermission != null) {
+			return AccessPermission.isEditor(bestGroupDatabasePermission);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Determine if group is owner of insight
+	 * @param user
+	 * @param projectId
+	 * @param insightId
+	 * @return
+	 */
+	public static boolean userGroupIsOwner(User user, String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		List<AuthProvider> logins = user.getLogins();
+		for(AuthProvider login : logins) {
+			AndQueryFilter andFilter = new AndQueryFilter();
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+			orFilter.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilter);
+		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
+		IRawSelectWrapper wrapper = null;
+		Integer bestGroupDatabasePermission = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					bestGroupDatabasePermission  = ((Number) val).intValue();
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+
+		if(bestGroupDatabasePermission != null) {
+			return AccessPermission.isOwner(bestGroupDatabasePermission);
+		}
+
+		return false;
 	}
 	
-	/**
-	 * Determine if the user can modify the insight including group permissions
-	 * @param insightId
-	 * @param userId
-	 * @return
-	 */
-	public static boolean userCanEditInsight(User user, String projectId, String insightId) {
-		Integer bestUserInsightPermission = getBestInsightPermission(user, projectId, insightId);
-		return bestUserInsightPermission != null && AccessPermission.isEditor(bestUserInsightPermission);
-	}
-	
-	/**
-	 * Determine if the user is the owner of an insight including group permissions
-	 * @param userFilters
-	 * @param insightId
-	 * @return
-	 */
-	public static boolean userIsOwner(User user, String projectId, String insightId) {
-		Integer bestUserInsightPermission = getBestInsightPermission(user, projectId, insightId);
-		return bestUserInsightPermission != null && AccessPermission.isOwner(bestUserInsightPermission);
-	}
+//	/**
+//	 * Determine if a user can view a insight including group permissions
+//	 * @param user
+//	 * @param insightId
+//	 * @return
+//	 */
+//	public static boolean userCanViewInsight(User user, String projectId, String insightId) {
+//		Integer bestUserInsightPermission = getBestInsightPermission(user, projectId, insightId);
+//		return bestUserInsightPermission != null;
+//	}
+//	
+//	/**
+//	 * Determine if the user can modify the insight including group permissions
+//	 * @param insightId
+//	 * @param userId
+//	 * @return
+//	 */
+//	public static boolean userCanEditInsight(User user, String projectId, String insightId) {
+//		Integer bestUserInsightPermission = getBestInsightPermission(user, projectId, insightId);
+//		return bestUserInsightPermission != null && AccessPermission.isEditor(bestUserInsightPermission);
+//	}
+//	
+//	/**
+//	 * Determine if the user is the owner of an insight including group permissions
+//	 * @param userFilters
+//	 * @param insightId
+//	 * @return
+//	 */
+//	public static boolean userIsOwner(User user, String projectId, String insightId) {
+//		Integer bestUserInsightPermission = getBestInsightPermission(user, projectId, insightId);
+//		return bestUserInsightPermission != null && AccessPermission.isOwner(bestUserInsightPermission);
+//	}
 	
 	/**
 	 * Determine the strongest insight permission for the user/group
@@ -132,7 +271,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		}
 		
 		if(bestGroupInsightPermission == null && bestUserInsightPermission == null) {
-			if(SecurityQueryUtils.insightIsGlobal(projectId, insightId)) {
+			if(SecurityInsightUtils.insightIsGlobal(projectId, insightId)) {
 				return AccessPermission.READ_ONLY.getId();
 			}
 			return null;
@@ -154,7 +293,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void addInsightGroupPermission(User user, String groupId, String groupType, String projectId, String insightId, String permission) throws IllegalAccessException {
-		if(!userCanEditInsight(user, projectId, insightId)) {
+		if(!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
