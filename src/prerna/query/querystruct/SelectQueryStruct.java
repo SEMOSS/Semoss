@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -407,6 +408,27 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		newQs.setCustomFrom(this.customFrom);
 		newQs.setCustomFromAliasName(this.customFromAliasName);
 		return newQs;
+	}
+	
+	/**
+	 * Get an appropriate message
+	 * @param qs
+	 * @return
+	 */
+	public static String getExecutingQueryMessage(SelectQueryStruct qs) {
+		String message = null;
+		if(qs.getQsType() == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
+				|| qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+			if(qs.getFrame() instanceof NativeFrame) {
+				message = "Executing query against the database and generating the result set";
+			} else {
+				message = "Executing query against the frame and generating the result set";
+			}
+		} else {
+			message = "Executing query against the datasource and generating the result set";
+		}
+		
+		return message;
 	}
 	
 	
