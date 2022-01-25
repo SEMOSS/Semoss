@@ -8,8 +8,8 @@ import java.nio.file.StandardCopyOption;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserInsightUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -51,7 +51,7 @@ public class AssetUtility {
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
-				if(editRequired && in.isSavedInsight() && !SecurityUserInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 					throw new IllegalArgumentException("User does not have permission for this insight");
 				}
 			} else {
@@ -60,12 +60,12 @@ public class AssetUtility {
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
 					if(editRequired) {
-						if(!SecurityUserProjectUtils.userCanEditProject(in.getUser(), projectId)) {
+						if(!SecurityProjectUtils.userCanEditProject(in.getUser(), projectId)) {
 							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					} else {
 						// only read access
-						if(!SecurityUserProjectUtils.userCanViewProject(in.getUser(), projectId)) {
+						if(!SecurityProjectUtils.userCanViewProject(in.getUser(), projectId)) {
 							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					}
@@ -81,7 +81,7 @@ public class AssetUtility {
 			// FE very rarely sends the INSIGHT_SPACE_KEY
 			// and edit is required
 			// make sure user has access
-			if(!SecurityUserInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 				throw new IllegalArgumentException("User does not have permission for this insight");
 			}
 		}
@@ -121,7 +121,7 @@ public class AssetUtility {
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
-				if(editRequired && in.isSavedInsight() && !SecurityUserInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 					throw new IllegalArgumentException("User does not have permission for this insight");
 				}
 			} else {
@@ -130,12 +130,12 @@ public class AssetUtility {
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
 					if(editRequired) {
-						if(!SecurityUserProjectUtils.userCanEditProject(in.getUser(), space)) {
+						if(!SecurityProjectUtils.userCanEditProject(in.getUser(), space)) {
 							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					} else {
 						// only read access
-						if(!SecurityUserProjectUtils.userCanViewProject(in.getUser(), space)) {
+						if(!SecurityProjectUtils.userCanViewProject(in.getUser(), space)) {
 							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					}
@@ -150,7 +150,7 @@ public class AssetUtility {
 			// FE very rarely sends the INSIGHT_SPACE_KEY
 			// and edit is required
 			// make sure user has access
-			if(!SecurityUserInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
+			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 				throw new IllegalArgumentException("User does not have permission for this insight");
 			}
 		}

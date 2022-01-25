@@ -10,7 +10,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import prerna.auth.utils.SecurityUserInsightUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
@@ -63,7 +63,7 @@ public class SaveInsightIntoWorkspace {
 	 */
 	public void dropWorkspaceCache() {
 		this.insightAdmin.dropInsight(this.workspaceSavedInsightId);
-		SecurityUserInsightUtils.deleteInsight(this.userWorkspaceProject.getProjectId(), this.workspaceSavedInsightId);
+		SecurityInsightUtils.deleteInsight(this.userWorkspaceProject.getProjectId(), this.workspaceSavedInsightId);
 	}
 	
 	/**
@@ -126,7 +126,7 @@ class InsightCacher implements Runnable {
 					// update the existing insight
 					String inName = insightName + " " + formatter.format(new Date());
 					insightAdmin.updateInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false);
-					SecurityUserInsightUtils.updateInsight(this.workspaceAppId, this.workspaceSavedInsightId, inName, true, "default", lastPixel);
+					SecurityInsightUtils.updateInsight(this.workspaceAppId, this.workspaceSavedInsightId, inName, true, "default", lastPixel);
 					// delete the cache if it is there
 					InsightCacheUtility.deleteCache(this.workspaceAppId, this.workspaceAppName, this.workspaceSavedInsightId, true);
 
@@ -134,7 +134,7 @@ class InsightCacher implements Runnable {
 					// create new
 					String inName = insightName + " " + formatter.format(new Date());
 					insightAdmin.addInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, true);
-					SecurityUserInsightUtils.addInsight(this.workspaceAppId, this.workspaceSavedInsightId, 
+					SecurityInsightUtils.addInsight(this.workspaceAppId, this.workspaceSavedInsightId, 
 							inName, true, Utility.getApplicationCacheInsight(), "default", lastPixel);
 
 					created = true;

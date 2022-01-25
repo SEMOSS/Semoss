@@ -19,8 +19,8 @@ import com.google.gson.JsonSyntaxException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserInsightUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
@@ -103,8 +103,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		User user = this.insight.getUser();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(user, projectId);
-			if(!SecurityUserInsightUtils.userCanViewInsight(user, projectId, rdbmsId)) {
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+			if(!SecurityInsightUtils.userCanViewInsight(user, projectId, rdbmsId)) {
 				NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);

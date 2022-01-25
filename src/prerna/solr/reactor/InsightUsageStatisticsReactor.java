@@ -5,8 +5,8 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserInsightUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -48,8 +48,8 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			for (int i = 0; i < projectGrsFilters.size(); i++) {
 				String engineFilter = projectGrsFilters.get(i).toString();
 				if (AbstractSecurityUtils.securityEnabled()) {
-					engineFilter = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
-					if (SecurityUserProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
+					engineFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
+					if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
 						pFilters.add(engineFilter);
 					} else {
 						// store warnings
@@ -81,9 +81,9 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 		SelectQueryStruct qs = null;
 		// method handles if filters are null or not
 		if (AbstractSecurityUtils.securityEnabled()) {
-			qs = SecurityUserInsightUtils.searchUserInsightsUsage(this.insight.getUser(), pFilters, searchTerm, tagFilters);
+			qs = SecurityInsightUtils.searchUserInsightsUsage(this.insight.getUser(), pFilters, searchTerm, tagFilters);
 		} else {
-			qs = SecurityUserInsightUtils.searchInsightsUsage(pFilters, searchTerm, tagFilters);
+			qs = SecurityInsightUtils.searchInsightsUsage(pFilters, searchTerm, tagFilters);
 		}
 		
 		IEngine securityDb = (IEngine) DIHelper.getInstance().getLocalProp(Constants.SECURITY_DB);

@@ -8,7 +8,7 @@ import org.quartz.SchedulerException;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -40,7 +40,7 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityUserProjectUtils.userCanEditProject(user, jobGroup)) {
+		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 		

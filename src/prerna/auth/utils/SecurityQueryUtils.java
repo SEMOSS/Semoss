@@ -82,43 +82,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		
 		return potentialId;
 	}
-	
-	/**
-	 * Get the database alias for a id
-	 * @return
-	 */
-	public static String getDatabaseAliasForId(String id) {
-//		String query = "SELECT ENGINENAME FROM ENGINE WHERE ENGINEID='" + id + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", id));
-		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
-		if (results.isEmpty()) {
-			return null;
-		}
-		return results.get(0);
-	}
-	
-	/**
-	 * Get the project alias for a id
-	 * @return
-	 */
-	public static String getProjectAliasForId(String id) {
-//		String query = "SELECT PROJECTNAME FROM PROJECT WHERE PROJECTID='" + id + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", id));
-		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
-		if (results.isEmpty()) {
-			return null;
-		}
-		return results.get(0);
-	}
-	
+
 	/**
 	 * Get the insight alias for a id
 	 * @return
@@ -761,33 +725,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 //		return false;
 //	}
 	
-	public static boolean insightIsGlobal(String projectId, String insightId) {
-//		String query = "SELECT DISTINCT INSIGHT.GLOBAL FROM INSIGHT  "
-//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND INSIGHT.GLOBAL=TRUE";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
-				// i already bound that global must be true
-				return true;
-			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
-			}
-		}
-		return false;
-	}
-
 	public static SemossDate getLastModifiedDateForInsightInProject(String projectId) {
 //		String query = "SELECT DISTINCT INSIGHT.LASTMODIFIEDON "
 //				+ "FROM INSIGHT "

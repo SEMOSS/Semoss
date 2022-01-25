@@ -27,8 +27,8 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -231,7 +231,7 @@ public class AZClient extends CloudClient {
 		}
 		String appRcloneConfig = null;
 		File owlFile = null;
-		String alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
@@ -281,7 +281,7 @@ public class AZClient extends CloudClient {
 		}
 		String appRcloneConfig = null;
 		File owlFile = null;
-		String alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
@@ -433,7 +433,7 @@ public class AZClient extends CloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 		String appRcloneConfig = null;
-		String alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
@@ -483,7 +483,7 @@ public class AZClient extends CloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 		String appRcloneConfig = null;
-		String alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
@@ -852,7 +852,7 @@ public class AZClient extends CloudClient {
 		// We need to push the folder alias__appId and the file alias__appId.smss
 		String alias = project.getProjectName();
 		if(alias == null) {
-			alias = SecurityUserProjectUtils.getProjectAliasForId(projectId);
+			alias = SecurityProjectUtils.getProjectAliasForId(projectId);
 		}
 
 		String aliasProjectId = alias + "__" + projectId;
@@ -1271,7 +1271,7 @@ public class AZClient extends CloudClient {
 		if (engineType == ENGINE_TYPE.APP){
 			alias = engine.getEngineName();
 		} else{
-			alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+			alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		}
 
 		String aliasAppId = alias + "__" + appId;

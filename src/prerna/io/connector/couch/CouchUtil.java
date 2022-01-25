@@ -49,7 +49,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -521,7 +521,7 @@ public class CouchUtil {
 					fileContent = baos.toByteArray();
 				}
 			} else if(PROJECT.equals(partitionId)) {
-				String projectName = SecurityQueryUtils.getProjectAliasForId(projectId);
+				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 				
 				File[] images;
 				if(ClusterUtil.IS_CLUSTER) {
@@ -548,7 +548,7 @@ public class CouchUtil {
 					fileContent = baos.toByteArray();
 				}
 			} else {
-				String projectName = SecurityQueryUtils.getProjectAliasForId(projectId);
+				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 				String imagePath = AssetUtility.getProjectAssetVersionFolder(projectName, projectId)
 						+ DIR_SEPARATOR + insightId;
 				File[] images = InsightUtility.findImageFile(imagePath);

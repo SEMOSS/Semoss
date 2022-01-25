@@ -59,8 +59,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
@@ -135,6 +134,10 @@ public class Insight implements Serializable {
 	// keep a map to store various properties
 	// new variable assignments in pixel are also stored here
 	private transient VarStore varStore = new VarStore();
+	// adding place for specific variables created
+	// for dynamic frame calculations
+	private Map <String, Variable> vars = new HashMap<String, Variable>();
+
 	// separating out delayed messages
 	private transient BlockingQueue<NounMetadata> delayedMessages = new ArrayBlockingQueue<NounMetadata>(1024);
 	
@@ -217,9 +220,6 @@ public class Insight implements Serializable {
 	
 	// chrome proxy
 	private transient ChromeDriverUtility chromeUtil = null;
-	
-	// adding place for variables
-	private Map <String, Variable> vars = new HashMap<String, Variable>();
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -1462,12 +1462,12 @@ public class Insight implements Serializable {
 		// should we allow this if no one is logged in?
 		else {
 			String projectName = null;
-			String id = SecurityUserProjectUtils.getProjectAliasForId(projectId);
+			String id = SecurityProjectUtils.getProjectAliasForId(projectId);
 			if(id != null) {
 				projectName = projectId;
 				projectId = id;
 			} else {
-				projectName = SecurityQueryUtils.getProjectAliasForId(projectId);
+				projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 			}
 			String mountDir = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 	
@@ -1514,8 +1514,7 @@ public class Insight implements Serializable {
 		this.vars.remove(name);
 	}
 	
-	public List getAllVars()
-	{
+	public List getAllVars() {
 		return Arrays.asList(this.vars.keySet().toArray());
 	}
 

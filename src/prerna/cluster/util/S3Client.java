@@ -12,8 +12,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.common.io.Files;
 
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -162,7 +162,7 @@ public class S3Client extends CloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 		File owlFile = null;
-		String alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		String rCloneConfig = null;
@@ -215,7 +215,7 @@ public class S3Client extends CloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 		File owlFile = null;
-		String alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		String rCloneConfig = null;
@@ -514,7 +514,7 @@ public class S3Client extends CloudClient {
 		if (engineType == ENGINE_TYPE.APP) {
 			alias = engine.getEngineName();
 		} else {
-			alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+			alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		}
 
 		String normalizedAlias = Utility.normalizePath(alias);
@@ -832,7 +832,7 @@ public class S3Client extends CloudClient {
 
 		String alias = project.getProjectName();
 		if(alias == null) {
-			alias = SecurityUserProjectUtils.getProjectAliasForId(projectId);
+			alias = SecurityProjectUtils.getProjectAliasForId(projectId);
 		}
 
 		String normalizedAlias = Utility.normalizePath(alias);
@@ -1065,7 +1065,7 @@ public class S3Client extends CloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 		String rCloneConfig = null;
-		String alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
@@ -1115,7 +1115,7 @@ public class S3Client extends CloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 		String rCloneConfig = null;
-		String alias = SecurityQueryUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
