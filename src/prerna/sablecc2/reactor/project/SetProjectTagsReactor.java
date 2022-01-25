@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,14 +24,14 @@ public class SetProjectTagsReactor extends AbstractReactor {
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityUserProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
 			}
 		}
 		
 		List<String> tags = getTags();
-		SecurityUserProjectUtils.updateProjectTags(projectId, tags);
+		SecurityProjectUtils.updateProjectTags(projectId, tags);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new tags for project"));
 		return noun;

@@ -60,7 +60,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 		if(SecurityDatabaseUtils.databaseIsGlobal(databaseId)) {
 			return AccessPermission.READ_ONLY.getPermission();
 		}
-				
+		
 		return null;
 	}
 	

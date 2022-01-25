@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -81,7 +82,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 			String items = "";
 			for (int row = 0; row < myEngines.size(); row++) {
 				String dbid = myEngines.get(row);
-				String dbname = SecurityQueryUtils.getDatabaseAliasForId(dbid);
+				String dbname = SecurityDatabaseUtils.getDatabaseAliasForId(dbid);
 				String oneItem = dbid + "$" + dbname + "$";
 				if(row < myEngines.size() - 1) {
 					items += "\"" + oneItem + "\", ";

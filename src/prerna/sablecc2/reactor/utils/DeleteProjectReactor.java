@@ -6,8 +6,8 @@ import java.util.Vector;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
@@ -39,10 +39,10 @@ public class DeleteProjectReactor extends AbstractReactor {
 			
 			// we may have the alias
 			if(AbstractSecurityUtils.securityEnabled()) {
-				projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+				projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 				if(!isAdmin) {
-					boolean isOwner = SecurityUserProjectUtils.userIsOwner(user, projectId);
+					boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
 					if(!isOwner) {
 						throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have permissions to delete the project. "
 								+ "User must be the owner to perform this function.");

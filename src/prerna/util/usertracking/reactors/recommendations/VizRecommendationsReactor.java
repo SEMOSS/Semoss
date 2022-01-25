@@ -11,7 +11,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -101,7 +101,7 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 					continue;
 				}
 				String db = engineQs[0];
-				String dbname = SecurityQueryUtils.getDatabaseAliasForId(db);
+				String dbname = SecurityDatabaseUtils.getDatabaseAliasForId(db);
 				String conceptProp = engineQs[1];
 				String table = conceptProp;
 				String column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
