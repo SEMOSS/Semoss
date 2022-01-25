@@ -309,7 +309,7 @@ public class BasicIteratorTask extends AbstractTask {
 	public void optimizeQuery(int collectNum) throws Exception {
 		if(this.isOptimize) {
 			if(this.qs != null && !(this.qs instanceof HardSelectQueryStruct) ) {
-				this.logger.info("Optimizing query and generating result set");
+				this.logger.info(SelectQueryStruct.getExecutingQueryMessage(this.qs));
 
 				// if no limit defined
 				if(this.startLimit < 0) {
@@ -345,6 +345,7 @@ public class BasicIteratorTask extends AbstractTask {
 					addedOrder = true;
 				}
 				generateIterator();
+				this.logger.info("Finished executing the query");
 				// we got the iterator
 				// if we added an order, remove it
 				if(addedOrder) {
