@@ -21,7 +21,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.couch.CouchException;
 import prerna.io.connector.couch.CouchUtil;
@@ -89,7 +89,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		} else {
 			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
 		}

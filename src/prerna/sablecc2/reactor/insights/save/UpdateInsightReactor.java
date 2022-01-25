@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserInsightUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
@@ -61,7 +61,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityUserInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
+			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
 		}
@@ -71,7 +71,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		
-		if(SecurityUserInsightUtils.insightNameExistsMinusId(projectId, insightName, existingId)) {
+		if(SecurityInsightUtils.insightNameExistsMinusId(projectId, insightName, existingId)) {
 			throw new IllegalArgumentException("Insight name already exists");
 		}
 		
@@ -212,18 +212,18 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	private void editRegisteredInsightAndMetadata(IProject project, String existingRdbmsId, String insightName, String layout, 
 			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
 		String projectId = project.getProjectId();
-		SecurityUserInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, true, layout, recipe);
+		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, true, layout, recipe);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if(description != null) {
 			admin.updateInsightDescription(existingRdbmsId, description);
-			SecurityUserInsightUtils.updateInsightDescription(projectId, existingRdbmsId, description);
+			SecurityInsightUtils.updateInsightDescription(projectId, existingRdbmsId, description);
 		}
 		if(tags != null) {
 			admin.updateInsightTags(existingRdbmsId, tags);
-			SecurityUserInsightUtils.updateInsightTags(projectId, existingRdbmsId, tags);
+			SecurityInsightUtils.updateInsightTags(projectId, existingRdbmsId, tags);
 		}
 		if(insightFrames != null && !insightFrames.isEmpty()) {
-			SecurityUserInsightUtils.updateInsightFrames(projectId, existingRdbmsId, insightFrames);
+			SecurityInsightUtils.updateInsightFrames(projectId, existingRdbmsId, insightFrames);
 		}
 	}
 	

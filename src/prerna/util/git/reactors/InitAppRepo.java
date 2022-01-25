@@ -52,7 +52,7 @@ public class InitAppRepo extends GitBaseReactor {
 			if(!SecurityDatabaseUtils.userIsOwner(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 			}
-			databaseName = SecurityQueryUtils.getDatabaseAliasForId(databaseId);
+			databaseName = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
 		} else {
 			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		}

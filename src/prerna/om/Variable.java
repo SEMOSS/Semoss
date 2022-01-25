@@ -66,7 +66,7 @@ public class Variable {
 		return this.name;
 	}	
 	
-	public void setFrames(List <String> frames)
+	public void setFrames(List<String> frames)
 	{
 		this.frames = frames;
 	}

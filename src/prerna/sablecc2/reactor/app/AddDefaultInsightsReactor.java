@@ -8,8 +8,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityUserInsightUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -58,7 +58,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityUserProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the project");
 			}
 			if(!addAll && insightsToAdd.size()==1 && insightsToAdd.contains(INSIGHT_STATS)) {
@@ -234,9 +234,9 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	}
 	
 	private void registerInsightAndMetadata(String projectId, String insightIdToSave, String insightName, String layout, boolean cacheable, List<String> recipe) {
-		SecurityUserInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, cacheable, layout, recipe);
+		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, cacheable, layout, recipe);
 		if(this.insight.getUser() != null) {
-			SecurityUserInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
+			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
 		}
 	}
 	

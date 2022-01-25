@@ -3,8 +3,8 @@ package prerna.solr.reactor;
 import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserInsightUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -25,8 +25,8 @@ public class GetInsightFramesReactor extends AbstractReactor {
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityUserInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
 				NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -34,7 +34,7 @@ public class GetInsightFramesReactor extends AbstractReactor {
 			}
 		}
 		
-		List<Object[]> retList = SecurityUserInsightUtils.getInsightFrames(projectId, rdbmsId);
+		List<Object[]> retList = SecurityInsightUtils.getInsightFrames(projectId, rdbmsId);
 		NounMetadata retNoun = new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		return retNoun;
 	}

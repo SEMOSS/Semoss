@@ -5,7 +5,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -56,8 +55,8 @@ public class CopyDatabasePermissionsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("An error occured copying the app permissions.  Detailed error: " + e.getMessage());
 		}
 
-		String sourceDatabase = SecurityQueryUtils.getDatabaseAliasForId(sourceDatabaseId);
-		String targetDatabase = SecurityQueryUtils.getDatabaseAliasForId(targetDatabaseId);
+		String sourceDatabase = SecurityDatabaseUtils.getDatabaseAliasForId(sourceDatabaseId);
+		String targetDatabase = SecurityDatabaseUtils.getDatabaseAliasForId(targetDatabaseId);
 
 		return new NounMetadata("Copied permissions from database " 
 				+ sourceDatabase  + "__" + sourceDatabaseId + " to " + targetDatabase + "__" + targetDatabaseId, 

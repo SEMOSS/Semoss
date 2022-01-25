@@ -14,8 +14,8 @@ import org.apache.commons.io.FileUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserInsightUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
@@ -55,8 +55,8 @@ public class DeleteInsightReactor extends AbstractReactor {
 		}
 		String projectId = projectGrs.get(0).toString();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityUserProjectUtils.testUserProjectIdForAlias(user, projectId);
-			if(!SecurityUserProjectUtils.userCanViewProject(user, projectId)) {
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+			if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 				throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to the project");
 			}
 			// Get the user's email
@@ -82,7 +82,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		for (int i = 0; i < size; i++) {
 			String insightId = grs.get(i).toString();
 			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityUserInsightUtils.userCanEditInsight(user, projectId, insightId)) {
+				if(!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
 					throw new IllegalArgumentException("User does not have permission to edit this insight");
 				}
 			}
@@ -130,7 +130,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 			
 			// now delete from security db
-			SecurityUserInsightUtils.deleteInsight(projectId, insightId);
+			SecurityInsightUtils.deleteInsight(projectId, insightId);
 		}
 		
 		ClusterUtil.reactorPushInsightDB(projectId);

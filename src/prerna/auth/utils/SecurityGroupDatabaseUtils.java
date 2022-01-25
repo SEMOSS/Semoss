@@ -18,6 +18,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 
 public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
@@ -25,37 +26,172 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 	private static final Logger logger = LogManager.getLogger(SecurityGroupDatabaseUtils.class);
 	
 	/**
-	 * Determine if a user can view a database including group permissions
+	 * Determine if a group can view a database
 	 * @param user
 	 * @param databaseId
 	 * @return
 	 */
-	public static boolean userCanViewDatabase(User user, String databaseId) {
-		Integer bestUserDatabasePermission = getBestDatabasePermission(user, databaseId);
-		return bestUserDatabasePermission != null;
+	public static boolean userGroupCanViewDatabase(User user, String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		List<AuthProvider> logins = user.getLogins();
+		for(AuthProvider login : logins) {
+			AndQueryFilter andFilter = new AndQueryFilter();
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+			orFilter.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilter);
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__PERMISSION"));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					// actually do not care what the value is - we have a record so that means we can at least view
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to retrieve existing group database permissions for user", e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
 	}
 	
 	/**
-	 * Determine if the user can modify the database including group permissions
+	 * Determine if the group can modify the database
 	 * @param databaseId
 	 * @param userId
 	 * @return
 	 */
-	public static boolean userCanEditDatabase(User user, String databaseId) {
-		Integer bestUserDatabasePermission = getBestDatabasePermission(user, databaseId);
-		return bestUserDatabasePermission != null && AccessPermission.isEditor(bestUserDatabasePermission);
+	public static boolean userGroupCanEditDatabase(User user, String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", databaseId));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		List<AuthProvider> logins = user.getLogins();
+		for(AuthProvider login : logins) {
+			AndQueryFilter andFilter = new AndQueryFilter();
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+			orFilter.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilter);
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__PERMISSION"));
+		IRawSelectWrapper wrapper = null;
+		Integer bestGroupDatabasePermission = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					bestGroupDatabasePermission  = ((Number) val).intValue();
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to retrieve existing group database permissions for user", e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		if(bestGroupDatabasePermission != null) {
+			return AccessPermission.isEditor(bestGroupDatabasePermission);
+		}
+		
+		return false;
 	}
 	
 	/**
-	 * Determine if the user is the owner of an database including group permissions
+	 * Determine if the group is the owner of a database
 	 * @param userFilters
 	 * @param databaseId
 	 * @return
 	 */
-	public static boolean userIsOwner(User user, String databaseId) {
-		Integer bestUserDatabasePermission = getBestDatabasePermission(user, databaseId);
-		return bestUserDatabasePermission != null && AccessPermission.isOwner(bestUserDatabasePermission);
+	public static boolean userGroupIsOwner(User user, String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", databaseId));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		List<AuthProvider> logins = user.getLogins();
+		for(AuthProvider login : logins) {
+			AndQueryFilter andFilter = new AndQueryFilter();
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+			orFilter.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilter);
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__PERMISSION"));
+		IRawSelectWrapper wrapper = null;
+		Integer bestGroupDatabasePermission = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					bestGroupDatabasePermission  = ((Number) val).intValue();
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to retrieve existing group database permissions for user", e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		if(bestGroupDatabasePermission != null) {
+			return AccessPermission.isOwner(bestGroupDatabasePermission);
+		}
+		
+		return false;
 	}
+	
+//	/**
+//	 * Determine if a user can view a database including group permissions
+//	 * @param user
+//	 * @param databaseId
+//	 * @return
+//	 */
+//	public static boolean userCanViewDatabase(User user, String databaseId) {
+//		Integer bestUserDatabasePermission = getBestDatabasePermission(user, databaseId);
+//		return bestUserDatabasePermission != null;
+//	}
+//	
+//	/**
+//	 * Determine if the user can modify the database including group permissions
+//	 * @param databaseId
+//	 * @param userId
+//	 * @return
+//	 */
+//	public static boolean userCanEditDatabase(User user, String databaseId) {
+//		Integer bestUserDatabasePermission = getBestDatabasePermission(user, databaseId);
+//		return bestUserDatabasePermission != null && AccessPermission.isEditor(bestUserDatabasePermission);
+//	}
+//	
+//	/**
+//	 * Determine if the user is the owner of an database including group permissions
+//	 * @param userFilters
+//	 * @param databaseId
+//	 * @return
+//	 */
+//	public static boolean userIsOwner(User user, String databaseId) {
+//		Integer bestUserDatabasePermission = getBestDatabasePermission(user, databaseId);
+//		return bestUserDatabasePermission != null && AccessPermission.isOwner(bestUserDatabasePermission);
+//	}
 	
 	/**
 	 * Determine the strongest database permission for the user/group
@@ -152,7 +288,7 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void addDatabaseGroupPermission(User user, String groupId, String groupType, String databaseId, String permission) throws IllegalAccessException {
-		if(!userCanEditDatabase(user, databaseId)) {
+		if(!SecurityDatabaseUtils.userCanEditDatabase(user, databaseId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		

@@ -5,8 +5,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserInsightUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -29,7 +29,7 @@ public class GetAvailableTagsReactor extends AbstractReactor {
 		List<String> projectFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appliedProjectFilters = new Vector<>();
-			projectFilters = SecurityUserProjectUtils.getFullUserProjectIds(this.insight.getUser());
+			projectFilters = SecurityProjectUtils.getFullUserProjectIds(this.insight.getUser());
 			if(!inputFilters.isEmpty()) {
 				// loop through and compare what the user has access to
 				for(String inputAppFilter : inputFilters) {
@@ -57,7 +57,7 @@ public class GetAvailableTagsReactor extends AbstractReactor {
 			}
 		}
 		
-		List<Map<String, Object>> ret = SecurityUserInsightUtils.getAvailableInsightTagsAndCounts(appliedProjectFilters);
+		List<Map<String, Object>> ret = SecurityInsightUtils.getAvailableInsightTagsAndCounts(appliedProjectFilters);
 		NounMetadata noun = new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		if(!warningNouns.isEmpty()) {
 			noun.addAllAdditionalReturn(warningNouns);
