@@ -21,7 +21,6 @@ import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -141,7 +140,7 @@ public class GitConsumer {
 		}
 		
 		if (SecurityDatabaseUtils.getAllDatabaseIds().contains(actualAppId)) {
-			throw new IllegalArgumentException("The app you are attempting to copy already exists as " + SecurityQueryUtils.getDatabaseAliasForId(actualAppId));
+			throw new IllegalArgumentException("The app you are attempting to copy already exists as " + SecurityDatabaseUtils.getDatabaseAliasForId(actualAppId));
 		}
 		
 		// before you do this.. wait for the monitor to finish

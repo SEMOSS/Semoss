@@ -29,7 +29,25 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 
 	private static final Logger logger = LogManager.getLogger(SecurityDatabaseUtils.class);
-
+	
+	/**
+	 * Get the database alias for a id
+	 * @return
+	 */
+	public static String getDatabaseAliasForId(String id) {
+//		String query = "SELECT ENGINENAME FROM ENGINE WHERE ENGINEID='" + id + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", id));
+		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
+		if (results.isEmpty()) {
+			return null;
+		}
+		return results.get(0);
+	}
+	
 	/**
 	 * Get what permission the user has for a given database
 	 * @param userId
@@ -99,17 +117,8 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsOwner(User user, String databaseId) {
-		return SecurityUserDatabaseUtils.userIsOwner(getUserFiltersQs(user), databaseId);
-	}
-	
-	/**
-	 * Determine if a user can view a database
-	 * @param user
-	 * @param databaseId
-	 * @return
-	 */
-	public static boolean userCanViewDatabase(User user, String databaseId) {
-		return SecurityUserDatabaseUtils.userCanViewDatabase(user, databaseId);
+		return SecurityUserDatabaseUtils.userIsOwner(getUserFiltersQs(user), databaseId)
+				|| SecurityGroupDatabaseUtils.userGroupIsOwner(user, databaseId);
 	}
 	
 	/**
@@ -119,7 +128,19 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanEditDatabase(User user, String databaseId) {
-		return SecurityUserDatabaseUtils.userCanEditDatabase(user, databaseId);
+		return SecurityUserDatabaseUtils.userCanEditDatabase(user, databaseId)
+				|| SecurityGroupDatabaseUtils.userGroupCanEditDatabase(user, databaseId);
+	}
+	
+	/**
+	 * Determine if a user can view a database
+	 * @param user
+	 * @param databaseId
+	 * @return
+	 */
+	public static boolean userCanViewDatabase(User user, String databaseId) {
+		return SecurityUserDatabaseUtils.userCanViewDatabase(user, databaseId)
+				|| SecurityGroupDatabaseUtils.userGroupCanViewDatabase(user, databaseId);
 	}
 	
 	/**

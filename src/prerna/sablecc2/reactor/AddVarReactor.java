@@ -17,9 +17,9 @@ public class AddVarReactor extends AbstractReactor
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
 		organizeKeys();
 		String name = (String)this.getNounStore().getNoun(this.keysToGet[0]).get(0);
+		// this should be a list of strings
 		List frames = (List)this.getNounStore().getNoun(this.keysToGet[1]).getAllValues();
 		String expression = (String)this.getNounStore().getNoun(this.keysToGet[2]).get(0);
 		String language = (String)this.getNounStore().getNoun(this.keysToGet[3]).get(0);
@@ -28,12 +28,12 @@ public class AddVarReactor extends AbstractReactor
 		var.setName(name);
 		var.setExpression(expression);
 		var.setFrames(frames);
-		if(language != null)
-		{
-			if(language.equalsIgnoreCase("r"))
+		if(language != null) {
+			if(language.equalsIgnoreCase("r")) {
 				var.setLanguage(Variable.LANGUAGE.R);
-			else if(language.equalsIgnoreCase("python"))
+			} else if(language.equalsIgnoreCase("python")) {
 				var.setLanguage(Variable.LANGUAGE.PYTHON);
+			}
 		}
 		
 		// add the variable

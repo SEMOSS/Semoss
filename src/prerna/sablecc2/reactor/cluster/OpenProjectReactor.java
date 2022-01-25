@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -40,7 +40,7 @@ public class OpenProjectReactor extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			if(!SecurityUserProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 				// you dont have access
 				throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 			}

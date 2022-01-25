@@ -4,9 +4,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUserInsightUtils;
-import prerna.auth.utils.SecurityUserProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -41,10 +41,10 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 		String targetInsightId = this.keyValue.get(this.keysToGet[3]);
 
 		// must be an editor for both to run this
-		if(!SecurityUserProjectUtils.userCanEditProject(this.insight.getUser(), sourceProjectId)) {
+		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), sourceProjectId)) {
 			throw new IllegalArgumentException("You do not have edit access to the source project");
 		}
-		if(!SecurityUserProjectUtils.userCanEditProject(this.insight.getUser(), targetProjectId)) {
+		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), targetProjectId)) {
 			throw new IllegalArgumentException("You do not have edit access to the target project");
 		}
 		
@@ -61,14 +61,14 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 		
 		// now perform the operation
 		try {
-			SecurityUserInsightUtils.copyInsightPermissions(sourceProjectId, sourceInsightId, targetProjectId, targetInsightId);
+			SecurityInsightUtils.copyInsightPermissions(sourceProjectId, sourceInsightId, targetProjectId, targetInsightId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured copying the insight permissions.  Detailed error: " + e.getMessage());
 		}
 
-		String sourceProject = SecurityQueryUtils.getProjectAliasForId(sourceProjectId);
-		String targetProject = SecurityQueryUtils.getProjectAliasForId(targetProjectId);
+		String sourceProject = SecurityProjectUtils.getProjectAliasForId(sourceProjectId);
+		String targetProject = SecurityProjectUtils.getProjectAliasForId(targetProjectId);
 		
 		return new NounMetadata("Copied permissions from project " + sourceProject + "__" + sourceProjectId 
 				+ " insight \"" + sourceInsightName + "\" to " + targetProject + "__" + targetProjectId 

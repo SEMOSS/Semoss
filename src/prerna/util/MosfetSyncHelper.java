@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityUserInsightUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
@@ -146,18 +146,18 @@ public class MosfetSyncHelper {
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
 		admin.addInsight(id, insightName, layout, recipe, hidden, cacheable);
-		SecurityUserInsightUtils.addInsight(projectId, id, insightName, false, cacheable, layout, recipe);
+		SecurityInsightUtils.addInsight(projectId, id, insightName, false, cacheable, layout, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
 		if(description != null) {
 			admin.updateInsightDescription(id, description);
-			SecurityUserInsightUtils.updateInsightDescription(projectId, id, description);
+			SecurityInsightUtils.updateInsightDescription(projectId, id, description);
 		}
 		String[] tags = mosfet.getTags();
 		if(tags != null && tags.length > 0) {
 			admin.updateInsightTags(id, tags);
-			SecurityUserInsightUtils.updateInsightTags(id, id, tags);
+			SecurityInsightUtils.updateInsightTags(id, id, tags);
 		}
 	}
 
@@ -174,18 +174,18 @@ public class MosfetSyncHelper {
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
 		admin.updateInsight(id, insightName, layout, recipe, hidden);
-		SecurityUserInsightUtils.updateInsight(projectId, id, insightName, false, layout, recipe);
+		SecurityInsightUtils.updateInsight(projectId, id, insightName, false, layout, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
 		if(description != null) {
 			admin.updateInsightDescription(id, description);
-			SecurityUserInsightUtils.updateInsightDescription(projectId, id, description);
+			SecurityInsightUtils.updateInsightDescription(projectId, id, description);
 		}
 		String[] tags = mosfet.getTags();
 		if(tags != null && tags.length > 0) {
 			admin.updateInsightTags(id, tags);
-			SecurityUserInsightUtils.updateInsightTags(id, id, tags);
+			SecurityInsightUtils.updateInsightTags(id, id, tags);
 		}
 	}
 
@@ -197,7 +197,7 @@ public class MosfetSyncHelper {
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		admin.dropInsight(id);
 
-		SecurityUserInsightUtils.deleteInsight(projectId, id);
+		SecurityInsightUtils.deleteInsight(projectId, id);
 	}
 
 	private static void outputError(Logger logger, String errorMessage) {
