@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.Logger;
+
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.InsightPanel;
@@ -24,6 +27,8 @@ import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 
 public class FilterModelStateReactor extends AbstractFilterReactor {
 
+	public static final String CLASS_NAME = FilterModelStateReactor.class.getName();
+	
 	/**
 	 * This reactor has many inputs
 	 * 
@@ -42,6 +47,7 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataframe = getFrame();
 
 		InsightPanel panel = getInsightPanel();
@@ -79,11 +85,13 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 			dynamic = Boolean.parseBoolean(dynamicGrs.get(0) + "");
 		}
 
-		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, dynamic, panel);
+		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, dynamic, panel, logger);
 	}
 
 	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
-			int offset, boolean dynamic, InsightPanel panel) {
+			int offset, boolean dynamic, InsightPanel panel, Logger logger) {
+		DataFrameTypeEnum frameType = dataframe.getFrameType();
+
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		// first just return the info that was passed in
@@ -118,7 +126,9 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		if(dynamic) {
 			qs.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
+		
 		// grab all the values
+		logger.info(getExecutionQueryMessage(frameType, "retrieve all column values"));
 		List<Object> options = new ArrayList<Object>();
 		// flush out the values
 		IRawSelectWrapper allValuesIt = null;
@@ -156,6 +166,7 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 			totalCountQS.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
 		
+		logger.info(getExecutionQueryMessage(frameType, "retrieve the distinct count of all column values"));
 		int totalCount = 0;
 		IRawSelectWrapper totalCountIt = null;
 		try {
@@ -198,7 +209,8 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 
 		// this is just the values of the column given the current filters
 		qs2.setExplicitFilters(baseFilters);
-				
+		
+		logger.info(getExecutionQueryMessage(frameType, "retrieve the user selected values"));
 		// figure out the selected values
 		List<Object> selectedValues = new ArrayList<Object>();
 		// now run and flush out the values
@@ -223,6 +235,7 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		selectedCountQS.addSelector(uCountFunc);
 		selectedCountQS.setExplicitFilters(baseFilters);
 		
+		logger.info(getExecutionQueryMessage(frameType, "retrieve the distinct count of the selected values"));
 		int selectedCount = 0;
 		IRawSelectWrapper selectedCountIt = null;
 		try {
@@ -241,6 +254,19 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		retMap.put("selectedCount", selectedCount);
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
+	}
+	
+	/**
+	 * 
+	 * @param frameType
+	 * @param baseMessage
+	 * @return
+	 */
+	private String getExecutionQueryMessage(DataFrameTypeEnum frameType, String baseMessage) {
+		if(frameType == DataFrameTypeEnum.NATIVE) {
+			return "Executing query against the database to " + baseMessage;
+		} 
+		return "Executing query against the frame to " + baseMessage;
 	}
 	
 }
