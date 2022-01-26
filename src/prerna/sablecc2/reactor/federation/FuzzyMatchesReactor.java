@@ -15,6 +15,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -171,7 +172,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		if (exactMatchCount != null) {
 			int val = Integer.parseInt(exactMatchCount);
 			returnTable = createNewFrameFromVariable(matchesFrame);
-			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
+			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME, PixelOperationType.FRAME);
 			retNoun.addAdditionalReturn(new NounMetadata(val, PixelDataType.CONST_INT));
 		} else{
 			throw new IllegalArgumentException("No matches found.");
