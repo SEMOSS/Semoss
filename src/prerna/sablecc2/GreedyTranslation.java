@@ -5,9 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.om.Variable;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AOperation;
@@ -355,15 +357,27 @@ public class GreedyTranslation extends LazyTranslation {
 		    			simpleMap.put("clone", cloneMap.get("clone").getPanelId());
 						pixelObj.addCloneMap(simpleMap);
 		    		} else if(output.getNounType() == PixelDataType.CODE) {
-		    			pixelObj.setCodeExecution(true);
+		    			String codeExecuted = ((ICodeExecution) prevReactor).getCode();
+		    			Variable.LANGUAGE language = ((ICodeExecution) prevReactor).getLanguage();
+		    			pixelObj.setCodeDetails(true, codeExecuted, language);
 		    		}
 		    		
 		    		List<PixelOperationType> opTypes = output.getOpType();
 		    		if(opTypes.contains(PixelOperationType.RESET_PANEL_TASKS)) {
 		    			pixelObj.setRefreshPanel(true);
 		    		}
+		    		// TODO: i believe we are using this in a lot of places
+		    		// where we run a script
+		    		// but its not base code that can be executed
 		    		if(opTypes.contains(PixelOperationType.CODE_EXECUTION)) {
-		    			pixelObj.setCodeExecution(true);
+		    			if(curReactor instanceof ICodeExecution) {
+			    			String codeExecuted = ((ICodeExecution) prevReactor).getCode();
+			    			Variable.LANGUAGE language = ((ICodeExecution) prevReactor).getLanguage();
+			    			pixelObj.setCodeDetails(true, codeExecuted, language);
+		    			} else {
+		    				// should still save this execution
+			    			pixelObj.setSaveDataTransformation(true);
+		    			}
 		    		}
 		    		if(opTypes.contains(PixelOperationType.FRAME) 
 		    				|| opTypes.contains(PixelOperationType.FRAME_DATA_CHANGE)
