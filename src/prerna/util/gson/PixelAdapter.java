@@ -14,6 +14,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.om.Pixel;
+import prerna.om.Variable;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
@@ -34,6 +35,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		boolean meta = false;
 		boolean isRefreshPanel = false;
 		boolean isCodeExecution = false;
+		String codeExecuted = null;
+		Variable.LANGUAGE language = null;
 		boolean isFrameTransformation = false;
 		boolean isAssignment = false;
 		boolean isFileRead = false;
@@ -77,6 +80,11 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 				isRefreshPanel = in.nextBoolean();
 			} else if(key.equals("isCodeExecution")) {
 				isCodeExecution = in.nextBoolean();
+			} else if(key.equals("codeExecuted")) {
+				codeExecuted = in.nextString();
+			} else if(key.equals("language")) {
+				String strLanguage = in.nextString();
+				language = Variable.LANGUAGE.valueOf(strLanguage);
 			} else if(key.equals("isFrameTransformation")) {
 				isFrameTransformation = in.nextBoolean();
 			} else if(key.equals("isAssignment")) {
@@ -143,7 +151,9 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		pixel.setPixelDescription(pixelDescription);
 		pixel.setMeta(meta);
 		pixel.setRefreshPanel(isRefreshPanel);
-		pixel.setCodeExecution(isCodeExecution);
+		if(isCodeExecution) {
+			pixel.setCodeDetails(isCodeExecution, codeExecuted, language);
+		}
 		pixel.setFrameTransformation(isFrameTransformation);
 		pixel.setAssignment(isAssignment);
 		pixel.setFileRead(isFileRead);
@@ -195,6 +205,16 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		// isCodeExecution
 		out.name("isCodeExecution");
 		out.value(value.isCodeExecution());
+		// isCodeExecution
+		out.name("codeExecuted");
+		out.value(value.getCodeExecuted());
+		// isCodeExecution
+		out.name("language");
+		if(value.getLanguage() == null) {
+			out.nullValue();
+		} else {
+			out.value(value.getLanguage().name());
+		}
 		// isFrameTransformation
 		out.name("isFrameTransformation");
 		out.value(value.isFrameTransformation());
