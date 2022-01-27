@@ -60,12 +60,50 @@ public class PixelList implements Iterable<Pixel> {
 	public void syncLastPixel() {
 		// now store the frame dependency
 		Pixel p = pixelList.get(pixelList.size()-1);
+		Pixel pixelToUtilize = p;
+		
+		// can we consolidate the pixels?
+		// TODO:
+		// TODO:
+		// TODO:
+		// TODO:
+		// TODO: if there is a visualization in between
+		// need to determine how to consolidate
+		if(p.isCodeExecution() && pixelList.size()>1) {
+			Pixel prevPixel = pixelList.get(pixelList.size()-2);
+			if(prevPixel.isCodeExecution() 
+					&& p.getLanguage() == prevPixel.getLanguage()
+					&& ( p.getLanguage() == Variable.LANGUAGE.R
+						|| p.getLanguage() == Variable.LANGUAGE.PYTHON )
+					) {
+				// we can combine these!
+				String prevCodeExecution = prevPixel.getCodeExecuted();
+				String newCodeExecution = p.getCodeExecuted();
+				
+				String combined = prevCodeExecution + "\n" + newCodeExecution;
+				StringBuilder newPixelString = new StringBuilder();
+				if(p.getLanguage() == Variable.LANGUAGE.R) {
+					newPixelString.append("R(\"<encode>");
+				} else {
+					newPixelString.append("Py(\"<encode>");
+				}
+				newPixelString.append(combined);
+				newPixelString.append("</encode>\");");
+				prevPixel.setPixelString(newPixelString.toString());
+				prevPixel.setCodeDetails(true, combined, prevPixel.getLanguage());
+				
+				// now remove p from the list
+				pixelList.remove(pixelList.size()-1);
+				// and change the pixelToUtilize reference
+				pixelToUtilize = prevPixel;
+			}
+		}
 		
 		// store frame output
 		Set<String> frameOutputs = p.getFrameOutputs();
 		for(String frameName : frameOutputs) {
 			if(frameDependency.containsKey(frameName)) {
-				frameDependency.get(frameName).addLast(p);
+				frameDependency.get(frameName).addLast(pixelToUtilize);
 			} else {
 				LinkedList<Pixel> dll = new LinkedList<>();
 				dll.addFirst(p);
@@ -79,11 +117,14 @@ public class PixelList implements Iterable<Pixel> {
 			// do not double count..
 			if(!frameOutputs.contains(frameName)) {
 				if(frameDependency.containsKey(frameName)) {
-					frameDependency.get(frameName).addLast(p);
+					// make sure we are not adding the same reference twice
+					if(frameDependency.get(frameName).getLast() != pixelToUtilize) {
+						frameDependency.get(frameName).addLast(pixelToUtilize);
+					}
 				} else {
 					logger.info("Super weird... this is a frame input for pixel but doesn't exist as a previous frame output");
 					LinkedList<Pixel> dll = new LinkedList<>();
-					dll.addFirst(p);
+					dll.addFirst(pixelToUtilize);
 					frameDependency.put(frameName, dll);
 				}
 			}
@@ -108,10 +149,13 @@ public class PixelList implements Iterable<Pixel> {
 				}
 				
 				if(panelMap.containsKey(layerId)) {
-					panelMap.get(layerId).addLast(p);
+					// make sure we are not adding the same reference twice
+					if(panelMap.get(layerId).getLast() != pixelToUtilize) {
+						panelMap.get(layerId).addLast(pixelToUtilize);
+					}
 				} else {
 					LinkedList<Pixel> dll = new LinkedList<>();
-					dll.addFirst(p);
+					dll.addFirst(pixelToUtilize);
 					panelMap.put(layerId, dll);
 				}
 			}

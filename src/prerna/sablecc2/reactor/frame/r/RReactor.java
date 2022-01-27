@@ -15,10 +15,12 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.om.Variable.LANGUAGE;
 import prerna.sablecc2.ReactorSecurityManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -32,10 +34,12 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public final class RReactor extends AbstractRFrameReactor {
+public final class RReactor extends AbstractRFrameReactor implements ICodeExecution {
 	
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = RReactor.class.getName();
+	// the code that was executed
+	private String code = null;
 	
 	@Override
 	public NounMetadata execute() {
@@ -69,16 +73,13 @@ public final class RReactor extends AbstractRFrameReactor {
 		tempManager.addClass(CLASS_NAME);
 		System.setSecurityManager(tempManager);
 		
-		
-		//this.rJavaTranslator = rJavaTranslator;
-		
-		
-		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		logger.info("Execution r script: " + code);
 		
 		// bifurcation for ggplot
-		if(code.startsWith("ggplot"))
+		if(code.startsWith("ggplot")) {
 			return handleGGPlot(code);
+		}
 		
 		String output = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
@@ -101,8 +102,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
 		
-	public NounMetadata handleGGPlot(String ggplotCommand)
-	{
+	public NounMetadata handleGGPlot(String ggplotCommand) {
 		// I need to see how to get this to temp
 		boolean newWindow = true;
 		String panelId = "new_ggplot_panel";
@@ -306,7 +306,15 @@ public final class RReactor extends AbstractRFrameReactor {
 		//return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 		return null;
 	}
-	
-	
+
+	@Override
+	public String getCode() {
+		return this.code;
+	}
+
+	@Override
+	public LANGUAGE getLanguage() {
+		return LANGUAGE.R;
+	}
 
 }
