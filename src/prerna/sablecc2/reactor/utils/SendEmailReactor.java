@@ -89,7 +89,7 @@ public class SendEmailReactor extends AbstractReactor {
 		}
 		// send email
 		boolean success = EmailUtility.sendEmail(emailSession, recipients, null, sender, subject, message, isHtml, attachments);
-		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
+		return new NounMetadata(success, PixelDataType.BOOLEAN);
 	}
 
 	private String[] getEmailRecipients() {

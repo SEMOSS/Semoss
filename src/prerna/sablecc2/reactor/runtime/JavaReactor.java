@@ -11,7 +11,9 @@ import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
+import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.Variable.LANGUAGE;
 import prerna.sablecc2.ReactorSecurityManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -21,17 +23,16 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public final class JavaReactor extends AbstractReactor {
+public final class JavaReactor extends AbstractReactor implements ICodeExecution {
 
 	private static final String CLASS_NAME = JavaReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
-
 	// get the default manager
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
-	
+	// the code that was executed
+	private String code = null;
+
 	@Override
 	public NounMetadata execute() {
-		
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
@@ -47,7 +48,7 @@ public final class JavaReactor extends AbstractReactor {
 
 		Logger logger = getLogger(CLASS_NAME);
 		this.store.toString();
-		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		try {
 			ClassPool pool = ClassPool.getDefault();
 			ClassClassPath ccp = new ClassClassPath(this.getClass());
@@ -133,13 +134,13 @@ public final class JavaReactor extends AbstractReactor {
 			}
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		} catch (RuntimeException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 			throw re;
 		} catch (CannotCompileException cce) {
-			logger.error(STACKTRACE, cce);
+			logger.error(Constants.STACKTRACE, cce);
 			throw new IllegalArgumentException("Code had syntax errors which could not be compiled for execution: " + cce.getMessage());
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		} finally {
 			tempManager.removeClass(uniqueName);
 			// set back the original security manager
@@ -147,6 +148,16 @@ public final class JavaReactor extends AbstractReactor {
 		}
 		
 		return new NounMetadata("no output", PixelDataType.CONST_STRING, PixelOperationType.CODE_EXECUTION);
+	}
+
+	@Override
+	public String getCode() {
+		return this.code;
+	}
+
+	@Override
+	public LANGUAGE getLanguage() {
+		return LANGUAGE.JAVA;
 	}
 
 }
