@@ -252,7 +252,7 @@ public class ProjectHelper {
 			try {
 				if(!queryUtil.tableExists(insightsRdbms.getConnection(), "INSIGHTMETA", insightsRdbms.getSchema())) {
 					String[] columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
-					String[] types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT"};
+					String[] types = new String[] { "VARCHAR(255)", "VARCHAR(255)", queryUtil.getClobDataTypeName(), "INT"};
 					try {
 						insightsRdbms.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
 					} catch (SQLException e) {
@@ -261,6 +261,25 @@ public class ProjectHelper {
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
+			}
+			
+			// TEMPORARY CHECK! - added 01/29/2022
+			{
+				List<String> allCols;
+				try {
+					allCols = queryUtil.getTableColumns(insightsRdbms.getConnection(), "QUESTION_ID", insightsRdbms.getSchema());
+					// this should return in all upper case
+					// ... but sometimes it is not -_- i.e. postgres always lowercases
+					if(!allCols.contains("CACHE_MINUTES") && !allCols.contains("cache_minutes")) {
+						if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists("QUESTION_ID", "CACHE_MINUTES", "INT"));
+						} else {
+							insightsRdbms.insertData(queryUtil.alterTableAddColumn("QUESTION_ID", "CACHE_MINUTES", "INT"));
+						}
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
 			
 //			// okay, might need to do some updates
