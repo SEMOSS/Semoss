@@ -32,6 +32,7 @@ import java.io.Serializable;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -125,6 +126,7 @@ public class Insight implements Serializable {
 	protected String projectName;
 	protected boolean cacheable = true;
 	protected int cacheMinutes = -1;
+	private transient LocalDateTime cachedDateTime = null;
 	protected int count = 0;
 	
 	protected String tupleSpace = null;
@@ -644,6 +646,14 @@ public class Insight implements Serializable {
 
 	public void setCacheMinutes(int cacheMinutes) {
 		this.cacheMinutes = cacheMinutes;
+	}
+	
+	public LocalDateTime getCachedDateTime() {
+		return cachedDateTime;
+	}
+
+	public void setCachedDateTime(LocalDateTime cachedDateTime) {
+		this.cachedDateTime = cachedDateTime;
 	}
 
 	public VarStore getVarStore() {
