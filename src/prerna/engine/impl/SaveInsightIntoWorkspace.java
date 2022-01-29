@@ -122,20 +122,23 @@ class InsightCacher implements Runnable {
 				if(lastPixel.isEmpty()) {
 					continue;
 				}
+				boolean cacheable = true;
+				int cacheMinutes = -1;
 				if(created) {
 					// update the existing insight
 					String inName = insightName + " " + formatter.format(new Date());
-					insightAdmin.updateInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false);
-					SecurityInsightUtils.updateInsight(this.workspaceAppId, this.workspaceSavedInsightId, inName, true, "default", lastPixel);
+					insightAdmin.updateInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, cacheable, cacheMinutes);
+					SecurityInsightUtils.updateInsight(this.workspaceAppId, this.workspaceSavedInsightId, inName, true, 
+							"default", cacheable, cacheMinutes, lastPixel);
 					// delete the cache if it is there
 					InsightCacheUtility.deleteCache(this.workspaceAppId, this.workspaceAppName, this.workspaceSavedInsightId, true);
 
 				} else {
 					// create new
 					String inName = insightName + " " + formatter.format(new Date());
-					insightAdmin.addInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, true);
+					insightAdmin.addInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, cacheable, cacheMinutes);
 					SecurityInsightUtils.addInsight(this.workspaceAppId, this.workspaceSavedInsightId, 
-							inName, true, Utility.getApplicationCacheInsight(), "default", lastPixel);
+							inName, true, "default", cacheable, cacheMinutes, lastPixel);
 
 					created = true;
 				}

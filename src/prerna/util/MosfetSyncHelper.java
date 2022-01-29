@@ -141,12 +141,13 @@ public class MosfetSyncHelper {
 		String layout = mosfet.getLayout();
 		List<String> recipe = mosfet.getRecipe();
 		boolean hidden = mosfet.isHidden();
-		boolean cacheable = Utility.getApplicationCacheInsight();
-
+		boolean cacheable = mosfet.isCacheable();
+		int cacheMinutes = mosfet.getCacheMinutes();
+		
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
-		admin.addInsight(id, insightName, layout, recipe, hidden, cacheable);
-		SecurityInsightUtils.addInsight(projectId, id, insightName, false, cacheable, layout, recipe);
+		admin.addInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes);
+		SecurityInsightUtils.addInsight(projectId, id, insightName, !hidden, layout, cacheable, cacheMinutes, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
@@ -168,13 +169,15 @@ public class MosfetSyncHelper {
 		String layout = mosfet.getLayout();
 		List<String> recipe = mosfet.getRecipe();
 		boolean hidden = mosfet.isHidden();
-
+		boolean cacheable = mosfet.isCacheable();
+		int cacheMinutes = mosfet.getCacheMinutes();
+		
 		IProject project = Utility.getProject(projectId);
 
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
-		admin.updateInsight(id, insightName, layout, recipe, hidden);
-		SecurityInsightUtils.updateInsight(projectId, id, insightName, false, layout, recipe);
+		admin.updateInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes);
+		SecurityInsightUtils.updateInsight(projectId, id, insightName, !hidden, layout, cacheable, cacheMinutes, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
