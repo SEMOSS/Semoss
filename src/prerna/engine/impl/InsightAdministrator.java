@@ -368,7 +368,8 @@ public class InsightAdministrator {
 	public void updateInsightCache(String existingRdbmsId, boolean isCacheable, int cacheMinutes) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
-				.append(CACHEABLE_COL).append(" = ").append(isCacheable)
+				.append(CACHEABLE_COL).append(" = ").append(isCacheable).append(", ")
+				.append(CACHE_MINUTES_COL).append(" = ").append(cacheMinutes)
 				.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
 	
 		// now run the query and commit
