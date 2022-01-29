@@ -80,7 +80,7 @@ public class RDBMSEngineCreationHelper {
 				tags.add("preview");
 				String description = "Preview of the table " + newTable + " and all of its columns";
 
-				String insightId = admin.addInsight(insightName, layout, recipeArray);
+				String insightId = admin.addInsight(insightName, layout, recipeArray, false, true, -1);
 				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
 				
@@ -99,7 +99,8 @@ public class RDBMSEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray);
+				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, 
+						layout, Utility.getApplicationCacheInsight(), Utility.getApplicationCacheInsightMinutes(), recipeArray);
 				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}

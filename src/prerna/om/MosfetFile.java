@@ -23,6 +23,8 @@ public class MosfetFile {
 	private String insightName;
 	private String layout;
 	private boolean hidden = false;
+	private boolean cacheable = true;
+	private int cacheMinutes = -1;
 	
 	// actual recipe
 	private List<String> recipe;
@@ -145,6 +147,22 @@ public class MosfetFile {
 
 	public void setHidden(boolean hidden) {
 		this.hidden = hidden;
+	}
+	
+	public boolean isCacheable() {
+		return cacheable;
+	}
+
+	public void setCacheable(boolean cacheable) {
+		this.cacheable = cacheable;
+	}
+
+	public int getCacheMinutes() {
+		return cacheMinutes;
+	}
+
+	public void setCacheMinutes(int cacheMinutes) {
+		this.cacheMinutes = cacheMinutes;
 	}
 
 	public List<String> getRecipe() {
