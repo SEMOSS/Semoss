@@ -65,7 +65,7 @@ public class Project implements IProject {
 	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
 	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY ID";
 	private static final String GET_ALL_PERSPECTIVES_QUERY = "SELECT DISTINCT QUESTION_PERSPECTIVE FROM QUESTION_ID ORDER BY QUESTION_PERSPECTIVE";
-	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, CACHEABLE, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
+	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, CACHEABLE, CACHE_MINUTES, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
 
 	private String projectId;
 	private String projectName;
@@ -312,14 +312,18 @@ public class Project implements IProject {
 					String dataTableAlign = values[6] + "";
 					String dataMakerName = values[7] + "";
 					boolean cacheable = (boolean) values[8];
+					Integer cacheMinutes = (Integer) values[9];
+					if(cacheMinutes == null) {
+						cacheMinutes = -1;
+					}
 					Object[] pixel = null;
 					// need to know if we have an array
 					// or a clob
 					if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
-						pixel = (Object[]) values[9];
+						pixel = (Object[]) values[10];
 					} else {
 //						Clob pixelArray = (Clob) values[9];
-						String pixelArray = (String) values[9];
+						String pixelArray = (String) values[10];
 //						InputStream pixelArrayIs = null;
 //						if(pixelArray != null) {
 //							try {
@@ -351,7 +355,7 @@ public class Project implements IProject {
 						((OldInsight) in).setInsightParameters(LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRdbms, rdbmsId));
 						in.setIsOldInsight(true);
 					} else {
-						in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, pixel.length);
+						in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, cacheMinutes, pixel.length);
 						in.setInsightName(insightName);
 						List<String> pixelList = new Vector<String>(pixel.length);
 						for(int i = 0; i < pixel.length; i++) {

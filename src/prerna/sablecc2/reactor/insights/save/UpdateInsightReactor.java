@@ -44,7 +44,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, 
 				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), 
-				ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY};
+				ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY, CACHEABLE, CACHE_MINUTES};
 	}
 
 	@Override
@@ -136,7 +136,21 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		String layout = getLayout();
 		boolean hidden = getHidden();
-
+		Boolean cacheable = getUserDefinedCacheable();
+		Integer cacheMinutes = getUserDefinedCacheMinutes();
+		// keep current insight cache
+		// or set to the new user inputs
+		if(cacheable == null) {
+			cacheable = this.insight.isCacheable();
+		} else {
+			this.insight.setCacheable(cacheable);
+		}
+		if(cacheMinutes == null) {
+			cacheMinutes = this.insight.getCacheMinutes();
+		} else {
+			this.insight.setCacheMinutes(cacheMinutes);
+		}
+		
 		if(params != null && !params.isEmpty()) {
 			recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
 		}
@@ -153,17 +167,17 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		// update insight db
 		logger.info("1) Updating insight in rdbms");
-		admin.updateInsight(existingId, insightName, layout, recipeToSave, hidden);
+		admin.updateInsight(existingId, insightName, layout, recipeToSave, hidden, cacheable, cacheMinutes);
 		logger.info("1) Done");
 		
 		String description = getDescription();
 		List<String> tags = getTags();
 		
-		if(!hidden) {
-			logger.info("2) Updated registered insight...");
-			editRegisteredInsightAndMetadata(project, existingId, insightName, layout, recipeToSave, description, tags, this.insight.getVarStore().getFrames());
-			logger.info("2) Done...");
-		}
+		logger.info("2) Updated registered insight...");
+		editRegisteredInsightAndMetadata(project, existingId, insightName, layout, 
+				!hidden, cacheable, cacheMinutes, 
+				recipeToSave, description, tags, this.insight.getVarStore().getFrames());
+		logger.info("2) Done...");
 		
 		// update recipe text file
 		logger.info("3) Update Mosfet file for collaboration");
@@ -191,10 +205,19 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-		returnMap.put("name", insightName);
+		// TODO: delete app_ and only send project_
 		returnMap.put("app_insight_id", existingId);
 		returnMap.put("app_name", project.getProjectName());
 		returnMap.put("app_id", projectId);
+		
+		returnMap.put("name", insightName);
+		returnMap.put("project_insight_id", existingId);
+		returnMap.put("project_name", project.getProjectName());
+		returnMap.put("project_id", projectId);
+		returnMap.put("recipe", recipeToSave);
+		returnMap.put("cacheable", cacheable);
+		returnMap.put("cacheMinutes", cacheMinutes);
+		returnMap.put("isPublic", !hidden);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
@@ -210,9 +233,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param insightFrames 
 	 */
 	private void editRegisteredInsightAndMetadata(IProject project, String existingRdbmsId, String insightName, String layout, 
+			boolean global, boolean cacheable, int cacheableMinutes, 
 			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
 		String projectId = project.getProjectId();
-		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, true, layout, recipe);
+		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, global, 
+				layout, cacheable, cacheableMinutes, recipe);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if(description != null) {
 			admin.updateInsightDescription(existingRdbmsId, description);

@@ -76,17 +76,21 @@ public class ProjectUtils {
 		AbstractSqlQueryUtil queryUtil = insightEngine.getQueryUtil();
 		String[] columns = null;
 		String[] types = null;
-
+		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
+		
 		try {
 			if(!queryUtil.tableExists(insightEngine.getConnection(), "QUESTION_ID", insightEngine.getSchema())) {
 				columns = new String[]{"ID", "QUESTION_NAME", "QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", 
-						"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", "CACHEABLE", "QUESTION_PKQL"};
-				types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "CLOB",
-						"VARCHAR(500)", "BOOLEAN", "BOOLEAN", "ARRAY"};
+						"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", "CACHEABLE", "CACHE_MINUTES",
+						"QUESTION_PKQL"};
+				types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", 
+						"VARCHAR(255)", CLOB_DATATYPE, "VARCHAR(500)", BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, "INT",
+						"ARRAY"};
 				// this is annoying
 				// need to adjust if the engine allows array data types
 				if(!queryUtil.allowArrayDatatype()) {
-					types[types.length-1] = "CLOB";
+					types[types.length-1] = CLOB_DATATYPE;
 				}
 
 				insightEngine.insertData(queryUtil.createTable("QUESTION_ID", columns, types));
@@ -95,7 +99,7 @@ public class ProjectUtils {
 			// adding new insight metadata
 			if(!queryUtil.tableExists(insightEngine.getConnection(), "INSIGHTMETA", insightEngine.getSchema())) {
 				columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
-				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT"};
+				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE, "INT"};
 				insightEngine.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
 			}
 
@@ -119,8 +123,8 @@ public class ProjectUtils {
 				if(!queryUtil.tableExists(insightEngine.getConnection(), "PARAMETER_ID", insightEngine.getSchema())) {
 					columns = new String[]{"PARAMETER_ID", "PARAMETER_LABEL", "PARAMETER_TYPE", "PARAMETER_DEPENDENCY", "PARAMETER_QUERY", 
 							"PARAMETER_OPTIONS", "PARAMETER_IS_DB_QUERY", "PARAMETER_MULTI_SELECT", "PARAMETER_COMPONENT_FILTER_ID", "PARAMETER_VIEW_TYPE", "QUESTION_ID_FK"};
-					types = new String[]{"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", "VARCHAR(2000)", "BOOLEAN",
-							"BOOLEAN", "VARCHAR(255)", "VARCHAR(255)", "INT"};
+					types = new String[]{"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", "VARCHAR(2000)", BOOLEAN_DATATYPE,
+							BOOLEAN_DATATYPE, "VARCHAR(255)", "VARCHAR(255)", "INT"};
 					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
 				}
 			} catch (SQLException e) {
@@ -130,7 +134,7 @@ public class ProjectUtils {
 			try {
 				if(!queryUtil.tableExists(insightEngine.getConnection(), "UI", insightEngine.getSchema())) {
 					columns = new String[]{"QUESTION_ID_FK", "UI_DATA"};
-					types = new String[]{"INT", "CLOB"};
+					types = new String[]{"INT", CLOB_DATATYPE};
 					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
 				}
 			} catch (SQLException e) {
