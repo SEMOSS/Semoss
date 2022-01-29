@@ -414,13 +414,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightName
 	 * @param global
 	 * @param cacheable
+	 * @param cacheMinutes
 	 * @param layout
 	 * @param recipe
 	 */
-	public static void addInsight(String projectId, String insightId, String insightName, boolean global, boolean cacheable, String layout, List<String> recipe) {
+	public static void addInsight(String projectId, String insightId, String insightName, boolean global, 
+			String layout, boolean cacheable, int cacheMinutes, List<String> recipe) {
 		String insertQuery = "INSERT INTO INSIGHT (PROJECTID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
-				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, RECIPE) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
+				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, RECIPE) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 		
 		PreparedStatement ps = null;
 		try {
@@ -436,6 +438,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
+			ps.setInt(parameterIndex++, cacheMinutes);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
 				Clob clob = securityDb.createClob(ps.getConnection());
 				clob.setString(1, securityGson.toJson(recipe));
@@ -521,9 +524,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param lastModified
 	 * @param layout
 	 */
-	public static void updateInsight(String projectId, String insightId, String insightName, boolean global, String layout, List<String> recipe) {
+	public static void updateInsight(String projectId, String insightId, String insightName, boolean global, 
+			String layout, boolean cacheable, int cacheMinutes, List<String> recipe) {
 		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
-				+ "LAYOUT=?, RECIPE=? WHERE INSIGHTID = ? AND PROJECTID=?";
+				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, RECIPE=? WHERE INSIGHTID = ? AND PROJECTID=?";
 
 		PreparedStatement ps = null;
 		try {
@@ -534,6 +538,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, layout);
+			ps.setBoolean(parameterIndex++, cacheable);
+			ps.setInt(parameterIndex++, cacheMinutes);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
 				Clob clob = securityDb.createClob(ps.getConnection());
 				clob.setString(1, securityGson.toJson(recipe));
@@ -607,17 +613,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Update if an insight should be cached
-	 * @param appId
-	 * @param existingId
+	 * @param projectId
+	 * @param insightId
 	 * @param cacheInsight
+	 * @param cacheMinutes
 	 */
-	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight) {
-		String query = "UPDATE INSIGHT SET CACHEABLE=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
+	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes) {
+		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, cacheInsight);
+			ps.setInt(parameterIndex++, cacheMinutes);
 			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);

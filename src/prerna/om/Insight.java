@@ -124,6 +124,7 @@ public class Insight implements Serializable {
 	protected String projectId;
 	protected String projectName;
 	protected boolean cacheable = true;
+	protected int cacheMinutes = -1;
 	protected int count = 0;
 	
 	protected String tupleSpace = null;
@@ -241,11 +242,12 @@ public class Insight implements Serializable {
 	 * @param rdbmsId
 	 * @param cacheable
 	 */
-	public Insight(String projectId, String projectName, String rdbmsId, boolean cacheable, int capacity) {
+	public Insight(String projectId, String projectName, String rdbmsId, boolean cacheable, int cacheMinutes, int capacity) {
 		this.projectId = projectId;
 		this.projectName = projectName;
 		this.rdbmsId = rdbmsId;
 		this.cacheable = cacheable;
+		this.cacheMinutes = cacheMinutes;
 		loadDefaultSettings(capacity);
 	}
 	
@@ -636,6 +638,14 @@ public class Insight implements Serializable {
 		this.cacheable = cacheable;
 	}
 	
+	public int getCacheMinutes() {
+		return cacheMinutes;
+	}
+
+	public void setCacheMinutes(int cacheMinutes) {
+		this.cacheMinutes = cacheMinutes;
+	}
+
 	public VarStore getVarStore() {
 		return this.varStore;
 	}

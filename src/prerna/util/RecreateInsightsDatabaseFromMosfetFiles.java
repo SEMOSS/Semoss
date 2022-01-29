@@ -9,7 +9,6 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.MosfetFile;
-import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RecreateInsightsDatabaseFromMosfetFiles {
@@ -68,16 +67,18 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 					// we have a mosfet file to load
 					MosfetFile mosfet = MosfetFile.generateFromFile(insightFile);
 					
-					String appId = mosfet.getProjectId();
+					String projectId = mosfet.getProjectId();
 					String id = mosfet.getRdbmsId();
 					String insightName = mosfet.getInsightName();
 					String layout = mosfet.getLayout();
 					List<String> recipe = mosfet.getRecipe();
 					boolean hidden = mosfet.isHidden();
-
+					boolean cacheable = mosfet.isCacheable();
+					int cacheMinutes = mosfet.getCacheMinutes();
+					
 					InsightAdministrator admin = new InsightAdministrator(insightEngine);
 					// just put the recipe into an array
-					admin.addInsight(id, insightName, layout, recipe, hidden, true);
+					admin.addInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes);
 				} else {
 					System.out.println("Found file in insight = " + fName);
 				}
