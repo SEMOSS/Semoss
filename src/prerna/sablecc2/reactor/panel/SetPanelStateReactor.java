@@ -50,9 +50,6 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Exeption occured reading the panel state with error: " + e.getMessage());
 		}
-		if(insightPanel.getPanelViewOptions() != null) {
-			System.out.println(insightPanel.getPanelViewOptions());
-		}
 		this.insight.getInsightPanels().put(insightPanel.getPanelId(), insightPanel);
 		NounMetadata noun = new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.CACHED_PANEL);
 		return noun;
