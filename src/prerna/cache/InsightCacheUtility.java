@@ -119,16 +119,8 @@ public class InsightCacheUtility {
 			addToZipFile(insightFile, zos);
 
 			// also write a .version file so store when this cache was created
-			// TODO: how do we get the version of semoss?
-			StringBuilder version = new StringBuilder(VERSION_HEADER);
-			version.append(GENERATION_DATE).append("\t").append(LocalDateTime.now()).append("\r\n");
-			String versionLoc = normalizedFolderDir + DIR_SEPARATOR + VERSION_FILE;
-			File versionFile = new File(versionLoc);
-			try {
-				FileUtils.writeStringToFile(versionFile, version.toString());
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
+			String versionFileLoc = normalizedFolderDir + DIR_SEPARATOR + VERSION_FILE;
+			File versionFile = writeInsightCacheVersion(versionFileLoc);
 			addToZipFile(versionFile, zos);
 
 		} catch(Exception e) {
@@ -139,6 +131,24 @@ public class InsightCacheUtility {
 		}
 		
 		return zipFile;
+	}
+	
+	/**
+	 * 
+	 * @param versionFileLoc
+	 * @return
+	 */
+	public static File writeInsightCacheVersion(String versionFileLoc) {
+		// TODO: how do we get the version of semoss?
+		StringBuilder version = new StringBuilder(VERSION_HEADER);
+		version.append(GENERATION_DATE).append("\t").append(LocalDateTime.now()).append("\r\n");
+		File versionFile = new File(versionFileLoc);
+		try {
+			FileUtils.writeStringToFile(versionFile, version.toString());
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		return versionFile;
 	}
 	
 	/**
