@@ -23,7 +23,8 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = SetInsightCacheableReactor.class.getName();
 
 	public SetInsightCacheableReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), CACHEABLE};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), 
+				CACHEABLE, CACHE_MINUTES};
 	}
 	
 	@Override
@@ -34,7 +35,13 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String existingId = this.keyValue.get(this.keysToGet[1]);
 		boolean cache = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
-
+		int cacheMinutes = -1;
+		if(this.keyValue.containsKey(this.keysToGet[3])) {
+			cacheMinutes = Integer.parseInt(this.keyValue.get(this.keysToGet[3]));
+		} else {
+			cacheMinutes = Utility.getApplicationCacheInsightMinutes();
+		}
+		
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
@@ -52,19 +59,25 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		logger.info("1) Updating insight in rdbms");
 		IProject project = Utility.getProject(projectId);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
-		admin.updateInsightCache(existingId, cache);
+		admin.updateInsightCache(existingId, cache, cacheMinutes);
 		logger.info("1) Done");
 
 		logger.info("2) Updating insight in index");
-		SecurityInsightUtils.updateInsightCache(projectId, existingId, cache);
+		SecurityInsightUtils.updateInsightCache(projectId, existingId, cache, cacheMinutes);
 		logger.info("2) Done");
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
+		// TODO: delete and switch to only project_
 		returnMap.put("app_insight_id", existingId);
 		returnMap.put("app_name", project.getProjectName());
 		returnMap.put("app_id", project.getProjectId());
-		returnMap.put("cacheable", cache);
 		
+		returnMap.put("project_insight_id", existingId);
+		returnMap.put("project_name", project.getProjectName());
+		returnMap.put("project_id", project.getProjectId());
+		returnMap.put("cacheable", cache);
+		returnMap.put("cacheMinutes", cacheMinutes);
+
 		//push insight db
 		ClusterUtil.reactorPushInsightDB(projectId);
 

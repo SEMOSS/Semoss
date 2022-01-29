@@ -524,8 +524,8 @@ public abstract class AbstractSecurityUtils {
 		
 		
 		// INSIGHT
-		colNames = new String[] { "PROJECTID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", "CACHEABLE", "RECIPE" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, CLOB_DATATYPE_NAME };
+		colNames = new String[] { "PROJECTID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", "CACHEABLE", "CACHEMINUTES", "RECIPE" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "INT", CLOB_DATATYPE_NAME };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
 		} else {
@@ -537,13 +537,18 @@ public abstract class AbstractSecurityUtils {
 		}
 		// INSIGHT RECIPE
 		// check if column exists
-		// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
 		{
 			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHT", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
 			if(!allCols.contains("RECIPE") && !allCols.contains("recipe")) {
 				String addRecipeColumnSql = queryUtil.alterTableAddColumn("INSIGHT", "RECIPE", CLOB_DATATYPE_NAME);
+				securityDb.insertData(addRecipeColumnSql);
+			}
+			// TEMPORARY CHECK! - not sure when added but todays date is 01/29/22
+			if(!allCols.contains("CACHEMINUTES") && !allCols.contains("cacheminutes")) {
+				String addRecipeColumnSql = queryUtil.alterTableAddColumn("INSIGHT", "CACHEMINUTES", "INT");
 				securityDb.insertData(addRecipeColumnSql);
 			}
 		}

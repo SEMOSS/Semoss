@@ -52,7 +52,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
 				ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), 
 				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
-				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY};
+				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.IMAGE.getKey(), 
+				ENCODED_KEY, CACHEABLE, CACHE_MINUTES};
 	}
 
 	@Override
@@ -103,7 +104,11 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(cacheable == null) {
 			cacheable = Utility.getApplicationCacheInsight();
 		}
-
+		Integer cacheMinutes = getUserDefinedCacheMinutes();
+		if(cacheMinutes == null) {
+			cacheMinutes = Utility.getApplicationCacheInsightMinutes();
+		}
+		
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
 			savingThisInsight = true;
@@ -181,20 +186,16 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		logger.info(stepCounter + ") Add insight " + insightName + " to rdbms store...");
-		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, hidden, cacheable);
+		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, hidden, cacheable, cacheMinutes);
 		logger.info(stepCounter +") Done...");
 		stepCounter++;
 
 		String description = getDescription();
 		List<String> tags = getTags();
 		
-		if(!hidden) {
-			logger.info(stepCounter + ") Regsiter insight...");
-			registerInsightAndMetadata(project, newRdbmsId, insightName, layout, cacheable, recipeToSave, description, tags, this.insight.getVarStore().getFrames());
-			logger.info(stepCounter + ") Done...");
-		} else {
-			logger.info(stepCounter + ") Insight is hidden ... do not add to solr");
-		}
+		logger.info(stepCounter + ") Regsiter insight...");
+		registerInsightAndMetadata(project, newRdbmsId, insightName, layout, !hidden, cacheable, cacheMinutes, recipeToSave, description, tags, this.insight.getVarStore().getFrames());
+		logger.info(stepCounter + ") Done...");
 		stepCounter++;
 		
 		// Move assets to new insight folder
@@ -281,11 +282,19 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-		returnMap.put("name", insightName);
+		// TODO: delete app_ and only send project_
 		returnMap.put("app_insight_id", newRdbmsId);
 		returnMap.put("app_name", project.getProjectName());
 		returnMap.put("app_id", projectId);
+		
+		returnMap.put("name", insightName);
+		returnMap.put("project_insight_id", newRdbmsId);
+		returnMap.put("project_name", project.getProjectName());
+		returnMap.put("project_id", projectId);
 		returnMap.put("recipe", recipeToSave);
+		returnMap.put("cacheable", cacheable);
+		returnMap.put("cacheMinutes", cacheMinutes);
+		returnMap.put("isPublic", !hidden);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
@@ -300,11 +309,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param tags
 	 * @param insightFrames 
 	 */
-	private void registerInsightAndMetadata(IProject project, String insightIdToSave, String insightName, String layout, 
-			boolean cacheable, List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
+	private void registerInsightAndMetadata(IProject project, String insightIdToSave, String insightName, String layout, boolean global,
+			boolean cacheable, int cacheMinutes, List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
 		String projectId = project.getProjectId();
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, cacheable, layout, recipe);
+		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, global, layout, cacheable, cacheMinutes, recipe);
 		if(this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
 		}

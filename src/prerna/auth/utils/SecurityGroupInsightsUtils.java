@@ -34,9 +34,9 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userGroupCanViewInsight(User user, String projectId, String insightId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
 		for(AuthProvider login : logins) {
@@ -46,7 +46,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(andFilter);
 		}
 		qs.addExplicitFilter(orFilter);
-		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPINSIGHTPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -78,8 +78,8 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userGroupCanEditInsight(User user, String projectId, String insightId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
 		for(AuthProvider login : logins) {
@@ -89,7 +89,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(andFilter);
 		}
 		qs.addExplicitFilter(orFilter);
-		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPINSIGHTPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
 		Integer bestGroupDatabasePermission = null;
 		try {
@@ -125,8 +125,8 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userGroupIsOwner(User user, String projectId, String insightId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
 		for(AuthProvider login : logins) {
@@ -136,7 +136,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(andFilter);
 		}
 		qs.addExplicitFilter(orFilter);
-		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPINSIGHTPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
 		Integer bestGroupDatabasePermission = null;
 		try {

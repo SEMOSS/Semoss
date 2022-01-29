@@ -31,6 +31,7 @@ public class InsightAdministrator {
 	private static final String QUESTION_PKQL_COL = "QUESTION_PKQL";
 	private static final String HIDDEN_INSIGHT_COL = "HIDDEN_INSIGHT";
 	private static final String CACHEABLE_COL = "CACHEABLE";
+	private static final String CACHE_MINUTES_COL = "CACHE_MINUTES";
 
 	private static Gson gson = new Gson();
 
@@ -45,24 +46,19 @@ public class InsightAdministrator {
 	}
 
 	/**
-	 * Insert a new insight into the engine
+	 * 
 	 * @param insightName
 	 * @param layout
 	 * @param pixelRecipeToSave
+	 * @param hidden
+	 * @param cacheable
+	 * @param cacheMinutes
 	 * @return
 	 */
-	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave) {
-		return addInsight(insightName, layout, pixelRecipeToSave, false);
-	}
-	
-	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
+	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean hidden, 
+			boolean cacheable, int cacheMinutes) {
 		String newId = UUID.randomUUID().toString();
-		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, true);
-	}
-	
-	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean hidden, boolean cacheable) {
-		String newId = UUID.randomUUID().toString();
-		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable);
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes);
 	}
 	
 	/**
@@ -71,8 +67,13 @@ public class InsightAdministrator {
 	 * @param insightName
 	 * @param layout
 	 * @param pixelRecipeToSave
+	 * @param hidden
+	 * @param cacheable
+	 * @param minutesForCache
+	 * @return
 	 */
-	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden, boolean cacheable) {
+	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, 
+			boolean hidden, boolean cacheable, int minutesForCache) {
 		logger.info("Adding new question with insight id :::: " + Utility.cleanLogString(insightId));
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
@@ -108,18 +109,10 @@ public class InsightAdministrator {
 		return insightId;
 	}
 
-	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave) {
-		return addInsight(insightName, layout, pixelRecipeToSave, false);
-	}
-	
-	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden) {
+	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, 
+			boolean cacheable, int cacheMinutes) {
 		String newId = UUID.randomUUID().toString();
-		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, true);
-	}
-	
-	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, boolean cacheable) {
-		String newId = UUID.randomUUID().toString();
-		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable);
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes);
 	}
 	
 	/**
@@ -129,7 +122,8 @@ public class InsightAdministrator {
 	 * @param layout
 	 * @param pixelRecipeToSave
 	 */
-	public String addInsight(final String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, boolean cacheable) {
+	public String addInsight(final String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave,
+		boolean hidden, boolean cacheable, int minutesForCache) {
 		logger.info("Adding new question with insight id :::: " + insightId);
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
@@ -293,18 +287,9 @@ public class InsightAdministrator {
 		}
 	}
 	
-	/**
-	 * Update an existing insight
-	 * @param existingRdbmsId
-	 * @param insightName
-	 * @param layout
-	 * @param pixelRecipeToSave
-	 */
-	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave) {
-		updateInsight(existingRdbmsId, insightName, layout, pixelRecipeToSave, false);
-	}
 	
-	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
+	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, 
+			boolean hidden, boolean cacheable, int cacheMinutes) {
 		logger.info("Modifying insight id :::: " + Utility.cleanLogString(existingRdbmsId));
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
@@ -334,7 +319,8 @@ public class InsightAdministrator {
 		}
 	}
 	
-	public void updateInsight(String existingRdbmsId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden) {
+	public void updateInsight(String existingRdbmsId, String insightName, String layout, Collection<String> pixelRecipeToSave, 
+			boolean hidden, boolean cacheable, int cacheMinutes) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
 		
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
@@ -379,7 +365,7 @@ public class InsightAdministrator {
 	}
 	
 
-	public void updateInsightCache(String existingRdbmsId, boolean isCacheable) {
+	public void updateInsightCache(String existingRdbmsId, boolean isCacheable, int cacheMinutes) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
 				.append(CACHEABLE_COL).append(" = ").append(isCacheable)

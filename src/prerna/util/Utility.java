@@ -3299,7 +3299,7 @@ public class Utility {
 	}
 	
 	/**
-	 * Determine if on the application we should cahce insights or not
+	 * Determine if on the application we should cache insights or not
 	 * @return
 	 */
 	public static boolean getApplicationCacheInsight() {
@@ -3310,6 +3310,20 @@ public class Utility {
 		}
 		
 		return Boolean.parseBoolean(cacheSetting);
+	}
+	
+	/**
+	 * Determine amount of time to cache insights by default
+	 * @return
+	 */
+	public static int getApplicationCacheInsightMinutes() {
+		String cacheSetting = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHT_CACHE_MINUTES);
+		if(cacheSetting == null) {
+			// default is no limit 
+			return -1;
+		}
+		
+		return Integer.parseInt(cacheSetting);
 	}
 	
 	/**

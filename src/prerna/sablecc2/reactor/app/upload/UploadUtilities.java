@@ -1240,7 +1240,7 @@ public class UploadUtilities {
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
 				String insightName = getInsightName(databaseName, EXPLORE_INSIGHT_INSIGHT_NAME);
-				String insightId = admin.addInsight(insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave);
+				String insightId = admin.addInsight(insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, false, true, -1);
 				//write recipe to file
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, false);
 				// add the git here
@@ -1271,7 +1271,7 @@ public class UploadUtilities {
 		pixelRecipeToSave.add("Frame(useageFrame) | QueryAll() | AutoTaskOptions(panel = [ \"0\" ] , layout = [ \"GRID\" ] ) | Collect(-1);");
 		pixelRecipeToSave.add("SetInsightConfig({\"panels\":{\"0\":{\"config\":{\"type\":\"golden\",\"backgroundColor\":\"\",\"opacity\":100}}},\"sheets\":{\"0\":{\"golden\":{\"content\":[{\"type\":\"row\",\"content\":[{\"type\":\"stack\",\"activeItemIndex\":0,\"width\":100,\"content\":[{\"type\":\"component\",\"componentName\":\"panel\",\"componentState\":{\"panelId\":\"0\"}}]}]}]}}},\"sheet\":\"0\"});");
 		try {
-			String insightId = admin.addInsight(INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave, false, false);
+			String insightId = admin.addInsight(INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave, false, false, -1);
 			// write recipe to file
 			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave, false);
 			// add the git here
@@ -1302,7 +1302,7 @@ public class UploadUtilities {
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add("META | AddPanel(0); META | Panel(0) | SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + databaseId + "\"}</encode>\");");
 		String insightName = getInsightName(databaseName, GRID_DELTA_INSIGHT_NAME);
-		String insightId = admin.addInsight(insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave);
+		String insightId = admin.addInsight(insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave, false, true, -1);
 		// write recipe to file
 		try {
 			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave, false);
@@ -1344,7 +1344,7 @@ public class UploadUtilities {
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
 				String insightName = getInsightName(databaseName, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
-				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave);
+				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, false, true, -1);
 				//write recipe to file
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, false);
 				// add the insight to git
@@ -1385,7 +1385,7 @@ public class UploadUtilities {
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
 				String insightName = getInsightName(databaseName, AUDIT_TIMELINE_INSIGHT_NAME);
-				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave);
+				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, false, true, -1);
 				// write recipe to file
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, false);
 				// add the insight to git
@@ -1426,7 +1426,7 @@ public class UploadUtilities {
 				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
-		String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave);
+		String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave, false, true, -1);
 		insightEngine.commit();
 		// write recipe to file
 		try {
@@ -1463,7 +1463,7 @@ public class UploadUtilities {
 				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
-		String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave);
+		String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave, false, true, -1);
 		insightDatabase.commit();
 		// write recipe to file
 		try {
@@ -1496,7 +1496,7 @@ public class UploadUtilities {
 				+ gson.toJson(widgetJson) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
-		String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave);
+		String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave, false, true, -1);
 		insightEngine.commit();
 		// write recipe to file
 		try {
