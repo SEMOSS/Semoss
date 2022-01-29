@@ -387,6 +387,9 @@ public class User implements Serializable {
 	 * @param insightId
 	 */
 	public void addOpenInsight(String engineId, String rdbmsId, String insightId) {
+		if(this.openInsights == null) {
+			this.openInsights = new HashMap<>();
+		}
 		String id = getUid(engineId, rdbmsId);
 		List<String> openInstances = null;
 		if(this.openInsights.containsKey(id)) {
@@ -405,6 +408,9 @@ public class User implements Serializable {
 	 * @param insightId
 	 */
 	public void removeOpenInsight(String engineId, String rdbmsId, String insightId) {
+		if(this.openInsights == null) {
+			return;
+		}
 		String id = getUid(engineId, rdbmsId);
 		List<String> openInstances = null;
 		if(this.openInsights.containsKey(id)) {
