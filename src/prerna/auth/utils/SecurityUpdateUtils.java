@@ -207,7 +207,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							"INSIGHT", 
 							// column names
 							"PROJECTID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON",
-							"LASTMODIFIEDON","LAYOUT", "CACHEABLE", "RECIPE"});
+							"LASTMODIFIEDON","LAYOUT","CACHEABLE","CACHEMINUTES","RECIPE"});
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -227,6 +227,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_LAYOUT"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__HIDDEN_INSIGHT"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHEABLE"));
+		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHE_MINUTES"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_PKQL"));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
@@ -236,23 +237,42 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			while(wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				try {
+					// grab the insight rdbms values
+					int index = 0;
+					String insightId = row[index++].toString();
+					String insightName = row[index++].toString();
+					String insightLayout = row[index++].toString();
+					Boolean hidden = (Boolean) row[index++];
+					if(hidden == null) {
+						hidden = false;
+					}
+					Boolean cacheable = (Boolean) row[index++];
+					if(cacheable == null) {
+						cacheable = true;
+					}
+					Integer cacheMinutes = (Integer) row[index++];
+					if(cacheMinutes == null) {
+						cacheMinutes = -1;
+					}
+					Object pixelObject = row[index++];
+
+					// insert prepared statement into security db
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, projectId);
-					String insightId = row[0].toString();
 					ps.setString(parameterIndex++, insightId);
-					ps.setString(parameterIndex++, row[1].toString());
-					ps.setBoolean(parameterIndex++, !((boolean) row[3]));
+					ps.setString(parameterIndex++, insightName);
+					ps.setBoolean(parameterIndex++, !hidden);
 					ps.setLong(parameterIndex++, 0);
 					ps.setTimestamp(parameterIndex++, timeStamp);
 					ps.setTimestamp(parameterIndex++, timeStamp);
-					ps.setString(parameterIndex++, row[2].toString());
-					ps.setBoolean(parameterIndex++, (boolean) row[4]);
-					
+					ps.setString(parameterIndex++, insightLayout);
+					ps.setBoolean(parameterIndex++, cacheable);
+					ps.setInt(parameterIndex++, cacheMinutes);
+
 					// **** WITH RECENT UPDATES - THE RAW WRAPPER SHOULD NOT BE GIVING US BACK A CLOB
 					// need to determine if our input is a clob
 					// and if the database allows a clob data type
 					// use the utility method generated
-					Object pixelObject = row[5];
 					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, pixelObject, securityGson);
 
 					// add to ps
