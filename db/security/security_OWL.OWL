@@ -675,6 +675,20 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CACHEABLE</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CACHEMINUTES/INSIGHT">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/INSIGHT">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CACHEMINUTES/INSIGHT"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CACHEMINUTES/INSIGHT">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INT"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CACHEMINUTES/INSIGHT"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CACHEMINUTES</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/USERINSIGHTPERMISSION">
 	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
@@ -1051,6 +1065,20 @@
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
 	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PUBLISHER/SMSS_USER"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PUBLISHER</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/EXPORTER/SMSS_USER">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_USER">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/EXPORTER/SMSS_USER"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/EXPORTER/SMSS_USER">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/EXPORTER/SMSS_USER"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">EXPORTER</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/PERMISSION">
@@ -1598,7 +1626,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2022:01:05 14:41:55</TIME>
+	<TIME xmlns="ENGINE:">2022:01:30 06:27:36</TIME>
 </rdf:Description>
 
 </rdf:RDF>
