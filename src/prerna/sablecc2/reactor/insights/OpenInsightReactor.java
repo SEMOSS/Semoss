@@ -413,24 +413,32 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		// TODO: add check if semoss version that created the cache is the same...
 		// if the cache creation date + cache time is after now, then we have to delete the cache
-		int cacheMinutes = existingInsight.getCacheMinutes();
 		LocalDateTime cachedDateTime = null;
+		String versionFileLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight) + DIR_SEPARATOR + InsightCacheUtility.VERSION_FILE;
+		File versionFile = new File(versionFileLoc);
+		if(!versionFile.exists() || !versionFile.isFile()) {
+			// write the file with todays date
+			InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
+		}
+		Properties vProp = Utility.loadProperties(versionFileLoc);
+		String dateGenStr = vProp.getProperty(InsightCacheUtility.GENERATION_DATE);
+		try {
+			cachedDateTime = LocalDateTime.parse(dateGenStr);
+		} catch(Exception e) {
+			// ignore
+			// write the version file again with todays date
+			versionFile.delete();
+			InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
+			vProp = Utility.loadProperties(versionFileLoc);
+			dateGenStr = vProp.getProperty(InsightCacheUtility.GENERATION_DATE);
+			cachedDateTime = LocalDateTime.parse(dateGenStr);
+		}
+		int cacheMinutes = existingInsight.getCacheMinutes();
 		if(cacheMinutes > 0) {
-			String versionFileLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight) + DIR_SEPARATOR + InsightCacheUtility.VERSION_FILE;
-			File versionFile = new File(versionFileLoc);
-			if(!versionFile.exists() || !versionFile.isFile()) {
-				// write the file with todays date
-				InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
-			}
-			Properties vProp = Utility.loadProperties(versionFileLoc);
-			String dateGenStr = vProp.getProperty(InsightCacheUtility.GENERATION_DATE);
-			if(dateGenStr != null && !dateGenStr.isEmpty()) {
-				cachedDateTime = LocalDateTime.parse(dateGenStr);
-				if(cachedDateTime.plusMinutes(cacheMinutes).isBefore(LocalDateTime.now())) {
-					InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-							existingInsight.getRdbmsId(), true);
-					return null;
-				}
+			if(cachedDateTime.plusMinutes(cacheMinutes).isBefore(LocalDateTime.now())) {
+				InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+						existingInsight.getRdbmsId(), true);
+				return null;
 			}
 		}
 		insight = InsightCacheUtility.readInsightCache(insightZip, existingInsight);
@@ -457,7 +465,11 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// send the view data
 		try {
 			// add when this insight was cached
-			runner.addResult("GetInsightCachedDateTime();", new NounMetadata(cachedInsight.getCachedDateTime().toString(), PixelDataType.CONST_STRING), true);
+			if(cachedInsight.getCachedDateTime() != null) {
+				runner.addResult("GetInsightCachedDateTime();", new NounMetadata(cachedInsight.getCachedDateTime().toString(), PixelDataType.CONST_STRING), true);
+			} else {
+				runner.addResult("GetInsightCachedDateTime();", new NounMetadata("Could not determine cached timestamp for insight", PixelDataType.CONST_STRING), true);
+			}
 			// logic to get all the frame headers
 			// add this first to the return object
 			{
