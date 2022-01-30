@@ -88,6 +88,9 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PROJECTID/INSIGHT")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHEMINUTES/INSIGHT")) {
+				return true;
+			}
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_GROUP");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/SMSS_GROUP")) {
@@ -202,6 +205,7 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHT", "LASTMODIFIEDON", "TIMESTAMP");
 		owler.addProp("INSIGHT", "LAYOUT", "VARCHAR(255)");
 		owler.addProp("INSIGHT", "CACHEABLE", "BOOLEAN");
+		owler.addProp("INSIGHT", "CACHEMINUTES", "INT");
 
 		// USERINSIGHTPERMISSION
 		owler.addConcept("USERINSIGHTPERMISSION", null, null);
