@@ -3,6 +3,8 @@ package prerna.sablecc2.reactor;
 import java.util.List;
 
 import prerna.om.Variable;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -38,11 +40,14 @@ public class AddVarReactor extends AbstractReactor
 		
 		// add the variable
 		boolean success = insight.addVariable(var);
-		
-		if(success)
-			return NounMetadata.getSuccessNounMessage("Variable Set : " + name);
-		else
-			return NounMetadata.getErrorNounMessage("One or more of the frames this variable uses is not available");
+		NounMetadata retNoun = null;
+		if(success) {
+			retNoun = new NounMetadata(name, PixelDataType.CONST_STRING, PixelOperationType.ADD_VARIABLE);
+			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Variable Set : " + name));
+		} else {
+			retNoun = NounMetadata.getErrorNounMessage("One or more of the frames this variable uses is not available");
+		}
+		return retNoun;
 	}
 
 }
