@@ -395,7 +395,8 @@ public class GreedyTranslation extends LazyTranslation {
 		    		}
 		    		
 		    		// if we are an assignment, let us track that as well
-		    		if(this.prevReactor instanceof AssignmentReactor) {
+		    		if(opTypes.contains(PixelOperationType.ADD_VARIABLE) 
+		    				|| this.prevReactor instanceof AssignmentReactor) {
 		    			pixelObj.setAssignment(true);
 		    		}
 		    		// store if we are doing a file read
