@@ -367,7 +367,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static List<Map<String, Object>> getInsightUsers(User user, String projectId, String insightId) throws IllegalAccessException {
-		if(!userCanViewInsight(user, projectId, insightId)) {
+		if(!SecurityInsightUtils.userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user does not have access to view this insight");
 		}
 		
