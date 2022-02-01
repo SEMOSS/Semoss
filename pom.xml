@@ -1620,17 +1620,6 @@
 			<version>2.3.20</version>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.zookeeper</groupId>
-			<artifactId>zookeeper</artifactId>
-			<version>3.4.10</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-storage</artifactId>
 			<version>8.0.0</version>
@@ -1894,6 +1883,12 @@
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
             <version>3.6.2</version>
+            <exclusions>
+				<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
         </dependency>
         <dependency>
 		  <groupId>org.elasticsearch.plugin</groupId>
