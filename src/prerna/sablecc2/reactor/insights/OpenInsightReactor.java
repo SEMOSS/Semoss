@@ -44,6 +44,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -411,26 +412,42 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			return null;
 		}
 		
-		// TODO: add check if semoss version that created the cache is the same...
-		// if the cache creation date + cache time is after now, then we have to delete the cache
 		LocalDateTime cachedDateTime = null;
 		String versionFileLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight) + DIR_SEPARATOR + InsightCacheUtility.VERSION_FILE;
 		File versionFile = new File(versionFileLoc);
 		if(!versionFile.exists() || !versionFile.isFile()) {
-			// write the file with todays date
-			InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
+			// delete the current cache in case it is not accurate
+			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+					existingInsight.getRdbmsId(), true);
+			return null;
 		}
 		Properties vProp = Utility.loadProperties(versionFileLoc);
-		String dateGenStr = vProp.getProperty(InsightCacheUtility.GENERATION_DATE);
+		String versionStr = vProp.getProperty(InsightCacheUtility.VERSION_KEY);
+		String dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
+		if(versionStr == null || (versionStr=versionStr.trim()).isEmpty()
+			|| versionStr == null || (versionStr=versionStr.trim()).isEmpty()) {
+			// delete the current cache in case it is not accurate
+			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+					existingInsight.getRdbmsId(), true);
+			return null;
+		}
+		// check the version is accurate / the same
+		if(!versionStr.equals(VersionReactor.getVersionMap(false).get(VersionReactor.VERSION_KEY))) {
+			// different semoss version, delete the cache
+			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+					existingInsight.getRdbmsId(), true);
+			return null;
+		}
+		
 		try {
 			cachedDateTime = LocalDateTime.parse(dateGenStr);
 		} catch(Exception e) {
-			// ignore
+			// someone has been manually touching the file and they should
 			// write the version file again with todays date
 			versionFile.delete();
 			InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
 			vProp = Utility.loadProperties(versionFileLoc);
-			dateGenStr = vProp.getProperty(InsightCacheUtility.GENERATION_DATE);
+			dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
 			cachedDateTime = LocalDateTime.parse(dateGenStr);
 		}
 		int cacheMinutes = existingInsight.getCacheMinutes();
