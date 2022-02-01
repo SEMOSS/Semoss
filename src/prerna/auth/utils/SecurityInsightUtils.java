@@ -1369,6 +1369,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			new String[] {"INSIGHT__CREATEDON", "created_on"},
 			new String[] {"INSIGHT__LASTMODIFIEDON", "last_modified_on"},
 			new String[] {"INSIGHT__CACHEABLE", "cacheable"},
+			new String[] {"INSIGHT__CACHEMINUTES", "cacheMinutes"},
 			new String[] {"INSIGHT__GLOBAL", "insight_global"},
 		};
 		
@@ -1670,6 +1671,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEMINUTES", "cacheMinutes"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
