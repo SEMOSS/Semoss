@@ -349,6 +349,22 @@ public class Pixel {
 	public void setRefreshPanel(boolean isRefreshPanel) {
 		this.isRefreshPanel = isRefreshPanel;
 	}
+	
+	/**
+	 * Determine if this pixel is a known data operation
+	 * @return
+	 */
+	public boolean isDataOperation() {
+		return !this.isMeta && (
+				this.isCodeExecution || 
+				this.isFrameTransformation ||
+				this.isAssignment ||
+				this.isFileRead ||
+				this.saveDataTransformation ||
+				this.saveDataExport ||
+				this.saveVisualization
+			);
+	}
 
 	/**
 	 * Is this pixel a code execution
