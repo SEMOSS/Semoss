@@ -62,40 +62,49 @@ public class PixelList implements Iterable<Pixel> {
 		Pixel p = pixelList.get(pixelList.size()-1);
 		Pixel pixelToUtilize = p;
 		
+		// TODO: should keep track of which steps are code execution 
+		// so we dont loop through all the pixels before trying to consolidate
 		// can we consolidate the pixels?
-		// TODO:
-		// TODO:
-		// TODO:
-		// TODO:
-		// TODO: if there is a visualization in between
-		// need to determine how to consolidate
 		if(p.isCodeExecution() && pixelList.size()>1) {
-			Pixel prevPixel = pixelList.get(pixelList.size()-2);
-			if(prevPixel.isCodeExecution() 
-					&& p.getLanguage() == prevPixel.getLanguage()
-					&& ( p.getLanguage() == Variable.LANGUAGE.R
-						|| p.getLanguage() == Variable.LANGUAGE.PYTHON )
-					) {
-				// we can combine these!
-				String prevCodeExecution = prevPixel.getCodeExecuted();
-				String newCodeExecution = p.getCodeExecuted();
-				
-				String combined = prevCodeExecution + "\n" + newCodeExecution;
-				StringBuilder newPixelString = new StringBuilder();
-				if(p.getLanguage() == Variable.LANGUAGE.R) {
-					newPixelString.append("R(\"<encode>");
-				} else {
-					newPixelString.append("Py(\"<encode>");
+			// will try to consolidate even if there are visualization pixels
+			// that are not data based
+			int counter = 2;
+			LAST_DATA_LOOP : while(pixelList.size() - counter >= 0) {
+				Pixel prevPixel = pixelList.get(pixelList.size()-counter);
+				counter++;
+				if(prevPixel.isCodeExecution() 
+						&& p.getLanguage() == prevPixel.getLanguage()
+						&& ( p.getLanguage() == Variable.LANGUAGE.R
+							|| p.getLanguage() == Variable.LANGUAGE.PYTHON )
+						) {
+					// we can combine these!
+					String prevCodeExecution = prevPixel.getCodeExecuted();
+					String newCodeExecution = p.getCodeExecuted();
+					
+					String combined = prevCodeExecution + "\n" + newCodeExecution;
+					StringBuilder newPixelString = new StringBuilder();
+					if(p.getLanguage() == Variable.LANGUAGE.R) {
+						newPixelString.append("R(\"<encode>");
+					} else {
+						newPixelString.append("Py(\"<encode>");
+					}
+					newPixelString.append(combined);
+					newPixelString.append("</encode>\");");
+					prevPixel.setPixelString(newPixelString.toString());
+					prevPixel.setCodeDetails(true, combined, prevPixel.getLanguage());
+					
+					// now remove p from the list
+					pixelList.remove(pixelList.size()-1);
+					// and change the pixelToUtilize reference
+					pixelToUtilize = prevPixel;
+					break LAST_DATA_LOOP;
 				}
-				newPixelString.append(combined);
-				newPixelString.append("</encode>\");");
-				prevPixel.setPixelString(newPixelString.toString());
-				prevPixel.setCodeDetails(true, combined, prevPixel.getLanguage());
 				
-				// now remove p from the list
-				pixelList.remove(pixelList.size()-1);
-				// and change the pixelToUtilize reference
-				pixelToUtilize = prevPixel;
+				// if this is a data operation
+				// we need to break out of this loop
+				if(prevPixel.isDataOperation()) {
+					break LAST_DATA_LOOP;
+				}
 			}
 		}
 		
