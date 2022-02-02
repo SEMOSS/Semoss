@@ -205,10 +205,10 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		// isCodeExecution
 		out.name("isCodeExecution");
 		out.value(value.isCodeExecution());
-		// isCodeExecution
+		// codeExecuted
 		out.name("codeExecuted");
 		out.value(value.getCodeExecuted());
-		// isCodeExecution
+		// language
 		out.name("language");
 		if(value.getLanguage() == null) {
 			out.nullValue();
