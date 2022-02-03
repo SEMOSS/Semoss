@@ -45,6 +45,9 @@ public class GetSpecificInsightMetaReactor extends AbstractReactor {
 		Map<String, Object> retMap = SecurityInsightUtils.getSpecificInsightMetadata(projectId, rdbmsId, META_KEYS_LIST);
 		retMap.putIfAbsent("description", "");
 		retMap.putIfAbsent("tags", new Vector<String>());
+		// put in cacheable and cacheMinutes
+		retMap.putAll(SecurityInsightUtils.getSpecificInsightCacheDetails(projectId, rdbmsId));
+		retMap.put("global", SecurityInsightUtils.insightIsGlobal(projectId, rdbmsId));
 		
 		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		return retNoun;

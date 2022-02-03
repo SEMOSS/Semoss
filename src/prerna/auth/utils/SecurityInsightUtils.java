@@ -2003,6 +2003,47 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		return retMap;
 	}
+	
+	/**
+	 * Get if the insight is cacheable and the number of minutes it is cacheable for
+	 * @param projectId
+	 * @param insightId
+	 * @return
+	 */
+	public static Map<String, Object> getSpecificInsightCacheDetails(String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEMINUTES"));
+		// filters
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
+		
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				Boolean cacheable = (Boolean) data[0];
+				Number cacheMinutes = (Number) data[1];
+				if(cacheMinutes == null) {
+					cacheMinutes = -1;
+				}
+				
+				retMap.put("cacheable", cacheable);
+				retMap.put("cacheMinutes", cacheMinutes);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+
+		return retMap;
+	}
 
 	/**
 	 * Get all the available tags and their count
