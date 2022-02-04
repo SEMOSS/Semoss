@@ -1015,6 +1015,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps.setTimestamp(parameterIndex++, timestamp, cal);
 						ps.setString(parameterIndex++, oldId);
 						ps.execute();
+						if(!ps.getConnection().getAutoCommit()) {
+							ps.getConnection().commit();
+						}
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					} finally {
@@ -1041,6 +1044,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, newId);
 						ps.setString(parameterIndex++, oldId);
 						ps.execute();
+						if(!ps.getConnection().getAutoCommit()) {
+							ps.getConnection().commit();
+						}
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					} finally {
@@ -1053,7 +1059,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					}
 				}
 				
-				securityDb.commit();
 			} else {
 				// not added by admin
 				// lets see if he exists or not
@@ -1071,6 +1076,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps.setTimestamp(parameterIndex++, timestamp, cal);
 						ps.setString(parameterIndex++, newUser.getId());
 						ps.execute();
+						if(!ps.getConnection().getAutoCommit()) {
+							ps.getConnection().commit();
+						}
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					} finally {
@@ -1141,7 +1149,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setTimestamp(parameterIndex++, timestamp, cal);
 							ps.setTimestamp(parameterIndex++, timestamp, cal);
 							ps.execute();
-							securityDb.commit();
+							if(!ps.getConnection().getAutoCommit()) {
+								ps.getConnection().commit();
+							}
 						} catch (SQLException e) {
 							logger.error(Constants.STACKTRACE, e);
 						} finally {
