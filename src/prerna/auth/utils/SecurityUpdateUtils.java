@@ -4,12 +4,14 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -984,34 +986,44 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// this user was added by the user
 				// and we need to update
 				{
-					UpdateQueryStruct uqs = new UpdateQueryStruct();
-					uqs.setEngine(securityDb);
-					uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", oldId));
-					
-					List<IQuerySelector> selectors = new Vector<>();
-					selectors.add(new QueryColumnSelector("SMSS_USER__ID"));
-					selectors.add(new QueryColumnSelector("SMSS_USER__NAME"));
-					selectors.add(new QueryColumnSelector("SMSS_USER__USERNAME"));
-					selectors.add(new QueryColumnSelector("SMSS_USER__EMAIL"));
-					selectors.add(new QueryColumnSelector("SMSS_USER__TYPE"));
+					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
-					List<Object> values = new Vector<>();
-					values.add(newId);
-					values.add(newUser.getName());
-					values.add(newUser.getUsername());
-					values.add(newUser.getEmail());
-					values.add(newUser.getProvider().toString());
-
-					uqs.setSelectors(selectors);
-					uqs.setValues(values);
-					
-					UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
-					String updateQuery = updateInterp.composeQuery();
-					
+					String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, LASTLOGIN=? "
+							+ "WHERE ID=?";
+					PreparedStatement ps = null;
 					try {
-						securityDb.insertData(updateQuery);
+						int parameterIndex = 1;
+						ps = securityDb.getPreparedStatement(updateQuery);
+						ps.setString(parameterIndex++, newId);
+						if(newUser.getName() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getName());
+						}
+						if(newUser.getUsername() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getUsername());
+						}
+						if(newUser.getEmail() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getEmail());
+						}
+						ps.setString(parameterIndex++, newUser.getProvider().toString());
+						ps.setTimestamp(parameterIndex++, timestamp, cal);
+						ps.setString(parameterIndex++, oldId);
+						ps.execute();
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						if(ps != null) {
+							ps.close();
+						}
+						if(ps != null && securityDb.isConnectionPooling()) {
+							ps.getConnection().close();
+						}
 					}
 				}
 				
@@ -1046,9 +1058,29 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// not added by admin
 				// lets see if he exists or not
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
-
 				if (userExists) {
 					logger.info("oauth user already exists");
+					// update the user last login
+					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+					String updateQuery = "UPDATE SMSS_USER SET LASTLOGIN=? WHERE ID=?";
+					PreparedStatement ps = null;
+					try {
+						int parameterIndex = 1;
+						ps = securityDb.getPreparedStatement(updateQuery);
+						ps.setTimestamp(parameterIndex++, timestamp, cal);
+						ps.setString(parameterIndex++, newUser.getId());
+						ps.execute();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						if(ps != null) {
+							ps.close();
+						}
+						if(ps != null && securityDb.isConnectionPooling()) {
+							ps.getConnection().close();
+						}
+					}
 					return false;
 				}
 
@@ -1076,20 +1108,38 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// need to prevent 2 threads attempting to add the same user
 					userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 					if(!userExists) {
-						query = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER) VALUES (?,?,?,?,?,?,?,?)";
+						Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+						java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+
+						query = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN) "
+								+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 						PreparedStatement ps = null;
 						try {
 							ps = securityDb.getPreparedStatement(query);
 							int parameterIndex = 1;
 							ps.setString(parameterIndex++, newUser.getId());
-							ps.setString(parameterIndex++, newUser.getName());
-							ps.setString(parameterIndex++, newUser.getUsername());
-							ps.setString(parameterIndex++, newUser.getEmail());
+							if(newUser.getName() == null) {
+								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+							} else {
+								ps.setString(parameterIndex++, newUser.getName());
+							}
+							if(newUser.getUsername() == null) {
+								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+							} else {
+								ps.setString(parameterIndex++, newUser.getUsername());
+							}
+							if(newUser.getEmail() == null) {
+								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+							} else {
+								ps.setString(parameterIndex++, newUser.getEmail());
+							}
 							ps.setString(parameterIndex++, newUser.getProvider().toString());
+							// we never add ADMIN this way
 							ps.setBoolean(parameterIndex++, false);
 							ps.setBoolean(parameterIndex++, !adminSetPublisher());
-							//default exporter to true
-							ps.setBoolean(parameterIndex++, true);
+							ps.setBoolean(parameterIndex++, !adminSetExporter());
+							ps.setTimestamp(parameterIndex++, timestamp, cal);
+							ps.setTimestamp(parameterIndex++, timestamp, cal);
 							ps.execute();
 							securityDb.commit();
 						} catch (SQLException e) {
@@ -1230,7 +1280,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(salt == null) salt = "";
 		if(type == null) type = "";
 
-		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER, EXPORTER) VALUES (?,?,?,?,?,?,?,?,?,?)";
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		
+		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -1245,6 +1298,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, admin);
 			ps.setBoolean(parameterIndex++, publisher);
 			ps.setBoolean(parameterIndex++, exporter);
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
 			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {
