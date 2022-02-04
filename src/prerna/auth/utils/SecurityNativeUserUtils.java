@@ -1,15 +1,18 @@
 package prerna.auth.utils;
 
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -20,6 +23,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
@@ -43,8 +47,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
-	 * Adds a new user to the database. Does not create any relations, simply the
-	 * node.
+	 * Adds a new user to the database
 	 * 
 	 * @param userName String representing the name of the user to add
 	 * @throws IllegalArgumentException
@@ -68,13 +71,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		
 		validInformation(newUser, password);
 		
-		// is this an admin added user???
-		/*String query = "SELECT ID FROM USER WHERE "
-				+ "NAME='" + ADMIN_ADDED_USER + "' AND "
-				// this matching the ID field to the email because admin added user only sets the id field
-				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_ID_KEY));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_NAME_KEY, "==", ADMIN_ADDED_USER));
@@ -87,51 +83,144 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
 				// this was the old id that was added when the admin
-				String oldId = RdbmsQueryBuilder.escapeForSQLStatement(wrapper.next().getValues()[0].toString());
-				String newId = RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId());
+				String oldId = wrapper.next().getValues()[0].toString();
+				String newId = newUser.getId();
 
 				// this user was added by the user and we need to update
 				String salt = SecurityQueryUtils.generateSalt();
 				String hashedPassword = (SecurityQueryUtils.hash(password, salt));
 
-				String updateQuery = "UPDATE SMSS_USER SET " + "ID='" + newId + "', " + "NAME='"
-						+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', " + "USERNAME='"
-						+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', " + "EMAIL='"
-						+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', " + "TYPE='"
-						+ newUser.getProvider().toString() + "'," + "PASSWORD='" + hashedPassword + "'," + "SALT='" + salt + "' "
-						+ "WHERE ID='" + oldId + "';";
-				insertData(updateQuery);
+				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+				java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
+				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
+						+ "PASSWORD=?, SALT=?, LASTLOGIN=? WHERE ID=?";
+				PreparedStatement ps = null;
+				try {
+					int parameterIndex = 1;
+					ps = securityDb.getPreparedStatement(updateQuery);
+					ps.setString(parameterIndex++, newId);
+					if(newUser.getName() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getName());
+					}
+					if(newUser.getUsername() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getUsername());
+					}
+					if(newUser.getEmail() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getEmail());
+					}
+					ps.setString(parameterIndex++, newUser.getProvider().toString());
+					ps.setString(parameterIndex++, hashedPassword);
+					ps.setString(parameterIndex++, salt);
+					ps.setTimestamp(parameterIndex++, timestamp, cal);
+					ps.setString(parameterIndex++, oldId);
+					ps.execute();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				} finally {
+					if(ps != null) {
+						ps.close();
+					}
+					if(ps != null && securityDb.isConnectionPooling()) {
+						ps.getConnection().close();
+					}
+				}
+				
 				// need to update any other permissions that were set for this user
-				updateQuery = "UPDATE ENGINEPERMISSION SET USERID='" + newId + "' WHERE USERID='" + oldId + "'";
-				insertData(updateQuery);
+				if(!oldId.equals(newId)) {
+					String[] updateQueries = new String[] {
+							"UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
+							"UPDATE PROJECTPERMISSION SET USERID=? WHERE USERID=?",
+							"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?"
+					};
+					for(String uQuery : updateQueries) {
+						try {
+							int parameterIndex = 1;
+							ps = securityDb.getPreparedStatement(uQuery);
+							ps.setString(parameterIndex++, newId);
+							ps.setString(parameterIndex++, oldId);
+							ps.execute();
+							if(!ps.getConnection().getAutoCommit()) {
+								ps.getConnection().commit();
+							}
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						} finally {
+							if(ps != null) {
+								ps.close();
+							}
+							if(ps != null && securityDb.isConnectionPooling()) {
+								ps.getConnection().close();
+							}
+						}
+					}
+				}
 
-				// need to update all the places the user id is used
-				updateQuery = "UPDATE USERINSIGHTPERMISSION SET USERID='" + newId + "' WHERE USERID='" + oldId + "'";
-				insertData(updateQuery);
-
-				securityDb.commit();
 				return true;
 			} else {
 				// not added by admin
 				// lets see if he exists or not
-				boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
-				if (!isNewUser) {
+				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
+				if (!userExists) {
 					String salt = AbstractSecurityUtils.generateSalt();
 					String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
 
-					String query = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('"
-							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '"
-							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '"
-							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '"
-							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '"
-							+ newUser.getProvider().toString() + "', 'FALSE', '" + hashedPassword + "', '" + salt + "');";
+					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+					
+					String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED) "
+							+ "VALUES (?,?,?,?,?,?,?,?,?)";
+					
+					PreparedStatement ps = null;
 					try {
-						securityDb.insertData(query);
-						securityDb.commit();
+						int parameterIndex = 1;
+						ps = securityDb.getPreparedStatement(insertQuery);
+						ps.setString(parameterIndex++, newUser.getId());
+						if(newUser.getName() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getName());
+						}
+						if(newUser.getUsername() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getUsername());
+						}
+						if(newUser.getEmail() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getEmail());
+						}
+						ps.setString(parameterIndex++, newUser.getProvider().toString());
+						// we never add ADMIN this way
+						ps.setBoolean(parameterIndex++, false);
+						ps.setString(parameterIndex++, hashedPassword);
+						ps.setString(parameterIndex++, salt);
+						ps.setTimestamp(parameterIndex++, timestamp, cal);
+						ps.execute();
+						if(!ps.getConnection().getAutoCommit()) {
+							ps.getConnection().commit();
+						}
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						if(ps != null) {
+							ps.close();
+						}
+						if(ps != null && securityDb.isConnectionPooling()) {
+							ps.getConnection().close();
+						}
 					}
+					
 					return true;
 				}
 			}
@@ -144,14 +233,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		}
 
 		return false;
-	}
-
-	private static void insertData(String updateQuery) {
-		try {
-			securityDb.insertData(updateQuery);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
 	}
 
 	/**
