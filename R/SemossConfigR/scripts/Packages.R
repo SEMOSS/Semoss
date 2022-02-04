@@ -260,3 +260,8 @@ install.packages("pivottabler", dependencies=TRUE)
 
 #Complex Joins
 install.packages("sqldf", dependencies=TRUE)
+
+#NetworkViz
+install.packages("visNetwork", dependencies=TRUE)
+install.packages("networkD3", dependencies=TRUE)
+install.packages("htmlwidgets", dependencies=TRUE)
