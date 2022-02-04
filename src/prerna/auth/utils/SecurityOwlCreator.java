@@ -244,6 +244,9 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "ADMIN", "BOOLEAN");
 		owler.addProp("SMSS_USER", "PUBLISHER", "BOOLEAN");
 		owler.addProp("SMSS_USER", "EXPORTER", "BOOLEAN");
+		owler.addProp("SMSS_USER", "DATECREATED", "TIMESTAMP");
+		owler.addProp("SMSS_USER", "LASTLOGIN", "TIMESTAMP");
+		owler.addProp("SMSS_USER", "LASTPASSWORDRESET", "TIMESTAMP");
 
 		// PERMISSION
 		owler.addConcept("PERMISSION", null, null);
