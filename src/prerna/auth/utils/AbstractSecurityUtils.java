@@ -711,8 +711,10 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// SMSS_USER
-		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN", "PUBLISHER", "EXPORTER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", 
+				"ADMIN", "PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+				BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
 		// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 		// but some rdbms types (postgres) does not allow it
 		// so i am going ahead and moving over user to smss_user
@@ -729,15 +731,31 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 		}
-		// 2022-01-11 altering table need to check if a column exists, if not add it in
 		List<String> smssUserCols = queryUtil.getTableColumns(conn, "SMSS_USER", schema);
+		// 2022-01-11 altering table need to check if a column exists, if not add it in
 		// this should return in all upper case
 		// ... but sometimes it is not -_- i.e. postgres always lowercases
 		if(!smssUserCols.contains("EXPORTER") && !smssUserCols.contains("exporter")) {
 			String addColumnSql = queryUtil.alterTableAddColumnWithDefault("SMSS_USER", "EXPORTER", BOOLEAN_DATATYPE_NAME, true);
 			securityDb.insertData(addColumnSql);
 		}
-		
+		// 2022-02-04 altering table need to check if a column exists, if not add it in
+		{
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!smssUserCols.contains("DATECREATED") && !smssUserCols.contains("datecreated")) {
+				String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", "DATECREATED", TIMESTAMP_DATATYPE_NAME);
+				securityDb.insertData(addColumnSql);
+			}
+			if(!smssUserCols.contains("LASTLOGIN") && !smssUserCols.contains("lastlogin")) {
+				String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", "LASTLOGIN", TIMESTAMP_DATATYPE_NAME);
+				securityDb.insertData(addColumnSql);
+			}
+			if(!smssUserCols.contains("LASTPASSWORDRESET") && !smssUserCols.contains("lastpasswordreset")) {
+				String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", "LASTPASSWORDRESET", TIMESTAMP_DATATYPE_NAME);
+				securityDb.insertData(addColumnSql);
+			}
+		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
 		} else {
