@@ -5,11 +5,13 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -424,6 +426,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, RECIPE) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 		
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQuery);
@@ -433,9 +438,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightName);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setInt(parameterIndex++, 0);
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-			ps.setTimestamp(parameterIndex++, timestamp);
-			ps.setTimestamp(parameterIndex++, timestamp);
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
@@ -529,14 +533,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
 				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, RECIPE=? WHERE INSIGHTID = ? AND PROJECTID=?";
 
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQuery);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightName);
 			ps.setBoolean(parameterIndex++, global);
-			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-			ps.setTimestamp(parameterIndex++, timestamp);
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
@@ -578,13 +584,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightName
 	 */
 	public static void updateInsightName(String projectId, String insightId, String insightName) {
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+
 		String query = "UPDATE INSIGHT SET INSIGHTNAME=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightName);
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
@@ -619,6 +628,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheMinutes
 	 */
 	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes) {
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		
 		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -626,7 +638,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, cacheInsight);
 			ps.setInt(parameterIndex++, cacheMinutes);
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
