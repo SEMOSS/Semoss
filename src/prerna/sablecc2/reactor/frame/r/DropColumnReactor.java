@@ -64,7 +64,8 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 
 		// run the script
 		this.rJavaTranslator.runR(builder.toString());
-		
+		this.addExecutedCode(builder.toString());
+
 		// reset the frame headers
 		frame.syncHeaders();
 		

@@ -64,6 +64,11 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 			script = table + " <- " + table + "[order(-rank(" + column + "))]";
 		}
 		
+		// execute the r script
+		// script will be of the form: FRAME <- FRAME[order(rank(Director))]
+		frame.executeRScript(script);
+		this.addExecutedCode(script);
+		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
@@ -71,9 +76,7 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 				"SortColumn", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		// execute the r script
-		// script will be of the form: FRAME <- FRAME[order(rank(Director))]
-		frame.executeRScript(script);
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 	

@@ -49,12 +49,9 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 
 				if (Utility.isStringType(dataType.toString())) {
 					String script = table + "$" + column + " <- gsub('[^\\\\.0-9]', '', " + table + "$" + column + ");";
-					try {
-						frame.executeRScript(script);
-						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, SemossDataType.STRING.toString());
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+					frame.executeRScript(script);
+					this.addExecutedCode(script);
+					frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, SemossDataType.STRING.toString());
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
 				}
@@ -72,6 +69,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 					frame.executeRScript(update);
 					update = table + "$" + newColumn + " <- gsub('[^\\\\.0-9]', '', " + table + "$" + column + ");";
 					frame.executeRScript(update);
+					this.addExecutedCode(update);
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
 					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.STRING.toString());

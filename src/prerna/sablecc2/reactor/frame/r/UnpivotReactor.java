@@ -74,10 +74,12 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 
 		// run the first script to unpivot into the temp frame
 		frame.executeRScript(script);
+		this.addExecutedCode(script);
 		// if we are to replace the existing frame
 		script = table + " <- " + tempName;
 		frame.executeRScript(script);
-		
+		this.addExecutedCode(script);
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
@@ -90,6 +92,7 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(" + tempName + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
+		this.addExecutedCode(cleanUpScript.toString());
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}

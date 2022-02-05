@@ -51,7 +51,10 @@ public class SemanticDescription extends AbstractRFrameReactor {
 		rsb.append("}}\n");
 		// r temp variable clean up
 		rsb.append("rm(" + rFindItem + ");");
+		
 		this.rJavaTranslator.runR(rsb.toString());
+		this.addExecutedCode(rsb.toString());
+		
 		String frameExists = "exists('" + rFrame + "')";
 		boolean nullResults = this.rJavaTranslator.getBoolean(frameExists);
 		if (!nullResults) {

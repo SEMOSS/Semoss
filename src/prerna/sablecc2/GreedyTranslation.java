@@ -368,9 +368,11 @@ public class GreedyTranslation extends LazyTranslation {
 		    		// if we have a code execution reactor 
 		    		// just set this as something to save
 		    		if(prevReactor instanceof ICodeExecution) {
-		    			String codeExecuted = ((ICodeExecution) prevReactor).getCode();
-		    			Variable.LANGUAGE language = ((ICodeExecution) prevReactor).getLanguage();
-		    			pixelObj.setCodeDetails(true, codeExecuted, language);
+		    			String codeExecuted = ((ICodeExecution) prevReactor).getExecutedCode();
+		    			if(codeExecuted != null && !codeExecuted.isEmpty()) {
+			    			Variable.LANGUAGE language = ((ICodeExecution) prevReactor).getLanguage();
+			    			pixelObj.setCodeDetails(true, codeExecuted, language);
+		    			}
 		    		}
 		    		
 		    		List<PixelOperationType> opTypes = output.getOpType();

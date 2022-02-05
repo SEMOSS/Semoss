@@ -87,11 +87,11 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		script.append("topMatches=" + count);
 		script.append(")");
 
-		System.out.println(script);
 		logger.info("Finding matches for " + instances.toString() + "in the lookup table.");
 
 		// run it
 		this.rJavaTranslator.runR(script.toString());
+		this.addExecutedCode(script.toString());
 
 		// get the data
 		String[] matchCols = this.rJavaTranslator.getColumns(matchFrame);
@@ -106,9 +106,7 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		// change the working directory to the original
 		this.rJavaTranslator.runR("rm(" + matchFrame + ", " + catalog + ");gc();" + RSyntaxHelper.setWorkingDirectory(currentWd));
 		
-
 		// convert to {instance:[{}]} (easier processing)
-
 		Map<String, List<Map<String, Object>>> returnData = new HashMap<String, List<Map<String, Object>>>();
 
 		int instanceIdx = 0;

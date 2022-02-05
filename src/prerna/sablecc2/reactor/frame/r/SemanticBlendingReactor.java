@@ -136,6 +136,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		logger.info("Running semantic blending script");
 		logger.info("This process may take a few minutes depending on the type of data and internet speed");
 		this.rJavaTranslator.runR(rsb.toString());
+		this.addExecutedCode(rsb.toString());
 
 		// send to GA to store semantic names for predictions
 //		String[] colNamesGA = { "Original_Column", "Predicted_Concept", "Prob", "URL" };

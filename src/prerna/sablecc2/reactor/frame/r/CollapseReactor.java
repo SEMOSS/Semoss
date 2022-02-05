@@ -83,6 +83,7 @@ public class CollapseReactor extends AbstractRFrameReactor {
 		rsb.append("gc();");
 
 		this.rJavaTranslator.runR(rsb.toString());
+		this.addExecutedCode(rsb.toString());
 		frame.recreateMeta();
 
 		// NEW TRACKING
