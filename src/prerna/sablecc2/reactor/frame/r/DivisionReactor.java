@@ -68,6 +68,7 @@ public class DivisionReactor extends AbstractRFrameReactor {
 
 		// run R script
 		this.rJavaTranslator.runR(script.toString());
+		this.addExecutedCode(script.toString());
 
 		// check if new column exists
 		String colExistsScript = "\"" + newColName + "\" %in% colnames(" + frameName + ")";

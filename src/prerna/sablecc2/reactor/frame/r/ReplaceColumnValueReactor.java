@@ -168,6 +168,7 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 		// execute the r script
 		// script is of the form FRAME$Director[FRAME$Director == "oldVal"] <- "newVal"
 		frame.executeRScript(script.toString());
+		this.addExecutedCode(script.toString());
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

@@ -109,7 +109,8 @@ public class DateDifferenceReactor extends AbstractRFrameReactor {
 			script.append(", units = \"days\"))/30.42, digits = 2);");
 		}
 		this.rJavaTranslator.runR(script.toString());
-		
+		this.addExecutedCode(script.toString());
+
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);

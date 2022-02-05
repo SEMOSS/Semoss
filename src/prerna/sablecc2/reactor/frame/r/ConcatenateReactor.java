@@ -52,6 +52,7 @@ public class ConcatenateReactor extends AbstractRFrameReactor {
 		// paste(val,val2,..., sep="delim")
 		String rScript = frameName + "$" + newColName + " <- paste(" + rsb.toString() + ", sep=\"" + delim + "\")";
 		this.rJavaTranslator.executeEmptyR(rScript);
+		this.addExecutedCode(rScript);
 
 		// check if new column exists
 		String colExistsScript = "\"" + newColName + "\" %in% colnames(" + frameName + ")";

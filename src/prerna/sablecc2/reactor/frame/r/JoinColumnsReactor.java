@@ -80,6 +80,8 @@ public class JoinColumnsReactor extends AbstractRFrameReactor {
 		// script will be of the form: FRAME$mynewcolumn <- paste(FRAME$Year, FRAME$Title, FRAME$Director, sep = ", ")
 		String script = rsb.toString();
 		this.rJavaTranslator.runR(script);
+		this.addExecutedCode(script);
+
 		// update the metadata because column data has changed
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);

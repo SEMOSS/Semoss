@@ -117,7 +117,8 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 		rsb.append("rm(" + resultFrame + "," + linkFrame + "," + col1 +  "," + matchesTable + ", best_match, best_match_nonzero, best_match_zero, blend, curate, self_match );");
 		
 		this.rJavaTranslator.runR(rsb.toString());
-		
+		this.addExecutedCode(rsb.toString());
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 

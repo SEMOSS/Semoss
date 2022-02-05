@@ -85,6 +85,7 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 
 			// evaluate the r script
 			frame.executeRScript(script);
+			this.addExecutedCode(script);
 
 			// get all the columns that are factors
 			script = "sapply(" + tempName + ", is.factor);";
@@ -106,10 +107,14 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 
 			// convert factors
 			frame.executeRScript(conversionString);
+			this.addExecutedCode(conversionString);
 			// change table back to original name
 			frame.executeRScript(frameReplaceScript);
+			this.addExecutedCode(frameReplaceScript);
 			// perform variable cleanup
-			frame.executeRScript("rm(" + tempName + "); gc();");
+			String cleanup = "rm(" + tempName + "); gc();";
+			frame.executeRScript(cleanup);
+			this.addExecutedCode(cleanup);
 		}
 
 		// NEW TRACKING

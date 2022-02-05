@@ -92,9 +92,12 @@ public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 
 		// run the script
 		this.rJavaTranslator.runR(rsb.toString());
+		this.addExecutedCode(rsb.toString());
 
 		// garbage collection
-		this.rJavaTranslator.executeEmptyR("rm(" + frameAsDf + "); gc();");
+		String cleanup = "rm(" + frameAsDf + "); gc();";
+		this.rJavaTranslator.executeEmptyR(cleanup);
+		this.addExecutedCode(cleanup);
 
 		// return new frame
 		return resultsFrameName;

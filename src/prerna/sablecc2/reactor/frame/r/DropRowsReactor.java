@@ -40,11 +40,9 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 
 		// use RInterpreter to create filter syntax
 		OwlTemporalEngineMeta frameMetadata = frame.getMetaData();
-		try
-		{
+		try {
 			grf = QSAliasToPhysicalConverter.convertGenRowFilters(grf, frameMetadata, null);
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
 		}
 		StringBuilder rFilterBuilder = new StringBuilder();
@@ -56,6 +54,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 		// FRAME <- FRAME[!( FRAME$Director == "value"),]
 		String newScript = table + "<- " + table + "[!(" + rFilterBuilder.toString() + "),]";
 		frame.executeRScript(newScript);
+		this.addExecutedCode(newScript);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "DropRows",

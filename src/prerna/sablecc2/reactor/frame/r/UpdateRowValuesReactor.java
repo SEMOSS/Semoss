@@ -151,6 +151,7 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 		
 		// execute the r scripts
 		this.rJavaTranslator.runR(script);
+		this.addExecutedCode(script);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

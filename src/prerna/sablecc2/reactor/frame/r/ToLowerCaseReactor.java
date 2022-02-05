@@ -61,6 +61,7 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 		// script will be of the form:
 		// FRAME$column <- tolower(FRAME$column)
 		this.rJavaTranslator.runR(builder.toString());
+		this.addExecutedCode(builder.toString());
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

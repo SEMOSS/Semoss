@@ -28,6 +28,7 @@ public class TransposeReactor extends AbstractRFrameReactor {
 		String script = table + " <- " + table + "[, data.table(t(.SD), keep.rownames=TRUE)]";
 		// execute the r script
 		frame.executeRScript(script);
+		this.addExecutedCode(script);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
