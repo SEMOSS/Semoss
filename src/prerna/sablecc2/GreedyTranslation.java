@@ -356,7 +356,18 @@ public class GreedyTranslation extends LazyTranslation {
 		    			simpleMap.put("original", cloneMap.get("original").getPanelId());
 		    			simpleMap.put("clone", cloneMap.get("clone").getPanelId());
 						pixelObj.addCloneMap(simpleMap);
-		    		} else if(output.getNounType() == PixelDataType.CODE) {
+		    		} 
+		    		// replaced with below logic so we can store all the scripts 
+		    		// that were run in an insight
+//		    		else if(output.getNounType() == PixelDataType.CODE) {
+//		    			String codeExecuted = ((ICodeExecution) prevReactor).getCode();
+//		    			Variable.LANGUAGE language = ((ICodeExecution) prevReactor).getLanguage();
+//		    			pixelObj.setCodeDetails(true, codeExecuted, language);
+//		    		}
+		    		
+		    		// if we have a code execution reactor 
+		    		// just set this as something to save
+		    		if(prevReactor instanceof ICodeExecution) {
 		    			String codeExecuted = ((ICodeExecution) prevReactor).getCode();
 		    			Variable.LANGUAGE language = ((ICodeExecution) prevReactor).getLanguage();
 		    			pixelObj.setCodeDetails(true, codeExecuted, language);
@@ -370,14 +381,7 @@ public class GreedyTranslation extends LazyTranslation {
 		    		// where we run a script
 		    		// but its not base code that can be executed
 		    		if(opTypes.contains(PixelOperationType.CODE_EXECUTION)) {
-		    			if(curReactor instanceof ICodeExecution) {
-			    			String codeExecuted = ((ICodeExecution) prevReactor).getCode();
-			    			Variable.LANGUAGE language = ((ICodeExecution) prevReactor).getLanguage();
-			    			pixelObj.setCodeDetails(true, codeExecuted, language);
-		    			} else {
-		    				// should still save this execution
-			    			pixelObj.setSaveDataTransformation(true);
-		    			}
+		    			pixelObj.setSaveDataTransformation(true);
 		    		}
 		    		if(opTypes.contains(PixelOperationType.FRAME) 
 		    				|| opTypes.contains(PixelOperationType.FRAME_DATA_CHANGE)
