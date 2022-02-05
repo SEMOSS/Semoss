@@ -39,15 +39,17 @@ public class TimestampDataReactor extends AbstractRFrameReactor {
 		String includeTime = this.keyValue.get(this.keysToGet[1]);
 		Boolean includeT = Boolean.parseBoolean(includeTime);
 		
-		String syntax = table + "$"  + newColName + " <- ";
+		String script = table + "$"  + newColName + " <- ";
 		if(includeT) {
-			syntax += "as.POSIXct(Sys.time())";
+			script += "as.POSIXct(Sys.time())";
 		} else {
-			syntax += "as.Date(Sys.Date())";
+			script += "as.Date(Sys.Date())";
 		}
 		
 		// execute
-		frame.getBuilder().evalR(syntax);
+		frame.executeRScript(script);
+		this.addExecutedCode(script);
+
 		// add the metadata
 		// update the metadata to include this new column
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();

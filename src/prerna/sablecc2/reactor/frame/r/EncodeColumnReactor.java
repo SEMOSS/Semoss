@@ -35,8 +35,7 @@ public class EncodeColumnReactor extends AbstractRFrameReactor {
 		}
 
 		StringBuilder script = new StringBuilder();
-		script.append("library(digest);")
-		.append("encode <- function(value) digest(value, algo=\"sha256\");");
+		script.append("library(digest);encode <- function(value) digest(value, algo=\"sha256\");");
 
 		for(String col : columns) {
 			String select = frameName + "$" + col;
@@ -44,7 +43,8 @@ public class EncodeColumnReactor extends AbstractRFrameReactor {
 		}
 
 		this.rJavaTranslator.executeEmptyR(script.toString());
-		
+		this.addExecutedCode(script.toString());
+
 		// upon successful execution
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 		for(String col : columns) {

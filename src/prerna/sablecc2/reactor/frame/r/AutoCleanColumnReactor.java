@@ -74,7 +74,8 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 			script.append(tableName + " <- " + tableName + "[,-c('" + tempCol + "')];");
 			script.append("rm(" + tempCol + ");");
 			this.rJavaTranslator.runR(script.toString());
-
+			this.addExecutedCode(script.toString());
+			
 			// add meta data to frame
 			retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newHeaderName));
 			metaData.addProperty(tableName, tableName + "__" + newHeaderName);

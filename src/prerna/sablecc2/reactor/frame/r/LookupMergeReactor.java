@@ -97,14 +97,14 @@ public class LookupMergeReactor extends AbstractRFrameReactor {
 		script.append(RSyntaxHelper.getMergeSyntax(frameName, frameName, matchFrame, "inner.join", joinsList) + ";");
 		script.append("rm(" + matchFrame + ");gc();");
 		script.append("print(\"hello\")");
-		System.out.print(script);
 		
 		//message out
 		logger.info("Running script to merge lookup table.");
 
 		// run it
 		this.rJavaTranslator.runR(script.toString());
-		
+		this.addExecutedCode(script.toString());
+
 		// update the metadata to include the new column
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		metaData.addProperty(frameName, frameName + "__" + newColumn);

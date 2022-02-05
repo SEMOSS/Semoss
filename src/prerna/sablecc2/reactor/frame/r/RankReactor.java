@@ -88,6 +88,7 @@ public class RankReactor extends AbstractRFrameReactor {
 		script.append("]");
 		// run rank script
 		this.rJavaTranslator.runR(script.toString());
+		this.addExecutedCode(script.toString());
 
 		StringBuilder sortByRankScript = new StringBuilder();
 		sortByRankScript.append(frameName).append(" <- ").append(frameName).append("[order(");
@@ -98,6 +99,7 @@ public class RankReactor extends AbstractRFrameReactor {
 		sortByRankScript.append(newColName).append(")]");
 		// sort by rank
 		this.rJavaTranslator.runR(sortByRankScript.toString());
+		this.addExecutedCode(sortByRankScript.toString());
 
 		// check if new column exists
 		String colExistsScript = "\"" + newColName + "\" %in% colnames(" + frameName + ")";

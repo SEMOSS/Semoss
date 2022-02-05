@@ -71,9 +71,10 @@ public class LookupGenerateReactor extends AbstractRFrameReactor {
 
 		logger.info("Running script to generate lookup table.");
 
-		// this.rJavaTranslator.runR(script.toString());
-		String output = this.rJavaTranslator.runRAndReturnOutput(script.toString());
-		logger.info(output);
+		this.rJavaTranslator.runR(script.toString());
+		this.addExecutedCode(script.toString());
+//		String output = this.rJavaTranslator.runRAndReturnOutput(script.toString());
+//		logger.info(output);
 
 		return NounMetadata.getSuccessNounMessage("Successfully generated Lookup Table.");
 	}

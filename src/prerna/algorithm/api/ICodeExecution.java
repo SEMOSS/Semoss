@@ -4,7 +4,7 @@ import prerna.om.Variable;
 
 public interface ICodeExecution {
 
-	public String getCode();
+	String getExecutedCode();
 	
 	Variable.LANGUAGE getLanguage();
 	
