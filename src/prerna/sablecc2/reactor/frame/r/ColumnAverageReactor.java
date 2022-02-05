@@ -52,6 +52,7 @@ public class ColumnAverageReactor extends AbstractRFrameReactor {
 		script.append(frameName).append("$").append(columns.get(i)).append(") / ");
 		script.append(columns.size()).append("), digits = 2);");
 		this.rJavaTranslator.runR(script.toString());
+		this.addExecutedCode(script.toString());
 
 		// check if new column exists
 		String colExistsScript = "\"" + newColName + "\" %in% colnames(" + frameName + ")";

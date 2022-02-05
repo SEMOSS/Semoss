@@ -67,6 +67,7 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		// execute the r script
 		// script is of the form: names(FRAME)[names(FRAME) == "Director"] = "directing_person"
 		frame.executeRScript(script);
+		this.addExecutedCode(script);
 		// FE passes the column name
 		// but meta will still be table __ column
 		// update the metadata because column names have changed

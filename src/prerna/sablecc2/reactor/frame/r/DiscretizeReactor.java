@@ -163,6 +163,7 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 
 		// execute R
 		this.rJavaTranslator.runR(sb.toString());
+		this.addExecutedCode(sb.toString());
 
 		// retrieve new columns to add to meta
 		List<String> updatedDtColumns = new ArrayList<String>(Arrays.asList(this.rJavaTranslator.getColumns(dtName)));
@@ -190,6 +191,7 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(" + inputList_R + "," + colLevels_R + ",discretizeColumnsDt, discretize, getNewColumnName);");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
+		this.addExecutedCode(cleanUpScript.toString());
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

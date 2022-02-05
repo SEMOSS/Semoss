@@ -50,11 +50,8 @@ public class ExtractLettersReactor extends AbstractRFrameReactor {
 
 				if (Utility.isStringType(dataType.toString())) {
 					String update = table + "$" + column + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ")";
-					try {
-						frame.executeRScript(update);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+					frame.executeRScript(update);
+					this.addExecutedCode(update);
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
 				}
@@ -71,6 +68,7 @@ public class ExtractLettersReactor extends AbstractRFrameReactor {
 					String update = table + "$" + newColumn + " <- \"\";";
 					update += table + "$" + newColumn + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ");";
 					this.rJavaTranslator.runR(update);
+					this.addExecutedCode(update);
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
 					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.STRING.toString());

@@ -1,10 +1,14 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
+import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.om.Variable.LANGUAGE;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
@@ -15,8 +19,10 @@ import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
+public abstract class AbstractRFrameReactor extends AbstractFrameReactor implements ICodeExecution {
 
+	// the code that was executed
+	private List<String> codeExecuted = new ArrayList<>();
 	protected AbstractRJavaTranslator rJavaTranslator;
 
 	/**
@@ -246,5 +252,29 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
  		}		
  		return frameChanged;
  	}
+ 	
+ 	/////////////////////////////////////////////////////
+ 	
+ 	/*
+ 	 * ICodeExecution methods
+ 	 */
+
+ 	public void addExecutedCode(String code) {
+ 		this.codeExecuted.add(code);
+ 	}
+	
+	@Override
+	public String getExecutedCode() {
+		StringBuffer finalScript = new StringBuffer();
+		for(String c : this.codeExecuted) {
+			finalScript.append(c).append("\n");
+		}
+		return finalScript.toString();
+	}
+
+	@Override
+	public LANGUAGE getLanguage() {
+		return LANGUAGE.R;
+	}
 
 }

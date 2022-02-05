@@ -58,6 +58,7 @@ public class TrimColumnsReactor extends AbstractRFrameReactor {
 		// script will be of the form:
 		// FRAME$column <- str_trim(FRAME$column)
 		this.rJavaTranslator.runR(builder.toString());
+		this.addExecutedCode(builder.toString());
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

@@ -125,6 +125,7 @@ public class PivotReactor extends AbstractRFrameReactor {
         String colScript = table + "$" + pivotCol;
         String cleanScript = colScript + "= gsub(" + "\"-\"" + "," + "\"_\"" + ", " + colScript + ");";
         this.rJavaTranslator.executeEmptyR(cleanScript);
+		this.addExecutedCode(cleanScript);
 
 		String script = newFrame + " <- dcast(" + table + keepString + aggregateString + ");";
 		script += RSyntaxHelper.asDataTable(newFrame, newFrame);
@@ -134,6 +135,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 			script += table + " <- " + table + "[,.:=NULL];";
 		}
 		this.rJavaTranslator.runR(script);
+		this.addExecutedCode(script);
 		frame.recreateMeta();
 
 		// get the optional replace value for na values
@@ -159,15 +161,16 @@ public class PivotReactor extends AbstractRFrameReactor {
 				}
 			}
 			this.rJavaTranslator.runR(rReplaceScript.toString());
+			this.addExecutedCode(rReplaceScript.toString());
 		}
 
-		
 		//clean up temp r variables
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + newFrame + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
-		
+		this.addExecutedCode(cleanUpScript.toString());
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 

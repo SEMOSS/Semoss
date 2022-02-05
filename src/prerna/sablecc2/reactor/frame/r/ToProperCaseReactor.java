@@ -65,7 +65,8 @@ public class ToProperCaseReactor extends AbstractRFrameReactor {
 		// script will be of the form:
 		// FRAME$column <- stri_trans_totitle(FRAME$column)
 		this.rJavaTranslator.runR(builder.toString());
-		
+		this.addExecutedCode(builder.toString());
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 

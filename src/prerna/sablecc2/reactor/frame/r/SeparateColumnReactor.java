@@ -67,7 +67,8 @@ public class SeparateColumnReactor extends AbstractRFrameReactor {
 				.append("'), sep = ").append(index).append(", remove=FALSE)");
 
 		frame.executeRScript(sb.toString());
-		
+		this.addExecutedCode(sb.toString());
+
 		// check if new column exists
 		String colExistsScript = "\"" + leftColumnName + "\" %in% colnames(" + dataFrame + ")";
 		boolean colExists = this.rJavaTranslator.getBoolean(colExistsScript);
