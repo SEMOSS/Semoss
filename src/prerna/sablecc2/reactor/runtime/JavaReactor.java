@@ -35,11 +35,11 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 	public NounMetadata execute() {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_terminal)) {
-					throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			 };
+			if(Boolean.parseBoolean(disable_terminal)) {
+				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
+			}
 		}
-		
+
 		ReactorSecurityManager tempManager = new ReactorSecurityManager();
 		String className = "c" + System.currentTimeMillis();
 		String packageName = "t" + System.currentTimeMillis();
@@ -151,7 +151,7 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 	}
 
 	@Override
-	public String getCode() {
+	public String getExecutedCode() {
 		return this.code;
 	}
 

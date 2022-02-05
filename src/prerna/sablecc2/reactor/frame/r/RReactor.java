@@ -15,12 +15,10 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 
-import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
-import prerna.om.Variable.LANGUAGE;
 import prerna.sablecc2.ReactorSecurityManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -34,48 +32,45 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public final class RReactor extends AbstractRFrameReactor implements ICodeExecution {
+public final class RReactor extends AbstractRFrameReactor {
 	
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = RReactor.class.getName();
-	// the code that was executed
-	private String code = null;
 	
 	@Override
 	public NounMetadata execute() {
-		
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_terminal)) {
-					throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			 };
+			if(Boolean.parseBoolean(disable_terminal)) {
+				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
+			}
 		}
-		
+
 		// if it first time..
-		// get the metasynchronized
+		// get the meta synchronized
 		Logger logger = getLogger(CLASS_NAME);
 		this.rJavaTranslator = this.insight.getRJavaTranslator(logger);
 		rJavaTranslator.startR();
 		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
 		// forcing smartSync to be true all the time
 		smartSync = true;
-		if(smartSync)
-		{
+		if(smartSync) {
 			// see if the var has been set for first time
-			if(insight.getProperty("FIRST_SYNC") == null)
-			{
+			if(insight.getProperty("FIRST_SYNC") == null) {
 				smartSync(rJavaTranslator);
 				insight.getVarStore().put("FIRST_SYNC", new NounMetadata("True", PixelDataType.CONST_STRING));
 			}
 		}
-		
+
 		ReactorSecurityManager tempManager = new ReactorSecurityManager();
 		tempManager.addClass(CLASS_NAME);
 		System.setSecurityManager(tempManager);
 		
-		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		// set the code variable for the ICodeExecution interface
+		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		logger.info("Execution r script: " + code);
-		
+		this.addExecutedCode(code);
+
 		// bifurcation for ggplot
 		if(code.startsWith("ggplot")) {
 			return handleGGPlot(code);
@@ -94,10 +89,10 @@ public final class RReactor extends AbstractRFrameReactor implements ICodeExecut
 		tempManager.removeClass(CLASS_NAME);
 		System.setSecurityManager(defaultManager);	
 		
-		if(smartSync)
-		{
-			if(smartSync(rJavaTranslator))
+		if(smartSync) {
+			if(smartSync(rJavaTranslator)) {
 				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
+			}
 		}
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
@@ -280,13 +275,11 @@ public final class RReactor extends AbstractRFrameReactor implements ICodeExecut
 		new File(retFile).delete();
 
 		// delete the pivot later
-		if(bin.length() > 0) 
-		{
+		if(bin.length() > 0) {
 			Vector<NounMetadata> retList = new Vector<>();
 			InsightPanel daPanel = insight.getInsightPanel(panelId);
 			//newWindow = daPanel != null;
-			if(newWindow)
-			{
+			if(newWindow) {
 				// need to fix the scehario where the panel id can be replaced
 				// can make panel id random moving forward
 				daPanel = new InsightPanel(panelId+panelNum, Insight.DEFAULT_SHEET_ID);
@@ -295,26 +288,15 @@ public final class RReactor extends AbstractRFrameReactor implements ICodeExecut
 				NounMetadata noun = new NounMetadata(daPanel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
 				retList.add(noun);
 				retList.add( new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE));
-				if(newFrameVar != null)
+				if(newFrameVar != null) {
 					retList.add(newFrameVar);
-				
+				}
 				return new NounMetadata(retList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
-					
 			}
 			//return //new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 		} 	
 		//return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 		return null;
-	}
-
-	@Override
-	public String getCode() {
-		return this.code;
-	}
-
-	@Override
-	public LANGUAGE getLanguage() {
-		return LANGUAGE.R;
 	}
 
 }

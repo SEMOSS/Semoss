@@ -30,7 +30,8 @@ public class RemoveDuplicateRowsReactor extends AbstractRFrameReactor {
 		
 		//execute the r script
 		frame.executeRScript(script);
-		
+		this.addExecutedCode(script);
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 

@@ -53,9 +53,9 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 
 		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
 		String dataType = metadata.getHeaderTypeAsString(table + "__" + column);
-		if(dataType == null)
+		if(dataType == null) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
-
+		}
 		
 		//check if there is a new dataType
 		if (!dataType.equals(newType)) {
@@ -77,18 +77,22 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 					rsb.append("rm(" + tempTable + ");");
 					rsb.append("gc();");
 					this.rJavaTranslator.runR(rsb.toString());
+					this.addExecutedCode(rsb.toString());
 				} else {
 					script = table + "$" + column + " <- as.character(" + table + "$" + column + ");";
 					frame.executeRScript(script);
+					this.addExecutedCode(script);
 				}
 			} else if (newType.equalsIgnoreCase("factor")) {
 				// df$column <- as.factor(df$column);
 				script = table + "$" + column + " <- as.factor(" + table + "$" + column + ");";
 				frame.executeRScript(script);
+				this.addExecutedCode(script);
 			} else if (Utility.isDoubleType(newType)) {
 				// r script syntax cleaning characters with regex
 				script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
 				frame.executeRScript(script);
+				this.addExecutedCode(script);
 			} else if (Utility.isDateType(newType)) {
 				// we have a different script to run if it is a str to date
 				// conversion
@@ -102,6 +106,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				}
 				script = RSyntaxHelper.alterColumnTypeToDate(table, dateFormat, column);
 				this.rJavaTranslator.runR(script);
+				this.addExecutedCode(script);
 			}
 			// update the metadata
 			metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);

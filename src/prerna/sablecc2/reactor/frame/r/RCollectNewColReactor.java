@@ -3,8 +3,10 @@ package prerna.sablecc2.reactor.frame.r;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.algorithm.api.ICodeExecution;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.om.Variable.LANGUAGE;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -17,13 +19,14 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 
-public class RCollectNewColReactor extends TaskBuilderReactor {
+public class RCollectNewColReactor extends TaskBuilderReactor implements ICodeExecution {
 
 	/**
 	 * This class is responsible for collecting data from a task and returning it
 	 */
 
-	AbstractRJavaTranslator rJavaTranslator = null;
+	private String codeExecuted = null;
+	private AbstractRJavaTranslator rJavaTranslator = null;
 	
 	public RCollectNewColReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey() };
@@ -87,7 +90,8 @@ public class RCollectNewColReactor extends TaskBuilderReactor {
 		String alias = onlySelector.getAlias();
 		mainQuery = frame.getName() + "$" + alias + "  <- " + mainQuery;
 		rJavaTranslator.executeEmptyR(mainQuery);
-		
+		this.codeExecuted = mainQuery;
+
 		// recreate the frame metadata
 		frame.recreateMeta();
 
@@ -115,5 +119,15 @@ public class RCollectNewColReactor extends TaskBuilderReactor {
 	protected void buildTask() {
 		// do nothing
 		
+	}
+
+	@Override
+	public String getExecutedCode() {
+		return this.codeExecuted;
+	}
+
+	@Override
+	public LANGUAGE getLanguage() {
+		return LANGUAGE.R;
 	}
 }
