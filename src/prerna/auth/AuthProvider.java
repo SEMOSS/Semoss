@@ -35,6 +35,7 @@ public enum AuthProvider {
 	GENERIC,
 	;
 
+	// TODO: i really dislike this... looks dumb for things like "Ms", "Cac"...
 	public String toString() {
 		return name().charAt(0) + name().substring(1).toLowerCase();
 	}
