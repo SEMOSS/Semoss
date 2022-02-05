@@ -57,6 +57,7 @@ public class DuplicateColumnReactor extends AbstractRFrameReactor {
 		// run duplicate script
 		String duplicate = table + "$" + newColName + "<-" + table + "$" + srcCol + ";";
 		frame.executeRScript(duplicate);
+		this.addExecutedCode(duplicate);
 
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();

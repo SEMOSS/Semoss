@@ -127,7 +127,8 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 		}
 
 		this.rJavaTranslator.runR(script.toString());
-
+		this.addExecutedCode(script.toString());
+		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 

@@ -56,9 +56,10 @@ public class CountIfReactor extends AbstractRFrameReactor {
 		// this function only works on strings, so we must convert the data to a
 		// string if it is not already
 		String colType = this.rJavaTranslator.getColumnType(table, column);
-		if(colType == null)
+		if(colType == null) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
-
+		}
+		
 		if (colType.equalsIgnoreCase("numeric") || colType.equalsIgnoreCase("date")) {
 			// after performing the count function, we will change it back
 			// format numeric data to get rid of e format (1e6)
@@ -70,12 +71,14 @@ public class CountIfReactor extends AbstractRFrameReactor {
 			// df$MovieBudget <- as.numeric(df$col);
 			rsb.append(table + "$" + column + "<- as.numeric(" + table + "$" + column + ");");
 			this.rJavaTranslator.runR(rsb.toString());
+			this.addExecutedCode(rsb.toString());
 		} else {
 			// define script to be executed
 			// dt$new <- str_count(dt$oldCol, "strToFind");
 			String script = table + "$" + newColName + " <- str_count(" + table + "$" + column + ", " + "\"" + regexToCount + "\"" + ")";
 			// execute the script
 			frame.executeRScript(script);
+			this.addExecutedCode(script);
 		}
 
 		// update the metadata

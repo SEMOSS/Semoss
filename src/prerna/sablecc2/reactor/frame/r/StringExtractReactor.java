@@ -101,6 +101,7 @@ public class StringExtractReactor extends AbstractRFrameReactor {
 		}
 		script.append(");");
 		this.rJavaTranslator.runR(script.toString());
+		this.addExecutedCode(script.toString());
 
 		// if not replacing vals (creating a new col, update metadata)
 		if (!replace) {

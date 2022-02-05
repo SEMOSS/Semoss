@@ -60,7 +60,8 @@ public class EncodeURIReactor extends AbstractRFrameReactor {
 		// script will be of the form:
 		// FRAME$column <- toupper(FRAME$column)
 		this.rJavaTranslator.runR(builder.toString());
-		
+		this.addExecutedCode(builder.toString());
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 

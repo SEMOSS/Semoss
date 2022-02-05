@@ -57,7 +57,8 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		String script = table + "$" + newColName + " <- \"\" ";
 		// execute the r script
 		frame.executeRScript(script);
-
+		this.addExecutedCode(script);
+		
 		// update the metadata to include this new column
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);
@@ -72,17 +73,21 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.DOUBLE.toString());
 			tempTable = Utility.getRandomString(6);
 			script = tempTable + " <- as.numeric(" + table + "$" + newColName + ")";
+			this.addExecutedCode(script);
 			frame.executeRScript(script);
 			script = table + "$" + newColName + "<-" + tempTable;
 			frame.executeRScript(script);
+			this.addExecutedCode(script);
 		} else if (Utility.isDateType(colType)) {
 			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.DATE.toString());
 			tempTable = Utility.getRandomString(6);
 			String dateFormat = "%Y/%m/%d";
 			script = tempTable + " <- as.Date(" + table + "$" + newColName + ", format='" + dateFormat + "')";
+			this.addExecutedCode(script);
 			frame.executeRScript(script);
 			script = table + "$" + newColName + " <- " + tempTable;
 			frame.executeRScript(script);
+			this.addExecutedCode(script);
 		} else {
 			// if not a number or a date then assign to string
 			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.STRING.toString());
@@ -90,8 +95,12 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 
 		// r temp variable clean up
 		if (tempTable != null) {
-			frame.executeRScript("rm(" + tempTable + ");");
-			frame.executeRScript("gc();");
+			script = "rm(" + tempTable + ");";
+			frame.executeRScript(script);
+			this.addExecutedCode(script);
+			script = "gc();";
+			frame.executeRScript(script);
+			this.addExecutedCode(script);
 		}
 		frame.syncHeaders();
 

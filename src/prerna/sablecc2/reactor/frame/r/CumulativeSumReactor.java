@@ -116,6 +116,7 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 		// run csum
 		// excute csum script
 		frame.executeRScript(rsb.toString());
+		this.addExecutedCode(rsb.toString());
 
 		// check if the routine is successful
 		// if it is successful add the new column

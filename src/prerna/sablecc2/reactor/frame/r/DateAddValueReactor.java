@@ -73,7 +73,8 @@ public class DateAddValueReactor extends AbstractRFrameReactor{
 			script.append("%m+%").append(" years(").append(value).append(")").append(";");
 		}
 		this.rJavaTranslator.runR(script.toString());
-		
+		this.addExecutedCode(script.toString());
+
 		NounMetadata retNoun;
 		if(newCol == null || newCol.equals("")){
 			retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
