@@ -72,7 +72,7 @@ public class PixelList implements Iterable<Pixel> {
 			LAST_DATA_LOOP : while(pixelList.size() - counter >= 0) {
 				Pixel prevPixel = pixelList.get(pixelList.size()-counter);
 				counter++;
-				if(prevPixel.isCodeExecution() 
+				if(prevPixel.isCodeExecution() && prevPixel.isUserScript()
 						&& p.getLanguage() == prevPixel.getLanguage()
 						&& ( p.getLanguage() == Variable.LANGUAGE.R
 							|| p.getLanguage() == Variable.LANGUAGE.PYTHON )
@@ -91,7 +91,7 @@ public class PixelList implements Iterable<Pixel> {
 					newPixelString.append(combined);
 					newPixelString.append("</encode>\");");
 					prevPixel.setPixelString(newPixelString.toString());
-					prevPixel.setCodeDetails(true, combined, prevPixel.getLanguage());
+					prevPixel.setCodeDetails(true, combined, prevPixel.getLanguage(), true);
 					
 					// now remove p from the list
 					pixelList.remove(pixelList.size()-1);

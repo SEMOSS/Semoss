@@ -305,4 +305,8 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		return LANGUAGE.PYTHON;
 	}
 
+	@Override
+	public boolean isUserScript() {
+		return true;
+	}
 }

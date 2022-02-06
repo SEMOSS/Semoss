@@ -9,7 +9,6 @@ import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
-import prerna.om.Variable;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AOperation;
@@ -370,8 +369,9 @@ public class GreedyTranslation extends LazyTranslation {
 		    		if(prevReactor instanceof ICodeExecution) {
 		    			String codeExecuted = ((ICodeExecution) prevReactor).getExecutedCode();
 		    			if(codeExecuted != null && !codeExecuted.isEmpty()) {
-			    			Variable.LANGUAGE language = ((ICodeExecution) prevReactor).getLanguage();
-			    			pixelObj.setCodeDetails(true, codeExecuted, language);
+			    			pixelObj.setCodeDetails(true, codeExecuted, 
+			    					((ICodeExecution) prevReactor).getLanguage(),
+			    					((ICodeExecution) prevReactor).isUserScript());
 		    			}
 		    		}
 		    		
