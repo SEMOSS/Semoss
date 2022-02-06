@@ -56,6 +56,7 @@ public class Pixel {
 	private boolean isRefreshPanel = false;
 	// is this a code execution? r/py/java?
 	private boolean isCodeExecution = false;
+	private boolean isUserScript = false;
 	private Variable.LANGUAGE language = null; 
 	private String codeExecuted = null;
 	// is this a data transformation
@@ -368,9 +369,18 @@ public class Pixel {
 
 	/**
 	 * Is this pixel a code execution
+	 * @return
 	 */
 	public boolean isCodeExecution() {
 		return isCodeExecution;
+	}
+	
+	/**
+	 * Is this pixel code execution a user script
+	 * @return
+	 */
+	public boolean isUserScript() {
+		return isUserScript;
 	}
 
 	/**
@@ -395,10 +405,11 @@ public class Pixel {
 	 * @param codeExecuted
 	 * @param language
 	 */
-	public void setCodeDetails(boolean isCodeExecution, String codeExecuted, Variable.LANGUAGE language) {
+	public void setCodeDetails(boolean isCodeExecution, String codeExecuted, Variable.LANGUAGE language, boolean isUserScript) {
 		this.isCodeExecution = isCodeExecution;
 		this.codeExecuted = codeExecuted;
 		this.language = language;
+		this.isUserScript = isUserScript;
 	}
 
 	/**
@@ -640,7 +651,7 @@ public class Pixel {
 	public static void translationMerge(Pixel pixelObj, Pixel mergePixel) {
 		if(mergePixel != null) {
 			pixelObj.setRefreshPanel(mergePixel.isRefreshPanel());
-			pixelObj.setCodeDetails(mergePixel.isCodeExecution(), mergePixel.getCodeExecuted(), mergePixel.getLanguage());
+			pixelObj.setCodeDetails(mergePixel.isCodeExecution(), mergePixel.getCodeExecuted(), mergePixel.getLanguage(), mergePixel.isUserScript());
 			pixelObj.setFrameTransformation(mergePixel.isFrameTransformation());
 			pixelObj.setAssignment(mergePixel.isAssignment());
 			pixelObj.setFileRead(mergePixel.isFileRead());

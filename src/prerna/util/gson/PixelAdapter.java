@@ -35,6 +35,7 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		boolean meta = false;
 		boolean isRefreshPanel = false;
 		boolean isCodeExecution = false;
+		boolean isUserScript = false;
 		String codeExecuted = null;
 		Variable.LANGUAGE language = null;
 		boolean isFrameTransformation = false;
@@ -80,6 +81,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 				isRefreshPanel = in.nextBoolean();
 			} else if(key.equals("isCodeExecution")) {
 				isCodeExecution = in.nextBoolean();
+			} else if(key.equals("isUserScript")) {
+				isUserScript = in.nextBoolean();
 			} else if(key.equals("codeExecuted")) {
 				codeExecuted = in.nextString();
 			} else if(key.equals("language")) {
@@ -152,7 +155,7 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		pixel.setMeta(meta);
 		pixel.setRefreshPanel(isRefreshPanel);
 		if(isCodeExecution) {
-			pixel.setCodeDetails(isCodeExecution, codeExecuted, language);
+			pixel.setCodeDetails(isCodeExecution, codeExecuted, language, isUserScript);
 		}
 		pixel.setFrameTransformation(isFrameTransformation);
 		pixel.setAssignment(isAssignment);
@@ -205,6 +208,9 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		// isCodeExecution
 		out.name("isCodeExecution");
 		out.value(value.isCodeExecution());
+		// isCodeExecution
+		out.name("isUserScript");
+		out.value(value.isUserScript());
 		// codeExecuted
 		out.name("codeExecuted");
 		out.value(value.getCodeExecuted());
