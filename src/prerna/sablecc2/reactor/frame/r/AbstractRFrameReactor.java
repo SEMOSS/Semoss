@@ -276,5 +276,10 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 	public LANGUAGE getLanguage() {
 		return LANGUAGE.R;
 	}
+	
+	@Override
+	public boolean isUserScript() {
+		return false;
+	}
 
 }

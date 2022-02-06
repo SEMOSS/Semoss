@@ -298,5 +298,10 @@ public final class RReactor extends AbstractRFrameReactor {
 		//return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 		return null;
 	}
+	
+	@Override
+	public boolean isUserScript() {
+		return true;
+	}
 
 }

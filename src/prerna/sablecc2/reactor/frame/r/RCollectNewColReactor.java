@@ -130,4 +130,9 @@ public class RCollectNewColReactor extends TaskBuilderReactor implements ICodeEx
 	public LANGUAGE getLanguage() {
 		return LANGUAGE.R;
 	}
+
+	@Override
+	public boolean isUserScript() {
+		return false;
+	}
 }

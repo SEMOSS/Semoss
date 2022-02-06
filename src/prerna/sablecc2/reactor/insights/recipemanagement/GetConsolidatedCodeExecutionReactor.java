@@ -14,7 +14,7 @@ public class GetConsolidatedCodeExecutionReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		List<String> consolidatedCode = new ArrayList<>();
+		List<StringBuffer> consolidatedCode = new ArrayList<>();
 		
 		PixelList pList = this.insight.getPixelList();
 		int size = pList.size();
@@ -23,34 +23,33 @@ public class GetConsolidatedCodeExecutionReactor extends AbstractReactor {
 		}
 		
 		StringBuffer buffer = new StringBuffer();
-		Pixel prevP = pList.get(0);
-		boolean prevIsCode = prevP.isCodeExecution();
-		LANGUAGE prevLanguage = prevP.getLanguage();
-		boolean canCombine = prevIsCode;
-		if(canCombine) {
-			buffer.append(prevP.getCodeExecuted());
-		}
-		for(int i = 1; i < size; i++) {
+		// keep combining until we get to a point where we switch languages
+		LANGUAGE prevLanguage = null;
+		for(int i = 0; i < size; i++) {
 			Pixel p = pList.get(i);
-			canCombine = p.isCodeExecution() && 
-					p.getLanguage() == prevLanguage;
-			
-			if(canCombine) {
-				buffer.append("\n").append(p.getCodeExecuted());
-			} else if(prevIsCode) {
-				consolidatedCode.add(buffer.toString());
-				buffer = new StringBuffer();
-				if(p.isCodeExecution()) {
-					buffer.append(p.getCodeExecuted());
+			if(p.isCodeExecution()) {
+				if(prevLanguage == p.getLanguage()) {
+					// combine into the same buffer
+					buffer.append(p.getCodeExecuted()).append("\n");
+				} else if(prevLanguage == null){
+					consolidatedCode.add(buffer);
+					buffer.append(p.getCodeExecuted()).append("\n");
+					prevLanguage = p.getLanguage();
+				} else {
+					buffer = new StringBuffer();
+					consolidatedCode.add(buffer);
+					buffer.append(p.getCodeExecuted()).append("\n");
+					prevLanguage = p.getLanguage();
 				}
-			} else if(p.isCodeExecution()) {
-				buffer.append(p.getCodeExecuted());
 			}
-			
-			prevP = p;
 		}
 		
-		return new NounMetadata(consolidatedCode, PixelDataType.VECTOR);
+		List<String> retCode = new ArrayList<>();
+		for(int i = 0; i < consolidatedCode.size(); i++) {
+			retCode.add(consolidatedCode.get(i).toString());
+		}
+		
+		return new NounMetadata(retCode, PixelDataType.VECTOR);
 	}
 
 }
