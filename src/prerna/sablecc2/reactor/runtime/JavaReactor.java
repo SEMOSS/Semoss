@@ -160,4 +160,8 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 		return LANGUAGE.JAVA;
 	}
 
+	@Override
+	public boolean isUserScript() {
+		return true;
+	}
 }
