@@ -8,4 +8,5 @@ public interface ICodeExecution {
 	
 	Variable.LANGUAGE getLanguage();
 	
+	boolean isUserScript();
 }
