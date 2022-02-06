@@ -136,8 +136,11 @@ public class RserveUtil {
 			process.waitFor(7L, TimeUnit.SECONDS);
 			System.out.println(" >> " + MgmtUtil.getProcessID(process));
 			MgmtUtil.printChild(MgmtUtil.getProcessID(process));
-		} finally {
-			
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
+		finally {
 			// Restore the prior security manager
 			System.setSecurityManager(priorManager);
 		}
