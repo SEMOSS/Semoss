@@ -112,7 +112,8 @@ public class DateDifferenceReactor extends AbstractPyFrameReactor {
 		}
 		
 		frame.runScript(script.toString());
-		
+		this.addExecutedCode(script.toString());
+
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);

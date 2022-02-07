@@ -11,12 +11,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class ExtractNumbersReactor extends AbstractFrameReactor {
+public class ExtractNumbersReactor extends AbstractPyFrameReactor {
+	
 	public static final String NUMERIC_COLUMN_NAME = "_NUMERIC";
 	
 	public ExtractNumbersReactor() {
@@ -39,7 +39,6 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 
 		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
-		StringBuilder commands = new StringBuilder();
 		// update existing columns
 		if (overrideColumn) {
 			for (int i = 0; i < columns.size(); i++) {
@@ -47,7 +46,9 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(frame.getName() + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					try {
-						frame.runScript(wrapperFrameName + ".extract_num('" + column + "')");
+						String script = wrapperFrameName + ".extract_num('" + column + "')";
+						frame.runScript(script);
+						this.addExecutedCode(script);
 						frame.getMetaData().modifyDataTypeToProperty(frame.getName() + "__" + column, 
 								frame.getName(), SemossDataType.DOUBLE.toString());
 					} catch (Exception e) {
@@ -66,7 +67,9 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(frame.getName() + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					String newColumn = getCleanNewColName(frame, column + NUMERIC_COLUMN_NAME);
-					frame.runScript(wrapperFrameName + ".extract_num('" + column + "',  '" + newColumn + "')");
+					String script = wrapperFrameName + ".extract_num('" + column + "',  '" + newColumn + "')";
+					frame.runScript(script);
+					this.addExecutedCode(script);
 					metaData.addProperty(frame.getName(), frame.getName() + "__" + newColumn);
 					metaData.setAliasToProperty(frame.getName() + "__" + newColumn, newColumn);
 					metaData.setDataTypeToProperty(frame.getName() + "__" + newColumn, SemossDataType.DOUBLE.toString());

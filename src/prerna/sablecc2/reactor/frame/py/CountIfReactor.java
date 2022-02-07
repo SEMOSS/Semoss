@@ -51,11 +51,18 @@ public class CountIfReactor extends AbstractPyFrameReactor {
 		// check if new colName is valid
 		newColName = getCleanNewColName(frame, newColName);
 
+		// TODO: doesn't this need to be updated/fixed?
+		// TODO: doesn't this need to be updated/fixed?
+		// TODO: doesn't this need to be updated/fixed?
+		
 		// this function only works on strings, so we must convert the data to a
 		// string if it is not already
 		boolean numeric = (boolean)frame.runScript(wrapperFrameName + ".is_numeric('" + column + "')");
-		if(!numeric)
-			frame.runScript(wrapperFrameName + ".countif('" + column + "', '" + regexToCount + "', '" + newColName + "')");
+		if(!numeric) {
+			String script = wrapperFrameName + ".countif('" + column + "', '" + regexToCount + "', '" + newColName + "')";
+			frame.runScript(script);
+			this.addExecutedCode(script);
+		}
 		//else
 			// return an error ?
 
