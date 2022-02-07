@@ -42,6 +42,7 @@ public class UnpivotReactor extends AbstractPyFrameReactor {
 
 		String script = frameName + " = " + wrapperName + ".unpivot(" + valueColumns + ")";
 		frame.runScript(script);
+		this.addExecutedCode(script);
 
 		HeadersException headerChecker = HeadersException.getInstance();
 		List<String> allColumns = Arrays.asList(getColumns(frame));
@@ -57,9 +58,11 @@ public class UnpivotReactor extends AbstractPyFrameReactor {
 		// rename variable name
 		String rename = PandasSyntaxHelper.alterColumnName(frameName, variableName, newVarName);
 		frame.runScript(rename);
+		this.addExecutedCode(rename);
 		// rename value name
 		rename = PandasSyntaxHelper.alterColumnName(frameName, valueName, newValueName);
 		frame.runScript(rename);
+		this.addExecutedCode(rename);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Unpivot",
