@@ -138,6 +138,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		boolean hidden = getHidden();
 		Boolean cacheable = getUserDefinedCacheable();
 		Integer cacheMinutes = getUserDefinedCacheMinutes();
+		Boolean cacheEncrypt = getUserDefinedCacheEncrypt();
 		// keep current insight cache
 		// or set to the new user inputs
 		if(cacheable == null) {
@@ -149,6 +150,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			cacheMinutes = this.insight.getCacheMinutes();
 		} else {
 			this.insight.setCacheMinutes(cacheMinutes);
+		}
+		if(cacheEncrypt == null) {
+			cacheEncrypt = this.insight.isCacheEncryt();
+		} else {
+			this.insight.setCacheEncrypt(cacheEncrypt);
 		}
 		
 		if(params != null && !params.isEmpty()) {
@@ -167,7 +173,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		// update insight db
 		logger.info("1) Updating insight in rdbms");
-		admin.updateInsight(existingId, insightName, layout, recipeToSave, hidden, cacheable, cacheMinutes);
+		admin.updateInsight(existingId, insightName, layout, recipeToSave, hidden, cacheable, cacheMinutes, cacheEncrypt);
 		logger.info("1) Done");
 		
 		String description = getDescription();
@@ -175,14 +181,16 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		logger.info("2) Updated registered insight...");
 		editRegisteredInsightAndMetadata(project, existingId, insightName, layout, 
-				!hidden, cacheable, cacheMinutes, 
+				!hidden, cacheable, cacheMinutes, cacheEncrypt,
 				recipeToSave, description, tags, this.insight.getVarStore().getFrames());
 		logger.info("2) Done...");
 		
 		// update recipe text file
 		logger.info("3) Update Mosfet file for collaboration");
 		updateRecipeFile(projectId, project.getProjectName(), 
-				existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden, description, tags);
+				existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden, 
+				cacheable, cacheMinutes, cacheEncrypt, 
+				description, tags);
 		logger.info("3) Done");
 		
 		// get file we are saving as an image
@@ -217,6 +225,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		returnMap.put("recipe", recipeToSave);
 		returnMap.put("cacheable", cacheable);
 		returnMap.put("cacheMinutes", cacheMinutes);
+		returnMap.put("cacheEncrypt", cacheEncrypt);
 		returnMap.put("isPublic", !hidden);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
@@ -233,11 +242,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param insightFrames 
 	 */
 	private void editRegisteredInsightAndMetadata(IProject project, String existingRdbmsId, String insightName, String layout, 
-			boolean global, boolean cacheable, int cacheableMinutes, 
+			boolean global, boolean cacheable, int cacheableMinutes, boolean cacheEncrypt, 
 			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
 		String projectId = project.getProjectId();
 		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, global, 
-				layout, cacheable, cacheableMinutes, recipe);
+				layout, cacheable, cacheableMinutes, cacheEncrypt, recipe);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if(description != null) {
 			admin.updateInsightDescription(existingRdbmsId, description);
@@ -260,13 +269,14 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param recipeToSave
 	 */
 	protected void updateRecipeFile(String projectId, String projectName, String rdbmsID, String insightName, 
-			String layout, String imageName, List<String> recipeToSave, boolean hidden, String description, List<String> tags) {
+			String layout, String imageName, List<String> recipeToSave, boolean hidden, 
+			boolean cacheable, int cacheMinutes, boolean cacheEncrypt, String description, List<String> tags) {
 		String recipeLocation = AssetUtility.getProjectAssetVersionFolder(projectName, projectId)
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
 		// update the mosfet
 		try {
 			MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), projectId, projectName, rdbmsID, insightName,
-					layout, imageName, recipeToSave, hidden, description, tags);
+					layout, imageName, recipeToSave, hidden, cacheable, cacheMinutes, cacheEncrypt, description, tags);
 			// add to git
 			String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 			List<String> files = new Vector<>();

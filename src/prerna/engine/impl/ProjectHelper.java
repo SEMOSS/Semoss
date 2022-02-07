@@ -263,18 +263,26 @@ public class ProjectHelper {
 				e.printStackTrace();
 			}
 			
-			// TEMPORARY CHECK! - added 01/29/2022
 			{
 				List<String> allCols;
 				try {
 					allCols = queryUtil.getTableColumns(insightsRdbms.getConnection(), "QUESTION_ID", insightsRdbms.getSchema());
 					// this should return in all upper case
 					// ... but sometimes it is not -_- i.e. postgres always lowercases
+					// TEMPORARY CHECK! - added 01/29/2022
 					if(!allCols.contains("CACHE_MINUTES") && !allCols.contains("cache_minutes")) {
 						if(queryUtil.allowIfExistsModifyColumnSyntax()) {
 							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists("QUESTION_ID", "CACHE_MINUTES", "INT"));
 						} else {
 							insightsRdbms.insertData(queryUtil.alterTableAddColumn("QUESTION_ID", "CACHE_MINUTES", "INT"));
+						}
+					}
+					// TEMPORARY CHECK! - added 02/07/2022
+					if(!allCols.contains("CACHE_ENCRYPT") && !allCols.contains("cache_encrypt")) {
+						if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists("QUESTION_ID", "CACHE_MINUTES", queryUtil.getBooleanDataTypeName()));
+						} else {
+							insightsRdbms.insertData(queryUtil.alterTableAddColumn("QUESTION_ID", "CACHE_ENCRYPT", queryUtil.getBooleanDataTypeName()));
 						}
 					}
 				} catch (SQLException e) {

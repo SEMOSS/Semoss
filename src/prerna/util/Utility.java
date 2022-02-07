@@ -3326,6 +3326,21 @@ public class Utility {
 		return Integer.parseInt(cacheSetting);
 	}
 	
+	
+	/**
+	 * Determine if the cache should be encrypted by default or not
+	 * @return
+	 */
+	public static boolean getApplicationCacheEncrypt() {
+		String cacheSetting = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHT_CACHE_ENCRYPT);
+		if(cacheSetting == null) {
+			// default is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(cacheSetting);
+	}
+	
 	/**
 	 * Determine if We need to show Welcome Dialog on Application Load
 	 * @return
