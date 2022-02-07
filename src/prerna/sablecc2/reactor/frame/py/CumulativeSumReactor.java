@@ -94,15 +94,19 @@ public class CumulativeSumReactor extends AbstractPyFrameReactor{
 				
 		// run script
 		if (!sortColumns.isEmpty()) {
-			frame.runScript(frameName + ".sort_values(by=" + sortColsAsPyList.toString()
-					+ ", ascending=False, na_position='last', inplace=True, ignore_index=True)");
+			String script = frameName + ".sort_values(by=" + sortColsAsPyList.toString()
+					+ ", ascending=False, na_position='last', inplace=True, ignore_index=True)";
+			frame.runScript(script);
+			this.addExecutedCode(script);
 		}
 		String groupBySyntax = "";
 		// TODO make groupCOl optional
 		if(!groupCols.isEmpty()) {
 			groupBySyntax = ".groupby(" + colsAsPyList.toString() + ")";
 		}
-		frame.runScript(newColumnSelector + "= " + frameName + groupBySyntax + "['" + value + "'].cumsum()");
+		String script = newColumnSelector + "= " + frameName + groupBySyntax + "['" + value + "'].cumsum()";
+		frame.runScript(script);
+		this.addExecutedCode(script);
 		
 		// check if operation was successful
 		boolean success = this.insight.getPyTranslator().getBoolean("'" + newColName + "' in " + frameName);
@@ -116,8 +120,10 @@ public class CumulativeSumReactor extends AbstractPyFrameReactor{
 
 		metaData.setDataTypeToProperty(frameName + "__" + newColName, SemossDataType.DOUBLE.toString());
 		// TODO do we need this?
-		String script = newColumnSelector + "= pd.to_numeric(" + newColumnSelector + ", errors='coerce')";
+		script = newColumnSelector + "= pd.to_numeric(" + newColumnSelector + ", errors='coerce')";
 		frame.runScript(script);
+		this.addExecutedCode(script);
+
 		frame.syncHeaders();		
 		
 		// NEW TRACKING

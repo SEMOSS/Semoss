@@ -54,7 +54,9 @@ public class DuplicateColumnReactor extends AbstractPyFrameReactor {
 		}
 
 		// run duplicate script
-		frame.runScript(wrapperFrameName + ".dupecol('" + srcCol + "', '" + newColName + "')");
+		String script = wrapperFrameName + ".dupecol('" + srcCol + "', '" + newColName + "')";
+		frame.runScript(script);
+		this.addExecutedCode(script);
 
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();

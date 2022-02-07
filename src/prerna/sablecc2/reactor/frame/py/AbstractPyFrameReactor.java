@@ -1,13 +1,16 @@
 package prerna.sablecc2.reactor.frame.py;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
+import prerna.om.Variable.LANGUAGE;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
@@ -15,8 +18,11 @@ import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
+public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implements ICodeExecution {
 
+	// the code that was executed
+	private List<String> codeExecuted = new ArrayList<>();
+	
 	protected ITableDataFrame recreateMetadata(PandasFrame frame, boolean override) {
 		// grab the existing metadata from the frame
 		Map<String, String> additionalDataTypes = frame.getMetaData().getHeaderToAdtlTypeMap();
@@ -114,4 +120,33 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		return frameChanged;
 	}
 
+ 	/////////////////////////////////////////////////////
+ 	
+ 	/*
+ 	 * ICodeExecution methods
+ 	 */
+
+ 	public void addExecutedCode(String code) {
+ 		this.codeExecuted.add(code);
+ 	}
+	
+	@Override
+	public String getExecutedCode() {
+		StringBuffer finalScript = new StringBuffer();
+		for(String c : this.codeExecuted) {
+			finalScript.append(c).append("\n");
+		}
+		return finalScript.toString();
+	}
+
+	@Override
+	public LANGUAGE getLanguage() {
+		return LANGUAGE.R;
+	}
+	
+	@Override
+	public boolean isUserScript() {
+		return false;
+	}
+	
 }

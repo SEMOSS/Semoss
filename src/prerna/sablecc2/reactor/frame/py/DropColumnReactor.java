@@ -11,11 +11,10 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.nounmeta.RemoveHeaderNounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class DropColumnReactor extends AbstractFrameReactor {
+public class DropColumnReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor drops columns from the frame. The inputs to the reactor are:
@@ -59,7 +58,10 @@ public class DropColumnReactor extends AbstractFrameReactor {
 		}
 		// run the script
 		insight.getPyTranslator().runPyAndReturnOutput(remCommands);
-		
+		for(String script : remCommands) {
+			this.addExecutedCode(script);
+		}
+
 		// reset the frame headers
 		frame.syncHeaders();
 		
