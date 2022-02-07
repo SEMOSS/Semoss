@@ -12,11 +12,10 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.ModifyHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class RenameColumnReactor extends AbstractFrameReactor {
+public class RenameColumnReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor renames a column 
@@ -55,13 +54,15 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		}
 		
 		String validNewHeader = getCleanNewColName(frame, updatedColName);
-		
-		if (validNewHeader.equals("")) 
-		{
+		if (validNewHeader.equals("")) {
 			throw new IllegalArgumentException("Provide valid new column name (no special characters)");
 		}
+		
 		// script is of the form: wrapper.rename_col('Genre', 'Genre_new')"
-		frame.runScript(wrapperFrameName + ".rename_col('" + originalColName + "', '" + validNewHeader + "')");
+		String script = wrapperFrameName + ".rename_col('" + originalColName + "', '" + validNewHeader + "')";
+		frame.runScript(script);
+		this.addExecutedCode(script);
+
 		// FE passes the column name
 		// but meta will still be table __ column
 		// update the metadata because column names have changed
