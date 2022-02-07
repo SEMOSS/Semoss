@@ -62,6 +62,7 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		// converting to lambda
 		//  mv['add'] = mv.apply(lambda x: clean.PyFrame.to_pct_l(x['MovieBudget'], 2, 1) , axis=1)
 		insight.getPyTranslator().runEmptyPy(script);
+		this.addExecutedCode(script);
 		
 		// update meta data
 		OwlTemporalEngineMeta metaData = frame.getMetaData();

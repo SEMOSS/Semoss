@@ -128,6 +128,7 @@ public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 		
 		// execute the script
 		frame.runScript(script);
+		this.addExecutedCode(script);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
