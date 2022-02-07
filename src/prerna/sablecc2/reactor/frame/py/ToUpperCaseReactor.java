@@ -10,11 +10,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class ToUpperCaseReactor extends AbstractFrameReactor {
+public class ToUpperCaseReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor changes columns to all upper case 
@@ -64,6 +63,7 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 			}
 		}
 		insight.getPyTranslator().runEmptyPy(commands.toString());
+		this.addExecutedCode(commands.toString());
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

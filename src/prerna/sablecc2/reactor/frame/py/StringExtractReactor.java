@@ -87,7 +87,8 @@ public class StringExtractReactor extends AbstractPyFrameReactor {
 		
 		// run script
 		frame.runScript(script.toString());
-
+		this.addExecutedCode(script.toString());
+		
 		// if not replacing vals (creating a new col, update metadata)
 		String frameName = frame.getName();
 		if (!replace) {

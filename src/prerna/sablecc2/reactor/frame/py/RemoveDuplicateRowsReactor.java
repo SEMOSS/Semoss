@@ -4,11 +4,10 @@ import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class RemoveDuplicateRowsReactor extends AbstractFrameReactor {
+public class RemoveDuplicateRowsReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor removes duplicate rows from the data frame
@@ -28,7 +27,8 @@ public class RemoveDuplicateRowsReactor extends AbstractFrameReactor {
 		
 		//execute the r script
 		frame.runScript(script);
-		
+		this.addExecutedCode(script);
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
