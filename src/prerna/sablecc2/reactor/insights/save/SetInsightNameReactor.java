@@ -92,10 +92,14 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		ClusterUtil.reactorPushInsightDB(projectId);
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-		returnMap.put("name", insightName);
 		returnMap.put("app_insight_id", existingId);
 		returnMap.put("app_name", project.getProjectName());
 		returnMap.put("app_id", project.getProjectId());
+		
+		returnMap.put("name", insightName);
+		returnMap.put("project_insight_id", existingId);
+		returnMap.put("project_name", project.getProjectName());
+		returnMap.put("project_id", project.getProjectId());
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}

@@ -48,6 +48,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String HIDDEN_KEY = "hidden";
 	protected static final String CACHEABLE = "cache";
 	protected static final String CACHE_MINUTES = "cacheMinutes";
+	protected static final String CACHE_ENCRYPT = "cacheEncrypt";
 	protected static final String ENCODED_KEY = "encoded";
 	protected static final String PIPELINE_FILE = "pipeline.json";
 	protected static final String USE_EXISTING_OPEN = "useExistingIfOpen";
@@ -162,6 +163,17 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		GenRowStruct genericIdGrs = this.store.getNoun(CACHE_MINUTES);
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return (int) genericIdGrs.get(0);
+		}
+		
+		// well, you are out of luck
+		return null;
+	}
+	
+	protected Boolean getUserDefinedCacheEncrypt() {
+		// see if it was passed directly in with the lower case key ornaments
+		GenRowStruct genericIdGrs = this.store.getNoun(CACHE_ENCRYPT);
+		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
+			return (boolean) genericIdGrs.get(0);
 		}
 		
 		// well, you are out of luck
