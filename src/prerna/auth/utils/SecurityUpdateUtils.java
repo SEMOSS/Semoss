@@ -209,7 +209,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							"INSIGHT", 
 							// column names
 							"PROJECTID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON",
-							"LASTMODIFIEDON","LAYOUT","CACHEABLE","CACHEMINUTES","RECIPE"});
+							"LASTMODIFIEDON","LAYOUT","CACHEABLE","CACHEMINUTES","CACHEENCRYPT","RECIPE"});
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -230,6 +230,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__HIDDEN_INSIGHT"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHEABLE"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHE_MINUTES"));
+		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHE_ENCRYPT"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_PKQL"));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
@@ -256,6 +257,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					if(cacheMinutes == null) {
 						cacheMinutes = -1;
 					}
+					Boolean cacheEncrypt = (Boolean) row[index++];
+					if(cacheEncrypt == null) {
+						cacheEncrypt = false;
+					}
 					Object pixelObject = row[index++];
 
 					// insert prepared statement into security db
@@ -270,6 +275,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, insightLayout);
 					ps.setBoolean(parameterIndex++, cacheable);
 					ps.setInt(parameterIndex++, cacheMinutes);
+					ps.setBoolean(parameterIndex++, cacheEncrypt);
 
 					// **** WITH RECENT UPDATES - THE RAW WRAPPER SHOULD NOT BE GIVING US BACK A CLOB
 					// need to determine if our input is a clob

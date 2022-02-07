@@ -24,7 +24,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 
 	public SetInsightCacheableReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), 
-				CACHEABLE, CACHE_MINUTES};
+				CACHEABLE, CACHE_MINUTES, CACHE_ENCRYPT};
 	}
 	
 	@Override
@@ -40,6 +40,12 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 			cacheMinutes = Integer.parseInt(this.keyValue.get(this.keysToGet[3]));
 		} else {
 			cacheMinutes = Utility.getApplicationCacheInsightMinutes();
+		}
+		boolean cacheEncrypt = false;
+		if(this.keyValue.containsKey(this.keysToGet[4])) {
+			cacheEncrypt = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[4]));
+		} else {
+			cacheEncrypt = Utility.getApplicationCacheEncrypt();
 		}
 		
 		// we may have the alias
@@ -59,11 +65,11 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		logger.info("1) Updating insight in rdbms");
 		IProject project = Utility.getProject(projectId);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
-		admin.updateInsightCache(existingId, cache, cacheMinutes);
+		admin.updateInsightCache(existingId, cache, cacheMinutes, cacheEncrypt);
 		logger.info("1) Done");
 
 		logger.info("2) Updating insight in index");
-		SecurityInsightUtils.updateInsightCache(projectId, existingId, cache, cacheMinutes);
+		SecurityInsightUtils.updateInsightCache(projectId, existingId, cache, cacheMinutes, cacheEncrypt);
 		logger.info("2) Done");
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
@@ -77,6 +83,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		returnMap.put("project_id", project.getProjectId());
 		returnMap.put("cacheable", cache);
 		returnMap.put("cacheMinutes", cacheMinutes);
+		returnMap.put("cacheEncrypt", cacheEncrypt);
 
 		//push insight db
 		ClusterUtil.reactorPushInsightDB(projectId);

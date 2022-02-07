@@ -32,19 +32,33 @@ public class InsightAdministrator {
 	private static final String HIDDEN_INSIGHT_COL = "HIDDEN_INSIGHT";
 	private static final String CACHEABLE_COL = "CACHEABLE";
 	private static final String CACHE_MINUTES_COL = "CACHE_MINUTES";
-
+	private static final String CACHE_ENCRYPT_COL = "CACHE_ENCRYPT";
+	
 	private static Gson gson = new Gson();
 
 	private RDBMSNativeEngine insightEngine;
 	private AbstractSqlQueryUtil queryUtil;
 	private boolean allowArrayDatatype;
+	private boolean allowClobJavaObject;
 	
 	public InsightAdministrator(RDBMSNativeEngine insightEngine) {
 		this.insightEngine = insightEngine;
 		this.queryUtil = this.insightEngine.getQueryUtil();
 		this.allowArrayDatatype = this.queryUtil.allowArrayDatatype();
+		this.allowClobJavaObject = this.queryUtil.allowClobJavaObject();
 	}
 
+	//TODO: CONVERT TO PREPARED STATEMENTS!!!
+
+	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
+		return addInsight(insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, cacheable, cacheMinutes, cacheEncrypt);
+	}
+	
+	public String addInsight(final String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave,
+		boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
+		return addInsight(insightId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, cacheable, cacheMinutes, cacheEncrypt);
+	}
+	
 	/**
 	 * 
 	 * @param insightName
@@ -53,102 +67,80 @@ public class InsightAdministrator {
 	 * @param hidden
 	 * @param cacheable
 	 * @param cacheMinutes
+	 * @param cacheEncrypt
 	 * @return
 	 */
 	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean hidden, 
-			boolean cacheable, int cacheMinutes) {
+			boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
 		String newId = UUID.randomUUID().toString();
-		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes);
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheEncrypt);
 	}
-	
+
 	/**
-	 * Insert a new insight into the engine
+	 * 
 	 * @param insightId
 	 * @param insightName
 	 * @param layout
 	 * @param pixelRecipeToSave
 	 * @param hidden
 	 * @param cacheable
-	 * @param minutesForCache
+	 * @param cacheMinutes
+	 * @param cacheEncrypt
 	 * @return
 	 */
 	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, 
-			boolean hidden, boolean cacheable, int minutesForCache) {
+			boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
 		logger.info("Adding new question with insight id :::: " + Utility.cleanLogString(insightId));
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
 		logger.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
 		
-		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
-		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
-		
-		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
-				.append(QUESTION_ID_COL).append(",").append(QUESTION_NAME_COL).append(",")
-				.append(QUESTION_LAYOUT_COL).append(",").append(HIDDEN_INSIGHT_COL).append(",")
-				.append(CACHEABLE_COL).append(",").append(QUESTION_PKQL_COL).append(") VALUES ('")
-				.append(insightId).append("', ").append("'").append(insightName).append("', ")
-				.append("'").append(layout).append("', ").append(hidden).append(", ").append(cacheable).append(", ");
-		// loop through and add the recipe
-		// don't forget to escape each entry in the array
-		if(this.allowArrayDatatype) {
-			insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
-		} else {
-			insertQuery.append(getClobRecipeSyntax(pixelRecipeToSave));
-		}
-		insertQuery.append(");");
-		
-		// now run the query and commit
+		PreparedStatement ps = null;
 		try {
-			this.insightEngine.insertData(insertQuery.toString());
-			this.insightEngine.commit();
+			ps = insightEngine.bulkInsertPreparedStatement(new String[] {
+					TABLE_NAME, QUESTION_ID_COL, QUESTION_NAME_COL, QUESTION_LAYOUT_COL, 
+					HIDDEN_INSIGHT_COL, CACHEABLE_COL, CACHE_MINUTES_COL, CACHE_ENCRYPT_COL, QUESTION_PKQL_COL
+			});
+			
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, insightName);
+			ps.setString(parameterIndex++, layout);
+			ps.setBoolean(parameterIndex++, hidden);
+			ps.setBoolean(parameterIndex++, cacheable);
+			ps.setInt(parameterIndex++, cacheMinutes);
+			ps.setBoolean(parameterIndex++, cacheEncrypt);
+			if(this.allowArrayDatatype) {
+				java.sql.Array array = ps.getConnection().createArrayOf("VARCHAR", pixelRecipeToSave);
+				ps.setArray(parameterIndex++, array);
+			} else if(this.allowClobJavaObject) {
+				java.sql.Clob clob = ps.getConnection().createClob();
+				clob.setString(1, getClobRecipeSyntax(pixelRecipeToSave));
+				ps.setClob(parameterIndex++, clob);
+			} else {
+				ps.setString(parameterIndex++, getClobRecipeSyntax(pixelRecipeToSave));
+			}
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-		}
-		
-		// return the new rdbms id
-		return insightId;
-	}
-
-	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, 
-			boolean cacheable, int cacheMinutes) {
-		String newId = UUID.randomUUID().toString();
-		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes);
-	}
-	
-	/**
-	 * Insert a new insight into the engine
-	 * @param insightId
-	 * @param insightName
-	 * @param layout
-	 * @param pixelRecipeToSave
-	 */
-	public String addInsight(final String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave,
-		boolean hidden, boolean cacheable, int minutesForCache) {
-		logger.info("Adding new question with insight id :::: " + insightId);
-		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
-		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
-		
-		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
-				.append(QUESTION_ID_COL).append(",").append(QUESTION_NAME_COL).append(",")
-				.append(QUESTION_LAYOUT_COL).append(",").append(HIDDEN_INSIGHT_COL).append(",")
-				.append(CACHEABLE_COL).append(",").append(QUESTION_PKQL_COL).append(") VALUES ('")
-				.append(insightId).append("', ").append("'").append(insightName).append("', ")
-				.append("'").append(layout).append("', ").append(hidden).append(", ").append(cacheable).append(", ");
-		// loop through and add the recipe
-		// don't forget to escape each entry in the array
-		if(this.allowArrayDatatype) {
-			insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
-		} else {
-			insertQuery.append(getClobRecipeSyntax(pixelRecipeToSave));
-		}
-		insertQuery.append(");");
-		
-		// now run the query and commit
-		try {
-			this.insightEngine.insertData(insertQuery.toString());
-			this.insightEngine.commit();
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(insightEngine.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		
 		// return the new rdbms id
@@ -289,111 +281,194 @@ public class InsightAdministrator {
 	
 	
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, 
-			boolean hidden, boolean cacheable, int cacheMinutes) {
+			boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
 		logger.info("Modifying insight id :::: " + Utility.cleanLogString(existingRdbmsId));
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
 		logger.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
 		
-		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
-		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
-		
-		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
-				.append(QUESTION_NAME_COL).append(" = '").append(insightName).append("', ")
-				.append(QUESTION_LAYOUT_COL).append(" = '").append(layout).append("', ")
-				.append(HIDDEN_INSIGHT_COL).append(" = ").append(hidden).append(", ")
-				.append(QUESTION_PKQL_COL).append("=");
-		if(this.allowArrayDatatype) {
-			updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
-		} else {
-			updateQuery.append(getClobRecipeSyntax(pixelRecipeToSave));
-		}
-		updateQuery.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
-		
-		// now run the query and commit
+		String query = "UPDATE " + TABLE_NAME + " SET "
+			+ QUESTION_NAME_COL+"=?, "
+			+ QUESTION_LAYOUT_COL+"=?, "
+			+ HIDDEN_INSIGHT_COL+"=?, "
+			+ CACHEABLE_COL+"=?, "
+			+ CACHE_MINUTES_COL+"=?, "
+			+ CACHE_ENCRYPT_COL+"=?, "
+			+ QUESTION_PKQL_COL+"=? WHERE "
+			+ QUESTION_ID_COL+"=?";
+			
+		PreparedStatement ps = null;
 		try {
-			this.insightEngine.insertData(updateQuery.toString());
-			this.insightEngine.commit();
+			ps = insightEngine.getPreparedStatement(query);
+			
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, insightName);
+			ps.setString(parameterIndex++, layout);
+			ps.setBoolean(parameterIndex++, hidden);
+			ps.setBoolean(parameterIndex++, cacheable);
+			ps.setInt(parameterIndex++, cacheMinutes);
+			ps.setBoolean(parameterIndex++, cacheEncrypt);
+			if(this.allowArrayDatatype) {
+				java.sql.Array array = ps.getConnection().createArrayOf("VARCHAR", pixelRecipeToSave);
+				ps.setArray(parameterIndex++, array);
+			} else if(this.allowClobJavaObject) {
+				java.sql.Clob clob = ps.getConnection().createClob();
+				clob.setString(1, getClobRecipeSyntax(pixelRecipeToSave));
+				ps.setClob(parameterIndex++, clob);
+			} else {
+				ps.setString(parameterIndex++, getClobRecipeSyntax(pixelRecipeToSave));
+			}
+			ps.setString(parameterIndex++, existingRdbmsId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(insightEngine.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, Collection<String> pixelRecipeToSave, 
-			boolean hidden, boolean cacheable, int cacheMinutes) {
-		logger.info("Modifying insight id :::: " + existingRdbmsId);
-		
-		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
-		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
-		
-		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
-				.append(QUESTION_NAME_COL).append(" = '").append(insightName).append("', ")
-				.append(QUESTION_LAYOUT_COL).append(" = '").append(layout).append("', ")
-				.append(HIDDEN_INSIGHT_COL).append(" = ").append(hidden).append(", ")
-				.append(QUESTION_PKQL_COL).append("=");
-		if(this.allowArrayDatatype) {
-			updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
-		} else {
-			updateQuery.append(getClobRecipeSyntax(pixelRecipeToSave));
-		}
-		updateQuery.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
-		
-		// now run the query and commit
-		try {
-			this.insightEngine.insertData(updateQuery.toString());
-			this.insightEngine.commit();
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
+			boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
+		updateInsight(existingRdbmsId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, cacheable, cacheMinutes, cacheEncrypt);
 	}
 	
 	public void updateInsightName(String existingRdbmsId, String insightName) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
-		logger.info("Adding new question with name :::: " + insightName);
-		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
-		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
-				.append(QUESTION_NAME_COL).append(" = '").append(insightName)
-				.append("' WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
-	
-		// now run the query and commit
+		logger.info("Updating question name to :::: " + insightName);
+		
+		String query = "UPDATE " + TABLE_NAME + " SET "
+				+ QUESTION_NAME_COL+"=? WHERE "
+				+ QUESTION_ID_COL+"=?";
+				
+		PreparedStatement ps = null;
 		try {
-			this.insightEngine.insertData(updateQuery.toString());
+			ps = insightEngine.getPreparedStatement(query);
+			
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, insightName);
+			ps.setString(parameterIndex++, existingRdbmsId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(insightEngine.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
-		this.insightEngine.commit();
 	}
 	
 
-	public void updateInsightCache(String existingRdbmsId, boolean isCacheable, int cacheMinutes) {
+	public void updateInsightCache(String existingRdbmsId, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
-		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
-				.append(CACHEABLE_COL).append(" = ").append(isCacheable).append(", ")
-				.append(CACHE_MINUTES_COL).append(" = ").append(cacheMinutes)
-				.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
-	
-		// now run the query and commit
+		logger.info("Updating question cache :::: " + cacheable);
+		logger.info("Updating question cache minutes :::: " + cacheMinutes);
+		logger.info("Updating question cache encrypt :::: " + cacheEncrypt);
+
+		String query = "UPDATE " + TABLE_NAME + " SET "
+				+ CACHEABLE_COL+"=?, "
+				+ CACHE_MINUTES_COL+"=?, "
+				+ CACHE_ENCRYPT_COL+"=? WHERE "
+				+ QUESTION_ID_COL+"=?";
+				
+		PreparedStatement ps = null;
 		try {
-			this.insightEngine.insertData(updateQuery.toString());
+			ps = insightEngine.getPreparedStatement(query);
+			
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, cacheable);
+			ps.setInt(parameterIndex++, cacheMinutes);
+			ps.setBoolean(parameterIndex++, cacheEncrypt);
+			ps.setString(parameterIndex++, existingRdbmsId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(insightEngine.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
-		this.insightEngine.commit();
 	}
 	
 	public void updateInsightGlobal(String existingRdbmsId, boolean isHidden) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
-		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
-				.append(HIDDEN_INSIGHT_COL).append(" = ").append(isHidden)
-				.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
-	
-		// now run the query and commit
+		
+		String query = "UPDATE " + TABLE_NAME + " SET "
+				+ HIDDEN_INSIGHT_COL+"=? WHERE "
+				+ QUESTION_ID_COL+"=?";
+				
+		PreparedStatement ps = null;
 		try {
-			this.insightEngine.insertData(updateQuery.toString());
+			ps = insightEngine.getPreparedStatement(query);
+			
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, isHidden);
+			ps.setString(parameterIndex++, existingRdbmsId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(insightEngine.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
-		this.insightEngine.commit();
 	}
 	
 	/**
