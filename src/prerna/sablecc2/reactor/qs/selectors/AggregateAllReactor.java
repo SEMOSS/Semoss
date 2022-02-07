@@ -16,18 +16,18 @@ import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 public class AggregateAllReactor extends AbstractQueryStructReactor {
 
 	private static final String MATH_KEY = "math";
-	private static final String IGNORE_COLUMN_KEY = "ignoreCols";
+	private static final String IGNORE_COLUMNS_KEY = "ignoreCols";
 
 	// Frame(df) | AggregateAll(math='sum', ignoreCols=['groupby']) | Collect() ;
 	public AggregateAllReactor() {
-		this.keysToGet = new String[] { MATH_KEY, IGNORE_COLUMN_KEY };
+		this.keysToGet = new String[] { MATH_KEY, IGNORE_COLUMNS_KEY };
 	}
 
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		String mathFunction = getKey(MATH_KEY);
 
-		List<String> ignoreCols = getIgnoreCols(IGNORE_COLUMN_KEY);
+		List<String> ignoreCols = getIgnoreCols(IGNORE_COLUMNS_KEY);
 		//parse the math operation to a valid query function
 		mathFunction = QueryFunctionHelper.getPrettyName(mathFunction);
 		
@@ -37,6 +37,13 @@ public class AggregateAllReactor extends AbstractQueryStructReactor {
 
 		// get columns
 		String[] cols = dataFrame.getColumnHeaders();
+		
+		// add all the ignored columns first
+		// this is so auto task options pick up this as the "x-axis" as an example
+		for (int i = 0; i < ignoreCols.size(); i++) {
+			this.qs.addSelector(new QueryColumnSelector(tableName +"__"+ ignoreCols.get(i)));
+		}
+		
 		// iterate through the columns
 		for (String col : cols) {
 			//check for ignored cols
@@ -47,9 +54,7 @@ public class AggregateAllReactor extends AbstractQueryStructReactor {
 				fun.addInnerSelector(new QueryColumnSelector(tableName +"__"+ col));
 				fun.setAlias(col);
 				this.qs.addSelector(fun);
-			} else {
-				this.qs.addSelector(new QueryColumnSelector(tableName +"__"+ col));
-			}
+			} 
 		}
 		return qs;
 	}
