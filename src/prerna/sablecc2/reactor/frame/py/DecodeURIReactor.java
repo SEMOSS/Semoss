@@ -10,11 +10,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class DecodeURIReactor extends AbstractFrameReactor {
+public class DecodeURIReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor decodes special characters in columns that have been changed to conform to URI standards
@@ -45,8 +44,9 @@ public class DecodeURIReactor extends AbstractFrameReactor {
 			String dataType = metaData.getHeaderTypeAsString(frame.getName() + "__" + col);
 			if (dataType.equalsIgnoreCase("STRING")) {
 				/** Run Python function */
-				frame.runScript(wrapperFrameName + ".decode_uri('" + col + "')");
-				System.out.println("decoded frame " + frame);
+				String script = wrapperFrameName + ".decode_uri('" + col + "')";
+				frame.runScript(script);
+				this.addExecutedCode(script);
 			}
 		}
 		

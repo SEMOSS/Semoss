@@ -3,9 +3,11 @@ package prerna.sablecc2.reactor.frame.py;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.algorithm.api.ICodeExecution;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PyTranslator;
+import prerna.om.Variable.LANGUAGE;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -17,13 +19,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 
-public class PyCollectNewColReactor extends TaskBuilderReactor {
+public class PyCollectNewColReactor extends TaskBuilderReactor implements ICodeExecution {
 
 	/**
 	 * This class is responsible for collecting data from a task and returning it
 	 */
 
-	PyTranslator pyt = null;
+	private String codeExecuted = null;
+	private PyTranslator pyt = null;
 
 	public PyCollectNewColReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey() };
@@ -75,7 +78,8 @@ public class PyCollectNewColReactor extends TaskBuilderReactor {
 		String alias = onlySelector.getAlias();
 		mainQuery = frame.getName() + "['" + alias + "'] = " + mainQuery;
 		pyt.runEmptyPy(mainQuery);
-
+		this.codeExecuted = mainQuery;
+		
 		// recreate the metadata
 		frame.recreateMeta();
 		
@@ -103,5 +107,20 @@ public class PyCollectNewColReactor extends TaskBuilderReactor {
 	protected void buildTask() {
 		// do nothing
 		
+	}
+
+	@Override
+	public String getExecutedCode() {
+		return this.codeExecuted;
+	}
+
+	@Override
+	public LANGUAGE getLanguage() {
+		return LANGUAGE.PYTHON;
+	}
+
+	@Override
+	public boolean isUserScript() {
+		return false;
 	}
 }
