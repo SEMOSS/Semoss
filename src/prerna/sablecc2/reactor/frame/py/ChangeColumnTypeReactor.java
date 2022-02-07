@@ -7,7 +7,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -19,7 +18,7 @@ import prerna.util.usertracking.UserTrackerFactory;
  * 2) the desired column type
  */
 
-public class ChangeColumnTypeReactor extends AbstractFrameReactor {
+public class ChangeColumnTypeReactor extends AbstractPyFrameReactor {
 	
 	public ChangeColumnTypeReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
@@ -71,21 +70,28 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 				// columns
 				//if ((boolean)frame.runScript(table + "w.is_numeric('" + column + "')")) 
 				//{
-				frame.runScript(table + "['" + column + "'] = " + table + "['" + column + "'].astype('str')");
+				String script = table + "['" + column + "'] = " + table + "['" + column + "'].astype('str')";
+				frame.runScript(script);
+				this.addExecutedCode(script);
 				//} 
 			} else if (newType.equalsIgnoreCase("factor")) {
 				// df$column <- as.factor(df$column);
-				frame.runScript(table + "['" + column + "'] = " + table + "['" + column + "'].astype('object')" );
+				String script = table + "['" + column + "'] = " + table + "['" + column + "'].astype('object')";
+				frame.runScript(script);
+				this.addExecutedCode(script);
 			} else if (Utility.isDoubleType(newType)) {
 				// r script syntax cleaning characters with regex
 				//mv['RottenTomatoesCritics'].astype('str').str.replace('[^-\\\\.0-9]', 'dflasd', regex=True).astype('float64', errors='ignore')
-				String script2 = table + "['" + column + "']" + " = " + table + "['" + column + "'].astype('str').str.replace('[^-\\\\.0-9]', '', regex=True).astype('float64', errors='ignore')";
-				frame.runScript(script2);
+				String script = table + "['" + column + "']" + " = " + table + "['" + column + "'].astype('str').str.replace('[^-\\\\.0-9]', '', regex=True).astype('float64', errors='ignore')";
+				frame.runScript(script);
+				this.addExecutedCode(script);
 			} else if (Utility.isDateType(newType)) {
 				// we have a different script to run if it is a str to date
 				// conversion
 				// define date format
-				frame.runScript(table + "['" + column + "'] = pd.to_datetime(" + table + "['" + column + "'])");				
+				String script = table + "['" + column + "'] = pd.to_datetime(" + table + "['" + column + "'])";
+				frame.runScript(script);
+				this.addExecutedCode(script);
 			}
 			// update the metadata
 			metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);

@@ -73,7 +73,8 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 			.append(value)
 			;
 		frame.runScript(script.toString());
-		
+		this.addExecutedCode(script.toString());
+
 		NounMetadata retNoun;
 		if(newCol.equals(srcCol)){
 			retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

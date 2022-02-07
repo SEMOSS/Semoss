@@ -63,7 +63,9 @@ public class ColumnAverageReactor extends AbstractPyFrameReactor {
 		colsAsPyList.append("]");
 
 		// run script
-		frame.runScript(wrapperFrameName + ".avg_cols(" + colsAsPyList.toString() + ", '" + newColName + "')");
+		String script = wrapperFrameName + ".avg_cols(" + colsAsPyList.toString() + ", '" + newColName + "')";
+		frame.runScript(script);
+		this.addExecutedCode(script);
 
 		// update meta data
 		OwlTemporalEngineMeta metaData = frame.getMetaData();

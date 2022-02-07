@@ -140,6 +140,7 @@ public class DiscretizeReactor extends AbstractPyFrameReactor {
 			
 			// run script
 			frame.runScript(listSB.toString());
+			this.addExecutedCode(listSB.toString());
 		}
 
 		// retrieve new columns to add to meta		

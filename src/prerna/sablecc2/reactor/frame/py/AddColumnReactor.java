@@ -57,7 +57,8 @@ public class AddColumnReactor extends AbstractPyFrameReactor {
 		String script = newColumnSelector + "= \"\"";
 		// execute the script
 		frame.runScript(script);
-
+		this.addExecutedCode(script);
+		
 		// update the metadata to include this new column
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);
@@ -71,10 +72,12 @@ public class AddColumnReactor extends AbstractPyFrameReactor {
 			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.DOUBLE.toString());
 			script = newColumnSelector + "= pd.to_numeric(" + newColumnSelector + ", errors='coerce')";
 			frame.runScript(script);
+			this.addExecutedCode(script);
 		} else if (Utility.isDateType(colType)) {
 			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.DATE.toString());
 			script = newColumnSelector + "= pd.to_datetime(" + newColumnSelector + ", errors='coerce')";
 			frame.runScript(script);
+			this.addExecutedCode(script);
 		} else {
 			// if not a number or a date then assign to string
 			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.STRING.toString());

@@ -70,6 +70,8 @@ public class DivisionReactor extends AbstractPyFrameReactor {
 		
 		// run script
 		insight.getPyTranslator().runEmptyPy(script);
+		this.addExecutedCode(script);
+		
 		/*insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + newColName + "'] = " +
 				 wrapperFrameName + ".cache['data'].apply(lambda x: x['" + numerator + "']/x['" + denominator + "'] "
 				 		+ "if ("
@@ -79,6 +81,7 @@ public class DivisionReactor extends AbstractPyFrameReactor {
 				 		+ ") else 0 , axis = 1)");
 		*/
 		// check if new column exists
+		
 		String[] endingColumns = getColumns(frame);
 		List<String> endingColumnsList = new Vector<String>(endingColumns.length);
 		endingColumnsList.addAll(Arrays.asList(endingColumns));

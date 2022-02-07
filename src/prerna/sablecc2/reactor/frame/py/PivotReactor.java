@@ -86,10 +86,11 @@ public class PivotReactor extends AbstractPyFrameReactor {
 				if (newKeepString.equals(pivotCol) || newKeepString.equals(valuesCol)) {
 					continue;
 				}
-				if (colIndex == 0)
+				if (colIndex == 0) {
 					keepString = keepString + newKeepString;
-				else
+				} else {
 					keepString = keepString + ", " + newKeepString;
+				}
 			}
 			keepString = keepString + "]";
 		}
@@ -127,6 +128,7 @@ public class PivotReactor extends AbstractPyFrameReactor {
 			String colScript = newFrame + "= pd.pivot_table(" + table + pivotString + keepString + valueString
 					+ aggregateString + ").reset_index()";
 			frame.runScript(colScript);
+			this.addExecutedCode(colScript);
 
 			// straighten up the columns
 			// whacked out headers when you have columns specified
@@ -135,19 +137,23 @@ public class PivotReactor extends AbstractPyFrameReactor {
 				colScript = newFrame + ".columns = " + newFrame + ".columns.to_series().str.join('_')";
 			}
 			frame.runScript(colScript);
-
-			// clean up temp r variables
+			this.addExecutedCode(colScript);
+			
 		} else {
 
 			// if we can't aggregate we will count non numeric values
-			frame.runScript(
-					newFrame + "= pd.pivot_table(" + table + pivotString + keepString + " , aggfunc='count'" + ")");
-
+			String script = newFrame + "= pd.pivot_table(" + table + pivotString + keepString + " , aggfunc='count'" + ")";
+			frame.runScript(script);
+			this.addExecutedCode(script);
+			
 			// python allows weird headers
 			// need to clean them up!!!
 			// need to get old headers
 			List<String> headerList = (List<String>) frame.runScript(PandasSyntaxHelper.getColumns(table));
-			frame.runScript(newFrame + " = pd.DataFrame(" + newFrame + ".to_records())");
+			script = newFrame + " = pd.DataFrame(" + newFrame + ".to_records())";
+			frame.runScript(script);
+			this.addExecutedCode(script);
+
 			// headers have the form ('columnName', 'instanceName')
 			StringBuilder sb = new StringBuilder();
 			// replacing ('columnName', '
@@ -157,7 +163,10 @@ public class PivotReactor extends AbstractPyFrameReactor {
 			}
 			// replacing ')
 			sb.append(".replace(\"')\",\"\") for hdr in " + newFrame + ".columns]");
-			frame.runScript(newFrame + ".columns = " + sb.toString());
+			script = newFrame + ".columns = " + sb.toString();
+			frame.runScript(script);
+			this.addExecutedCode(script);
+
 			// remove duplicate header names
 			frame.runScript(PandasSyntaxHelper.removeDuplicateColumns(newFrame, newFrame));
 		}
@@ -165,6 +174,8 @@ public class PivotReactor extends AbstractPyFrameReactor {
 		// assign it back
 		String colScript = table + " = " + newFrame;
 		frame.runScript(colScript);
+		this.addExecutedCode(colScript);
+
 		frame = (PandasFrame) recreateMetadata(frame);
 		
 		// get the optional replace value for na values
@@ -187,6 +198,7 @@ public class PivotReactor extends AbstractPyFrameReactor {
 				}
 			}
 			frame.runScript(pyReplaceScript.toString());
+			this.addExecutedCode(pyReplaceScript.toString());
 		}
 		
 		// NEW TRACKING
