@@ -59,11 +59,16 @@ public class SplitUnpivotReactor extends AbstractPyFrameReactor {
 
 			// split_unpivot(column, delimiter)
 			// build the script to execute
-			frame.runScript(wrapperFrameName + ".split_unpivot('" + column + "', '" + delimiter + "')");
+			String script = wrapperFrameName + ".split_unpivot('" + column + "', '" + delimiter + "')";
+			frame.runScript(script);
+			this.addExecutedCode(script);
 		}
 		// update the frame reference as well since these changes modify the object
-		frame.runScript(frame.getName() + " = " + wrapperFrameName + ".cache['data']");
-
+		String script = frame.getName() + " = " + wrapperFrameName + ".cache['data']";
+		frame.runScript(script);
+		// TODO : should this be recorded
+		this.addExecutedCode(script);
+		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight,

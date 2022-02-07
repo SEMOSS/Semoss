@@ -55,7 +55,9 @@ public class SplitColumnsReactor extends AbstractPyFrameReactor {
 			}
 
 			// eval py script
-			frame.runScript(wrapperFrameName + ".split('" + column + "', '" + separator + "')");
+			String script = wrapperFrameName + ".split('" + column + "', '" + separator + "')";
+			frame.runScript(script);
+			this.addExecutedCode(script);
 		}
 
 		// NEW TRACKING

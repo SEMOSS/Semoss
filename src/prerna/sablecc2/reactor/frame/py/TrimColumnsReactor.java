@@ -9,11 +9,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class TrimColumnsReactor extends AbstractFrameReactor {
+public class TrimColumnsReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor trims column values
@@ -40,7 +39,9 @@ public class TrimColumnsReactor extends AbstractFrameReactor {
 				col = split[1];
 				wrapperFrameName = split[0];
 			}
-			frame.runScript(wrapperFrameName + ".trim_col('" + col + "')");
+			String script = wrapperFrameName + ".trim_col('" + col + "')";
+			frame.runScript(script);
+			this.addExecutedCode(script);
 		}
 
 		// NEW TRACKING
