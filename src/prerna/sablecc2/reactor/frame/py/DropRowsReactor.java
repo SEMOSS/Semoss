@@ -9,11 +9,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class DropRowsReactor extends AbstractFrameReactor {
+public class DropRowsReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor drops rows based on a comparison The inputs to the reactor
@@ -46,8 +45,9 @@ public class DropRowsReactor extends AbstractFrameReactor {
 
 		// execute the r script
 		// FRAME <- FRAME[!( FRAME$Director == "value"),]
-		String newScript = wrapperFrameName + ".cache['data'] =  " + wrapperFrameName + ".cache['data'][~" + pyFilterBuilder.toString() + "]";
-		frame.runScript(newScript);
+		String script = wrapperFrameName + ".cache['data'] =  " + wrapperFrameName + ".cache['data'][~" + pyFilterBuilder.toString() + "]";
+		frame.runScript(script);
+		this.addExecutedCode(script);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "DropRows",

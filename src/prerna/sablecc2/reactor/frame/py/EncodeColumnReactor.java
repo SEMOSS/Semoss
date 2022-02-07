@@ -28,12 +28,13 @@ public class EncodeColumnReactor extends AbstractPyFrameReactor {
         for (String col : columns) {
             scripts.add(frameName + "['" + col + "'] = " + frameName + "['" + col + "'].apply(encode)");
         }
-
-        scripts.add("print(" + frameName + ")");
         String[] scriptArray = new String[scripts.size()];
         scripts.toArray(scriptArray);
         insight.getPyTranslator().runPyAndReturnOutput(scriptArray);
-
+        for(String script : scripts) {
+        	this.addExecutedCode(script);
+        }
+        
 		// upon successful execution
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 		for(String col : columns) {

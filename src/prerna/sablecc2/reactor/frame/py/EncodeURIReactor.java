@@ -10,11 +10,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class EncodeURIReactor extends AbstractFrameReactor{
+public class EncodeURIReactor extends AbstractPyFrameReactor{
 	
 	/**
 	 * This reactor encodes special characters in columns to conform to URI standards
@@ -53,6 +52,7 @@ public class EncodeURIReactor extends AbstractFrameReactor{
 				String script = wrapperFrameName + ".encode_uri('" + col + "')";
 				// run script
 				frame.runScript(script);
+				this.addExecutedCode(script);
 			}
 		}
 		

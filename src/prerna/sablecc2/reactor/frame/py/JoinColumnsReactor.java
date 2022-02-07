@@ -65,6 +65,7 @@ public class JoinColumnsReactor extends AbstractPyFrameReactor {
 		
 		String script = wrapperFrameName + ".join('" + newColName + "', " + pyColumnList + ", '" + separator + "')";
 		frame.runScript(script);
+		this.addExecutedCode(script);
 		
 		recreateMetadata(frame, false);
 
