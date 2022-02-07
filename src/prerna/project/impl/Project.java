@@ -65,7 +65,7 @@ public class Project implements IProject {
 	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
 	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY ID";
 	private static final String GET_ALL_PERSPECTIVES_QUERY = "SELECT DISTINCT QUESTION_PERSPECTIVE FROM QUESTION_ID ORDER BY QUESTION_PERSPECTIVE";
-	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, CACHEABLE, CACHE_MINUTES, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
+	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, CACHEABLE, CACHE_MINUTES, CACHE_ENCRYPT, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
 
 	private String projectId;
 	private String projectName;
@@ -316,14 +316,18 @@ public class Project implements IProject {
 					if(cacheMinutes == null) {
 						cacheMinutes = -1;
 					}
+					Boolean cacheEncrypt = (Boolean) values[10];
+					if(cacheEncrypt == null) {
+						cacheEncrypt = false;
+					}
 					Object[] pixel = null;
 					// need to know if we have an array
 					// or a clob
 					if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
-						pixel = (Object[]) values[10];
+						pixel = (Object[]) values[11];
 					} else {
 //						Clob pixelArray = (Clob) values[9];
-						String pixelArray = (String) values[10];
+						String pixelArray = (String) values[11];
 //						InputStream pixelArrayIs = null;
 //						if(pixelArray != null) {
 //							try {
@@ -355,7 +359,7 @@ public class Project implements IProject {
 						((OldInsight) in).setInsightParameters(LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRdbms, rdbmsId));
 						in.setIsOldInsight(true);
 					} else {
-						in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, cacheMinutes, pixel.length);
+						in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, cacheMinutes, cacheEncrypt, pixel.length);
 						in.setInsightName(insightName);
 						List<String> pixelList = new Vector<String>(pixel.length);
 						for(int i = 0; i < pixel.length; i++) {
@@ -910,13 +914,10 @@ public class Project implements IProject {
 			return finalCP;
 			
 		} catch (MavenInvocationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			if(br != null) {
@@ -932,10 +933,7 @@ public class Project implements IProject {
         return null;
 	}
 	
-	private boolean evalMvnReload()
-	{
-		boolean reload = false;
-		
+	private boolean evalMvnReload() {
 		String appRoot = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
 		
 		// need to see if the mvn_dependency file is older than target
@@ -943,17 +941,18 @@ public class Project implements IProject {
 		File classesDir = new File(appRoot + File.separator + "target");
 		File mvnDepFile = new File(appRoot + File.separator + "mvn_dep.output");
 		
-		if(!mvnDepFile.exists())
+		if(!mvnDepFile.exists()) {
 			return true;
-			
+		}
 		
-		if(!classesDir.exists())
+		if(!classesDir.exists()) {
 			return false;
+		}
 			
 		long classModifiedLong = classesDir.lastModified();
 		long mvnDepModifiedLong = mvnDepFile.lastModified();
 		
 		return classModifiedLong > mvnDepModifiedLong;
-		
 	}
+	
 }

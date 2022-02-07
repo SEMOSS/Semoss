@@ -82,11 +82,11 @@ public class ProjectUtils {
 		try {
 			if(!queryUtil.tableExists(insightEngine.getConnection(), "QUESTION_ID", insightEngine.getSchema())) {
 				columns = new String[]{"ID", "QUESTION_NAME", "QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", 
-						"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", "CACHEABLE", "CACHE_MINUTES",
-						"QUESTION_PKQL"};
+						"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", 
+						"CACHEABLE", "CACHE_MINUTES", "CACHE_ENCRYPT", "QUESTION_PKQL"};
 				types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", 
-						"VARCHAR(255)", CLOB_DATATYPE, "VARCHAR(500)", BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, "INT",
-						"ARRAY"};
+						"VARCHAR(255)", CLOB_DATATYPE, "VARCHAR(500)", BOOLEAN_DATATYPE, 
+						BOOLEAN_DATATYPE, "INT", BOOLEAN_DATATYPE, "ARRAY"};
 				// this is annoying
 				// need to adjust if the engine allows array data types
 				if(!queryUtil.allowArrayDatatype()) {

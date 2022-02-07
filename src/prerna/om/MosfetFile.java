@@ -25,6 +25,7 @@ public class MosfetFile {
 	private boolean hidden = false;
 	private boolean cacheable = true;
 	private int cacheMinutes = -1;
+	private boolean cacheEncrypt = false;
 	
 	// actual recipe
 	private List<String> recipe;
@@ -163,6 +164,14 @@ public class MosfetFile {
 
 	public void setCacheMinutes(int cacheMinutes) {
 		this.cacheMinutes = cacheMinutes;
+	}
+
+	public boolean isCacheEncrypt() {
+		return cacheEncrypt;
+	}
+
+	public void setCacheEncrypt(boolean cacheEncrypt) {
+		this.cacheEncrypt = cacheEncrypt;
 	}
 
 	public List<String> getRecipe() {
