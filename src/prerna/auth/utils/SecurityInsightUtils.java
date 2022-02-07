@@ -415,16 +415,17 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @param insightName
 	 * @param global
+	 * @param layout
 	 * @param cacheable
 	 * @param cacheMinutes
-	 * @param layout
+	 * @param cacheEncrypt
 	 * @param recipe
 	 */
 	public static void addInsight(String projectId, String insightId, String insightName, boolean global, 
-			String layout, boolean cacheable, int cacheMinutes, List<String> recipe) {
+			String layout, boolean cacheable, int cacheMinutes, boolean cacheEncrypt, List<String> recipe) {
 		String insertQuery = "INSERT INTO INSIGHT (PROJECTID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
-				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, RECIPE) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, CACHEENCRYPT, RECIPE) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 		
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
@@ -443,6 +444,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
+			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
 				Clob clob = securityDb.createClob(ps.getConnection());
 				clob.setString(1, securityGson.toJson(recipe));
@@ -520,18 +522,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	// TODO >>>timb: push app here on create/update
 	/**
 	 * 
- 	 * @param projectId
+	 * @param projectId
 	 * @param insightId
 	 * @param insightName
 	 * @param global
-	 * @param exCount
-	 * @param lastModified
 	 * @param layout
+	 * @param cacheable
+	 * @param cacheMinutes
+	 * @param cacheEncrypt
+	 * @param recipe
 	 */
 	public static void updateInsight(String projectId, String insightId, String insightName, boolean global, 
-			String layout, boolean cacheable, int cacheMinutes, List<String> recipe) {
+			String layout, boolean cacheable, int cacheMinutes, boolean cacheEncrypt, List<String> recipe) {
 		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
-				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, RECIPE=? WHERE INSIGHTID = ? AND PROJECTID=?";
+				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, CACHEENCRYPT=?,"
+				+ "RECIPE=? WHERE INSIGHTID = ? AND PROJECTID=?";
 
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
@@ -546,6 +551,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
+			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
 				Clob clob = securityDb.createClob(ps.getConnection());
 				clob.setString(1, securityGson.toJson(recipe));
@@ -626,18 +632,20 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @param cacheInsight
 	 * @param cacheMinutes
+	 * @param cacheEncrypt
 	 */
-	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes) {
+	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes, boolean cacheEncrypt) {
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 		
-		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
+		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, CACHEENCRYPT=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, cacheInsight);
 			ps.setInt(parameterIndex++, cacheMinutes);
+			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			ps.setTimestamp(parameterIndex++, timestamp, cal);
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
@@ -1382,6 +1390,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			new String[] {"INSIGHT__LASTMODIFIEDON", "last_modified_on"},
 			new String[] {"INSIGHT__CACHEABLE", "cacheable"},
 			new String[] {"INSIGHT__CACHEMINUTES", "cacheMinutes"},
+			new String[] {"INSIGHT__CACHEENCRYPT", "cacheEncrypt"},
 			new String[] {"INSIGHT__GLOBAL", "insight_global"},
 		};
 		
@@ -1684,6 +1693,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEMINUTES", "cacheMinutes"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT", "cacheEncrypt"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
@@ -2027,6 +2037,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEMINUTES"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT"));
 		// filters
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
@@ -2042,9 +2053,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				if(cacheMinutes == null) {
 					cacheMinutes = -1;
 				}
+				Boolean cacheEncrypt = (Boolean) data[2];
+				if(cacheEncrypt == null) {
+					cacheEncrypt = false;
+				}
 				
 				retMap.put("cacheable", cacheable);
 				retMap.put("cacheMinutes", cacheMinutes);
+				retMap.put("cacheEncrypt", cacheEncrypt);
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
