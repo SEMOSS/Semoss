@@ -37,12 +37,14 @@ public class ProjectInfoReactor extends AbstractReactor {
 			}
 			// user has access!
 			baseInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
+		} else {
+//			else {
+//				projectId = MasterDatabaseUtility.testEngineIdIfAlias(projectId);
+//				// just grab the info
+//				baseInfo = SecurityQueryUtils.getAllDatabaseList(projectId);
+//			}
+			baseInfo = SecurityProjectUtils.getAllProjectList(projectId);
 		}
-//		else {
-//			projectId = MasterDatabaseUtility.testEngineIdIfAlias(projectId);
-//			// just grab the info
-//			baseInfo = SecurityQueryUtils.getAllDatabaseList(projectId);
-//		}
 		
 		if(baseInfo == null || baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any project data");
