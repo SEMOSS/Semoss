@@ -49,19 +49,25 @@ public class RDFEngineCreationHelper {
 				recipeArray.add("Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"); 
 				recipeArray.add("Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);");
 				
+				boolean hidden = false;
+				boolean cacheable = Utility.getApplicationCacheInsight();
+				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
+				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
+				
 				List<String> tags = new Vector<String>();
 				tags.add("default");
 				tags.add("preview");
 				String description = "Preview of the concept " + pixelName + " and all of its properties";
 
-				String insightId = admin.addInsight(insightName, layout, recipeArray, false, true, -1);
+				String insightId = admin.addInsight(insightName, layout, recipeArray, hidden, cacheable, cacheMinutes, cacheEncrypt);
 				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
 
 				// write recipe to file
 				try {
 					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
-							insightId, insightName, layout, recipeArray, false, description, tags);
+							insightId, insightName, layout, recipeArray, hidden, 
+							cacheable, cacheMinutes, cacheEncrypt, description, tags);
 					// add the insight to git
 					String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId());
 					List<String> files = new Vector<>();
@@ -73,8 +79,9 @@ public class RDFEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, 
-						layout, Utility.getApplicationCacheInsight(), Utility.getApplicationCacheInsightMinutes(), recipeArray);
+				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, hidden, layout, 
+						cacheable, cacheMinutes, cacheEncrypt,
+						recipeArray);
 				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}
@@ -132,19 +139,26 @@ public class RDFEngineCreationHelper {
 				recipeArray.add("Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();");
 				recipeArray.add("Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);");
 				
+				boolean hidden = false;
+				boolean cacheable = Utility.getApplicationCacheInsight();
+				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
+				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
+				
 				List<String> tags = new Vector<String>();
 				tags.add("default");
 				tags.add("preview");
 				String description = "Preview of the concept " + pixelName + " and all of its properties";
 
-				String insightId = admin.addInsight(insightName, layout, recipeArray, false, true, -1);
+				String insightId = admin.addInsight(insightName, layout, recipeArray, hidden, cacheable, cacheMinutes, cacheEncrypt);
 				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
 
 				//write recipe to file
 				try {
 					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
-							insightId, insightName, layout, recipeArray, false, description, tags);
+							insightId, insightName, layout, recipeArray, 
+							hidden, cacheable, cacheMinutes, cacheEncrypt,
+							description, tags);
 					// add the insight to git
 					String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId());
 					List<String> files = new Vector<>();
@@ -156,8 +170,8 @@ public class RDFEngineCreationHelper {
 				}
 					
 				// insight security
-				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, 
-						layout, Utility.getApplicationCacheInsight(), Utility.getApplicationCacheInsightMinutes(), recipeArray); 
+				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, 
+						hidden, layout, cacheable, cacheMinutes, cacheEncrypt, recipeArray); 
 				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}
@@ -189,7 +203,7 @@ public class RDFEngineCreationHelper {
 		recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
 		recipeArray[3] = "Database(" + engineName + ") | Select(Subject, Object) | Join((Subject, inner.join, Object)) | Limit(500) | Import();"; 
 		recipeArray[4] = "Frame() | Select(f$Subject, f$Object) | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"Subject\",\"Object\"]}}}) | Collect(500);"; 
-		admin.addInsight(insightName, layout, recipeArray, false, true, -1);
+		admin.addInsight(insightName, layout, recipeArray, false, Utility.getApplicationCacheInsight(), Utility.getApplicationCacheInsightMinutes(), Utility.getApplicationCacheEncrypt());
 		
 		// q2
 		insightName = "Show all objects to actions";
@@ -200,7 +214,7 @@ public class RDFEngineCreationHelper {
 		recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
 		recipeArray[3] = "Database(" + engineName + ") | Select(Object, Predicate) | Join((Predicate, inner.join, Object)) | Limit(500) | Import();"; 
 		recipeArray[4] = "Frame() | Select(f$Subject, f$Object) | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"Object\",\"Predicate\"]}}}) | Collect(500);"; 
-		admin.addInsight(insightName, layout, recipeArray, false, true, -1);
+		admin.addInsight(insightName, layout, recipeArray, false, Utility.getApplicationCacheInsight(), Utility.getApplicationCacheInsightMinutes(), Utility.getApplicationCacheEncrypt());
 
 		// q3
 		insightName = "Show all roles to actions";
@@ -211,7 +225,7 @@ public class RDFEngineCreationHelper {
 		recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
 		recipeArray[3] = "Database(" + engineName + ") | Select(Subject, Predicate) | Join((Subject, inner.join, Predicate)) | Limit(500) | Import();"; 
 		recipeArray[4] = "Frame() | Select(f$Subject, f$Object) | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"Subject\",\"Predicate\"]}}}) | Collect(500);"; 
-		admin.addInsight(insightName, layout, recipeArray, false, true, -1);
+		admin.addInsight(insightName, layout, recipeArray, false, Utility.getApplicationCacheInsight(), Utility.getApplicationCacheInsightMinutes(), Utility.getApplicationCacheEncrypt());
 
 		// q4
 		insightName = "Show all roles to actions and what they are acting on";
@@ -222,7 +236,7 @@ public class RDFEngineCreationHelper {
 		recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
 		recipeArray[3] = "Database(" + engineName + ") | Select(Subject, Object, Predicate) | Join((Subject, inner.join, Predicate), (Predicate, inner.join, Object)) | Limit(500) | Import();"; 
 		recipeArray[4] = "Frame() | Select(f$Subject, f$Object) | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"Subject\",\"Predicate\",\"Object\"]}}}) | Collect(500);"; 
-		admin.addInsight(insightName, layout, recipeArray, false, true, -1);
+		admin.addInsight(insightName, layout, recipeArray, false, Utility.getApplicationCacheInsight(), Utility.getApplicationCacheInsightMinutes(), Utility.getApplicationCacheEncrypt());
 
 		//TODO: there are more insights that i need to add from the Default_NLP_Questions.properties in the Default folder in db directory
 	}

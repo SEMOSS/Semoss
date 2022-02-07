@@ -75,10 +75,11 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 					boolean hidden = mosfet.isHidden();
 					boolean cacheable = mosfet.isCacheable();
 					int cacheMinutes = mosfet.getCacheMinutes();
+					boolean cacheEncrypt = mosfet.isCacheEncrypt();
 					
 					InsightAdministrator admin = new InsightAdministrator(insightEngine);
 					// just put the recipe into an array
-					admin.addInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes);
+					admin.addInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes, cacheEncrypt);
 				} else {
 					System.out.println("Found file in insight = " + fName);
 				}
