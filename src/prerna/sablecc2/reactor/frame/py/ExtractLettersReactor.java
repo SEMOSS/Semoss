@@ -11,12 +11,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class ExtractLettersReactor extends AbstractFrameReactor {
+public class ExtractLettersReactor extends AbstractPyFrameReactor {
+
 	public static final String ALPHA_COLUMN_NAME = "_ALPHA";
 
 	public ExtractLettersReactor() {
@@ -80,6 +80,7 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 			}
 		}
 		insight.getPyTranslator().runEmptyPy(commands.toString());
+		this.addExecutedCode(commands.toString());
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

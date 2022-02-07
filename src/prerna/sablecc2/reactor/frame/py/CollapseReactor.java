@@ -41,7 +41,6 @@ public class CollapseReactor extends AbstractPyFrameReactor {
 		}
 		groupByColsR += "]";
 		
-		
 		// main cols
 		// get columns to keep
 		// convert to a list
@@ -65,7 +64,8 @@ public class CollapseReactor extends AbstractPyFrameReactor {
 
 		String script = frame.getName() + " = " + wrapperFrameName + ".collapse(" + groupByColsR + valueCol + delim + maintainCols + ")";
 		frame.runScript(script);
-						
+		this.addExecutedCode(script);
+
 		frame = (PandasFrame) recreateMetadata(frame);
 
 		// NEW TRACKING

@@ -83,7 +83,8 @@ public class DateExpanderReactor extends AbstractPyFrameReactor {
 			}
 		}
 		frame.runScript(script.toString());
-		
+		this.addExecutedCode(script.toString());
+
 		// check to make sure columns are actually in the frame	
 		// if nothing added
 		// throw illegal argument exception
