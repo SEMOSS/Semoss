@@ -22,6 +22,9 @@ public class TransposeReactor extends AbstractPyFrameReactor {
 		String objectType = frame.getName() + "=" + frame.getName() + ".astype(str)";
 		String stringType = frame.getName() + "=" + frame.getName() + ".astype('string')";
 		insight.getPyTranslator().runEmptyPy(transposeScript, objectType, stringType);
+		this.addExecutedCode(transposeScript);
+		this.addExecutedCode(objectType);
+		this.addExecutedCode(stringType);
 
 		//String[] colTypes = getColumnTypes(frame);
 		//insight.getPyTranslator().runPyAndReturnOutput(transposeScript, stringHeaderType, stringType);

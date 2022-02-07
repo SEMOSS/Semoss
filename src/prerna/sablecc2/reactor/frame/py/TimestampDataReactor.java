@@ -8,11 +8,10 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class TimestampDataReactor extends AbstractFrameReactor {
+public class TimestampDataReactor extends AbstractPyFrameReactor {
 
 
 	private static final String TIME_KEY = "time";
@@ -46,9 +45,7 @@ public class TimestampDataReactor extends AbstractFrameReactor {
 		}
 
 		String validNewHeader = getCleanNewColName(frame, newColName);
-
-		if (validNewHeader.equals("")) 
-		{
+		if (validNewHeader.equals("")) {
 			throw new IllegalArgumentException("Provide valid new column name (no special characters)");
 		}
 
@@ -56,16 +53,20 @@ public class TimestampDataReactor extends AbstractFrameReactor {
 		metadata.addProperty(frame.getName(), frame.getName() + "__" + validNewHeader);
 		metadata.setAliasToProperty(frame.getName() + "__" + validNewHeader, validNewHeader);
 
+		String script = null;
 		if(includeT) {
-			frame.runScript(wrapperFrameName + ".add_datetime_col('"  + validNewHeader + "')");
+			script = wrapperFrameName + ".add_datetime_col('"  + validNewHeader + "')";
+			frame.runScript(script);
+			this.addExecutedCode(script);
 			metadata.setDataTypeToProperty(frame.getName() + "__" + newColName, SemossDataType.TIMESTAMP.toString());
-
 		} else {
-			frame.runScript(wrapperFrameName + ".add_date_col('"  + validNewHeader + "')");
+			script = wrapperFrameName + ".add_date_col('"  + validNewHeader + "')";
+			frame.runScript(script);
+			this.addExecutedCode(script);
 			metadata.setDataTypeToProperty(frame.getName() + "__" + newColName, SemossDataType.DATE.toString());
 		}
 
-		this.getFrame().syncHeaders();
+		frame.syncHeaders();
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

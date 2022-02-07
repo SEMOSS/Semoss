@@ -61,6 +61,7 @@ public class RankReactor extends AbstractPyFrameReactor {
 		// String partitionbyCol = this.keyValue.get(PARTITION_BY_COLS);
 		List<String> partitionbyCols = getCols(PARTITION_BY_COLS);
 
+		String script = null;
 		StringBuilder finalRankScript = new StringBuilder();
 		StringBuilder sortByRankScript = new StringBuilder();
 		StringBuilder colsArrayScript = new StringBuilder();
@@ -86,25 +87,27 @@ public class RankReactor extends AbstractPyFrameReactor {
 					colsArrayScript.append(",");
 					sortValues.append(",");
 					partitionByScript.append(",");
-
 				}
 			}
 
 			for (int i = 0; i < columns.size(); i++) {
 				colsArrayScript.append(", '" + columns.get(i) + "'");
 				sortValues.append(", " + getSortOrder(i, ReactorKeysEnum.SORT.getKey()));
-
 			}
 			colsArrayScript.append("]");
 			sortValues.append("]");
 
-			frame.runScript("cols= " + colsArrayScript.toString());
+			script = "cols= " + colsArrayScript.toString();
+			frame.runScript(script);
+			this.addExecutedCode(script);
 			// sort and groupby + ngroup to label each group with your ranking
 			tempRankScript.append(frame.getName()).append("['TempRank'] =").append(frame.getName())
 					.append(".sort_values(cols,").append(" ascending=").append(sortValues).append(")")
 					.append(".groupby(").append("cols,").append("sort=False, dropna=True).ngroup()");
 
-			frame.runScript(tempRankScript.toString());
+			script = tempRankScript.toString();
+			frame.runScript(script);
+			this.addExecutedCode(script);
 			// Subtracting the minimum rank within each 'key' then gives the
 			// desired ranking within group
 			finalRankScript.append(frame.getName()).append("['").append(newColName).append("']").append("=")
@@ -118,7 +121,6 @@ public class RankReactor extends AbstractPyFrameReactor {
 					.append(".drop(columns=['TempRank'])");
 
 		} else {
-
 			StringBuilder createColsArray = new StringBuilder();
 			// createColsArray.append("cols = [");
 			for (int i = 0; i < columns.size(); i++) {
@@ -129,7 +131,9 @@ public class RankReactor extends AbstractPyFrameReactor {
 						.append(getSortOrder(i, ReactorKeysEnum.SORT.getKey())).append(")");
 
 				// running script to rank each column individually
-				frame.runScript(rankScript.toString());
+				script = rankScript.toString();
+				frame.runScript(script);
+				this.addExecutedCode(script);
 
 				createColsArray.append("'").append(columns.get(i)).append("Rank").append("'");
 				if (i != columns.size() - 1) {
@@ -149,23 +153,33 @@ public class RankReactor extends AbstractPyFrameReactor {
 
 			// create array of columns which is passed to groupby
 			colsArrayScript.append("cols = [").append(createColsArray).append("]");
-			frame.runScript(colsArrayScript.toString());
-
+			
+			script = colsArrayScript.toString();
+			frame.runScript(script);
+			this.addExecutedCode(script);
 		}
 
 		// running script to generate final rank
-		frame.runScript(finalRankScript.toString());
+		script = finalRankScript.toString();
+		frame.runScript(script);
+		this.addExecutedCode(script);
 
 		// running script to sort by final rank column
-		frame.runScript(sortByRankScript.toString());
+		script = sortByRankScript.toString();
+		frame.runScript(script);
+		this.addExecutedCode(script);
 
 		// run script to drop intermediate rank columns as we only need the
 		// final rank
-		frame.runScript(dropTempRankColsScript.toString());
-
+		script = dropTempRankColsScript.toString();
+		frame.runScript(script);
+		this.addExecutedCode(script);
+		
 		// update wrapperFrameName it will end up frame name with 'w'
-		frame.runScript(wrapperFrameName + ".cache['data'][['" + newColName + "']]" 
-				+ "=" + frame.getName() + "['" + newColName + "']");
+		script = wrapperFrameName + ".cache['data'][['" + newColName + "']]" 
+				+ "=" + frame.getName() + "['" + newColName + "']";
+		frame.runScript(script);
+		this.addExecutedCode(script);
 
 		// update meta data
 		OwlTemporalEngineMeta metaData = frame.getMetaData();

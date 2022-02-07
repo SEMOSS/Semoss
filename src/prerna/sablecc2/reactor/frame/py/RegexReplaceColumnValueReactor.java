@@ -93,6 +93,9 @@ public class RegexReplaceColumnValueReactor extends AbstractPyFrameReactor {
 
 		// execute all of the routines after we have done our validation
 		insight.getPyTranslator().runPyAndReturnOutput(scripts);
+		for(String script : scripts) {
+			this.addExecutedCode(script);
+		}
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "RegexReplaceColumnValue",

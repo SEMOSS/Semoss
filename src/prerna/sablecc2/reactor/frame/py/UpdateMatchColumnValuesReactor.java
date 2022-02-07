@@ -93,7 +93,10 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 		}
 		
 		insight.getPyTranslator().runPyAndReturnOutput(scripts.toArray(new String[scripts.size()]));
-
+		for(String script : scripts) {
+			this.addExecutedCode(script);
+		}
+		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
