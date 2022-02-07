@@ -1491,17 +1491,10 @@ public class Insight implements Serializable {
 		}
 		// should we allow this if no one is logged in?
 		else {
-			String projectName = null;
-			String id = SecurityProjectUtils.getProjectAliasForId(projectId);
-			if(id != null) {
-				projectName = projectId;
-				projectId = id;
-			} else {
-				projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-			}
+			String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 			String mountDir = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 	
-			this.cmdUtil = new CmdExecUtil(projectId, mountDir);
+			this.cmdUtil = new CmdExecUtil(projectName, mountDir);
 			this.contextProjectId = projectId;
 			return true;
 		}
