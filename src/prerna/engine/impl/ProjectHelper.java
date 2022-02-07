@@ -280,7 +280,7 @@ public class ProjectHelper {
 					// TEMPORARY CHECK! - added 02/07/2022
 					if(!allCols.contains("CACHE_ENCRYPT") && !allCols.contains("cache_encrypt")) {
 						if(queryUtil.allowIfExistsModifyColumnSyntax()) {
-							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists("QUESTION_ID", "CACHE_MINUTES", queryUtil.getBooleanDataTypeName()));
+							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists("QUESTION_ID", "CACHE_ENCRYPT", queryUtil.getBooleanDataTypeName()));
 						} else {
 							insightsRdbms.insertData(queryUtil.alterTableAddColumn("QUESTION_ID", "CACHE_ENCRYPT", queryUtil.getBooleanDataTypeName()));
 						}
