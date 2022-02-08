@@ -869,7 +869,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	{
 		return null;
 	}
-	
+
+	// need to be overridden by specific frame
+	public Object queryCSV(String query)
+	{
+		return null;
+	}
+
 	// need to be overridden by specific frames
 	public String createVarFrame()
 	{

@@ -1675,4 +1675,29 @@ public class Insight implements Serializable {
 		return null;
 	}
 	
+	// query the frame and get the data
+	public Object queryCSV(String sql, String srcFrameName)
+	{
+		ITableDataFrame curFrame = getCurFrame();
+		
+		if(curFrame.getFrameType() == DataFrameTypeEnum.PYTHON)
+		{
+			// procedure to query python
+			// later this if would be gone. the querySQL is part of the interface
+			return curFrame.queryCSV(sql);
+			
+		}
+		else if(curFrame.getFrameType() == DataFrameTypeEnum.R)
+		{
+			// procedure to query python
+			// later this if would be gone. the querySQL is part of the interface
+			return curFrame.queryCSV(sql);
+			
+		}
+
+		
+		return null;
+	}
+
+	
 }
