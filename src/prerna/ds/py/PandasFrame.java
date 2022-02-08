@@ -2,6 +2,9 @@ package prerna.ds.py;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -915,6 +918,48 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 	}
 	
+	public Object queryCSV(String sql)
+	{
+		// columns
+		// types
+		// data
+		if(sql.toUpperCase().startsWith("SELECT"))
+		{
+			Map retMap = new HashMap();
+			
+			String loadsqlDF = "from pandasql import sqldf";
+			try
+			{
+				String frameName = Utility.getRandomString(5);
+				File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+				
+				String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
+				
+				String newFrame = "sqldf('" + sql + "').to_csv('" + fileNameStr + "', index=False)";
+				
+				String deleteAll = "delete " + frameName;
+			
+				pyt.runEmptyPy(loadsqlDF, newFrame);
+				Object retObject = "no data";
+				
+				if(fileName.exists())
+				{
+					//retObject = new String(Files.readAllBytes(fileName.toPath())); // get the dictionary back
+					//fileName.delete(); // delete the generated file
+					return fileName.getAbsolutePath();
+				}
+				pyt.runEmptyPy(deleteAll);
+				//return retObject;
+			}catch(Exception ex)
+			{
+				
+			}
+			// will delete later
+			
+		}
+		return null;
+	}
+
 	// recalibrate variables
 	public void recalculateVariables(String [] formulas, String oldName, String newName)
 	{
