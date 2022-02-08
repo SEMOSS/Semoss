@@ -1,5 +1,6 @@
 package prerna.ds.r;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,6 +35,8 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RDataTable extends AbstractTableDataFrame {
@@ -541,6 +544,35 @@ public class RDataTable extends AbstractTableDataFrame {
 		}
 		
 	}
+	
+	@Override
+	public Object queryCSV(String sql)
+	{
+		// columns
+		// types
+		// data
+		if(sql.toUpperCase().startsWith("SELECT"))
+		{
+			Map retMap = new HashMap();
+			
+			String loadsqlDF = "library(sqldf);";
+			String frameName = Utility.getRandomString(5);
+			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+			
+			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
+
+			String newFrame = "write.csv(sqldf('" + sql + "'), '" + fileNameStr + "')";
+			
+			this.builder.getRJavaTranslator().executeEmptyR(loadsqlDF);
+			this.builder.getRJavaTranslator().executeEmptyR(newFrame);
+			
+			
+			return fileName;
+		}
+		return null;
+		
+	}
+
 	
 	private Map getRJMap() {
 		if(this.rJMap == null) {
