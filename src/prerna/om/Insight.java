@@ -33,7 +33,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -138,9 +137,6 @@ public class Insight implements Serializable {
 	// keep a map to store various properties
 	// new variable assignments in pixel are also stored here
 	private transient VarStore varStore = new VarStore();
-	// adding place for specific variables created
-	// for dynamic frame calculations
-	private Map <String, Variable> vars = new HashMap<String, Variable>();
 
 	// separating out delayed messages
 	private transient BlockingQueue<NounMetadata> delayedMessages = new ArrayBlockingQueue<NounMetadata>(1024);
@@ -1513,32 +1509,37 @@ public class Insight implements Serializable {
 		return this.varStore.getFrame(frameName);
 	}
 	
-	public boolean addVariable(Variable var)
-	{
+	public boolean addVariable(Variable var) {
 		// check to see if the frames are there
 		// they may want to use it with a non-semoss frame ?
 		List <String> varFrames = var.getFrames();
 		boolean frameFound = true;
-		for(int frameIndex = 0;frameIndex < varFrames.size() && frameFound;frameFound = frameFound && getFrame(varFrames.get(frameIndex)) != null, frameIndex++);
-		
-		if(frameFound)		
-			this.vars.put(var.getName(), var);
+		for(String varFrame : varFrames) {
+			frameFound = getFrame(varFrame) != null;
+			if(!frameFound) {
+				return false;
+			}
+		}
 
-		return frameFound;
+		NounMetadata varNoun = new NounMetadata(var, PixelDataType.VARIABLE);
+		this.varStore.put(var.getName(), varNoun);
+		return true;
 	}
 	
-	public Variable getVariable(String name)
-	{
-		return this.vars.get(name);
+	public Variable getVariable(String name) {
+		NounMetadata varNoun = this.varStore.get(name);
+		if(varNoun == null) {
+			return null;
+		}
+		return (Variable) varNoun.getValue();
 	}
 
-	public void removeVariable(String name)
-	{
-		this.vars.remove(name);
+	public void removeVariable(String name) {
+		this.varStore.remove(name);
 	}
 	
-	public List getAllVars() {
-		return Arrays.asList(this.vars.keySet().toArray());
+	public List<String> getAllVars() {
+		return this.varStore.getDynamicVarKeys();
 	}
 
 	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
