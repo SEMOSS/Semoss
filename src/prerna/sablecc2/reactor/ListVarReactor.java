@@ -7,9 +7,6 @@ public class ListVarReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// real simple
-		// get all the vars as a vector
-		// pump it out
 		return new NounMetadata(insight.getAllVars(), PixelDataType.VECTOR);
 	}
 
