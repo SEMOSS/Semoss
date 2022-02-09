@@ -42,12 +42,16 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	// storing the varnames for all pre-defined insight parameters
 	private List<String> preDefinedParametersKeys;
 	
+	// store dynamic variables
+	private List<String> dynamicVars;
+	
 	public VarStore() {
 		varMap = new HashMap<>();
 		frameKeys = new ArrayList<>();
 		insightParametersKeys = new ArrayList<>();
 		preDefinedParametersKeys = new ArrayList<>();
 		allCreatedFrames = new HashSet<>();
+		dynamicVars = new ArrayList<>();
 	}
 	
 	@Override
@@ -75,6 +79,10 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		} else if(variable.getNounType() == PixelDataType.PREAPPLIED_PARAM_STRUCT) {
 			if(!preDefinedParametersKeys.contains(varName)) {
 				preDefinedParametersKeys.add(varName);
+			}
+		} else if(variable.getNounType() == PixelDataType.VARIABLE) {
+			if(!dynamicVars.contains(varName)) {
+				dynamicVars.add(varName);
 			}
 		}
 	}
@@ -128,6 +136,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		this.frameKeys.remove(varName);
 		this.insightParametersKeys.remove(varName);
 		this.preDefinedParametersKeys.remove(varName);
+		this.dynamicVars.remove(varName);
 		return varMap.remove(varName);
 	}
 	
@@ -140,6 +149,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		this.frameKeys.removeAll(keys);
 		this.insightParametersKeys.removeAll(keys);
 		this.preDefinedParametersKeys.removeAll(keys);
+		this.dynamicVars.removeAll(keys);
 		this.varMap.keySet().removeAll(keys);
 	}
 	
@@ -148,6 +158,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		this.frameKeys.clear();
 		this.insightParametersKeys.clear();
 		this.preDefinedParametersKeys.clear();
+		this.dynamicVars.clear();
 		this.varMap.clear();
 	}
 	
@@ -219,6 +230,10 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	public List<String> getPreDefinedParametersKeys() {
 		return Collections.unmodifiableList(preDefinedParametersKeys);
+	}
+	
+	public List<String> getDynamicVarKeys() {
+		return Collections.unmodifiableList(dynamicVars);
 	}
 
 
