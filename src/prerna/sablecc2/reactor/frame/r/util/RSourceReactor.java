@@ -82,14 +82,11 @@ public class RSourceReactor extends AbstractRFrameReactor {
 		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));
 
 		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
-		
-		if(smartSync)
-		{
+		if(smartSync) {
 			if(smartSync(rJavaTranslator))
 				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
 		}
 
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
-		//return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 }
