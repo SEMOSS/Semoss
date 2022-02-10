@@ -200,9 +200,19 @@ public class SocketClient extends Client implements Runnable {
     
     public void stopPyServe(String dir)
     {
-    	PayloadStruct ps = new PayloadStruct();
-    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
-    	writePayload(ps);
+    	if(isConnected()) {
+	    	PayloadStruct ps = new PayloadStruct();
+	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+	    	writePayload(ps);
+    	}
+    	// close the output stream
+    	if(os != null) {
+    		try {
+    			os.close();
+    		} catch(Exception e) {
+    			e.printStackTrace();
+    		}
+    	}
     	
 		CleanerThread t = new CleanerThread(dir);
 		t.start();
