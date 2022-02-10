@@ -66,7 +66,8 @@ public class CreateFrameReactor extends AbstractReactor {
 			}
 			throw new IllegalArgumentException(message, e);
 		}
-		
+		logger.info("Frame " + newFrame.getName() + " created");
+
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use

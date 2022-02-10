@@ -120,6 +120,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		out.name("frames");
 		out.beginArray();
 		for(FrameCacheHelper fObj : frames) {
+			// set the logger for this frame
+			fObj.getFrame().setLogger(logger);
 			CachePropFileFrameObject saveFrame = fObj.getFrame().save(folderDir);
 			out.beginObject();
 			out.name("file").value(parameterizePath(saveFrame.getFrameCacheLocation(), baseFolder, projectName, projectId));
