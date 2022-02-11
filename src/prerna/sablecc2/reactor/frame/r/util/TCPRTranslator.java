@@ -14,12 +14,16 @@ import prerna.tcp.client.Client;
 
 public class TCPRTranslator extends AbstractRJavaTranslator {
 
+	private Client nc = null;
 	Logger logger = null;
 	String port = null;
 	Insight insight = null;
-	public Client nc = null;
 	boolean started = false;
 	boolean insightSet = false;
+	
+	public void setClient(Client nc) {
+		this.nc = nc;
+	}
 	
 	@Override
 	public void initREnv(String env) {
