@@ -708,11 +708,11 @@ public class Insight implements Serializable {
 				// now set the netty client
 				if(this.user != null)
 				{
-					((TCPRTranslator)this.rJavaTranslator).nc = this.user.getTCPServer(true);
+					((TCPRTranslator)this.rJavaTranslator).setClient( this.user.getTCPServer(true) );
 				}
 				else
 				{
-					((TCPRTranslator)this.rJavaTranslator).nc = PySingleton.getTCPServer();					
+					((TCPRTranslator)this.rJavaTranslator).setClient( PySingleton.getTCPServer() );
 				}
 				this.rJavaTranslator.setInsight(this);
 				this.rJavaTranslator.startR();
