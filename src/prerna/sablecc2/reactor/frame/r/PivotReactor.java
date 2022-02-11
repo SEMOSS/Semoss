@@ -126,7 +126,7 @@ public class PivotReactor extends AbstractRFrameReactor {
         String cleanScript = colScript + "= gsub(" + "\"-\"" + "," + "\"_\"" + ", " + colScript + ");";
         this.rJavaTranslator.executeEmptyR(cleanScript);
 		this.addExecutedCode(cleanScript);
-
+		
 		String script = newFrame + " <- dcast(" + table + keepString + aggregateString + ");";
 		script += RSyntaxHelper.asDataTable(newFrame, newFrame);
 		script += table + " <- " + newFrame + ";";
@@ -150,16 +150,21 @@ public class PivotReactor extends AbstractRFrameReactor {
 				naReplace = "\"" + naReplace + "\"";
 			}
 
+			rReplaceScript.append(table + "[is.na(" + table + ")] <- " + naReplace + "; ");
+			this.rJavaTranslator.runR(rReplaceScript.toString());
+			this.addExecutedCode(rReplaceScript.toString());
+			rReplaceScript = new StringBuilder();
+
 			for (String possibleHeader : finalHeaders) {
 				if (!colsToKeep.contains(possibleHeader)) {
-					// r script to replace a value within the pivot column
-					// dataFrame["Column_B"][dataFrame["Column_B"] == oldValue] <- newValue
-					rReplaceScript.append(table + "[\"" + possibleHeader + "\"][" + table + "[\"" + possibleHeader
-							+ "\"] == NA] <- " + naReplace + "; ");
-					rReplaceScript.append(table + "[\"" + possibleHeader + "\"][" + table + "[\"" + possibleHeader
-							+ "\"] == NaN] <- " + naReplace + "; ");
+					// r script to replace a value within the new pivoted columns
+					// f$New_Col[df$New_Col %like% \"NA\" | df$New_Col %like% \"NaN\"] <- NA;
+					rReplaceScript.append(
+							table + "$" + possibleHeader + "[" + table + "$" + possibleHeader + " %like% \"NA\" | "
+									+ table + "$" + possibleHeader + " %like% \"NaN\"] <- " + naReplace + ";");
 				}
 			}
+
 			this.rJavaTranslator.runR(rReplaceScript.toString());
 			this.addExecutedCode(rReplaceScript.toString());
 		}
