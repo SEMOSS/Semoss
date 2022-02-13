@@ -567,6 +567,9 @@ public class Constants {
 	public static final String TCP_WORKER_CP = "TCP_WORKER_CP";
 	public static final String NETTY_PYTHON = "NETTY_PYTHON";
 	
+	// if chroot is enabled
+	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
+
 	//if spark is enabled
 	public static final String SPARK = "SPARK";
 	public static final String USE_SPARK = "USE_SPARK";
@@ -577,8 +580,15 @@ public class Constants {
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
 	public static final String NETTY_R = "NETTY_R";
 	
+	// who is the git provider - github, gitlab etc.
+	public static final String GIT_PROVIDER="GIT_PROVIDER";
+	
 	// disable terminal and user code inputs
 	public static final String DISABLE_TERMINAL = "DISABLE_TERMINAL";
+	public static final String ENABLE_GIT_TERMINAL = "ENABLE_GIT_TERMINAL";
+	public static final String ENABLE_SCRIPT_SOURCE = "ENABLE_SCRIPT_SOURCE";
+	public static final String GIT_TRUSTED_REPO="GIT_TRUSTED_REPO";
+	public static final String GIT_DEFAULT_BRANCH="GIT_DEFAULT_BRANCH";
 
 	// pivot values 
 	public static final String PIVOT_ROW_MAX = "PIVOT_ROW_MAX";

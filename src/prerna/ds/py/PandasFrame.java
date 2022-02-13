@@ -13,8 +13,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.eclipse.jgit.util.FileUtils;
+
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -23,6 +26,7 @@ import prerna.ds.shared.RawCachedWrapper;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -171,6 +175,25 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// default behavior is to just write this to a csv file
 			// and read it back in
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
+			
+			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
+				
+				Insight in = this.pyt.insight;
+		
+				String insightFolder = in.getInsightFolder();
+			
+				try {
+					FileUtils.mkdirs(new File(insightFolder), true);
+					if(in.getUser() != null) {
+						in.getUser().getUserMountHelper().mountFolder(insightFolder,insightFolder, false);
+					}
+					newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".csv";
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
 			File newFile = Utility.writeResultToFile(newFileLoc, it, dataTypeMap);
 			
 			String importPandasS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
