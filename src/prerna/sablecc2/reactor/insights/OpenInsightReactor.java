@@ -15,6 +15,7 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.eclipse.jgit.util.FileUtils;
 
 import com.google.gson.JsonSyntaxException;
 
@@ -149,6 +150,14 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 		
+		//if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+			//get the app_root folder for the project
+			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(project.getProjectName(), project.getProjectId());
+			this.insight.getUser().getUserMountHelper().mountFolder(projectAppRootFolder,projectAppRootFolder, false);
+	
+		}
+
 		/*
 		 * 2) Legacy insight check - not really important for most developers
 		 */

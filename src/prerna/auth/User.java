@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -20,6 +21,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.ds.py.SecurePyTranslator;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.r.IRUserConnection;
@@ -32,6 +34,7 @@ import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.MountHelper;
 import prerna.util.SemossClassloader;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -54,7 +57,9 @@ public class User implements Serializable {
 	private String port = "undefined";
 	public String pyTupleSpace = null;
 	public String tupleSpace = null;
-	
+	private MountHelper mountHelper = null;
+	private String mountTuple = null;
+
 	// keeping this for a later time when personal experimental stuff
 	private transient ClassLoader customLoader = null;
 	
@@ -88,6 +93,7 @@ public class User implements Serializable {
 	
 	private int rPort = -1;
 	private int pyPort = -1;
+	
 	
 	public User() {
 		// transient objects should be defined in the constructor
@@ -810,6 +816,22 @@ public class User implements Serializable {
 		return this.cmdUtil;
 	}
 	
+	
+	public MountHelper getUserMountHelper() {
+		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+			if(mountHelper == null) {		
+				String uniqueUserName =getSingleLogginName(this)+ "-" + UUID.randomUUID().toString();
+				String baseMountPath = DIHelper.getInstance().getProperty("CHROOT_DIR");
+				mountTuple = baseMountPath + DIR_SEPARATOR + uniqueUserName;
+				//unique user is just for testing so when i ls on R, I can see it is me and not someone else
+				mountHelper = new MountHelper(mountTuple);
+		} 
+			return mountHelper;
+		} else {
+			throw new IllegalArgumentException("Mounting + Chroot is set to false for this instance");
+		}
+	}
+	
 	public void startTCPServer() {
 		if (tcpServer == null || !tcpServer.isConnected())  // start only if it not already in progress
 		{
@@ -819,12 +841,29 @@ public class User implements Serializable {
 			if (port == null) // port has not been forced
 			{
 				port = Utility.findOpenPort();
+				
+			
+				if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+					//unique user is just for testing so when i ls on R, I can see it is me and not someone else
+					mountHelper = getUserMountHelper();
+					
+					//maker.mountTarget(userLoginName);
+					//pyTupleSpace = mountTuple;
+					//pyTupleSpace = mountTuple + DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+					pyTupleSpace = PyUtils.getInstance().startTCPServe(this, mountTuple, DIHelper.getInstance().getProperty(Constants.BASE_FOLDER), port);
+
+				} else {
+				
 				if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
 					pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
-				} else {
+				} 
+				else {
 					pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				}
 				pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
+			
+			
+				}
 			}
 			
 			// instrumenting the client class also now
