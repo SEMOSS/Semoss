@@ -263,6 +263,12 @@ public class Insight implements Serializable {
 		if(DIHelper.getInstance().getCoreProp().containsKey("X_CACHE")) {
 			this.pragmap.put("xCache", DIHelper.getInstance().getCoreProp().getProperty("X_CACHE"));
 		}
+		// put the pragmap
+		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
+			if(this.user != null) {
+			this.user.getUserMountHelper().mountFolder(getInsightFolder(), getInsightFolder(), false);
+			}
+		}
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////

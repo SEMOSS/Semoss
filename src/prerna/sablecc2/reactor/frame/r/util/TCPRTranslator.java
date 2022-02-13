@@ -104,6 +104,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			ps.hasReturn = false;
 			ps = (PayloadStruct) nc.executeCommand(ps);
 			
+			
 			if(ps != null  &&  ps.ex!= null)
 				logger.info(ps.ex);
 		}		
@@ -387,6 +388,12 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		this.insight = insight;
 
 	}
+	
+	@Override
+	public Insight getInsight() {
+		return this.insight;
+
+	}
 
 	@Override
 	public void setLogger(Logger logger) {
@@ -540,6 +547,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	{
 		if(nc != null)
 		{
+			
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, frameName);
 			ps.payloadClasses = new Class[] {String.class};
@@ -657,6 +665,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	public String getColumnType(String frameName, String column) {
 		if(nc != null)
 		{
+			
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 			PayloadStruct ps = constructPayload(methodName, frameName, column);
 			ps.payloadClasses = new Class[] {String.class, String.class};

@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -17,6 +18,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
@@ -421,6 +423,11 @@ public class PyTranslator
 		}
 		
 		
+		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
+			if(this.insight.getUser() != null) {
+				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+			}
+		}
 		
 		String pyFileName = Utility.getRandomString(12);
 		String scriptPath = pyTemp +  pyFileName + ".py";
@@ -521,6 +528,7 @@ public class PyTranslator
 	
 	public String runScript(Map<String, StringBuffer> appMap, String script) {
 		
+
 		String removePathVariables = "";
 		String insightRootAssignment = "";
 		String appRootAssignment = "";
@@ -645,7 +653,7 @@ public class PyTranslator
 
 	
 	
-	private String convertArrayToString(String... script) {
+	protected String convertArrayToString(String... script) {
 		StringBuilder retString = new StringBuilder("");
 		for (int lineIndex = 0; lineIndex < script.length; lineIndex++)
 			retString.append(script[lineIndex]).append("\n");
