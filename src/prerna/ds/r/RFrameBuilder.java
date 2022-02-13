@@ -1,6 +1,7 @@
 package prerna.ds.r;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,13 +14,16 @@ import java.util.Vector;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.eclipse.jgit.util.FileUtils;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.IStringExportProcessor;
+import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.RInterpreter;
@@ -166,8 +170,27 @@ public class RFrameBuilder {
 			// default behavior is to just write this to a csv file
 			// get the fread() notation for that csv file
 			// and read it back in
+
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
-			File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t", new IStringExportProcessor() {
+
+			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
+				Insight in = this.getRJavaTranslator().getInsight();
+				
+				String insightFolder = this.getRJavaTranslator().getInsight().getInsightFolder();
+			
+				try {
+					FileUtils.mkdirs(new File(insightFolder), true);
+					if(in.getUser() != null) {
+						in.getUser().getUserMountHelper().mountFolder(this.getRJavaTranslator().getInsight().getInsightFolder(),this.getRJavaTranslator().getInsight().getInsightFolder(), false);
+					}
+					newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".tsv";
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+				File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t", new IStringExportProcessor() {
 				// for fread - we need to replace all inner quotes with ""
 				@Override
 				public String processString(String input) {
@@ -176,7 +199,7 @@ public class RFrameBuilder {
 			});
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath(), "\\t");
 			evalR(loadFileRScript);
-			newFile.delete();
+			//sudo do.delete();
 			
 //			// check that the variable exists
 //			if(isEmpty(tableName)) {
