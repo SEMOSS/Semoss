@@ -315,6 +315,16 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		this.env = "a" + Utility.makeAlphaNumeric(insight.getInsightId());
 		//initREnv();
 	}
+	
+	/**
+	 * This method is used to get the insight
+	 * 
+	 */
+	@Override
+	public Insight getInsight() {
+		return this.insight;
+		//initREnv();
+	}
 
 	/**
 	 * This method is used to set the logger
@@ -526,6 +536,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		// attempt to put it into environment
 		script = encapsulateForEnv(insightRootAssignment + appRootAssignment 
 				+ userRootAssignment + script);
+//		logger.info("#### Rscript ####: " +scriptFile.getName() + ": " + script);
 
 		try {
 			FileUtils.writeStringToFile(scriptFile, script);
@@ -596,6 +607,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		} else {
 			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
 		}
+
 		logger.info("Executing file at " + rTemp);
 		File rTempF = new File(rTemp);
 		if(!rTempF.exists()) {
@@ -625,6 +637,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 		// Try writing the script to a file
 		try {
+//			System.out.print("### Rscript: " + script);
 			FileUtils.writeStringToFile(scriptFile, script);
 			String finalScript = "print(source(\"" + scriptPath + "\", print.eval=TRUE, local=TRUE)); ";
 

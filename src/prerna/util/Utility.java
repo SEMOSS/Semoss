@@ -59,6 +59,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
@@ -3150,7 +3151,7 @@ public class Utility {
 		}
 
 		long end = System.currentTimeMillis();
-		logger.debug("Time to output file = " + (end - start) + " ms");
+		logger.info("Time to output file = " + (end - start) + " ms. File written to:" + fileLocation);
 
 		return f;
 	}
@@ -3768,6 +3769,139 @@ public class Utility {
 
 		return envClassPath.toString();
 	}
+	
+	public static Process startTCPServer(String cp, String chrootDir, String insightFolder, String port) {
+		// this basically starts a java process
+		// the string is an identifier for this process
+		Process thisProcess = null;
+		if (cp == null) {
+			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
+		}
+		String specificPath = getCP(cp, insightFolder);
+		try {
+			String java = System.getenv(Constants.JAVA_HOME);
+			if (java == null) {
+				java = DIHelper.getInstance().getProperty(Constants.JAVA_HOME);
+			}
+			if(!java.endsWith("bin")) {
+				//seems like for graal
+				java = java + "/bin/java";
+			} else {
+				java = java + "/java";
+			}
+			// account for spaces in the path to java
+			if (java.contains(" ")) {
+				java = "\"" + java + "\"";
+			}
+			// change the \\
+			java = java.replace("\\", "/");
+
+			String jep = DIHelper.getInstance().getProperty(Constants.LD_LIBRARY_PATH);
+			if (jep == null) {
+				jep = System.getenv(Constants.LD_LIBRARY_PATH);
+			}
+			// account for spaces in the path to jep
+			if (jep.contains(" ")) {
+				jep = "\"" + jep + "\"";
+			}
+			jep = jep.replace("\\", "/");
+
+			String pyWorker = DIHelper.getInstance().getProperty(Constants.TCP_WORKER);
+			if(pyWorker == null) {
+				pyWorker = "prerna.tcp.Server";
+			}
+			String[] commands = null;
+			if (port == null) {
+				commands = new String[7];
+			} else {
+				commands = new String[8];
+				commands[7] = port;
+			}
+			String finalDir = insightFolder.replace("\\", "/");
+			commands[0] = java;
+			// just append all the environment variables
+			// on the windows machine as well
+			if(SystemUtils.IS_OS_WINDOWS) {
+				// since we will wrap quotes around the entire thing as PATH likely has spaces
+				// remove from jep
+				if(jep.startsWith("\"") && jep.endsWith("\"")) {
+					jep = jep.substring(1, jep.length()-1);
+				}
+				commands[1] = "-Djava.library.path=\"%PATH%;" + jep + "\"";
+			} else {
+				commands[1] = "-Djava.library.path=" + jep;
+			}
+			commands[2] = "-cp";
+			commands[3] = specificPath;
+			commands[4] = pyWorker;
+			commands[5] = finalDir;
+			commands[6] = DIHelper.getInstance().rdfMapFileLocation;
+			// java = "c:/zulu/zulu-8/bin/java";
+			// StringBuilder argList = new StringBuilder(args[0]);
+			// for(int argIndex = 0;argIndex < args.length;argList.append("
+			// ").append(args[argIndex]), argIndex++);
+			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
+			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
+					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
+					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
+					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
+					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
+			*/
+			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
+			// commands[6] = ">";
+			// commands[7] = finalDir + "/.log";
+
+			logger.debug("Trying to create file in .. " + finalDir);
+			File file = new File(chrootDir + finalDir + "/init");
+			file.createNewFile();
+			logger.debug("Python start commands ... ");
+			logger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
+
+			// run it as a process
+			// ProcessBuilder pb = new ProcessBuilder(commands);
+			// ProcessBuilder pb = new
+			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
+			// pb.command(commands);
+
+			// need to make sure we are not windows cause ulimit will not work
+			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+				StringBuilder sb = new StringBuilder();
+				for (String str : commands) {
+					sb.append(str).append(" ");
+				}
+				sb.substring(0, sb.length() - 1);
+				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+			}
+
+			String[] starterFile = writeStarterFile(commands, chrootDir, finalDir);
+			ProcessBuilder pb = new ProcessBuilder(starterFile);
+			pb.redirectError();
+			logger.info("came out of the waiting for process");
+			Process p = pb.start();
+
+			try {
+				// p.waitFor();
+				p.waitFor(500, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				logger.error(Constants.STACKTRACE, ie);
+			}
+			logger.info("came out of the waiting for process");
+			thisProcess = p;
+
+			// System.out.println("Process started with .. " + p.exitValue());
+			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
+			// + " " + argList);
+			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
+			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
+			// thisProcess = pb.start();
+		} catch (IOException ioe) {
+			logger.error(Constants.STACKTRACE, ioe);
+		}
+
+		return thisProcess;
+	}
 
 	public static Process startTCPServer(String cp, String insightFolder, String port) {
 		// this basically starts a java process
@@ -4059,7 +4193,76 @@ public class Utility {
 		} catch (IOException ioe) {
 			logger.error(Constants.STACKTRACE, ioe);
 		}
+		
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty("ENABLE_BINDFS")) && osName.indexOf("win") < 0) { 
+			commandsStarter =  new String[5];
+			starter = dir + "/starter.sh";
+			commandsStarter[0] = "fakechroot";
+			commandsStarter[1] = "fakeroot";
+			commandsStarter[2] = "chroot";
+			commandsStarter[3] = "/bin/bash";
+			commandsStarter[4] = starter;
+		}
 
+		
+		return commandsStarter;
+	}
+	
+	public static String[] writeStarterFile(String[] commands, String chrootDir, String dir) {
+		// check if the os is unix and if so make it .sh
+		String osName = System.getProperty("os.name").toLowerCase();
+
+
+		String starter = ""; 
+		String[] commandsStarter = null;
+
+		if (osName.indexOf("win") >= 0) {
+			commandsStarter = new String[1];
+			commandsStarter[0] = dir + "/starter.bat";
+			starter = dir + "/starter.bat";
+		}
+		if (osName.indexOf("win") < 0) {
+			commandsStarter =  new String[2];
+			commandsStarter[0] = "/bin/bash";
+			starter = dir + "/starter.sh";
+			commandsStarter[1] = starter;
+		}
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && osName.indexOf("win") < 0) { 
+			commandsStarter =  new String[6];
+			starter = dir + "/starter.sh";
+			commandsStarter[0] = "fakechroot";
+			commandsStarter[1] = "fakeroot";
+			commandsStarter[2] = "chroot";
+			commandsStarter[3] = chrootDir;
+			commandsStarter[4] = "/bin/bash";
+			commandsStarter[5] = starter;
+			
+			starter =chrootDir + dir + "/starter.sh";
+
+		}
+
+		try {
+			File starterFile = new File(starter);
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			for (int cmdIndex = 0; cmdIndex < commands.length; cmdIndex++) {
+				baos.write(commands[cmdIndex].getBytes());
+				baos.write("  ".getBytes());
+			}
+			FileUtils.writeByteArrayToFile(starterFile, baos.toByteArray());
+
+			// chmod in case.. who knows
+			if (osName.indexOf("win") < 0) {
+				ProcessBuilder p = new ProcessBuilder("/bin/chmod", "777", starter);
+				p.start();
+			}
+		} catch (FileNotFoundException fnfe) {
+			logger.error(Constants.STACKTRACE, fnfe);
+		} catch (IOException ioe) {
+			logger.error(Constants.STACKTRACE, ioe);
+		}
+		
+
+		
 		return commandsStarter;
 	}
 	
