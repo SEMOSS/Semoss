@@ -193,5 +193,11 @@ public interface IRJavaTranslator {
 	public void checkPackages(String[] packages);
 	
     public boolean checkPackages(String[] packages, Logger logger);
+
+	/**
+	 * This method is used to get the insight
+	 * 
+	 */
+	public Insight getInsight();
     
 }
