@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -89,6 +90,8 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		boolean cacheable = Utility.getApplicationCacheInsight();
 		int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 		boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
+		String cacheCron = Utility.getApplicationCacheCron();
+		LocalDateTime cachedOn = null;
 		
 		ClusterUtil.reactorPullInsightsDB(projectId);
 		if(addAll) {
@@ -98,7 +101,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 			addedInsight = true;
 			registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.getInsightName(databaseName, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME), 
-					UploadUtilities.EXPLORE_INSIGHT_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+					UploadUtilities.EXPLORE_INSIGHT_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 			logger.info("Done adding explore an instance");
 			
 			retMap = UploadUtilities.addInsightUsageStats(projectId, projectName, insightEngine);
@@ -106,7 +109,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 			addedInsight = true;
 			registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.INSIGHT_USAGE_STATS_INSIGHT_NAME, 
-					UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+					UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 			logger.info("Done adding insight usage stats");
 			
 			if(eType == ENGINE_TYPE.RDBMS) {
@@ -114,7 +117,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 				recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 				registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.getInsightName(databaseName, UploadUtilities.GRID_DELTA_INSIGHT_NAME), 
-						UploadUtilities.GRID_DELTA_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+						UploadUtilities.GRID_DELTA_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 				logger.info("Done adding grid delta");
 				
 				// add audit insights
@@ -125,7 +128,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 					if (newInsightId != null) {
 						registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.getInsightName(databaseName, UploadUtilities.AUDIT_MODIFICATION_VIEW_INSIGHT_NAME), 
-								UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+								UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 						logger.info("Done adding audit modification view");
 					} else {
 						additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
@@ -140,7 +143,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 					if (newInsightId != null) {
 						registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.getInsightName(databaseName, UploadUtilities.AUDIT_TIMELINE_INSIGHT_NAME), 
-								UploadUtilities.AUDIT_TIMELINE_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+								UploadUtilities.AUDIT_TIMELINE_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 						logger.info("Done adding audit timeline view");
 					} else {
 						additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
@@ -157,7 +160,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 				addedInsight = true;
 				registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.getInsightName(databaseName, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME), 
-						UploadUtilities.EXPLORE_INSIGHT_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+						UploadUtilities.EXPLORE_INSIGHT_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 				logger.info("Done adding explore an instance");
 			}
 			if(insightsToAdd.contains(INSIGHT_STATS)) {
@@ -166,7 +169,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 				addedInsight = true;
 				registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.INSIGHT_USAGE_STATS_INSIGHT_NAME, 
-						UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+						UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 				logger.info("Done adding insight usage stats");
 			}
 			if(insightsToAdd.contains(GRID_DELTA_INSTANCE)) {
@@ -176,7 +179,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 					addedInsight = true;
 					registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.getInsightName(databaseName, UploadUtilities.GRID_DELTA_INSIGHT_NAME), 
-							UploadUtilities.GRID_DELTA_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+							UploadUtilities.GRID_DELTA_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 					logger.info("Done adding grid delta");
 				} else {
 					additionalNouns.add(NounMetadata.getWarningNounMessage("This database is not an RDBMS so grid delta insight cannot be added"));
@@ -191,7 +194,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 						if (newInsightId != null) {
 							addedInsight = true;
 							registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.getInsightName(databaseName, UploadUtilities.AUDIT_MODIFICATION_VIEW_INSIGHT_NAME), 
-									UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+									UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 							logger.info("Done adding audit modification view");
 						} else {
 							additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
@@ -212,7 +215,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 						if (newInsightId != null) {
 							addedInsight = true;
 							registerInsightAndMetadata(projectId, newInsightId, UploadUtilities.getInsightName(databaseName, UploadUtilities.AUDIT_TIMELINE_INSIGHT_NAME), 
-									UploadUtilities.AUDIT_TIMELINE_LAYOUT, cacheable, cacheMinutes, cacheEncrypt, recipe);
+									UploadUtilities.AUDIT_TIMELINE_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 							logger.info("Done adding audit timeline view");
 						} else {
 							additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
@@ -238,8 +241,9 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	}
 	
 	private void registerInsightAndMetadata(String projectId, String insightIdToSave, String insightName, String layout, 
-			boolean cacheable, int cacheMinutes, boolean cacheEncrypt, List<String> recipe) {
-		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, layout, cacheable, cacheMinutes, cacheEncrypt, recipe);
+			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, List<String> recipe) {
+		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, layout, 
+				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 		if(this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
 		}

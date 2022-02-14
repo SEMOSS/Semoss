@@ -1,14 +1,17 @@
 package prerna.sablecc2.reactor.insights.save;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
+import org.quartz.CronExpression;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.date.SemossDate;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -24,7 +27,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 
 	public SetInsightCacheableReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), 
-				CACHEABLE, CACHE_MINUTES, CACHE_ENCRYPT};
+				CACHEABLE, CACHE_MINUTES, CACHE_CRON, CACHE_ENCRYPT};
 	}
 	
 	@Override
@@ -32,21 +35,9 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 
 		organizeKeys();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		String existingId = this.keyValue.get(this.keysToGet[1]);
-		boolean cache = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
-		int cacheMinutes = -1;
-		if(this.keyValue.containsKey(this.keysToGet[3])) {
-			cacheMinutes = Integer.parseInt(this.keyValue.get(this.keysToGet[3]));
-		} else {
-			cacheMinutes = Utility.getApplicationCacheInsightMinutes();
-		}
-		boolean cacheEncrypt = false;
-		if(this.keyValue.containsKey(this.keysToGet[4])) {
-			cacheEncrypt = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[4]));
-		} else {
-			cacheEncrypt = Utility.getApplicationCacheEncrypt();
-		}
+		int index = 0;
+		String projectId = this.keyValue.get(this.keysToGet[index++]);
+		String existingId = this.keyValue.get(this.keysToGet[index++]);
 		
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
@@ -62,14 +53,54 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 //			}
 //		}
 		
+		Map<String, Object> currentInsightDetails = SecurityInsightUtils.getSpecificInsightCacheDetails(projectId, existingId);
+		
+		boolean cache = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]));
+		int cacheMinutes = -1;
+		if(this.keyValue.containsKey(this.keysToGet[index])) {
+			cacheMinutes = Integer.parseInt(this.keyValue.get(this.keysToGet[index]));
+		} else if(currentInsightDetails.containsKey("cacheMinutes")){
+			cacheMinutes = (int) currentInsightDetails.get("cacheMinutes");
+		} else {
+			cacheMinutes = Utility.getApplicationCacheInsightMinutes();
+		}
+		index++;
+		String cacheCron = null;
+		if(this.keyValue.containsKey(this.keysToGet[index])) {
+			cacheCron = this.keyValue.get(this.keysToGet[index]);
+			if (!CronExpression.isValidExpression(cacheCron)) {
+				throw new IllegalArgumentException("Cron expression '" + cacheCron + "' is not of a valid format");
+			}
+		} else if(currentInsightDetails.containsKey("cacheCron")){
+			cacheCron = (String) currentInsightDetails.get("cacheCron");
+		} else {
+			cacheCron = Utility.getApplicationCacheCron();
+		}
+		index++;
+		boolean cacheEncrypt = false;
+		if(this.keyValue.containsKey(this.keysToGet[index])) {
+			cacheEncrypt = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index]));
+		} else if(currentInsightDetails.containsKey("cacheEncrypt")){
+			cacheEncrypt = (Boolean) currentInsightDetails.get("cacheEncrypt");
+		} else {
+			cacheEncrypt = Utility.getApplicationCacheEncrypt();
+		}
+		
+		LocalDateTime cachedOn = null;
+		SemossDate cachedOnDate = (SemossDate) currentInsightDetails.get("cachedOn");
+		if(cachedOnDate != null) {
+			cachedOn = cachedOnDate.getLocalDateTime();
+		}
+		
 		logger.info("1) Updating insight in rdbms");
 		IProject project = Utility.getProject(projectId);
+		
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
-		admin.updateInsightCache(existingId, cache, cacheMinutes, cacheEncrypt);
+		admin.updateInsightCache(existingId, cache, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 		logger.info("1) Done");
 
 		logger.info("2) Updating insight in index");
-		SecurityInsightUtils.updateInsightCache(projectId, existingId, cache, cacheMinutes, cacheEncrypt);
+		SecurityInsightUtils.updateInsightCache(projectId, existingId, cache, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 		logger.info("2) Done");
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
@@ -84,6 +115,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		returnMap.put("cacheable", cache);
 		returnMap.put("cacheMinutes", cacheMinutes);
 		returnMap.put("cacheEncrypt", cacheEncrypt);
+		returnMap.put("cacheCron", cacheCron);
 
 		//push insight db
 		ClusterUtil.reactorPushInsightDB(projectId);

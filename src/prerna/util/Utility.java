@@ -59,7 +59,6 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
@@ -110,6 +109,7 @@ import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 import org.owasp.encoder.Encode;
 import org.owasp.esapi.ESAPI;
+import org.quartz.CronExpression;
 import org.xeustechnologies.jcl.JarClassLoader;
 import org.xeustechnologies.jcl.JclObjectFactory;
 
@@ -3327,6 +3327,26 @@ public class Utility {
 		return Integer.parseInt(cacheSetting);
 	}
 	
+	/**
+	 * Determine cron schedule for the cache existence
+	 * @return
+	 */
+	public static String getApplicationCacheCron() {
+		String cacheSetting = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHT_CACHE_CRON);
+		if(cacheSetting == null) {
+			// default is false
+			return null;
+		}
+		
+		cacheSetting = cacheSetting.trim();
+		
+		if (!CronExpression.isValidExpression(cacheSetting)) {
+			logger.error("Application DEFAULT_INSIGHT_CACHE_CRON value of '" + cacheSetting + "' is not a valid cron expression");
+			return null;
+		}
+		
+		return cacheSetting;
+	}
 	
 	/**
 	 * Determine if the cache should be encrypted by default or not
@@ -3362,7 +3382,7 @@ public class Utility {
 	 */
 	public static String getApplicationTimeZoneId() {
 		String timeZone = DIHelper.getInstance().getProperty(Constants.DEFAULT_TIME_ZONE);
-		if(timeZone == null || timeZone.trim().isEmpty()) {
+		if(timeZone == null || (timeZone=timeZone.trim()).isEmpty()) {
 			// default cache is true
 			return "EST";
 		}

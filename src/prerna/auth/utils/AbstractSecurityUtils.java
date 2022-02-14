@@ -525,9 +525,9 @@ public abstract class AbstractSecurityUtils {
 		
 		// INSIGHT
 		colNames = new String[] { "PROJECTID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", 
-				"CACHEABLE", "CACHEMINUTES", "CACHEENCRYPT", "RECIPE" };
+				"CACHEABLE", "CACHEMINUTES", "CACHECRON", "CACHEDON", "CACHEENCRYPT", "RECIPE" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", 
-				BOOLEAN_DATATYPE_NAME, "INT", BOOLEAN_DATATYPE_NAME, CLOB_DATATYPE_NAME };
+				BOOLEAN_DATATYPE_NAME, "INT", "VARCHAR(25)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, CLOB_DATATYPE_NAME };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
 		} else {
@@ -556,6 +556,16 @@ public abstract class AbstractSecurityUtils {
 			// TEMPORARY CHECK! - not sure when added but todays date is 02/07/22
 			if(!allCols.contains("CACHEENCRYPT") && !allCols.contains("cacheencrypt")) {
 				String addRecipeColumnSql = queryUtil.alterTableAddColumn("INSIGHT", "CACHEENCRYPT", BOOLEAN_DATATYPE_NAME);
+				securityDb.insertData(addRecipeColumnSql);
+			}
+			// TEMPORARY CHECK! - not sure when added but todays date is 02/14/22
+			if(!allCols.contains("CACHECRON") && !allCols.contains("cachecron")) {
+				String addRecipeColumnSql = queryUtil.alterTableAddColumn("INSIGHT", "CACHECRON", "VARCHAR(25)");
+				securityDb.insertData(addRecipeColumnSql);
+			}
+			// TEMPORARY CHECK! - not sure when added but todays date is 02/14/22
+			if(!allCols.contains("CACHEDON") && !allCols.contains("cachedon")) {
+				String addRecipeColumnSql = queryUtil.alterTableAddColumn("INSIGHT", "CACHEDON", TIMESTAMP_DATATYPE_NAME);
 				securityDb.insertData(addRecipeColumnSql);
 			}
 		}
@@ -772,59 +782,6 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		// PERMISSION
-		colNames = new String[] { "ID", "NAME" };
-		types = new String[] { "INT", "VARCHAR(255)" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION", colNames, types));
-		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "PERMISSION", schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("PERMISSION", colNames, types));
-			}
-		}
-		if(allowIfExistsIndexs) {
-			List<String> iCols = new Vector<String>();
-			iCols.add("ID");
-			iCols.add("NAME");
-			securityDb.insertData(queryUtil.createIndexIfNotExists("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
-		} else {
-			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "PERMISSION_ID_NAME_INDEX", "PERMISSION", schema)) {
-				List<String> iCols = new Vector<String>();
-				iCols.add("ID");
-				iCols.add("NAME");
-				securityDb.insertData(queryUtil.createIndex("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
-			}
-		}
-		
-		{
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
-				if(wrapper.hasNext()) {
-					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-					if(numrows > 3) {
-						securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
-					} else if(numrows == 0) {
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
-					}
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			} finally {
-				if(wrapper != null) {
-					wrapper.cleanUp();
-				}
-			}
-		}
-		
 		/*
 		 * We need to store when a user comes in
 		 * if they are part of a group
@@ -934,6 +891,87 @@ public abstract class AbstractSecurityUtils {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", schema)) {
 				securityDb.insertData(queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
+			}
+		}
+		
+		// PERMISSION
+		colNames = new String[] { "ID", "NAME" };
+		types = new String[] { "INT", "VARCHAR(255)" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "PERMISSION", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("PERMISSION", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			List<String> iCols = new Vector<String>();
+			iCols.add("ID");
+			iCols.add("NAME");
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(securityDb, "PERMISSION_ID_NAME_INDEX", "PERMISSION", schema)) {
+				List<String> iCols = new Vector<String>();
+				iCols.add("ID");
+				iCols.add("NAME");
+				securityDb.insertData(queryUtil.createIndex("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
+			}
+		}
+		
+		{
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
+				if(wrapper.hasNext()) {
+					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+					if(numrows > 3) {
+						securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+					} else if(numrows == 0) {
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
+			}
+		}
+		
+		// PERMISSION RULES
+		colNames = new String[] { "PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
+				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT" };
+		types = new String[] { "INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+				"INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "INT"};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION_RULES", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "PERMISSION_RULES", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("PERMISSION_RULES", colNames, types));
+			}
+		}
+		
+		// PASSWORD RESUSE
+		colNames = new String[] { "ID", "TYPE", "PASSWORD", "SALT", "DATE_ADDED" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RESUSE", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "PASSWORD_RESUSE", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("PASSWORD_RESUSE", colNames, types));
 			}
 		}
 		
