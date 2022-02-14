@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -25,6 +26,8 @@ public class MosfetFile {
 	private boolean hidden = false;
 	private boolean cacheable = true;
 	private int cacheMinutes = -1;
+	private String cacheCron;
+	private LocalDateTime cachedOn;
 	private boolean cacheEncrypt = false;
 	
 	// actual recipe
@@ -164,6 +167,22 @@ public class MosfetFile {
 
 	public void setCacheMinutes(int cacheMinutes) {
 		this.cacheMinutes = cacheMinutes;
+	}
+	
+	public String getCacheCron() {
+		return cacheCron;
+	}
+
+	public void setCacheCron(String cacheCron) {
+		this.cacheCron = cacheCron;
+	}
+
+	public LocalDateTime getCachedOn() {
+		return cachedOn;
+	}
+
+	public void setCachedOn(LocalDateTime cachedOn) {
+		this.cachedOn = cachedOn;
 	}
 
 	public boolean isCacheEncrypt() {

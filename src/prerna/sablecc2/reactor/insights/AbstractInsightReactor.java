@@ -15,6 +15,7 @@ import java.util.Vector;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.quartz.CronExpression;
 
 import com.google.common.io.Files;
 import com.google.gson.Gson;
@@ -48,6 +49,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String HIDDEN_KEY = "hidden";
 	protected static final String CACHEABLE = "cache";
 	protected static final String CACHE_MINUTES = "cacheMinutes";
+	protected static final String CACHE_CRON = "cacheCron";
 	protected static final String CACHE_ENCRYPT = "cacheEncrypt";
 	protected static final String ENCODED_KEY = "encoded";
 	protected static final String PIPELINE_FILE = "pipeline.json";
@@ -163,6 +165,23 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		GenRowStruct genericIdGrs = this.store.getNoun(CACHE_MINUTES);
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return (int) genericIdGrs.get(0);
+		}
+		
+		// well, you are out of luck
+		return null;
+	}
+	
+	protected String getUserDefinedCacheCron() {
+		// see if it was passed directly in with the lower case key ornaments
+		GenRowStruct genericIdGrs = this.store.getNoun(CACHE_CRON);
+		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
+			String cronExpression = (String) genericIdGrs.get(0);
+			if(cronExpression != null && !(cronExpression = cronExpression.trim()).isEmpty()) {
+				if (!CronExpression.isValidExpression(cronExpression)) {
+					throw new IllegalArgumentException("Cron expression '" + cronExpression + "' is not of a valid format");
+				}
+				return cronExpression;
+			} 
 		}
 		
 		// well, you are out of luck
