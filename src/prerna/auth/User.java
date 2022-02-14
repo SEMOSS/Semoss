@@ -840,8 +840,6 @@ public class User implements Serializable {
 			if (port == null) // port has not been forced
 			{
 				port = Utility.findOpenPort();
-				
-			
 				if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 					//unique user is just for testing so when i ls on R, I can see it is me and not someone else
 					mountHelper = getUserMountHelper();
@@ -850,25 +848,22 @@ public class User implements Serializable {
 					//pyTupleSpace = mountTuple;
 					//pyTupleSpace = mountTuple + DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 					pyTupleSpace = PyUtils.getInstance().startTCPServe(this, mountTuple, DIHelper.getInstance().getProperty(Constants.BASE_FOLDER), port);
-
 				} else {
-				
-				if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
-					pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
-				} 
-				else {
-					pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-				}
-				pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
-			
-			
+					if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
+						pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
+					} 
+					else {
+						pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+					}
+					pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
 				}
 			}
 			
 			// instrumenting the client class also now
 			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
-			if(pyClient == null)
-				pyClient = "prerna.tcp.client.Client";
+			if(pyClient == null) {
+				pyClient = "prerna.tcp.client.SocketClient";
+			}
 			try
 			{
 				Client nc = (Client)Class.forName(pyClient).newInstance();
