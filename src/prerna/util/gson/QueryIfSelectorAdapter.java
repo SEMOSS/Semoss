@@ -53,14 +53,17 @@ public class QueryIfSelectorAdapter extends AbstractSemossTypeAdapter<QueryIfSel
 				IQuerySelector selector = selectorAdapter.read(in);
 				value.setAntecedent(selector);
 			} else if(key.equals("alias")) {
-				JsonToken peak = in.peek();
-				if(peak == JsonToken.NULL) {
+				if(in.peek() == JsonToken.NULL) {
 					in.nextNull();
 				} else {
 					value.setAlias(in.nextString());
 				}
 			} else if(key.equals("pixelString")) {
-				// ignore
+				if(in.peek() == JsonToken.NULL) {
+					in.nextNull();
+				} else {
+					value.setPixelString(in.nextString());
+				}
 			}
 		}
 		in.endObject();
