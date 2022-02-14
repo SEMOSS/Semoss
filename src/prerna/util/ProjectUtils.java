@@ -3,6 +3,7 @@ package prerna.util;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -64,9 +65,6 @@ public class ProjectUtils {
 		return insightEngine;
 	}
 
-
-
-
 	/**
 	 * Run the create table queries for the insights database
 	 * @param insightEngine
@@ -78,15 +76,22 @@ public class ProjectUtils {
 		String[] types = null;
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
 		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
+		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
 		
 		try {
-			if(!queryUtil.tableExists(insightEngine.getConnection(), "QUESTION_ID", insightEngine.getSchema())) {
-				columns = new String[]{"ID", "QUESTION_NAME", "QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", 
-						"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", 
-						"CACHEABLE", "CACHE_MINUTES", "CACHE_ENCRYPT", "QUESTION_PKQL"};
-				types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", 
-						"VARCHAR(255)", CLOB_DATATYPE, "VARCHAR(500)", BOOLEAN_DATATYPE, 
-						BOOLEAN_DATATYPE, "INT", BOOLEAN_DATATYPE, "ARRAY"};
+			if(!queryUtil.tableExists(insightEngine.getConnection(), InsightAdministrator.TABLE_NAME, insightEngine.getSchema())) {
+				columns = new String[]{InsightAdministrator.QUESTION_ID_COL, InsightAdministrator.QUESTION_NAME_COL, "QUESTION_PERSPECTIVE", 
+						"QUESTION_LAYOUT", "QUESTION_ORDER", "QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", 
+						InsightAdministrator.HIDDEN_INSIGHT_COL, InsightAdministrator.CACHEABLE_COL, InsightAdministrator.CACHE_MINUTES_COL,
+						InsightAdministrator.CACHE_CRON_COL, InsightAdministrator.CACHED_ON_COL, InsightAdministrator.CACHE_ENCRYPT_COL,
+						InsightAdministrator.QUESTION_PKQL_COL
+					};
+				types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", 
+						"VARCHAR(255)", "INT", "VARCHAR(255)", CLOB_DATATYPE, "VARCHAR(500)", 
+						BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, "INT", 
+						"VARCHAR(25)", TIMESTAMP_DATATYPE, BOOLEAN_DATATYPE, 
+						"ARRAY"
+					};
 				// this is annoying
 				// need to adjust if the engine allows array data types
 				if(!queryUtil.allowArrayDatatype()) {

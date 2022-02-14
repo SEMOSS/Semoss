@@ -266,23 +266,47 @@ public class ProjectHelper {
 			{
 				List<String> allCols;
 				try {
-					allCols = queryUtil.getTableColumns(insightsRdbms.getConnection(), "QUESTION_ID", insightsRdbms.getSchema());
+					allCols = queryUtil.getTableColumns(insightsRdbms.getConnection(), InsightAdministrator.TABLE_NAME, insightsRdbms.getSchema());
 					// this should return in all upper case
 					// ... but sometimes it is not -_- i.e. postgres always lowercases
 					// TEMPORARY CHECK! - added 01/29/2022
-					if(!allCols.contains("CACHE_MINUTES") && !allCols.contains("cache_minutes")) {
+					if(!allCols.contains(InsightAdministrator.CACHE_MINUTES_COL.toUpperCase()) && !allCols.contains(InsightAdministrator.CACHE_MINUTES_COL.toLowerCase())) {
 						if(queryUtil.allowIfExistsModifyColumnSyntax()) {
-							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists("QUESTION_ID", "CACHE_MINUTES", "INT"));
+							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists(InsightAdministrator.TABLE_NAME, 
+									InsightAdministrator.CACHE_MINUTES_COL, "INT"));
 						} else {
-							insightsRdbms.insertData(queryUtil.alterTableAddColumn("QUESTION_ID", "CACHE_MINUTES", "INT"));
+							insightsRdbms.insertData(queryUtil.alterTableAddColumn(InsightAdministrator.TABLE_NAME, 
+									InsightAdministrator.CACHE_MINUTES_COL, "INT"));
 						}
 					}
 					// TEMPORARY CHECK! - added 02/07/2022
-					if(!allCols.contains("CACHE_ENCRYPT") && !allCols.contains("cache_encrypt")) {
+					if(!allCols.contains(InsightAdministrator.CACHE_ENCRYPT_COL.toUpperCase()) && !allCols.contains(InsightAdministrator.CACHE_ENCRYPT_COL.toLowerCase())) {
 						if(queryUtil.allowIfExistsModifyColumnSyntax()) {
-							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists("QUESTION_ID", "CACHE_ENCRYPT", queryUtil.getBooleanDataTypeName()));
+							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists(InsightAdministrator.TABLE_NAME, 
+									InsightAdministrator.CACHE_ENCRYPT_COL, queryUtil.getBooleanDataTypeName()));
 						} else {
-							insightsRdbms.insertData(queryUtil.alterTableAddColumn("QUESTION_ID", "CACHE_ENCRYPT", queryUtil.getBooleanDataTypeName()));
+							insightsRdbms.insertData(queryUtil.alterTableAddColumn(InsightAdministrator.TABLE_NAME, 
+									InsightAdministrator.CACHE_ENCRYPT_COL, queryUtil.getBooleanDataTypeName()));
+						}
+					}
+					// TEMPORARY CHECK! - added 02/14/2022
+					if(!allCols.contains(InsightAdministrator.CACHE_CRON_COL.toUpperCase()) && !allCols.contains(InsightAdministrator.CACHE_CRON_COL.toLowerCase())) {
+						if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists(InsightAdministrator.TABLE_NAME, 
+									InsightAdministrator.CACHE_CRON_COL, "VARCHAR(25)"));
+						} else {
+							insightsRdbms.insertData(queryUtil.alterTableAddColumn(InsightAdministrator.TABLE_NAME, 
+									InsightAdministrator.CACHE_CRON_COL, "VARCHAR(25)"));
+						}
+					}
+					// TEMPORARY CHECK! - added 02/14/2022
+					if(!allCols.contains(InsightAdministrator.CACHED_ON_COL.toUpperCase()) && !allCols.contains(InsightAdministrator.CACHED_ON_COL.toLowerCase())) {
+						if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+							insightsRdbms.insertData(queryUtil.alterTableAddColumnIfNotExists(InsightAdministrator.TABLE_NAME, 
+									InsightAdministrator.CACHED_ON_COL, queryUtil.getDateWithTimeDataType()));
+						} else {
+							insightsRdbms.insertData(queryUtil.alterTableAddColumn(InsightAdministrator.TABLE_NAME, 
+									InsightAdministrator.CACHED_ON_COL, queryUtil.getDateWithTimeDataType()));
 						}
 					}
 				} catch (SQLException e) {

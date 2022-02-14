@@ -4,18 +4,21 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.jgit.util.FileUtils;
+import org.quartz.CronExpression;
 
 import com.google.gson.JsonSyntaxException;
 
@@ -155,7 +158,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			//get the app_root folder for the project
 			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(project.getProjectName(), project.getProjectId());
 			this.insight.getUser().getUserMountHelper().mountFolder(projectAppRootFolder,projectAppRootFolder, false);
-	
 		}
 
 		/*
@@ -421,7 +423,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			return null;
 		}
 		
-		LocalDateTime cachedDateTime = null;
 		String versionFileLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight) + DIR_SEPARATOR + InsightCacheUtility.VERSION_FILE;
 		File versionFile = new File(versionFileLoc);
 		if(!versionFile.exists() || !versionFile.isFile()) {
@@ -448,6 +449,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			return null;
 		}
 		
+		LocalDateTime cachedDateTime = null;
 		try {
 			cachedDateTime = LocalDateTime.parse(dateGenStr);
 		} catch(Exception e) {
@@ -459,6 +461,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
 			cachedDateTime = LocalDateTime.parse(dateGenStr);
 		}
+		
+		// check cache doesn't have a time expiration
 		int cacheMinutes = existingInsight.getCacheMinutes();
 		if(cacheMinutes > 0) {
 			if(cachedDateTime.plusMinutes(cacheMinutes).isBefore(LocalDateTime.now())) {
@@ -467,6 +471,28 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				return null;
 			}
 		}
+		
+		// check cache doesn't have a set expiration
+		String cacheCron = existingInsight.getCacheCron();
+		if(cacheCron != null && !cacheCron.isEmpty()) {
+			CronExpression expression;
+			try {
+				expression = new CronExpression(cacheCron);
+				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
+				Date cachedDateObj = Date.from(cachedDateTime.atZone(tz.toZoneId()).toInstant());
+				Date nextValidTimeAfter = expression.getNextValidTimeAfter(cachedDateObj);
+				if(nextValidTimeAfter.before(cachedDateObj)) {
+					InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+							existingInsight.getRdbmsId(), true);
+					return null;
+				}
+			} catch (ParseException e) {
+				// invalid cron... not sure if we should ever get to this point
+				classLogger.error(Constants.STACKTRACE, e);
+				return null;
+			}
+		}
+		
 		insight = InsightCacheUtility.readInsightCache(insightZip, existingInsight);
 		insight.setCachedDateTime(cachedDateTime);
 		return insight;
