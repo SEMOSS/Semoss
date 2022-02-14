@@ -534,6 +534,7 @@ public class Constants {
 	// cache enabled by default
 	public static final String DEFAULT_INSIGHT_CACHEABLE = "DEFAULT_INSIGHT_CACHEABLE";
 	public static final String DEFAULT_INSIGHT_CACHE_MINUTES = "DEFAULT_INSIGHT_CACHE_MINUTES";
+	public static final String DEFAULT_INSIGHT_CACHE_CRON = "DEFAULT_INSIGHT_CACHE_CRON";
 	public static final String DEFAULT_INSIGHT_CACHE_ENCRYPT = "DEFAULT_INSIGHT_CACHE_ENCRYPT";
 
 	// default time zone

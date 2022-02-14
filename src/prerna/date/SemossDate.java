@@ -5,15 +5,17 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import prerna.util.Utility;
 
 public class SemossDate implements Comparable<SemossDate> {
 
@@ -169,11 +171,13 @@ public class SemossDate implements Comparable<SemossDate> {
 	}
 
 	public LocalDateTime getLocalDateTime() {
-		return Instant.ofEpochMilli(getDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDateTime();
+		TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
+		return Instant.ofEpochMilli(getDate().getTime()).atZone(tz.toZoneId()).toLocalDateTime();
 	}
 
 	public LocalDate getLocalDate() {
-		return Instant.ofEpochMilli(getDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
+		TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
+		return Instant.ofEpochMilli(getDate().getTime()).atZone(tz.toZoneId()).toLocalDate();
 	}
 
 	/**
