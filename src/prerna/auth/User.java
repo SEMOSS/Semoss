@@ -21,7 +21,6 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.ds.py.SecurePyTranslator;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.r.IRUserConnection;
