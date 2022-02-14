@@ -94,6 +94,12 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHEENCRYPT/INSIGHT")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHECRON/INSIGHT")) {
+				return true;
+			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHEDON/INSIGHT")) {
+				return true;
+			}
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_GROUP");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/SMSS_GROUP")) {
@@ -209,6 +215,8 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHT", "LAYOUT", "VARCHAR(255)");
 		owler.addProp("INSIGHT", "CACHEABLE", "BOOLEAN");
 		owler.addProp("INSIGHT", "CACHEMINUTES", "INT");
+		owler.addProp("INSIGHT", "CACHECRON", "VARCHAR(25)");
+		owler.addProp("INSIGHT", "CACHEDON", "TIMESTAMP");
 		owler.addProp("INSIGHT", "CACHEENCRYPT", "BOOLEAN");
 
 		// USERINSIGHTPERMISSION

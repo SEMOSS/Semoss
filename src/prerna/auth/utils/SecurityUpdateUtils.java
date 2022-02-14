@@ -22,9 +22,11 @@ import prerna.auth.AccessPermission;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.ProjectHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -209,7 +211,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							"INSIGHT", 
 							// column names
 							"PROJECTID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON",
-							"LASTMODIFIEDON","LAYOUT","CACHEABLE","CACHEMINUTES","CACHEENCRYPT","RECIPE"});
+							"LASTMODIFIEDON","LAYOUT",
+							"CACHEABLE","CACHEMINUTES","CACHECRON","CACHEDON","CACHEENCRYPT",
+							"RECIPE"});
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -219,20 +223,22 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		LocalDateTime now = LocalDateTime.now();
 		Timestamp timeStamp = java.sql.Timestamp.valueOf(now);
-		
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+
 //		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("QUESTION_ID__ID"));
-		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_NAME"));
-		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_LAYOUT"));
-		qs.addSelector(new QueryColumnSelector("QUESTION_ID__HIDDEN_INSIGHT"));
-		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHEABLE"));
-		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHE_MINUTES"));
-		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHE_ENCRYPT"));
-		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_PKQL"));
-
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_ID_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_NAME_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_LAYOUT_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.HIDDEN_INSIGHT_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHEABLE_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHE_MINUTES_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHE_CRON_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHED_ON_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHE_ENCRYPT_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_PKQL_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -257,6 +263,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					if(cacheMinutes == null) {
 						cacheMinutes = -1;
 					}
+					String cacheCron = (String) row[index++];
+					SemossDate cachedOn = (SemossDate) row[index++];
 					Boolean cacheEncrypt = (Boolean) row[index++];
 					if(cacheEncrypt == null) {
 						cacheEncrypt = false;
@@ -270,11 +278,22 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, insightName);
 					ps.setBoolean(parameterIndex++, !hidden);
 					ps.setLong(parameterIndex++, 0);
-					ps.setTimestamp(parameterIndex++, timeStamp);
-					ps.setTimestamp(parameterIndex++, timeStamp);
+					ps.setTimestamp(parameterIndex++, timeStamp, cal);
+					ps.setTimestamp(parameterIndex++, timeStamp, cal);
 					ps.setString(parameterIndex++, insightLayout);
 					ps.setBoolean(parameterIndex++, cacheable);
 					ps.setInt(parameterIndex++, cacheMinutes);
+					if(cacheCron == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, cacheCron);
+					}
+					if(cachedOn == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+					} else {
+						ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn.getLocalDateTime()), cal);
+					}
+
 					ps.setBoolean(parameterIndex++, cacheEncrypt);
 
 					// **** WITH RECENT UPDATES - THE RAW WRAPPER SHOULD NOT BE GIVING US BACK A CLOB

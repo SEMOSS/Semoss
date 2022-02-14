@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -78,6 +79,8 @@ public class RDBMSEngineCreationHelper {
 				boolean cacheable = Utility.getApplicationCacheInsight();
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
+				String cacheCron = Utility.getApplicationCacheCron();
+				LocalDateTime cachedOn = null;
 				
 				// insight metadata
 				List<String> tags = new Vector<String>();
@@ -85,7 +88,8 @@ public class RDBMSEngineCreationHelper {
 				tags.add("preview");
 				String description = "Preview of the table " + newTable + " and all of its columns";
 
-				String insightId = admin.addInsight(insightName, layout, recipeArray, hidden, cacheable, cacheMinutes, cacheEncrypt);
+				String insightId = admin.addInsight(insightName, layout, recipeArray, hidden, 
+						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
 				
@@ -93,7 +97,7 @@ public class RDBMSEngineCreationHelper {
 				try {
 					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
 							insightId, insightName, layout, recipeArray, hidden, 
-							cacheable, cacheMinutes, cacheEncrypt, 
+							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 							description, tags);
 					// add the insight to git
 					String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId());
@@ -107,7 +111,7 @@ public class RDBMSEngineCreationHelper {
 				
 				// insight security
 				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, 
-						hidden, layout, cacheable, cacheMinutes, cacheEncrypt, recipeArray);
+						hidden, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipeArray);
 				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}

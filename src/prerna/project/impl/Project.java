@@ -65,7 +65,9 @@ public class Project implements IProject {
 	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
 	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY ID";
 	private static final String GET_ALL_PERSPECTIVES_QUERY = "SELECT DISTINCT QUESTION_PERSPECTIVE FROM QUESTION_ID ORDER BY QUESTION_PERSPECTIVE";
-	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, CACHEABLE, CACHE_MINUTES, CACHE_ENCRYPT, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
+	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, "
+			+ "QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, CACHEABLE, CACHE_MINUTES, CACHE_CRON, CACHE_ENCRYPT, "
+			+ "QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
 
 	private String projectId;
 	private String projectName;
@@ -316,7 +318,8 @@ public class Project implements IProject {
 					if(cacheMinutes == null) {
 						cacheMinutes = -1;
 					}
-					Boolean cacheEncrypt = (Boolean) values[10];
+					String cacheCron = (String) values[10];
+					Boolean cacheEncrypt = (Boolean) values[11];
 					if(cacheEncrypt == null) {
 						cacheEncrypt = false;
 					}
@@ -324,10 +327,9 @@ public class Project implements IProject {
 					// need to know if we have an array
 					// or a clob
 					if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
-						pixel = (Object[]) values[11];
+						pixel = (Object[]) values[12];
 					} else {
 //						Clob pixelArray = (Clob) values[9];
-						String pixelArray = (String) values[11];
 //						InputStream pixelArrayIs = null;
 //						if(pixelArray != null) {
 //							try {
@@ -336,7 +338,9 @@ public class Project implements IProject {
 //								e.printStackTrace();
 //							}
 //						}
+
 						// flush input stream to string
+						String pixelArray = (String) values[12];
 						Gson gson = new Gson();
 						InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(pixelArray.getBytes()));
 						pixel = gson.fromJson(reader, String[].class);
@@ -359,7 +363,7 @@ public class Project implements IProject {
 						((OldInsight) in).setInsightParameters(LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRdbms, rdbmsId));
 						in.setIsOldInsight(true);
 					} else {
-						in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, cacheMinutes, cacheEncrypt, pixel.length);
+						in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, cacheMinutes, cacheCron, cacheEncrypt, pixel.length);
 						in.setInsightName(insightName);
 						List<String> pixelList = new Vector<String>(pixel.length);
 						for(int i = 0; i < pixel.length; i++) {

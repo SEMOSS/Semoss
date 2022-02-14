@@ -125,6 +125,7 @@ public class Insight implements Serializable {
 	protected String projectName;
 	protected boolean cacheable = true;
 	protected int cacheMinutes = -1;
+	protected String cacheCron;
 	protected boolean cacheEncrypt = false;
 	private transient LocalDateTime cachedDateTime = null;
 	protected int count = 0;
@@ -241,11 +242,12 @@ public class Insight implements Serializable {
 	 * @param rdbmsId
 	 * @param cacheable
 	 */
-	public Insight(String projectId, String projectName, String rdbmsId, boolean cacheable, int cacheMinutes, boolean cacheEncrypt, int capacity) {
+	public Insight(String projectId, String projectName, String rdbmsId, boolean cacheable, int cacheMinutes, String cacheCron, boolean cacheEncrypt, int capacity) {
 		this.projectId = projectId;
 		this.projectName = projectName;
 		this.rdbmsId = rdbmsId;
 		this.cacheable = cacheable;
+		this.cacheCron = cacheCron;
 		this.cacheMinutes = cacheMinutes;
 		this.cacheEncrypt = cacheEncrypt;
 		loadDefaultSettings(capacity);
@@ -652,7 +654,15 @@ public class Insight implements Serializable {
 		this.cacheMinutes = cacheMinutes;
 	}
 	
-	public boolean isCacheEncryt() {
+	public String getCacheCron() {
+		return cacheCron;
+	}
+
+	public void setCacheCron(String cacheCron) {
+		this.cacheCron = cacheCron;
+	}
+
+	public boolean isCacheEncrypt() {
 		return this.cacheEncrypt;
 	}
 	
