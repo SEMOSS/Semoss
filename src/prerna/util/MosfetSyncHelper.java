@@ -2,6 +2,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -44,6 +45,22 @@ public class MosfetSyncHelper {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * 
+	 * @param projectId
+	 * @param projectName
+	 * @param rdbmsId
+	 * @return
+	 */
+	public static String getMosfetFileLocation(String projectId, String projectName, String rdbmsId) {
+		return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
+				+ DIR_SEPARATOR + "app_root" 
+				+ DIR_SEPARATOR + "version" 
+				+ DIR_SEPARATOR + rdbmsId;
+	}
+	
 	/*
 	 * This section for synchronizing files
 	 */
@@ -143,12 +160,14 @@ public class MosfetSyncHelper {
 		boolean hidden = mosfet.isHidden();
 		boolean cacheable = mosfet.isCacheable();
 		int cacheMinutes = mosfet.getCacheMinutes();
+		String cacheCron = mosfet.getCacheCron();
+		LocalDateTime cachedOn = mosfet.getCachedOn();
 		boolean cacheEncrypt = mosfet.isCacheEncrypt();
 		
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
-		admin.addInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes, cacheEncrypt);
-		SecurityInsightUtils.addInsight(projectId, id, insightName, !hidden, layout, cacheable, cacheMinutes, cacheEncrypt, recipe);
+		admin.addInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+		SecurityInsightUtils.addInsight(projectId, id, insightName, !hidden, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
@@ -172,14 +191,16 @@ public class MosfetSyncHelper {
 		boolean hidden = mosfet.isHidden();
 		boolean cacheable = mosfet.isCacheable();
 		int cacheMinutes = mosfet.getCacheMinutes();
+		String cacheCron = mosfet.getCacheCron();
+		LocalDateTime cachedOn = mosfet.getCachedOn();
 		boolean cacheEncrypt = mosfet.isCacheEncrypt();
-
+		
 		IProject project = Utility.getProject(projectId);
 
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
-		admin.updateInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes, cacheEncrypt);
-		SecurityInsightUtils.updateInsight(projectId, id, insightName, !hidden, layout, cacheable, cacheMinutes, cacheEncrypt, recipe);
+		admin.updateInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+		SecurityInsightUtils.updateInsight(projectId, id, insightName, !hidden, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
@@ -240,43 +261,6 @@ public class MosfetSyncHelper {
 	 * @param layout
 	 * @param recipe
 	 * @param hidden
-	 * @return
-	 * @throws IOException 
-	 */
-	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
-			String layout, List<String> recipe, boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) throws IOException {
-		MosfetFile mosfet = new MosfetFile();
-		mosfet.setProjectId(projectId);
-		mosfet.setRdbmsId(rdbmsId);
-		mosfet.setInsightName(insightName);
-		mosfet.setLayout(layout);
-		mosfet.setRecipe(recipe);
-		mosfet.setHidden(hidden);
-		mosfet.setCacheable(cacheable);
-		mosfet.setCacheMinutes(cacheMinutes);
-		mosfet.setCacheEncrypt(cacheEncrypt);
-		
-		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
-				+ DIR_SEPARATOR + "app_root" 
-				+ DIR_SEPARATOR + "version" 
-				+ DIR_SEPARATOR + rdbmsId;
-
-		mosfet.write(mosfetPath, false);
-
-		return new File(Utility.normalizePath(mosfetPath) + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
-	}
-
-	/**
-	 * Only generate the mosfet file
-	 * @param projectId
-	 * @param projectName
-	 * @param rdbmsId
-	 * @param insightName
-	 * @param layout
-	 * @param recipe
-	 * @param hidden
 	 * @param cacheable
 	 * @param cacheMinutes
 	 * @param cacheEncrypt
@@ -287,10 +271,10 @@ public class MosfetSyncHelper {
 	 */
 	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
 			String layout, List<String> recipe, boolean hidden, 
-			boolean cacheable, int cacheMinutes, boolean cacheEncrypt,
+			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt,
 			String description, List<String> tags) throws IOException {
 		return makeMosfitFile(projectId, projectName, rdbmsId, insightName, layout, recipe, hidden, 
-				cacheable, cacheMinutes, cacheEncrypt, 
+				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 				description, tags, false);
 	}
 	
@@ -311,7 +295,7 @@ public class MosfetSyncHelper {
 	 */
 	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
 			String layout, List<String> recipe, boolean hidden, 
-			boolean cacheable, int cacheMinutes, boolean cacheEncrypt,
+			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt,
 			String description, List<String> tags, boolean forceDelete) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
 		mosfet.setProjectId(projectId);
@@ -322,6 +306,8 @@ public class MosfetSyncHelper {
 		mosfet.setHidden(hidden);
 		mosfet.setCacheable(cacheable);
 		mosfet.setCacheMinutes(cacheMinutes);
+		mosfet.setCacheCron(cacheCron);
+		mosfet.setCachedOn(cachedOn);
 		mosfet.setCacheEncrypt(cacheEncrypt);
 		if(description != null) {
 			mosfet.setDescription(description);
@@ -330,50 +316,10 @@ public class MosfetSyncHelper {
 			mosfet.setTags(tags.toArray(new String[tags.size()]));
 		}
 
-		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
-				+ DIR_SEPARATOR + "app_root" 
-				+ DIR_SEPARATOR + "version" 
-				+ DIR_SEPARATOR + rdbmsId;
+		String mosfetPath = getMosfetFileLocation(projectId, projectName, rdbmsId);
 
 		mosfet.write(mosfetPath, forceDelete);
 		return new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
-	}
-
-	/**
-	 * Only update the mosfet file
-	 * @param mosfetFile
-	 * @param projectId
-	 * @param projectName
-	 * @param rdbmsId
-	 * @param insightName
-	 * @param layout
-	 * @param imageFileName
-	 * @param recipe
-	 * @param hidden
-	 * @param cacheable
-	 * @param cacheMinutes
-	 * @param cacheEncrypt
-	 * @return
-	 * @throws IOException
-	 */
-	public static File updateMosfitFile(File mosfetFile, String projectId, String projectName, String rdbmsId, String insightName, 
-			String layout, String imageFileName, List<String> recipe, boolean hidden, 
-			boolean cacheable, int cacheMinutes, boolean cacheEncrypt) throws IOException {
-		MosfetFile mosfet = new MosfetFile();
-		mosfet.setProjectId(projectId);
-		mosfet.setRdbmsId(rdbmsId);
-		mosfet.setInsightName(insightName);
-		mosfet.setLayout(layout);
-		mosfet.setRecipe(recipe);
-		mosfet.setHidden(hidden);
-		mosfet.setCacheable(cacheable);
-		mosfet.setCacheMinutes(cacheMinutes);
-		mosfet.setCacheEncrypt(cacheEncrypt);
-		
-		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
-		return mosfetFile;
 	}
 
 	/**
@@ -394,7 +340,7 @@ public class MosfetSyncHelper {
 	 */
 	public static File updateMosfitFile(File mosfetFile, String projectId, String projectName, String rdbmsId, String insightName,
 			String layout, String imageFileName, List<String> recipe, boolean hidden, 
-			boolean cacheable, int cacheMinutes, boolean cacheEncrypt,
+			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt,
 			String description, List<String> tags) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
 		mosfet.setProjectId(projectId);
@@ -405,6 +351,8 @@ public class MosfetSyncHelper {
 		mosfet.setHidden(hidden);
 		mosfet.setCacheable(cacheable);
 		mosfet.setCacheMinutes(cacheMinutes);
+		mosfet.setCacheCron(cacheCron);
+		mosfet.setCachedOn(cachedOn);
 		mosfet.setCacheEncrypt(cacheEncrypt);
 		if(description != null) {
 			mosfet.setDescription(description);
@@ -427,6 +375,20 @@ public class MosfetSyncHelper {
 	public static File updateMosfitFileInsightName(File mosfetFile, String newInsightName) throws IOException {
 		MosfetFile mosfet = MosfetFile.generateFromFile(mosfetFile);
 		mosfet.setInsightName(newInsightName);
+		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
+		return mosfetFile;
+	}
+	
+	/**
+	 * Only update the mosfet file cached on
+	 * @param mosfetFile
+	 * @param cachedOn
+	 * @return
+	 * @throws IOException
+	 */
+	public static File updateMosfitFileCachedOn(File mosfetFile, LocalDateTime cachedOn) throws IOException {
+		MosfetFile mosfet = MosfetFile.generateFromFile(mosfetFile);
+		mosfet.setCachedOn(cachedOn);
 		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
 		return mosfetFile;
 	}

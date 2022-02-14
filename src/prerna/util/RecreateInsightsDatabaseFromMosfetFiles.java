@@ -2,6 +2,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
 
@@ -75,11 +76,13 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 					boolean hidden = mosfet.isHidden();
 					boolean cacheable = mosfet.isCacheable();
 					int cacheMinutes = mosfet.getCacheMinutes();
+					String cacheCron = mosfet.getCacheCron();
+					LocalDateTime cachedOn = mosfet.getCachedOn();
 					boolean cacheEncrypt = mosfet.isCacheEncrypt();
 					
 					InsightAdministrator admin = new InsightAdministrator(insightEngine);
 					// just put the recipe into an array
-					admin.addInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes, cacheEncrypt);
+					admin.addInsight(id, insightName, layout, recipe, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 				} else {
 					System.out.println("Found file in insight = " + fName);
 				}

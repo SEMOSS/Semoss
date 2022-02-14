@@ -22,6 +22,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -422,10 +423,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param recipe
 	 */
 	public static void addInsight(String projectId, String insightId, String insightName, boolean global, 
-			String layout, boolean cacheable, int cacheMinutes, boolean cacheEncrypt, List<String> recipe) {
+			String layout, boolean cacheable, int cacheMinutes, 
+			String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
+			List<String> recipe) {
 		String insertQuery = "INSERT INTO INSIGHT (PROJECTID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
-				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, CACHEENCRYPT, RECIPE) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, CACHECRON, CACHEDON, CACHEENCRYPT, RECIPE) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
@@ -444,6 +447,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
+			if(cacheCron == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, cacheCron);
+			}
+			if(cachedOn == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
 				Clob clob = securityDb.createClob(ps.getConnection());
@@ -533,9 +546,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param recipe
 	 */
 	public static void updateInsight(String projectId, String insightId, String insightName, boolean global, 
-			String layout, boolean cacheable, int cacheMinutes, boolean cacheEncrypt, List<String> recipe) {
+			String layout, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, 
+			boolean cacheEncrypt, List<String> recipe) {
 		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
-				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, CACHEENCRYPT=?,"
+				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?,"
 				+ "RECIPE=? WHERE INSIGHTID = ? AND PROJECTID=?";
 
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -551,6 +565,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
+			if(cacheCron == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, cacheCron);
+			}
+			if(cachedOn == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(securityDb.getQueryUtil().allowClobJavaObject()) {
 				Clob clob = securityDb.createClob(ps.getConnection());
@@ -634,19 +658,76 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheMinutes
 	 * @param cacheEncrypt
 	 */
-	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes, boolean cacheEncrypt) {
+	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 		
-		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, CACHEENCRYPT=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
+		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, cacheInsight);
 			ps.setInt(parameterIndex++, cacheMinutes);
+			if(cacheCron == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, cacheCron);
+			}
+			if(cachedOn == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Update if an insight should be cached
+	 * @param projectId
+	 * @param insightId
+	 * @param cacheInsight
+	 * @param cacheMinutes
+	 * @param cacheEncrypt
+	 */
+	public static void updateInsightCachedOn(String projectId, String insightId, LocalDateTime cachedOn) {
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		
+		String query = "UPDATE INSIGHT SET CACHEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			if(cachedOn == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+			}
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
@@ -1390,6 +1471,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			new String[] {"INSIGHT__LASTMODIFIEDON", "last_modified_on"},
 			new String[] {"INSIGHT__CACHEABLE", "cacheable"},
 			new String[] {"INSIGHT__CACHEMINUTES", "cacheMinutes"},
+			new String[] {"INSIGHT__CACHECRON", "cacheCron"},
+			new String[] {"INSIGHT__CACHEDON", "cachedOn"},
 			new String[] {"INSIGHT__CACHEENCRYPT", "cacheEncrypt"},
 			new String[] {"INSIGHT__GLOBAL", "insight_global"},
 		};
@@ -1693,8 +1776,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEMINUTES", "cacheMinutes"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHECRON", "cacheCron"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEDON", "cachedOn"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT", "cacheEncrypt"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+		
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
@@ -2037,6 +2123,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEMINUTES"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHECRON"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEDON"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT"));
 		// filters
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
@@ -2053,13 +2141,17 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				if(cacheMinutes == null) {
 					cacheMinutes = -1;
 				}
-				Boolean cacheEncrypt = (Boolean) data[2];
+				String cacheCron = (String) data[2];
+				SemossDate cacheOn = (SemossDate) data[3];
+				Boolean cacheEncrypt = (Boolean) data[4];
 				if(cacheEncrypt == null) {
 					cacheEncrypt = false;
 				}
 				
 				retMap.put("cacheable", cacheable);
 				retMap.put("cacheMinutes", cacheMinutes);
+				retMap.put("cacheCron", cacheCron);
+				retMap.put("cacheOn", cacheOn);
 				retMap.put("cacheEncrypt", cacheEncrypt);
 			}
 		} catch (Exception e) {

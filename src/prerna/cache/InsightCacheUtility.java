@@ -30,13 +30,17 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
+import prerna.project.api.IProject;
 import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.gson.InsightAdapter;
 
@@ -125,6 +129,18 @@ public class InsightCacheUtility {
 			File versionFile = writeInsightCacheVersion(versionFileLoc);
 			addToZipFile(versionFile, zos);
 
+			// update the metadata
+			IProject project = Utility.getProject(projectId);
+			LocalDateTime cachedOn = LocalDateTime.now();
+			InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
+			admin.updateInsightCachedOn(rdbmsId, cachedOn);
+			SecurityInsightUtils.updateInsightCachedOn(projectId, rdbmsId, cachedOn);
+			
+			String mosfetPath = MosfetSyncHelper.getMosfetFileLocation(projectId, projectName, rdbmsId);
+			File mosfet = new File(mosfetPath);
+			if(mosfet.exists() && mosfet.isFile()) {
+				MosfetSyncHelper.updateMosfitFileCachedOn(mosfet, cachedOn);
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -319,6 +335,24 @@ public class InsightCacheUtility {
 		for(File f : cacheFiles) {
 			ICache.deleteFile(f);
 		}
+		
+		// update the metadata
+		try {
+			IProject project = Utility.getProject(projectId);
+			LocalDateTime cachedOn = null;
+			InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
+			admin.updateInsightCachedOn(rdbmsId, cachedOn);
+			SecurityInsightUtils.updateInsightCachedOn(projectId, rdbmsId, cachedOn);
+			
+			String mosfetPath = MosfetSyncHelper.getMosfetFileLocation(projectId, projectName, rdbmsId);
+			File mosfet = new File(mosfetPath);
+			if(mosfet.exists() && mosfet.isFile()) {
+				MosfetSyncHelper.updateMosfitFileCachedOn(mosfet, cachedOn);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		if(pullCloud) {
 			ClusterUtil.reactorPushProjectFolder(projectId, folderDir, relative.toString());
 		}

@@ -3,10 +3,13 @@ package prerna.engine.impl;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -24,15 +27,17 @@ public class InsightAdministrator {
 
 	private static final Logger logger = LogManager.getLogger(InsightAdministrator.class);
 	
-	private static final String TABLE_NAME = "QUESTION_ID";
-	private static final String QUESTION_ID_COL = "ID";
-	private static final String QUESTION_NAME_COL = "QUESTION_NAME";
-	private static final String QUESTION_LAYOUT_COL = "QUESTION_LAYOUT";
-	private static final String QUESTION_PKQL_COL = "QUESTION_PKQL";
-	private static final String HIDDEN_INSIGHT_COL = "HIDDEN_INSIGHT";
-	private static final String CACHEABLE_COL = "CACHEABLE";
-	private static final String CACHE_MINUTES_COL = "CACHE_MINUTES";
-	private static final String CACHE_ENCRYPT_COL = "CACHE_ENCRYPT";
+	public static final String TABLE_NAME = "QUESTION_ID";
+	public static final String QUESTION_ID_COL = "ID";
+	public static final String QUESTION_NAME_COL = "QUESTION_NAME";
+	public static final String QUESTION_LAYOUT_COL = "QUESTION_LAYOUT";
+	public static final String QUESTION_PKQL_COL = "QUESTION_PKQL";
+	public static final String HIDDEN_INSIGHT_COL = "HIDDEN_INSIGHT";
+	public static final String CACHEABLE_COL = "CACHEABLE";
+	public static final String CACHE_MINUTES_COL = "CACHE_MINUTES";
+	public static final String CACHE_CRON_COL = "CACHE_CRON";
+	public static final String CACHED_ON_COL = "CACHED_ON";
+	public static final String CACHE_ENCRYPT_COL = "CACHE_ENCRYPT";
 	
 	private static Gson gson = new Gson();
 
@@ -50,13 +55,16 @@ public class InsightAdministrator {
 
 	//TODO: CONVERT TO PREPARED STATEMENTS!!!
 
-	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
-		return addInsight(insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, cacheable, cacheMinutes, cacheEncrypt);
+	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, 
+			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+		return addInsight(insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, 
+				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
 	
 	public String addInsight(final String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave,
-		boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
-		return addInsight(insightId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, cacheable, cacheMinutes, cacheEncrypt);
+		boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+		return addInsight(insightId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, 
+				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
 	
 	/**
@@ -71,9 +79,9 @@ public class InsightAdministrator {
 	 * @return
 	 */
 	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean hidden, 
-			boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
+			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		String newId = UUID.randomUUID().toString();
-		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheEncrypt);
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
 
 	/**
@@ -89,17 +97,20 @@ public class InsightAdministrator {
 	 * @return
 	 */
 	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, 
-			boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
+			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		logger.info("Adding new question with insight id :::: " + Utility.cleanLogString(insightId));
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
 		logger.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
 		
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		
 		PreparedStatement ps = null;
 		try {
 			ps = insightEngine.bulkInsertPreparedStatement(new String[] {
 					TABLE_NAME, QUESTION_ID_COL, QUESTION_NAME_COL, QUESTION_LAYOUT_COL, 
-					HIDDEN_INSIGHT_COL, CACHEABLE_COL, CACHE_MINUTES_COL, CACHE_ENCRYPT_COL, QUESTION_PKQL_COL
+					HIDDEN_INSIGHT_COL, CACHEABLE_COL, CACHE_MINUTES_COL, 
+					CACHE_CRON_COL, CACHED_ON_COL, CACHE_ENCRYPT_COL, QUESTION_PKQL_COL
 			});
 			
 			int parameterIndex = 1;
@@ -109,6 +120,16 @@ public class InsightAdministrator {
 			ps.setBoolean(parameterIndex++, hidden);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
+			if(cacheCron == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, cacheCron);
+			}
+			if(cachedOn == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(this.allowArrayDatatype) {
 				java.sql.Array array = ps.getConnection().createArrayOf("VARCHAR", pixelRecipeToSave);
@@ -281,7 +302,7 @@ public class InsightAdministrator {
 	
 	
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, 
-			boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
+			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		logger.info("Modifying insight id :::: " + Utility.cleanLogString(existingRdbmsId));
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
@@ -293,10 +314,14 @@ public class InsightAdministrator {
 			+ HIDDEN_INSIGHT_COL+"=?, "
 			+ CACHEABLE_COL+"=?, "
 			+ CACHE_MINUTES_COL+"=?, "
+			+ CACHE_CRON_COL+"=?, "
+			+ CACHED_ON_COL+"=?, "
 			+ CACHE_ENCRYPT_COL+"=?, "
 			+ QUESTION_PKQL_COL+"=? WHERE "
 			+ QUESTION_ID_COL+"=?";
-			
+		
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		
 		PreparedStatement ps = null;
 		try {
 			ps = insightEngine.getPreparedStatement(query);
@@ -307,6 +332,16 @@ public class InsightAdministrator {
 			ps.setBoolean(parameterIndex++, hidden);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
+			if(cacheCron == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, cacheCron);
+			}
+			if(cachedOn == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
 			if(this.allowArrayDatatype) {
 				java.sql.Array array = ps.getConnection().createArrayOf("VARCHAR", pixelRecipeToSave);
@@ -344,8 +379,9 @@ public class InsightAdministrator {
 	}
 	
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, Collection<String> pixelRecipeToSave, 
-			boolean hidden, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
-		updateInsight(existingRdbmsId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, cacheable, cacheMinutes, cacheEncrypt);
+			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+		updateInsight(existingRdbmsId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), 
+				hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
 	
 	public void updateInsightName(String existingRdbmsId, String insightName) {
@@ -388,15 +424,19 @@ public class InsightAdministrator {
 	}
 	
 
-	public void updateInsightCache(String existingRdbmsId, boolean cacheable, int cacheMinutes, boolean cacheEncrypt) {
+	public void updateInsightCache(String existingRdbmsId, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
 		logger.info("Updating question cache :::: " + cacheable);
 		logger.info("Updating question cache minutes :::: " + cacheMinutes);
 		logger.info("Updating question cache encrypt :::: " + cacheEncrypt);
 
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		
 		String query = "UPDATE " + TABLE_NAME + " SET "
 				+ CACHEABLE_COL+"=?, "
 				+ CACHE_MINUTES_COL+"=?, "
+				+ CACHE_CRON_COL+"=?, "
+				+ CACHED_ON_COL+"=?, "
 				+ CACHE_ENCRYPT_COL+"=? WHERE "
 				+ QUESTION_ID_COL+"=?";
 				
@@ -407,7 +447,62 @@ public class InsightAdministrator {
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
+			if(cacheCron == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, cacheCron);
+			}
+			if(cachedOn == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+			}
 			ps.setBoolean(parameterIndex++, cacheEncrypt);
+			ps.setString(parameterIndex++, existingRdbmsId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(insightEngine.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	public void updateInsightCachedOn(String existingRdbmsId, LocalDateTime cachedOn) {
+		logger.info("Modifying insight id :::: " + existingRdbmsId);
+		logger.info("Updating question cache date :::: " + cachedOn);
+
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		
+		String query = "UPDATE " + TABLE_NAME + " SET "
+				+ CACHED_ON_COL+"=? WHERE "
+				+ QUESTION_ID_COL+"=?";
+				
+		PreparedStatement ps = null;
+		try {
+			ps = insightEngine.getPreparedStatement(query);
+			
+			int parameterIndex = 1;
+			if(cachedOn == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+			}
 			ps.setString(parameterIndex++, existingRdbmsId);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {

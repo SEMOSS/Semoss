@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.app;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -138,8 +139,11 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		boolean hidden = mosfet.isHidden();
 		boolean cacheable = mosfet.isCacheable();
 		int cacheMinutes = mosfet.getCacheMinutes();
+		String cacheCron = mosfet.getCacheCron();
+		LocalDateTime cachedOn = mosfet.getCachedOn();
 		boolean cacheEncrypt = mosfet.isCacheEncrypt();
-		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheEncrypt);
+		
+		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 		logger.info(step + ") Done...");
 		step++;
 
@@ -155,7 +159,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 
 		logger.info(step + ") Regsiter insight...");
 		SecurityInsightUtils.addInsight(projectId, newInsightId, insightName, true, 
-				layout, cacheable, cacheMinutes, cacheEncrypt, 
+				layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 				pixelRecipeToSave);
 		if (this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, newInsightId);

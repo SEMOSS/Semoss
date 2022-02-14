@@ -1,6 +1,7 @@
 package prerna.engine.impl;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -125,21 +126,26 @@ class InsightCacher implements Runnable {
 				boolean cacheable = true;
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
+				String cacheCron = Utility.getApplicationCacheCron();
+				LocalDateTime cachedOn = null;
+				
 				if(created) {
 					// update the existing insight
 					String inName = insightName + " " + formatter.format(new Date());
-					insightAdmin.updateInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, cacheable, cacheMinutes, cacheEncrypt);
+					insightAdmin.updateInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, 
+							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 					SecurityInsightUtils.updateInsight(this.workspaceAppId, this.workspaceSavedInsightId, inName, true, 
-							"default", cacheable, cacheMinutes, cacheEncrypt, lastPixel);
+							"default", cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, lastPixel);
 					// delete the cache if it is there
 					InsightCacheUtility.deleteCache(this.workspaceAppId, this.workspaceAppName, this.workspaceSavedInsightId, true);
 
 				} else {
 					// create new
 					String inName = insightName + " " + formatter.format(new Date());
-					insightAdmin.addInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, cacheable, cacheMinutes, cacheEncrypt);
+					insightAdmin.addInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, 
+							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 					SecurityInsightUtils.addInsight(this.workspaceAppId, this.workspaceSavedInsightId, 
-							inName, true, "default", cacheable, cacheMinutes, cacheEncrypt, lastPixel);
+							inName, true, "default", cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, lastPixel);
 
 					created = true;
 				}
