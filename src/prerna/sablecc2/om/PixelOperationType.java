@@ -43,6 +43,9 @@ public enum PixelOperationType {
 	SHEET_CONFIG,
 	CACHED_SHEET,
 	
+	// MOVEING FE OBJECTS
+	MOVE_SHEET,
+	
 	// PANEL OPERATIONS
 	PANEL,
 	PANEL_OPEN,
