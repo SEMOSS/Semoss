@@ -322,15 +322,12 @@ public class MountHelper {
 		}
 
 		// set the base folder
-		// forcing it to be /semoss
 
-		// prop.put(Constants.BASE_FOLDER, "/semoss");
 
 		// write this out as RDF_MAP
 		File file = new File(targetDirName + FILE_SEPARATOR + DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ FILE_SEPARATOR + "RDF_Map.prop");
-		try {
-			FileOutputStream fos = new FileOutputStream(file);
+		try(FileOutputStream fos = new FileOutputStream(file);) {
 			prop.store(fos, "Chrooted Output");
 			fos.flush();
 			fos.close();
