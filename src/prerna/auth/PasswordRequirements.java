@@ -1,5 +1,13 @@
 package prerna.auth;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
+import prerna.util.Utility;
+
 public class PasswordRequirements {
 
 	// minimum password length
@@ -26,11 +34,7 @@ public class PasswordRequirements {
 	private boolean allowUserChangePassword = false;
 	private int maxPasswordReuse = -1;
 
-	private PasswordRequirements() {
-		loadRequirements();
-	}
-
-	public static PasswordRequirements getInstance() {
+	public static PasswordRequirements getInstance() throws Exception {
 		if(instance != null) {
 			return instance;
 		}
@@ -40,17 +44,51 @@ public class PasswordRequirements {
 				if(instance != null) {
 					return instance;
 				}
-
+				
 				instance = new PasswordRequirements();
+				instance.loadRequirements();
 			}
 		}
 
 		return instance;
 	}
 
-	private void loadRequirements() {
+	public void loadRequirements() throws Exception {
 		// pull the necessary details
-
+		String[] colNames = new String[] { 
+				"PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
+				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT" };
+		
+		IEngine securityDb = Utility.getEngine(Constants.SECURITY_DB);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		for(String c : colNames) {
+			qs.addSelector(new QueryColumnSelector("PASSWORD_RULES__" + c));
+		}
+		
+		IRawSelectWrapper iterator = null;
+		try {
+			iterator = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(iterator.hasNext()) {
+				Object[] data = iterator.next().getValues();
+				int index = 0;
+				this.minPassLength = ((Number) data[index++]).intValue();
+				this.requireUpperCase = (Boolean) data[index++];
+				this.requireLowerCase = (Boolean) data[index++];
+				this.requireNumeric = (Boolean) data[index++];
+				this.requireSpecial = (Boolean) data[index++];
+				this.passwordExpirationDays = ((Number) data[index++]).intValue();
+				this.requireAdminResetForExpiration = (Boolean) data[index++];
+				this.allowUserChangePassword = (Boolean) data[index++];
+				this.maxPasswordReuse = ((Number) data[index++]).intValue();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		} finally {
+			if(iterator != null) {
+				iterator.cleanUp();
+			}
+		}
 	}
 
 	public boolean validatePassword(User user, String password) {
