@@ -265,24 +265,26 @@ public class PropFileWriter {
 			ex.printStackTrace();
 			throw new IOException("Could not find default database smss file");
 		}
-		try {
-			if (fileRead != null)
-				fileRead.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		try {
-			if (read != null)
-				read.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		finally {
+			try {
+				if (fileRead != null)
+					fileRead.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			try {
+				if (read != null)
+					read.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 
-		try {
-			if (pw != null)
-				pw.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+			try {
+				if (pw != null)
+					pw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
