@@ -729,9 +729,11 @@ public abstract class AbstractSecurityUtils {
 		
 		// SMSS_USER
 		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", 
-				"ADMIN", "PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET" };
+				"ADMIN", "PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET", 
+				"LOCKED" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
-				BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+				BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
+				BOOLEAN_DATATYPE_NAME};
 		// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 		// but some rdbms types (postgres) does not allow it
 		// so i am going ahead and moving over user to smss_user
@@ -772,6 +774,13 @@ public abstract class AbstractSecurityUtils {
 				String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", "LASTPASSWORDRESET", TIMESTAMP_DATATYPE_NAME);
 				securityDb.insertData(addColumnSql);
 			}
+		}
+		// 2022-02-16
+		// this should return in all upper case
+		// ... but sometimes it is not -_- i.e. postgres always lowercases
+		if(!smssUserCols.contains("LOCKED") && !smssUserCols.contains("locked")) {
+			String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", "LOCKED", BOOLEAN_DATATYPE_NAME);
+			securityDb.insertData(addColumnSql);
 		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
@@ -947,32 +956,70 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		// PERMISSION RULES
+		// PASSWORD RULES
 		colNames = new String[] { "PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
 				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT" };
 		types = new String[] { "INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 				"INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "INT"};
 		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION_RULES", colNames, types));
+			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RULES", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "PERMISSION_RULES", schema)) {
+			if(!queryUtil.tableExists(conn, "PASSWORD_RULES", schema)) {
 				// make the table
-				securityDb.insertData(queryUtil.createTable("PERMISSION_RULES", colNames, types));
+				securityDb.insertData(queryUtil.createTable("PASSWORD_RULES", colNames, types));
 			}
 		}
+		// see if there are any default values
+		{
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from password_rules");
+				if(wrapper.hasNext()) {
+					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+					if(numrows == 0) {
+						securityDb.insertData(queryUtil.insertIntoTable("PASSWORD_RULES", colNames, types, 
+								new Object[]{8, true, true, true, true, 90, false, true, 10}));
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
+			}
+		}
+		// 2022-02-16
+		// renamed permission rules to password rules
+		if(queryUtil.tableExists(conn, "PERMISSION_RULES", schema)) {
+			securityDb.insertData(queryUtil.dropTable("PERMISSION_RULES"));
+		}
 		
-		// PASSWORD RESUSE
-		colNames = new String[] { "ID", "TYPE", "PASSWORD", "SALT", "DATE_ADDED" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+		// PASSWORD HISTORY
+		colNames = new String[] { "ID", "USERID", "TYPE", "PASSWORD", "SALT", "DATE_ADDED" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
 		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RESUSE", colNames, types));
+			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_HISTORY", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "PASSWORD_RESUSE", schema)) {
+			if(!queryUtil.tableExists(conn, "PASSWORD_HISTORY", schema)) {
 				// make the table
-				securityDb.insertData(queryUtil.createTable("PASSWORD_RESUSE", colNames, types));
+				securityDb.insertData(queryUtil.createTable("PASSWORD_HISTORY", colNames, types));
 			}
+		}
+		List<String> passReuseCols = queryUtil.getTableColumns(conn, "PASSWORD_HISTORY", schema);
+		// 2022-02-16
+		// this should return in all upper case
+		// ... but sometimes it is not -_- i.e. postgres always lowercases
+		if(!passReuseCols.contains("USERID") && !passReuseCols.contains("userid")) {
+			String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_HISTORY", "USERID", "VARCHAR(255)");
+			securityDb.insertData(addColumnSql);
+		}
+		// 2022-02-16
+		// renamed + old had a typo.... -_-
+		if(queryUtil.tableExists(conn, "PASSWORD_RESUSE", schema)) {
+			securityDb.insertData(queryUtil.dropTable("PASSWORD_RESUSE"));
 		}
 		
 		// clean up the connection used for this method

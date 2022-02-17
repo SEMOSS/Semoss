@@ -3,16 +3,20 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
+import prerna.auth.PasswordRequirements;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -177,8 +181,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 					
-					String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED) "
-							+ "VALUES (?,?,?,?,?,?,?,?,?)";
+					String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, LOCKED) "
+							+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 					
 					PreparedStatement ps = null;
 					try {
@@ -206,6 +210,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, hashedPassword);
 						ps.setString(parameterIndex++, salt);
 						ps.setTimestamp(parameterIndex++, timestamp, cal);
+						// not locked ...
+						ps.setBoolean(parameterIndex++, false);
 						ps.execute();
 						if(!ps.getConnection().getAutoCommit()) {
 							ps.getConnection().commit();
@@ -235,6 +241,98 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
+	/**
+	 * Store the password for the user
+	 * @param userId
+	 * @param type
+	 * @param password
+	 * @param salt
+	 * @param timestamp
+	 * @param cal
+	 * @throws SQLException
+	 */
+	public static void storeUserPassword(String userId, String type, String password, String salt, java.sql.Timestamp timestamp, Calendar cal) throws SQLException {
+		String insertQuery = "INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE, PASSWORD, SALT, DATE_ADDED) "
+				+ "VALUES (?,?,?,?,?,?)";
+		
+		PreparedStatement ps = null;
+		try {
+			int parameterIndex = 1;
+			ps = securityDb.getPreparedStatement(insertQuery);
+			ps.setString(parameterIndex++, UUID.randomUUID().toString());
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, type);
+			ps.setString(parameterIndex++, password);
+			ps.setString(parameterIndex++, salt);
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				ps.close();
+			}
+			if(ps != null && securityDb.isConnectionPooling()) {
+				ps.getConnection().close();
+			}
+		}
+		
+		List<String> deleteIds = new ArrayList<>();
+		int passReuseLimit = PasswordRequirements.getInstance().getMaxPasswordReuse();
+		
+		// do we have too many stored passwords?
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__ID"));
+		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__USERID"));
+		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__DATE_ADDED"));
+		qs.addOrderBy("PASSWORD_HISTORY__DATE_ADDED");
+		int counter = 0;
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while (wrapper.hasNext()) {
+				if(passReuseLimit < counter) {
+					counter++;
+					continue;
+				}
+				String idToDelete = wrapper.next().getValues()[0].toString();
+				deleteIds.add(idToDelete);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		String deleteQuery = "DELETE FROM PASSWORD_HISTORY WHER ID = ?";
+		try {
+			for(String deleteId : deleteIds) {
+				ps = securityDb.getPreparedStatement(deleteQuery);
+				ps.setString(1, deleteId);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				ps.close();
+			}
+			if(ps != null && securityDb.isConnectionPooling()) {
+				ps.getConnection().close();
+			}
+		}
+	}
+	
+	
 	/**
 	 * Basic validation of the user information before creating it.
 	 * 
