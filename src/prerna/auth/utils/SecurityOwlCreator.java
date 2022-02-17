@@ -29,7 +29,9 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PROJECT");
 		conceptsRequired.add("PROJECTPERMISSION");
 		conceptsRequired.add("PROJECTMETA");
-		
+		conceptsRequired.add("PASSWORD_RULES");
+		conceptsRequired.add("PASSWORD_HISTORY");
+
 		// new group tables
 		conceptsRequired.add("SMSS_GROUP");
 		conceptsRequired.add("GROUPENGINEPERMISSION");
@@ -103,6 +105,11 @@ public class SecurityOwlCreator {
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_GROUP");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/SMSS_GROUP")) {
+				return true;
+			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_USER");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/LOCKED/SMSS_USER")) {
 				return true;
 			}
 		}
@@ -259,11 +266,33 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "DATECREATED", "TIMESTAMP");
 		owler.addProp("SMSS_USER", "LASTLOGIN", "TIMESTAMP");
 		owler.addProp("SMSS_USER", "LASTPASSWORDRESET", "TIMESTAMP");
+		owler.addProp("SMSS_USER", "LOCKED", "BOOLEAN");
 
 		// PERMISSION
 		owler.addConcept("PERMISSION", null, null);
 		owler.addProp("PERMISSION", "ID", "INT");
 		owler.addProp("PERMISSION", "NAME", "VARCHAR(255)");
+		
+		// PASSWORD_RULES
+		owler.addConcept("PASSWORD_RULES", null, null);
+		owler.addProp("PASSWORD_RULES", "PASS_LENGTH", "INT");
+		owler.addProp("PASSWORD_RULES", "REQUIRE_UPPER", "BOOLEAN");
+		owler.addProp("PASSWORD_RULES", "REQUIRE_LOWER", "BOOLEAN");
+		owler.addProp("PASSWORD_RULES", "REQUIRE_NUMERIC", "BOOLEAN");
+		owler.addProp("PASSWORD_RULES", "REQUIRE_SPECIAL", "BOOLEAN");
+		owler.addProp("PASSWORD_RULES", "EXPIRATION_DAYS", "INT");
+		owler.addProp("PASSWORD_RULES", "ADMIN_RESET_EXPIRATION", "BOOLEAN");
+		owler.addProp("PASSWORD_RULES", "ALLOW_USER_PASS_CHANGE", "BOOLEAN");
+		owler.addProp("PASSWORD_RULES", "PASS_REUSE_COUNT", "INT");
+
+		// PASSWORD_HISTORY
+		owler.addConcept("PASSWORD_HISTORY", null, null);
+		owler.addProp("PASSWORD_HISTORY", "ID", "VARCHAR(255)");
+		owler.addProp("PASSWORD_HISTORY", "USERID", "VARCHAR(255)");
+		owler.addProp("PASSWORD_HISTORY", "TYPE", "VARCHAR(255)");
+		owler.addProp("PASSWORD_HISTORY", "PASSWORD", "VARCHAR(255)");
+		owler.addProp("PASSWORD_HISTORY", "SALT", "VARCHAR(255)");
+		owler.addProp("PASSWORD_HISTORY", "DATE_ADDED", "TIMESTAMP");
 		
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
