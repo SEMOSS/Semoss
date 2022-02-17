@@ -249,9 +249,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @param salt
 	 * @param timestamp
 	 * @param cal
-	 * @throws SQLException
+	 * @throws Exception 
 	 */
-	public static void storeUserPassword(String userId, String type, String password, String salt, java.sql.Timestamp timestamp, Calendar cal) throws SQLException {
+	public static void storeUserPassword(String userId, String type, String password, String salt, java.sql.Timestamp timestamp, Calendar cal) throws Exception {
 		String insertQuery = "INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE, PASSWORD, SALT, DATE_ADDED) "
 				+ "VALUES (?,?,?,?,?,?)";
 		
