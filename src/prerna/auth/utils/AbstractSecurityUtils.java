@@ -1022,6 +1022,10 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.dropTable("PASSWORD_RESUSE"));
 		}
 		
+		if(!conn.getAutoCommit()) {
+			conn.commit();
+		}
+		
 		// clean up the connection used for this method
 		if(securityDb.isConnectionPooling()) {
 			conn.close();
