@@ -1,4 +1,4 @@
-package prerna.auth.utils.admin.reactors;
+package prerna.auth.utils.reactors.admin;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
