@@ -807,6 +807,9 @@ public class PixelUtility {
 			}
 		}
 		
+		// add the insight template
+		cacheRecipe.add("ReadInsightTheme();");
+		
 		return cacheRecipe;
 	}
 	
