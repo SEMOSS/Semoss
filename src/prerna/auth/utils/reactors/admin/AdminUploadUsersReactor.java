@@ -1,4 +1,4 @@
-package prerna.auth.utils.admin.reactors;
+package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
 import java.math.BigDecimal;

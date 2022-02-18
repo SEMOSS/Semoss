@@ -3,9 +3,12 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -1629,6 +1632,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
@@ -1648,6 +1654,52 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Lock accounts
+	 * @param numDaysSinceLastLogin
+	 */
+	public int lockAccounts(int numDaysSinceLastLogin) {
+		int numUpdated = 0;
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		
+		LocalDateTime dateToFilter = LocalDateTime.now();
+		dateToFilter = dateToFilter.minusDays(numDaysSinceLastLogin);
+		
+		String query = "UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN<=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, true);
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(dateToFilter), cal);
+			numUpdated = ps.executeUpdate();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		
+		logger.info("Number of accounts locked = " + numUpdated);
+		return numUpdated;
 	}
 
 }
