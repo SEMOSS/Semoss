@@ -1,4 +1,4 @@
-package prerna.auth.utils.admin.reactors;
+package prerna.auth.utils.reactors.admin;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
