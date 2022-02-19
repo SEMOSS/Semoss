@@ -1,7 +1,9 @@
 package prerna.ds.py;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -969,7 +971,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				{
 					//retObject = new String(Files.readAllBytes(fileName.toPath())); // get the dictionary back
 					//fileName.delete(); // delete the generated file
-					return fileName.getAbsolutePath();
+					return fileName;
 				}
 				pyt.runEmptyPy(deleteAll);
 				//return retObject;
@@ -980,6 +982,47 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// will delete later
 			
 		}
+		else
+		{
+
+			String frameName = Utility.getRandomString(5);
+			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+
+			try {
+				PrintWriter bw = new PrintWriter(new FileWriter(fileName));
+				bw.write("Command, Output");
+				bw.println();
+				
+				String [] commands = sql.split("\\R");
+				// execute each command and drop the result
+				String [] columns = new String [] {"Command", "Output"};
+				Object [] types = new Object [] {java.lang.String.class, java.lang.String.class};
+				
+				List <List<Object>> data = new ArrayList<List<Object>>();
+				
+				for(int commandIndex = 0;commandIndex < commands.length;commandIndex++)
+				{
+					List <Object> row = new ArrayList <Object>();
+					String thisCommand = commands[commandIndex];
+					Object output = this.pyt.runPyAndReturnOutput(thisCommand);
+					
+					bw.write(thisCommand);
+					bw.print(", ");
+					bw.print(output);
+					
+					bw.println();
+				}
+				bw.flush();
+				bw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			
+			return fileName;
+		}
+
 		return null;
 	}
 
