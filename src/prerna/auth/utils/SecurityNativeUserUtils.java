@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
+import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -34,14 +35,16 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
 	private static final Logger logger = LogManager.getLogger(SecurityNativeUserUtils.class);
 
-	private static final String SMSS_USER_ID_KEY = "SMSS_USER__ID";
-	private static final String SMSS_USER_NAME_KEY = "SMSS_USER__NAME";
-	private static final String SMSS_USER_USERNAME_KEY = "SMSS_USER__USERNAME";
-	private static final String SMSS_USER_EMAIL_KEY = "SMSS_USER__EMAIL";
-	private static final String SMSS_USER_TYPE_KEY = "SMSS_USER__TYPE";
-	private static final String SMSS_USER_ADMIN_KEY = "SMSS_USER__ADMIN";
-	private static final String SMSS_USER_PASSWORD_KEY = "SMSS_USER__PASSWORD";
-	private static final String SMSS_USER_SALT_KEY = "SMSS_USER__SALT";
+	private static final String SMSS_USER_TABLE_NAME = "SMSS_USER";
+	private static final String USERID_COL = SMSS_USER_TABLE_NAME + "__ID";
+	private static final String NAME_COL = SMSS_USER_TABLE_NAME + "__NAME";
+	private static final String USERNAME_COL = SMSS_USER_TABLE_NAME + "__USERNAME";
+	private static final String EMAIL_COL = SMSS_USER_TABLE_NAME + "__EMAIL";
+	private static final String TYPE_COL = SMSS_USER_TABLE_NAME + "__TYPE";
+	private static final String ADMIN_COL = SMSS_USER_TABLE_NAME + "__ADMIN";
+	private static final String PASSWORD_COL = SMSS_USER_TABLE_NAME + "__PASSWORD";
+	private static final String SALT_COL = SMSS_USER_TABLE_NAME + "__SALT";
+	private static final String LASTLOGIN_COL = SMSS_USER_TABLE_NAME + "__LASTLOGIN";
 
 	private SecurityNativeUserUtils() {
 
@@ -74,14 +77,14 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		validInformation(newUser, password);
+		validInformation(newUser, password, true);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_ID_KEY));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_NAME_KEY, "==", ADMIN_ADDED_USER));
+		qs.addSelector(new QueryColumnSelector(USERID_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(NAME_COL, "==", ADMIN_ADDED_USER));
 		OrQueryFilter orFilter = new OrQueryFilter();
-		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_ID_KEY, "==", newUser.getId()));
-		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_ID_KEY, "==", newUser.getEmail()));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", newUser.getId()));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", newUser.getEmail()));
 		qs.addExplicitFilter(orFilter);
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -98,8 +101,12 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 				java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
-				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
-						+ "PASSWORD=?, SALT=?, LASTLOGIN=? WHERE ID=?";
+				String updateQuery = "UPDATE " + SMSS_USER_TABLE_NAME + " SET " + 
+						USERID_COL + "=?, " + NAME_COL + "=?, " + 
+						USERNAME_COL + "=?, " + EMAIL_COL + "=?, " + 
+						TYPE_COL + "=?, " + PASSWORD_COL + "=?, " + 
+						SALT_COL + "=?, " + LASTLOGIN_COL + "=? WHERE " + 
+						USERID_COL + "=?";
 				PreparedStatement ps = null;
 				try {
 					int parameterIndex = 1;
@@ -345,17 +352,17 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Basic validation of the user information before creating it.
-	 * 
 	 * @param newUser
-	 * @throws IllegalArgumentException
+	 * @param password
+	 * @param newUser
 	 */
-	static void validInformation(AccessToken newUser, String password) {
+	static void validInformation(AccessToken newUser, String password, boolean isNewUser) {
 		String error = "";
 		if (newUser.getUsername() == null || newUser.getUsername().isEmpty()) {
 			error += "User name can not be empty. ";
 		}
 		try {
-			validEmail(newUser.getEmail());
+			validEmail(newUser.getEmail(), isNewUser);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			error += e.getMessage();
@@ -395,8 +402,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_NAME_KEY));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_ID_KEY, "==", userId));
+		qs.addSelector(new QueryColumnSelector(NAME_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", userId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -425,9 +432,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_ID_KEY));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERNAME_KEY, "==", username));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_TYPE_KEY, "==", AuthProvider.NATIVE.toString()));
+		qs.addSelector(new QueryColumnSelector(USERID_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -457,8 +464,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_EMAIL_KEY));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERNAME_KEY, "==", username));
+		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -476,6 +483,32 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Check if the email exists
+	 * @param email
+	 * @return
+	 */
+	public static boolean userEmailExists(String email) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * Brings the user name from database.
 	 * 
 	 * @param username
@@ -487,8 +520,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_NAME_KEY));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERNAME_KEY, "==", username));
+		qs.addSelector(new QueryColumnSelector(NAME_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -508,6 +541,33 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get the user id from the email
+	 * @param email
+	 * @return
+	 */
+	public static String getUserIdFromEmail(String email) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(USERID_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				return (String) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Brings all the user basic information from the database.
 	 * 
 	 * @param username
@@ -520,16 +580,16 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_ID_KEY));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_NAME_KEY));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_USERNAME_KEY));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_EMAIL_KEY));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_TYPE_KEY));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_ADMIN_KEY));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PASSWORD_KEY));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_SALT_KEY));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERNAME_KEY, "==", username));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_TYPE_KEY, "==", AuthProvider.NATIVE.toString()));
+		qs.addSelector(new QueryColumnSelector(USERID_COL));
+		qs.addSelector(new QueryColumnSelector(NAME_COL));
+		qs.addSelector(new QueryColumnSelector(USERNAME_COL));
+		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
+		qs.addSelector(new QueryColumnSelector(TYPE_COL));
+		qs.addSelector(new QueryColumnSelector(ADMIN_COL));
+		qs.addSelector(new QueryColumnSelector(PASSWORD_COL));
+		qs.addSelector(new QueryColumnSelector(SALT_COL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -604,6 +664,118 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		}
 		
 		return false;
+	}
+	
+	/**
+	 * Generate and return a one time token to allow the user to reset the password
+	 * @param email
+	 * @return
+	 * @throws Exception
+	 */
+	public static String allowUserResetPassword(String email) throws Exception {
+		if(!SecurityNativeUserUtils.userEmailExists(email)) {
+			throw new IllegalArgumentException("The email '" + email + "' does not exist for any user");
+		}
+		
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		String uniqueToken = UUID.randomUUID().toString();
+		
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.bulkInsertPreparedStatement(new Object[] {
+					"PASSWORD_RESET", "EMAIL", "TOKEN", "DATE_ADDED"
+				});
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, email);
+			ps.setString(parameterIndex++, uniqueToken);
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				ps.close();
+			}
+			if(securityDb.isConnectionPooling()) {
+				ps.getConnection().close();
+			}
+		}
+		
+		return uniqueToken;
+	}
+
+	public static String userResetPassword(String token, String password) throws Exception {
+		SemossDate dateTokenAdded = null;
+		String email = null;
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__DATE_ADDED"));
+		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__EMAIL"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_RESET__TOKEN", "==", token));
+		IRawSelectWrapper iterator = null;
+		try {
+			iterator = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(iterator.hasNext()) {
+				Object[] row = iterator.next().getValues();
+				dateTokenAdded = (SemossDate) row[0];
+				email = (String) row[1];
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(iterator != null) {
+				iterator.cleanUp();
+			}
+		}
+		
+		if(dateTokenAdded == null) {
+			throw new IllegalArgumentException("Invalid attempt trying to update password");
+		}
+		if(dateTokenAdded.getLocalDateTime().isBefore(LocalDateTime.now().minusMinutes(15))) {
+			throw new IllegalArgumentException("This link to reset the password has expired, please request a new link");
+		}
+		
+		// grab the userid from the email
+		String userId = getUserIdFromEmail(email);
+		// make sure the new password is valid or throw error
+		validPassword(userId, AuthProvider.NATIVE, password);
+		
+		// validate the new password to run the edit logic
+		String salt = SecurityQueryUtils.generateSalt();
+		String hashPassword = SecurityQueryUtils.hash(password, salt);
+		String updateQuery = "UPDATE SMSS_USER SET SALT=?, PASSWORD=? WHERE ID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(updateQuery);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, salt);
+			ps.setString(parameterIndex++, hashPassword);
+			ps.setString(parameterIndex++, userId);
+			ps.execute();
+			
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			storeUserPassword(userId, AuthProvider.NATIVE.toString(), hashPassword, salt, timestamp, cal);
+
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				ps.close();
+			}
+			if(securityDb.isConnectionPooling()) {
+				ps.getConnection().close();
+			}
+		}
+		
+		return userId;
 	}
 	
 }
