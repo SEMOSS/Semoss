@@ -242,6 +242,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 
+		String newSalt = null;
+		String newHashPass = null;
+		
 		// validate new inputs and insert into selectors and values to use for update
 		List<IQuerySelector> selectors = new Vector<>();
 		List<Object> values = new Vector<>();
@@ -283,7 +286,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 		String error = "";
 		if(newEmail != null && !newEmail.isEmpty()){
-			error = validEmail(newEmail);
+			try {
+				validEmail(newEmail);
+			} catch(Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				error += e.getMessage();
+			}
 			boolean userEmailExists = SecurityQueryUtils.checkUserEmailExist(newEmail);
 			if(userEmailExists) {
 				throw new IllegalArgumentException("The user email already exists");
@@ -300,11 +308,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			values.add(newUsername);
 		}
 		if(password != null && !password.isEmpty()){
-            error += validPassword(password);
+            try {
+				validPassword(userId, AuthProvider.NATIVE, password);
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				error += e.getMessage();			
+			}
             if(error.isEmpty()){
-                String newSalt = SecurityQueryUtils.generateSalt();
+                newSalt = SecurityQueryUtils.generateSalt();
     			selectors.add(new QueryColumnSelector("SMSS_USER__PASSWORD"));
-    			values.add(SecurityQueryUtils.hash(password, newSalt));
+    			newHashPass = SecurityQueryUtils.hash(password, newSalt); 
+    			values.add(newHashPass);
     			selectors.add(new QueryColumnSelector("SMSS_USER__SALT"));
     			values.add(newSalt);
             }
@@ -345,7 +359,51 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		Statement stmt = securityDb.execUpdateAndRetrieveStatement(updateQ, true);
 		if(stmt != null){
 			securityDb.commit();
-			return true;
+			if(isNative) {
+				if(newUserId != null && !userId.equals(newUserId)) {
+					// need to update the password history
+					String updateQuery = "UPDATE PASSWORD_HISTORY SET USERID=? WHERE USERID=? and TYPE=?";
+					PreparedStatement ps = null;
+					try {
+						ps = securityDb.getPreparedStatement(updateQuery);
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newUserId);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, type);
+						ps.execute();
+						if(!ps.getConnection().getAutoCommit()) {
+							ps.getConnection().commit();
+						}
+					} catch (SQLException e) {
+						e.printStackTrace();
+					} finally {
+						if(ps != null) {
+							try {
+								ps.close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+							if(securityDb.isConnectionPooling()) {
+								try {
+									ps.getConnection().close();
+								} catch (SQLException e) {
+									logger.error(Constants.STACKTRACE, e);
+								}
+							}
+						}
+					}
+				}
+				if(newHashPass != null && newSalt != null) {
+					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+					try {
+						SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp, cal);
+					} catch (Exception e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+				return true;
+			}
 		}
 		
 		return false;
@@ -1693,6 +1751,62 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.getConnection().close();
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		
+		logger.info("Number of accounts locked = " + numUpdated);
+		return numUpdated;
+	}
+	
+	/**
+	 * Lock accounts
+	 * @param numDaysSinceLastLogin
+	 */
+	public int setLockAccountsAndRecalculate(int numDaysSinceLastLogin) {
+		int numUpdated = 0;
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		
+		LocalDateTime dateToFilter = LocalDateTime.now();
+		dateToFilter = dateToFilter.minusDays(numDaysSinceLastLogin);
+		java.sql.Timestamp sqlTimestamp = java.sql.Timestamp.valueOf(dateToFilter);
+		
+		String[] queries = new String[] {
+				"UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN<=?",
+				"UPDATE SMSS_USER SET LOCKED=? WHERE LASTLOGIN>?"
+		};
+		boolean [] queryUpdateBool = new boolean[] {true, false};
+		
+		for(int i = 0; i < queries.length; i++) {
+			String query = queries[i];
+			boolean updateBool = queryUpdateBool[i];
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(query);
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, updateBool);
+				ps.setTimestamp(parameterIndex++, sqlTimestamp, cal);
+				numUpdated = ps.executeUpdate();
+				if(!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+			} finally {
+				if (ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}

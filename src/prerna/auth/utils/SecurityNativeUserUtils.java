@@ -22,6 +22,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -169,6 +170,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					}
 				}
 
+				storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp, cal);
 				return true;
 			} else {
 				// not added by admin
@@ -227,6 +229,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						}
 					}
 					
+					storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp, cal);
 					return true;
 				}
 			}
@@ -245,13 +248,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * Store the password for the user
 	 * @param userId
 	 * @param type
-	 * @param password
+	 * @param hashPassword
 	 * @param salt
 	 * @param timestamp
 	 * @param cal
 	 * @throws Exception 
 	 */
-	public static void storeUserPassword(String userId, String type, String password, String salt, java.sql.Timestamp timestamp, Calendar cal) throws Exception {
+	public static void storeUserPassword(String userId, String type, String hashPassword, String salt, java.sql.Timestamp timestamp, Calendar cal) throws Exception {
 		String insertQuery = "INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE, PASSWORD, SALT, DATE_ADDED) "
 				+ "VALUES (?,?,?,?,?,?)";
 		
@@ -262,7 +265,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, UUID.randomUUID().toString());
 			ps.setString(parameterIndex++, userId);
 			ps.setString(parameterIndex++, type);
-			ps.setString(parameterIndex++, password);
+			ps.setString(parameterIndex++, hashPassword);
 			ps.setString(parameterIndex++, salt);
 			ps.setTimestamp(parameterIndex++, timestamp, cal);
 			ps.execute();
@@ -280,54 +283,61 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		List<String> deleteIds = new ArrayList<>();
-		int passReuseLimit = PasswordRequirements.getInstance().getMaxPasswordReuse();
-		
-		// do we have too many stored passwords?
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__ID"));
-		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__USERID"));
-		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__DATE_ADDED"));
-		qs.addOrderBy("PASSWORD_HISTORY__DATE_ADDED");
-		int counter = 0;
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while (wrapper.hasNext()) {
-				if(passReuseLimit < counter) {
-					counter++;
-					continue;
+		int passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
+		if(passReuseCount > 0) {
+			List<String> deleteIds = new ArrayList<>();
+			
+			// do we have too many stored passwords?
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__ID"));
+			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__USERID"));
+			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__DATE_ADDED"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__USERID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__TYPE", "==", type));
+			qs.addOrderBy("PASSWORD_HISTORY__DATE_ADDED");
+			int counter = 0;
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+				while (wrapper.hasNext()) {
+					if(passReuseCount > counter) {
+						wrapper.next();
+						counter++;
+						continue;
+					}
+					String idToDelete = wrapper.next().getValues()[0].toString();
+					deleteIds.add(idToDelete);
 				}
-				String idToDelete = wrapper.next().getValues()[0].toString();
-				deleteIds.add(idToDelete);
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				wrapper.cleanUp();
-			}
-		}
-		
-		String deleteQuery = "DELETE FROM PASSWORD_HISTORY WHER ID = ?";
-		try {
-			for(String deleteId : deleteIds) {
-				ps = securityDb.getPreparedStatement(deleteQuery);
-				ps.setString(1, deleteId);
-				ps.addBatch();
-			}
-			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(ps != null) {
-				ps.close();
-			}
-			if(ps != null && securityDb.isConnectionPooling()) {
-				ps.getConnection().close();
+			
+			if(!deleteIds.isEmpty()) {
+				String deleteQuery = "DELETE FROM PASSWORD_HISTORY WHERE ID=?";
+				try {
+					for(String deleteId : deleteIds) {
+						ps = securityDb.getPreparedStatement(deleteQuery);
+						ps.setString(1, deleteId);
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				} finally {
+					if(ps != null) {
+						ps.close();
+					}
+					if(ps != null && securityDb.isConnectionPooling()) {
+						ps.getConnection().close();
+					}
+				}
 			}
 		}
 	}
@@ -344,8 +354,18 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		if (newUser.getUsername() == null || newUser.getUsername().isEmpty()) {
 			error += "User name can not be empty. ";
 		}
-		error += validEmail(newUser.getEmail());
-		error += validPassword(password);
+		try {
+			validEmail(newUser.getEmail());
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			error += e.getMessage();
+		}
+		try {
+			validPassword(newUser.getId(), newUser.getProvider(), password);
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			error += e.getMessage();
+		}
 		if (!error.isEmpty()) {
 			throw new IllegalArgumentException(error);
 		}
@@ -536,4 +556,54 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
 		return user;
 	}
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param password
+	 * @return
+	 */
+	public static boolean isPreviousPassword(String userId, AuthProvider type, String password) {
+		int passReuseCount = -1;
+		try {
+			passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__PASSWORD"));
+		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__SALT"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__TYPE", "==", type));
+		qs.addOrderBy(new QueryColumnOrderBySelector("PASSWORD_HISTORY__DATE_ADDED", "DESC"));
+
+		IRawSelectWrapper iterator = null;
+		try {
+			iterator = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			int counter = 0;
+			while(iterator.hasNext()) {
+				if(passReuseCount > 0 && counter < passReuseCount) {
+					Object[] previousPass = iterator.next().getValues();
+					String hashPass = (String) previousPass[0];
+					String salt = (String) previousPass[1];
+					String testPass = hash(password, salt);
+					if(hashPass.equals(testPass)) {
+						return true;
+					}
+				}
+				counter++;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(iterator != null) {
+				iterator.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
 }
