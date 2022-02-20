@@ -287,14 +287,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String error = "";
 		if(newEmail != null && !newEmail.isEmpty()){
 			try {
-				validEmail(newEmail);
+				validEmail(newEmail, true);
 			} catch(Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				error += e.getMessage();
-			}
-			boolean userEmailExists = SecurityQueryUtils.checkUserEmailExist(newEmail);
-			if(userEmailExists) {
-				throw new IllegalArgumentException("The user email already exists");
 			}
 			selectors.add(new QueryColumnSelector("SMSS_USER__EMAIL"));
 			values.add(newEmail);
@@ -415,16 +411,40 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param userDelete
 	 */
 	public boolean deleteUser(String userToDelete) {
-//		List<String> groups = SecurityQueryUtils.getGroupsOwnedByUser(userToDelete);
-//		for(String groupId : groups){
-//			removeGroup(userToDelete, groupId);
-//		}
-		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; "
-				+ "DELETE FROM USERINSIGHTPERMISSION WHERE USERID = '?1'; "
-				+ "DELETE FROM SMSS_USER WHERE ID = '?1';";
-		query = query.replace("?1", RdbmsQueryBuilder.escapeForSQLStatement(userToDelete));
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
+		String[] deleteQueries = new String[] {
+				"DELETE FROM ENGINEPERMISSION WHERE USERID=?",
+				"DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
+				"DELETE FROM SMSS_USER WHERE ID=?"
+		};
+		for(String query : deleteQueries) {
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(query);
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userToDelete);
+				ps.execute();
+				if(!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
 		return true;
 	}
 	
