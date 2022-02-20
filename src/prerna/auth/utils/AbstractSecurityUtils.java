@@ -11,14 +11,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import jodd.util.BCrypt;
 import prerna.auth.AuthProvider;
+import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
@@ -1664,24 +1663,20 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 
-	public static String validEmail(String email){
+	public static void validEmail(String email) throws Exception {
 		if(email == null || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
-			return  email + " is not a valid email address. ";
+			throw new IllegalArgumentException(email + " is not a valid email address. ");
 		}
-		return "";
 	}
 	
-	public static String validPassword(String password){
+	public static void validPassword(String userId, AuthProvider type, String password) throws Exception {
 		if(password == null || password.isEmpty()) {
-			return "Password cannot be empty.";
+			throw new IllegalArgumentException("Password cannot be empty. ");
 		}
-		Pattern pattern = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})");
-        Matcher matcher = pattern.matcher(password);
-		
-		if(!matcher.lookingAt()){
-			return "Password doesn't comply with the security policies.";
+		PasswordRequirements.getInstance().validatePassword(password);
+		if(SecurityNativeUserUtils.isPreviousPassword(userId, type, password)) {
+			throw new IllegalArgumentException("Cannot reuse old password. ");
 		}
-		return "";
 	}
 	
 	/**
