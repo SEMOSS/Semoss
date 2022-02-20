@@ -1021,6 +1021,19 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.dropTable("PASSWORD_RESUSE"));
 		}
 		
+		// PASSWORD RESET
+		colNames = new String[] { "EMAIL", "TOKEN", "DATE_ADDED" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RESET", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "PASSWORD_RESET", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("PASSWORD_RESET", colNames, types));
+			}
+		}
+		
 		if(!conn.getAutoCommit()) {
 			conn.commit();
 		}
@@ -1663,9 +1676,12 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 
-	public static void validEmail(String email) throws Exception {
+	public static void validEmail(String email, boolean isNewUser) throws Exception {
 		if(email == null || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
 			throw new IllegalArgumentException(email + " is not a valid email address. ");
+		}
+		if(isNewUser && SecurityNativeUserUtils.userEmailExists(email)) {
+			throw new IllegalArgumentException("This email already exists. Please login");
 		}
 	}
 	

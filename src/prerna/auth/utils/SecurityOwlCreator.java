@@ -31,7 +31,8 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PROJECTMETA");
 		conceptsRequired.add("PASSWORD_RULES");
 		conceptsRequired.add("PASSWORD_HISTORY");
-
+		conceptsRequired.add("PASSWORD_RESET");
+		
 		// new group tables
 		conceptsRequired.add("SMSS_GROUP");
 		conceptsRequired.add("GROUPENGINEPERMISSION");
@@ -293,6 +294,13 @@ public class SecurityOwlCreator {
 		owler.addProp("PASSWORD_HISTORY", "PASSWORD", "VARCHAR(255)");
 		owler.addProp("PASSWORD_HISTORY", "SALT", "VARCHAR(255)");
 		owler.addProp("PASSWORD_HISTORY", "DATE_ADDED", "TIMESTAMP");
+		
+		// PASSWORD_RESET
+		owler.addConcept("PASSWORD_RESET", null, null);
+		owler.addProp("PASSWORD_RESET", "EMAIL", "VARCHAR(255)");
+		owler.addProp("PASSWORD_RESET", "TOKEN", "VARCHAR(255)");
+		owler.addProp("PASSWORD_RESET", "DATE_ADDED", "TIMESTAMP");
+		
 		
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
