@@ -32,7 +32,7 @@ public class PasswordRequirements {
 	private int passwordExpirationDays = -1;
 	private boolean requireAdminResetForExpiration = false;
 	private boolean allowUserChangePassword = false;
-	private int maxPasswordReuse = -1;
+	private int passReuseCount = -1;
 
 	public static PasswordRequirements getInstance() throws Exception {
 		if(instance != null) {
@@ -79,7 +79,7 @@ public class PasswordRequirements {
 				this.passwordExpirationDays = ((Number) data[index++]).intValue();
 				this.requireAdminResetForExpiration = (Boolean) data[index++];
 				this.allowUserChangePassword = (Boolean) data[index++];
-				this.maxPasswordReuse = ((Number) data[index++]).intValue();
+				this.passReuseCount = ((Number) data[index++]).intValue();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -91,7 +91,7 @@ public class PasswordRequirements {
 		}
 	}
 
-	public boolean validatePassword(User user, String password) {
+	public boolean validatePassword(String password) {
 		boolean isValid = true;
 		StringBuilder errorMessage = new StringBuilder();
 		if(password.length() < this.minPassLength) {
@@ -198,12 +198,12 @@ public class PasswordRequirements {
 		this.allowUserChangePassword = allowUserChangePassword;
 	}
 
-	public int getMaxPasswordReuse() {
-		return maxPasswordReuse;
+	public int getPassReuseCount() {
+		return passReuseCount;
 	}
 
-	public void setMaxPasswordReuse(int maxPasswordReuse) {
-		this.maxPasswordReuse = maxPasswordReuse;
+	public void setPassReuseCount(int passReuseCount) {
+		this.passReuseCount = passReuseCount;
 	}
 
 }
