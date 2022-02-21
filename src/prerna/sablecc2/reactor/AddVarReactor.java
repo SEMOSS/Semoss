@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor;
 
 import java.util.List;
+import java.util.Map;
 
 import prerna.om.Variable;
 import prerna.sablecc2.om.PixelDataType;
@@ -10,12 +11,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AddVarReactor extends AbstractReactor 
 {
-	public String[] keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey(), 
-											 ReactorKeysEnum.FRAME.getKey(), 
-											 ReactorKeysEnum.EXPRESSION.getKey(), 
-											 ReactorKeysEnum.LANGUAGE.getKey()};
-	// which of these are optional : 1 means required, 0 means optional
-	public int[] keyRequired = new int[] {1,1,1,0}; // if nothing is given calculate everything
+	public AddVarReactor( ) {
+		this.keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey(), 
+				 ReactorKeysEnum.FRAME.getKey(), 
+				 ReactorKeysEnum.EXPRESSION.getKey(), 
+				 ReactorKeysEnum.LANGUAGE.getKey(),
+				 ReactorKeysEnum.FORMAT.getKey()};
+		// which of these are optional : 1 means required, 0 means optional
+		this.keyRequired = new int[] {1,1,1,0,0}; // if nothing is given calculate everything
+	}
+	
+	
 	
 	@Override
 	public NounMetadata execute() {
@@ -30,6 +36,14 @@ public class AddVarReactor extends AbstractReactor
 		var.setName(name);
 		var.setExpression(expression);
 		var.setFrames(frames);
+		
+		if(this.getNounStore().getNoun(this.keysToGet[4]) != null) {
+			String format = (String)this.getNounStore().getNoun(this.keysToGet[4]).get(0);
+			if(format != null) {
+				var.setFormat(format);		
+			}	
+		}
+		
 		if(language != null) {
 			if(language.equalsIgnoreCase("r")) {
 				var.setLanguage(Variable.LANGUAGE.R);
