@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,6 +22,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonWriter;
 
 import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.date.SemossDate;
 import prerna.ds.nativeframe.NativeFrame;
@@ -29,6 +32,7 @@ import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.om.Variable;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -43,7 +47,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.reactor.CalcVarReactor;
 import prerna.sablecc2.reactor.PixelPlanner;
+import prerna.sablecc2.reactor.export.FormattingUtility;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
@@ -858,6 +864,190 @@ public class InsightUtility {
 				panel.getTempFilterModelGrf().clear();
 			}
 		}
+	}
+	
+	/**
+	 * Calculate and return the dynamic var values
+	 * @param insight
+	 * @param dynamicVarNames
+	 * @return
+	 */
+	public static Map<String, Object> calculateDynamicVars(Insight insight, List<Object> dynamicVarNames) {
+		Map<String, Object> varValue = new HashMap<>();
+
+		StringBuffer pyDeleter = new StringBuffer("del(");
+		StringBuffer rDeleter = new StringBuffer("rm(");
+		
+		Map <String, String> oldNew = new HashMap<>();
+		
+		// get all the frames processed first
+		for(int varIndex =0; varIndex < dynamicVarNames.size();varIndex++) {
+			Object val = dynamicVarNames.get(varIndex);
+			String name = null;
+			Variable var = null;
+			if(val instanceof String) {
+				name = (String) val;
+				var = insight.getVariable(name);
+			} else if(val instanceof Variable) {
+				var = (Variable) val;
+				name = ((Variable) val).getName();
+			} else {
+				throw new IllegalArgumentException("Input " + val + " is not a valid variable");
+			}
+			// get the variable
+			// get the frames
+			// get the language
+			// compare to see if the frame and language are the same 
+			// TODO else we need to move it like how the pivot is
+			// get the frame from insight for frame name
+			// do a query all and create a query struct
+			// make the call to the frame to create a secondary variable
+			// string replace old frame with new
+			// run the calculation
+			// give the response
+			//List <String> frames = var.getFrames();
+			
+			// get the variable
+			// only for testing
+			/*
+			Variable var = new Variable();
+			var.setExpression("'Sum of ages is now set to.. {}'.format(frame_d['age'].astype(int).sum())");
+			var.setName("age_sum");
+			var.addFrame("frame_d");
+			var.setLanguage(Variable.LANGUAGE.PYTHON);
+			*/
+			
+			//this.insight.getVariable(name);
+						
+			// get the frames
+			List <String> frameNames = var.getFrames();
+			// get the language
+			// compare to see if the frame and language are the same 
+			// TODO else we need to move it like how the pivot is
+			// get the frame from insight for frame name
+			
+			for(int frameIndex = 0;frameIndex < frameNames.size();frameIndex++)
+			{
+				String thisFrameName = frameNames.get(frameIndex);
+				ITableDataFrame frame = insight.getFrame(thisFrameName);
+				
+				if(!oldNew.containsKey(thisFrameName)) // if not already processed. Generate one
+				{
+					// query the frame
+					// make the call to the frame to create a secondary variable
+					try {
+						// forcing it to be pandas frame for now
+						String newName = frame.createVarFrame();
+						oldNew.put(thisFrameName, newName);	
+						if(frame.getFrameType() == DataFrameTypeEnum.PYTHON) {
+							pyDeleter.append(newName).append(", ");
+						} else if(frame.getFrameType() == DataFrameTypeEnum.R) {
+							rDeleter.append(newName).append(", ");
+						}
+					} catch (Exception e)  {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		
+		// replace the frames and execute
+		for(int varIndex = 0; varIndex < dynamicVarNames.size(); varIndex++) {
+			Object val = dynamicVarNames.get(varIndex);
+			String name = null;
+			Variable var = null;
+			if(val instanceof String) {
+				name = (String) val;
+				var = insight.getVariable(name);
+			} else if(val instanceof Variable) {
+				var = (Variable) val;
+				name = ((Variable) val).getName();
+			}
+			
+			List <String> frameNames = var.getFrames();
+			String expression = var.getExpression();
+			// now that the frames are created
+			// replace and run
+			// string replace old frame with new
+			for(int frameIndex = 0;frameIndex < frameNames.size();frameIndex++) {
+				String thisFrameName = frameNames.get(frameIndex);
+				String newName = oldNew.get(thisFrameName);				
+				expression = expression.replace(thisFrameName, newName);
+			}
+			
+			// calc the var			
+			// run the calculation
+			// give the response
+			if(var.getLanguage() == Variable.LANGUAGE.PYTHON) {
+				Object value = insight.getPyTranslator().runScript(expression);
+				varValue.put(var.getName(), value);
+			}
+			if(var.getLanguage() == Variable.LANGUAGE.R) {
+				Object value = insight.getRJavaTranslator(CalcVarReactor.class.getName()).runRAndReturnOutput(expression);
+				varValue.put(var.getName(), value);
+			}
+		}	
+		
+		// need something to delete all the interim frame variables
+		if(pyDeleter.indexOf(",") > 0) {// atleast one is filled up
+			insight.getPyTranslator().runEmptyPy(pyDeleter.substring(0, pyDeleter.length() - 2) + ")");
+		}
+		
+		if(rDeleter.indexOf(",") > 0) { // atleast one is filled up
+			insight.getRJavaTranslator(CalcVarReactor.class.getName()).executeEmptyR(rDeleter.substring(0, pyDeleter.length() - 2) + ")");
+		}
+		
+		return varValue;
+	}
+	
+	/**
+	 * Recalculate the var html view
+	 * @param insight
+	 * @param panel
+	 * @return
+	 */
+	public static String recalculateHtmlViews(Insight insight, InsightPanel panel) {
+		String html = panel.getPanelActiveViewOptions();
+
+		List<String> allDynamicVars = insight.getVarStore().getDynamicVarKeys();
+		if(allDynamicVars.isEmpty()) {
+			panel.setRenderedViewOptions(html);
+			return html;
+		}
+		
+		List<Object> dynamicVarNames = new ArrayList<>();
+
+		String regex = "\\{\\{([A-Z|a-z])\\w+\\}\\}";
+		Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);    
+		Matcher matcher = pattern.matcher(html);
+		while(matcher.find()) {
+			String varName = matcher.group();
+			String cleanedVarName = varName.substring(2, varName.length() - 2);
+			// make sure the var exists
+			if(allDynamicVars.contains(cleanedVarName)) {
+				dynamicVarNames.add(cleanedVarName);
+			}
+		}
+		
+		Map<String, Object> dynamicVarValues = InsightUtility.calculateDynamicVars(insight, dynamicVarNames);
+		for(String dynamicVarName : dynamicVarValues.keySet()) {
+			Object dynamicValue = dynamicVarValues.get(dynamicVarName);
+			if(dynamicValue == null) {
+				continue;
+			}
+			dynamicValue = dynamicValue.toString().substring(4);
+			Variable variable = (Variable) insight.getVarStore().get(dynamicVarName).getValue();
+			if(variable.getFormat() != null) {
+				// Checking for Formats
+				Object formattedData = FormattingUtility.formatDataValues(dynamicValue, "DOUBLE", variable.getFormat().toString(), null);
+				html = html.replace("{{" + dynamicVarName + "}}", formattedData.toString());
+			} else {
+				html = html.replace("{{" + dynamicVarName + "}}", dynamicValue + "");
+			}
+		}
+		
+		panel.setRenderedViewOptions(html);
+		return html;
 	}
 	
 }
