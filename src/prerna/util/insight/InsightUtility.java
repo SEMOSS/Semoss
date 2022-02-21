@@ -1029,20 +1029,24 @@ public class InsightUtility {
 			}
 		}
 		
-		Map<String, Object> dynamicVarValues = InsightUtility.calculateDynamicVars(insight, dynamicVarNames);
-		for(String dynamicVarName : dynamicVarValues.keySet()) {
-			Object dynamicValue = dynamicVarValues.get(dynamicVarName);
-			if(dynamicValue == null) {
-				continue;
-			}
-			dynamicValue = dynamicValue.toString().substring(4);
-			Variable variable = (Variable) insight.getVarStore().get(dynamicVarName).getValue();
-			if(variable.getFormat() != null) {
-				// Checking for Formats
-				Object formattedData = FormattingUtility.formatDataValues(dynamicValue, "DOUBLE", variable.getFormat().toString(), null);
-				html = html.replace("{{" + dynamicVarName + "}}", formattedData.toString());
-			} else {
-				html = html.replace("{{" + dynamicVarName + "}}", dynamicValue + "");
+		if(!dynamicVarNames.isEmpty()) {
+			// this calculates for all vars if no names are passed
+			// so need the isEmpty check above
+			Map<String, Object> dynamicVarValues = InsightUtility.calculateDynamicVars(insight, dynamicVarNames);
+			for(String dynamicVarName : dynamicVarValues.keySet()) {
+				Object dynamicValue = dynamicVarValues.get(dynamicVarName);
+				if(dynamicValue == null) {
+					continue;
+				}
+				dynamicValue = dynamicValue.toString().substring(4);
+				Variable variable = (Variable) insight.getVarStore().get(dynamicVarName).getValue();
+				if(variable.getFormat() != null) {
+					// Checking for Formats
+					Object formattedData = FormattingUtility.formatDataValues(dynamicValue, "DOUBLE", variable.getFormat().toString(), null);
+					html = html.replace("{{" + dynamicVarName + "}}", formattedData.toString());
+				} else {
+					html = html.replace("{{" + dynamicVarName + "}}", dynamicValue + "");
+				}
 			}
 		}
 		

@@ -22,6 +22,7 @@ import prerna.util.gson.GsonUtility;
 import prerna.util.insight.InsightUtility;
 
 public class SetPanelViewReactor extends AbstractInsightPanelReactor {
+	
 	private static final Logger logger = LogManager.getLogger(SetPanelViewReactor.class); 
 	private static Gson GSON = GsonUtility.getDefaultGson();
 	
