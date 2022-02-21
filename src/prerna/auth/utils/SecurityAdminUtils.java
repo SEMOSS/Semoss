@@ -398,8 +398,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						logger.error(Constants.STACKTRACE, e);
 					}
 				}
-				return true;
 			}
+			return true;
 		}
 		
 		return false;
