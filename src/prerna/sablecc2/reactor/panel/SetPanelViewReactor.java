@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
@@ -16,9 +19,10 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
+import prerna.util.insight.InsightUtility;
 
 public class SetPanelViewReactor extends AbstractInsightPanelReactor {
-	
+	private static final Logger logger = LogManager.getLogger(SetPanelViewReactor.class); 
 	private static Gson GSON = GsonUtility.getDefaultGson();
 	
 	public SetPanelViewReactor() {
@@ -48,12 +52,15 @@ public class SetPanelViewReactor extends AbstractInsightPanelReactor {
 		// set the new view
 		insightPanel.setPanelView(view);
 		insightPanel.appendPanelViewOptions(view, viewOptionsMap);
-		
 		Map<String, String> returnMap = new HashMap<String, String>();
 		returnMap.put("panelId", insightPanel.getPanelId());
 		returnMap.put("view", view);
 		// grab the options for this view
 		returnMap.put("options", insightPanel.getPanelActiveViewOptions());
+		if(view.equalsIgnoreCase("text-editor")) {
+			String renderedViewOptions = InsightUtility.recalculateHtmlViews(this.insight, insightPanel);
+			returnMap.put("renderedOptions", renderedViewOptions);
+		}
 		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_VIEW);
 	}
 
