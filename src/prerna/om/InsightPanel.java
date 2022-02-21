@@ -29,6 +29,9 @@ public class InsightPanel {
 	private String view;
 	// active view options
 	private String viewOptions;
+	// rendered view options
+	// for things like KPI
+	private String renderedViewOptions;
 	// panel configuration - opacity, etc.
 	private Map<String, Object> config;
 	// view options on the current view
@@ -531,6 +534,14 @@ public class InsightPanel {
 		}
 	}
 	
+	public String getRenderedViewOptions() {
+		return renderedViewOptions;
+	}
+
+	public void setRenderedViewOptions(String renderedViewOptions) {
+		this.renderedViewOptions = renderedViewOptions;
+	}
+
 	/**
 	 * Return the panel level filters
 	 * @return

@@ -1,7 +1,9 @@
 package prerna.om;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Variable {
 	
@@ -15,6 +17,7 @@ public class Variable {
 	List <Variable> depends = new ArrayList<Variable>(); // list of variable this variable depends on 
 	List <String> frames = new ArrayList<String>();
 	String name = null;
+	String format = null;
 	
 	public void setExpression(String expression)
 	{
@@ -69,6 +72,14 @@ public class Variable {
 	public void setFrames(List<String> frames)
 	{
 		this.frames = frames;
+	}
+
+	public String getFormat() {
+		return format;
+	}
+
+	public void setFormat(String format) {
+		this.format = format;
 	}
 }
 
