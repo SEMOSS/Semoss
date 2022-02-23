@@ -11,12 +11,18 @@ import java.io.UnsupportedEncodingException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.util.Constants;
+
 public interface ICache {
 	
+	static final Logger logger = LogManager.getLogger(ICache.class);
+
 	String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();;
 	
 	/**
@@ -44,11 +50,11 @@ public interface ICache {
 			// write the JSON string into the file
 			IOUtils.write(data, os);
 		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			// close the streams
 			try {
@@ -56,7 +62,7 @@ public interface ICache {
 					os.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -79,9 +85,9 @@ public interface ICache {
 	            return retData;
         	}
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            logger.error(Constants.STACKTRACE, e);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(Constants.STACKTRACE, e);
         } finally {
         	// close the readers
         	try {
@@ -92,7 +98,7 @@ public interface ICache {
 					is.close();
 	        	}
         	} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
         }
 
@@ -109,7 +115,21 @@ public interface ICache {
 			try {
 				FileUtils.forceDelete(basefolder);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+	}
+	
+	/**
+	 * Deletes a folder and all its sub-directories
+	 * @param folderLocation	The location of the folder
+	 */
+	static void deleteFolder(File folder) {
+		if(folder.isDirectory()) {
+			try {
+				FileUtils.forceDelete(folder);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -123,7 +143,7 @@ public interface ICache {
 			try {
 				FileUtils.forceDelete(file);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

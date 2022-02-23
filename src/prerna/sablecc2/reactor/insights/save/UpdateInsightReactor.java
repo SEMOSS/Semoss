@@ -216,7 +216,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		// delete the cache
 		// NOTE ::: We already pulled above, so we will not pull again to delete the cache
-		InsightCacheUtility.deleteCache(projectId, project.getProjectName(), existingId, false);
+		InsightCacheUtility.deleteCache(projectId, project.getProjectName(), existingId, null, false);
 		// push back to the cluster
 		ClusterUtil.reactorPushInsightDB(projectId);
 		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));

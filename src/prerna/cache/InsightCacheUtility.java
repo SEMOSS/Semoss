@@ -69,14 +69,14 @@ public class InsightCacheUtility {
 		
 	}
 	
-	public static String getInsightCacheFolderPath(Insight insight) {
+	public static String getInsightCacheFolderPath(Insight insight, Map<String, Object> parameters) {
 		String rdbmsId = insight.getRdbmsId();
 		String projectId = insight.getProjectId();
 		String projectName = insight.getProjectName();
-		return getInsightCacheFolderPath(projectId, projectName, rdbmsId);
+		return getInsightCacheFolderPath(projectId, projectName, rdbmsId, parameters);
 	}
 	
-	public static String getInsightCacheFolderPath(String projectId, String projectName, String rdbmsId) {
+	public static String getInsightCacheFolderPath(String projectId, String projectName, String rdbmsId, Map<String, Object> parameters) {
 		String folderDir = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) 
 				+ DIR_SEPARATOR +  rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
 		return folderDir;
@@ -87,7 +87,7 @@ public class InsightCacheUtility {
 	 * @param insight
 	 * @throws IOException 
 	 */
-	public static File cacheInsight(Insight insight, Set<String> varsToExclude) throws IOException {
+	public static File cacheInsight(Insight insight, Set<String> varsToExclude, Map<String, Object> parameters) throws IOException {
 		String rdbmsId = insight.getRdbmsId();
 		String projectId = insight.getProjectId();
 		String projectName = insight.getProjectName();
@@ -96,7 +96,7 @@ public class InsightCacheUtility {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 		
-		String folderDir = getInsightCacheFolderPath(insight);
+		String folderDir = getInsightCacheFolderPath(insight, parameters);
 		String normalizedFolderDir = Utility.normalizePath(folderDir);
 		if(!(new File(normalizedFolderDir).exists())) {
 			new File(normalizedFolderDir).mkdirs();
@@ -258,16 +258,16 @@ public class InsightCacheUtility {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static Map<String, Object> getCachedInsightViewData(Insight insight) throws IOException, JsonSyntaxException {
+	public static Map<String, Object> getCachedInsightViewData(Insight insight, Map<String, Object> parameters) throws IOException, JsonSyntaxException {
 		String rdbmsId = insight.getRdbmsId();
-		String engineId = insight.getProjectId();
-		String engineName = insight.getProjectName();
+		String projectId = insight.getProjectId();
+		String projectName = insight.getProjectName();
 		
-		if(engineId == null || rdbmsId == null || engineName == null) {
+		if(projectId == null || rdbmsId == null || projectName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 		
-		String zipFileLoc = getInsightCacheFolderPath(insight) + DIR_SEPARATOR + INSIGHT_ZIP;
+		String zipFileLoc = getInsightCacheFolderPath(insight, parameters) + DIR_SEPARATOR + INSIGHT_ZIP;
 		String normalizedZipFileLoc = Utility.normalizePath(zipFileLoc);
 		File zipFile = new File(normalizedZipFileLoc);
 
@@ -283,13 +283,6 @@ public class InsightCacheUtility {
 			zis = zip.getInputStream(viewData);
 			
 			String jsonString = IOUtils.toString(zis, "UTF-8");
-			
-			//TODO:
-			// this is here to try to delete old invalid caches
-			if(!jsonString.contains("CACHED_PANEL")) {
-				throw new IllegalArgumentException("Old format of cache. Must delete and re-create.");
-			}
-			
 			Gson gson = new Gson();
 			return gson.fromJson(jsonString, Map.class);
 		} catch(Exception e) {
@@ -312,13 +305,13 @@ public class InsightCacheUtility {
 	 * @param projectName
 	 * @param rdbmsId
 	 */
-	public static void deleteCache(String projectId, String projectName, String rdbmsId, boolean pullCloud) {
+	public static void deleteCache(String projectId, String projectName, String rdbmsId, Map<String, Object> parameters, boolean pullCloud) {
 		// this is false on save insight
 		// because i do not want to pull when i save
 		// but i do want to delete the cache in case i am saving 
 		// from an existing insight as the .cache folder gets moved
 
-		String folderDir = getInsightCacheFolderPath(projectId, projectName, rdbmsId);
+		String folderDir = getInsightCacheFolderPath(projectId, projectName, rdbmsId, parameters);
 		Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR 
 				+ Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId));
 		Path relative = appFolder.relativize( Paths.get(folderDir));
@@ -333,7 +326,11 @@ public class InsightCacheUtility {
 		
 		File[] cacheFiles = folder.listFiles();
 		for(File f : cacheFiles) {
-			ICache.deleteFile(f);
+			if(f.isDirectory()) {
+				ICache.deleteFolder(f);
+			} else {
+				ICache.deleteFile(f);
+			}
 		}
 		
 		// update the metadata
@@ -350,7 +347,7 @@ public class InsightCacheUtility {
 				MosfetSyncHelper.updateMosfitFileCachedOn(mosfet, cachedOn);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		if(pullCloud) {
