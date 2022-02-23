@@ -228,7 +228,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 	    stepCounter++;
 	    // delete the cache folder for the new insight
-	 	InsightCacheUtility.deleteCache(project.getProjectId(), project.getProjectName(), newRdbmsId, false);
+	 	InsightCacheUtility.deleteCache(project.getProjectId(), project.getProjectName(), newRdbmsId, null, false);
 
 	 	// write recipe to file
 	 	// force = true to delete any existing mosfet files that were pulled from asset folder
