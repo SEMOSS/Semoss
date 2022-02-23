@@ -10,15 +10,18 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.om.Variable;
 import prerna.om.Variable.LANGUAGE;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class GetConsolidatedCodeExecutionReactor extends AbstractReactor {
 
@@ -54,6 +57,11 @@ public class GetConsolidatedCodeExecutionReactor extends AbstractReactor {
 		
 		if(write) {
 			codeDir = AssetUtility.getAssetBasePath(this.insight, null, true) + "/codeConsolidation";
+			if(this.insight.isSavedInsight()) {
+				IProject project = Utility.getProject(this.insight.getProjectId());
+				ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId()));
+			}
+			
 			File codeD = new File(codeDir);
 			if(codeD.exists() && codeD.isDirectory()) {
 				// should we delete everything here?
@@ -130,6 +138,11 @@ public class GetConsolidatedCodeExecutionReactor extends AbstractReactor {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
+		}
+		
+		if(write && this.insight.isSavedInsight()) {
+			IProject project = Utility.getProject(this.insight.getProjectId());
+			ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId()));
 		}
 		
 		List<String> retCode = new ArrayList<>();
