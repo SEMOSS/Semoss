@@ -584,18 +584,13 @@ public class PixelUtility {
 	public static List<String> getMetaInsightRecipeSteps(Insight in, PixelList pixelList) {
 		List<String> additionalSteps = new Vector<>();
 		// add the pipeline positions
-		{
-			appendPositionInsightRecipeStep(pixelList, additionalSteps);
-		}
+		appendPositionInsightRecipeStep(pixelList, additionalSteps);
 //		// add the semoss parameters
-//		{
-//			appendAddInsightParameter(in, additionalSteps);
-//		}
+//		appendAddInsightParameter(in, additionalSteps);
 		// add the insight config
-		{
-			appendSetInsightConfig(in, additionalSteps);
-		}
-		
+		appendSetInsightConfig(in, additionalSteps);
+		// add read insight theme
+		appendReadInsightTheme(additionalSteps);
 		return additionalSteps;
 	}
 	
@@ -686,6 +681,10 @@ public class PixelUtility {
 			builder.append(");");
 			additionalSteps.add(builder.toString());
 		}
+	}
+	
+	public static void appendReadInsightTheme(List<String> additionalSteps) {
+		additionalSteps.add("ReadInsightTheme();");
 	}
 	
 	/**

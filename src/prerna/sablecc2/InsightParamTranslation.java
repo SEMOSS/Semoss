@@ -68,7 +68,7 @@ public class InsightParamTranslation extends DepthFirstAdapter {
 	        	panelsCreated.add(panel);
 			}
 			
-        }  else if (reactorId.equals("Clone")) {
+        } else if (reactorId.equals("Clone")) {
 			POpInput closePanelInput = node.getOpInput();
 			String panel = closePanelInput.toString().trim();
         	panelsCreated.add(panel);

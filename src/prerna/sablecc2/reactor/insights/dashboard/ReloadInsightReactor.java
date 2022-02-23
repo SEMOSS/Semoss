@@ -30,7 +30,8 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		if(cacheable == null) {
 			cacheable = this.insight.isCacheable();
 		}
-		
+		Map<String, Object> paramValues = getInsightParamValueMap();
+
 		// TODO: i am cheating here
 		// we do not cache dashboards or param insights currently
 		// so adding the cacheable check before hand
@@ -44,7 +45,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		Insight cachedInsight = null;
 		if(cacheable && !isParam && !isDashoard) {
 			try {
-				cachedInsight = getCachedInsight(this.insight);
+				cachedInsight = getCachedInsight(this.insight, paramValues);
 				if(cachedInsight != null) {
 					hasCache = true;
 					cachedInsight.setInsightId(this.insight.getInsightId());
@@ -62,13 +63,13 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		if(cacheable && hasCache && cachedInsight == null) {
 			// this means we have a cache
 			// but there was an error with it
-			InsightCacheUtility.deleteCache(this.insight.getProjectId(), this.insight.getProjectName(), this.insight.getRdbmsId(), true);
+			InsightCacheUtility.deleteCache(this.insight.getProjectId(), this.insight.getProjectName(), this.insight.getRdbmsId(), paramValues, true);
 			additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
 		} else if(cacheable && hasCache) {
 			try {
-				runner = getCachedInsightData(cachedInsight);
+				runner = getCachedInsightData(cachedInsight, paramValues);
 			} catch (IOException | RuntimeException e) {
-				InsightCacheUtility.deleteCache(this.insight.getProjectId(), this.insight.getProjectName(), this.insight.getRdbmsId(), true);
+				InsightCacheUtility.deleteCache(this.insight.getProjectId(), this.insight.getProjectName(), this.insight.getRdbmsId(), paramValues, true);
 				additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
 				logger.error(Constants.STACKTRACE, e);
 			}
@@ -79,7 +80,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 //			now I want to cache the insight
 			if(cacheable && !isParam && !isDashoard) {
 				try {
-					InsightCacheUtility.cacheInsight(this.insight, getCachedRecipeVariableExclusion(runner));
+					InsightCacheUtility.cacheInsight(this.insight, getCachedRecipeVariableExclusion(runner), paramValues);
 				} catch (IOException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}

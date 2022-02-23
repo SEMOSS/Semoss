@@ -202,20 +202,24 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		if(cacheable == null) {
 			cacheable = newInsight.isCacheable();
 		}
+		Map<String, Object> paramValues = getInsightParamValueMap();
+		newInsight.setParamValues(paramValues);
+		
 		// TODO: i am cheating here
 		// we do not cache dashboards or param insights currently
 		// so adding the cacheable check before hand
 		Object params = getExecutionParams();
-		boolean isParam = cacheable && (params != null || PixelUtility.isNotCacheable(newInsight.getPixelList().getPixelRecipe()));
+//		boolean isParam = cacheable && (params != null || PixelUtility.isNotCacheable(newInsight.getPixelList().getPixelRecipe()));
 		boolean isDashoard = cacheable && PixelUtility.isDashboard(newInsight.getPixelList().getPixelRecipe());
 		
 		// if not param or dashboard, we can try to load a cache
 		// do we have a cached insight we can use
 		boolean hasCache = false;
 		Insight cachedInsight = null;
-		if(cacheable && !isParam && !isDashoard) {
+//		if(cacheable && !isParam && !isDashoard) {
+		if(cacheable && !isDashoard) {
 			try {
-				cachedInsight = getCachedInsight(newInsight);
+				cachedInsight = getCachedInsight(newInsight, paramValues);
 				if(cachedInsight != null) {
 					hasCache = true;
 					cachedInsight.setInsightName(newInsight.getInsightName());
@@ -243,33 +247,38 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		if(cacheable && hasCache && cachedInsight == null) {
 			// this means we have a cache
 			// but there was an error with it
-			InsightCacheUtility.deleteCache(newInsight.getProjectId(), newInsight.getProjectName(), rdbmsId, true);
+			InsightCacheUtility.deleteCache(newInsight.getProjectId(), newInsight.getProjectName(), rdbmsId, paramValues, true);
 			additionalMetas.add(getWarning("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight."));
 		} else if(cacheable && hasCache) {
 			try {
 				logger.info("Pulling cached insight");
-				runner = getCachedInsightData(cachedInsight);
+				runner = getCachedInsightData(cachedInsight, paramValues);
 			} catch (IOException | RuntimeException e) {
 				logger.info("Error occured pulling cached insight. Deleting cache and executing original recipe.");
-				InsightCacheUtility.deleteCache(newInsight.getProjectId(), newInsight.getProjectName(), rdbmsId, true);
+				InsightCacheUtility.deleteCache(newInsight.getProjectId(), newInsight.getProjectName(), rdbmsId, paramValues, true);
 				additionalMetas.add(getWarning("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight."));
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
+		// if we dont have a cache, run the insight
 		if(runner == null) {
 			logger.info("Running insight");
 			runner = newInsight.reRunPixelInsight(false);
+			if(paramValues != null && !paramValues.isEmpty()) {
+				runner = runParameters(newInsight, runner, paramValues, additionalMetas, logger);
+			}
 			logger.info("Done running insight");
 			// now I want to cache the insight
-			if(cacheable && !isParam && !isDashoard) {
+//			if(cacheable && !isParam && !isDashoard) {
+			if(cacheable && !isDashoard) {
 				logger.info("Caching insight for future use");
 				try {
-					InsightCacheUtility.cacheInsight(newInsight, getCachedRecipeVariableExclusion(runner));
-					Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+					InsightCacheUtility.cacheInsight(newInsight, getCachedRecipeVariableExclusion(runner), paramValues);
+					Path projectFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 							+ DIR_SEPARATOR + "project"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), projectId));
-					String cacheFolder = InsightCacheUtility.getInsightCacheFolderPath(newInsight);
-					Path relative = appFolder.relativize( Paths.get(cacheFolder));
+					String cacheFolder = InsightCacheUtility.getInsightCacheFolderPath(newInsight, paramValues);
+					Path relative = projectFolder.relativize( Paths.get(cacheFolder));
 					ClusterUtil.reactorPushProjectFolder(projectId, cacheFolder, relative.toString());
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
@@ -278,11 +287,255 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		/*
-		 * 5) Parameter insight
+		 * 5) Run any additional pixels that are also passed in 
 		 */
 		
-		// see if we have any insights
-		Map<String, String> paramValues = getInsightParamValueMap();
+		// after we have gotten back either the insight or cached insight
+		// now we can add the additional pixels if any were past in / exist
+		List<String> additionalPixels = getAdditionalPixels();
+		if(additionalPixels != null && !additionalPixels.isEmpty()) {
+			logger.info("Running additional pixels in addition to the insight recipe");
+			// use the existing runner
+			// and run the additional pixels
+			newInsight.runPixel(runner, additionalPixels);
+		}
+		logger.info("Painting results");
+		
+		// add to the users opened insights
+		if(user != null) {
+			user.addOpenInsight(projectId, rdbmsId, newInsight.getInsightId());
+		}
+		
+		// update the universal view count
+		GlobalInsightCountUpdater.getInstance().addToQueue(projectId, rdbmsId);
+		// tracking execution
+		UserTrackerFactory.getInstance().trackInsightExecution(newInsight);
+		
+		// add to user workspace
+		newInsight.setCacheInWorkspace(true);
+		
+		// return the recipe steps
+		Map<String, Object> runnerWraper = new HashMap<String, Object>();
+		runnerWraper.put("runner", runner);
+		// this is old way of doing/passing params
+		// where FE sends to the BE and then the BE echos it back to the FE
+		runnerWraper.put("params", params);
+		runnerWraper.put("additionalPixels", additionalPixels);
+		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
+		if(additionalMetas != null && !additionalMetas.isEmpty()) {
+			noun.addAllAdditionalReturn(additionalMetas);
+		}
+		return noun;
+	}
+
+	protected List<String> getAdditionalPixels() {
+		GenRowStruct additionalPixels = this.store.getNoun(ReactorKeysEnum.ADDITIONAL_PIXELS.getKey());
+		if(additionalPixels != null && !additionalPixels.isEmpty()) {
+			List<String> pixels = new Vector<String>();
+			int size = additionalPixels.size();
+			for(int i = 0; i < size; i++) {
+				pixels.add(additionalPixels.get(i).toString());
+			}
+			return pixels;
+		}
+
+		// no additional pixels to run
+		return null;
+	}
+	
+	protected Map<String, Object> getInsightParamValueMap() {
+		GenRowStruct paramValues = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if(paramValues != null && !paramValues.isEmpty()) {
+			return (Map<String, Object>) paramValues.get(0);
+		}
+
+		// no additional pixels to run
+		return null;
+	}
+	
+	/**
+	 * Get the cached insight
+	 * @param engineId
+	 * @param insightId
+	 * @return
+	 */
+	protected Insight getCachedInsight(Insight existingInsight, Map<String, Object> paramValues) throws IOException, JsonSyntaxException {
+		Insight insight = null;
+		String insightZipLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight, paramValues) + DIR_SEPARATOR + InsightCacheUtility.INSIGHT_ZIP;
+		File insightZip = new File(insightZipLoc);
+		if(!insightZip.exists()) {
+			// just return null
+			return null;
+		}
+		
+		String versionFileLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight, paramValues) + DIR_SEPARATOR + InsightCacheUtility.VERSION_FILE;
+		File versionFile = new File(versionFileLoc);
+		if(!versionFile.exists() || !versionFile.isFile()) {
+			// delete the current cache in case it is not accurate
+			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+					existingInsight.getRdbmsId(), paramValues, true);
+			return null;
+		}
+		Properties vProp = Utility.loadProperties(versionFileLoc);
+		String versionStr = vProp.getProperty(InsightCacheUtility.VERSION_KEY);
+		String dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
+		if(versionStr == null || (versionStr=versionStr.trim()).isEmpty()
+			|| versionStr == null || (versionStr=versionStr.trim()).isEmpty()) {
+			// delete the current cache in case it is not accurate
+			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+					existingInsight.getRdbmsId(), paramValues, true);
+			return null;
+		}
+		// check the version is accurate / the same
+		if(!versionStr.equals(VersionReactor.getVersionMap(false).get(VersionReactor.VERSION_KEY))) {
+			// different semoss version, delete the cache
+			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+					existingInsight.getRdbmsId(), paramValues, true);
+			return null;
+		}
+		
+		LocalDateTime cachedDateTime = null;
+		try {
+			cachedDateTime = LocalDateTime.parse(dateGenStr);
+		} catch(Exception e) {
+			// someone has been manually touching the file and they should
+			// write the version file again with todays date
+			versionFile.delete();
+			InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
+			vProp = Utility.loadProperties(versionFileLoc);
+			dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
+			cachedDateTime = LocalDateTime.parse(dateGenStr);
+		}
+		
+		// check cache doesn't have a time expiration
+		int cacheMinutes = existingInsight.getCacheMinutes();
+		if(cacheMinutes > 0) {
+			if(cachedDateTime.plusMinutes(cacheMinutes).isBefore(LocalDateTime.now())) {
+				InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+						existingInsight.getRdbmsId(), paramValues, true);
+				return null;
+			}
+		}
+		
+		// check cache doesn't have a set expiration
+		String cacheCron = existingInsight.getCacheCron();
+		if(cacheCron != null && !cacheCron.isEmpty()) {
+			CronExpression expression;
+			try {
+				expression = new CronExpression(cacheCron);
+				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
+				Date cachedDateObj = Date.from(cachedDateTime.atZone(tz.toZoneId()).toInstant());
+				Date nextValidTimeAfter = expression.getNextValidTimeAfter(cachedDateObj);
+				if(nextValidTimeAfter.before(cachedDateObj)) {
+					InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+							existingInsight.getRdbmsId(), paramValues, true);
+					return null;
+				}
+			} catch (ParseException e) {
+				// invalid cron... not sure if we should ever get to this point
+				classLogger.error(Constants.STACKTRACE, e);
+				return null;
+			}
+		}
+		
+		insight = InsightCacheUtility.readInsightCache(insightZip, existingInsight);
+		insight.setCachedDateTime(cachedDateTime);
+		return insight;
+	}
+	
+	/**
+	 * Get cached insight view data
+	 * @param cachedInsight
+	 * @return
+	 */
+	protected PixelRunner getCachedInsightData(Insight cachedInsight, Map<String, Object> paramValues) throws IOException, JsonSyntaxException {
+		// so that I don't mess up the insight recipe
+		// use the object as it contains a ton of metadata
+		// around the pixel step
+		PixelList orig = cachedInsight.getPixelList().copy();
+		// clear the current insight recipe
+		cachedInsight.setPixelRecipe(new Vector<String>());
+		
+		PixelRunner runner = new PixelRunner();
+		runner.setInsight(cachedInsight);
+		
+		// send the view data
+		try {
+			// add when this insight was cached
+			if(cachedInsight.getCachedDateTime() != null) {
+				runner.addResult("GetInsightCachedDateTime();", new NounMetadata(cachedInsight.getCachedDateTime().toString(), PixelDataType.CONST_STRING), true);
+			} else {
+				runner.addResult("GetInsightCachedDateTime();", new NounMetadata("Could not determine cached timestamp for insight", PixelDataType.CONST_STRING), true);
+			}
+			// logic to get all the frame headers
+			// add this first to the return object
+			{
+				// get all frame headers
+				VarStore vStore = cachedInsight.getVarStore();
+				List<String> keys = vStore.getFrameKeysCopy();
+				for(String k : keys) {
+					NounMetadata noun = vStore.get(k);
+					PixelDataType type = noun.getNounType();
+					if(type == PixelDataType.FRAME) {
+						try {
+							ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+							runner.addResult("CACHED_FRAME_HEADERS", 
+									new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, 
+											PixelOperationType.FRAME_HEADERS), true);
+						} catch(Exception e) {
+							classLogger.error(Constants.STACKTRACE, e);
+							// ignore
+						}
+					}
+				}
+			}
+			// now add in the cached insight view dataw
+			Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(cachedInsight, paramValues);
+			List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
+			if(!pixelReturn.isEmpty()) {
+				runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
+			}
+			
+			// get the insight config for layout
+			NounMetadata insightConfig = cachedInsight.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
+			if(insightConfig != null) {
+				runner.addResult("META | GetInsightConfig()", insightConfig, true);
+			}
+		} finally {
+			// we need to reset the recipe
+			cachedInsight.setPixelList(orig);
+		}
+		
+		return runner;
+	}
+	
+	/**
+	 * Get the variables that the execution would eventually drop to exclude from 
+	 * @return
+	 */
+	protected Set<String> getCachedRecipeVariableExclusion(PixelRunner runner) {
+		Set<String> varsToExclude = new HashSet<String>();
+		
+		List<NounMetadata> results = runner.getResults();
+		for(NounMetadata res : results) {
+			if(res.getNounType() == PixelDataType.REMOVE_VARIABLE) {
+				varsToExclude.add(res.getValue().toString());
+			}
+		}
+		
+		return varsToExclude;
+	}
+	
+	/**
+	 * Run the insight with the inputed parameters
+	 * @param newInsight
+	 * @param runner
+	 * @param paramValues
+	 * @param additionalMetas
+	 * @param logger
+	 * @return
+	 */
+	protected PixelRunner runParameters(Insight newInsight, PixelRunner runner, Map<String, Object> paramValues, List<NounMetadata> additionalMetas, Logger logger) {
 		if(paramValues != null && !paramValues.isEmpty()) {
 			logger.info("Executing parameters within insight recipe");
 			String paramPixel = null;
@@ -341,244 +594,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			}
 		}
 		
-		/*
-		 * 6) Run any additional pixels that are also passed in 
-		 */
-		
-		// after we have gotten back either the insight or cached insight
-		// now we can add the additional pixels if any were past in / exist
-		List<String> additionalPixels = getAdditionalPixels();
-		if(additionalPixels != null && !additionalPixels.isEmpty()) {
-			logger.info("Running additional pixels in addition to the insight recipe");
-			// use the existing runner
-			// and run the additional pixels
-			newInsight.runPixel(runner, additionalPixels);
-		}
-		logger.info("Painting results");
-		
-		// add to the users opened insights
-		if(user != null) {
-			user.addOpenInsight(projectId, rdbmsId, newInsight.getInsightId());
-		}
-		
-		// update the universal view count
-		GlobalInsightCountUpdater.getInstance().addToQueue(projectId, rdbmsId);
-		// tracking execution
-		UserTrackerFactory.getInstance().trackInsightExecution(newInsight);
-		
-		// add to user workspace
-		newInsight.setCacheInWorkspace(true);
-		
-		// return the recipe steps
-		Map<String, Object> runnerWraper = new HashMap<String, Object>();
-		runnerWraper.put("runner", runner);
-		// this is old way of doing/passing params
-		// where FE sends to the BE and then the BE echos it back to the FE
-		runnerWraper.put("params", params);
-		runnerWraper.put("additionalPixels", additionalPixels);
-		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
-		if(additionalMetas != null && !additionalMetas.isEmpty()) {
-			noun.addAllAdditionalReturn(additionalMetas);
-		}
-		return noun;
-	}
-
-	protected List<String> getAdditionalPixels() {
-		GenRowStruct additionalPixels = this.store.getNoun(ReactorKeysEnum.ADDITIONAL_PIXELS.getKey());
-		if(additionalPixels != null && !additionalPixels.isEmpty()) {
-			List<String> pixels = new Vector<String>();
-			int size = additionalPixels.size();
-			for(int i = 0; i < size; i++) {
-				pixels.add(additionalPixels.get(i).toString());
-			}
-			return pixels;
-		}
-
-		// no additional pixels to run
-		return null;
-	}
-	
-	protected Map<String, String> getInsightParamValueMap() {
-		GenRowStruct paramValues = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if(paramValues != null && !paramValues.isEmpty()) {
-			return (Map<String, String>) paramValues.get(0);
-		}
-
-		// no additional pixels to run
-		return null;
-	}
-	
-	/**
-	 * Get the cached insight
-	 * @param engineId
-	 * @param insightId
-	 * @return
-	 */
-	protected Insight getCachedInsight(Insight existingInsight) throws IOException, JsonSyntaxException {
-		Insight insight = null;
-		String insightZipLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight) + DIR_SEPARATOR + InsightCacheUtility.INSIGHT_ZIP;
-		File insightZip = new File(insightZipLoc);
-		if(!insightZip.exists()) {
-			// just return null
-			return null;
-		}
-		
-		String versionFileLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight) + DIR_SEPARATOR + InsightCacheUtility.VERSION_FILE;
-		File versionFile = new File(versionFileLoc);
-		if(!versionFile.exists() || !versionFile.isFile()) {
-			// delete the current cache in case it is not accurate
-			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-					existingInsight.getRdbmsId(), true);
-			return null;
-		}
-		Properties vProp = Utility.loadProperties(versionFileLoc);
-		String versionStr = vProp.getProperty(InsightCacheUtility.VERSION_KEY);
-		String dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
-		if(versionStr == null || (versionStr=versionStr.trim()).isEmpty()
-			|| versionStr == null || (versionStr=versionStr.trim()).isEmpty()) {
-			// delete the current cache in case it is not accurate
-			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-					existingInsight.getRdbmsId(), true);
-			return null;
-		}
-		// check the version is accurate / the same
-		if(!versionStr.equals(VersionReactor.getVersionMap(false).get(VersionReactor.VERSION_KEY))) {
-			// different semoss version, delete the cache
-			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-					existingInsight.getRdbmsId(), true);
-			return null;
-		}
-		
-		LocalDateTime cachedDateTime = null;
-		try {
-			cachedDateTime = LocalDateTime.parse(dateGenStr);
-		} catch(Exception e) {
-			// someone has been manually touching the file and they should
-			// write the version file again with todays date
-			versionFile.delete();
-			InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
-			vProp = Utility.loadProperties(versionFileLoc);
-			dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
-			cachedDateTime = LocalDateTime.parse(dateGenStr);
-		}
-		
-		// check cache doesn't have a time expiration
-		int cacheMinutes = existingInsight.getCacheMinutes();
-		if(cacheMinutes > 0) {
-			if(cachedDateTime.plusMinutes(cacheMinutes).isBefore(LocalDateTime.now())) {
-				InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-						existingInsight.getRdbmsId(), true);
-				return null;
-			}
-		}
-		
-		// check cache doesn't have a set expiration
-		String cacheCron = existingInsight.getCacheCron();
-		if(cacheCron != null && !cacheCron.isEmpty()) {
-			CronExpression expression;
-			try {
-				expression = new CronExpression(cacheCron);
-				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
-				Date cachedDateObj = Date.from(cachedDateTime.atZone(tz.toZoneId()).toInstant());
-				Date nextValidTimeAfter = expression.getNextValidTimeAfter(cachedDateObj);
-				if(nextValidTimeAfter.before(cachedDateObj)) {
-					InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-							existingInsight.getRdbmsId(), true);
-					return null;
-				}
-			} catch (ParseException e) {
-				// invalid cron... not sure if we should ever get to this point
-				classLogger.error(Constants.STACKTRACE, e);
-				return null;
-			}
-		}
-		
-		insight = InsightCacheUtility.readInsightCache(insightZip, existingInsight);
-		insight.setCachedDateTime(cachedDateTime);
-		return insight;
-	}
-	
-	/**
-	 * Get cached insight view data
-	 * @param cachedInsight
-	 * @return
-	 */
-	protected PixelRunner getCachedInsightData(Insight cachedInsight) throws IOException, JsonSyntaxException {
-		// so that I don't mess up the insight recipe
-		// use the object as it contains a ton of metadata
-		// around the pixel step
-		PixelList orig = cachedInsight.getPixelList().copy();
-		// clear the current insight recipe
-		cachedInsight.setPixelRecipe(new Vector<String>());
-		
-		PixelRunner runner = new PixelRunner();
-		runner.setInsight(cachedInsight);
-		
-		// send the view data
-		try {
-			// add when this insight was cached
-			if(cachedInsight.getCachedDateTime() != null) {
-				runner.addResult("GetInsightCachedDateTime();", new NounMetadata(cachedInsight.getCachedDateTime().toString(), PixelDataType.CONST_STRING), true);
-			} else {
-				runner.addResult("GetInsightCachedDateTime();", new NounMetadata("Could not determine cached timestamp for insight", PixelDataType.CONST_STRING), true);
-			}
-			// logic to get all the frame headers
-			// add this first to the return object
-			{
-				// get all frame headers
-				VarStore vStore = cachedInsight.getVarStore();
-				List<String> keys = vStore.getFrameKeysCopy();
-				for(String k : keys) {
-					NounMetadata noun = vStore.get(k);
-					PixelDataType type = noun.getNounType();
-					if(type == PixelDataType.FRAME) {
-						try {
-							ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-							runner.addResult("CACHED_FRAME_HEADERS", 
-									new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, 
-											PixelOperationType.FRAME_HEADERS), true);
-						} catch(Exception e) {
-							classLogger.error(Constants.STACKTRACE, e);
-							// ignore
-						}
-					}
-				}
-			}
-			// now add in the cached insight view dataw
-			Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(cachedInsight);
-			List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
-			if(!pixelReturn.isEmpty()) {
-				runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
-			}
-			
-			// get the insight config for layout
-			NounMetadata insightConfig = cachedInsight.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
-			if(insightConfig != null) {
-				runner.addResult("META | GetInsightConfig()", insightConfig, true);
-			}
-		} finally {
-			// we need to reset the recipe
-			cachedInsight.setPixelList(orig);
-		}
-		
+		// return the runner - should be the runner from executing RunParameterRecipe 
+		// if execution was successful
 		return runner;
-	}
-	
-	/**
-	 * Get the variables that the execution would eventually drop to exclude from 
-	 * @return
-	 */
-	protected Set<String> getCachedRecipeVariableExclusion(PixelRunner runner) {
-		Set<String> varsToExclude = new HashSet<String>();
-		
-		List<NounMetadata> results = runner.getResults();
-		for(NounMetadata res : results) {
-			if(res.getNounType() == PixelDataType.REMOVE_VARIABLE) {
-				varsToExclude.add(res.getValue().toString());
-			}
-		}
-		
-		return varsToExclude;
 	}
 	
 	/**
