@@ -256,6 +256,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * Get params needed for execution
 	 * @return
 	 */
+	@Deprecated
 	protected Object getExecutionParams() {
 		GenRowStruct paramGrs = this.store.getNoun(ReactorKeysEnum.PARAM_KEY.getKey());
 		if(paramGrs == null || paramGrs.isEmpty()) {
@@ -271,6 +272,20 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			}
 			return params;
 		}
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	protected Map<String, Object> getInsightParamValueMap() {
+		GenRowStruct paramValues = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if(paramValues != null && !paramValues.isEmpty()) {
+			return (Map<String, Object>) paramValues.get(0);
+		}
+
+		// no additional pixels to run
+		return null;
 	}
 	
 	protected List<String> decodeRecipe(List<String> recipe) {
