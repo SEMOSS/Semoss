@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.insights.save;
 
+import java.util.Map;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -8,12 +10,12 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 
-public class DeleteInsightCacheReactor extends AbstractReactor {
+public class DeleteInsightCacheReactor extends AbstractInsightReactor {
 
 	public DeleteInsightCacheReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
 	}
 	
 	@Override
@@ -21,6 +23,7 @@ public class DeleteInsightCacheReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
+		Map<String, Object> parameterValues = getInsightParamValueMap();
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
@@ -34,7 +37,7 @@ public class DeleteInsightCacheReactor extends AbstractReactor {
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 		
 		try {
-			InsightCacheUtility.deleteCache(projectId, projectName, rdbmsId, true);
+			InsightCacheUtility.deleteCache(projectId, projectName, rdbmsId, parameterValues, true);
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch(Exception e) {
 			return new NounMetadata(false, PixelDataType.BOOLEAN);

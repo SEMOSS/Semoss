@@ -128,9 +128,8 @@ public class Insight implements Serializable {
 	protected String cacheCron;
 	protected boolean cacheEncrypt = false;
 	private transient LocalDateTime cachedDateTime = null;
+	private transient Map<String, Object> paramValues;
 	protected int count = 0;
-	
-	protected String tupleSpace = null;
 	
 	// list to store the pixels that make this insight
 	private transient PixelList pixelList;
@@ -164,10 +163,11 @@ public class Insight implements Serializable {
 	// we will keep a central rJavaTranslator for the entire insight
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
+	protected String tupleSpace = null;
 	private transient AbstractRJavaTranslator rJavaTranslator;
 	private transient PyTranslator pyt;
 	private transient PyExecutorThread jepThread = null;
-	
+
 	private transient SaveInsightIntoWorkspace workspaceCacheThread = null;
 	private transient boolean cacheInWorkspace = false;
 	
@@ -676,6 +676,14 @@ public class Insight implements Serializable {
 
 	public void setCachedDateTime(LocalDateTime cachedDateTime) {
 		this.cachedDateTime = cachedDateTime;
+	}
+
+	public Map<String, Object> getParamValues() {
+		return paramValues;
+	}
+
+	public void setParamValues(Map<String, Object> paramValues) {
+		this.paramValues = paramValues;
 	}
 
 	public VarStore getVarStore() {

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -128,6 +129,7 @@ class InsightCacher implements Runnable {
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
 				String cacheCron = Utility.getApplicationCacheCron();
 				LocalDateTime cachedOn = null;
+				Map<String, Object> parameterValues = null;
 				
 				if(created) {
 					// update the existing insight
@@ -137,7 +139,7 @@ class InsightCacher implements Runnable {
 					SecurityInsightUtils.updateInsight(this.workspaceAppId, this.workspaceSavedInsightId, inName, true, 
 							"default", cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, lastPixel);
 					// delete the cache if it is there
-					InsightCacheUtility.deleteCache(this.workspaceAppId, this.workspaceAppName, this.workspaceSavedInsightId, true);
+					InsightCacheUtility.deleteCache(this.workspaceAppId, this.workspaceAppName, this.workspaceSavedInsightId, parameterValues, true);
 
 				} else {
 					// create new
