@@ -127,6 +127,9 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
  	 */
 
  	public void addExecutedCode(String code) {
+ 		if(this.codeExecuted.isEmpty()) {
+ 			this.codeExecuted.add("###### Code executed from " + getClass().getSimpleName() + " #######");
+ 		}
  		this.codeExecuted.add(code);
  	}
 	
