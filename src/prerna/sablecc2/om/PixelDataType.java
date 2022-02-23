@@ -78,6 +78,8 @@ public enum PixelDataType {
 	INVALID_SYNTAX("INVALID_SYNTAX", null),
 	R_CONNECTION("R_CONNECTION", null),
 	R_ENGINE("R_ENGINE", null),
+	
+	PIXEL_OBJECT("PIXEL_OBJECT", null),
 	CUSTOM_DATA_STRUCTURE ("CUSTOM_DATA_STRUCTURE", null),
 	
 	// running cached and new insights
