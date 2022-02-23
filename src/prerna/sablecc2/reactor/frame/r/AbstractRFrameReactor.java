@@ -260,6 +260,9 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
  	 */
 
  	public void addExecutedCode(String code) {
+ 		if(this.codeExecuted.isEmpty()) {
+ 			this.codeExecuted.add("###### Code executed from " + getClass().getSimpleName() + " #######");
+ 		}
  		this.codeExecuted.add(code);
  	}
 	

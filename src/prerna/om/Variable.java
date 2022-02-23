@@ -1,9 +1,7 @@
 package prerna.om;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Variable {
 	
@@ -80,6 +78,18 @@ public class Variable {
 
 	public void setFormat(String format) {
 		this.format = format;
+	}
+	
+	public static String getExtension(LANGUAGE language) {
+		if(language == LANGUAGE.JAVA) {
+			return "java";
+		} else if(language == LANGUAGE.R) {
+			return "R";
+		} else if(language == LANGUAGE.PYTHON) {
+			return "py";
+		}
+		
+		return null;
 	}
 }
 
