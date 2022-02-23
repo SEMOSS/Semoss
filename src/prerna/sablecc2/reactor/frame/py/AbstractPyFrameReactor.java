@@ -141,7 +141,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 
 	@Override
 	public LANGUAGE getLanguage() {
-		return LANGUAGE.R;
+		return LANGUAGE.PYTHON;
 	}
 	
 	@Override
