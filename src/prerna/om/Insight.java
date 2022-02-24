@@ -128,7 +128,6 @@ public class Insight implements Serializable {
 	protected String cacheCron;
 	protected boolean cacheEncrypt = false;
 	private transient LocalDateTime cachedDateTime = null;
-	private transient Map<String, Object> paramValues;
 	protected int count = 0;
 	
 	// list to store the pixels that make this insight
@@ -676,14 +675,6 @@ public class Insight implements Serializable {
 
 	public void setCachedDateTime(LocalDateTime cachedDateTime) {
 		this.cachedDateTime = cachedDateTime;
-	}
-
-	public Map<String, Object> getParamValues() {
-		return paramValues;
-	}
-
-	public void setParamValues(Map<String, Object> paramValues) {
-		this.paramValues = paramValues;
 	}
 
 	public VarStore getVarStore() {
