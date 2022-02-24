@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.commons.io.FilenameUtils;
+
 import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -25,11 +27,21 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		this.organizeKeys();
 		
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
 					throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 			 };
 		}
+		
+		//check if script sourcing terminal is disabled
+		String disable_script_scource =  DIHelper.getInstance().getProperty(Constants.DISABLE_SCRIPT_SOURCE);
+		if(disable_script_scource != null && !disable_script_scource.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_script_scource)) {
+					throw new IllegalArgumentException("Script Sourcing has been disabled.");
+			 }
+		}
+		
 		
 		String relativePath =  Utility.normalizePath( this.keyValue.get(this.keysToGet[0]));
 		String path = getBaseFolder() + "/Py/" + relativePath;
@@ -40,7 +52,17 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		// if(!file.exists())
 		path = assetFolder + "/" + relativePath;
 		path = path.replace("\\", "/");
+		
+		//strict script source, we will check if its .r/.R or .py/.Py
+		String strict_script_source =  DIHelper.getInstance().getProperty(Constants.STRICT_SCRIPT_SOURCE);
+		if(Boolean.parseBoolean(strict_script_source)){
+			 String extension = FilenameUtils.getExtension(path);
+			 if(!extension.equalsIgnoreCase("r")) {
+					throw new IllegalArgumentException("Only user code with extensions .R or .r may be sourced by this reactor");
+			 }
+		}
 
+		
 		File file = new File(path);
 		String name = file.getName();
 		name = name.replaceAll(".py", "");

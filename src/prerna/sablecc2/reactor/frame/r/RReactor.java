@@ -45,6 +45,14 @@ public final class RReactor extends AbstractRFrameReactor {
 				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 			}
 		}
+		
+		//check if r is disabled
+		String disable_r_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_R_TERMINAL);
+		if(disable_r_terminal != null && !disable_r_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_r_terminal)) {
+					throw new IllegalArgumentException("R terminal has been disabled.");
+			 }
+		}
 
 		// if it first time..
 		// get the meta synchronized
