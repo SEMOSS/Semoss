@@ -16,8 +16,11 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -85,7 +88,13 @@ public class InsightCacheUtility {
 			MessageDigest messageDigest;
 			try {
 				messageDigest = MessageDigest.getInstance("SHA-256");
-				byte[] hash = messageDigest.digest(parameters.toString().getBytes());
+				TreeMap<String, Object> orderedParams = new TreeMap<>(parameters);
+				for(String key : orderedParams.keySet()) {
+					if(orderedParams.get(key) instanceof List) {
+						Collections.sort((List) orderedParams.get(key));
+					}
+				}
+				byte[] hash = messageDigest.digest(orderedParams.toString().getBytes());
 				// convert bytes to hexadecimal
 		        StringBuilder s = new StringBuilder();
 		        for (byte b : hash) {
