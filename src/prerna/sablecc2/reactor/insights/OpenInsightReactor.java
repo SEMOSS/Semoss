@@ -203,11 +203,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			cacheable = newInsight.isCacheable();
 		}
 		Map<String, Object> paramValues = getInsightParamValueMap();
-		newInsight.setParamValues(paramValues);
 		
-		// TODO: i am cheating here
-		// we do not cache dashboards or param insights currently
-		// so adding the cacheable check before hand
+		// i am not sure where these params are used...
 		Object params = getExecutionParams();
 //		boolean isParam = cacheable && (params != null || PixelUtility.isNotCacheable(newInsight.getPixelList().getPixelRecipe()));
 		boolean isDashoard = cacheable && PixelUtility.isDashboard(newInsight.getPixelList().getPixelRecipe());
