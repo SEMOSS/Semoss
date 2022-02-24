@@ -49,9 +49,17 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 			}
 		}
-
+		
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is not enabled to use the following command");
+		}
+		
+		//check if py terminal is disabled
+		String disable_py_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_PY_TERMINAL);
+		if(disable_py_terminal != null && !disable_py_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_py_terminal)) {
+					throw new IllegalArgumentException("Python terminal has been disabled.");
+			 }
 		}
 		Logger logger = getLogger(CLASS_NAME);
 
