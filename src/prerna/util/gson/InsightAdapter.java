@@ -54,9 +54,12 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	// or potentially the full user object
 	private Insight existingInsight;
 	private ZipFile zip;
-	private ZipOutputStream zos;
-	private Set<String> varsToExclude;
 	
+	private ZipOutputStream zos;
+	private String folderDir;
+	
+	private Set<String> varsToExclude;
+
 	/**
 	 * Constructor for reading
 	 * @param zip
@@ -68,9 +71,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	
 	/**
 	 * Constructor for writing
+	 * @param folderDir
 	 * @param zos
 	 */
-	public InsightAdapter(ZipOutputStream zos) {
+	public InsightAdapter(String folderDir, ZipOutputStream zos) {
+		this.folderDir = folderDir;
 		this.zos = zos;
 		this.varsToExclude = new HashSet<>();
 	}
@@ -80,16 +85,14 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		String rdbmsId = value.getRdbmsId();
 		String projectId = value.getProjectId();
 		String projectName = value.getProjectName();
-		Map<String, Object> paramValues = value.getParamValues();
 		
 		if(projectId == null || rdbmsId == null || projectName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folderDir = InsightCacheUtility.getInsightCacheFolderPath(projectId, projectName, rdbmsId, paramValues);
-		if(!(new File(Utility.normalizePath(folderDir)).exists())) {
-			new File(Utility.normalizePath(folderDir)).mkdirs();
+		if(!(new File(Utility.normalizePath(this.folderDir)).exists())) {
+			new File(Utility.normalizePath(this.folderDir)).mkdirs();
 		}
 		
 		// start insight object
@@ -123,7 +126,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		for(FrameCacheHelper fObj : frames) {
 			// set the logger for this frame
 			fObj.getFrame().setLogger(logger);
-			CachePropFileFrameObject saveFrame = fObj.getFrame().save(folderDir);
+			CachePropFileFrameObject saveFrame = fObj.getFrame().save(this.folderDir);
 			out.beginObject();
 			out.name("file").value(parameterizePath(saveFrame.getFrameCacheLocation(), baseFolder, projectName, projectId));
 			out.name("meta").value(parameterizePath(saveFrame.getFrameMetaCacheLocation(), baseFolder, projectName, projectId));
@@ -210,7 +213,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		
 		// write the json for the viz
 		// this doesn't actually add anything to the insight object
-		File vizOutputFile = new File(Utility.normalizePath(folderDir) + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
+		File vizOutputFile = new File(Utility.normalizePath(this.folderDir) + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
 		// lets write it
 		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile);
 		
