@@ -13,6 +13,8 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
@@ -79,6 +81,22 @@ public class InsightCacheUtility {
 	public static String getInsightCacheFolderPath(String projectId, String projectName, String rdbmsId, Map<String, Object> parameters) {
 		String folderDir = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) 
 				+ DIR_SEPARATOR +  rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
+		if(parameters != null && !parameters.isEmpty()) {
+			MessageDigest messageDigest;
+			try {
+				messageDigest = MessageDigest.getInstance("SHA-256");
+				byte[] hash = messageDigest.digest(parameters.toString().getBytes());
+				// convert bytes to hexadecimal
+		        StringBuilder s = new StringBuilder();
+		        for (byte b : hash) {
+		            s.append(Integer.toString((b & 0xff) + 0x100, 16).substring(1));
+		        }
+				
+				folderDir = folderDir + DIR_SEPARATOR + s.toString();
+			} catch (NoSuchAlgorithmException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
 		return folderDir;
 	}
 	
@@ -109,7 +127,7 @@ public class InsightCacheUtility {
 			fos = new FileOutputStream(zipFile.getAbsolutePath());
 			zos = new ZipOutputStream(fos);
 			
-			InsightAdapter iAdapter = new InsightAdapter(zos);
+			InsightAdapter iAdapter = new InsightAdapter(normalizedFolderDir, zos);
 			iAdapter.setVarsToExclude(varsToExclude);
 			StringWriter writer = new StringWriter();
 			JsonWriter jWriter = new JsonWriter(writer);
@@ -130,6 +148,11 @@ public class InsightCacheUtility {
 			addToZipFile(versionFile, zos);
 
 			// update the metadata
+			// TODO: how do we store this at the parameter level
+			// TODO: how do we store this at the parameter level
+			// TODO: how do we store this at the parameter level
+			// TODO: how do we store this at the parameter level
+			// TODO: how do we store this at the parameter level
 			IProject project = Utility.getProject(projectId);
 			LocalDateTime cachedOn = LocalDateTime.now();
 			InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
