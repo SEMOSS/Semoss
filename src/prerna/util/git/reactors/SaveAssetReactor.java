@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -12,6 +13,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class SaveAssetReactor extends AbstractReactor {
@@ -38,6 +41,17 @@ public class SaveAssetReactor extends AbstractReactor {
 		// this takes in the insight and does a user check that the user has access to perform the operations
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
 		String fileName = Utility.normalizePath(keyValue.get(keysToGet[0]));
+		
+		
+		//CFG Releated add to limit saving R/Py Files in prod - No new files can be created but they can be sourced
+		boolean strict_script_source =  Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.STRICT_SCRIPT_SOURCE));
+		if(strict_script_source) {
+			 String extension = FilenameUtils.getExtension(fileName);
+			 if(extension.equalsIgnoreCase("py") || extension.equalsIgnoreCase("R") ) {
+					throw new IllegalArgumentException("User is not allowed to create or save R or Py scripts");
+			 }
+		}
+		
 		String filePath = assetFolder + "/" + fileName;
 		String content = keyValue.get(keysToGet[1]);
 

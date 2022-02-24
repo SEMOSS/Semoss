@@ -40,6 +40,14 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			}
 		}
 
+		//check if java terminal is disabled
+		String disable_java_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_JAVA_TERMINAL);
+		if(disable_java_terminal != null && !disable_java_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_java_terminal)) {
+					throw new IllegalArgumentException("Java terminal has been disabled.");
+			 }
+		}
+		
 		ReactorSecurityManager tempManager = new ReactorSecurityManager();
 		String className = "c" + System.currentTimeMillis();
 		String packageName = "t" + System.currentTimeMillis();
