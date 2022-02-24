@@ -5,8 +5,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 import org.apache.commons.io.FileUtils;
@@ -28,6 +31,8 @@ public class CommandReactor extends GitBaseReactor {
 	
 	private static final String CLASS_NAME = CommandReactor.class.getName();
 	
+	static final Set<String> approvedProdCommands = new HashSet<String>(
+		       Arrays.asList("PULL", "CLONE", "RESET", "STATUS"));
 	// takes in a the name and engine and mounts the engine assets as that variable name in both python and R
 	// I need to accomodate for when I should over ride
 	// for instance a user could have saved a recipe with some mapping and then later, they would like to use a different mapping
@@ -40,12 +45,28 @@ public class CommandReactor extends GitBaseReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		
+		String gitProvider = DIHelper.getInstance().getProperty(Constants.GIT_PROVIDER);
+		
+		if(gitProvider == null) {
+			gitProvider="";
+		}
+		
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
 					throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 			 }
 		}
+		//check if git is disabled
+		String disable_git_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_GIT_TERMINAL);
+		if(disable_git_terminal != null && !disable_git_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_git_terminal)) {
+					throw new IllegalArgumentException("Git terminal has been disabled.");
+			 }
+		}
+	
 		
 		organizeKeys();
 		String command = keyValue.get(keysToGet[0]);
@@ -92,7 +113,7 @@ public class CommandReactor extends GitBaseReactor {
 			if(isCloneAllowed != null && !isCloneAllowed)
 				preCloneMessage = "You are cloning into a folder that is already part of git. Tracking at this level will be disabled";
 				//return NounMetadata.getErrorNounMessage("Clone is not allowed at this level ");				
-		}		
+		}
 				
 		// pre-processing for cd
 		// basically we try to see if the cd dir being done exists
@@ -135,6 +156,52 @@ public class CommandReactor extends GitBaseReactor {
 				return NounMetadata.getErrorNounMessage("Global config cannot be set in this environment");
 			}
 		}
+		
+		
+		//check that it is only git pull or git clone in prod for CFG
+		// for this, trusted repo and default branch must be limited
+		if(git.equalsIgnoreCase("git") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
+			
+			
+			 String trustedRepo =  DIHelper.getInstance().getProperty(Constants.GIT_TRUSTED_REPO);
+			 String defaultBranch =  DIHelper.getInstance().getProperty(Constants.GIT_DEFAULT_BRANCH);
+
+			 if(trustedRepo!=null && !trustedRepo.isEmpty()) {
+				 if(defaultBranch!=null && !defaultBranch.isEmpty()) {
+					 if(!approvedProdCommands.contains(gitCommand.toUpperCase())){
+							return NounMetadata.getErrorNounMessage("Only git clone, pull, status, reset are allowed in this environment");
+					 }
+				 }
+			 }
+		 
+		} 
+		
+		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("pull") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
+			String token = getToken();
+			return GitPushUtils.pull(util.getWorkingDir(), token, AuthProvider.GITLAB);	
+			//return new NounMetadata("Git Pulled", PixelDataType.CONST_STRING, PixelOperationType.HELP);
+
+		} 
+		
+		
+		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("checkout") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
+			String token = getToken();
+			String branch = commands.nextToken();
+
+			return GitPushUtils.checkout(util.getWorkingDir(), branch, token, AuthProvider.GITLAB);	
+			//return new NounMetadata("Checked out " + branch, PixelDataType.CONST_STRING, PixelOperationType.HELP);
+
+		}
+		
+		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("clone") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
+			String token = getToken();
+			String repo = commands.nextToken();
+
+			return GitPushUtils.clone(util.getWorkingDir(), repo, token, AuthProvider.GITLAB);	
+			//return new NounMetadata("Cloned " + repo, PixelDataType.CONST_STRING, PixelOperationType.HELP);
+
+		}
+
 
 		String output = util.executeCommand(command);
 		
@@ -176,6 +243,10 @@ public class CommandReactor extends GitBaseReactor {
 			
 			if(gitCommand.equalsIgnoreCase("git") && push.equalsIgnoreCase("push"))
 			{
+				
+				//TODO Kunal - This is where I can add the limitations on where you can push to
+				// check should be if its not master, its probably okay
+				
 				String remoteName = "origin";
 				if(commands.hasMoreTokens())
 					remoteName = commands.nextToken();
@@ -192,8 +263,8 @@ public class CommandReactor extends GitBaseReactor {
 				
 				// do a quick check to see if the remote is 
 				String url = GitRepoUtils.getConfigRemoteURL(workingDir, remoteName);
-				
-				if(url != null && url.contains("github")) // need something to say these are Oauth2'able
+				//&& url.contains("github")
+				if(url != null ) // need something to say these are Oauth2'able
 				{
 					GitPushUtils.push(workingDir, remoteName, branch, token);	
 					return new NounMetadata("Pushing Git", PixelDataType.CONST_STRING, PixelOperationType.HELP);
@@ -202,6 +273,8 @@ public class CommandReactor extends GitBaseReactor {
 		}
 		return null;
 	}
+	
+	
 	
 	private void postProcessClone(String command, String workingDir, boolean cloneAllowed)
 	{
