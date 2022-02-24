@@ -586,8 +586,12 @@ public class Constants {
 	
 	// disable terminal and user code inputs
 	public static final String DISABLE_TERMINAL = "DISABLE_TERMINAL";
-	public static final String ENABLE_GIT_TERMINAL = "ENABLE_GIT_TERMINAL";
-	public static final String ENABLE_SCRIPT_SOURCE = "ENABLE_SCRIPT_SOURCE";
+	public static final String DISABLE_R_TERMINAL = "DISABLE_R_TERMINAL";
+	public static final String DISABLE_PY_TERMINAL = "DISABLE_PY_TERMINAL";
+	public static final String DISABLE_GIT_TERMINAL = "DISABLE_GIT_TERMINAL";
+	public static final String DISABLE_JAVA_TERMINAL = "DISABLE_JAVA_TERMINAL";
+	public static final String DISABLE_SCRIPT_SOURCE = "DISABLE_SCRIPT_SOURCE";
+	public static final String STRICT_SCRIPT_SOURCE = "STRICT_SCRIPT_SOURCE";
 	public static final String GIT_TRUSTED_REPO="GIT_TRUSTED_REPO";
 	public static final String GIT_DEFAULT_BRANCH="GIT_DEFAULT_BRANCH";
 
