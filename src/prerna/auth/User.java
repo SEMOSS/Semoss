@@ -474,6 +474,36 @@ public class User implements Serializable {
 		return retMap;
 	}
 	
+	public static Map<String, Map<String, String>> getLoginDetails(User semossUser) {
+		Map<String, Map<String, String>> retMap = new HashMap<>();
+		if(semossUser == null) {
+			return retMap;
+		}
+		if(semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
+			Map<String, String> innerMap = new HashMap<>();
+			innerMap.put("id", semossUser.getAnonymousId());
+			innerMap.put("name", "Sign In");
+			retMap.put("ANONYMOUS", innerMap);
+		} else {
+			for(AuthProvider p : semossUser.loggedInProfiles) {
+				AccessToken token = semossUser.getAccessToken(p);
+				String id = token.getId();
+				String name = token.getName();
+				if(name == null) {
+					// need to send something
+					name = "";
+				}
+				
+				Map<String, String> innerMap = new HashMap<>();
+				innerMap.put("id", id);
+				innerMap.put("name", name);
+				retMap.put(p.toString(), innerMap);
+			}
+		}
+		
+		return retMap;
+	}
+	
 	public static String getSingleLogginName(User semossUser) {
 		if(semossUser == null) {
 			return "";
