@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.frame.filter;
 
 import java.util.List;
 
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.filters.BooleanValMetadata;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -14,7 +16,7 @@ import prerna.util.insight.InsightUtility;
 public class UnfilterFrameReactor extends AbstractFilterReactor {
 
 	public UnfilterFrameReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), TASK_REFRESH_KEY };
 	}
 
 	@Override
@@ -45,6 +47,10 @@ public class UnfilterFrameReactor extends AbstractFilterReactor {
 		fFilterVal.setName(frame.getName());
 		fFilterVal.setFilterVal(foundFilter);
 		NounMetadata noun = new NounMetadata(fFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.FRAME_FILTER_CHANGE);
+		if(foundFilter && isRefreshTasks()) {
+			Logger logger = getLogger(SetFrameFilterReactor.class.getName());
+			InsightUtility.addInsightPanelRefreshFromFrameFilter(this.insight, frame, noun, logger);
+		}
 		return noun;
 	}
 }

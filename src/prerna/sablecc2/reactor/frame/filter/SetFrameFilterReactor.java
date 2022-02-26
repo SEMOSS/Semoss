@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.frame.filter;
 
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.filters.BooleanValMetadata;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -15,7 +17,7 @@ import prerna.util.insight.InsightUtility;
 public class SetFrameFilterReactor extends AbstractFilterReactor {
 
 	public SetFrameFilterReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILTERS.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILTERS.getKey(), TASK_REFRESH_KEY };
 	}
 
 	@Override
@@ -55,6 +57,10 @@ public class SetFrameFilterReactor extends AbstractFilterReactor {
 		fFilterVal.setName(frame.getName());
 		fFilterVal.setFilterVal(true);
 		NounMetadata noun = new NounMetadata(fFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.FRAME_FILTER_CHANGE);
+		if(isRefreshTasks()) {
+			Logger logger = getLogger(SetFrameFilterReactor.class.getName());
+			InsightUtility.addInsightPanelRefreshFromFrameFilter(this.insight, frame, noun, logger);
+		}
 		return noun;
 	}
 }

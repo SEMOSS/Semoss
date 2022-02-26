@@ -110,6 +110,7 @@ public class Insight implements Serializable {
 	// we will use a special key 
 	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
 	private static transient final String INSIGHT_FOLDER_KEY = "INSIGHT_FOLDER";
+	public static transient final String FILTER_REFRESH_KEY = "$FILTER_REFRESH";
 
 	// this is the id it is assigned within the InsightCache
 	// it varies from one instance of an insight to another instance of the same insight
@@ -1448,19 +1449,6 @@ public class Insight implements Serializable {
 		return retURL.toString();
 	}
 	
-	/**
-	 * Utility method to pull from VarStore
-	 * @param varName
-	 * @return
-	 */
-	public Object getVar(String varName) {
-		Object retObject = this.varStore.get(varName);
-		if(retObject != null) {
-			return ((NounMetadata)retObject).getValue();
-		}
-		return null;
-	}
-	
 	public String getProperty(String propName)
 	{
 		String retOutput = DIHelper.getInstance().getProperty(propName);
@@ -1519,8 +1507,7 @@ public class Insight implements Serializable {
 		}
 	}
 	
-	public ITableDataFrame getFrame(String frameName)
-	{
+	public ITableDataFrame getFrame(String frameName) {
 		return this.varStore.getFrame(frameName);
 	}
 	
@@ -1555,6 +1542,29 @@ public class Insight implements Serializable {
 	
 	public List<String> getAllVars() {
 		return this.varStore.getDynamicVarKeys();
+	}
+	
+	/**
+	 * Utility method to pull from VarStore
+	 * @param varName
+	 * @return
+	 */
+	public Object getVar(String varName) {
+		Object retObject = this.varStore.get(varName);
+		if(retObject != null) {
+			return ((NounMetadata)retObject).getValue();
+		}
+		return null;
+	}
+	
+	public NounMetadata setInsightFilterRefresh(boolean filterRefresh) {
+		NounMetadata noun = new NounMetadata(filterRefresh, PixelDataType.BOOLEAN);
+		this.varStore.put(FILTER_REFRESH_KEY, noun);
+		return noun;
+	}
+	
+	public Boolean getInsightFilterRefresh() {
+		return (Boolean) getVar(FILTER_REFRESH_KEY);
 	}
 
 	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
