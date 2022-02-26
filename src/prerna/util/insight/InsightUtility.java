@@ -5,6 +5,7 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -37,8 +38,10 @@ import prerna.query.parsers.ParamStruct;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelUtility;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -47,13 +50,18 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.CalcVarReactor;
 import prerna.sablecc2.reactor.PixelPlanner;
+import prerna.sablecc2.reactor.export.CollectPivotReactor;
 import prerna.sablecc2.reactor.export.FormattingUtility;
+import prerna.sablecc2.reactor.export.IFormatter;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
+import prerna.sablecc2.reactor.task.AutoTaskOptionsHelper;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import prerna.util.gson.FrameCacheHelper;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
@@ -68,7 +76,7 @@ public class InsightUtility {
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.create();
 	
-	protected static final Logger logger = LogManager.getLogger(InsightUtility.class.getName());
+	protected static final Logger classLogger = LogManager.getLogger(InsightUtility.class.getName());
 	public static final String PANEL_VIEW_VISUALIZATION = "visualization";
 	
 	public static final String OUTPUT_TYPE = "output";
@@ -99,7 +107,7 @@ public class InsightUtility {
 		newInsight.setUser(origInsight.getUser());
 		// r
 		if(origInsight.rInstantiated()) {
-			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(logger));
+			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(classLogger));
 		}
 		// py
 		newInsight.setTupleSpace(origInsight.getTupleSpace());
@@ -142,7 +150,7 @@ public class InsightUtility {
 	 */
 	public static String getFolderDirSessionId(String sessionId) {
 		if(sessionId == null) {
-			logger.warn("SESSION ID is null");
+			classLogger.warn("SESSION ID is null");
 			return "null";
 		}
 		if(sessionId.length() > 32) {
@@ -299,12 +307,12 @@ public class InsightUtility {
 	 */
 	public static NounMetadata clearInsight(final Insight insight, boolean noOpType) {
 		synchronized(insight) {
-			logger.info("Start clearning insight " + insight.getInsightId());
+			classLogger.info("Start clearning insight " + insight.getInsightId());
 
 			// drop all the tasks that are currently running
 			TaskStore taskStore = insight.getTaskStore();
 			taskStore.clearAllTasks();
-			logger.debug("Successfully cleared all stored tasks for the insight");
+			classLogger.debug("Successfully cleared all stored tasks for the insight");
 	
 			// drop all the frame connections
 			VarStore varStore = insight.getVarStore();
@@ -319,25 +327,25 @@ public class InsightUtility {
 					ITableDataFrame dm = (ITableDataFrame) noun.getValue();
 					dm.close();
 				} catch(Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			for(ITableDataFrame dm : allCreatedFrames) {
 				if(!dm.isClosed()) {
 					try {
-						logger.info("There are untracked frames in this insight. Frame with name = " + dm.getName() );
+						classLogger.info("There are untracked frames in this insight. Frame with name = " + dm.getName() );
 						dm.close();
 					} catch(Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
 			
-			logger.debug("Successfully removed all frames from insight");
+			classLogger.debug("Successfully removed all frames from insight");
 			
 			// clear insight
 			insight.getVarStore().clear();
-			logger.debug("Successfully removed all variables from varstore");
+			classLogger.debug("Successfully removed all variables from varstore");
 	
 			// if you are a scheduler mode
 			// we will not delete the files
@@ -350,9 +358,9 @@ public class InsightUtility {
 							try {
 								File f = new File(insightFile.getFilePath());
 								f.delete();
-								logger.debug("Successfully deleted export file used in insight " + f.getName());
+								classLogger.debug("Successfully deleted export file used in insight " + f.getName());
 							} catch(Exception e) {
-								logger.error(Constants.STACKTRACE, e);
+								classLogger.error(Constants.STACKTRACE, e);
 							}
 						}
 					}
@@ -364,14 +372,14 @@ public class InsightUtility {
 			// this will happen in your environment
 			if(insight.rInstantiated() && insight.isDeleteREnvOnDropInsight()) {
 				try {
-					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(logger);
+					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(classLogger);
 					rJava.runR("rm(list=ls())");
 				} catch(Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			
-			logger.info("Successfully cleared insight " + insight.getInsightId());
+			classLogger.info("Successfully cleared insight " + insight.getInsightId());
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("suppress", noOpType);
 			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.CLEAR_INSIGHT);
@@ -380,7 +388,7 @@ public class InsightUtility {
 	
 	public static NounMetadata dropInsight(final Insight insight) {
 		synchronized(insight) {
-			logger.info("Droping insight " + insight.getInsightId());
+			classLogger.info("Droping insight " + insight.getInsightId());
 	
 			// i will first grab all the files used then delete them
 			// only if this is not a saved insight + not a copied insight used for preview
@@ -391,16 +399,16 @@ public class InsightUtility {
 						InsightFile file = fileData.get(fileIdx);
 						File f = new File(file.getFilePath());
 						f.delete();
-						logger.debug("Successfully deleted File used in insight " + file.getFilePath());
+						classLogger.debug("Successfully deleted File used in insight " + file.getFilePath());
 					}
 				}
 			}
 			
 			// now i will clear
-			logger.info("Clear insight for drop");
+			classLogger.info("Clear insight for drop");
 			clearInsight(insight, true);
 	
-			logger.debug("Removing from insight store");
+			classLogger.debug("Removing from insight store");
 			String insightId = insight.getInsightId();
 			InsightStore.getInstance().remove(insightId);
 	
@@ -416,10 +424,10 @@ public class InsightUtility {
 			// remove the environment
 			if(insight.rInstantiated() && insight.isDeleteREnvOnDropInsight()) {
 				try {
-					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(logger);
+					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(classLogger);
 					rJava.removeEnv();
 				} catch(Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			// if Python is instantiated
@@ -437,7 +445,7 @@ public class InsightUtility {
 //				}
 //			}
 			
-			logger.info("Successfully dropped insight " + insight.getInsightId());
+			classLogger.info("Successfully dropped insight " + insight.getInsightId());
 			// also remove from the user object as an open insight
 			if(insight.isSavedInsight() && insight.getUser() != null) {
 				insight.getUser().removeOpenInsight(insight.getProjectId(), insight.getRdbmsId(), insightId);
@@ -497,7 +505,7 @@ public class InsightUtility {
 				rerunInsight.addNewInsightPanel(panelClone);
 			}
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		PixelRunner pixelRunner = new PixelRunner();
@@ -515,13 +523,13 @@ public class InsightUtility {
 								new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, 
 										PixelOperationType.FRAME_HEADERS), true);
 					} catch(Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 						// ignore
 					}
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// now rerun the recipe and append to the runner
 		pixelRunner = rerunInsight.runPixel(pixelRunner, recipe);
@@ -648,7 +656,7 @@ public class InsightUtility {
 					retMap.put(frame.getName(), headers);
 				}
 			} else {
-				logger.info("You are grabbing frame headers but the noun doesn't refer to a frame... very vey weird....");
+				classLogger.info("You are grabbing frame headers but the noun doesn't refer to a frame... very vey weird....");
 			}
 		}
 
@@ -1011,7 +1019,7 @@ public class InsightUtility {
 
 		List<String> allDynamicVars = insight.getVarStore().getDynamicVarKeys();
 		if(allDynamicVars.isEmpty()) {
-			panel.setRenderedViewOptions(html);
+			panel.setRenderedViewOptions(html, new ArrayList<>());
 			return html;
 		}
 		
@@ -1050,8 +1058,255 @@ public class InsightUtility {
 			}
 		}
 		
-		panel.setRenderedViewOptions(html);
+		panel.setRenderedViewOptions(html, dynamicVarNames);
 		return html;
 	}
+	
+	/**
+	 * Add panel refresh for panel filtering
+	 * @param insight
+	 * @param frame
+	 * @param filterNoun
+	 * @param logger
+	 */
+	public static void addInsightPanelRefreshFromPanelFilter(Insight insight, InsightPanel panel, NounMetadata filterNoun, Logger logger) {
+		List<NounMetadata> taskOutput = new ArrayList<>();
+		List<NounMetadata> additionalMessages = new ArrayList<>();
+		InsightUtility.refreshPanelTasks(insight, panel, panel.getNumCollect(), taskOutput, additionalMessages, logger);
+		filterNoun.addAllAdditionalReturn(taskOutput);
+		filterNoun.addAllAdditionalReturn(additionalMessages);
+		InsightUtility.refreshViewFromPanelFilter(insight, panel, filterNoun, logger);
+	}
+	
+	/**
+	 * Add panel refresh for frame filtering
+	 * @param insight
+	 * @param frame
+	 * @param filterNoun
+	 * @param logger
+	 */
+	public static void addInsightPanelRefreshFromFrameFilter(Insight insight, ITableDataFrame frame, NounMetadata filterNoun, Logger logger) {
+		List<NounMetadata> taskOutput = new ArrayList<>();
+		List<NounMetadata> additionalMessages = new ArrayList<>();
+		InsightUtility.refreshInsightPanelTasksFromFrameFilter(insight, frame, taskOutput, additionalMessages, logger);
+		filterNoun.addAllAdditionalReturn(taskOutput);
+		filterNoun.addAllAdditionalReturn(additionalMessages);
+		InsightUtility.refreshViewFromFrameFilter(insight, frame, filterNoun, logger);
+	}
+	
+	/**
+	 * Get the updated tasks as a result of a frame filter
+	 * @param insight
+	 * @param frame
+	 * @param taskOutput
+	 * @param additionalMessages
+	 * @param logger
+	 */
+	public static void refreshInsightPanelTasksFromFrameFilter(Insight insight, ITableDataFrame frame, List<NounMetadata> taskOutput, List<NounMetadata> additionalMessages, Logger logger) {
+		List<InsightPanel> affectedPanels = getInsightPanelsUsingFrame(insight, frame);
+		for(InsightPanel panel : affectedPanels) {
+			InsightUtility.refreshPanelTasks(insight, panel, panel.getNumCollect(), taskOutput, additionalMessages, logger);
+		}
+	}
+	
+	/**
+	 * Get the insight panels that are using a specific frame for the view
+	 * @param insight
+	 * @param frame
+	 * @return
+	 */
+	public static List<InsightPanel> getInsightPanelsUsingFrame(Insight insight, ITableDataFrame frame) {
+		List<InsightPanel> affectedPanels = new ArrayList<>();
+		
+		Map<String, InsightPanel> insightPanelsMap = insight.getInsightPanels();
+		for(String panelId : insightPanelsMap.keySet()) {
+			InsightPanel panel = insightPanelsMap.get(panelId);
+			if(!panel.getPanelView().equalsIgnoreCase("visualization")) {
+				continue;
+			}
+			
+			Map<String, SelectQueryStruct> allQsOnPanel = panel.getLayerQueryStruct();
+			LAYER_LOOP : for(String layerId : allQsOnPanel.keySet()) {
+				SelectQueryStruct qs = allQsOnPanel.get(layerId);
+				QUERY_STRUCT_TYPE qsType = qs.getQsType();
+				if(qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+					if(qs.getFrame() == frame) {
+						affectedPanels.add(panel);
+						break LAYER_LOOP;
+					}
+				}
+			}
+		}
+		
+		return affectedPanels;
+	}
+	
+	/**
+	 * Refresh the tasks running on a panel
+	 * @param insight
+	 * @param panel
+	 * @param panelCollect
+	 * @param taskOutput
+	 * @param additionalMessages
+	 * @param logger
+	 */
+	public static void refreshPanelTasks(Insight insight, InsightPanel panel, int panelCollect, List<NounMetadata> taskOutput, List<NounMetadata> additionalMessages, Logger logger) {
+		String panelId = panel.getPanelId();
+		Map<String, SelectQueryStruct> lQs = panel.getLayerQueryStruct();
+		Map<String, TaskOptions> lTaskOption = panel.getLayerTaskOption();
+		Map<String, IFormatter> lFormatter = panel.getLayerFormatter();
+		
+		if(lQs != null && lTaskOption != null) {
+			Set<String> layers = lQs.keySet();
+			LAYER_LOOP : for(String layerId : layers) {
+				SelectQueryStruct qs = lQs.get(layerId);
+				// reset the panel specific objects so we can pick up the latest state
+				qs.setPanelList(new Vector<InsightPanel>());
+				qs.setPanelIdList(new Vector<String>());
+				qs.setPanelOrderBy(new Vector<IQuerySort>());
+				// add the panel
+				qs.addPanel(panel);
+				qs.resetPanelState();
+				TaskOptions taskOptions = lTaskOption.get(layerId);
+				IFormatter formatter = lFormatter.get(layerId);
+				
+				if(qs != null && taskOptions != null) {
+					logger.info("Found task for panel = " + Utility.cleanLogString(panelId));
+					// this will ensure we are using the latest panel and frame filters on refresh
+					BasicIteratorTask task = InsightUtility.constructTaskFromQs(insight, qs);
+					task.setFormat(formatter);
+					try {
+						task.setLogger(logger);
+						task.toOptimize(true);
+						task.setTaskOptions(taskOptions);
+						task.setNumCollect(panelCollect);
+						task.optimizeQuery(panelCollect);
+					} catch(Exception e) {
+						logger.info("Previous query on panel " + panelId + " does not work");
+						InsightUtility.classLogger.error(Constants.STACKTRACE, e);
+						// see if the frame at least exists
+						ITableDataFrame queryFrame = qs.getFrame();
+						if(queryFrame == null || queryFrame.isClosed()) {
+							additionalMessages.add(NounMetadata.getErrorNounMessage("Attempting to refresh panel id " + panelId 
+									+ " but the frame creating the visualization no longer exists"));
+							continue LAYER_LOOP;
+						}
+						
+						NounMetadata warning = NounMetadata.getWarningNounMessage("Attempting to refresh panel id " + panelId 
+								+ " but the underlying data creating the visualization no longer exists "
+								+ "or is now incompatible with the view. Displaying a grid of the data.");
+						
+						SelectQueryStruct allQs = queryFrame.getMetaData().getFlatTableQs(true);
+						allQs.setFrame(queryFrame);
+						allQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+						allQs.setQueryAll(true);
+						task = new BasicIteratorTask(allQs);
+						taskOptions = new TaskOptions(AutoTaskOptionsHelper.generateGridTaskOptions(allQs, panelId));
+						try {
+							task.setLogger(logger);
+							task.toOptimize(true);
+							task.setTaskOptions(taskOptions);
+							task.setNumCollect(panelCollect);
+							task.optimizeQuery(panelCollect);
+							additionalMessages.add(warning);
+						} catch (Exception e1) {
+							// at this point - no luck :/
+							InsightUtility.classLogger.error(Constants.STACKTRACE, e);
+							additionalMessages.add(NounMetadata.getErrorNounMessage("Attempingt to refresh panel id " + panelId 
+										+ " but the underlying data creating the visualization no longer exists "
+										+ " or is now incompatible with the view. Displaying a grid of the data "
+										+ " errors with the following message: " + e.getMessage()));
+							continue LAYER_LOOP;
+						}
+					}
+					
+					// is this a pivot?
+					Set<String> taskPanelIds = taskOptions.getPanelIds();
+					String layout = taskOptions.getLayout(taskPanelIds.iterator().next());
+					if(layout.equals("PivotTable")) {
+						CollectPivotReactor pivot = new CollectPivotReactor();
+						pivot.In();
+						pivot.setInsight(insight);
+						pivot.setNounStore(taskOptions.getCollectStore());
+						GenRowStruct grs = taskOptions.getCollectStore().makeNoun(PixelDataType.TASK.getKey());
+						grs.clear();
+						grs.add(new NounMetadata(task, PixelDataType.TASK));
+						taskOutput.add(pivot.execute());
+					} else {
+						taskOutput.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Add panel view refresh for panel filtering
+	 * @param insight
+	 * @param frame
+	 * @param filterNoun
+	 * @param logger
+	 */
+	public static void refreshViewFromPanelFilter(Insight insight, InsightPanel panel, NounMetadata filterNoun, Logger logger) {
+		if(!panel.getPanelView().equalsIgnoreCase("text-editor")
+				|| panel.getDynamicVars().isEmpty()) {
+			return;
+		}
+		
+		Map<String, String> returnMap = new HashMap<String, String>();
+		returnMap.put("panelId", panel.getPanelId());
+		returnMap.put("view", panel.getPanelView());
+		// grab the options for this view
+		returnMap.put("options", panel.getPanelActiveViewOptions());
+		String renderedViewOptions = InsightUtility.recalculateHtmlViews(insight, panel);
+		returnMap.put("renderedOptions", renderedViewOptions);
+		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_VIEW);
+		filterNoun.addAdditionalReturn(noun);
+	}
+	
+	/**
+	 * Add panel view refresh for frame filtering
+	 * @param insight
+	 * @param frame
+	 * @param filterNoun
+	 * @param logger
+	 */
+	public static void refreshViewFromFrameFilter(Insight insight, ITableDataFrame frame, NounMetadata filterNoun, Logger logger) {
+		List<String> affectedVars = InsightUtility.getDynamicVarsUsingFrame(insight, frame);
+		
+		Map<String, InsightPanel> insightPanelsMap = insight.getInsightPanels();
+		for(String panelId : insightPanelsMap.keySet()) {
+			InsightPanel panel = insightPanelsMap.get(panelId);
+			if(!panel.getPanelView().equalsIgnoreCase("text-editor")
+					|| panel.getDynamicVars().isEmpty()) {
+				continue;
+			}
+			
+			if(!Collections.disjoint(panel.getDynamicVars(), affectedVars)) {
+				InsightUtility.refreshViewFromPanelFilter(insight, panel, filterNoun, logger);
+			}
+		}
+	}
+	
+	/**
+	 * Get the variable names that are utilizing a specific frame
+	 * @param insight
+	 * @param frame
+	 * @return
+	 */
+	public static List<String> getDynamicVarsUsingFrame(Insight insight, ITableDataFrame frame) {
+		List<String> affectedVars = new ArrayList<>();
+		
+		List<String> dynamicVarKeys = insight.getVarStore().getDynamicVarKeys();
+		for(String dynamicVarKey : dynamicVarKeys) {
+			Variable variable = insight.getVariable(dynamicVarKey);
+			if(variable.getFrames().contains(frame.getName())) {
+				affectedVars.add(dynamicVarKey);
+			}
+		}
+		
+		return affectedVars;
+	}
+	
 	
 }

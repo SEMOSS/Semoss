@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.filters.BooleanValMetadata;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -18,7 +20,7 @@ import prerna.util.insight.InsightUtility;
 public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 
 	public RemoveFrameFilterReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILTERS.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILTERS.getKey(), TASK_REFRESH_KEY };
 	}
 
 	@Override
@@ -85,6 +87,10 @@ public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 		fFilterVal.setName(frame.getName());
 		fFilterVal.setFilterVal(true);
 		NounMetadata noun = new NounMetadata(fFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.FRAME_FILTER_CHANGE);
+		if(isRefreshTasks()) {
+			Logger logger = getLogger(RemoveFrameFilterReactor.class.getName());
+			InsightUtility.addInsightPanelRefreshFromFrameFilter(this.insight, frame, noun, logger);
+		}
 		return noun;
 	}
 
