@@ -32,6 +32,8 @@ public class InsightPanel {
 	// rendered view options
 	// for things like KPI
 	private String renderedViewOptions;
+	private List<String> dynamicVars;
+	
 	// panel configuration - opacity, etc.
 	private Map<String, Object> config;
 	// view options on the current view
@@ -538,8 +540,22 @@ public class InsightPanel {
 		return renderedViewOptions;
 	}
 
-	public void setRenderedViewOptions(String renderedViewOptions) {
+	public void setRenderedViewOptions(String renderedViewOptions, List<Object> dynamicVarNames) {
 		this.renderedViewOptions = renderedViewOptions;
+		this.dynamicVars = new ArrayList<>();
+		if(dynamicVarNames != null) {
+			for(Object obj : dynamicVarNames) {
+				if(obj instanceof String) {
+					this.dynamicVars.add((String) obj); 
+				} else if(obj instanceof Variable) {
+					this.dynamicVars.add( ((Variable) obj).getName());
+				}
+			}
+		}
+	}
+	
+	public List<String> getDynamicVars() {
+		return this.dynamicVars;
 	}
 
 	/**

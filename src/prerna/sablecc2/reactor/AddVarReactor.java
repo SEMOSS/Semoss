@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor;
 
 import java.util.List;
-import java.util.Map;
 
 import prerna.om.Variable;
 import prerna.sablecc2.om.PixelDataType;
@@ -9,8 +8,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AddVarReactor extends AbstractReactor 
-{
+public class AddVarReactor extends AbstractReactor {
+	
 	public AddVarReactor( ) {
 		this.keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey(), 
 				 ReactorKeysEnum.FRAME.getKey(), 
@@ -20,8 +19,6 @@ public class AddVarReactor extends AbstractReactor
 		// which of these are optional : 1 means required, 0 means optional
 		this.keyRequired = new int[] {1,1,1,0,0}; // if nothing is given calculate everything
 	}
-	
-	
 	
 	@Override
 	public NounMetadata execute() {
