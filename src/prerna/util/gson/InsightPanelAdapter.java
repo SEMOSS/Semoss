@@ -56,7 +56,8 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		String view = null;
 		String viewOptions = null;
 		String renderedViewOptions = null;
-
+		List<Object> dynamicVars = new ArrayList<>();;
+		
 		Map<String, Map<String, Object>> viewOptionsMap = null;
 		Map<String, Object> config = null;
 		Map<String, Object> ornaments = null;
@@ -103,8 +104,14 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 				renderedViewOptions = value;
 			} else if(key.equals("numCollect")) {
 				numCollect = in.nextInt();
-			} 
-			else if(key.equals("viewOptionsMap")) {
+			} else if(key.equals("dynamicVars")) {
+				in.beginArray();
+				while(in.hasNext()) {
+					String var = in.nextString();
+					dynamicVars.add(var);
+				}
+				in.endArray();
+			} else if(key.equals("viewOptionsMap")) {
 				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
 				viewOptionsMap = (Map<String, Map<String, Object>>) adapter.read(in);
 				
@@ -208,7 +215,7 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		panel.setPanelLabel(panelLabel);
 		panel.setPanelView(view);
 		panel.setPanelActiveViewOptions(viewOptions);
-		panel.setRenderedViewOptions(renderedViewOptions);
+		panel.setRenderedViewOptions(renderedViewOptions, dynamicVars);
 		panel.setPanelViewOptions(viewOptionsMap);
 		panel.addConfig(config);
 		panel.addOrnaments(ornaments);
@@ -256,6 +263,14 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		out.name("viewOptions").value(value.getPanelActiveViewOptions());
 		out.name("renderedViewOptions").value(value.getRenderedViewOptions());
 		out.name("numCollect").value(value.getNumCollect());
+		out.name("dynamicVars");
+		out.beginArray();
+		if(value.getDynamicVars() != null) {
+			for(String var : value.getDynamicVars()) {
+				out.value(var);
+			}
+		}
+		out.endArray();
 		out.name("viewOptionsMap");
 		{
 			Map<String, Map<String, Object>> obj = value.getPanelViewOptions();
