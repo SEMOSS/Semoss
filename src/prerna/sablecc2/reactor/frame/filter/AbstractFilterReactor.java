@@ -19,6 +19,7 @@ import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 
 	protected String DYNAMIC_KEY = "dynamic";
+	protected String TASK_REFRESH_KEY = "taskRefresh";
 
 	/**
 	 * Get the filters passed into the reactor
@@ -267,4 +268,27 @@ public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 		return null;
 	}
 
+	/**
+	 * Should we refresh the tasks after the filter
+	 * @return
+	 */
+	protected boolean isRefreshTasks() {
+		Boolean isRefresh = null;
+		// passed in
+		GenRowStruct grs = this.store.getNoun(TASK_REFRESH_KEY);
+		if(grs != null && !grs.isEmpty()) {
+			isRefresh = Boolean.parseBoolean(grs.get(0) + "");
+		}
+		// set in insight state
+		if(isRefresh == null) {
+			isRefresh = this.insight.getInsightFilterRefresh();
+		}
+		// default value
+		if(isRefresh == null) {
+			isRefresh = false;
+		}
+		
+		return isRefresh;
+	}
+	
 }
