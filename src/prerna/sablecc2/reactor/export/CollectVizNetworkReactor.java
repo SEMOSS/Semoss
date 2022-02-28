@@ -37,7 +37,7 @@ public class CollectVizNetworkReactor extends TaskBuilderReactor {
 
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
 		rJavaTranslator.startR(); 
-		rJavaTranslator.checkPackages(new String[] {"igraph", "visNetwork", "networkD3"});
+		rJavaTranslator.checkPackages(new String[] {"igraph", "visNetwork", "htmlwidgets"});
 
 		// TODO: come back to how we handle custom selectors....
 		// TODO: come back to how we handle custom selectors....
@@ -54,7 +54,6 @@ public class CollectVizNetworkReactor extends TaskBuilderReactor {
 		// we gotta generate the script
 		// that wraps around the input being provided
 		// which assumes that it will fit into the visNetwork method for generating the file
-		
 		String visNetworkCommand = this.keyValue.get(this.keysToGet[0]);
 		
 		String filePath = this.insight.getInsightFolder().replace("\\", "/");
@@ -67,37 +66,25 @@ public class CollectVizNetworkReactor extends TaskBuilderReactor {
 			filePathF.mkdirs();
 		}
 		String randomHtmlFile = "visNetwork_" + Utility.getRandomString(6) + ".html";
-		filePath += randomHtmlFile;
 		// escape any quotes in the path - in case someone names things badly
 		filePath = filePath.replace("\"", "\\\"");
-		// update the File object to full file path
-		filePathF = new File(filePath);
 		
-		// TODO: update the syntax generation to write the html as a single file!
-		// TODO: update the syntax generation to write the html as a single file!
-		// TODO: update the syntax generation to write the html as a single file!
-		// TODO: update the syntax generation to write the html as a single file!
-
 		StringBuilder builder = new StringBuilder();
-		builder.append("library('igraph');library('visNetwork');library('networkD3');");
+		builder.append("library('igraph');library('visNetwork');library('htmlwidgets');library('withr');");
 		String randomGraphVar = "myGraph_" + Utility.getRandomString(6);
 		builder.append(randomGraphVar).append(" <- visIgraph(").append(visNetworkCommand).append(");");
-		builder.append("saveNetwork(").append(randomGraphVar).append(", \"").append(filePath).append("\");");
-
+		builder.append("with_dir(\"").append(filePath).append("\", saveWidget(").append(randomGraphVar).append(", file=\"").append(randomHtmlFile).append("\"));");
 		rJavaTranslator.executeEmptyR(builder.toString());
 		
+		filePath += randomHtmlFile;
+        // update the File object to full file path
+		filePathF = new File(filePath);
 		// make sure this worked - html file should exist
 		if(!filePathF.exists() || !filePathF.isFile()) {
 			throw new IllegalArgumentException("Error occured generating the network visualization. "
 					+ "Please check your variable input for the igraph being used");
 		}
 		
-		// TODO: confirm with FE this is good?
-		// TODO: confirm with FE this is good?
-		// TODO: confirm with FE this is good?
-		// TODO: confirm with FE this is good?
-		// TODO: confirm with FE this is good?
-
 		ConstantDataTask cdt = new ConstantDataTask();
 		// TaskOptions options = new TaskOptions(optionMap);
 		// need to do all the sets
