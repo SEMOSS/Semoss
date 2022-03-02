@@ -21,7 +21,7 @@ public class RemoveFrameReactor extends RemoveVariableReactor {
 			return InsightUtility.removeFrameVaraible(this.insight.getVarStore(), variableName);
 		}
 		
-		NounMetadata noun = new NounMetadata(variableName, PixelDataType.REMOVE_VARIABLE, PixelOperationType.REMOVE_FRAME);
+		NounMetadata noun = new NounMetadata(variableName, PixelDataType.REMOVE_VARIABLE, PixelOperationType.REMOVE_FRAME, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 
 		// make sure it is a valid removal
 		NounMetadata var = this.insight.getVarStore().get(variableName);
