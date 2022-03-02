@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.utils;
 
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -20,7 +21,7 @@ public class RemoveVariableReactor extends AbstractReactor {
 		if(dropNow()) {
 			return InsightUtility.removeVaraible(this.insight.getVarStore(), variableName);
 		}
-		return new NounMetadata(variableName, PixelDataType.REMOVE_VARIABLE);
+		return new NounMetadata(variableName, PixelDataType.REMOVE_VARIABLE, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 	}
 	
 	/**
