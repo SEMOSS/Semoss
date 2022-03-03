@@ -113,6 +113,11 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/LOCKED/SMSS_USER")) {
 				return true;
 			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PASSWORD_RULES");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DAYS_TO_LOCK/PASSWORD_RULES")) {
+				return true;
+			}
 		}
 		return !check1;
 	}
@@ -285,6 +290,7 @@ public class SecurityOwlCreator {
 		owler.addProp("PASSWORD_RULES", "ADMIN_RESET_EXPIRATION", "BOOLEAN");
 		owler.addProp("PASSWORD_RULES", "ALLOW_USER_PASS_CHANGE", "BOOLEAN");
 		owler.addProp("PASSWORD_RULES", "PASS_REUSE_COUNT", "INT");
+		owler.addProp("PASSWORD_RULES", "DAYS_TO_LOCK", "INT");
 
 		// PASSWORD_HISTORY
 		owler.addConcept("PASSWORD_HISTORY", null, null);

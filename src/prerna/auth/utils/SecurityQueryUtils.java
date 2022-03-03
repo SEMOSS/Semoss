@@ -1106,5 +1106,24 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
-
+	/**
+	 * Get an array containing a boolean for is locked, a semossdate for last login, a semossdate for last password change
+	 * @param userId
+	 * @param type
+	 * @return
+	 */
+	public static Object[] getUserLockAndLastLoginAndLastPassReset(String userId, AuthProvider type) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__LOCKED"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__LASTLOGIN"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__LASTPASSWORDRESET"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", type.toString()));
+		
+		List<Object[]> ret = QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
+		if(!ret.isEmpty()) {
+			return ret.get(0);
+		}
+		return new Object[qs.getSelectors().size()];
+	}
 }
