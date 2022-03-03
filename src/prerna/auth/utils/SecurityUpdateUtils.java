@@ -3,9 +3,11 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermission;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
+import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -1089,30 +1092,59 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// lets see if he exists or not
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
-					logger.info("oauth user already exists");
-					// update the user last login
-					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-					String updateQuery = "UPDATE SMSS_USER SET LASTLOGIN=? WHERE ID=?";
-					PreparedStatement ps = null;
-					try {
-						int parameterIndex = 1;
-						ps = securityDb.getPreparedStatement(updateQuery);
-						ps.setTimestamp(parameterIndex++, timestamp, cal);
-						ps.setString(parameterIndex++, newUser.getId());
-						ps.execute();
-						if(!ps.getConnection().getAutoCommit()) {
-							ps.getConnection().commit();
+					logger.info("User " + newUser.getId() + " already exists");
+					// make sure user is not locked out
+					Object[] lastLoginDetails = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(newUser.getId(), newUser.getProvider());
+					if(lastLoginDetails != null) {
+						Boolean isLocked = (Boolean) lastLoginDetails[0];
+						if(isLocked == null) {
+							isLocked = false;
 						}
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					} finally {
-						if(ps != null) {
-							ps.close();
+						SemossDate lastLogin = (SemossDate) lastLoginDetails[1];
+						SemossDate lastPassReset = (SemossDate) lastLoginDetails[2];
+						int daysToLock = PasswordRequirements.getInstance().getDaysToLock();
+						int daysToResetPass = PasswordRequirements.getInstance().getPasswordExpirationDays();
+						
+						newUser.setLocked(isLocked);
+						newUser.setLastLogin(lastLogin);
+						newUser.setLastPasswordReset(lastPassReset);
+						
+						if(isLocked) {
+							logger.info("User " + newUser.getId() + " is locked");
+							return false;
+						} 
+						
+						if(daysToLock > 0 && lastLogin != null) {
+							// check to make sure user is not locked
+							TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
+							LocalDateTime currentTime = Instant.ofEpochMilli(new Date().getTime()).atZone(tz.toZoneId()).toLocalDateTime();
+							if(currentTime.isAfter(lastLogin.getLocalDateTime().plusDays(daysToLock))) {
+								logger.info("User " + newUser.getId() + " is now locked due to not logging in for over " + daysToLock + " days");
+								// we should lock the account
+								SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
+								newUser.setLocked(true);
+								return false;
+							}
 						}
-						if(ps != null && securityDb.isConnectionPooling()) {
-							ps.getConnection().close();
-						}
+						
+//						if(daysToResetPass > 0) {
+//							// check to make sure user is not locked
+//							TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
+//							LocalDateTime currentTime = Instant.ofEpochMilli(new Date().getTime()).atZone(tz.toZoneId()).toLocalDateTime();
+//							if(currentTime.isAfter(lastLogin.getLocalDateTime().plusDays(daysToResetPass))) {
+//								logger.info("User " + newUser.getId() + " is now locked due to not resetting password for over " + daysToResetPass + " days");
+//								// we should lock the account
+//								SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
+//								newUser.setLocked(true);
+//								return false;
+//							}
+//						}
+					}
+					
+					// if not locked
+					// update the last success login
+					if(!newUser.isLocked()) {
+						SecurityUpdateUtils.updateUserLastLogin(newUser.getId(), newUser.getProvider());
 					}
 					return false;
 				}
@@ -1254,7 +1286,76 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
 		return false;
 	}
+	
+	public static void lockUserAccount(boolean isLocked, String userId, AuthProvider type) {
+		String updateQuery = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=? AND TYPE=?";
+		PreparedStatement ps = null;
+		try {
+			int parameterIndex = 1;
+			ps = securityDb.getPreparedStatement(updateQuery);
+			ps.setBoolean(parameterIndex, isLocked);
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, type.toString());
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(ps != null && securityDb.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
 
+	public static void updateUserLastLogin(String userId, AuthProvider type) {
+		// update the user last login
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		String updateQuery = "UPDATE SMSS_USER SET LASTLOGIN=? WHERE ID=? AND TYPE=?";
+		PreparedStatement ps = null;
+		try {
+			int parameterIndex = 1;
+			ps = securityDb.getPreparedStatement(updateQuery);
+			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, type.toString());
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(ps != null && securityDb.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
 	/**
  	 * Adds a new user to the database. Does not create any relations, simply the node.
 	 * @param id
