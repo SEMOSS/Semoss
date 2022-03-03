@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
+import prerna.date.SemossDate;
+
 public class AccessToken implements Serializable {
 
 	private AuthProvider provider = null;
@@ -26,6 +28,10 @@ public class AccessToken implements Serializable {
 	private String profile = null;
 	private String gender = null;
 	private String locale = null;
+	
+	private boolean locked = false;
+	private SemossDate lastLogin = null;
+	private SemossDate lastPasswordReset = null;
 	
 	public AccessToken() {
 		this.userGroups = new HashSet<>();
@@ -152,5 +158,29 @@ public class AccessToken implements Serializable {
 	public void setUsername(String username) {
 		this.username = username;
 	}
-	
+
+	public boolean isLocked() {
+		return locked;
+	}
+
+	public void setLocked(Boolean locked) {
+		this.locked = locked;
+	}
+
+	public SemossDate getLastLogin() {
+		return lastLogin;
+	}
+
+	public void setLastLogin(SemossDate lastLogin) {
+		this.lastLogin = lastLogin;
+	}
+
+	public SemossDate getLastPasswordReset() {
+		return lastPasswordReset;
+	}
+
+	public void setLastPasswordReset(SemossDate lastPasswordReset) {
+		this.lastPasswordReset = lastPasswordReset;
+	}
+
 }
