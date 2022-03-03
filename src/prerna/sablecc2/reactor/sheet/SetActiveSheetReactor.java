@@ -1,7 +1,8 @@
 package prerna.sablecc2.reactor.sheet;
 
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.om.InsightSheet;
 import prerna.sablecc2.om.PixelDataType;
@@ -34,26 +35,35 @@ public class SetActiveSheetReactor extends AbstractReactor {
 			return new NounMetadata(possibleSheetId, PixelDataType.CONST_STRING, PixelOperationType.MOVE_SHEET);
 		}
 		
-		// aggregate the sheet labels
-		Map<String, Integer> sheetLabels = new HashMap<>();
+		// loop through the sheets and their labels
+		// if we find the sheet label that matches the input
+		// store its id
+		// if the label ends up being duplicative
+		// throw an error
+		Set<String> sheetLabels = new HashSet<>();
+		String actualSheetId = null;
 		for(String sheetId : insightSheets.keySet()) {
 			InsightSheet sheet = insightSheets.get(sheetId);
 			String sheetLabel = sheet.getSheetLabel();
 			
-			if(sheetLabels.containsKey(sheetLabel)) {
-				sheetLabels.put(sheetLabel, sheetLabels.get(sheetLabel)+1);
+			if(sheetLabels.contains(sheetLabel)) {
+				if(sheetLabel.equals(possibleSheetId)) {
+					// not unique
+					throw new IllegalArgumentException("Please make sure the sheets have unique identifiers.");
+				}
 			} else {
-				sheetLabels.put(sheetLabel, 1);
+				sheetLabels.add(sheetLabel);
+			}
+			
+			if(sheetLabel.equals(possibleSheetId)) {
+				// grab the sheetId
+				// if label name is reused - it would throw error above
+				actualSheetId = sheetId;
 			}
 		}
 		
-		if(sheetLabels.containsKey(possibleSheetId)) {
-			// is this label unique?
-			if(sheetLabels.get(possibleSheetId) == 1) {
-				return new NounMetadata(possibleSheetId, PixelDataType.CONST_STRING, PixelOperationType.MOVE_SHEET);
-			}
-			// not unique
-			throw new IllegalArgumentException("Please make sure the sheets have unique identifiers.");
+		if(actualSheetId != null) {
+			return new NounMetadata(actualSheetId, PixelDataType.CONST_STRING, PixelOperationType.MOVE_SHEET);
 		}
 		
 		throw new IllegalArgumentException("Count not find sheet with id or label = " + possibleSheetId);
