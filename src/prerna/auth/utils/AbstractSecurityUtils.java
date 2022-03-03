@@ -732,7 +732,7 @@ public abstract class AbstractSecurityUtils {
 				"LOCKED" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
 				BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-				BOOLEAN_DATATYPE_NAME};
+				BOOLEAN_DATATYPE_NAME };
 		// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 		// but some rdbms types (postgres) does not allow it
 		// so i am going ahead and moving over user to smss_user
@@ -957,9 +957,9 @@ public abstract class AbstractSecurityUtils {
 		
 		// PASSWORD RULES
 		colNames = new String[] { "PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
-				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT" };
+				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT", "DAYS_TO_LOCK" };
 		types = new String[] { "INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-				"INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "INT"};
+				"INT", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "INT", "INT" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RULES", colNames, types));
 		} else {
@@ -978,7 +978,7 @@ public abstract class AbstractSecurityUtils {
 					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
 					if(numrows == 0) {
 						securityDb.insertData(queryUtil.insertIntoTable("PASSWORD_RULES", colNames, types, 
-								new Object[]{8, true, true, true, true, 90, false, true, 10}));
+								new Object[]{8, true, true, true, true, 90, false, true, 10, 0}));
 					}
 				}
 			} catch (Exception e) {
@@ -988,6 +988,14 @@ public abstract class AbstractSecurityUtils {
 					wrapper.cleanUp();
 				}
 			}
+		}
+		// 2022-03-03
+		// this should return in all upper case
+		// ... but sometimes it is not -_- i.e. postgres always lowercases
+		List<String> passwordRulesCols = queryUtil.getTableColumns(conn, "PASSWORD_RULES", schema);
+		if(!passwordRulesCols.contains("DAYS_TO_LOCK") && !passwordRulesCols.contains("days_to_lock")) {
+			String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK", "INT");
+			securityDb.insertData(addColumnSql);
 		}
 		// 2022-02-16
 		// renamed permission rules to password rules
