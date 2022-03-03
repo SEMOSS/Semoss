@@ -57,8 +57,8 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		String strict_script_source =  DIHelper.getInstance().getProperty(Constants.STRICT_SCRIPT_SOURCE);
 		if(Boolean.parseBoolean(strict_script_source)){
 			 String extension = FilenameUtils.getExtension(path);
-			 if(!extension.equalsIgnoreCase("r")) {
-					throw new IllegalArgumentException("Only user code with extensions .R or .r may be sourced by this reactor");
+			 if(!extension.equalsIgnoreCase("Py")) {
+					throw new IllegalArgumentException("Only user code with extensions .py or .PY may be sourced by this reactor");
 			 }
 		}
 
