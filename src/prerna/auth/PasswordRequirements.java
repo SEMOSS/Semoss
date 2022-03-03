@@ -33,7 +33,8 @@ public class PasswordRequirements {
 	private boolean requireAdminResetForExpiration = false;
 	private boolean allowUserChangePassword = false;
 	private int passReuseCount = -1;
-
+	private int daysToLock = -1;
+	
 	public static PasswordRequirements getInstance() throws Exception {
 		if(instance != null) {
 			return instance;
@@ -57,7 +58,8 @@ public class PasswordRequirements {
 		// pull the necessary details
 		String[] colNames = new String[] { 
 				"PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
-				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT" };
+				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT",
+				"DAYS_TO_LOCK"};
 		
 		IEngine securityDb = Utility.getEngine(Constants.SECURITY_DB);
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -80,6 +82,10 @@ public class PasswordRequirements {
 				this.requireAdminResetForExpiration = (Boolean) data[index++];
 				this.allowUserChangePassword = (Boolean) data[index++];
 				this.passReuseCount = ((Number) data[index++]).intValue();
+				Number daysToLockNum = (Number) data[index++];
+				if(daysToLockNum != null) {
+					this.daysToLock = daysToLockNum.intValue();
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -204,6 +210,14 @@ public class PasswordRequirements {
 
 	public void setPassReuseCount(int passReuseCount) {
 		this.passReuseCount = passReuseCount;
+	}
+
+	public int getDaysToLock() {
+		return daysToLock;
+	}
+
+	public void setDaysToLock(int daysToLock) {
+		this.daysToLock = daysToLock;
 	}
 
 }
