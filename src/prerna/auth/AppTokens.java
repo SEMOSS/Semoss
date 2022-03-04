@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Properties;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -20,6 +19,7 @@ import org.apache.http.message.BasicNameValuePair;
 
 import prerna.om.AbstractValueObject;
 import prerna.security.AbstractHttpHelper;
+import prerna.util.SocialPropertiesUtil;
 import prerna.util.git.GitRepoUtils;
 
 public class AppTokens extends AbstractValueObject{
@@ -28,7 +28,7 @@ public class AppTokens extends AbstractValueObject{
 	
 	private static AppTokens app = null;
 	
-	private static Properties socialData = null;
+	private static SocialPropertiesUtil socialData = null;
 	private static AccessToken twitToken = null;
 	private static AccessToken googAppToken = null; 
 	
@@ -51,12 +51,10 @@ public class AppTokens extends AbstractValueObject{
 			if(twitToken != null) {
 				app.setAccessToken(twitToken);
 			}
+			
+			socialData = SocialPropertiesUtil.getInstance();
 		}
 		return app;
-	}
-	
-	public static void setSocial(Properties socialData) {
-		AppTokens.socialData = socialData;
 	}
 	
 	public void setAccessToken(AccessToken value) {
