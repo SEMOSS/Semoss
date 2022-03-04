@@ -34,6 +34,7 @@ public class PasswordRequirements {
 	private boolean allowUserChangePassword = false;
 	private int passReuseCount = -1;
 	private int daysToLock = -1;
+	private int daysToLockEmail = 14;
 	
 	public static PasswordRequirements getInstance() throws Exception {
 		if(instance != null) {
@@ -59,7 +60,7 @@ public class PasswordRequirements {
 		String[] colNames = new String[] { 
 				"PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
 				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT",
-				"DAYS_TO_LOCK"};
+				"DAYS_TO_LOCK", "DAYS_TO_LOCK_WARNING"};
 		
 		IEngine securityDb = Utility.getEngine(Constants.SECURITY_DB);
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -85,6 +86,10 @@ public class PasswordRequirements {
 				Number daysToLockNum = (Number) data[index++];
 				if(daysToLockNum != null) {
 					this.daysToLock = daysToLockNum.intValue();
+				}
+				Number daysToLockEmailNum = (Number) data[index++];
+				if(daysToLockEmailNum != null) {
+					this.daysToLockEmail = daysToLockEmailNum.intValue();
 				}
 			}
 		} catch (Exception e) {
@@ -218,6 +223,14 @@ public class PasswordRequirements {
 
 	public void setDaysToLock(int daysToLock) {
 		this.daysToLock = daysToLock;
+	}
+
+	public int getDaysToLockEmail() {
+		return daysToLockEmail;
+	}
+
+	public void setDaysToLockEmail(int daysToLockEmail) {
+		this.daysToLockEmail = daysToLockEmail;
 	}
 
 }

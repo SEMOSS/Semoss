@@ -118,6 +118,9 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DAYS_TO_LOCK/PASSWORD_RULES")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DAYS_TO_LOCK_WARNING/PASSWORD_RULES")) {
+				return true;
+			}
 		}
 		return !check1;
 	}
@@ -291,6 +294,7 @@ public class SecurityOwlCreator {
 		owler.addProp("PASSWORD_RULES", "ALLOW_USER_PASS_CHANGE", "BOOLEAN");
 		owler.addProp("PASSWORD_RULES", "PASS_REUSE_COUNT", "INT");
 		owler.addProp("PASSWORD_RULES", "DAYS_TO_LOCK", "INT");
+		owler.addProp("PASSWORD_RULES", "DAYS_TO_LOCK_WARNING", "INT");
 
 		// PASSWORD_HISTORY
 		owler.addConcept("PASSWORD_HISTORY", null, null);
