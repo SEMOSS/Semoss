@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
+import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
@@ -37,6 +39,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
@@ -1778,6 +1781,54 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		logger.info("Number of accounts locked = " + numUpdated);
 		return numUpdated;
+	}
+	
+	/**
+	 * Lock accounts
+	 * @param numDaysSinceLastLogin
+	 */
+	public List<String> getUserEmailsGettingLocked() {
+		// if we never lock - nothing to worry about
+		int daysToLock = -1;
+		int daysToLockEmail = 14;
+		try {
+			PasswordRequirements passReqInstance = PasswordRequirements.getInstance();
+			daysToLock = passReqInstance.getDaysToLock();
+			daysToLockEmail = passReqInstance.getDaysToLockEmail();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		if(daysToLock < 0) {
+			return new ArrayList<>();
+		}
+		
+		List<String> emailsToSend = new ArrayList<>();
+		
+		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
+		String currnetDateMinusDaysToEmail = queryUtil.getDateAddFunctionSyntax("day", -1*daysToLockEmail, queryUtil.getCurrentTimestamp());
+		String lastLoginMinusDaysToLock = queryUtil.getDateAddFunctionSyntax("day", daysToLock, "LASTLOGIN");
+
+		String query = "SELECT DISTINCT EMAIL FROM SMSS_USER WHERE "
+				+ currnetDateMinusDaysToEmail + " > " + lastLoginMinusDaysToLock;
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				if(row[0] != null) {
+					emailsToSend.add((String) row[0]);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return emailsToSend;
 	}
 	
 	/**
