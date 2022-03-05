@@ -240,6 +240,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		return "DATEADD('" + timeUnit + "'," + value + "," + dateToModify + ")";
 	}
 	
+	@Override
+	public String getDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
+		return "DATEDIFF('" + timeUnit + "'," + dateTimeField1 + "," + dateTimeField2 + ")";
+	}
+	
 	/////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////
