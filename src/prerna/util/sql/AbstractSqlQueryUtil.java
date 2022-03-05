@@ -505,6 +505,8 @@ public abstract class AbstractSqlQueryUtil {
 	
 	public abstract String getDateAddFunctionSyntax(String timeUnit, int value, String  dateTimeField);
 	
+	public abstract String getDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2);
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
