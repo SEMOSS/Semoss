@@ -1787,7 +1787,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * Lock accounts
 	 * @param numDaysSinceLastLogin
 	 */
-	public List<String> getUserEmailsGettingLocked() {
+	public List<Object[]> getUserEmailsGettingLocked() {
 		// if we never lock - nothing to worry about
 		int daysToLock = -1;
 		int daysToLockEmail = 14;
@@ -1801,15 +1801,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if(daysToLock < 0) {
 			return new ArrayList<>();
 		}
+		if((daysToLock - daysToLockEmail) < 0) {
+			logger.warn("Days to Lock is less than the Days To Lock Email Warning. Would result in constant emails. Returning empty set until configured properly");
+			return new ArrayList<>();
+		}
 		
-		List<String> emailsToSend = new ArrayList<>();
+		List<Object[]> emailsToSend = new ArrayList<>();
 		
 		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
-		String currnetDateMinusDaysToEmail = queryUtil.getDateAddFunctionSyntax("day", -1*daysToLockEmail, queryUtil.getCurrentTimestamp());
-		String lastLoginMinusDaysToLock = queryUtil.getDateAddFunctionSyntax("day", daysToLock, "LASTLOGIN");
+		String dateDiff = queryUtil.getDateDiffFunctionSyntax("day", "SMSS_USER.LASTLOGIN", queryUtil.getCurrentTimestamp());
 
-		String query = "SELECT DISTINCT EMAIL FROM SMSS_USER WHERE "
-				+ currnetDateMinusDaysToEmail + " > " + lastLoginMinusDaysToLock;
+		String query = "SELECT DISTINCT SMSS_USER.EMAIL, (" + dateDiff + ") as DAYS_SINCE_LASTLOGIN FROM SMSS_USER WHERE "
+				+ "(LOCKED IS NULL OR LOCKED='false') AND (" + dateDiff + ") > " + (daysToLock - daysToLockEmail); 
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1817,7 +1820,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			while(wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				if(row[0] != null) {
-					emailsToSend.add((String) row[0]);
+					emailsToSend.add(row);
 				}
 			}
 		} catch (Exception e) {

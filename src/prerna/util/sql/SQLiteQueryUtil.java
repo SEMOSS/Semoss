@@ -149,6 +149,35 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 		return "DATE(" + dateToModify + ", '" + value + " " + timeUnit + "')";
 	}
 	
+	@Override
+	public String getDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
+		if(timeUnit.equalsIgnoreCase("day")) {
+			return "(JulianDay("+dateTimeField1+") - JulianDay("+dateTimeField2+"))";
+		} else if(timeUnit.equalsIgnoreCase("year")) {
+			return "(date("+dateTimeField1+")-date("+dateTimeField2+"))";
+		}
+		
+		double divider = 1;
+		double multiplier = 1;
+		if(timeUnit.equalsIgnoreCase("hour")) {
+			multiplier = 24;
+		} else if(timeUnit.equalsIgnoreCase("minute")) {
+			multiplier = 24*60;
+		} else if(timeUnit.equalsIgnoreCase("second")) {
+			multiplier = 24*60*60;
+		} else if(timeUnit.equals("weeks")) {
+			divider = 7;
+		} else if(timeUnit.equalsIgnoreCase("month")) {
+			divider = 365/12;
+		}
+		
+		if(divider > 1) {
+			return "(JulianDay("+dateTimeField1+") - JulianDay("+dateTimeField2+"))/" + divider;
+		} else {
+			return "(JulianDay("+dateTimeField1+") - JulianDay("+dateTimeField2+"))*" + multiplier;
+		}
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	/**
