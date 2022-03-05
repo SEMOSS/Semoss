@@ -1,5 +1,8 @@
 package prerna.auth;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -100,6 +103,22 @@ public class PasswordRequirements {
 				iterator.cleanUp();
 			}
 		}
+	}
+	
+	public Map<String, Object> getAllPasswordRequirements() {
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put("minPassLength", this.minPassLength);
+		retMap.put("requireUpperCase", this.requireUpperCase);
+		retMap.put("requireLowerCase", this.requireLowerCase);
+		retMap.put("requireNumeric", this.requireNumeric);
+		retMap.put("requireSpecial", this.requireSpecial);
+		retMap.put("passwordExpirationDays", this.passwordExpirationDays);
+		retMap.put("requireAdminResetForExpiration", this.requireAdminResetForExpiration);
+		retMap.put("allowUserChangePassword", this.allowUserChangePassword );
+		retMap.put("passReuseCount", this.passReuseCount);
+		retMap.put("daysToLock", this.daysToLock);
+		retMap.put("daysToLockEmail", this.daysToLockEmail);
+		return retMap;
 	}
 
 	public boolean validatePassword(String password) {
