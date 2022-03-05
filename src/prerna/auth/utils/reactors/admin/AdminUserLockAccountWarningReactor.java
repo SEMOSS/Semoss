@@ -1,15 +1,27 @@
 package prerna.auth.utils.reactors.admin;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import javax.mail.Session;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
+import prerna.util.EmailUtility;
+import prerna.util.SocialPropertiesEmailSession;
 
 public class AdminUserLockAccountWarningReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(AdminUserLockAccountWarningReactor.class);
+	
 	public AdminUserLockAccountWarningReactor() {
 		this.keysToGet = new String[] {"days"};
 	}
@@ -22,19 +34,37 @@ public class AdminUserLockAccountWarningReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User must be an admin to perform this function");
 		}
 		
-		List<String> emails = adminUtils.getUserEmailsGettingLocked();
-		
-		
-		organizeKeys();
-		int numDays = 90;
-		String input = this.keyValue.get(this.keysToGet[0]);
-		if(input != null && !(input = input.trim()).isEmpty()) {
-			numDays = (int) Double.parseDouble(input);
+		int daysToLock = -1;
+		try {
+			daysToLock = PasswordRequirements.getInstance().getDaysToLock();
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
-		int numLocked = adminUtils.lockAccounts(numDays);
-		NounMetadata noun = new NounMetadata(numLocked, PixelDataType.CONST_INT);
-		noun.addAdditionalReturn(getSuccess("Number of accounts locked = " + numLocked));
+		if(daysToLock < 0) {
+			throw new IllegalArgumentException("No value set to lock accounts");
+		}
+		
+		List<String> emailsSentTo = new ArrayList<>();
+		
+		Session emailSession = SocialPropertiesEmailSession.getInstance().getEmailSession();
+		List<Object[]> listToEmail = adminUtils.getUserEmailsGettingLocked();
+		for(Object[] emailInfo : listToEmail) {
+			String email = (String) emailInfo[0];
+			int daysSinceLastLogin = ((Number) emailInfo[1]).intValue();
+			
+			String message = "Our records show you have not logged into the SEMOSS application for " + daysSinceLastLogin + " days. "
+					+ "Your account will be locked if the number of days exceeds " + daysToLock + " days. "
+					+ "If you no longer need access to the application, please ignore this email.";
+			
+			EmailUtility.sendEmail(emailSession, new String[] {email}, null, null, 
+					"no-reply@semoss.org", "Lock Account Warning", message, false, null);
+			
+			emailsSentTo.add(email);
+		}
+		
+		NounMetadata noun = new NounMetadata(emailsSentTo, PixelDataType.CONST_STRING);
+		noun.addAdditionalReturn(getSuccess("Emails sent to " + emailsSentTo.size() + " users"));
 		return noun;
 	}
 	
