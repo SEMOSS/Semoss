@@ -26,6 +26,7 @@
 		<include>themes**/*</include>
 		<include>themes.smss</include>
         <include>foaf.xml</include>
+        <include>emailTemplates/**</include>
       </includes>
     </fileSet>
     <fileSet>
