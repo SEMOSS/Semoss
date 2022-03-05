@@ -25,7 +25,7 @@ import com.sun.mail.smtp.SMTPSendFailedException;
 
 public class EmailUtility {
 
-	public static boolean sendEmail(Session emailSession, String[] toRecipients, String[] bccRecipients, 
+	public static boolean sendEmail(Session emailSession, String[] toRecipients, String[] ccRecipients, String[] bccRecipients, 
 			String from, String subject, String emailMessage, boolean isHtml, String[] attachments) {
 		try {
 			// Create an email message we will add multiple parts to this
@@ -36,6 +36,11 @@ public class EmailUtility {
 			if (toRecipients != null) {
 				for (String recipient : toRecipients) {
 					email.addRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
+				}
+			}
+			if (ccRecipients != null) {
+				for (String recipient : ccRecipients) {
+					email.addRecipients(Message.RecipientType.CC, InternetAddress.parse(recipient));
 				}
 			}
 			if (bccRecipients != null) {
@@ -186,7 +191,7 @@ public class EmailUtility {
 		boolean isHtml = true;
 
 		System.out.println("Connection Made");
-		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
+		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, null, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
 		if(success) {
 			System.out.println("Email Sent");
 		} else {
