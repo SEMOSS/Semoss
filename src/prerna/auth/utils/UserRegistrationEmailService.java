@@ -3,9 +3,7 @@ package prerna.auth.utils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Properties;
 
-import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,6 +14,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
+import prerna.util.SocialPropertiesEmailSession;
 
 public class UserRegistrationEmailService {
 
@@ -23,9 +22,6 @@ public class UserRegistrationEmailService {
 	
 	private static UserRegistrationEmailService instance;
 	
-	
-	private Properties prop = null;
-	private Session emailSession = null;
 	private String emailTemplatesFolder = "";
 	
 	private final String EMAIL_TEMPLATES_FOLDER = "emailTemplates";
@@ -55,50 +51,12 @@ public class UserRegistrationEmailService {
 		return instance;
 	}
 	
-	public void setProperties(Properties prop) {
-		this.prop = prop;
-		createEmailSession();
-	}
-	
-	public void createEmailSession() {
-		//TODO: build out to grab from social.properties
-		//TODO: build out to grab from social.properties
-		//TODO: build out to grab from social.properties
-		//TODO: build out to grab from social.properties
-
-		String smtpHost = "localhost";
-		String smtpPort = "1025";
-		String username = null;
-		String password = null;
-		
-		// set smtp properties
-		Properties props = new Properties();
-		props.put("mail.smtp.host", smtpHost);
-		props.put("mail.smtp.port", smtpPort);
-		if (username != null && password != null) {
-			props.put("mail.smtp.auth", true);
-			props.put("mail.smtp.starttls.enable", true);
-			props.put("mail.smtp.socketFactory.port", smtpPort);
-			props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-			// for no man-in-the-middle attacks
-			props.put("mail.smtp.ssl.checkserveridentity", true);
-			this.emailSession = Session.getInstance(props, new javax.mail.Authenticator() {
-				protected PasswordAuthentication getPasswordAuthentication() {
-					return new PasswordAuthentication(username, password);
-				}
-			});
-		} else {
-			this.emailSession = Session.getInstance(props);
-		}
-	}
-	
 	public boolean sendPasswordResetEmail(String recipient, String customUrl) {
-		if(this.emailSession == null) {
-			createEmailSession();
-		}
+		Session emailSession = SocialPropertiesEmailSession.getInstance().getEmailSession();
 		String subject = "SEMOSS Reset Password";
 		String sender = "no-reply@semoss.org";
 		boolean isHtml = true;
+		String[] ccRecipients = null;
 		String[] bccRecipients = null;
 		String[] attachments = null;
 
@@ -115,7 +73,7 @@ public class UserRegistrationEmailService {
 		}
 		
 		// send email
-		boolean success = EmailUtility.sendEmail(this.emailSession, recipients, bccRecipients, sender, subject, message, isHtml, attachments);
+		boolean success = EmailUtility.sendEmail(emailSession, recipients, ccRecipients, bccRecipients, sender, subject, message, isHtml, attachments);
 		return success;
 	}
 	
