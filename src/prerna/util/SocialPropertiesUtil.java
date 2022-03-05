@@ -212,4 +212,27 @@ public class SocialPropertiesUtil {
 		return samlAttrMap;
 	}
 	
+	/**
+	 * Return a properties object with the details of the application central SMTP server
+	 * @return
+	 */
+	public Properties getEmailProperties() {
+		final String prefix = "smtp_";
+		Properties smtpProp = new Properties();
+	    Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str->str.startsWith(prefix)).collect(Collectors.toSet());
+	    for(String key : smtpKeys) {
+	    	Object smtpValue = socialData.get(key);
+	    	if(smtpValue == null) {
+	    		continue;
+	    	}
+	    	// clean up key
+	    	String smtpKey = key.replaceFirst(prefix, "").toLowerCase();
+	    	smtpProp.put(smtpKey, smtpValue);
+	    }
+	    if(smtpProp.isEmpty()) {
+	    	return null;
+	    }
+		return smtpProp;
+	}
+	
 }
