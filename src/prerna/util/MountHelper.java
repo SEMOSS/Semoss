@@ -268,8 +268,8 @@ public class MountHelper {
 		// try to umount all mounts under the mount point
 		try {
 			ProcessBuilder pb = null;
-			String command = "grep " + targetDirName + " /proc/mounts | cut -f2 -d' ' | xargs -r -n 1 fusermount -zu";
-			logger.debug("Running fusermount command " + command);
+			String command = "grep " + targetDirName + " /proc/mounts | cut -f2 -d' ' | xargs -r -n 1 umount";
+			logger.debug("Running umount command " + command);
 			pb = new ProcessBuilder(new String[] { "/bin/sh", "-c", command });
 			//pb.redirectOutput(tempFile);
 			Process p = pb.start();
