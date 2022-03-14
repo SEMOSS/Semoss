@@ -106,31 +106,5 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor {
 		return qs;
 	}
 
-	public static void main(String[] args) throws IOException {
-		Regions clientRegion = Regions.US_EAST_1;
-		String bucketName = "sample";
-		String key = "frame_export2.csv";
-
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials("test", "test");
-
-		try {
-			AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-					.withRegion(clientRegion)
-					.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-					.build();
-
-			// Get an object and print its contents.
-			System.out.println("Downloading an object");
-			File localFile = new File("/Users/semoss/Documents/Daily_Notes/s3_push_pull/testfile");
-
-			ObjectMetadata object = s3Client.getObject(new GetObjectRequest(bucketName, key), localFile);
-
-			System.out.println("Content-Type: " + object.getContentType());
-		} catch (SdkClientException e) {
-			// Amazon S3 couldn't be contacted for a response, or the client
-			// couldn't parse the response from Amazon S3.
-			e.printStackTrace();
-		}
-	}
 
 }
