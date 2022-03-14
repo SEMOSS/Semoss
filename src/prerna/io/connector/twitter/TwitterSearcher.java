@@ -17,7 +17,7 @@ import prerna.util.BeanFiller;
 
 public class TwitterSearcher implements IConnectorIOp{
 
-	String url = "https://api.twitter.com/1.1/search/tweets.json" ;//?key=***REMOVED***;
+	String url = "https://api.twitter.com/1.1/search/tweets.json" ;
 	
 	// name of the object to return
 	String objectName = "prerna.om.Viewpoint"; // it will fill this object and return the data
