@@ -316,45 +316,45 @@ public class AmazonApiHelper extends WebAPIHelper{
 
 
 
-	//For testing
-	public static void main(String[] args) throws IOException{		
-
-		AmazonApiHelper helper = new AmazonApiHelper();
-		//helper.setOperationType("ItemSearch");		
-		//helper.setApiParam("iphone");//pass the keyword for ITemSearch
-		helper.setOperationType("ItemLookup");
-		helper.setApiParam("B01723YVFM");
-		//helper.extractData();
-		helper.parse();
-		System.out.println("allDataMap: "+helper.allDataMap);
-
-		String[] headers = helper.getHeaders();
-		System.out.println("***Headers:");
-		for(String header: headers){
-			System.out.print(header + "|");
-		}
-
-		String[] datatypes = helper.getDatatypes();
-		System.out.println("\n***Datatypes:");
-		for(String datatype: datatypes){
-			System.out.print(datatype + "|");
-		}
-
-		int i = 0;
-		String[] rowData;
-		System.out.println("\nNo. of rows: " + helper.getDataSize());
-		while(i<helper.getDataSize()){
-			rowData = helper.getNextRow();
-			if(rowData != null){
-
-				System.out.println("\n***RowData " + i +" :");
-				for(String cell: rowData){
-					System.out.print(cell +"|");
-				}
-				System.out.println("***");
-				i++;
-			}
-		}
-	}
+//	//For testing
+//	public static void main(String[] args) throws IOException{		
+//
+//		AmazonApiHelper helper = new AmazonApiHelper();
+//		//helper.setOperationType("ItemSearch");		
+//		//helper.setApiParam("iphone");//pass the keyword for ITemSearch
+//		helper.setOperationType("ItemLookup");
+//		helper.setApiParam("B01723YVFM");
+//		//helper.extractData();
+//		helper.parse();
+//		System.out.println("allDataMap: "+helper.allDataMap);
+//
+//		String[] headers = helper.getHeaders();
+//		System.out.println("***Headers:");
+//		for(String header: headers){
+//			System.out.print(header + "|");
+//		}
+//
+//		String[] datatypes = helper.getDatatypes();
+//		System.out.println("\n***Datatypes:");
+//		for(String datatype: datatypes){
+//			System.out.print(datatype + "|");
+//		}
+//
+//		int i = 0;
+//		String[] rowData;
+//		System.out.println("\nNo. of rows: " + helper.getDataSize());
+//		while(i<helper.getDataSize()){
+//			rowData = helper.getNextRow();
+//			if(rowData != null){
+//
+//				System.out.println("\n***RowData " + i +" :");
+//				for(String cell: rowData){
+//					System.out.print(cell +"|");
+//				}
+//				System.out.println("***");
+//				i++;
+//			}
+//		}
+//	}
 
 }
