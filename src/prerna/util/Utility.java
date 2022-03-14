@@ -2666,9 +2666,9 @@ public class Utility {
 						Constants.USER_FOLDER + "/" + SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
 
 				// Start up the engine using the details in the smss
-				if (smssFile != null && new File(smssFile).exists()) {
+				if (smssFile != null && new File(Utility.normalizePath(smssFile)).exists()) {
 					// actual load engine process
-					project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
+					project = Utility.loadProject(smssFile, Utility.loadProperties(Utility.normalizePath(smssFile)));
 				} else {
 					logger.debug("There is no SMSS File for the project " + projectId + "...");
 				}
