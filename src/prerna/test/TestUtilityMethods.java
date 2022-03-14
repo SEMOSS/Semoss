@@ -21,6 +21,9 @@ public final class TestUtilityMethods {
 
 	}
 
+	
+	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	public static void loadDIHelper() {
 		String workingDir = System.getProperty("user.dir");
 		String propFile = workingDir + "/RDF_Map.prop";
@@ -30,7 +33,7 @@ public final class TestUtilityMethods {
 	public static void loadDIHelper(String propFile) {
 		DIHelper.getInstance().loadCoreProp(propFile);
 		//Set log4j prop
-		String log4JPropFile = new File(Utility.normalizePath(propFile)).getParent() + "/log4j2.properties";
+		String log4JPropFile = new File(Utility.normalizePath(propFile)).getParent() + FILE_SEPARATOR +"log4j2.properties";
 		FileInputStream fis = null;
 		ConfigurationSource source = null;
 		try {

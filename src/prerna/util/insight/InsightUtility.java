@@ -797,7 +797,7 @@ public class InsightUtility {
 				return false;
 			}
 		};
-		File baseFolder = new File(baseDir);
+		File baseFolder = new File(Utility.normalizePath(baseDir));
 		return baseFolder.listFiles(imageExtensionFilter);
 	}
 	
