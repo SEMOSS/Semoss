@@ -17,7 +17,7 @@ import prerna.util.BeanFiller;
 
 public class GoogleLatLongGetter implements IConnectorIOp{
 
-	String url = "https://maps.googleapis.com/maps/api/geocode/json" ;//?key=***REMOVED***;
+	String url = "https://maps.googleapis.com/maps/api/geocode/json" ;
 	
 	// name of the object to return
 	String objectName = "prerna.auth.User2"; // it will fill this object and return the data
