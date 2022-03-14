@@ -144,7 +144,7 @@ public class LegacyToProjectRestructurerHelper {
 		String newUserFolder = baseProjFolder + SmssUtilities.getUniqueName(projectName, projectId);
 		String dbFolder = dbDir + dbFolderName;
 		
-		File pFolder = new File(newUserFolder);
+		File pFolder = new File(Utility.normalizePath( newUserFolder ));
 		if(pFolder.exists() && pFolder.isDirectory()) {
 			System.out.println("\tALREADY REFACTORED... IGNORING");
 			return;
@@ -173,8 +173,8 @@ public class LegacyToProjectRestructurerHelper {
 		}
 		// Create the version folder in the project folder first.
 		createFolder(newVersionPath);
-		File newVersionPathFile = new File(copyToFile);
-		File oldVersionPathFile = new File(oldVersionPath);
+		File newVersionPathFile = new File(Utility.normalizePath( copyToFile ));
+		File oldVersionPathFile = new File(Utility.normalizePath(  oldVersionPath ));
 		FileUtils.copyDirectory(oldVersionPathFile, newVersionPathFile);
 	}
 
@@ -189,8 +189,8 @@ public class LegacyToProjectRestructurerHelper {
 				return;
 			}
 		}
-		File newInsightDBFile = new File(newInsightsDatabase_mv_db);
-		File oldInsightDBFile = new File(oldInsightsDatabase_mv_db);
+		File newInsightDBFile = new File(Utility.normalizePath(newInsightsDatabase_mv_db));
+		File oldInsightDBFile = new File(Utility.normalizePath(oldInsightsDatabase_mv_db));
 		FileUtils.copyFile(oldInsightDBFile, newInsightDBFile);
 	}
 
@@ -292,7 +292,7 @@ public class LegacyToProjectRestructurerHelper {
 		String newProjectFolder = baseProjFolder + SmssUtilities.getUniqueName(projectName, projectId);
 		String dbFolder = dbDir + dbFolderName;
 		
-		File pFolder = new File(newProjectFolder);
+		File pFolder = new File(Utility.normalizePath(newProjectFolder));
 		if(pFolder.exists() && pFolder.isDirectory()) {
 			System.out.println("\tALREADY REFACTORED... IGNORING");
 			return;
@@ -321,8 +321,8 @@ public class LegacyToProjectRestructurerHelper {
 		}
 		// Create the version folder in the project folder first.
 		createFolder(newVersionPath);
-		File newVersionPathFile = new File(copyToFile);
-		File oldVersionPathFile = new File(oldVersionPath);
+		File newVersionPathFile = new File(Utility.normalizePath(copyToFile));
+		File oldVersionPathFile = new File(Utility.normalizePath(oldVersionPath));
 		FileUtils.copyDirectory(oldVersionPathFile, newVersionPathFile);
 	}
 
@@ -337,8 +337,8 @@ public class LegacyToProjectRestructurerHelper {
 				return;
 			}
 		}
-		File newInsightDBFile = new File(newInsightsDatabase_mv_db);
-		File oldInsightDBFile = new File(oldInsightsDatabase_mv_db);
+		File newInsightDBFile = new File(Utility.normalizePath(newInsightsDatabase_mv_db));
+		File oldInsightDBFile = new File(Utility.normalizePath(oldInsightsDatabase_mv_db));
 		FileUtils.copyFile(oldInsightDBFile, newInsightDBFile);
 	}
 
@@ -392,7 +392,7 @@ public class LegacyToProjectRestructurerHelper {
 		if (dir == null || (dir = dir.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Path " + dir + " is not valid. Check config file.");
 		}
-		File file = new File(dir);
+		File file = new File(Utility.normalizePath(dir));
 		if(!file.exists() || !file.isDirectory()) {
 			file.mkdirs();
 		}
