@@ -263,7 +263,7 @@ public class CmdExecUtil {
 					String lastToken = workdirTokens[workdirTokens.length -1];
 					int lastIndex = workingDir.lastIndexOf("/" + lastToken);
 					
-					String newDir = workingDir.substring(0, lastIndex);
+					String newDir = Utility.normalizePath(workingDir.substring(0, lastIndex));
 					if(new File(newDir).exists())
 						workingDir = newDir;
 					//System.out.println("Working Dir " + workingDir);
@@ -283,7 +283,7 @@ public class CmdExecUtil {
 					newDir = workingDir + curToken;					
 				
 				// check to see if this is valid
-				if(new File(newDir).exists())
+				if(new File(Utility.normalizePath( newDir )).exists())
 					workingDir = newDir;
 
 			}

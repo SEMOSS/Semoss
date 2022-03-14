@@ -470,7 +470,7 @@ public class S3Client extends CloudClient {
 		//String aliasAppId = alias + "__" + appId;
 		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
-		File absoluteFolder = new File(absolutePath);
+		File absoluteFolder = new File(Utility.normalizePath(absolutePath));
 		if(absoluteFolder.isDirectory()) {
 			// this is adding a hidden file into every sub folder to make sure there is no empty directory
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
@@ -786,7 +786,7 @@ public class S3Client extends CloudClient {
 				}
 
 				// Make the project directory (if it doesn't already exist)
-				File thisProjectFolder = new File(projectFolder + FILE_SEPARATOR + aliasProjectId);
+				File thisProjectFolder = new File(projectFolder + FILE_SEPARATOR + Utility.normalizePath(aliasProjectId));
 				thisProjectFolder.mkdir();
 				// Pull the contents of the app folder before the smss
 				logger.info("Pulling app from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisProjectFolder.getPath()));
@@ -871,7 +871,7 @@ public class S3Client extends CloudClient {
 				String tempFolder = Utility.getRandomString(10);
 				temp = new File(projectFolder + FILE_SEPARATOR + tempFolder);
 				temp.mkdir();
-				copy = new File(temp.getPath() + FILE_SEPARATOR + smss);
+				copy = new File(temp.getPath() + FILE_SEPARATOR + Utility.normalizePath(smss));
 				Files.copy(new File(smssFile), copy);
 
 				// Push the smss
@@ -1194,7 +1194,7 @@ public class S3Client extends CloudClient {
 			}
 
 			String aliasAppId = smss.replaceAll(".smss", "");
-			File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
+			File appFolder = new File(dbFolder + FILE_SEPARATOR + Utility.normalizePath(aliasAppId));
 			appFolder.mkdir();
 			// Pull the contents of the app folder before the smss
 			logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
@@ -1257,7 +1257,7 @@ public class S3Client extends CloudClient {
 			}
 
 			String aliasAppId = smss.replaceAll(".smss", "");
-			File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
+			File appFolder = new File(dbFolder + FILE_SEPARATOR + Utility.normalizePath(aliasAppId));
 			appFolder.mkdir();
 			// Pull the contents of the app folder before the smss
 			logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
@@ -1371,7 +1371,7 @@ public class S3Client extends CloudClient {
 
 				// Make the project directory (if it doesn't already exist)
 				// THIS IS THE SAME AS PUSH PROJECT BUT USES THE userFolder
-				File thisUserFolder = new File(userFolder + FILE_SEPARATOR + aliasProjectId);
+				File thisUserFolder = new File(userFolder + FILE_SEPARATOR + Utility.normalizePath(aliasProjectId));
 				thisUserFolder.mkdir();
 				// Pull the contents of the app folder before the smss
 				logger.info("Pulling app from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisUserFolder.getPath()));
@@ -1436,7 +1436,7 @@ public class S3Client extends CloudClient {
 				String tempFolder = Utility.getRandomString(10);
 				temp = new File(userFolder + FILE_SEPARATOR + tempFolder);
 				temp.mkdir();
-				copy = new File(temp.getPath() + FILE_SEPARATOR + smss);
+				copy = new File(temp.getPath() + FILE_SEPARATOR + Utility.normalizePath(smss));
 				Files.copy(new File(smssFile), copy);
 
 				// Push the smss

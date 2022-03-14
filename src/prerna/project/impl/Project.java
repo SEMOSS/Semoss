@@ -876,7 +876,7 @@ public class Project implements IProject {
 
 		Invoker invoker = new DefaultInvoker();
 
-		invoker.setMavenHome(new File(mvnHome));
+		invoker.setMavenHome(new File(Utility.normalizePath(mvnHome)));
 		BufferedReader br = null;
 		try {
 			InvocationResult result = invoker.execute( request );

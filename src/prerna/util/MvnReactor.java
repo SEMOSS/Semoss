@@ -90,7 +90,7 @@ public class MvnReactor extends AbstractReactor
 	    };
 		Invoker invoker = new DefaultInvoker();		
 		invoker.setOutputHandler(outputHandler);
-		invoker.setMavenHome(new File(mvnHome));
+		invoker.setMavenHome(new File(Utility.normalizePath(mvnHome)));
 		
 		// path to maven executable		
 		String pomFileName = workingDir + File.separator + "pom.xml";
