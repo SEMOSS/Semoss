@@ -275,7 +275,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					Path projectFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 							+ DIR_SEPARATOR + "project"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), projectId));
 					String cacheFolder = InsightCacheUtility.getInsightCacheFolderPath(newInsight, paramValues);
-					Path relative = projectFolder.relativize( Paths.get(cacheFolder));
+					Path relative = projectFolder.relativize( Paths.get(Utility.normalizePath(cacheFolder)));
 					ClusterUtil.reactorPushProjectFolder(projectId, cacheFolder, relative.toString());
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
