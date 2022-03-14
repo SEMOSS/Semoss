@@ -101,12 +101,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 				java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
-				String updateQuery = "UPDATE " + SMSS_USER_TABLE_NAME + " SET " + 
-						USERID_COL + "=?, " + NAME_COL + "=?, " + 
-						USERNAME_COL + "=?, " + EMAIL_COL + "=?, " + 
-						TYPE_COL + "=?, " + PASSWORD_COL + "=?, " + 
-						SALT_COL + "=?, " + LASTLOGIN_COL + "=? WHERE " + 
-						USERID_COL + "=?";
+				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
+						+ "PASSWORD=?, SALT=?, LASTLOGIN=? WHERE ID=?";
 				PreparedStatement ps = null;
 				try {
 					int parameterIndex = 1;
