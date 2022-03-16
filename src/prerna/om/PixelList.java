@@ -65,7 +65,7 @@ public class PixelList implements Iterable<Pixel> {
 		// TODO: should keep track of which steps are code execution 
 		// so we dont loop through all the pixels before trying to consolidate
 		// can we consolidate the pixels?
-		if(p.isCodeExecution() && pixelList.size()>1) {
+		if(p.isCodeExecution() && p.isUserScript() && pixelList.size()>1) {
 			// will try to consolidate even if there are visualization pixels
 			// that are not data based
 			int counter = 2;
