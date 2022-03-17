@@ -784,7 +784,7 @@ public class AZClient extends CloudClient {
 			}
 
 			String aliasAppId = smss.replaceAll(".smss", "");
-			File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
+			File appFolder = new File(dbFolder + FILE_SEPARATOR + Utility.normalizePath(aliasAppId));
 			appFolder.mkdir();
 			// Pull the contents of the app folder before the smss
 			logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
