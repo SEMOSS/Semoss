@@ -11,10 +11,19 @@ import prerna.util.DIHelper;
 
 public class ReconnectServer extends AbstractReactor
 {
+	
+	public ReconnectServer()
+	{
+		this.keysToGet = new String[] {"force"};
+	}
 	// reconnects the server
 	// execute method - GREEDY translation
 	public NounMetadata execute()
 	{
+		organizeKeys();
+		String force = keyValue.get(keysToGet[0]);
+		
+		
 		User user = this.insight.getUser();
 		
 		if(user == null)
@@ -26,11 +35,18 @@ public class ReconnectServer extends AbstractReactor
 		if(!useNettyPy)
 			return NounMetadata.getErrorNounMessage("TCP Server is not available on this server");
 
-		
 		if(user.getTCPServer(false) != null && user.getTCPServer(false).isConnected())
-			return NounMetadata.getErrorNounMessage("TCP Server is already available");
-
-		if(user.getTCPServer(false) != null && !user.getTCPServer(false).isConnected()) // it was there previously
+		{
+			if(force != null && force.equalsIgnoreCase("true"))
+			{
+				user.getTCPServer(false).stopPyServe(user.tupleSpace);
+				user.setTCPServer(null);
+			}
+			else
+				return NounMetadata.getErrorNounMessage("TCP Server is already available");
+		}
+		//|| (force != null && force.equalsIgnoreCase("true")) - this should already work
+		if( ( (user.getTCPServer(false) != null && !user.getTCPServer(false).isConnected()) ) || user.getTCPServer(false) == null ) // it was there previously
 			user.getTCPServer(true);
 		
 		if(user.getTCPServer(false) != null && user.getTCPServer(false).isConnected())

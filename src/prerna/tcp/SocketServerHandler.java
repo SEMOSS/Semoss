@@ -18,11 +18,15 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
+import prerna.sablecc2.reactor.frame.r.util.RJavaRserveTranslator;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 import prerna.util.TCPChromeDriverUtility;
 
@@ -54,7 +58,10 @@ public class SocketServerHandler implements Runnable
 	String mainFolder = null;
 	boolean test = false;
 			
+	RConnection retCon = null;
 	Map <String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
+	
+	String pyBase = "py";
 	
 	public  Logger LOGGER = null;	
 		
@@ -438,11 +445,31 @@ public class SocketServerHandler implements Runnable
     {
     	if(!rtMap.containsKey(env))
     	{
-    		AbstractRJavaTranslator arjt = new RJavaJriTranslator();
-    		arjt.setLogger(LOGGER);
-    		arjt.startR();
-    		arjt.initREnv(env);
-    		
+    		boolean JRI = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI) == null || DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI).equalsIgnoreCase("true");
+    		AbstractRJavaTranslator arjt = null;
+    		if(JRI)
+    		{
+	    		arjt = new RJavaJriTranslator();
+	    		arjt.setLogger(LOGGER);
+	    		arjt.startR();
+	    		arjt.initREnv(env);	
+    		}
+    		else // try doing rserve
+    		{
+    			arjt = new RJavaRserveTranslator();
+    			if(retCon == null)
+    			{
+    				arjt.setLogger(LOGGER);
+    				arjt.startR();
+    				this.retCon = ((RJavaRserveTranslator)arjt).getConnection();    				
+    			}
+    			else
+    			{
+					arjt.setLogger(LOGGER);
+					arjt.setConnection(retCon);
+					arjt.initREnv(env);    				
+    			}
+    		}
     		rtMap.put(env, arjt);
     	}
     	return rtMap.get(env);
@@ -452,7 +479,7 @@ public class SocketServerHandler implements Runnable
 	{
 		if(this.pt== null)
 		{
-			pt = new PyExecutorThread();
+			pt = new PyExecutorThread(pyBase);
 			//pt.getJep();
 			pt.start();
 			
@@ -486,6 +513,11 @@ public class SocketServerHandler implements Runnable
 	public void setServerSocket(ServerSocket socket)
 	{
 		this.socket = socket;
+	}
+	
+	public void setPyBase(String pyBase)
+	{
+		this.pyBase = pyBase;
 	}
 	
 	
