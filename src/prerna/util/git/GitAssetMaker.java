@@ -171,43 +171,4 @@ public class GitAssetMaker {
 	}
 
 	
-	
-	public static void makeAsset(String userName, String password, Hashtable assetFile)
-	{
-
-		try {
-			GitHub gh = GitHub.connectUsingOAuth("***REMOVED***");
-			GHMyself me = gh.getMyself();
-			System.out.println(">>> " + me.getName() +"");
-			
-			GHRepository repo = gh.getRepository("prabhuk12/Trial1");
-			GHContentUpdateResponse resp = repo.createContent("Hello \n World".getBytes(), "create file directly", "Direct.file3");
-
-			GHContent ghc = resp.getContent();
-			ghc.update("This is the updated content !!", "updated directly");
-
-			ghc = repo.getFileContent("Direct.file3");
-			
-			ghc.update("Whoa.. third one.. ", "third");
-			//gh.
-			//resp.getCommit().getS
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
-	
-	public static void main(String [] args)
-	{
-		try {
-			//listAssets(null,  null,  null);
-			makeAsset(null, null, null);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
 }
