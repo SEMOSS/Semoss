@@ -169,7 +169,7 @@ public class InsightCacheUtility {
 			SecurityInsightUtils.updateInsightCachedOn(projectId, rdbmsId, cachedOn);
 			
 			String mosfetPath = MosfetSyncHelper.getMosfetFileLocation(projectId, projectName, rdbmsId);
-			File mosfet = new File(mosfetPath);
+			File mosfet = new File(Utility.normalizePath(mosfetPath));
 			if(mosfet.exists() && mosfet.isFile()) {
 				MosfetSyncHelper.updateMosfitFileCachedOn(mosfet, cachedOn);
 			}
