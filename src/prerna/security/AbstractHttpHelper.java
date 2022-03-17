@@ -631,9 +631,5 @@ public abstract class AbstractHttpHelper {
 
 	}
 	
-//	public static void main(String [] args)
-//	{
-//		String json = "{ \"access_token\": \"***REMOVED***\", \"token_type\": \"Bearer\", \"expires_in\": 3600}";
-//		AbstractHttpHelper.getJAccessToken(json);
-//	}	
+
 }

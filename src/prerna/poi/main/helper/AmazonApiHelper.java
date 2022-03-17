@@ -15,8 +15,8 @@ public class AmazonApiHelper extends WebAPIHelper{
 
 	//amazon API parameters
 	private final static String ENDPOINT = "webservices.amazon.com";
-	private final static String AWS_ACCESS_KEY_ID = "***REMOVED***";
-	private final static String AWS_SECRET_KEY = "***REMOVED***";
+	private final static String AWS_ACCESS_KEY_ID = "";
+	private final static String AWS_SECRET_KEY = "";
 	private final static String ASSOCIATE_TAG = "semoss-20";
 	private final static int PAGE_THRESHOLD = 5;
 
