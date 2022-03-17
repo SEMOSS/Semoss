@@ -206,7 +206,7 @@ public class RemoteJenaEngine extends AbstractEngine implements IEngine {
 		FileInputStream fileIn = null;
 		try {
 			prop = new Properties();
-			fileIn = new FileInputStream(propFile);
+			fileIn = new FileInputStream(Utility.normalizePath(propFile));
 			prop.load(fileIn);
 			this.serviceURI = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
 			this.connected = true;
