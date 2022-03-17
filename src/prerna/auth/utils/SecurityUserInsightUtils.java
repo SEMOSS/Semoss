@@ -431,8 +431,10 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 				if(securityDb.isConnectionPooling()) {
 					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
+						if(ps != null) {
+							ps.getConnection().close();
+						}
+						} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
 				}
