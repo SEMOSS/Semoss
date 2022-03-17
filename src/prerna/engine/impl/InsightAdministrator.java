@@ -26,7 +26,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class InsightAdministrator {
 
 	private static final Logger logger = LogManager.getLogger(InsightAdministrator.class);
-	
+
 	public static final String TABLE_NAME = "QUESTION_ID";
 	public static final String QUESTION_ID_COL = "ID";
 	public static final String QUESTION_NAME_COL = "QUESTION_NAME";
@@ -38,14 +38,14 @@ public class InsightAdministrator {
 	public static final String CACHE_CRON_COL = "CACHE_CRON";
 	public static final String CACHED_ON_COL = "CACHED_ON";
 	public static final String CACHE_ENCRYPT_COL = "CACHE_ENCRYPT";
-	
+
 	private static Gson gson = new Gson();
 
 	private RDBMSNativeEngine insightEngine;
 	private AbstractSqlQueryUtil queryUtil;
 	private boolean allowArrayDatatype;
 	private boolean allowClobJavaObject;
-	
+
 	public InsightAdministrator(RDBMSNativeEngine insightEngine) {
 		this.insightEngine = insightEngine;
 		this.queryUtil = this.insightEngine.getQueryUtil();
@@ -60,13 +60,13 @@ public class InsightAdministrator {
 		return addInsight(insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
-	
+
 	public String addInsight(final String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave,
-		boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		return addInsight(insightId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
-	
+
 	/**
 	 * 
 	 * @param insightName
@@ -102,9 +102,9 @@ public class InsightAdministrator {
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
 		logger.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
-		
+
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		
+
 		PreparedStatement ps = null;
 		try {
 			ps = insightEngine.bulkInsertPreparedStatement(new String[] {
@@ -112,7 +112,7 @@ public class InsightAdministrator {
 					HIDDEN_INSIGHT_COL, CACHEABLE_COL, CACHE_MINUTES_COL, 
 					CACHE_CRON_COL, CACHED_ON_COL, CACHE_ENCRYPT_COL, QUESTION_PKQL_COL
 			});
-			
+
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, insightName);
@@ -157,17 +157,19 @@ public class InsightAdministrator {
 			}
 			if(insightEngine.isConnectionPooling()) {
 				try {
-					ps.getConnection().close();
+					if(ps!=null) {
+						ps.getConnection().close();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
-		
+
 		// return the new rdbms id
 		return insightId;
 	}
-	
+
 	/**
 	 * Update the insight tags for the insight
 	 * Will delete existing values and then perform a bulk insert
@@ -183,7 +185,7 @@ public class InsightAdministrator {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		if(tags != null && !tags.isEmpty()) {
 			// now we do the new insert with the order of the tags
 			query = this.queryUtil.createInsertPreparedStatementString("INSIGHTMETA", 
@@ -199,7 +201,7 @@ public class InsightAdministrator {
 					ps.setInt(4, i);
 					ps.addBatch();;
 				}
-				
+
 				ps.executeBatch();
 			} catch(Exception e) {
 				logger.error(Constants.STACKTRACE, e);
@@ -214,7 +216,7 @@ public class InsightAdministrator {
 			}
 		}
 	}
-	
+
 	/**
 	 * Update the insight tags for the insight
 	 * Will delete existing values and then perform a bulk insert
@@ -230,7 +232,7 @@ public class InsightAdministrator {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		if(tags != null && tags.length > 0) {
 			// now we do the new insert with the order of the tags
 			query = this.queryUtil.createInsertPreparedStatementString("INSIGHTMETA", 
@@ -246,7 +248,7 @@ public class InsightAdministrator {
 					ps.setInt(4, i);
 					ps.addBatch();;
 				}
-				
+
 				ps.executeBatch();
 			} catch(Exception e) {
 				logger.error(Constants.STACKTRACE, e);
@@ -261,7 +263,7 @@ public class InsightAdministrator {
 			}
 		}
 	}
-	
+
 	/**
 	 * Update the insight description
 	 * Will perform an insert if the description doesn't currently exist
@@ -299,33 +301,33 @@ public class InsightAdministrator {
 			}
 		}
 	}
-	
-	
+
+
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, 
 			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		logger.info("Modifying insight id :::: " + Utility.cleanLogString(existingRdbmsId));
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
 		logger.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
-		
+
 		String query = "UPDATE " + TABLE_NAME + " SET "
-			+ QUESTION_NAME_COL+"=?, "
-			+ QUESTION_LAYOUT_COL+"=?, "
-			+ HIDDEN_INSIGHT_COL+"=?, "
-			+ CACHEABLE_COL+"=?, "
-			+ CACHE_MINUTES_COL+"=?, "
-			+ CACHE_CRON_COL+"=?, "
-			+ CACHED_ON_COL+"=?, "
-			+ CACHE_ENCRYPT_COL+"=?, "
-			+ QUESTION_PKQL_COL+"=? WHERE "
-			+ QUESTION_ID_COL+"=?";
-		
+				+ QUESTION_NAME_COL+"=?, "
+				+ QUESTION_LAYOUT_COL+"=?, "
+				+ HIDDEN_INSIGHT_COL+"=?, "
+				+ CACHEABLE_COL+"=?, "
+				+ CACHE_MINUTES_COL+"=?, "
+				+ CACHE_CRON_COL+"=?, "
+				+ CACHED_ON_COL+"=?, "
+				+ CACHE_ENCRYPT_COL+"=?, "
+				+ QUESTION_PKQL_COL+"=? WHERE "
+				+ QUESTION_ID_COL+"=?";
+
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		
+
 		PreparedStatement ps = null;
 		try {
 			ps = insightEngine.getPreparedStatement(query);
-			
+
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightName);
 			ps.setString(parameterIndex++, layout);
@@ -370,32 +372,34 @@ public class InsightAdministrator {
 			}
 			if(insightEngine.isConnectionPooling()) {
 				try {
-					ps.getConnection().close();
+					if(ps!=null) {
+						ps.getConnection().close();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 	}
-	
+
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, Collection<String> pixelRecipeToSave, 
 			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		updateInsight(existingRdbmsId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), 
 				hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
-	
+
 	public void updateInsightName(String existingRdbmsId, String insightName) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
 		logger.info("Updating question name to :::: " + insightName);
-		
+
 		String query = "UPDATE " + TABLE_NAME + " SET "
 				+ QUESTION_NAME_COL+"=? WHERE "
 				+ QUESTION_ID_COL+"=?";
-				
+
 		PreparedStatement ps = null;
 		try {
 			ps = insightEngine.getPreparedStatement(query);
-			
+
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightName);
 			ps.setString(parameterIndex++, existingRdbmsId);
@@ -415,14 +419,16 @@ public class InsightAdministrator {
 			}
 			if(insightEngine.isConnectionPooling()) {
 				try {
-					ps.getConnection().close();
+					if(ps!=null) {
+						ps.getConnection().close();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 	}
-	
+
 
 	public void updateInsightCache(String existingRdbmsId, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
@@ -431,7 +437,7 @@ public class InsightAdministrator {
 		logger.info("Updating question cache encrypt :::: " + cacheEncrypt);
 
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		
+
 		String query = "UPDATE " + TABLE_NAME + " SET "
 				+ CACHEABLE_COL+"=?, "
 				+ CACHE_MINUTES_COL+"=?, "
@@ -439,11 +445,11 @@ public class InsightAdministrator {
 				+ CACHED_ON_COL+"=?, "
 				+ CACHE_ENCRYPT_COL+"=? WHERE "
 				+ QUESTION_ID_COL+"=?";
-				
+
 		PreparedStatement ps = null;
 		try {
 			ps = insightEngine.getPreparedStatement(query);
-			
+
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
@@ -475,28 +481,30 @@ public class InsightAdministrator {
 			}
 			if(insightEngine.isConnectionPooling()) {
 				try {
-					ps.getConnection().close();
+					if(ps!=null) {
+						ps.getConnection().close();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 	}
-	
+
 	public void updateInsightCachedOn(String existingRdbmsId, LocalDateTime cachedOn) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
 		logger.info("Updating question cache date :::: " + cachedOn);
 
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		
+
 		String query = "UPDATE " + TABLE_NAME + " SET "
 				+ CACHED_ON_COL+"=? WHERE "
 				+ QUESTION_ID_COL+"=?";
-				
+
 		PreparedStatement ps = null;
 		try {
 			ps = insightEngine.getPreparedStatement(query);
-			
+
 			int parameterIndex = 1;
 			if(cachedOn == null) {
 				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
@@ -520,25 +528,27 @@ public class InsightAdministrator {
 			}
 			if(insightEngine.isConnectionPooling()) {
 				try {
-					ps.getConnection().close();
+					if(ps!=null) {
+						ps.getConnection().close();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 	}
-	
+
 	public void updateInsightGlobal(String existingRdbmsId, boolean isHidden) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
-		
+
 		String query = "UPDATE " + TABLE_NAME + " SET "
 				+ HIDDEN_INSIGHT_COL+"=? WHERE "
 				+ QUESTION_ID_COL+"=?";
-				
+
 		PreparedStatement ps = null;
 		try {
 			ps = insightEngine.getPreparedStatement(query);
-			
+
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, isHidden);
 			ps.setString(parameterIndex++, existingRdbmsId);
@@ -558,14 +568,16 @@ public class InsightAdministrator {
 			}
 			if(insightEngine.isConnectionPooling()) {
 				try {
-					ps.getConnection().close();
+					if(ps!=null) {
+						ps.getConnection().close();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Drop specific insights from the insight
 	 * @param insightIDs
@@ -579,7 +591,7 @@ public class InsightAdministrator {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		deleteQuery = "DELETE FROM INSIGHTMETA WHERE INSIGHTID IN " + idsString;
 		logger.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
 		try {
@@ -588,7 +600,7 @@ public class InsightAdministrator {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	/**
 	 * Drop specific insights from the insight
 	 * @param insightIDs
@@ -600,7 +612,7 @@ public class InsightAdministrator {
 		logger.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
 		insightEngine.removeData(deleteQuery);
 	}
-	
+
 	/**
 	 * Genereate the sql portion that uses a set of insight ids
 	 * @param ids
@@ -612,10 +624,10 @@ public class InsightAdministrator {
 			idsString = idsString + "'" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', ";
 		}
 		idsString = idsString.substring(0, idsString.length() - 2) + ")";
-		
+
 		return idsString;
 	}
-	
+
 	private String createString(Collection<String> ids) {
 		StringBuilder b = new StringBuilder("(");
 		Iterator<String> iterator = ids.iterator();
@@ -628,7 +640,7 @@ public class InsightAdministrator {
 		b.append(")");
 		return b.toString();
 	}
-	
+
 	public static String getArraySqlSyntax(String[] pixelRecipeToSave) {
 		StringBuilder sql = new StringBuilder("(");
 		int numPixels = pixelRecipeToSave.length;
@@ -641,7 +653,7 @@ public class InsightAdministrator {
 		sql.append(")");
 		return sql.toString();
 	}
-	
+
 	public static String getArraySqlSyntax(Collection<String> pixelRecipeToSave) {
 		StringBuilder sql = new StringBuilder("(");
 		Iterator<String> it = pixelRecipeToSave.iterator();
@@ -654,12 +666,12 @@ public class InsightAdministrator {
 		sql.append(")");
 		return sql.toString();
 	}
-	
+
 	public static String getClobRecipeSyntax(String[] pixelRecipeToSave) {
 		String sql = gson.toJson(pixelRecipeToSave);
 		return "'" + RdbmsQueryBuilder.escapeForSQLStatement(sql) + "'";
 	}
-	
+
 	public static String getClobRecipeSyntax(Collection<String> pixelRecipeToSave) {
 		return getClobRecipeSyntax(pixelRecipeToSave.toArray(new String[pixelRecipeToSave.size()]));
 	}

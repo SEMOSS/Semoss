@@ -697,8 +697,10 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				ps.close();
 			}
 			if(securityDb.isConnectionPooling()) {
+				if(ps != null) {
 				ps.getConnection().close();
-			}
+				}
+				}
 		}
 		
 		return uniqueToken;
@@ -767,7 +769,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				ps.close();
 			}
 			if(securityDb.isConnectionPooling()) {
-				ps.getConnection().close();
+				if(ps != null) {
+					ps.getConnection().close();
+				}
 			}
 		}
 		

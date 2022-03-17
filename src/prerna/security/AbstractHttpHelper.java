@@ -631,9 +631,5 @@ public abstract class AbstractHttpHelper {
 
 	}
 	
-//	public static void main(String [] args)
-//	{
-//		String json = "{ \"access_token\": \"ya29.GluRBVQwBs9V7oLe17RhJsFUpu_TyX2nXWs3RLuOvw1PTGX_e0VPrpas-KyqBEp5jkgthpfEyN8Qj5Xc3Rp6PxROACdF9Gz8nM1F7T76UeMDo2HbSnvVPEvgQOY8\", \"token_type\": \"Bearer\", \"expires_in\": 3600}";
-//		AbstractHttpHelper.getJAccessToken(json);
-//	}	
+
 }

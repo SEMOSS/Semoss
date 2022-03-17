@@ -970,6 +970,8 @@ public class InsightUtility {
 			} else if(val instanceof Variable) {
 				var = (Variable) val;
 				name = ((Variable) val).getName();
+			} else {
+				throw new IllegalArgumentException("Input " + val + " is not a valid variable");
 			}
 			
 			List <String> frameNames = var.getFrames();
