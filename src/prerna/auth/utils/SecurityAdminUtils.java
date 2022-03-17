@@ -441,7 +441,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 				if(securityDb.isConnectionPooling()) {
 					try {
+						if(ps != null) {
 						ps.getConnection().close();
+						}
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
