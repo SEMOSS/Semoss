@@ -198,7 +198,7 @@ public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 		try {
 			Properties prop = new Properties();
 			jenaModel = ModelFactory.createDefaultModel();
-			fileIn = new FileInputStream(propFile);
+			fileIn = new FileInputStream(Utility.normalizePath(propFile));
 			prop.load(fileIn);
 			String fileName = prop.getProperty(Constants.RDF_FILE_NAME);
 			String rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
