@@ -479,7 +479,7 @@ public class SocketServerHandler implements Runnable
 	{
 		if(this.pt== null)
 		{
-			pt = new PyExecutorThread(pyBase);
+			pt = new PyExecutorThread();
 			//pt.getJep();
 			pt.start();
 			
