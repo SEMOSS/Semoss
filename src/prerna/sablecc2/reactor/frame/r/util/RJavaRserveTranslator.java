@@ -40,7 +40,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	 * Please use the insight object or the RJavaTranslatorFactory
 	 * to get the correct instance
 	 */
-	RJavaRserveTranslator() {
+	public RJavaRserveTranslator() {
 
 	}
 	
@@ -710,6 +710,16 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		} catch (RserveException e) {
 			logger.error(STACKTRACE, e);
 		}
+	}
+	
+	public static void main(String [] args)
+	{
+		RJavaRserveTranslator rt = new RJavaRserveTranslator();
+		rt.env = "monkeyBoy";
+		rt.startR();
+		Object obj = rt.executeR("2+2");
+		System.out.println(obj);
+		rt.stopRProcess();
 	}
 
 }
