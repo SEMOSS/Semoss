@@ -1293,7 +1293,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(updateQuery);
-			ps.setBoolean(parameterIndex, isLocked);
+			ps.setBoolean(parameterIndex++, isLocked);
 			ps.setString(parameterIndex++, userId);
 			ps.setString(parameterIndex++, type.toString());
 			ps.execute();
