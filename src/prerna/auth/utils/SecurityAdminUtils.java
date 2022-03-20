@@ -311,7 +311,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				validPassword(userId, AuthProvider.NATIVE, password);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				error += e.getMessage();			
+				error += e.getMessage();
 			}
             if(error.isEmpty()){
                 newSalt = SecurityQueryUtils.generateSalt();
@@ -460,12 +460,37 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param isPublisher
 	 */
 	public void setUserPublisher(String userId, boolean isPublisher) {
-		String query = "UPDATE SMSS_USER SET PUBLISHER=" + isPublisher + " WHERE ID ='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
+		String query = "UPDATE SMSS_USER SET PUBLISHER=? WHERE ID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, isPublisher);
+			ps.setString(parameterIndex++, userId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured setting this user as a publisher");
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(securityDb.isConnectionPooling()) {
+				try {
+					if(ps != null) {
+					ps.getConnection().close();
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
@@ -475,12 +500,77 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param isExporter
 	 */
 	public void setUserExporter(String userId, boolean isExporter) {
-		String query = "UPDATE SMSS_USER SET EXPORTER=" + isExporter + " WHERE ID ='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
+		String query = "UPDATE SMSS_USER SET EXPORTER=? WHERE ID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, isExporter);
+			ps.setString(parameterIndex++, userId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured setting this user as an exporter");
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(securityDb.isConnectionPooling()) {
+				try {
+					if(ps != null) {
+					ps.getConnection().close();
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Set the user locked/unlocked
+	 * @param userId
+	 * @param isExporter
+	 */
+	public void setUserLocked(String userId, boolean isLocked) {
+		String query = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, isLocked);
+			ps.setString(parameterIndex++, userId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured setting this user as locked/unlocked");
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(securityDb.isConnectionPooling()) {
+				try {
+					if(ps != null) {
+					ps.getConnection().close();
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
