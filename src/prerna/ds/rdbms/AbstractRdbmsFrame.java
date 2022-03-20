@@ -7,6 +7,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -18,10 +21,13 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 
+	private Logger logger = LogManager.getLogger(AbstractRdbmsFrame.class);
+	
 	protected Connection conn = null;
 	protected String schema = null;
 	protected AbstractSqlQueryUtil util = null;
@@ -45,6 +51,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		try {
 			this.initConnAndBuilder();
 		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error generating new sql frame", e);
 		}
 	}
@@ -150,7 +157,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 			try {
 				this.builder.runQuery(dropColumnSql);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		} else {
 			// TODO: make new table not including this column and insert from table
@@ -212,7 +219,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		try {
 			this.conn.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
