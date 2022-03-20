@@ -24,6 +24,8 @@ import prerna.util.sql.SqlQueryUtilFactory;
 
 public class PostgresFrame extends AbstractRdbmsFrame {
 	
+	private Logger logger = LogManager.getLogger(PostgresFrame.class);
+	
 	private static final String POSTGRES_HOST = "postgres_host";
 	private static final String POSTGRES_PORT = "postgres_port";
 	private static final String POSTGRES_USERNAME = "postgres_username";
