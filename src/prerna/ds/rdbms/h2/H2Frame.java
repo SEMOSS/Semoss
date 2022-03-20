@@ -21,6 +21,8 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.h2.tools.DeleteDbFiles;
 import org.h2.tools.RunScript;
 import org.h2.tools.Server;
@@ -50,6 +52,8 @@ import prerna.util.sql.SqlQueryUtilFactory;
 
 public class H2Frame extends AbstractRdbmsFrame {
 
+	private Logger logger = LogManager.getLogger(H2Frame.class);
+	
 	private String fileLocation;
 	private String fileNameToUse;
 
