@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -24,10 +27,13 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class RdbmsImporter extends AbstractImporter {
+
+	private static final Logger logger = LogManager.getLogger(RdbmsImporter.class);
 
 	private AbstractRdbmsFrame dataframe;
 	private AbstractSqlQueryUtil queryUtil;
@@ -41,7 +47,7 @@ public class RdbmsImporter extends AbstractImporter {
 		try {
 			this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
 					new NounMetadata("Error occured executing query before loading into frame", 
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -58,7 +64,7 @@ public class RdbmsImporter extends AbstractImporter {
 			try {
 				this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(
 						new NounMetadata("Error occured executing query before loading into frame", 
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -97,6 +103,7 @@ public class RdbmsImporter extends AbstractImporter {
 		try {
 			this.dataframe.addRowsViaIterator(this.it, tableName, dataTypeMap);
 		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
 			// if we have an error
 			// just make sure the headers are all there
 			int size = dataTypeMap.size();
@@ -111,7 +118,7 @@ public class RdbmsImporter extends AbstractImporter {
 			try {
 				this.dataframe.getBuilder().alterTableNewColumns(tableName, newHeaders, newTypes);
 			} catch (Exception ex) {
-				ex.printStackTrace();
+				logger.error(Constants.STACKTRACE, ex);
 			}
 		}
 	}
@@ -204,7 +211,7 @@ public class RdbmsImporter extends AbstractImporter {
 			try {
 				this.dataframe.getBuilder().runQuery(joinQuery);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 //			testGridData("select * from " + innerJoinTable);
 			mergeTable = innerJoinTable;
@@ -213,7 +220,7 @@ public class RdbmsImporter extends AbstractImporter {
 			try {
 				this.dataframe.getBuilder().runQuery(queryUtil.dropTable(rightTableName));
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		// now we merge the 2 tables together
@@ -229,7 +236,7 @@ public class RdbmsImporter extends AbstractImporter {
 			// the new headers are the keys for the merge
 			this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeMergeIntoQuery(leftTableName, mergeTable, keyColumns, origHeaders));
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 //		testGridData("select * from " + leftTableName);
 			
@@ -237,7 +244,7 @@ public class RdbmsImporter extends AbstractImporter {
 		try {
 			this.dataframe.getBuilder().runQuery(this.dataframe.getQueryUtil().dropTable(mergeTable));
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		return this.dataframe;
@@ -351,7 +358,7 @@ public class RdbmsImporter extends AbstractImporter {
 //			}
 		}
 		catch(Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		} finally {
 			// now drop the 2 join tables if we used an outer join
@@ -359,14 +366,14 @@ public class RdbmsImporter extends AbstractImporter {
 				try {
 					this.dataframe.getBuilder().runQuery(queryUtil.dropTable(leftJoinReturnTableName));
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(rightJoinReturnTableName != null) {
 				try {
 					this.dataframe.getBuilder().runQuery(queryUtil.dropTable(rightJoinReturnTableName));
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			
@@ -375,7 +382,7 @@ public class RdbmsImporter extends AbstractImporter {
 				try {
 					this.dataframe.getBuilder().runQuery(queryUtil.dropTable(rightTableName));
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -388,12 +395,12 @@ public class RdbmsImporter extends AbstractImporter {
 			try {
 				this.dataframe.getBuilder().runQuery(queryUtil.dropTable(leftTableName));
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			try {
 				this.dataframe.getBuilder().runQuery(queryUtil.alterTableName(returnTableName, leftTableName));
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -440,7 +447,7 @@ public class RdbmsImporter extends AbstractImporter {
 		try {
 			this.dataframe.getBuilder().addColumnIndex(tableName, columnName);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -468,12 +475,12 @@ public class RdbmsImporter extends AbstractImporter {
 //				System.out.println(Arrays.toString(data));
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			try {
 //				rs.close();
 //			} catch (SQLException e) {
-//				e.printStackTrace();
+//				logger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //	}

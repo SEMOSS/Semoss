@@ -3,6 +3,8 @@ package prerna.ds;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -16,9 +18,12 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
+import prerna.util.Constants;
 
 public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
+	private Logger logger = LogManager.getLogger(RawGemlinSelectWrapper.class);
+	
 	private GremlinInterpreter interp;
 	private SelectQueryStruct qs;
 	private Map<String,String> nameMap;
@@ -166,7 +171,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		try {
 			baseIterator.close();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -185,7 +190,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 				try {
 					numValues.close();
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -206,7 +211,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	
 	@Override
 	public String[] getHeaders() {
-		return this.rawHeaders;
+		return this.headers;
 	}
 
 	@Override
