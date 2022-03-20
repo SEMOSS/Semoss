@@ -195,7 +195,7 @@ public class ImportUtility {
 			boolean isDerived = selector.isDerived();
 			String dataType = selector.getDataType();
 			String itDataType = null;
-			if(iteratorTypes != null) {
+			if(iteratorTypes != null && iteratorTypes[i] != null) {
 				itDataType = iteratorTypes[i].toString();
 			}
 			String uniqueHeader = frameTableName + "__" + alias;
