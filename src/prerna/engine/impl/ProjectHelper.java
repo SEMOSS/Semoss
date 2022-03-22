@@ -40,19 +40,19 @@ public class ProjectHelper {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private ProjectHelper() {
-		
+
 	}
-	
+
 	public static IProject generateNewProject(String projectName, User user, Logger logger) {
 		String projectId = UUID.randomUUID().toString();
 		return generateNewProject(projectId, projectName, user, logger);
 	}
-	
+
 	public static IProject generateNewProject(String projectId, String projectName, User user, Logger logger) {
 		if(projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
-		
+
 		boolean security = AbstractSecurityUtils.securityEnabled();
 		if(security) {
 			if(user == null) {
@@ -62,28 +62,28 @@ public class ProjectHelper {
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
-			
+
 			// throw error if user is anonymous
 			if(AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				AbstractReactor.throwAnonymousUserError();
 			}
-			
+
 			// throw error is user doesn't have rights to publish new apps
 			if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
 				AbstractReactor.throwUserNotPublisherError();
 			}
 		}
-		
+
 		try {
 			File newProjectFolder = SmssUtilities.validateProject(user, projectName, projectId);
 			newProjectFolder.mkdirs();
 		} catch (IOException e) {
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
-		
+
 		// Create the project class
 		IProject project = new Project();
-		
+
 		File tempSmss = null;
 		File smssFile = null;
 		boolean error = false;
@@ -92,18 +92,18 @@ public class ProjectHelper {
 			// Add database into DIHelper so that the web watcher doesn't try to load as well
 			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, null);
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-			
+
 			// Only at end do we add to DIHelper
 			DIHelper.getInstance().setProjectProperty(projectId, project);
 			String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 			projects = projects + ";" + projectId;
 			DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
-			
+
 			// Rename .temp to .smss
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
-			
+
 			// Update engine smss file location
 			project.openProject(smssFile.getAbsolutePath());
 			logger.info("Finished creating project");
@@ -113,7 +113,7 @@ public class ProjectHelper {
 				logger.info("Syncing project for cloud backup");
 				CloudClient.getClient().pushProject(projectId);
 			}
-			
+
 			SecurityUpdateUtils.addProject(projectId);
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
@@ -121,7 +121,7 @@ public class ProjectHelper {
 					SecurityUpdateUtils.addProjectOwner(projectId, user.getAccessToken(ap).getId());
 				}
 			}
-			
+
 			return project;
 		} catch(Exception e) {
 			error = true;
@@ -132,35 +132,36 @@ public class ProjectHelper {
 				if(smssFile != null && smssFile.exists() && smssFile.isFile()) {
 					smssFile.delete();
 				}
-				
-				File projectFolder = new File(FilenameUtils.getBaseName(smssFile.getAbsolutePath()));
-				// delete the engine folder and all its contents
-				if (projectFolder != null && projectFolder.exists() && projectFolder.isDirectory()) {
-					File[] files = projectFolder.listFiles();
-					if (files != null) { // some JVMs return null for empty dirs
-						for (File f : files) {
-							try {
-								FileUtils.forceDelete(f);
-							} catch (IOException e) {
-								e.printStackTrace();
+				if(smssFile != null) {
+					File projectFolder = new File(FilenameUtils.getBaseName(smssFile.getAbsolutePath()));
+					// delete the engine folder and all its contents
+					if (projectFolder != null && projectFolder.exists() && projectFolder.isDirectory()) {
+						File[] files = projectFolder.listFiles();
+						if (files != null) { // some JVMs return null for empty dirs
+							for (File f : files) {
+								try {
+									FileUtils.forceDelete(f);
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
 							}
 						}
-					}
-					try {
-						FileUtils.forceDelete(projectFolder);
-					} catch (IOException e) {
-						e.printStackTrace();
+						try {
+							FileUtils.forceDelete(projectFolder);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
-			
+
 			// always delete temp smss
 			if(tempSmss != null && tempSmss.exists() && tempSmss.isFile()) {
 				tempSmss.delete();
 			}
 		}
 	}
-	
+
 	/**
 	 * Load the insights rdbms engine using the main engine properties
 	 * @param mainEngineProp
@@ -175,7 +176,7 @@ public class ProjectHelper {
 		String insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(mainEngineProp).getAbsolutePath();
 		return loadInsightsDatabase(projectId, projectName, rdbmsInsightsType, insightDatabaseLoc, logger);
 	}
-	
+
 	/**
 	 * Load the insights rdbms engine
 	 * @param engineId
@@ -189,8 +190,8 @@ public class ProjectHelper {
 		if(insightDatabaseLoc == null || !new File(insightDatabaseLoc).exists()) {
 			// make a new database
 			RDBMSNativeEngine insightsRdbms = (RDBMSNativeEngine) ProjectUtils.generateInsightsDatabase(projectId, projectName);
-//			UploadUtilities.addExploreInstanceInsight(projectId, projectName, insightsRdbms);
-//			UploadUtilities.addInsightUsageStats(projectId, projectName, insightsRdbms);
+			//			UploadUtilities.addExploreInstanceInsight(projectId, projectName, insightsRdbms);
+			//			UploadUtilities.addInsightUsageStats(projectId, projectName, insightsRdbms);
 			return insightsRdbms;
 		}
 		RDBMSNativeEngine insightsRdbms = new RDBMSNativeEngine();
@@ -199,7 +200,7 @@ public class ProjectHelper {
 		prop.put(Constants.RDBMS_TYPE, rdbmsInsightsType.getLabel());
 		String connURL = null;
 		logger.info("Insight rdbms database location is " + Utility.cleanLogString(insightDatabaseLoc));
-		
+
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		// decrypt the password
 		String propFile = baseFolder + DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId) + ".smss";
@@ -210,7 +211,7 @@ public class ProjectHelper {
 		if(pass == null) {
 			pass = "";
 		}
-		
+
 		if(rdbmsInsightsType == RdbmsTypeEnum.SQLITE) {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":" + insightDatabaseLoc;
 			prop.put(Constants.USERNAME, "");
@@ -226,7 +227,7 @@ public class ProjectHelper {
 		insightsRdbms.setProp(prop);
 		insightsRdbms.openDB(null);
 		insightsRdbms.setEngineId(projectId + "_INSIGHTS_RDBMS");
-		
+
 		AbstractSqlQueryUtil queryUtil = insightsRdbms.getQueryUtil();
 		String tableExistsQuery = queryUtil.tableExistsQuery("QUESTION_ID", insightsRdbms.getSchema());
 		boolean tableExists = false;
@@ -241,13 +242,13 @@ public class ProjectHelper {
 				wrapper.cleanUp();
 			}
 		}
-		
+
 		if(!tableExists) {
 			// well, you already created the file
 			// need to run the queries to make this
 			ProjectUtils.runInsightCreateTableQueries(insightsRdbms);
 		} else {
-			
+
 			// adding new insight metadata
 			try {
 				if(!queryUtil.tableExists(insightsRdbms.getConnection(), "INSIGHTMETA", insightsRdbms.getSchema())) {
@@ -262,7 +263,7 @@ public class ProjectHelper {
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-			
+
 			{
 				List<String> allCols;
 				try {
@@ -313,45 +314,45 @@ public class ProjectHelper {
 					e.printStackTrace();
 				}
 			}
-			
-//			// okay, might need to do some updates
-//			String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='ID'";
-//			IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightsRdbms, q);
-//			while(wrap.hasNext()) {
-//				String val = wrap.next().getValues()[0] + "";
-//				if(!val.equals("VARCHAR")) {
-//					String update = "ALTER TABLE QUESTION_ID ALTER COLUMN ID VARCHAR(50);";
-//					try {
-//						insightsRdbms.insertData(update);
-//					} catch (SQLException e) {
-//						e.printStackTrace();
-//					}
-//					insightsRdbms.commit();
-//				}
-//			}
-//			wrap.cleanUp();
-//			
-//			// previous alter column ... might be time to delete this ? 11/8/2018 
-//			String update = "ALTER TABLE QUESTION_ID ADD COLUMN IF NOT EXISTS HIDDEN_INSIGHT BOOLEAN DEFAULT FALSE";								
-//			try {
-//				insightsRdbms.insertData(update);
-//			} catch (SQLException e) {
-//				e.printStackTrace();
-//			}
-//			insightsRdbms.commit();
-//
-//			// THIS IS FOR LEGACY !!!!
-//			// TODO: EVENTUALLY WE WILL DELETE THIS
-//			// TODO: EVENTUALLY WE WILL DELETE THIS
-//			// TODO: EVENTUALLY WE WILL DELETE THIS
-//			// TODO: EVENTUALLY WE WILL DELETE THIS
-//			// TODO: EVENTUALLY WE WILL DELETE THIS
-//			InsightsDatabaseUpdater3CacheableColumn.update(engineId, insightsRdbms);
-			
+
+			//			// okay, might need to do some updates
+			//			String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='ID'";
+			//			IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightsRdbms, q);
+			//			while(wrap.hasNext()) {
+			//				String val = wrap.next().getValues()[0] + "";
+			//				if(!val.equals("VARCHAR")) {
+			//					String update = "ALTER TABLE QUESTION_ID ALTER COLUMN ID VARCHAR(50);";
+			//					try {
+			//						insightsRdbms.insertData(update);
+			//					} catch (SQLException e) {
+			//						e.printStackTrace();
+			//					}
+			//					insightsRdbms.commit();
+			//				}
+			//			}
+			//			wrap.cleanUp();
+			//			
+			//			// previous alter column ... might be time to delete this ? 11/8/2018 
+			//			String update = "ALTER TABLE QUESTION_ID ADD COLUMN IF NOT EXISTS HIDDEN_INSIGHT BOOLEAN DEFAULT FALSE";								
+			//			try {
+			//				insightsRdbms.insertData(update);
+			//			} catch (SQLException e) {
+			//				e.printStackTrace();
+			//			}
+			//			insightsRdbms.commit();
+			//
+			//			// THIS IS FOR LEGACY !!!!
+			//			// TODO: EVENTUALLY WE WILL DELETE THIS
+			//			// TODO: EVENTUALLY WE WILL DELETE THIS
+			//			// TODO: EVENTUALLY WE WILL DELETE THIS
+			//			// TODO: EVENTUALLY WE WILL DELETE THIS
+			//			// TODO: EVENTUALLY WE WILL DELETE THIS
+			//			InsightsDatabaseUpdater3CacheableColumn.update(engineId, insightsRdbms);
+
 		}
-		
+
 		insightsRdbms.setBasic(true);
 		return insightsRdbms;
 	}
-	
+
 }
