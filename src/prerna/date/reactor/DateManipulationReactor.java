@@ -11,6 +11,7 @@ import com.ibm.icu.util.Calendar;
 
 import prerna.date.SemossDate;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -61,6 +62,10 @@ public class DateManipulationReactor extends AbstractReactor {
 
 		if (this.keyValue.containsKey(this.keysToGet[3])) {
 			timeunit = this.keyValue.get(this.keysToGet[3]);
+		}
+		
+		if(startingDate == null) {
+			throw new SemossPixelException("Starting Date must be set");
 		}
 
 		// based on the type of operation we will do the specific date manipulations here
