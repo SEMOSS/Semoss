@@ -136,7 +136,7 @@ public class CommandReactor extends GitBaseReactor {
 		
 		// pre process commit
 		// add user name and email
-		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("commit")) {
+		if(git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("commit")) {
 			// add the user name
 			// git config user.name
 			// git confir user.email
@@ -150,7 +150,7 @@ public class CommandReactor extends GitBaseReactor {
 			this.insight.getCmdUtil().executeCommand("git config user.email " + userEmail[1]);
 		}
 		
-		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("config")) {
+		if(git != null &&  git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("config")) {
 			// command should not be allowed.. 
 			if(command.contains("global")) {
 				return NounMetadata.getErrorNounMessage("Global config cannot be set in this environment");
@@ -160,7 +160,7 @@ public class CommandReactor extends GitBaseReactor {
 		
 		//check that it is only git pull or git clone in prod for CFG
 		// for this, trusted repo and default branch must be limited
-		if(git.equalsIgnoreCase("git") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
+		if(git != null && git.equalsIgnoreCase("git") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			
 			
 			 String trustedRepo =  DIHelper.getInstance().getProperty(Constants.GIT_TRUSTED_REPO);
@@ -176,7 +176,7 @@ public class CommandReactor extends GitBaseReactor {
 		 
 		} 
 		
-		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("pull") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
+		if(git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("pull") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String token = getToken();
 			return GitPushUtils.pull(util.getWorkingDir(), token, AuthProvider.GITLAB);	
 			//return new NounMetadata("Git Pulled", PixelDataType.CONST_STRING, PixelOperationType.HELP);
@@ -184,7 +184,7 @@ public class CommandReactor extends GitBaseReactor {
 		} 
 		
 		
-		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("checkout") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
+		if(git != null  && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("checkout") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String token = getToken();
 			String branch = commands.nextToken();
 
@@ -193,7 +193,7 @@ public class CommandReactor extends GitBaseReactor {
 
 		}
 		
-		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("clone") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
+		if(git != null  && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("clone") && gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String token = getToken();
 			String repo = commands.nextToken();
 
