@@ -23,12 +23,11 @@ import prerna.engine.impl.r.RSingleton;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
+import prerna.util.Constants;
 
 public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
 	private static final Logger logger = LogManager.getLogger(RJavaRserveTranslator.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	private static ConcurrentMap<String, ReentrantLock> genEngineLock = new ConcurrentHashMap<>();
 	
@@ -130,7 +129,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					logger.error(
 							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n "
 									+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException(
 							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n "
 									+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
@@ -138,7 +137,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					lock.unlock();
 				}
 			} catch(Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		initREnv();
@@ -188,7 +187,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			logger.debug("Running rscript > " + rScript);
 			return evalRSync(rScript);
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -202,7 +201,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			logger.debug("Running rscript > " + rScript);
 			voidEvalRSync(rScript);
 		} catch (RserveException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -218,9 +217,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asString();
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -231,9 +230,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asStrings();
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -281,10 +280,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				
 				return arr;
 			} catch (REXPMismatchException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		} catch (RserveException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -297,9 +296,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			number = evalRSync(script).asInteger();
 			return number;
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return number;
 	}
@@ -310,9 +309,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asIntegers();
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -325,9 +324,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			number = evalRSync(script).asDouble();
 			return number;
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return number;
 	}
@@ -338,9 +337,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asDoubles();
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -351,9 +350,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asDoubleMatrix();
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -364,9 +363,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asFactor();
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -381,9 +380,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				return (val.asInteger() == 1);
 			}
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return false;
 	}
@@ -407,9 +406,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			retMap.put("counts", counts);
 			return retMap;
 		} catch (RserveException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -436,7 +435,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException rme) {
-					logger.error(STACKTRACE, rme);
+					logger.error(Constants.STACKTRACE, rme);
 				}
 				//in case values cannot be doubles
 				try {
@@ -450,7 +449,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException rme) {
-					logger.error(STACKTRACE, rme);
+					logger.error(Constants.STACKTRACE, rme);
 				}
 				//in case values cannot be put into an array
 				//for an integer
@@ -462,7 +461,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException rme) {
-					logger.error(STACKTRACE, rme);
+					logger.error(Constants.STACKTRACE, rme);
 				}
 
 			} else {
@@ -478,7 +477,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException rme) {
-					logger.error(STACKTRACE, rme);
+					logger.error(Constants.STACKTRACE, rme);
 				}
 				//for a string
 				try {
@@ -489,7 +488,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException rme) {
-					logger.error(STACKTRACE, rme);
+					logger.error(Constants.STACKTRACE, rme);
 				}
 			}
 		}
@@ -698,7 +697,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			return evalRSync(rScript);
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -708,7 +707,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			voidEvalRSync(rScript);
 		} catch (RserveException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
