@@ -477,6 +477,12 @@ public class Insight implements Serializable {
 			}
 		}
 		
+		// make the folder if it doesn't already exist
+		File f = new File(Utility.normalizePath(this.insightFolder));
+		if(!f.exists() || !f.isDirectory()) {
+			f.mkdirs();
+		}
+		
 		return this.insightFolder;
 	}
 	
