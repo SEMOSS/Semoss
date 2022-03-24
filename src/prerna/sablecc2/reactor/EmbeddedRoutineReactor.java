@@ -25,7 +25,7 @@ public class EmbeddedRoutineReactor extends AbstractReactor {
 			GenRowStruct grs = this.store.getNoun(key);
 			nList.add(grs.getNoun(0));
 		}
-		return new NounMetadata(nList, PixelDataType.VECTOR, PixelOperationType.SUB_SCRIPT);
+		return new NounMetadata(nList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
 	}
 	
 	@Override
