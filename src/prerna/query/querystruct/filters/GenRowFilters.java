@@ -40,6 +40,12 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 		this.qsFilteredColumns.addAll(newFilter.getAllQueryStructColumns());
 	}
 	
+	public void addFilters(List<IQueryFilter> newFilters) {
+		for(IQueryFilter newFilter : newFilters) {
+			addFilters(newFilter);
+		}
+	}
+	
 	public IQueryFilter removeFilter(int index) {
 		IQueryFilter removedFilter = this.filterVec.remove(index);
 		redetermineFilteredColumns();
