@@ -479,6 +479,123 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return removedValues;
 	}
 	
+	public boolean onlyRetainInstanceValues(SimpleQueryFilter otherQueryFilter) {
+		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
+		boolean removedValues = false;
+		if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			// remove the values of the right hand side from this right hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisRHS = new Vector<Object>();
+			Object thisRhsObj = this.rComparison.getValue();
+			if(thisRhsObj instanceof List) {
+				thisRHS = (List<Object>) thisRhsObj;
+			} else {
+				thisRHS.add(thisRhsObj);
+			}
+			
+			List<Object> otherRHS = new Vector<Object>();
+			Object otherRhsObj = otherQueryFilter.rComparison.getValue();
+			if(otherRhsObj instanceof List) {
+				otherRHS = (List<Object>) otherRhsObj;
+			} else {
+				otherRHS.add(otherRhsObj);
+			}
+			
+			// remove the values
+			removedValues = thisRHS.retainAll(otherRHS);
+			
+			// recreate this 
+			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
+			
+		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			// remove the values of the left hand side from this left hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisLHS = new Vector<Object>();
+			Object thisLhsObj = this.lComparison.getValue();
+			if(thisLhsObj instanceof List) {
+				thisLHS = (List<Object>) thisLhsObj;
+			} else {
+				thisLHS.add(thisLhsObj);
+			}
+			
+			List<Object> otherLHS = new Vector<Object>();
+			Object otherLhsObj = otherQueryFilter.lComparison.getValue();
+			if(otherLhsObj instanceof List) {
+				otherLHS = (List<Object>) otherLhsObj;
+			} else {
+				otherLHS.add(otherLhsObj);
+			}
+			
+			// remove the values
+			removedValues = thisLHS.retainAll(otherLHS);
+			
+			// recreate this 
+			this.lComparison = new NounMetadata(thisLHS, this.lComparison.getNounType(), this.lComparison.getOpType());
+			
+			
+		} else if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			// remove the values of the left hand side from this right hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisRHS = new Vector<Object>();
+			Object thisRhsObj = this.rComparison.getValue();
+			if(thisRhsObj instanceof List) {
+				thisRHS = (List<Object>) thisRhsObj;
+			} else {
+				thisRHS.add(thisRhsObj);
+			}
+			
+			List<Object> otherLHS = new Vector<Object>();
+			Object otherLhsObj = otherQueryFilter.lComparison.getValue();
+			if(otherLhsObj instanceof List) {
+				otherLHS = (List<Object>) otherLhsObj;
+			} else {
+				otherLHS.add(otherLhsObj);
+			}
+			
+			// remove the values
+			removedValues = thisRHS.retainAll(otherLHS);
+
+			// recreate this 
+			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
+
+			
+		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			// remove the values of the right hand side from this left hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisLHS = new Vector<Object>();
+			Object thisLhsObj = this.lComparison.getValue();
+			if(thisLhsObj instanceof List) {
+				thisLHS = (List<Object>) thisLhsObj;
+			} else {
+				thisLHS.add(thisLhsObj);
+			}
+			
+			List<Object> otherRHS = new Vector<Object>();
+			Object otherRhsObj = otherQueryFilter.rComparison.getValue();
+			if(otherRhsObj instanceof List) {
+				otherRHS = (List<Object>) otherRhsObj;
+			} else {
+				otherRHS.add(otherRhsObj);
+			}
+			
+			// remove the values
+			removedValues = thisLHS.retainAll(otherRHS);
+			
+			// recreate this 
+			this.lComparison = new NounMetadata(thisLHS, this.lComparison.getNounType(), this.lComparison.getOpType());
+		}
+		
+		return removedValues;
+	}
+	
 	public boolean addInstanceFilters(SimpleQueryFilter otherQueryFilter) {
 		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
 		boolean removedValues = false;
