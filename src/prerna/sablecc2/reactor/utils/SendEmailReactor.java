@@ -11,7 +11,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.EmailUtility;
-import prerna.util.SocialPropertiesEmailSession;
+import prerna.util.SocialPropertiesUtil;
 
 public class SendEmailReactor extends AbstractReactor {
 
@@ -45,7 +45,10 @@ public class SendEmailReactor extends AbstractReactor {
 		}
 		String sender = this.keyValue.get(this.keysToGet[3]);
 		if (sender == null) {
-			throw new IllegalArgumentException("Need to define " + EMAIL_SENDER);
+			sender = SocialPropertiesUtil.getInstance().getSmtpSender();
+			if(sender == null) {
+				throw new IllegalArgumentException("Need to define " + EMAIL_SENDER);
+			}
 		}
 		String message = this.keyValue.get(this.keysToGet[4]);
 		String messageHtml = this.keyValue.get(this.keysToGet[5]);
@@ -71,7 +74,10 @@ public class SendEmailReactor extends AbstractReactor {
 		if( (smtpHost == null || smtpHost.isEmpty())
 				&& (smtpPort == null || smtpPort.isEmpty())) {
 			// use the default for the application defined in social.properties
-			emailSession = SocialPropertiesEmailSession.getInstance().getEmailSession();
+			if(!SocialPropertiesUtil.getInstance().emailEnabled()) {
+				throw new IllegalArgumentException("Need to define an smtp server to utilize this function");
+			}
+			emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		} else {
 			String username = this.keyValue.get(this.keysToGet[6]);
 			String password = this.keyValue.get(this.keysToGet[7]);

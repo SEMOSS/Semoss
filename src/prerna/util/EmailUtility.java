@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Properties;
 
 import javax.activation.DataHandler;
@@ -21,12 +22,26 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.sun.mail.smtp.SMTPSendFailedException;
 
 public class EmailUtility {
 
+	private static final Logger logger = LogManager.getLogger(EmailUtility.class);
+	
 	public static boolean sendEmail(Session emailSession, String[] toRecipients, String[] ccRecipients, String[] bccRecipients, 
 			String from, String subject, String emailMessage, boolean isHtml, String[] attachments) {
+		
+		if ( (toRecipients == null || toRecipients.length == 0)
+				&& (ccRecipients == null || ccRecipients.length == 0)
+				&& (bccRecipients == null || bccRecipients.length == 0)
+				) {
+			logger.info("No receipients to send an email to");
+			return false;
+		}
+		
 		try {
 			// Create an email message we will add multiple parts to this
 			Message email = new MimeMessage(emailSession);
@@ -81,13 +96,26 @@ public class EmailUtility {
 			email.setContent(multipart);
 			// Send email
 			Transport.send(email);
+			// Log email
+			StringBuilder logMessage = new StringBuilder(subject)
+					.append(" email has been sent ");
+			if(toRecipients != null) {
+				logMessage.append("to ").append(Arrays.toString(bccRecipients)).append(".");
+			}
+			if(ccRecipients != null) {
+				logMessage.append("cc ").append(Arrays.toString(ccRecipients)).append(".");
+			}
+			if(bccRecipients != null) {
+				logMessage.append("bcc ").append(Arrays.toString(bccRecipients)).append(".");
+			}
+			logger.info(logMessage.toString());
+			
 			return true;
-
 		} catch (SMTPSendFailedException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new RuntimeException("Bad SMTP Connection");
 		} catch (MessagingException me) {
-			me.printStackTrace();
+			logger.error(Constants.STACKTRACE, me);
 		}
 
 		return false;
