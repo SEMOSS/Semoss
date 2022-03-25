@@ -517,7 +517,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		logger.info("Exporting database");
 		FileWriter writer = null;
 		try{
-			writer = new FileWriter(fileName);
+			writer = new FileWriter(Utility.normalizePath(fileName));
 			exportDB(writer);
 		} finally {
 			if(writer != null) {
