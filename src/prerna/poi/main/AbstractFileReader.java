@@ -102,7 +102,7 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 		Properties rdfPropMap = new Properties();
 		FileInputStream fileIn = null;
 		try {
-			fileIn = new FileInputStream(fileName);
+			fileIn = new FileInputStream(Utility.normalizePath(fileName));
 			rdfPropMap.load(fileIn);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
