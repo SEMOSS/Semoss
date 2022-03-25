@@ -629,7 +629,9 @@ public class Constants {
 	public static final String NEW_HEADERS = "NEW_HEADERS";
 	public static final String ADDITIONAL_DATA_TYPES = "ADDITIONAL_DATA_TYPES";
 	
-
+	// Emails
+	public static final String SOCIAL = "SOCIAL";
+	public static final String EMAIL_TEMPLATES = "EMAIL_TEMPLATES";
 	
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";

@@ -16,7 +16,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.EmailUtility;
-import prerna.util.SocialPropertiesEmailSession;
+import prerna.util.SocialPropertiesUtil;
 
 public class AdminUserLockAccountWarningReactor extends AbstractReactor {
 
@@ -47,7 +47,7 @@ public class AdminUserLockAccountWarningReactor extends AbstractReactor {
 		
 		List<String> emailsSentTo = new ArrayList<>();
 		
-		Session emailSession = SocialPropertiesEmailSession.getInstance().getEmailSession();
+		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		List<Object[]> listToEmail = adminUtils.getUserEmailsGettingLocked();
 		for(Object[] emailInfo : listToEmail) {
 			String email = (String) emailInfo[0];
