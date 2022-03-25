@@ -174,23 +174,22 @@ public class InstallCertNow {
 			logger.debug(cert);
 			logger.debug("Added certificate to keystore 'jssecacerts' using alias '" + alias + "'");
 		} finally {
-			
-			   try {
-			          if(in != null) {
-			        	  in.close();
-			               }
-			       } catch (IOException e) {
-			               e.printStackTrace();
-			       }
-			      
-			      try {
-			          if(socket != null) {
-			        	  socket.close();
-			               }
-			       } catch (IOException e) {
-			               e.printStackTrace();
-			       }
+			try {
+				if(in != null) {
+					in.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
+
+			try {
+				if(socket != null) {
+					socket.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	private static final char[] HEXDIGITS = "0123456789abcdef".toCharArray();
