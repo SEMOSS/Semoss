@@ -280,8 +280,10 @@ public class SocialPropertiesUtil {
 		if(!SocialPropertiesUtil.getInstance().emailEnabled()) {
 			return;
 		}
-		if(this.emailProps.isEmpty()) {
+		if(this.emailProps == null || this.emailProps.isEmpty()) {
 			this.emailProps = SocialPropertiesUtil.getInstance().loadEmailProperties();
+		}
+		if(this.emailProps == null || this.emailProps.isEmpty()) {
 			throw new IllegalArgumentException("SMTP properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
 		}
 		this.emailStaticProps = SocialPropertiesUtil.getInstance().loadEmailStaticProps();
