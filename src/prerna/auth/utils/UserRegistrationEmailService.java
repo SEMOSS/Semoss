@@ -14,7 +14,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
-import prerna.util.SocialPropertiesEmailSession;
+import prerna.util.SocialPropertiesUtil;
 
 public class UserRegistrationEmailService {
 
@@ -52,7 +52,7 @@ public class UserRegistrationEmailService {
 	}
 	
 	public boolean sendPasswordResetEmail(String recipient, String customUrl) {
-		Session emailSession = SocialPropertiesEmailSession.getInstance().getEmailSession();
+		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String subject = "SEMOSS Reset Password";
 		String sender = "no-reply@semoss.org";
 		boolean isHtml = true;
