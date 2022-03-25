@@ -10,6 +10,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.logging.log4j.LogManager;
@@ -19,13 +22,25 @@ import prerna.auth.AuthProvider;
 
 public class SocialPropertiesUtil {
 
+	public static final String SMTP_ENABLED = "smtp_enabled";
+	public static final String SMTP_USERNAME = "smtp_username";
+	public static final String SMTP_PASSWORD = "smtp_password";
+	public static final String SMTP_SENDER = "smtp_sender";
+
 	private static final Logger logger = LogManager.getLogger(SocialPropertiesUtil.class);
 
 	private static SocialPropertiesUtil instance = null;
 	private static String socialPropFile = null;
 	
+	// social properties
 	private Properties socialData = null;
 	private Map<String, Boolean> loginsAllowedMap;
+	
+	// email properties
+	private Session emailSession = null;
+	// pulling out email properties for performance
+	private Properties emailProps = null;
+	private Map<String, String> emailStaticProps = null;
 	
 	public static SocialPropertiesUtil getInstance() {
 		if(instance != null) {
@@ -35,17 +50,18 @@ public class SocialPropertiesUtil {
 		if(instance == null) {
 			instance = new SocialPropertiesUtil();
 			instance.loadSocialProperties();
+			instance.loadEmailSession();
 		}
 		
 		return instance;
 	}
 	
-	private void loadSocialProperties() {
+	public void loadSocialProperties() {
 		FileInputStream fis = null;
-		SocialPropertiesUtil.socialPropFile = DIHelper.getInstance().getProperty("SOCIAL");
+		SocialPropertiesUtil.socialPropFile = DIHelper.getInstance().getProperty(Constants.SOCIAL);
 		try {
 			if(socialPropFile != null) {
-				File f = new File(DIHelper.getInstance().getProperty("SOCIAL"));
+				File f = new File(SocialPropertiesUtil.socialPropFile);
 				if (f.exists()) {
 					this.socialData = new Properties();
 					fis = new FileInputStream(f);
@@ -120,7 +136,8 @@ public class SocialPropertiesUtil {
 
 		try {
 			config.save();
-			loadSocialProperties();
+			this.loadSocialProperties();
+			this.loadEmailSession();
 		} catch (ConfigurationException e1) {
 			throw new IllegalArgumentException("An unexpected error happened when saving the new login properties. Please try again or reach out to server admin.");
 		}
@@ -212,11 +229,15 @@ public class SocialPropertiesUtil {
 		return samlAttrMap;
 	}
 	
+	public boolean emailEnabled() {
+		return Boolean.parseBoolean(this.socialData.getProperty(SMTP_ENABLED, "false"));
+	}
+	
 	/**
 	 * Return a properties object with the details of the application central SMTP server
 	 * @return
 	 */
-	public Properties getEmailProperties() {
+	public Properties loadEmailProperties() {
 		final String prefix = "smtp_";
 		Properties smtpProp = new Properties();
 	    Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str->str.startsWith(prefix)).collect(Collectors.toSet());
@@ -233,6 +254,81 @@ public class SocialPropertiesUtil {
 	    	return null;
 	    }
 		return smtpProp;
+	}
+	
+	/**
+	 * Return static properties that can be used to fill in for email templates
+	 * @return
+	 */
+	public Map<String, String> loadEmailStaticProps() {
+		final String prefix = "smtp_";
+		Map<String, String> emailStaticProps = new HashMap<>();
+		Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str->str.startsWith(prefix)).collect(Collectors.toSet());
+		for(String key : smtpKeys) {
+			String smtpValue = socialData.getProperty(key);
+			if(smtpValue == null) {
+				continue;
+			}
+			// clean up key
+			String smtpKey = key.replaceFirst(prefix, "");
+			emailStaticProps.put(smtpKey, smtpValue);
+		}
+		return emailStaticProps;
+	}
+	
+	public void loadEmailSession() {
+		if(!SocialPropertiesUtil.getInstance().emailEnabled()) {
+			return;
+		}
+		if(this.emailProps.isEmpty()) {
+			this.emailProps = SocialPropertiesUtil.getInstance().loadEmailProperties();
+			throw new IllegalArgumentException("SMTP properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
+		}
+		this.emailStaticProps = SocialPropertiesUtil.getInstance().loadEmailStaticProps();
+		
+		String username = getSmtpUsername();
+		String password = getSmtpPassword();
+
+		try {
+			if (username != null && password != null) {
+				logger.info("Making secured connection to the email server");
+				this.emailSession  = Session.getInstance(this.emailProps, new javax.mail.Authenticator() {
+					protected PasswordAuthentication getPasswordAuthentication() {
+						return new PasswordAuthentication(username, password);
+					}
+				});
+			} else {
+				logger.info("Making connection to the email server");
+				this.emailSession = Session.getInstance(this.emailProps);
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occured connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
+		}
+	}
+	
+	public String getSmtpUsername() {
+		return this.socialData.getProperty(SMTP_USERNAME);
+	}
+	
+	public String getSmtpPassword() {
+		return this.socialData.getProperty(SMTP_PASSWORD);
+	}
+	
+	public String getSmtpSender() {
+		return this.socialData.getProperty(SMTP_SENDER);
+	}
+	
+	public Session getEmailSession() {
+		return this.emailSession;
+	}
+	
+	public Properties getEmailProps() {
+		return this.emailProps;
+	}
+	
+	public Map<String, String> getEmailStaticProps() {
+		return this.emailStaticProps;
 	}
 	
 }
