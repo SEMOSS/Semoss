@@ -98,15 +98,15 @@ public class EmailUtility {
 			Transport.send(email);
 			// Log email
 			StringBuilder logMessage = new StringBuilder(subject)
-					.append(" email has been sent ");
+					.append(" email has been sent: ");
 			if(toRecipients != null) {
-				logMessage.append("to ").append(Arrays.toString(bccRecipients)).append(".");
+				logMessage.append("to ").append(Arrays.toString(toRecipients)).append(". ");
 			}
 			if(ccRecipients != null) {
-				logMessage.append("cc ").append(Arrays.toString(ccRecipients)).append(".");
+				logMessage.append("cc ").append(Arrays.toString(ccRecipients)).append(". ");
 			}
 			if(bccRecipients != null) {
-				logMessage.append("bcc ").append(Arrays.toString(bccRecipients)).append(".");
+				logMessage.append("bcc ").append(Arrays.toString(bccRecipients)).append(". ");
 			}
 			logger.info(logMessage.toString());
 			
