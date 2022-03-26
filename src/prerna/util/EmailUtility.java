@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.activation.DataHandler;
@@ -153,6 +154,24 @@ public class EmailUtility {
 		}
 	}
 
+	/**
+	 * Replace dynamic components in the message
+	 * @param emailTemplate
+	 * @param customReplacements
+	 * @return
+	 */
+	public static String fillEmailComponents(String emailTemplate, Map<String, String> customReplacements) {
+		if (customReplacements != null && !customReplacements.isEmpty()) {
+			for (Map.Entry<String, String> entry : customReplacements.entrySet()) {
+				String key = entry.getKey();
+				String replacementValue = entry.getValue();
+				emailTemplate = emailTemplate.replace(key, replacementValue);
+			}
+		}
+		
+		return emailTemplate;
+	}
+	
 	public static void main(String[] args) {
 
 //		// GMAIL
