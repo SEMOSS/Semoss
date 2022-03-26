@@ -330,7 +330,7 @@ public class SocialPropertiesUtil {
 	}
 	
 	public Map<String, String> getEmailStaticProps() {
-		return this.emailStaticProps;
+		return new HashMap<>(this.emailStaticProps);
 	}
 	
 }
