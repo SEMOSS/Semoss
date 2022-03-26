@@ -247,7 +247,7 @@ public class SocialPropertiesUtil {
 	    		continue;
 	    	}
 	    	// clean up key
-	    	String smtpKey = key.replaceFirst(prefix, "").toLowerCase();
+	    	String smtpKey = key.replaceFirst(prefix, "");
 	    	smtpProp.put(smtpKey, smtpValue);
 	    }
 	    if(smtpProp.isEmpty()) {
