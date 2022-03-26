@@ -261,7 +261,7 @@ public class SocialPropertiesUtil {
 	 * @return
 	 */
 	public Map<String, String> loadEmailStaticProps() {
-		final String prefix = "smtp_";
+		final String prefix = "smtpprop_";
 		Map<String, String> emailStaticProps = new HashMap<>();
 		Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str->str.startsWith(prefix)).collect(Collectors.toSet());
 		for(String key : smtpKeys) {
