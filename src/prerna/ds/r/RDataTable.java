@@ -615,6 +615,74 @@ public class RDataTable extends AbstractTableDataFrame {
 		
 	}
 
+	@Override
+	public Object queryJSON(String sql)
+	{
+		// columns
+		// types
+		// data
+		if(sql.toUpperCase().startsWith("SELECT"))
+		{
+			Map retMap = new HashMap();
+			
+			String loadsqlDF = "library(sqldf);library(jsonlite);";
+			String frameName = Utility.getRandomString(5);
+			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+			
+			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
+
+			String newFrame = "write_json(sqldf('" + sql + "'), '" + fileNameStr + "')";
+			
+			this.builder.getRJavaTranslator().executeEmptyR(loadsqlDF);
+			this.builder.getRJavaTranslator().executeEmptyR(newFrame);
+			
+			
+			return fileName;
+		}
+		else
+		{
+			String frameName = Utility.getRandomString(5);
+			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
+
+			try {
+				PrintWriter bw = new PrintWriter(new FileWriter(fileName));
+				bw.write("Command, Output");
+				bw.println();
+				
+				String [] commands = sql.split("\\R");
+				// execute each command and drop the result
+				String [] columns = new String [] {"Command", "Output"};
+				Object [] types = new Object [] {java.lang.String.class, java.lang.String.class};
+				
+				List <List<Object>> data = new ArrayList<List<Object>>();
+				
+				for(int commandIndex = 0;commandIndex < commands.length;commandIndex++)
+				{
+					List <Object> row = new ArrayList <Object>();
+					String thisCommand = commands[commandIndex];
+					Object output = this.builder.getRJavaTranslator().runRAndReturnOutput(thisCommand);
+					
+					bw.write(thisCommand);
+					bw.print(", ");
+					bw.print(output);
+					
+					bw.println();
+				}
+				bw.flush();
+				bw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			
+			return fileName;
+		}
+
+		
+	}
+
+	
 	
 	private Map getRJMap() {
 		if(this.rJMap == null) {
