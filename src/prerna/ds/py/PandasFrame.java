@@ -1026,6 +1026,70 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return null;
 	}
 
+	// write this as a file and pump it out
+	// no need to serialize and deserialize this
+	public Object queryJSON(String sql)
+	{
+		// columns
+		// types
+		// data
+		if(sql.toUpperCase().startsWith("SELECT"))
+		{
+			Map retMap = new HashMap();
+			
+			String loadsqlDF = "from pandasql import sqldf";
+			String frameName = Utility.getRandomString(5);
+			String newFrame = frameName + "= sqldf('" + sql + "')";
+			
+			String deleteAll = "delete " + frameName;
+			
+
+			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".json");
+			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
+
+			String dict = frameName + ".to_json('" + fileNameStr + "', orient='records')";
+
+			pyt.runEmptyPy(loadsqlDF, newFrame, dict);
+			
+			if(fileName.exists())
+				return fileName;
+			
+			pyt.runEmptyPy(deleteAll);
+		}
+		else
+		{
+
+			Map retMap = new HashMap();
+
+			String [] commands = sql.split("\\R");
+			// execute each command and drop the result
+			String [] columns = new String [] {"Command", "Output"};
+			Object [] types = new Object [] {java.lang.String.class, java.lang.String.class};
+			
+			List <List<Object>> data = new ArrayList<List<Object>>();
+			
+			for(int commandIndex = 0;commandIndex < commands.length;commandIndex++)
+			{
+				List <Object> row = new ArrayList <Object>();
+				String thisCommand = commands[commandIndex];
+				Object output = pyt.runScript(thisCommand);
+				
+				row.add(thisCommand);
+				row.add(output);
+				
+				data.add(row);
+			}
+			retMap.put("data", data);
+			retMap.put("types", types);
+			retMap.put("columns", columns);
+			
+			return retMap;
+		}
+		
+		return null;
+	}
+
+	
 	// recalibrate variables
 	public void recalculateVariables(String [] formulas, String oldName, String newName)
 	{
