@@ -1731,5 +1731,30 @@ public class Insight implements Serializable {
 		return null;
 	}
 
+	// query the frame and get the data
+	public Object queryJSON(String sql, String srcFrameName)
+	{
+		ITableDataFrame curFrame = getCurFrame();
+		// combine python and R into 1 if block or just remove it
+		if(curFrame.getFrameType() == DataFrameTypeEnum.PYTHON)
+		{
+			// procedure to query python
+			// later this if would be gone. the querySQL is part of the interface
+			return curFrame.queryJSON(sql);
+			
+		}
+		else if(curFrame.getFrameType() == DataFrameTypeEnum.R)
+		{
+			// procedure to query python
+			// later this if would be gone. the querySQL is part of the interface
+			return curFrame.queryJSON(sql);
+			
+		}
+
+		
+		return null;
+	}
+
+	
 	
 }
