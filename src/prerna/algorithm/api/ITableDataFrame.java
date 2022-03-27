@@ -271,6 +271,9 @@ public interface ITableDataFrame extends IDataMaker {
 	// CSV Support
 	public Object queryCSV(String sql);
 
+	// JSON Support
+	public Object queryJSON(String sql);
+
 	// support for variable text
 	// returns the new frame
 	public String createVarFrame();
