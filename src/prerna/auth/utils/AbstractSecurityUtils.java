@@ -1047,6 +1047,24 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("PASSWORD_RESET", colNames, types));
 			}
 		}
+				
+		// apikey
+		// I am in dual mind whether to create this in security db or in 
+		// allows api keys to be set on insight
+		// consumerid is optional - the idea is you can have one api key per consumer if you choose to
+		// replace time with timestamp
+		colNames = new String[] {"CREATOR_ID", "PROJECT_ID", "INSIGHT_ID", "API_KEY", "CREATED_ON", "LIMIT", "COUNT", "DISABLED", "EXPIRES_ON", "DISABLED_ON", "CONSUMER_ID"};
+		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "date", "bigint", "bigint" , BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "varchar(255)"};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("API_KEY", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "API_KEY", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
+			}
+		}
+
 		
 		if(!conn.getAutoCommit()) {
 			conn.commit();
