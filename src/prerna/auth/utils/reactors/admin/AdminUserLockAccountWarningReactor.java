@@ -80,7 +80,7 @@ public class AdminUserLockAccountWarningReactor extends AbstractReactor {
 			}
 			for(Object[] emailInfo : listToEmail) {
 				String email = (String) emailInfo[0];
-				int daysSinceLastLogin = ((Number) emailInfo[1]).intValue();
+				long daysSinceLastLogin = ((Number) emailInfo[1]).longValue();
 				
 				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
 				emailReplacements.put(DAYS_TO_LOCK_REPLACEMENT, daysToLock + "");

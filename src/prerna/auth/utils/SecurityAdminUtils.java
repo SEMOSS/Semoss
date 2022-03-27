@@ -3,6 +3,7 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -19,6 +20,7 @@ import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
@@ -39,7 +41,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
@@ -1893,26 +1894,45 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if(daysToLock < 0) {
 			return new ArrayList<>();
 		}
-		if((daysToLock - daysToLockEmail) < 0) {
+		int daysSinceLastLoginToSendEmail = (daysToLock - daysToLockEmail);
+		if(daysSinceLastLoginToSendEmail < 0) {
 			logger.warn("Days to Lock is less than the Days To Lock Email Warning. Would result in constant emails. Returning empty set until configured properly");
 			return new ArrayList<>();
 		}
 		
+		LocalDateTime now = LocalDateTime.now();
+		
 		List<Object[]> emailsToSend = new ArrayList<>();
 		
-		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
-		String dateDiff = queryUtil.getDateDiffFunctionSyntax("day", "SMSS_USER.LASTLOGIN", queryUtil.getCurrentTimestamp());
-
-		String query = "SELECT DISTINCT SMSS_USER.EMAIL, (" + dateDiff + ") as DAYS_SINCE_LASTLOGIN FROM SMSS_USER WHERE "
-				+ "(LOCKED IS NULL OR LOCKED='false') AND (" + dateDiff + ") > " + (daysToLock - daysToLockEmail); 
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__LASTLOGIN"));
+		List<Boolean> values = new ArrayList<>();
+		values.add(null);
+		values.add(false);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", values, PixelDataType.BOOLEAN));
 		
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while(wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
-				if(row[0] != null) {
-					emailsToSend.add(row);
+				String email = (String) row[0];
+				if(email != null) {
+					SemossDate lastLogin = null;
+					if(row[1] != null) {
+						Object potentialDateValue = row[1];
+						if(potentialDateValue instanceof SemossDate) {
+							lastLogin = (SemossDate) potentialDateValue;
+						} else if(potentialDateValue instanceof String) {
+							lastLogin = SemossDate.genTimeStampDateObj(potentialDateValue + "");
+						}
+					}
+					
+					long daysSinceLastLogin = Duration.between(lastLogin.getLocalDateTime(), now).toDays();
+					if(daysSinceLastLogin >= daysSinceLastLoginToSendEmail) {
+						emailsToSend.add(new Object[] {email, daysSinceLastLogin});
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -1922,6 +1942,34 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				wrapper.cleanUp();
 			}
 		}
+		
+		/*
+		 * Sadly, the below does work with sqlite since it is a dumb db 
+		 * and doesn't store dates properly as one would expect
+		 */
+		
+//		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
+//		String dateDiff = queryUtil.getDateDiffFunctionSyntax("day", "SMSS_USER.LASTLOGIN", queryUtil.getCurrentTimestamp());
+//
+//		String query = "SELECT DISTINCT SMSS_USER.EMAIL, (" + dateDiff + ") as DAYS_SINCE_LASTLOGIN FROM SMSS_USER WHERE "
+//				+ "(LOCKED IS NULL OR LOCKED='false') AND (" + dateDiff + ") > " + (daysToLock - daysToLockEmail); 
+//		
+//		IRawSelectWrapper wrapper = null;
+//		try {
+//			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//			while(wrapper.hasNext()) {
+//				Object[] row = wrapper.next().getValues();
+//				if(row[0] != null) {
+//					emailsToSend.add(row);
+//				}
+//			}
+//		} catch (Exception e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		} finally {
+//			if(wrapper != null) {
+//				wrapper.cleanUp();
+//			}
+//		}
 		
 		return emailsToSend;
 	}
