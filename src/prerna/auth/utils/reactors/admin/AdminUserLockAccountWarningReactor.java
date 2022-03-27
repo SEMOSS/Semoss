@@ -28,10 +28,6 @@ public class AdminUserLockAccountWarningReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(AdminUserLockAccountWarningReactor.class);
 	private static final String ACCOUNT_LOCK_WARNING_TEMPLATE = "accountLockWarning.html";
 	
-	public AdminUserLockAccountWarningReactor() {
-		this.keysToGet = new String[] {"days"};
-	}
-	
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();

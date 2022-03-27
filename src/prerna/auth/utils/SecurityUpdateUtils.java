@@ -1100,8 +1100,25 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						if(isLocked == null) {
 							isLocked = false;
 						}
-						SemossDate lastLogin = (SemossDate) lastLoginDetails[1];
-						SemossDate lastPassReset = (SemossDate) lastLoginDetails[2];
+						SemossDate lastLogin = null;
+						SemossDate lastPassReset = null;
+						if(lastLoginDetails[1] != null) {
+							Object potentialDateValue = lastLoginDetails[1];
+							if(potentialDateValue instanceof SemossDate) {
+								lastLogin = (SemossDate) potentialDateValue;
+							} else if(potentialDateValue instanceof String) {
+								lastLogin = SemossDate.genTimeStampDateObj(potentialDateValue + "");
+							}
+						}
+						if(lastLoginDetails[2] != null) {
+							Object potentialDateValue = lastLoginDetails[2];
+							if(potentialDateValue instanceof SemossDate) {
+								lastPassReset = (SemossDate) potentialDateValue;
+							} else if(potentialDateValue instanceof String) {
+								lastPassReset = SemossDate.genTimeStampDateObj(potentialDateValue + "");
+							}
+						}
+						
 						int daysToLock = PasswordRequirements.getInstance().getDaysToLock();
 						int daysToResetPass = PasswordRequirements.getInstance().getPasswordExpirationDays();
 						
