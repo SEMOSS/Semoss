@@ -50,6 +50,8 @@ public class FstUtil
 	public static byte[] packBytes(Object obj) {
 		byte[] psBytes = FstUtil.serialize(obj);
 
+		if(psBytes == null)
+			return psBytes;
 		// get the length
 		int length = psBytes.length;
 

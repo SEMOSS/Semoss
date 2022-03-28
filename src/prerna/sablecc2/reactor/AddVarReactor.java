@@ -43,7 +43,23 @@ public class AddVarReactor extends AbstractReactor {
 		
 		if(language != null) {
 			if(language.equalsIgnoreCase("r")) {
+				
 				var.setLanguage(Variable.LANGUAGE.R);
+				
+				// try to execute in R and see if the expression works
+				try
+				{
+					String newExpression = "tryCatch(" + expression + ", error=function(e) { 'error'})";
+					String obj = this.insight.getRJavaTranslator(this.getClass().getCanonicalName()).runRAndReturnOutput(newExpression) + "";
+					if(obj != null && (obj.toString().contains("error") || obj.contains("java.lang.IllegalArgumentException")))
+					{
+						System.err.println("Came in with exception");
+						return NounMetadata.getErrorNounMessage("Expression has error, please correct " + expression);
+					}
+				}catch(Exception ex)
+				{
+					System.err.println("Exception occured" + ex);
+				}
 			} else if(language.equalsIgnoreCase("python")) {
 				var.setLanguage(Variable.LANGUAGE.PYTHON);
 			}
