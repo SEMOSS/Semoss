@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -207,7 +208,20 @@ public class SocketServerHandler implements Runnable
 	
 	public void writeResponse(PayloadStruct ps)
 	{
-		byte [] psBytes = FstUtil.packBytes(ps);
+		byte [] psBytes = null;
+		try 
+		{
+			psBytes = FstUtil.packBytes(ps);
+		}catch(Exception ex)
+		{ // dont choke this thread
+			if(psBytes == null)
+			{
+				// hmm we are in the non serializable land
+				// let us try it this way now
+				ps.payload[0] = "Output is not serializable. Forcing stringify" + ps.payload[0];
+				psBytes = FstUtil.packBytes(ps);
+			}
+		}
 		//System.out.println("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> ");
 		LOGGER.info("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> ");
 
@@ -542,7 +556,7 @@ public class SocketServerHandler implements Runnable
 					{
 						Object retObject = FstUtil.deserialize(curBytes);
 						PayloadStruct output = getFinalOutput((PayloadStruct)retObject);
-
+						
 						writeResponse(output);
 						lenBytes = null;
 						curBytes = null;
