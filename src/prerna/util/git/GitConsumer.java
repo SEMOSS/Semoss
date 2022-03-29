@@ -70,7 +70,7 @@ public class GitConsumer {
 		GitRepoUtils.makeLocalDatabaseGitVersionFolder(dbFolder);
 		logger.info("Done creating local git folder");
 
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(yourName4Database, temporaryDatabaseId);
+		String versionFolder = AssetUtility.getProjectVersionFolder(yourName4Database, temporaryDatabaseId);
 		// write a random file so we can add/commit
 		logger.info("Init local git...");
 		GitUtils.semossInit(versionFolder);
@@ -161,7 +161,7 @@ public class GitConsumer {
 	public static void moveDataFilesToDatabase(String baseFolder, String appId, String yourName4App, Logger logger) {
 		// need to account for version here
 		String appFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(yourName4App, appId);
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(yourName4App, appId);
+		String versionFolder = AssetUtility.getProjectVersionFolder(yourName4App, appId);
 		File dir = new File(Utility.normalizePath(versionFolder));
 
 		// seems like git pull doesn't complete until this point

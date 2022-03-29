@@ -112,14 +112,14 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 	 * @param recipeToSave
 	 */
 	protected void updateRecipeFile(Logger logger, String projectId, String projectName, String rdbmsID, String insightName) {
-		String recipeLocation = AssetUtility.getProjectAssetVersionFolder(projectName, projectId)
+		String recipeLocation = AssetUtility.getProjectVersionFolder(projectName, projectId)
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
 		File mosfet = new File(recipeLocation);
 		if(mosfet.exists()) {
 			try {
 				MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
 				// add to git
-				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 				GitRepoUtils.addSpecificFiles(gitFolder, files);

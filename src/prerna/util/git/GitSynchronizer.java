@@ -59,7 +59,7 @@ public class GitSynchronizer {
 		// into the version folder
 		pushFilesToVersionFolder(appFolder);
 		
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localDatabaseName, localDatabaseId);
+		String versionFolder = AssetUtility.getProjectVersionFolder(localDatabaseName, localDatabaseId);
 		// we want to get rid of the ignore 
 		GitUtils.removeAllIgnore(versionFolder);
 		// now we push everything locally
@@ -176,7 +176,7 @@ public class GitSynchronizer {
 	 */
 	public static Map<String, List<String>> synchronizeSpecific(String appId, String localAppName, String remoteAppName, String username, String password, List<String> filesToSync, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);
+		String versionFolder = AssetUtility.getProjectVersionFolder(localAppName, appId);
 		
 		String repoName = "";
 		if(remoteAppName.contains("/")) {
@@ -247,7 +247,7 @@ public class GitSynchronizer {
 	
 	public static Map<String, List<String>> synchronize(String appId, String localAppName, String remoteAppName, String username, String password, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);
+		String versionFolder = AssetUtility.getProjectVersionFolder(localAppName, appId);
 
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
 		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
@@ -301,7 +301,7 @@ public class GitSynchronizer {
 	
 	public static Map<String, List<String>> synchronize(String appId, String localAppName, String remoteAppName, String token, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);
+		String versionFolder = AssetUtility.getProjectVersionFolder(localAppName, appId);
 
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
 		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
@@ -497,7 +497,7 @@ public class GitSynchronizer {
 		// into the version folder
 		pushFilesToVersionFolder(appFolder);
 		
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);;
+		String versionFolder = AssetUtility.getProjectVersionFolder(localAppName, appId);;
 		// we want to get rid of the ignore 
 		GitUtils.removeAllIgnore(versionFolder);
 		// now we push everything locally
@@ -527,7 +527,7 @@ public class GitSynchronizer {
 	 */
 	public static Map<String, List<String>> synchronizeSpecific(String appId, String localAppName, String remoteAppName, String token, List<String> filesToSync, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);;
+		String versionFolder = AssetUtility.getProjectVersionFolder(localAppName, appId);;
 		
 		String repoName = "";
 		if(remoteAppName.contains("/")) {

@@ -320,7 +320,7 @@ public class GitUtils {
 	public static List<Map<String, String>> getStatus(String projectId, String ProjectName)
 	{
 		List<Map<String, String>> output = new Vector<>();
-		String location = AssetUtility.getProjectAssetVersionFolder(ProjectName, projectId);; //DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(ProjectName, projectId) + "/version";
+		String location = AssetUtility.getProjectVersionFolder(ProjectName, projectId);; //DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(ProjectName, projectId) + "/version";
 		Git thisGit = null;
 		Status status = null;
 		try {
@@ -358,10 +358,10 @@ public class GitUtils {
 	 * @param iterator
 	 * @return
 	 */
-	public static List<Map<String, String>> getFiles(String projectId, String ProjectName, String fileType, Iterator<String> iterator) {
+	public static List<Map<String, String>> getFiles(String projectId, String projectName, String fileType, Iterator<String> iterator) {
 		List<Map<String, String>> retFiles = new Vector<>();
 		while(iterator.hasNext()) {
-			String daFile = AssetUtility.getProjectAssetVersionFolder(ProjectName, projectId) + "/" + iterator.next();
+			String daFile = AssetUtility.getProjectVersionFolder(projectName, projectId) + "/" + iterator.next();
 			if(!daFile.endsWith(".mosfet")) {
 				continue;
 			}

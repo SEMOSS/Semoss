@@ -159,7 +159,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// pull the insights db again incase someone just saved something 
 		ClusterUtil.reactorPullInsightsDB(projectId);
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		
 		
 		// get an updated recipe if there are files used
@@ -213,7 +213,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// Move assets to new insight folder
 		File tempInsightFolder = new File(this.insight.getInsightFolder());
-		File newInsightFolder = new File(AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId) + DIR_SEPARATOR + newRdbmsId);
+		File newInsightFolder = new File(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + DIR_SEPARATOR + newRdbmsId);
 		if(tempInsightFolder.exists()) {
 			try {
 				logger.info(stepCounter + ") Moving assets...");
@@ -257,7 +257,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// adding insight files to git
 		Stream<Path> walk = null;
 		try {
-			String folder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId);
+			String folder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 			// grab relative file paths
 			walk = Files.walk(Paths.get(newInsightFolder.toURI()));
 			List<String> files = walk
@@ -294,7 +294,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 		
 		ClusterUtil.reactorPushInsightDB(projectId);
-		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		// TODO: delete app_ and only send project_
