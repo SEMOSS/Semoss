@@ -277,7 +277,7 @@ public class SocialPropertiesUtil {
 	}
 	
 	public void loadEmailSession() {
-		if(!SocialPropertiesUtil.getInstance().emailEnabled()) {
+		if(this.socialData == null || !SocialPropertiesUtil.getInstance().emailEnabled()) {
 			return;
 		}
 		if(this.emailProps == null || this.emailProps.isEmpty()) {
