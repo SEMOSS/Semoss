@@ -27,8 +27,7 @@ public class DeleteAppRepo extends GitBaseReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		String databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		String repository = this.keyValue.get(this.keysToGet[1]);
-		String databaseFolder = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId);
-;
+		String databaseFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 
 		// remove it from remote
 		// take it out from local in case the global fails since they have removed the repository

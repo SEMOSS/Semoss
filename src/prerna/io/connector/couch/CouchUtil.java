@@ -529,7 +529,7 @@ public class CouchUtil {
 							+ DIR_SEPARATOR + "projects";
 					images = InsightUtility.findImageFile(imagePath, projectId);
 				} else {
-					String imagePath = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+					String imagePath = AssetUtility.getProjectVersionFolder(projectName, projectId);
 					images = InsightUtility.findImageFile(imagePath);
 				}
 				
@@ -549,7 +549,7 @@ public class CouchUtil {
 				}
 			} else {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-				String imagePath = AssetUtility.getProjectAssetVersionFolder(projectName, projectId)
+				String imagePath = AssetUtility.getProjectVersionFolder(projectName, projectId)
 						+ DIR_SEPARATOR + insightId;
 				File[] images = InsightUtility.findImageFile(imagePath);
 				

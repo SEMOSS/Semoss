@@ -523,7 +523,7 @@ public class Project implements IProject {
 		// TODO: do this evaluation automatically see if java folder is older than classes folder 
 		if(!ReactorFactory.compileCache.containsKey(this.projectId))
 		{
-			String classesFolder = AssetUtility.getProjectAssetVersionFolder(this.projectName, this.projectId) + "/classes";
+			String classesFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes";
 			File classesDir = new File(classesFolder);
 			if(classesDir.exists() && classesDir.isDirectory())
 			{
@@ -535,7 +535,7 @@ public class Project implements IProject {
 					e.printStackTrace();
 				}
 			}
-			int status = Utility.compileJava(AssetUtility.getProjectAssetVersionFolder(this.projectName, this.projectId), getCP());
+			int status = Utility.compileJava(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), getCP());
 			if(status == 0)
 			{
 				ReactorFactory.compileCache.put(this.projectId, Boolean.TRUE);
@@ -561,7 +561,7 @@ public class Project implements IProject {
 			
 			// need to pass the engine name also
 			// so that the directory can be verified
-			dbSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetVersionFolder(this.projectName, this.projectId), key);
+			dbSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), key);
 			dbSpecificHash.put("loaded", "TRUE".getClass());
 		}
 		try
@@ -730,7 +730,7 @@ public class Project implements IProject {
 			{
 				String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + java.nio.file.FileSystems.getDefault().getSeparator();
 				
-				Path sourcePath = Paths.get(AssetUtility.getProjectAssetVersionFolder(this.projectName, appId));
+				Path sourcePath = Paths.get(AssetUtility.getProjectAssetFolder(this.projectName, appId));
 				Path targetPath = Paths.get(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);
 	
 				File file = new File(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);
@@ -772,7 +772,7 @@ public class Project implements IProject {
 		
 		// if there is no java.. dont even bother with this
 		// no need to spend time on any of this
-		if(! (new File(AssetUtility.getProjectAssetVersionFolder(this.projectName, this.projectId) + File.separator + "assets" + File.separator + "java").exists()))
+		if(! (new File(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + File.separator + "assets" + File.separator + "java").exists()))
 			return retReac;
 			
 		// try to get to see if this class already exists
@@ -837,7 +837,7 @@ public class Project implements IProject {
 			// get all the new jars first
 			// to add to the classloader
 			String appRoot = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
-			String versionFolder = AssetUtility.getProjectAssetVersionFolder(this.projectName, this.projectId);
+			String versionFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
 			
 			String mvnHome = System.getProperty(Settings.MVN_HOME);
 			if(mvnHome == null)

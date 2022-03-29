@@ -100,7 +100,7 @@ public class AssetUtility {
 	public static String getAssetVersionBasePath(Insight in, String space, boolean editRequired) {
 		String assetFolder = null;
 		if(in.isSavedInsight()) {
-			assetFolder = getProjectAssetVersionFolder(in.getProjectName(), in.getProjectId());
+			assetFolder = getProjectVersionFolder(in.getProjectName(), in.getProjectId());
 		} else {
 			assetFolder = in.getInsightFolder();
 		}
@@ -170,7 +170,7 @@ public class AssetUtility {
 	}
 	
 	public static String getProjectAssetFolder(String projectName, String projectId) {
-		String projectVersionBaseFolder = getProjectAssetVersionFolder(projectName, projectId);
+		String projectVersionBaseFolder = getProjectVersionFolder(projectName, projectId);
 		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + "assets";
 
 		// if this folder does not exist create it
@@ -181,7 +181,7 @@ public class AssetUtility {
 		return projectFolder;
 	}
 	
-	public static String getProjectAssetVersionFolder(String projectName, String projectId) {
+	public static String getProjectVersionFolder(String projectName, String projectId) {
 		String appBaseFolder = getProjectBaseFolder(projectName, projectId);
 		String gitFolder = appBaseFolder + DIR_SEPARATOR + "version";
 		// if this folder does not exist create it
