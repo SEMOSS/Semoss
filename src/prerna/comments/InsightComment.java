@@ -92,7 +92,7 @@ public class InsightComment {
 //		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 //				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) + DIR_SEPARATOR + "version" + DIR_SEPARATOR + this.rdbmsId;
 
-		String baseDir = AssetUtility.getProjectAssetVersionFolder(this.projectName, this.projectId) + DIR_SEPARATOR + this.rdbmsId;
+		String baseDir = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId) + DIR_SEPARATOR + this.rdbmsId;
 
 		File path = new File(baseDir);
 		// create insight directory if it doesn't exist

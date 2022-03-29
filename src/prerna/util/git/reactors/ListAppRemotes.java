@@ -49,7 +49,7 @@ public class ListAppRemotes extends AbstractReactor {
 			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		}
 		
-		String dbAssetFolder = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId);;	
+		String dbAssetFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Getting remotes configures on " + dbAssetFolder);

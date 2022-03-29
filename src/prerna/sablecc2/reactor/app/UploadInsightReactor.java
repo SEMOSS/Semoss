@@ -72,7 +72,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		String mosfetFileLoc = null;
 		File mosfetFile = null;
 		IProject project = Utility.getProject(projectId);
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId);
+		String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 		// unzip asset to db folder
 		try {
 			filesAdded = ZipUtils.unzip(zipFilePath, versionFolder);
@@ -149,7 +149,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 
 		// add file to git
 		logger.info(step + ") Adding insight to git...");
-		String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId);
+		String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 		GitRepoUtils.addSpecificFiles(gitFolder, fileList);
 		// commit it
 		String comment = "Adding " + insightName + " insight.";

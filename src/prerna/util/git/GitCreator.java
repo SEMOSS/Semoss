@@ -59,7 +59,7 @@ public class GitCreator {
 			GitRepoUtils.makeLocalDatabaseGitVersionFolder(dbFolder);
 		}
 
-		String versionFolder = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId);;
+		String versionFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);;
 		File versionDir = new File(versionFolder);
 		if(!versionDir.exists()) {
 			versionDir.mkdirs();

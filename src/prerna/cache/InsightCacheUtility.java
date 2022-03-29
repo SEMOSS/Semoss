@@ -82,7 +82,7 @@ public class InsightCacheUtility {
 	}
 	
 	public static String getInsightCacheFolderPath(String projectId, String projectName, String rdbmsId, Map<String, Object> parameters) {
-		String folderDir = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) 
+		String folderDir = AssetUtility.getProjectVersionFolder(projectName, projectId) 
 				+ DIR_SEPARATOR +  rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
 		if(parameters != null && !parameters.isEmpty()) {
 			MessageDigest messageDigest;

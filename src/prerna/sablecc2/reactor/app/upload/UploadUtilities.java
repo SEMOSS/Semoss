@@ -1256,7 +1256,7 @@ public class UploadUtilities {
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, 
 						hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 				// add the git here
-				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1298,7 +1298,7 @@ public class UploadUtilities {
 			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave,
 					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the git here
-			String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
@@ -1341,7 +1341,7 @@ public class UploadUtilities {
 			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave,
 					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
-			String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1393,7 +1393,7 @@ public class UploadUtilities {
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave,
 						hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 				// add the insight to git
-				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1445,7 +1445,7 @@ public class UploadUtilities {
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave,
 						hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 				// add the insight to git
-				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1499,7 +1499,7 @@ public class UploadUtilities {
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave,
 					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
-			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1547,7 +1547,7 @@ public class UploadUtilities {
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave, 
 					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
-			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1591,7 +1591,7 @@ public class UploadUtilities {
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave,
 					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
-			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				

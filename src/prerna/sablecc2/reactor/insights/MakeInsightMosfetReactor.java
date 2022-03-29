@@ -112,7 +112,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 				
 				// add to git
-				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 				GitRepoUtils.addSpecificFiles(gitFolder, files);
@@ -155,7 +155,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 			}
 			
 			// add to git
-			String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 			List<String> files = new Vector<>();
 			files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
