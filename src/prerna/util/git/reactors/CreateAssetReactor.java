@@ -23,14 +23,10 @@ public class CreateAssetReactor extends GitBaseReactor {
 
 	@Override
 	public NounMetadata execute() {
-
-		// need to get the user
-		
 		organizeKeys();
-		
-		String accessToken = getToken();
-		// check for minmum
 		checkMin(3);
+
+		String accessToken = getToken();
 		
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Logging In...");
@@ -38,9 +34,7 @@ public class CreateAssetReactor extends GitBaseReactor {
 		String fileName =  Utility.normalizePath( this.keyValue.get(this.keysToGet[1]) );
 		String content = this.keyValue.get(this.keysToGet[2]);
 		
-		
 		GitHub ret = GitUtils.login(accessToken);
-
 		// create the repo.. just in case we dont have it
 		// even though we get repo name.. we are not using it for create asset
 		
@@ -52,4 +46,5 @@ public class CreateAssetReactor extends GitBaseReactor {
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
 	}
+	
 }
