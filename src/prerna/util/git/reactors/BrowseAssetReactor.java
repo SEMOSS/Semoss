@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -19,9 +20,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
-import prerna.util.git.GitAssetUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.git.GitAssetUtils;
 
 public class BrowseAssetReactor extends AbstractReactor {
 
@@ -29,7 +30,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 	// the asset is basically the folder where it sits
 	// this can be used enroute in a pipeline
 
-	private static Logger logger = LogManager.getLogger(BrowseAssetReactor.class);
+	private static Logger classLogger = LogManager.getLogger(BrowseAssetReactor.class);
 
 	public BrowseAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(),  ReactorKeysEnum.SPACE.getKey() };
@@ -51,16 +52,16 @@ public class BrowseAssetReactor extends AbstractReactor {
 		}
 		
 		File dirFile = new File(assetFolder + "/" + locFolder);
-		if(!dirFile.exists()) // if this file doesnt exist.. it has not been cloned yet. so clone and then go into it
+		if(!dirFile.exists()) {
+			// if this file doesn't exist.. it has not been cloned yet. so clone and then go into it
 			cloneRepo(locFolder, assetFolder);
-
+		}
 
 		List <Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, false);
 		
 		
 		// add the files from repository and show it as if those files are there
-		if(locFolder.length() == 0)
-		{
+		if(locFolder.length() == 0) {
 			FileInputStream fis = null;
 			// try to add all the repository
 			try {
@@ -84,57 +85,42 @@ public class BrowseAssetReactor extends AbstractReactor {
 					output.add(meta);
 				}
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(fis != null) {
 					try {
 						fis.close();
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
 		}
 		
-		
-		// let us not show the users the .cache folder
-		if(space == null || space.isEmpty()) {
-			FILE_LOOP : for(int i = 0; i < output.size(); i++) {
-				Map<String, Object> fileObj = output.get(i);
-				String name = fileObj.get("name") + "";
-				if(name.equals(".cache")) {
-					// we want to remove this
-					output.remove(i);
-					break FILE_LOOP;
-				}
+		// let us not show any hidden folders that start with a "."
+		Iterator<Map<String, Object>> dirIterator = output.iterator();
+		while(dirIterator.hasNext()) {
+			Map<String, Object> fileObj = dirIterator.next();
+			String name = fileObj.get("name") + "";
+			String type = fileObj.get("type") + "";
+			if(name.startsWith(".") && type.equalsIgnoreCase("directory")) {
+				// we want to remove this
+				dirIterator.remove();
 			}
 		}
 
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 	
-	private void cloneRepo(String repoName, String workingDir)
-	{
-		File repoFile = new File(workingDir + "/version/repoList.txt");
+	private void cloneRepo(String repoName, String workingDir) {
+		String repo = workingDir + "/version/repoList.txt";
+		File repoFile = new File(repo);
 		if(repoFile.exists() && repoFile.isFile()) {
-			try(FileInputStream fis = new FileInputStream(repoFile)) {
-				if(repoFile.exists() && repoFile.isFile()) {
-					Properties prop = new Properties();
-					prop.load(fis);
-	
-					String url = prop.getProperty(repoName);
-	
-					insight.getCmdUtil().executeCommand("git clone " + url);
-				}
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			Properties prop = Utility.loadProperties(repo);
+			String url = prop.getProperty(repoName);
+			insight.getCmdUtil().executeCommand("git clone " + url);
 		}
 	}
 

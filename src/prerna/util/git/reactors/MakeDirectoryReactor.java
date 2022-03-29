@@ -31,6 +31,9 @@ public class MakeDirectoryReactor extends AbstractReactor {
 		
 		// specify the folder from the base
 		String folderName = Utility.normalizePath(keyValue.get(keysToGet[0]));
+		if(folderName.startsWith(".")) {
+			throw new IllegalArgumentException("Cannot create hidden folders");
+		}
 		String space = this.keyValue.get(this.keysToGet[1]);
 		
 		if(!folderName.contains("/"))
