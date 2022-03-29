@@ -363,7 +363,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 			if (assetProject != null) {
 				String assetProjectName = assetProject.getProjectName();
 				if (assetProjectName != null) {
-					return AssetUtility.getProjectAssetVersionFolder(assetProjectName, assetProjectId);
+					return AssetUtility.getProjectVersionFolder(assetProjectName, assetProjectId);
 				}
 			}
 		}

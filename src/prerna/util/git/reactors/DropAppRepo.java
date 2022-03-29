@@ -25,7 +25,7 @@ public class DropAppRepo extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		String databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		String repository = this.keyValue.get(this.keysToGet[1]);
-		String databaseFolder = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId);
+		String databaseFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 		GitRepoUtils.removeRemote(databaseFolder, repository);
 		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}
