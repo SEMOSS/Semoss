@@ -72,7 +72,7 @@ public class RDFEngineCreationHelper {
 							insightId, insightName, layout, recipeArray, hidden, 
 							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 					// add the insight to git
-					String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId());
+					String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
 					List<String> files = new Vector<>();
 					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 					GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -165,7 +165,7 @@ public class RDFEngineCreationHelper {
 							hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
 							description, tags);
 					// add the insight to git
-					String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId());
+					String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
 					List<String> files = new Vector<>();
 					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 					GitRepoUtils.addSpecificFiles(gitFolder, files);				

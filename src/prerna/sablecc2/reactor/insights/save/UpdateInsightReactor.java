@@ -175,7 +175,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		//Pull the insights db again incase someone just saved something 
 		ClusterUtil.reactorPullInsightsDB(projectId);
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
@@ -219,7 +219,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		InsightCacheUtility.deleteCache(projectId, project.getProjectName(), existingId, null, false);
 		// push back to the cluster
 		ClusterUtil.reactorPushInsightDB(projectId);
-		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		// TODO: delete app_ and only send project_
@@ -282,7 +282,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			String layout, String imageName, List<String> recipeToSave, boolean hidden, 
 			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
 			String description, List<String> tags) {
-		String recipeLocation = AssetUtility.getProjectAssetVersionFolder(projectName, projectId)
+		String recipeLocation = AssetUtility.getProjectVersionFolder(projectName, projectId)
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
 		// update the mosfet
 		try {
@@ -292,7 +292,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 					description, tags);
 			// add to git
-			String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 			List<String> files = new Vector<>();
 			files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 			GitRepoUtils.addSpecificFiles(gitFolder, files);

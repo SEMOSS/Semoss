@@ -137,10 +137,10 @@ public class ImageCaptureReactor extends AbstractReactor {
 //				DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
 //				DIR_SEPARATOR + "version" +
 //				DIR_SEPARATOR + id;
-			imageDirStr = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) + DIR_SEPARATOR + id;
+			imageDirStr = AssetUtility.getProjectVersionFolder(projectName, projectId) + DIR_SEPARATOR + id;
 		} else {
 			// params is already encodeed
-			imageDirStr = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) +
+			imageDirStr = AssetUtility.getProjectVersionFolder(projectName, projectId) +
 					DIR_SEPARATOR + id + 
 					DIR_SEPARATOR + "params" + 
 					DIR_SEPARATOR + params;

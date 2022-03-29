@@ -472,7 +472,7 @@ public class Insight implements Serializable {
 //						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 //						+ DIR_SEPARATOR + "version"
 //						+ DIR_SEPARATOR + this.rdbmsId;
-				this.insightFolder = AssetUtility.getProjectAssetVersionFolder(this.projectName, this.projectId)
+				this.insightFolder = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId)
 						+ DIR_SEPARATOR + this.rdbmsId;
 			}
 		}
@@ -1497,7 +1497,7 @@ public class Insight implements Serializable {
 		// should we allow this if no one is logged in?
 		else {
 			String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-			String mountDir = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+			String mountDir = AssetUtility.getProjectVersionFolder(projectName, projectId);
 	
 			this.cmdUtil = new CmdExecUtil(projectName, mountDir);
 			this.contextProjectId = projectId;
