@@ -75,7 +75,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		ClusterUtil.reactorPullInsightsDB(projectId);
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(projectName, projectId));
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(projectName, projectId));
 
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		int size = grs.size();
@@ -95,7 +95,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 			
 			// delete insight folder
-			String insightFolderPath = AssetUtility.getProjectAssetVersionFolder(projectName, projectId)
+			String insightFolderPath = AssetUtility.getProjectVersionFolder(projectName, projectId)
 					+ DIR_SEPARATOR + insightId;
 			File insightFolder = new File(insightFolderPath);
 			Stream<Path> walk = null;
@@ -104,7 +104,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 				File mosfitF = new File(insightFolderPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
 				if(mosfitF.exists() && mosfitF.isFile()) {
 					String insightName = MosfetSyncHelper.getInsightName(mosfitF);
-					String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
+					String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 					// grab relative file paths
 					walk = Files.walk(Paths.get(insightFolder.toURI()));
 					List<String> files = walk
@@ -134,7 +134,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		}
 		
 		ClusterUtil.reactorPushInsightDB(projectId);
-		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(projectName, projectId));
+		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(projectName, projectId));
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);
 	}
 

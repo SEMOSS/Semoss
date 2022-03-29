@@ -64,7 +64,7 @@ public class UpdateTemplateReactor extends AbstractReactor {
 		
 		logger.info("Starting to synchronize templates with template directory");
 		// pull from cloud
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		// move back the file
 		try {
 			FileUtils.moveFile(newF, f);
@@ -75,7 +75,7 @@ public class UpdateTemplateReactor extends AbstractReactor {
 		// write/update to properties file
 		Map<String, String> templateDataMap = TemplateUtility.editTemplate(projectId, templateFile, templateName);
 		// push to cloud
-		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		logger.info("Finished synchronizing templates with template directory");
 
 		// returning back the updated template information which will contain all the 

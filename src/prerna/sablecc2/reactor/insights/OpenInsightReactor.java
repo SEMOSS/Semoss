@@ -134,7 +134,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			logger.info("Pulling project from cloud storage, projectId=" + projectId);
 			ClusterUtil.reactorPullInsightsDB(projectId);
 			// this is needed for the pipeline json
-			ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
+			ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 			try {
 				List<Insight> in = project.getInsight(rdbmsId + "");
 				newInsight = in.get(0);
