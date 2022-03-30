@@ -28,7 +28,8 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 	private static final String REGEX = "Regex";
 
 	public SplitColumnsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey(), SEARCH_TYPE };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), 
+				ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey(), SEARCH_TYPE };
 	}
 	
 	@Override
@@ -138,7 +139,7 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 	
 	private String getSeparator() {
-		GenRowStruct separatorGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct separatorGrs = this.store.getNoun(keysToGet[2]);
 		if (separatorGrs == null || separatorGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to define a separator to split the column with");
 		}
@@ -165,7 +166,7 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 		List<String> cols = new ArrayList<String>();
 
 		// try its own key
-		GenRowStruct colsGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colsGrs = this.store.getNoun(keysToGet[1]);
 		if (colsGrs != null && !colsGrs.isEmpty()) {
 			int size = colsGrs.size();
 			for (int i = 0; i < size; i++) {

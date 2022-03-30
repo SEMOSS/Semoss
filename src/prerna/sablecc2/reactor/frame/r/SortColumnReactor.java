@@ -20,7 +20,8 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 	 */
 	
 	public SortColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.SORT.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), 
+				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.SORT.getKey() };
 	}
 
 	@Override
@@ -37,7 +38,7 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 
 		// get inputs
 		// the first input is the column to sort
-		String column = this.keyValue.get(this.keysToGet[0]);
+		String column = this.keyValue.get(this.keysToGet[1]);
 		if (column == null) {
 			column = getSortColumn();
 		}
@@ -46,7 +47,7 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 		}
 
 		// second input is the sort direction
-		String sortDir = this.keyValue.get(this.keysToGet[0]);
+		String sortDir = this.keyValue.get(this.keysToGet[2]);
 		if (sortDir == null) {
 			sortDir = getSortDirection();
 		}
