@@ -24,7 +24,8 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 	 */
 	
 	public RenameColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), 
+				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
@@ -37,12 +38,12 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		String table = frame.getName();
 
 		// get inputs
-		String originalColName = keyValue.get(this.keysToGet[0]);
+		String originalColName = keyValue.get(this.keysToGet[1]);
 		String dataType = metadata.getHeaderTypeAsString(table + "__" + originalColName);
 		if(dataType == null)
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
 
-		String updatedColName = keyValue.get(this.keysToGet[1]);
+		String updatedColName = keyValue.get(this.keysToGet[2]);
 		// check that the frame isn't null
 		// check if new colName is valid
 		updatedColName = getCleanNewColName(frame, updatedColName);
