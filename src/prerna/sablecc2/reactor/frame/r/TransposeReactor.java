@@ -3,15 +3,19 @@ package prerna.sablecc2.reactor.frame.r;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class TransposeReactor extends AbstractRFrameReactor {
 
+	public TransposeReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey() };
+	}
+	
 	@Override
 	public NounMetadata execute() {
-		
 		/**
 		 * This reactor transposes the frame No inputs are needed
 		 */
