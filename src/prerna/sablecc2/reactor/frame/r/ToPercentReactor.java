@@ -20,8 +20,8 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 	private static final String SIG_DIGITS = "sigDigits";
 
 	public ToPercentReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), SIG_DIGITS, BY100,
-				ReactorKeysEnum.NEW_COLUMN.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(), 
+				SIG_DIGITS, BY100, ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
