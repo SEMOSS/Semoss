@@ -22,7 +22,7 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 	 */
 	
 	public ToLowerCaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMNS.getKey() };
 	}
 
 	@Override
@@ -82,7 +82,7 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 	private List<String> getColumns() {
 		List<String> columns = new Vector<String>();
 
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[1]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
