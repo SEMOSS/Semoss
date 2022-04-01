@@ -872,7 +872,7 @@ public class S3Client extends CloudClient {
 				temp = new File(projectFolder + FILE_SEPARATOR + tempFolder);
 				temp.mkdir();
 				copy = new File(temp.getPath() + FILE_SEPARATOR + Utility.normalizePath(smss));
-				Files.copy(new File(Utility.normalizePath(smss)), copy);
+				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
 
 				// Push the smss
 				logger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
