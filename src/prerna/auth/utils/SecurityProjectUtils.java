@@ -162,7 +162,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getUserProjectPermission(String singleUserId, String projectId) {
-		return SecurityProjectUtils.getUserProjectPermission(singleUserId, projectId);
+		return SecurityUserProjectUtils.getUserProjectPermission(singleUserId, projectId);
 	}
 
 	/**
