@@ -119,7 +119,7 @@ public class AddInsightAPIReactor extends AbstractReactor {
 			}
 			
 			// first field is the database
-			String [] colNames = new String[] {"API_KEY", "CREATOR_ID", "PROJECT_ID", "INSIGHT_ID", "API_KEY", "CREATED_ON", "LIMIT", "COUNT", "EXPIRES_ON","CONSUMER_ID"};
+			String [] colNames = new String[] {"API_KEY", "CREATOR_ID", "PROJECT_ID", "INSIGHT_ID", "API_KEY", "CREATED_ON", "API_LIMIT", "COUNT", "EXPIRES_ON","CONSUMER_ID"};
 
 			PreparedStatement pst = secDB.bulkInsertPreparedStatement(colNames);
 			pst.setString(1, id);
