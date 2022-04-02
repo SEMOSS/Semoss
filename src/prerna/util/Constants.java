@@ -629,9 +629,12 @@ public class Constants {
 	public static final String NEW_HEADERS = "NEW_HEADERS";
 	public static final String ADDITIONAL_DATA_TYPES = "ADDITIONAL_DATA_TYPES";
 	
-	// Emails
+	// Social Properties
 	public static final String SOCIAL = "SOCIAL";
+	// Email
 	public static final String EMAIL_TEMPLATES = "EMAIL_TEMPLATES";
+	// HashiCorp Vault For Secrets
+	public static final String HASHICORP_VAULT_ENABLED = "HASHICORP_VAULT_ENABLED";
 	
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";
