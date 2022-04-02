@@ -1,6 +1,7 @@
 package prerna.io.connector.hashicorp.vault;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.http.HttpEntity;
@@ -50,7 +51,7 @@ public class HashiCorpVaultUtil {
 				.token(getVaultToken())				// Defaults to "VAULT_TOKEN" environment variable
 				.openTimeout(5)						// Defaults to "VAULT_OPEN_TIMEOUT" environment variable
 				.readTimeout(30)					// Defaults to "VAULT_READ_TIMEOUT" environment variable
-				.sslConfig(new SslConfig().build())	// See "SSL Config" section below
+				.sslConfig(new SslConfig().build())
 				.build();
 		this.vault = new Vault(this.config);
 	}
@@ -75,6 +76,10 @@ public class HashiCorpVaultUtil {
 		return instance;
 	}
 
+	/**
+	 * Get the vault authorization token
+	 * @return
+	 */
 	public String getVaultToken() {
 		String token = System.getenv(VAULT_TOKEN);
 		if(token == null || token.isEmpty()) {
@@ -84,6 +89,10 @@ public class HashiCorpVaultUtil {
 		return token;
 	}
 
+	/**
+	 * Get the vault address
+	 * @return
+	 */
 	public String getVaultAddr() {
 		String addr = System.getenv(VAULT_ADDR);
 		if(addr == null || addr.isEmpty()) {
@@ -93,11 +102,17 @@ public class HashiCorpVaultUtil {
 		return addr;
 	}
 	
+	/**
+	 * Get the database secrets
+	 * @param name
+	 * @param id
+	 * @return
+	 */
 	public Map<String, String> getDatabaseSecrets(String name, String id) {
 		String secretPath = SmssUtilities.getUniqueName(name, id);
 		secretPath = Utility.encodeURIComponent(secretPath);
 		try {
-			return this.vault.logical().read("db/" + secretPath).getData();
+			return this.vault.logical().read(getDbPath(secretPath)).getData();
 		} catch (VaultException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -105,6 +120,55 @@ public class HashiCorpVaultUtil {
 		return null;
 	}
 	
+	/**
+	 * Write a given secret to the database vault
+	 * @param name
+	 * @param id
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public boolean writeDatabaseSecrets(String name, String id, String key, Object value) {
+		Map<String, Object> nameValuePairs = new HashMap<>();
+		nameValuePairs.put(key, value);
+		return writeDatabaseSecrets(name, id, nameValuePairs);
+	}
+	
+	/**
+	 * Write a set of KV pairs to the database vault
+	 * @param name
+	 * @param id
+	 * @param nameValuePairs
+	 * @return
+	 */
+	public boolean writeDatabaseSecrets(String name, String id, Map<String, Object> nameValuePairs) {
+		String secretPath = SmssUtilities.getUniqueName(name, id);
+		secretPath = Utility.encodeURIComponent(secretPath);
+		
+		try {
+			this.vault.logical().write(getDbPath(secretPath), nameValuePairs);
+			return true;
+		} catch (VaultException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		}
+	}
+
+	/**
+	 * Get the full path for a DB secret
+	 * TODO: allow db/ to be parameterized based on deployment
+	 * @param path
+	 * @return
+	 */
+	private String getDbPath(String path) {
+		return "db/" + path;
+	}
+		
+	/**
+	 * Create a database KV engine
+	 * @throws ParseException
+	 * @throws IOException
+	 */
 	public void createDatabaseSecretEngine() throws ParseException, IOException {
 		HttpPost post = new HttpPost(getVaultAddr() + "/v1/sys/mounts/db");
 		post.setHeader(VAULT_TOKEN_HEADER_KEY, getVaultToken());
@@ -129,6 +193,11 @@ public class HashiCorpVaultUtil {
 		System.out.println("response body = " + responseBody);
 	}
 
+	/**
+	 * Create a project KV engine
+	 * @throws ParseException
+	 * @throws IOException
+	 */
 	public void createProjectSecretEngine() throws ParseException, IOException {
 		HttpPost post = new HttpPost(getVaultAddr() + "/v1/sys/mounts/project");
 		post.setHeader(VAULT_TOKEN_HEADER_KEY, getVaultToken());
@@ -154,10 +223,10 @@ public class HashiCorpVaultUtil {
 	}
 
 	
-	/////////////////////////////////////////////
-	/////////////////////////////////////////////
-	/////////////////////////////////////////////
-	/////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
 
 	
 	public static void main(String[] args) throws VaultException, ParseException, IOException {
