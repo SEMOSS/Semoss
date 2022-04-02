@@ -56,6 +56,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.io.connector.hashicorp.vault.HashiCorpVaultUtil;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -149,6 +150,17 @@ public abstract class AbstractEngine implements IEngine {
 				this.prop = Utility.loadProperties(propFile);
 			}
 			if(this.prop != null) {
+				// grab the main properties
+				this.engineId = prop.getProperty(Constants.ENGINE);
+				this.engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+				
+				if(Utility.isHashiCorpVaultEnabled()) {
+					Map<String, String> engineSecrets = HashiCorpVaultUtil.getInstance().getDatabaseSecrets(this.engineName, this.engineId);
+					if(engineSecrets != null && !engineSecrets.isEmpty()) {
+						this.prop.putAll(engineSecrets);
+					}
+				}
+				
 				// do the piece of encrypting here
 				boolean encryptFile = false;
 				if(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) != null) {
@@ -164,10 +176,6 @@ public abstract class AbstractEngine implements IEngine {
 						prop = encryptPropFile(propFile);
 				}
 				
-				// grab the main properties
-				this.engineId = prop.getProperty(Constants.ENGINE);
-				this.engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-	
 				// load the rdf owl db
 				String owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
 				if(owlFile != null) {
