@@ -1934,5 +1934,10 @@
 			<artifactId>oshi-core</artifactId>
 			<version>5.7.2</version>
 		</dependency>
+		<dependency>
+		    <groupId>com.bettercloud</groupId>
+		    <artifactId>vault-java-driver</artifactId>
+		    <version>5.1.0</version>
+		</dependency>
 	</dependencies>
 </project>
