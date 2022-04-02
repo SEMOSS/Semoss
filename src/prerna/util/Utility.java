@@ -3363,6 +3363,20 @@ public class Utility {
 	}
 	
 	/**
+	 * Determine if HashiCorp Vault is enabled for secrets
+	 * @return
+	 */
+	public static boolean isHashiCorpVaultEnabled() {
+		String hashiCorpEnabled = DIHelper.getInstance().getProperty(Constants.HASHICORP_VAULT_ENABLED);
+		if(hashiCorpEnabled == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(hashiCorpEnabled);
+	}
+	
+	/**
 	 * Determine if We need to show Welcome Dialog on Application Load
 	 * @return
 	 */
