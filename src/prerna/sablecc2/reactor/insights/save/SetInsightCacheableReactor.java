@@ -35,9 +35,8 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 
 		organizeKeys();
-		int index = 0;
-		String projectId = this.keyValue.get(this.keysToGet[index++]);
-		String existingId = this.keyValue.get(this.keysToGet[index++]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String existingId = this.keyValue.get(this.keysToGet[1]);
 		
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
@@ -55,31 +54,29 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		
 		Map<String, Object> currentInsightDetails = SecurityInsightUtils.getSpecificInsightCacheDetails(projectId, existingId);
 		
-		boolean cache = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]));
+		boolean cache = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
 		int cacheMinutes = -1;
-		if(this.keyValue.containsKey(this.keysToGet[index])) {
-			cacheMinutes = Integer.parseInt(this.keyValue.get(this.keysToGet[index]));
+		if(this.keyValue.containsKey(this.keysToGet[4])) {
+			cacheMinutes = Integer.parseInt(this.keyValue.get(this.keysToGet[4]));
 		} else if(currentInsightDetails.containsKey("cacheMinutes")){
 			cacheMinutes = (int) currentInsightDetails.get("cacheMinutes");
 		} else {
 			cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 		}
-		index++;
 		String cacheCron = null;
-		if(this.keyValue.containsKey(this.keysToGet[index])) {
-			cacheCron = this.keyValue.get(this.keysToGet[index]);
-			if (!CronExpression.isValidExpression(cacheCron)) {
-				throw new IllegalArgumentException("Cron expression '" + cacheCron + "' is not of a valid format");
+		if(this.keyValue.containsKey(this.keysToGet[5])) {
+			cacheCron = this.keyValue.get(this.keysToGet[5]);
+			if(cacheCron != null && !cacheCron.isEmpty() && !CronExpression.isValidExpression(cacheCron)) {
+				throw new IllegalArgumentException("The cache cron expression = '" + cacheCron + "' is invalid");
 			}
 		} else if(currentInsightDetails.containsKey("cacheCron")){
 			cacheCron = (String) currentInsightDetails.get("cacheCron");
 		} else {
 			cacheCron = Utility.getApplicationCacheCron();
 		}
-		index++;
 		boolean cacheEncrypt = false;
-		if(this.keyValue.containsKey(this.keysToGet[index])) {
-			cacheEncrypt = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index]));
+		if(this.keyValue.containsKey(this.keysToGet[6])) {
+			cacheEncrypt = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[6]));
 		} else if(currentInsightDetails.containsKey("cacheEncrypt")){
 			cacheEncrypt = (Boolean) currentInsightDetails.get("cacheEncrypt");
 		} else {
