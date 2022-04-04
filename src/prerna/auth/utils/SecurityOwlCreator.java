@@ -13,7 +13,7 @@ import prerna.util.Utility;
 
 public class SecurityOwlCreator {
 
-	static private List<String> conceptsRequired = new Vector<String>();
+	private static List<String> conceptsRequired = new Vector<String>();
 	static {
 		conceptsRequired.add("ENGINE");
 		conceptsRequired.add("ENGINEMETA");
@@ -41,6 +41,15 @@ public class SecurityOwlCreator {
 		
 		// trusted token security
 		conceptsRequired.add("TOKENS");
+	}
+	
+	private static List<String[]> relationshipsRequired = new Vector<String[]>();
+	static {
+		relationshipsRequired.add(new String[] {"ENGINE", "GROUPENGINEPERMISSION", "ENGINE.ENGINEID.GROUPENGINEPERMISSION.ENGINEID"});
+		relationshipsRequired.add(new String[] {"PROJECT", "GROUPPROJECTPERMISSION", "PROJECT.PROJECTID.GROUPPROJECTPERMISSION.PROJECTID"});
+		relationshipsRequired.add(new String[] {"INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID"});
+		relationshipsRequired.add(new String[] {"INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID"});
+
 	}
 	
 	private IEngine securityDb;
@@ -122,6 +131,27 @@ public class SecurityOwlCreator {
 				return true;
 			}
 		}
+		
+		List<String[]> allRelationships = securityDb.getPhysicalRelationships();
+		HAS_REQUIRED_REL_LOOP : for(String[] requiredRel : relationshipsRequired) {
+			for(String[] existingRel : allRelationships) {
+				String c1 = Utility.getInstanceName(existingRel[0]);
+				String c2 = Utility.getInstanceName(existingRel[1]);
+				String relName = Utility.getInstanceName(existingRel[2]);
+	
+				if(c1.equals(requiredRel[0])
+						&& c2.equals(requiredRel[1])
+						&& relName.equals(requiredRel[2])
+						) {
+					continue HAS_REQUIRED_REL_LOOP;
+				}
+			}
+			
+			// if we got here, the above didn't continue the loop so we dont have this rel
+			// need to remake
+			return true;
+		}
+		
 		return !check1;
 	}
 	
@@ -371,12 +401,16 @@ public class SecurityOwlCreator {
 		
 		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.ID.GROUPENGINEPERMISSION.ID");
 		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.TYPE.GROUPENGINEPERMISSION.TYPE");
-		
+		owler.addRelation("ENGINE", "GROUPENGINEPERMISSION", "ENGINE.ENGINEID.GROUPENGINEPERMISSION.ENGINEID");
+
 		owler.addRelation("SMSS_GROUP", "GROUPPROJECTPERMISSION", "SMSS_GROUP.ID.GROUPPROJECTPERMISSION.ID");
 		owler.addRelation("SMSS_GROUP", "GROUPPROJECTPERMISSION", "SMSS_GROUP.TYPE.GROUPPROJECTPERMISSION.TYPE");
-		
+		owler.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "PROJECT.PROJECTID.GROUPPROJECTPERMISSION.PROJECTID");
+
 		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.ID.GROUPINSIGHTPERMISSION.ID");
 		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.TYPE.GROUPINSIGHTPERMISSION.TYPE");
+		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID");
+		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID");
 
 		// TOKEN
 		owler.addConcept("TOKEN", null, null);
