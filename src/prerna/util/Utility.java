@@ -3366,8 +3366,8 @@ public class Utility {
 	 * Determine if HashiCorp Vault is enabled for secrets
 	 * @return
 	 */
-	public static boolean isHashiCorpVaultEnabled() {
-		String hashiCorpEnabled = DIHelper.getInstance().getProperty(Constants.HASHICORP_VAULT_ENABLED);
+	public static boolean isSecretsStoreEnabled() {
+		String hashiCorpEnabled = DIHelper.getInstance().getProperty(Constants.SECRET_STORE_ENABLED);
 		if(hashiCorpEnabled == null) {
 			// default configuration is false
 			return false;
