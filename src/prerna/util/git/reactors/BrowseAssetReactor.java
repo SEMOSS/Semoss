@@ -43,6 +43,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 		String replacer = "";
+		
 
 		// specific folder to browse
 		String locFolder = assetFolder;
@@ -50,6 +51,10 @@ public class BrowseAssetReactor extends AbstractReactor {
 			locFolder = assetFolder + "/" + Utility.normalizePath( keyValue.get(keysToGet[0]));
 			locFolder = locFolder.replaceAll("\\\\", "/");
 		}
+		
+		if(!keyValue.containsKey(keysToGet[0]) && space != null) // set the context here
+			this.insight.setContext(space);
+
 		
 		File dirFile = new File(assetFolder + "/" + locFolder);
 		if(!dirFile.exists()) {
