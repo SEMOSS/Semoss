@@ -143,4 +143,12 @@ public abstract class AbstractListFilter implements IQueryFilter {
 		}
 		return filters;
 	}
+	
+	public int size() {
+		return this.filterList.size();
+	}
+	
+	public boolean isEmpty() {
+		return this.filterList.isEmpty();
+	}
 }
