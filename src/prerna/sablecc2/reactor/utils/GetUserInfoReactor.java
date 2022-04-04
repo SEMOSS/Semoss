@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.utils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -24,6 +25,12 @@ public class GetUserInfoReactor extends AbstractReactor {
 			providerMap.put("id", token.getId() == null ? "null" : token.getId());
 			providerMap.put("name", token.getName() == null ? "null" : token.getName());
 			providerMap.put("email", token.getEmail() == null ? "null" : token.getEmail());
+			String groupType = token.getUserGroupType();
+			Set<String> groups = token.getUserGroups();
+			Map<String, Object> groupMap = new HashMap<>();
+			groupMap.put("groupType", groupType);
+			groupMap.put("groups", groups);
+			providerMap.put("groupInfo", groupMap);
 			returnMap.put(providerName, providerMap);
 		}
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.MAP, PixelOperationType.USER_INFO);
