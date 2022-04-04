@@ -633,8 +633,9 @@ public class Constants {
 	public static final String SOCIAL = "SOCIAL";
 	// Email
 	public static final String EMAIL_TEMPLATES = "EMAIL_TEMPLATES";
-	// HashiCorp Vault For Secrets
-	public static final String HASHICORP_VAULT_ENABLED = "HASHICORP_VAULT_ENABLED";
+	// Secrets Store
+	public static final String SECRET_STORE_ENABLED = "SECRET_STORE_ENABLED";
+	public static final String SECRET_STORE_TYPE = "SECRET_STORE_TYPE";
 	
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";

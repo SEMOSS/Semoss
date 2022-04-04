@@ -56,7 +56,8 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.io.connector.hashicorp.vault.HashiCorpVaultUtil;
+import prerna.io.connector.secrets.ISecrets;
+import prerna.io.connector.secrets.SecretsFactory;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -154,8 +155,9 @@ public abstract class AbstractEngine implements IEngine {
 				this.engineId = prop.getProperty(Constants.ENGINE);
 				this.engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 				
-				if(Utility.isHashiCorpVaultEnabled()) {
-					Map<String, String> engineSecrets = HashiCorpVaultUtil.getInstance().getDatabaseSecrets(this.engineName, this.engineId);
+				ISecrets secretStore = SecretsFactory.getSecretConnector();
+				if(secretStore != null) {
+					Map<String, String> engineSecrets = secretStore.getDatabaseSecrets(this.engineName, this.engineId);
 					if(engineSecrets != null && !engineSecrets.isEmpty()) {
 						this.prop.putAll(engineSecrets);
 					}

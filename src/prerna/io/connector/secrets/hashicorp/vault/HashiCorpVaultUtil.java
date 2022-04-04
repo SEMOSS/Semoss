@@ -1,4 +1,4 @@
-package prerna.io.connector.hashicorp.vault;
+package prerna.io.connector.secrets.hashicorp.vault;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -22,10 +22,11 @@ import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
 
 import prerna.engine.impl.SmssUtilities;
+import prerna.io.connector.secrets.ISecrets;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class HashiCorpVaultUtil {
+public class HashiCorpVaultUtil implements ISecrets {
 
 	private static final Logger logger = LogManager.getLogger(HashiCorpVaultUtil.class);
 
@@ -104,12 +105,13 @@ public class HashiCorpVaultUtil {
 	
 	/**
 	 * Get the database secrets
-	 * @param name
-	 * @param id
+	 * @param databaseName
+	 * @param databaseId
 	 * @return
 	 */
-	public Map<String, String> getDatabaseSecrets(String name, String id) {
-		String secretPath = SmssUtilities.getUniqueName(name, id);
+	@Override
+	public Map<String, String> getDatabaseSecrets(String databaseName, String databaseId) {
+		String secretPath = SmssUtilities.getUniqueName(databaseName, databaseId);
 		secretPath = Utility.encodeURIComponent(secretPath);
 		try {
 			return this.vault.logical().read(getDbPath(secretPath)).getData();
@@ -122,27 +124,29 @@ public class HashiCorpVaultUtil {
 	
 	/**
 	 * Write a given secret to the database vault
-	 * @param name
-	 * @param id
+	 * @param databaseName
+	 * @param databaseId
 	 * @param key
 	 * @param value
 	 * @return
 	 */
-	public boolean writeDatabaseSecrets(String name, String id, String key, Object value) {
+	@Override
+	public boolean writeDatabaseSecrets(String databaseName, String databaseId, String key, Object value) {
 		Map<String, Object> nameValuePairs = new HashMap<>();
 		nameValuePairs.put(key, value);
-		return writeDatabaseSecrets(name, id, nameValuePairs);
+		return writeDatabaseSecrets(databaseName, databaseId, nameValuePairs);
 	}
 	
 	/**
 	 * Write a set of KV pairs to the database vault
-	 * @param name
-	 * @param id
+	 * @param databaseName
+	 * @param databaseId
 	 * @param nameValuePairs
 	 * @return
 	 */
-	public boolean writeDatabaseSecrets(String name, String id, Map<String, Object> nameValuePairs) {
-		String secretPath = SmssUtilities.getUniqueName(name, id);
+	@Override
+	public boolean writeDatabaseSecrets(String databaseName, String databaseId, Map<String, Object> nameValuePairs) {
+		String secretPath = SmssUtilities.getUniqueName(databaseName, databaseId);
 		secretPath = Utility.encodeURIComponent(secretPath);
 		
 		try {
@@ -162,6 +166,24 @@ public class HashiCorpVaultUtil {
 	 */
 	private String getDbPath(String path) {
 		return "db/" + path;
+	}
+	
+	@Override
+	public Map<String, String> getProjectSecrets(String projectName, String projectId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Map<String, String> getInsightSecrets(String insightId, String projectName, String projectId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Map<String, String> getInsightEncryption(String insightId, String projectName, String projectId) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 		
 	/**
