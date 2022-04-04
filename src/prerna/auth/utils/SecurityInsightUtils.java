@@ -1518,6 +1518,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// on the project
 			if(hasProjectFilters) {
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectFilter));
 			}
 			// on the insight name
 			if(hasSearchTerm) {
@@ -1576,6 +1577,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// on the project
 			if(hasProjectFilters) {
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectFilter));
 			}
 			// on the insight name
 			if(hasSearchTerm) {
@@ -1621,6 +1623,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// on the project
 			if(hasProjectFilters) {
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectFilter));
 			}
 			// on the insight name
 			if(hasSearchTerm) {
@@ -1636,6 +1639,73 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
 			unionQueries.add(interpreter.composeQuery());
+		}
+		
+		// 4) group permissions
+		{
+			// first lets make sure we have any groups
+			OrQueryFilter orFilter = new OrQueryFilter();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider login : logins) {
+				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+					continue;
+				}
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+				orFilter.addFilter(andFilter);
+			}
+			if(!orFilter.isEmpty()) {
+				SelectQueryStruct qs = new SelectQueryStruct();
+				// add the group filters
+				qs.addExplicitFilter(orFilter);
+				// selectors
+				for(int i = 0; i < projections.length; i++) {
+					qs.addSelector(new QueryColumnSelector(projections[i][0], projections[i][1]));
+				}
+				QueryFunctionSelector fun = new QueryFunctionSelector();
+				fun.setFunction(QueryFunctionHelper.LOWER);
+				fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+				fun.setAlias("low_name");
+				qs.addSelector(fun);
+				// joins
+				qs.addRelation("PROJECT", "INSIGHT", "inner.join");
+				if(tagFiltering) {
+					qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
+				}
+				qs.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "inner.join");
+				// remove the projects that are hidden
+				{
+					SelectQueryStruct subQs = new SelectQueryStruct();
+					// store first and fill in sub query after
+					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
+					
+					// fill in the sub query with the single return + filters
+					subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+				}
+				// optional filters
+				// on the project
+				if(hasProjectFilters) {
+					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
+					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectFilter));
+				}
+				// on the insight name
+				if(hasSearchTerm) {
+					securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+				}
+				// on the tags
+				if(tagFiltering) {
+					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+				}
+			
+				// add the query to the list
+				IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
+				interpreter.setQueryStruct(qs);
+				unionQueries.add(interpreter.composeQuery());
+			}
 		}
 		
 		// TODO: NEED BETTER WAY TO DO THIS
