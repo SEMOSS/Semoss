@@ -55,17 +55,19 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		Map<String, Object> currentInsightDetails = SecurityInsightUtils.getSpecificInsightCacheDetails(projectId, existingId);
 		
 		boolean cache = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
+		
 		int cacheMinutes = -1;
-		if(this.keyValue.containsKey(this.keysToGet[4])) {
-			cacheMinutes = Integer.parseInt(this.keyValue.get(this.keysToGet[4]));
+		if(this.keyValue.containsKey(this.keysToGet[3])) {
+			cacheMinutes = Integer.parseInt(this.keyValue.get(this.keysToGet[3]));
 		} else if(currentInsightDetails.containsKey("cacheMinutes")){
 			cacheMinutes = (int) currentInsightDetails.get("cacheMinutes");
 		} else {
 			cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 		}
+		
 		String cacheCron = null;
-		if(this.keyValue.containsKey(this.keysToGet[5])) {
-			cacheCron = this.keyValue.get(this.keysToGet[5]);
+		if(this.keyValue.containsKey(this.keysToGet[4])) {
+			cacheCron = this.keyValue.get(this.keysToGet[4]);
 			if(cacheCron != null && !cacheCron.isEmpty() && !CronExpression.isValidExpression(cacheCron)) {
 				throw new IllegalArgumentException("The cache cron expression = '" + cacheCron + "' is invalid");
 			}
@@ -74,8 +76,9 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		} else {
 			cacheCron = Utility.getApplicationCacheCron();
 		}
+		
 		boolean cacheEncrypt = false;
-		if(this.keyValue.containsKey(this.keysToGet[6])) {
+		if(this.keyValue.containsKey(this.keysToGet[5])) {
 			cacheEncrypt = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[6]));
 		} else if(currentInsightDetails.containsKey("cacheEncrypt")){
 			cacheEncrypt = (Boolean) currentInsightDetails.get("cacheEncrypt");
