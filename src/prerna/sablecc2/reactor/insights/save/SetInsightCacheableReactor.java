@@ -79,7 +79,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		
 		boolean cacheEncrypt = false;
 		if(this.keyValue.containsKey(this.keysToGet[5])) {
-			cacheEncrypt = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[6]));
+			cacheEncrypt = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[5]));
 		} else if(currentInsightDetails.containsKey("cacheEncrypt")){
 			cacheEncrypt = (Boolean) currentInsightDetails.get("cacheEncrypt");
 		} else {
