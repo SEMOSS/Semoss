@@ -28,9 +28,9 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
-	
+
 	private static final String CLASS_NAME = ExternalJdbcTablesAndViewsReactor.class.getName();
-	
+
 	public ExternalJdbcTablesAndViewsReactor() {
 		this.keysToGet = new String[]{ ReactorKeysEnum.CONNECTION_DETAILS.getKey() };
 	}
@@ -38,7 +38,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
-		
+
 		Map<String, Object> connectionDetails = getConDetails();
 		if(connectionDetails != null) {
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
@@ -50,11 +50,11 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 				}
 			}
 		}
-		
+
 		String driver = (String) connectionDetails.get(AbstractSqlQueryUtil.DRIVER_NAME);
 		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(driverEnum);
-		
+
 		Connection con = null;
 		String connectionUrl = null;
 		try {
@@ -62,7 +62,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		} catch (RuntimeException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		
+
 		try {
 			con = AbstractSqlQueryUtil.makeConnection(queryUtil, connectionUrl, connectionDetails);
 		} catch (SQLException e) {
@@ -73,7 +73,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			errorMessage += " \"";
 			throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		
+
 		DatabaseMetaData meta;
 		boolean close = false;
 		try {
@@ -87,7 +87,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 				closeAutoClosable(con, logger);
 			}
 		}
-		
+
 		String catalogFilter = null;
 		try {
 			catalogFilter = con.getCatalog();
@@ -95,7 +95,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			// we can ignore this
 			logger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		String schemaFilter = (String) connectionDetails.get(AbstractSqlQueryUtil.SCHEMA);
 		if(schemaFilter == null) {
 			schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
@@ -115,7 +115,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 				closeAutoClosable(con, logger);
 			}
 		}
-		
+
 		// keep a list of tables and views
 		List<String> tableSchemas = new ArrayList<String>();
 		List<String> tables = new ArrayList<String>();
@@ -135,7 +135,13 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 					tableType = tableType.toUpperCase();
 				}
 				// get schema
-				String tableSchema = tablesRs.getString(TABLE_SCHEMA_STR);
+
+				String tableSchema = null;
+				if (driverEnum.equals(RdbmsTypeEnum.ORACLE)) {
+					tableSchema =  meta.getUserName();
+				} else {
+					tableSchema = tablesRs.getString(TABLE_SCHEMA_STR);
+				}
 				if(tableSchema != null) {
 					tableSchema = tableSchema.toUpperCase();
 				}
@@ -159,7 +165,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			closeAutoClosable(con, logger);
 		}
 		logger.info("Done parsing database metadata");
-		
+
 		Map<String, List<String>> ret = new HashMap<String, List<String>>();
 		ret.put("tables", tables);
 		ret.put("tableSchemas", tableSchemas);
@@ -167,7 +173,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		ret.put("viewSchemas", viewSchemas);
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
-	
+
 	/**
 	 * Close a connection, statement, or result set
 	 * @param closeable
@@ -190,12 +196,12 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 				return (Map<String, Object>) mapInput.get(0);
 			}
 		}
-		
+
 		List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
 		if(mapInput != null && !mapInput.isEmpty()) {
 			return (Map<String, Object>) mapInput.get(0);
 		}
-		
+
 		return null;
 	}
 
