@@ -370,10 +370,11 @@ public class RdbmsConnectionHelper {
 	public static ResultSet getTables(Connection con, Statement stmt, DatabaseMetaData meta, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {					
 		ResultSet tablesRs;
 		if (driver == RdbmsTypeEnum.ORACLE) {
-			String query = "SELECT TABLE_NAME AS \"table_name\", 'TABLE' AS \"table_type\"" + 
-					"FROM ALL_TABLES " +
-					"UNION SELECT VIEW_NAME AS \"table_name\", 'VIEW' AS \"table_type\" " + 
-					"FROM ALL_VIEWS ";
+			String query = "SELECT TABLE_NAME AS \"table_name\", 'TABLE' AS \"table_type\", '" + meta.getUserName() + "' AS \"table_schem\" FROM ALL_TABLES WHERE "
+					+ "OWNER NOT IN ('SYS', 'SYSTEM', 'WMSYS', 'XDB', 'CTXSYS', 'LBASYS', 'MDSYS', 'OLAPSYS','ORDSYS','LBACSYS', 'GSMADMIN_INTERNAL', 'ORDDATA')"
+					+ " OR TABLESPACE_NAME NOT IN ('SYSAUX', 'SYSTEM')"
+					+ " UNION SELECT VIEW_NAME AS \"table_name\", 'VIEW' AS \"table_type\", '" + meta.getUserName() +"' AS \"table_schem\" FROM ALL_VIEWS WHERE"
+					+ " OWNER NOT IN ('SYS', 'SYSTEM', 'WMSYS', 'XDB', 'CTXSYS', 'LBASYS', 'MDSYS', 'OLAPSYS','ORDSYS','LBACSYS', 'GSMADMIN_INTERNAL', 'ORDDATA')";
 			tablesRs = stmt.executeQuery(query);
 		} else if (driver == RdbmsTypeEnum.ATHENA){
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL_TABLE", "VIEW" });
@@ -408,7 +409,7 @@ public class RdbmsConnectionHelper {
 	 */
 	public static String[] getTableKeys(RdbmsTypeEnum driver) {
 		String[] arr = new String[4];
-		if(driver == RdbmsTypeEnum.SNOWFLAKE|| driver == RdbmsTypeEnum.CLICKHOUSE ||driver == RdbmsTypeEnum.ATHENA || driver == RdbmsTypeEnum.CASSANDRA) {
+		if(driver == RdbmsTypeEnum.SNOWFLAKE|| driver == RdbmsTypeEnum.CLICKHOUSE ||driver == RdbmsTypeEnum.ATHENA || driver == RdbmsTypeEnum.CASSANDRA ) {
 			arr[0] = "TABLE_NAME";
 			arr[1] = "TABLE_TYPE";
 			arr[2] = "TABLE_SCHEM";
