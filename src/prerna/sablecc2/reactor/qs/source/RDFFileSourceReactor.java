@@ -34,18 +34,25 @@ public class RDFFileSourceReactor extends AbstractQueryStructReactor {
 	protected AbstractQueryStruct createQueryStruct() {
 		organizeKeys();
 
+		// need to maintain what the FE passed to create this 
 		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
-		filePath = this.insight.getAbsoluteInsightFolderPath(filePath);
-		File file = new File(filePath);
-		if(!file.exists()) {
-			throw new IllegalArgumentException("Unable to location file");
-		}
 		String rdfFileType = this.keyValue.get(this.keysToGet[1]);
 		if(rdfFileType == null || rdfFileType.isEmpty()) {
 			rdfFileType = "RDF/XML";
 		}
 		String baseURI = this.keyValue.get(this.keysToGet[2]);
 		String query = this.keyValue.get(this.keysToGet[3]);
+		
+		Map<String, Object> config = new HashMap<String, Object>();
+		config.put(this.keysToGet[0], filePath);
+		config.put(this.keysToGet[1], rdfFileType);
+		config.put(this.keysToGet[2], baseURI);
+		
+		filePath = this.insight.getAbsoluteInsightFolderPath(filePath);
+		File file = new File(filePath);
+		if(!file.exists()) {
+			throw new IllegalArgumentException("Unable to location file");
+		}
 		
 		// generate the in memory rc 
 		RepositoryConnection rc = null;
@@ -72,12 +79,6 @@ public class RDFFileSourceReactor extends AbstractQueryStructReactor {
 			e.printStackTrace();
 		}
 
-		// need to maintain what the FE passed to create this 
-		Map<String, Object> config = new HashMap<String, Object>();
-		config.put(this.keysToGet[0], filePath);
-		config.put(this.keysToGet[1], rdfFileType);
-		config.put(this.keysToGet[2], baseURI);
-		
 		// set the rc in the in-memory engine
 		InMemorySesameEngine temportalEngine = new InMemorySesameEngine();
 		temportalEngine.setRepositoryConnection(rc);
