@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.insights;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,6 +40,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
+import prerna.sablecc2.om.execptions.InsightEncryptionException;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
@@ -230,7 +232,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		// get the insight output
 		PixelRunner runner = null;
-		List<NounMetadata> additionalMetas = new Vector<>();
+		List<NounMetadata> additionalMetas = new ArrayList<>();
 		// if we have additional pixels
 		// do not use the cached insight
 		if(cacheable && hasCache && cachedInsight == null) {
@@ -269,6 +271,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					String cacheFolder = InsightCacheUtility.getInsightCacheFolderPath(newInsight, paramValues);
 					Path relative = projectFolder.relativize( Paths.get(Utility.normalizePath(cacheFolder)));
 					ClusterUtil.reactorPushProjectFolder(projectId, cacheFolder, relative.toString());
+				} catch(InsightEncryptionException e) {
+					additionalMetas.add(NounMetadata.getWarningNounMessage(e.getMessage()));
+					classLogger.error(Constants.STACKTRACE, e);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
