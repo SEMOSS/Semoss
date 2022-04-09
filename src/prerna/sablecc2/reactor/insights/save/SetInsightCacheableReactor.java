@@ -10,6 +10,7 @@ import org.quartz.CronExpression;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.impl.InsightAdministrator;
@@ -19,6 +20,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 public class SetInsightCacheableReactor extends AbstractInsightReactor {
@@ -119,7 +121,12 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 
 		//push insight db
 		ClusterUtil.reactorPushInsightDB(projectId);
-
+		if(cacheEncrypt != Boolean.parseBoolean(currentInsightDetails.get("cacheEncrypt")+"")) {
+			// delete the current cache
+			InsightCacheUtility.deleteCache(projectId, project.getProjectName(), existingId, null, false);
+			ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
+		}
+		
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
