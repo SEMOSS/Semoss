@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.crypto.Cipher;
 import javax.script.ScriptContext;
 import javax.script.ScriptException;
 
@@ -923,7 +924,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public CachePropFileFrameObject save(String folderDir) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		String randFrameName = "Tinker" + Utility.getRandomString(6);
 		cf.setFrameName(randFrameName);
@@ -943,12 +944,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		cf.setFrameCacheLocation(frameFileName);
 
 		// also save the meta details
-		this.saveMeta(cf, folderDir, randFrameName);
+		this.saveMeta(cf, folderDir, randFrameName, cipher);
 		return cf;
 	}
 	
 	@Override
-	public void open(CachePropFileFrameObject cf) {
+	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// load the frame
 		try {
 			Builder<GryoIo> builder = GryoIo.build();
@@ -961,7 +962,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 		
 		// open the meta details
-		this.openCacheMeta(cf);
+		this.openCacheMeta(cf, cipher);
 	}
 	
 	public void insertBlanks(String colName, List<String> addedColumns) {

@@ -1,9 +1,13 @@
 package prerna.ds.shared;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,7 +19,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.commons.io.FileUtils;
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -38,6 +45,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+import prerna.util.Constants;
 import prerna.util.gson.GenRowFiltersAdapter;
 
 public abstract class AbstractTableDataFrame implements ITableDataFrame {
@@ -571,24 +579,30 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	 * Caching methods
 	 */	
 	
-	protected void saveMeta(CachePropFileFrameObject cf, String folderDir, String fileName) throws IOException {
+	protected void saveMeta(CachePropFileFrameObject cf, String folderDir, String fileName, Cipher cipher) throws IOException {
 		// save frame metadata
 		String metaFileName = folderDir + DIR_SEPARATOR + "METADATA__" + fileName + ".owl";
-		this.metaData.save(metaFileName);
+		this.metaData.save(metaFileName, cipher);
 		cf.setFrameMetaCacheLocation(metaFileName);
 		
 		// save the frame filters
 		List<IQueryFilter> filters = this.grf.getFilters();
 		if(!filters.isEmpty()) {
 			String frameStateFileName = folderDir + DIR_SEPARATOR + "FRAME_STATE__" + fileName + ".json";
-			StringWriter writer = new StringWriter();
+			Writer writer = null;
+			if(cipher != null) {
+				writer = new OutputStreamWriter(new CipherOutputStream(new FileOutputStream(new File(frameStateFileName)), cipher));
+			} else {
+				writer = new OutputStreamWriter(new FileOutputStream(new File(frameStateFileName)));
+			}
 			JsonWriter jWriter = new JsonWriter(writer);
 			GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
 			try {
 				adapter.write(jWriter, this.grf);
-				FileUtils.writeStringToFile(new File(frameStateFileName), writer.toString());
 			} catch (IOException e) {
 				throw new IOException("Error occured trying to save filter state on frame");
+			} finally {
+				jWriter.close();
 			}
 			cf.setFrameStateCacheLocation(frameStateFileName);
 		}
@@ -601,23 +615,36 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		cf.setFrameName(this.frameName);
 	}
 	
-	protected void openCacheMeta(CachePropFileFrameObject cf) {
+	protected void openCacheMeta(CachePropFileFrameObject cf, Cipher cipher) {
 		// set the frame name
 		this.frameName = cf.getFrameName();
 		
 		//load owl meta
-		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaCacheLocation());
+		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaCacheLocation(), cipher);
 		syncHeaders();
 		
-		String state = cf.getFrameStateCacheLocation();
-		if(state != null) {
+		String frameStateFileName = cf.getFrameStateCacheLocation();
+		if(frameStateFileName != null) {
+			Reader reader = null;
 			try {
-				StringReader reader = new StringReader(FileUtils.readFileToString(new File(state)));
+				if(cipher != null) {
+					reader = new InputStreamReader(new CipherInputStream(new FileInputStream(new File(frameStateFileName)), cipher));
+				} else {
+					reader = new InputStreamReader(new FileInputStream(new File(frameStateFileName)));
+				}
 				JsonReader jReader = new JsonReader(reader);
 				GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
 				this.grf = adapter.read(jReader);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(reader != null) {
+					try {
+						reader.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
 			}
 		}
 	}

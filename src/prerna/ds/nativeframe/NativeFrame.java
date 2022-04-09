@@ -1,15 +1,24 @@
 package prerna.ds.nativeframe;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 
-import org.apache.commons.io.FileUtils;
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -389,46 +398,89 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 
 		String randFrameName = "Native" + Utility.getRandomString(6);
 		cf.setFrameName(randFrameName);
 		String frameFileName = folderDir + DIR_SEPARATOR + randFrameName + ".json";
-
-		// save frame - this is just the QS
-		StringWriter writer = new StringWriter();
-		JsonWriter jWriter = new JsonWriter(writer);
-		SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
+		File frameFile = new File(frameFileName);
+		Writer writer = null;
+		JsonWriter jWriter = null;
 		try {
+			if(cipher != null) {
+				writer = new BufferedWriter(new OutputStreamWriter(new CipherOutputStream(new FileOutputStream(frameFile), cipher)));
+			} else {
+				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(frameFile)));
+			}
+			jWriter = new JsonWriter(writer);
+			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 			adapter.write(jWriter, this.qs);
-			FileUtils.writeStringToFile(new File(frameFileName), writer.toString());
+			jWriter.flush();
+			jWriter.close();
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IOException("Error occured attempting to save native frame");
+		} finally {
+			if(writer != null) {
+				try {
+					writer.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(jWriter != null) {
+				try {
+					jWriter.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		cf.setFrameCacheLocation(frameFileName);
 
 		// also save the meta details
-		this.saveMeta(cf, folderDir, randFrameName);
+		this.saveMeta(cf, folderDir, randFrameName, cipher);
 		return cf;
 	}
 
 	@Override
-	public void open(CachePropFileFrameObject cf) {
+	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// load the frame
 		// this is just the QS
+		Reader reader = null;
+		JsonReader jReader = null;
 		try {
-			StringReader reader = new StringReader(FileUtils.readFileToString(new File(Utility.normalizePath(cf.getFrameCacheLocation()))));
-			JsonReader jReader = new JsonReader(reader);
+			File frameFile = new File(Utility.normalizePath(cf.getFrameCacheLocation()));
+			if(cipher != null) {
+				reader = new BufferedReader(new InputStreamReader(new CipherInputStream(new FileInputStream(frameFile), cipher)));
+			} else {
+				reader = new BufferedReader(new InputStreamReader(new FileInputStream(frameFile)));
+			}
+			jReader = new JsonReader(reader);
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 			this.qs = adapter.read(jReader);
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(reader != null) {
+				try {
+					reader.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(jReader != null) {
+				try {
+					jReader.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		// open the meta details
-		this.openCacheMeta(cf);
+		this.openCacheMeta(cf, cipher);
 	}
 	
 	@Override

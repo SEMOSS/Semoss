@@ -21,6 +21,8 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 
+import javax.crypto.Cipher;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.h2.tools.DeleteDbFiles;
@@ -137,7 +139,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 
 		String frameName = this.getName();
@@ -176,12 +178,12 @@ public class H2Frame extends AbstractRdbmsFrame {
 
 		cf.setFrameCacheLocation(frameFileName);
 		// also save the meta details
-		this.saveMeta(cf, folderDir, frameName);
+		this.saveMeta(cf, folderDir, frameName, cipher);
 		return cf;
 	}
 
 	@Override
-	public void open(CachePropFileFrameObject cf) throws IOException {
+	public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
 		//set the frame name to that of the cached frame name
 		this.frameName = cf.getFrameName();
 
@@ -235,7 +237,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 
 
 			// open the meta details
-			this.openCacheMeta(cf);
+			this.openCacheMeta(cf, cipher);
 		}
 	}
 
