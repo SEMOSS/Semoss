@@ -1,8 +1,11 @@
 package prerna.ds;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+
+import javax.crypto.Cipher;
+import javax.crypto.CipherOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -2831,21 +2837,28 @@ public class OwlTemporalEngineMeta {
 	 * @param fileName
 	 */
 	public void save(String fileName) throws IOException {
+		save(fileName, null);
+	}
+	
+	/**
+	 * Save the owl to a specific location
+	 * @param fileName
+	 */
+	public void save(String fileName, Cipher cipher) throws IOException {
 		RepositoryConnection rc = this.myEng.getRepositoryConnection();
-		FileWriter fw = null;
-		try {
-			fw = new FileWriter(fileName);
-			RDFXMLWriter writer = new RDFXMLWriter(fw);
-			rc.export(writer);
-		} catch(Exception e) {
-			throw new IOException("Error occured attempting to save frame metadata");
-		} finally {
-			if(fw != null) {
-				try {
-					fw.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
+		if(cipher == null) {
+			try (FileWriter fw = new FileWriter(fileName)) {
+				RDFXMLWriter writer = new RDFXMLWriter(fw);
+				rc.export(writer);
+			} catch(Exception e) {
+				throw new IOException("Error occured attempting to save frame metadata");
+			}
+		} else {
+			try (OutputStream os = new BufferedOutputStream(new CipherOutputStream(new FileOutputStream(fileName), cipher))){
+				RDFXMLWriter writer = new RDFXMLWriter(os);
+				rc.export(writer);
+			} catch(Exception e) {
+				throw new IOException("Error occured attempting to save frame metadata");
 			}
 		}
 	}

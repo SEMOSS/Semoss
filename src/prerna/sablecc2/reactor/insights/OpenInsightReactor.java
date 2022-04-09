@@ -1,24 +1,17 @@
 package prerna.sablecc2.reactor.insights;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
-import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.quartz.CronExpression;
 
 import com.google.gson.JsonSyntaxException;
 
@@ -48,7 +41,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -357,86 +349,11 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @return
 	 */
 	protected Insight getCachedInsight(Insight existingInsight, Map<String, Object> paramValues) throws IOException, JsonSyntaxException {
-		Insight insight = null;
-		String insightZipLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight, paramValues) + DIR_SEPARATOR + InsightCacheUtility.INSIGHT_ZIP;
-		File insightZip = new File(insightZipLoc);
-		if(!insightZip.exists()) {
-			// just return null
+		Insight insight = InsightCacheUtility.readInsightCache(existingInsight, paramValues);
+		if(insight == null) {
+			classLogger.info("Couldn't load insight from cache");
 			return null;
 		}
-		
-		String versionFileLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight, paramValues) + DIR_SEPARATOR + InsightCacheUtility.VERSION_FILE;
-		File versionFile = new File(versionFileLoc);
-		if(!versionFile.exists() || !versionFile.isFile()) {
-			// delete the current cache in case it is not accurate
-			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-					existingInsight.getRdbmsId(), paramValues, true);
-			return null;
-		}
-		Properties vProp = Utility.loadProperties(versionFileLoc);
-		String versionStr = vProp.getProperty(InsightCacheUtility.VERSION_KEY);
-		String dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
-		if(versionStr == null || (versionStr=versionStr.trim()).isEmpty()
-			|| versionStr == null || (versionStr=versionStr.trim()).isEmpty()) {
-			// delete the current cache in case it is not accurate
-			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-					existingInsight.getRdbmsId(), paramValues, true);
-			return null;
-		}
-		// check the version is accurate / the same
-		if(!versionStr.equals(VersionReactor.getVersionMap(false).get(VersionReactor.VERSION_KEY))) {
-			// different semoss version, delete the cache
-			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-					existingInsight.getRdbmsId(), paramValues, true);
-			return null;
-		}
-		
-		LocalDateTime cachedDateTime = null;
-		try {
-			cachedDateTime = LocalDateTime.parse(dateGenStr);
-		} catch(Exception e) {
-			// someone has been manually touching the file and they should
-			// write the version file again with todays date
-			versionFile.delete();
-			InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
-			vProp = Utility.loadProperties(versionFileLoc);
-			dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
-			cachedDateTime = LocalDateTime.parse(dateGenStr);
-		}
-		
-		// check cache doesn't have a time expiration
-		int cacheMinutes = existingInsight.getCacheMinutes();
-		if(cacheMinutes > 0) {
-			if(cachedDateTime.plusMinutes(cacheMinutes).isBefore(LocalDateTime.now())) {
-				InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-						existingInsight.getRdbmsId(), paramValues, true);
-				return null;
-			}
-		}
-		
-		// check cache doesn't have a set expiration
-		String cacheCron = existingInsight.getCacheCron();
-		if(cacheCron != null && !cacheCron.isEmpty()) {
-			CronExpression expression;
-			try {
-				expression = new CronExpression(cacheCron);
-				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
-				Date cachedDateObj = Date.from(cachedDateTime.atZone(tz.toZoneId()).toInstant());
-				Date nextValidTimeAfter = expression.getNextValidTimeAfter(cachedDateObj);
-				if(nextValidTimeAfter.before(cachedDateObj)) {
-					InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
-							existingInsight.getRdbmsId(), paramValues, true);
-					return null;
-				}
-			} catch (ParseException e) {
-				// invalid cron... not sure if we should ever get to this point
-				classLogger.error(Constants.STACKTRACE, e);
-				return null;
-			}
-		}
-		
-		insight = InsightCacheUtility.readInsightCache(insightZip, existingInsight);
-		insight.setCachedDateTime(cachedDateTime);
 		return insight;
 	}
 	
