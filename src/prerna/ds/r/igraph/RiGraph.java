@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.crypto.Cipher;
+
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.cache.ICache;
@@ -336,13 +338,13 @@ public class RiGraph extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public CachePropFileFrameObject save(String fileName) {
+	public CachePropFileFrameObject save(String fileName, Cipher cipher) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 	
 	@Override
-	public void open(CachePropFileFrameObject cf) {
+	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// TODO Auto-generated method stub
 		
 	}

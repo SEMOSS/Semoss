@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.crypto.Cipher;
+
 import org.apache.logging.log4j.Logger;
 
 import prerna.cache.CachePropFileFrameObject;
@@ -131,17 +133,19 @@ public interface ITableDataFrame extends IDataMaker {
 	/**
 	 * Serialize the dataframe
 	 * @param folderDir
-	 * @throws IOException 
+	 * @param cipher
+	 * @return
+	 * @throws IOException
 	 */
-	CachePropFileFrameObject save(String folderDir) throws IOException;
+	CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException;
 	
 	/**
 	 * Deserialize the dataframe
 	 * @param cf
-	 * @return
-	 * @throws IOException 
+	 * @param cipher
+	 * @throws IOException
 	 */
-	void open(CachePropFileFrameObject cf) throws IOException;
+	void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException;
 
 	/**
 	 * Get the number of rows for the frame

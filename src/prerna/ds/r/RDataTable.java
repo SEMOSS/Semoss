@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import javax.crypto.Cipher;
+
 import org.apache.logging.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
@@ -320,7 +322,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 
 		String frameName = this.getName();
@@ -340,12 +342,12 @@ public class RDataTable extends AbstractTableDataFrame {
 		}
 		
 		// also save the meta details
-		this.saveMeta(cf, folderDir, frameName);
+		this.saveMeta(cf, folderDir, frameName, cipher);
 		return cf;
 	}
 	
 	@Override
-	public void open(CachePropFileFrameObject cf) {
+	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// set the frame name
 		this.builder.dataTableName = cf.getFrameName();
 		// load the environment
@@ -358,7 +360,7 @@ public class RDataTable extends AbstractTableDataFrame {
 			throw new SemossPixelException("Unknown R cache format");
 		}
 		// open the meta details
-		this.openCacheMeta(cf);
+		this.openCacheMeta(cf, cipher);
 	}
 	
 	@Override
