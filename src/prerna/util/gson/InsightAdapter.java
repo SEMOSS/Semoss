@@ -10,6 +10,8 @@ import java.util.Vector;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import javax.crypto.Cipher;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,8 +57,10 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	private Insight existingInsight;
 	private ZipFile zip;
 	
-	private ZipOutputStream zos;
-	private String folderDir;
+	private ZipOutputStream zos = null;
+	private String folderDir = null;
+	private boolean encrypt = false;
+	private Cipher cipher = null;
 	
 	private Set<String> varsToExclude;
 
@@ -215,7 +219,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// this doesn't actually add anything to the insight object
 		File vizOutputFile = new File(Utility.normalizePath(this.folderDir) + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
 		// lets write it
-		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile);
+		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile, this.cipher);
 		
 		// add it to the zip
 		try {
@@ -416,6 +420,22 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	
 	public void setVarsToExclude(Set<String> varsToExclude) {
 		this.varsToExclude = varsToExclude;
+	}
+
+	public boolean isEncrypt() {
+		return encrypt;
+	}
+
+	public void setEncrypt(boolean encrypt) {
+		this.encrypt = encrypt;
+	}
+
+	public Cipher getCipher() {
+		return cipher;
+	}
+
+	public void setCipher(Cipher cipher) {
+		this.cipher = cipher;
 	}
 	
 }
