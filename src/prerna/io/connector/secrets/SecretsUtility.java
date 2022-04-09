@@ -21,6 +21,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jodd.util.BCrypt;
 import prerna.om.Insight;
 import prerna.util.Constants;
 
@@ -39,7 +40,7 @@ public class SecretsUtility {
 		}
 		
 		String secret = UUID.randomUUID().toString();
-		String salt = UUID.randomUUID().toString();
+		String salt = BCrypt.gensalt();
 		byte[] iv = new byte[16];
 		Cipher cipher = null;
 		try {
