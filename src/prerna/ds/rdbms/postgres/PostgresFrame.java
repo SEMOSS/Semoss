@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.crypto.Cipher;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -82,12 +84,12 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
 		throw new IllegalArgumentException("tbd");
 	}
 
 	@Override
-	public void open(CachePropFileFrameObject cf) throws IOException {
+	public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
 		throw new IllegalArgumentException("tbd");
 	}
 	

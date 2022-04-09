@@ -150,6 +150,9 @@ public class InsightCacheUtility {
 			fos = new FileOutputStream(zipFile.getAbsolutePath());
 			zos = new ZipOutputStream(fos);
 			
+			String insightLoc = normalizedFolderDir + DIR_SEPARATOR + MAIN_INSIGHT_JSON;
+			File insightFile = new File(insightLoc);
+			
 			InsightAdapter iAdapter = new InsightAdapter(normalizedFolderDir, zos);
 			iAdapter.setVarsToExclude(varsToExclude);
 			iAdapter.setEncrypt(encrypt);
@@ -158,8 +161,6 @@ public class InsightCacheUtility {
 			JsonWriter jWriter = new JsonWriter(writer);
 			iAdapter.write(jWriter, insight);
 			
-			String insightLoc = normalizedFolderDir + DIR_SEPARATOR + MAIN_INSIGHT_JSON;
-			File insightFile = new File(insightLoc);
 			try {
 				if(encrypt) {
 					FileUtils.writeByteArrayToFile(insightFile, cipher.doFinal(writer.toString().getBytes()));

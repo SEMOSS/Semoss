@@ -4,9 +4,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -14,6 +11,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import javax.crypto.Cipher;
 
 import org.eclipse.jgit.util.FileUtils;
 
@@ -703,7 +702,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public CachePropFileFrameObject save(String folderDir) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		// save frame
 		String frameFilePath = folderDir + DIR_SEPARATOR + this.frameName + ".pkl";
@@ -722,14 +721,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 		pyt.runEmptyPy(commands);
 		
 		// also save the meta details
-		this.saveMeta(cf, folderDir, this.frameName);
+		this.saveMeta(cf, folderDir, this.frameName, cipher);
 		return cf;
 	}
 	
 	@Override
-	public void open(CachePropFileFrameObject cf) {
+	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// open the meta details
-		this.openCacheMeta(cf);
+		this.openCacheMeta(cf, cipher);
 		// set the wrapper frame name once the frame name is set
 		this.wrapperFrameName = getWrapperName();
 				
