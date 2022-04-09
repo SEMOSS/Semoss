@@ -2,9 +2,11 @@ package prerna.ds;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 
 import org.apache.logging.log4j.LogManager;
@@ -92,7 +95,7 @@ public class OwlTemporalEngineMeta {
 		this.myEng.setRepositoryConnection(rc);
 	}
 	
-	public OwlTemporalEngineMeta(String filePath) {
+	public OwlTemporalEngineMeta(String filePath, Cipher cipher) {
 		// generate the in memory rc 
 		RepositoryConnection rc = null;
 		try {
@@ -100,9 +103,15 @@ public class OwlTemporalEngineMeta {
 			myRepository.initialize();
 			rc = myRepository.getConnection();
 			
-			// load in the meta from saved file
 			File file = new File(filePath);
-			rc.add(file, SEMOSS_BASE, RDFFormat.RDFXML);
+			// load in the meta from saved file
+			if(cipher != null) {
+				try (InputStreamReader is = new InputStreamReader(new CipherInputStream(new FileInputStream(file), cipher))){
+					rc.add(is, SEMOSS_BASE, RDFFormat.RDFXML);
+				}
+			} else {
+				rc.add(file, SEMOSS_BASE, RDFFormat.RDFXML);
+			}
 		} catch(RuntimeException ignored) {
 			ignored.printStackTrace();
 		} catch (RepositoryException e) {

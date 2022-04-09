@@ -130,7 +130,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		for(FrameCacheHelper fObj : frames) {
 			// set the logger for this frame
 			fObj.getFrame().setLogger(logger);
-			CachePropFileFrameObject saveFrame = fObj.getFrame().save(this.folderDir);
+			CachePropFileFrameObject saveFrame = fObj.getFrame().save(this.folderDir, this.cipher);
 			out.beginObject();
 			out.name("file").value(parameterizePath(saveFrame.getFrameCacheLocation(), baseFolder, projectName, projectId));
 			out.name("meta").value(parameterizePath(saveFrame.getFrameMetaCacheLocation(), baseFolder, projectName, projectId));
@@ -324,7 +324,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 					frame = new RDataTable(insight.getRJavaTranslator(CLASS_NAME));
 				}
 				
-				frame.open(cf);
+				frame.open(cf, this.cipher);
 				
 				NounMetadata fNoun = new NounMetadata(frame, PixelDataType.FRAME);
 				for(String varStoreK : varStoreKeys) {
