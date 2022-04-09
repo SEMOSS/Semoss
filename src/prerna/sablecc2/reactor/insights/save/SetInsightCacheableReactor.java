@@ -1,7 +1,9 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
@@ -14,6 +16,7 @@ import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.io.connector.secrets.SecretsFactory;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -87,6 +90,12 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		} else {
 			cacheEncrypt = Utility.getApplicationCacheEncrypt();
 		}
+		List<NounMetadata> additionalMetas = null;
+		if(cacheEncrypt && SecretsFactory.getSecretConnector() == null) {
+			additionalMetas = new ArrayList<>();
+			additionalMetas.add(NounMetadata.getWarningNounMessage("Encryption services have not been enabled on this instance. Encryption cannot be enabled"));
+			cacheEncrypt = false;
+		}
 		
 		LocalDateTime cachedOn = null;
 		SemossDate cachedOnDate = (SemossDate) currentInsightDetails.get("cachedOn");
@@ -128,6 +137,9 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		}
 		
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
+		if(additionalMetas != null && !additionalMetas.isEmpty()) {
+			noun.addAllAdditionalReturn(additionalMetas);
+		}
 		return noun;
 	}
 

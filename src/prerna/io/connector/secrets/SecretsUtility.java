@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 
 import jodd.util.BCrypt;
 import prerna.om.Insight;
+import prerna.sablecc2.om.execptions.InsightEncryptionException;
 import prerna.util.Constants;
 
 public class SecretsUtility {
@@ -36,7 +37,7 @@ public class SecretsUtility {
 	public static Cipher generateCipherForInsight(String insightId, String projectName, String projectId) {
 		ISecrets secretsEngine = SecretsFactory.getSecretConnector();
 		if(secretsEngine == null) {
-			throw new IllegalArgumentException("Encryption services have not been enabled on this instance");
+			throw new InsightEncryptionException("Encryption services have not been enabled on this instance. Caching will not occur for this insight");
 		}
 		
 		String secret = UUID.randomUUID().toString();
@@ -59,7 +60,7 @@ public class SecretsUtility {
 			logger.error(Constants.STACKTRACE, e1);
 		}
 		if(cipher == null) {
-			throw new IllegalArgumentException("Unable to generate encryption details for the cache");
+			throw new InsightEncryptionException("Unable to generate encryption details for the insight cache");
 		}
 		
 		Map<String, Object> cacheData = new HashMap<>();
@@ -77,7 +78,7 @@ public class SecretsUtility {
 	public static Cipher retrieveCipherForInsight(String insightId, String projectName, String projectId) {
 		ISecrets secretsEngine = SecretsFactory.getSecretConnector();
 		if(secretsEngine == null) {
-			throw new IllegalArgumentException("Encryption services have not been enabled on this instance");
+			throw new InsightEncryptionException("Encryption services have not been enabled on this instance. Cannot retrieve details to decrypt the insight");
 		}
 		
 		Map<String, Object> cacheData = secretsEngine.getInsightEncryptionSecrets(insightId, projectName, projectId);
@@ -99,7 +100,7 @@ public class SecretsUtility {
 			logger.error(Constants.STACKTRACE, e1);
 		}
 		if(cipher == null) {
-			throw new IllegalArgumentException("Unable to generate encryption details for the cache");
+			throw new InsightEncryptionException("Unable to generate encryption details for the insight cache");
 		}
 		
 		return cipher;
