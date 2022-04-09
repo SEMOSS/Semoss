@@ -25,6 +25,7 @@ import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.reactor.insights.copy.CopyInsightReactor;
 import prerna.util.insight.InsightUtility;
 
+@Deprecated
 public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 
 	private static final String CLASS_NAME = UnsavedInsightAdapter.class.getName();
@@ -81,7 +82,7 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 			for(FrameCacheHelper fObj : frames) {
 				CachePropFileFrameObject saveFrame = null;
 				try {
-					saveFrame = fObj.getFrame().save(folderDir.getAbsolutePath());
+					saveFrame = fObj.getFrame().save(folderDir.getAbsolutePath(), null);
 				} catch(Exception e) {
 					e.printStackTrace();
 					continue;
@@ -243,7 +244,7 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 					frame = new RDataTable(insight.getRJavaTranslator(CLASS_NAME));
 				}
 				
-				frame.open(cf);
+				frame.open(cf, null);
 				
 				NounMetadata fNoun = new NounMetadata(frame, PixelDataType.FRAME);
 				for(String varStoreK : varStoreKeys) {
