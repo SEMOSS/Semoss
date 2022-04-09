@@ -15,20 +15,27 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.quartz.CronExpression;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -39,6 +46,7 @@ import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
+import prerna.io.connector.secrets.SecretsUtility;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.reactor.cluster.VersionReactor;
@@ -118,11 +126,17 @@ public class InsightCacheUtility {
 		String rdbmsId = insight.getRdbmsId();
 		String projectId = insight.getProjectId();
 		String projectName = insight.getProjectName();
-		
+
 		if(projectId == null || rdbmsId == null || projectName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
-		
+
+		boolean encrypt = insight.isCacheEncrypt();
+		Cipher cipher = null;
+		if(encrypt) {
+			cipher = SecretsUtility.generateCipherForInsight(rdbmsId, projectName, projectId);
+		}
+
 		String folderDir = getInsightCacheFolderPath(insight, parameters);
 		String normalizedFolderDir = Utility.normalizePath(folderDir);
 		if(!(new File(normalizedFolderDir).exists())) {
@@ -138,6 +152,8 @@ public class InsightCacheUtility {
 			
 			InsightAdapter iAdapter = new InsightAdapter(normalizedFolderDir, zos);
 			iAdapter.setVarsToExclude(varsToExclude);
+			iAdapter.setEncrypt(encrypt);
+			iAdapter.setCipher(cipher);
 			StringWriter writer = new StringWriter();
 			JsonWriter jWriter = new JsonWriter(writer);
 			iAdapter.write(jWriter, insight);
@@ -145,7 +161,11 @@ public class InsightCacheUtility {
 			String insightLoc = normalizedFolderDir + DIR_SEPARATOR + MAIN_INSIGHT_JSON;
 			File insightFile = new File(insightLoc);
 			try {
-				FileUtils.writeStringToFile(insightFile, writer.toString());
+				if(encrypt) {
+					FileUtils.writeByteArrayToFile(insightFile, cipher.doFinal(writer.toString().getBytes()));
+				} else {
+					FileUtils.writeStringToFile(insightFile, writer.toString());
+				}
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
@@ -236,40 +256,129 @@ public class InsightCacheUtility {
 	 * @return
  	 * @throws IOException 
 	 */
-	public static Insight readInsightCache(File insightCacheZip, Insight existingInsight) throws IOException, RuntimeException {
+	public static Insight readInsightCache(Insight existingInsight, Map<String, Object> paramValues) throws IOException, RuntimeException {
+		String insightZipLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight, paramValues) + DIR_SEPARATOR + InsightCacheUtility.INSIGHT_ZIP;
+		File insightZip = new File(insightZipLoc);
+		if(!insightZip.exists()) {
+			// just return null
+			return null;
+		}
+		
+		String versionFileLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight, paramValues) + DIR_SEPARATOR + InsightCacheUtility.VERSION_FILE;
+		File versionFile = new File(versionFileLoc);
+		if(!versionFile.exists() || !versionFile.isFile()) {
+			// delete the current cache in case it is not accurate
+			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+					existingInsight.getRdbmsId(), paramValues, true);
+			return null;
+		}
+		Properties vProp = Utility.loadProperties(versionFileLoc);
+		String versionStr = vProp.getProperty(InsightCacheUtility.VERSION_KEY);
+		String dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
+		if(versionStr == null || (versionStr=versionStr.trim()).isEmpty()
+			|| versionStr == null || (versionStr=versionStr.trim()).isEmpty()) {
+			// delete the current cache in case it is not accurate
+			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+					existingInsight.getRdbmsId(), paramValues, true);
+			return null;
+		}
+		// check the version is accurate / the same
+		if(!versionStr.equals(VersionReactor.getVersionMap(false).get(VersionReactor.VERSION_KEY))) {
+			// different semoss version, delete the cache
+			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+					existingInsight.getRdbmsId(), paramValues, true);
+			return null;
+		}
+		
+		LocalDateTime cachedDateTime = null;
+		try {
+			cachedDateTime = LocalDateTime.parse(dateGenStr);
+		} catch(Exception e) {
+			// someone has been manually touching the file and they should
+			// write the version file again with todays date
+			versionFile.delete();
+			InsightCacheUtility.writeInsightCacheVersion(versionFileLoc);
+			vProp = Utility.loadProperties(versionFileLoc);
+			dateGenStr = vProp.getProperty(InsightCacheUtility.DATETIME_KEY);
+			cachedDateTime = LocalDateTime.parse(dateGenStr);
+		}
+		
+		// check cache doesn't have a time expiration
+		int cacheMinutes = existingInsight.getCacheMinutes();
+		if(cacheMinutes > 0) {
+			if(cachedDateTime.plusMinutes(cacheMinutes).isBefore(LocalDateTime.now())) {
+				InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+						existingInsight.getRdbmsId(), paramValues, true);
+				return null;
+			}
+		}
+		
+		// check cache doesn't have a set expiration
+		String cacheCron = existingInsight.getCacheCron();
+		if(cacheCron != null && !cacheCron.isEmpty()) {
+			CronExpression expression;
+			try {
+				expression = new CronExpression(cacheCron);
+				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
+				Date cachedDateObj = Date.from(cachedDateTime.atZone(tz.toZoneId()).toInstant());
+				Date nextValidTimeAfter = expression.getNextValidTimeAfter(cachedDateObj);
+				if(nextValidTimeAfter.before(cachedDateObj)) {
+					InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
+							existingInsight.getRdbmsId(), paramValues, true);
+					return null;
+				}
+			} catch (ParseException e) {
+				// invalid cron... not sure if we should ever get to this point
+				logger.error(Constants.STACKTRACE, e);
+				return null;
+			}
+		}
+		
+		boolean encrypt = existingInsight.isCacheEncrypt();
+		Cipher cipher = null;
+		if(encrypt) {
+			cipher = SecretsUtility.retrieveCipherForInsight(existingInsight);
+		}
+		
 		ZipFile zip = null;
 		ZipEntry entry = null;
-		InputStream is = null;
-		InputStreamReader isr = null;
-		BufferedReader br = null;
 		try {
-			zip = new ZipFile(insightCacheZip);
+			zip = new ZipFile(insightZip);
 			entry = zip.getEntry(MAIN_INSIGHT_JSON);
 			if(entry == null) {
 				throw new IOException("Invalid zip format for cached insight");
 			}
-			is = zip.getInputStream(entry);
-			isr = new InputStreamReader(is);
-			br = new BufferedReader(isr);
 	        StringBuilder sb = new StringBuilder();
-	        String line;
-	        while ((line = br.readLine()) != null) {
-	            sb.append(line);
+	        
+	        if(cipher != null) {
+		        try (BufferedReader br = new BufferedReader(new InputStreamReader(new CipherInputStream(zip.getInputStream(entry), cipher)))){
+		        	String line;
+			        while ((line = br.readLine()) != null) {
+			            sb.append(line);
+			        }
+		        }
+	        } else {
+	        	try (BufferedReader br = new BufferedReader(new InputStreamReader(zip.getInputStream(entry)))) {
+	        		String line;
+			        while ((line = br.readLine()) != null) {
+			            sb.append(line);
+			        }
+	        	}
 	        }
 	        
 	        InsightAdapter iAdapter = new InsightAdapter(zip);
 	        iAdapter.setUserContext(existingInsight);
+	        iAdapter.setCipher(cipher);
 	        StringReader reader = new StringReader(sb.toString());
 	        JsonReader jReader = new JsonReader(reader);
 			Insight insight = iAdapter.read(jReader);
+			insight.setCachedDateTime(cachedDateTime);
+			insight.setCacheEncrypt(encrypt);
 			return insight;
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			closeStream(br);
-			closeStream(isr);
-			closeStream(is);
 			closeStream(zip);
 		}
 	}
@@ -280,9 +389,8 @@ public class InsightCacheUtility {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static Insight readInsightCache(String insightPath, Insight existingInsight) throws IOException, JsonSyntaxException {
-		File insightFile = new File(insightPath);
-		return readInsightCache(insightFile, existingInsight);
+	public static Insight readInsightCache(Insight existingInsight) throws IOException, JsonSyntaxException {
+		return readInsightCache(existingInsight, null);
 	}
 	
 	/**
@@ -299,36 +407,52 @@ public class InsightCacheUtility {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 		
-		String zipFileLoc = getInsightCacheFolderPath(insight, parameters) + DIR_SEPARATOR + INSIGHT_ZIP;
-		String normalizedZipFileLoc = Utility.normalizePath(zipFileLoc);
-		File zipFile = new File(normalizedZipFileLoc);
-
+		boolean encrypt = insight.isCacheEncrypt();
+		Cipher cipher = null;
+		if(encrypt) {
+			cipher = SecretsUtility.retrieveCipherForInsight(insight);
+		}
+		
+		String zipFileLoc = Utility.normalizePath(getInsightCacheFolderPath(insight, parameters) + DIR_SEPARATOR + INSIGHT_ZIP);
+		File zipFile = new File(zipFileLoc);
+		
 		if(!zipFile.exists()) {
 			throw new IOException("Cannot find insight cache");
 		}
 		
-		ZipEntry viewData = new ZipEntry(VIEW_JSON);
 		ZipFile zip = null;
-		InputStream zis = null;
+		ZipEntry entry = null;
 		try {
-			zip = new ZipFile(normalizedZipFileLoc);
-			zis = zip.getInputStream(viewData);
-			
-			String jsonString = IOUtils.toString(zis, "UTF-8");
-			Gson gson = new Gson();
-			return gson.fromJson(jsonString, Map.class);
+			zip = new ZipFile(zipFileLoc);
+			entry = zip.getEntry(VIEW_JSON);
+			if(entry == null) {
+				throw new IOException("Invalid zip format for cached insight");
+			}
+	        StringBuilder sb = new StringBuilder();
+	        
+	        if(cipher != null) {
+		        try (BufferedReader br = new BufferedReader(new InputStreamReader(new CipherInputStream(zip.getInputStream(entry), cipher)))){
+		        	String line;
+			        while ((line = br.readLine()) != null) {
+			            sb.append(line);
+			        }
+		        }
+	        } else {
+	        	try (BufferedReader br = new BufferedReader(new InputStreamReader(zip.getInputStream(entry)))) {
+	        		String line;
+			        while ((line = br.readLine()) != null) {
+			            sb.append(line);
+			        }
+	        	}
+	        }
+	        Gson gson = new Gson();
+			return gson.fromJson(sb.toString(), Map.class);
 		} catch(Exception e) {
-			logger.error("Error retrieving cache for " + rdbmsId);
 			logger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
-			if(zis != null) {
-				zis.close();
-			}
-			if(zip != null) {
-				zip.close();
-			}
+			closeStream(zip);
 		}
-		return null;
 	}
 	
 	/**

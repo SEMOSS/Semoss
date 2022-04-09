@@ -1,5 +1,6 @@
 package prerna.sablecc2;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -10,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.crypto.Cipher;
+import javax.crypto.CipherOutputStream;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.StreamingOutput;
 
@@ -108,13 +111,18 @@ public class PixelStreamUtility {
 	 * @param runner
 	 * @return
 	 */
-	public static File writePixelData(PixelRunner runner, File fileToWrite) {
+	public static File writePixelData(PixelRunner runner, File fileToWrite, Cipher cipher) {
 		// get the default gson object
 		Gson gson = GsonUtility.getDefaultGson();
 
 		// now process everything
-		FileOutputStream fos = null;
+		OutputStream os = null;
 		try {
+			if(cipher != null) {
+				os = new BufferedOutputStream(new CipherOutputStream(new FileOutputStream(fileToWrite), cipher));
+			} else {
+				os = new FileOutputStream(fileToWrite);
+			}
 			StreamingOutput output = new StreamingOutput() {
 				PrintStream ps = null;
 				@Override
@@ -132,15 +140,14 @@ public class PixelStreamUtility {
 						}
 					}
 				}};
-			fos = new FileOutputStream(fileToWrite);
-			output.write(fos);
+			output.write(os);
 		} catch (Exception e) {
 			logger.error("Failed to write object to stream");
 		} finally {
 			try {
-				if (fos != null) {
-					fos.flush();
-					fos.close();
+				if (os != null) {
+					os.flush();
+					os.close();
 				}
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
