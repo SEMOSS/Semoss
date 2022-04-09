@@ -6,9 +6,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SemossPixelException extends RuntimeException implements ISemossException {
 
-	private boolean continueThreadOfExecution = true;
-	private NounMetadata noun = null;
-	private String message = null;
+	protected boolean continueThreadOfExecution = true;
+	protected NounMetadata noun = null;
+	protected String message = null;
 	
 	public SemossPixelException(String message) {
 		super(message);
