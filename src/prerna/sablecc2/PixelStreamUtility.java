@@ -116,44 +116,23 @@ public class PixelStreamUtility {
 		Gson gson = GsonUtility.getDefaultGson();
 
 		// now process everything
-		OutputStream os = null;
+		PrintStream ps = null;
 		try {
 			if(cipher != null) {
-				os = new BufferedOutputStream(new CipherOutputStream(new FileOutputStream(fileToWrite), cipher));
+				ps = new PrintStream(new BufferedOutputStream(new CipherOutputStream(new FileOutputStream(fileToWrite), cipher)), false, "UTF-8");
 			} else {
-				os = new FileOutputStream(fileToWrite);
+				ps = new PrintStream(new FileOutputStream(fileToWrite), false, "UTF-8");
 			}
-			StreamingOutput output = new StreamingOutput() {
-				PrintStream ps = null;
-				@Override
-				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
-					try {
-						ps = new PrintStream(outputStream, false, "UTF-8");
-						// we want to ignore the first index since it will be a job
-						processPixelRunner(ps, gson, runner, null);
-					} catch(Exception e) {
-						logger.error(Constants.STACKTRACE, e);
-						// ugh... this is unfortunate
-					} finally {
-						if(ps != null) {
-							ps.close();
-						}
-					}
-				}};
-			output.write(os);
+			processPixelRunner(ps, gson, runner, null);
 		} catch (Exception e) {
 			logger.error("Failed to write object to stream");
 		} finally {
-			try {
-				if (os != null) {
-					os.flush();
-					os.close();
-				}
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+			if (ps != null) {
+				ps.flush();
+				ps.close();
 			}
 		}
-		
+
 		return fileToWrite;
 	}
 	
