@@ -37,7 +37,7 @@ public class SetDatabaseTagsReactor extends AbstractReactor {
 		List<String> tags = getTags();
 		SecurityDatabaseUtils.updateDatabaseTags(databaseId, tags);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new tags for app"));
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new tags for database"));
 		return noun;
 	}
 	
