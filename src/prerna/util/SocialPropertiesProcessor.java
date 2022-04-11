@@ -293,6 +293,9 @@ public class SocialPropertiesProcessor {
 	}
 	
 	public Map<String, String> getEmailStaticProps() {
-		return new HashMap<>(this.emailStaticProps);
+		if(this.emailStaticProps != null) {
+			return new HashMap<>(this.emailStaticProps);
+		}
+		return null;
 	}
 }
