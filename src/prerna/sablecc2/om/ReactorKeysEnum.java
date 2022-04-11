@@ -37,6 +37,7 @@ public enum ReactorKeysEnum {
 	CONSUMER_ID("consumer", 								"Email / ID of the consumer to be added for API"),
 	CONTENT("content", 									    "The actual content to be persisted on the file. Tab and Newline Separated"),
 	CONTEXT("context", 									    "THe workspace to be set command line. This is the base directory."),
+	CUSTOM_SUCCESS_MESSAGE("customSuccessMessage",			"Defines for certain reactors a custom success message after running"),
 	ADDITIONAL_CONNECTION_PARAMS_KEY("connParams", 			"Additional JDBC connection params to perform connection"),
 	CREATE_INDEX("createIndex", 							"Boolean if indicies should be generated."),
 	CRITERIA("criteria", 									"Criteria to be evaluated"),
