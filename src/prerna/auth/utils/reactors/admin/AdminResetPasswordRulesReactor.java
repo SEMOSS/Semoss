@@ -13,7 +13,7 @@ import prerna.util.Constants;
 
 public class AdminResetPasswordRulesReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(AdminUserLockAccountWarningReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AdminResetPasswordRulesReactor.class);
 
 	@Override
 	public NounMetadata execute() {

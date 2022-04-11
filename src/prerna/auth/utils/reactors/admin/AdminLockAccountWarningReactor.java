@@ -23,9 +23,9 @@ import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
 
-public class AdminUserLockAccountWarningReactor extends AbstractReactor {
+public class AdminLockAccountWarningReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(AdminUserLockAccountWarningReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AdminLockAccountWarningReactor.class);
 	private static final String ACCOUNT_LOCK_WARNING_TEMPLATE = "accountLockWarning.html";
 	
 	@Override
@@ -87,8 +87,8 @@ public class AdminUserLockAccountWarningReactor extends AbstractReactor {
 				emailReplacements.put(DAYS_SINCE_LAST_LOGIN_REPLACEMENT, daysSinceLastLogin + "");
 				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
 				
-				EmailUtility.sendEmail(emailSession, new String[] {email}, null, null, 
-						"no-reply@semoss.org", "WARNING! Account Locking Soon", message, true, null);
+				EmailUtility.sendEmail(emailSession, new String[] {email}, null, null, SocialPropertiesUtil.getInstance().getSmtpSender(), 
+						"WARNING! Account Locking Soon", message, true, null);
 				
 				emailsSentTo.add(email);
 			}
