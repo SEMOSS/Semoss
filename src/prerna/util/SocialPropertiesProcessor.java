@@ -296,6 +296,6 @@ public class SocialPropertiesProcessor {
 		if(this.emailStaticProps != null) {
 			return new HashMap<>(this.emailStaticProps);
 		}
-		return null;
+		return new HashMap<>();
 	}
 }
