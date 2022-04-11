@@ -30,6 +30,7 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -44,7 +45,7 @@ public class InsertReactor extends AbstractReactor {
 	private NounMetadata qStruct = null;
 	
 	public InsertReactor() {
-		this.keysToGet = new String[] {"into", "values", "commit"};
+		this.keysToGet = new String[] {"into", "values", "commit", ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey()};
 	}
 	
 	/*
@@ -146,7 +147,12 @@ public class InsertReactor extends AbstractReactor {
 			RdbmsTypeEnum eType = ((RDBMSNativeEngine) engine).getQueryUtil().getDbType();
 			if(eType == RdbmsTypeEnum.H2_DB || eType == RdbmsTypeEnum.SQLITE) {
 				insertFileEngine(engine, queryUtil, initial, valueCombinations, selectors, userId);
-				return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
+				NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
+				String customSuccessMessage = getCustomSuccessMessage();
+				if(customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
+					noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(customSuccessMessage));
+				}
+				return noun;
 			}
 		}
 		
@@ -237,8 +243,12 @@ public class InsertReactor extends AbstractReactor {
 			}
 		}
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, 
-				PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
+		String customSuccessMessage = getCustomSuccessMessage();
+		if(customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(customSuccessMessage));
+		}
+		return noun;
 	}
 	
 	/**
@@ -402,6 +412,15 @@ public class InsertReactor extends AbstractReactor {
 		}
 		
 		return combinations;
+	}
+	
+	public String getCustomSuccessMessage() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return (String) grs.get(0);
+		}
+		
+		return null;
 	}
 	
 	/**
