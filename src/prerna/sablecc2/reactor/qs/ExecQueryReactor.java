@@ -38,7 +38,7 @@ public class ExecQueryReactor extends AbstractReactor {
 	private NounMetadata qStruct = null;
 
 	public ExecQueryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey(), "commit" };
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey(), "commit", ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey()};
 	}
 
 	@Override
@@ -153,8 +153,12 @@ public class ExecQueryReactor extends AbstractReactor {
 			}
 		}
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, 
-				PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
+		String customSuccessMessage = getCustomSuccessMessage();
+		if(customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(customSuccessMessage));
+		}
+		return noun;
 	}
 
 	private NounMetadata getQueryStruct() {
@@ -166,6 +170,15 @@ public class ExecQueryReactor extends AbstractReactor {
 			return object;
 		}
 		return f;
+	}
+	
+	public String getCustomSuccessMessage() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return (String) grs.get(0);
+		}
+		
+		return null;
 	}
 
 	public void setQueryStruct(NounMetadata qs) {
