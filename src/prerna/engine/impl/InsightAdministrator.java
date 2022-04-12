@@ -334,7 +334,7 @@ public class InsightAdministrator {
 			ps.setBoolean(parameterIndex++, hidden);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
-			if(cacheCron == null) {
+			if(cacheCron == null || cacheCron.isEmpty()) {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			} else {
 				ps.setString(parameterIndex++, cacheCron);
