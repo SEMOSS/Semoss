@@ -565,7 +565,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
-			if(cacheCron == null) {
+			if(cacheCron == null || cacheCron.isEmpty()) {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			} else {
 				ps.setString(parameterIndex++, cacheCron);
