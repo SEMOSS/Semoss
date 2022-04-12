@@ -176,7 +176,11 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		GenRowStruct genericIdGrs = this.store.getNoun(CACHE_CRON);
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			String cronExpression = (String) genericIdGrs.get(0);
-			if(cronExpression != null && !(cronExpression = cronExpression.trim()).isEmpty()) {
+			if(cronExpression != null) {
+				cronExpression = cronExpression.trim();
+				if(cronExpression.isEmpty()) {
+					return "";
+				}
 				if (!CronExpression.isValidExpression(cronExpression)) {
 					throw new IllegalArgumentException("Cron expression '" + cronExpression + "' is not of a valid format");
 				}
