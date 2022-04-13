@@ -316,7 +316,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	static int getMaxUserInsightPermission(User user, String projectId, String insightId) {
-		return SecurityInsightUtils.getMaxUserInsightPermission(user, projectId, insightId);
+		return SecurityUserInsightUtils.getMaxUserInsightPermission(user, projectId, insightId);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////
