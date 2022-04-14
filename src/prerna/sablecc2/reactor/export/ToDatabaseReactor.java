@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
@@ -19,6 +20,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,10 +32,13 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ToDatabaseReactor extends TaskBuilderReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(ToDatabaseReactor.class);
 
 	private static final String CLASS_NAME = ToDatabaseReactor.class.getName();
 
@@ -166,14 +171,14 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 					targetEngine.insertData(queryUtil.dropTable(this.targetTable));
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(new NounMetadata("Error occured trying to delete the existing table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			
 			try {
 				targetEngine.insertData(queryUtil.createTable(this.targetTable, headers, sqlTypes));
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(new NounMetadata("Error occured trying to create the new table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			
@@ -185,7 +190,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			try {
 				targetEngine.insertData(queryUtil.createTable(this.targetTable, headers, sqlTypes));
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(new NounMetadata("Error occured trying to create the new table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			logger.info("Finished creating new table");
@@ -328,7 +333,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			ps.executeBatch(); // insert any remaining records
 			ps.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured persisting data into the database with message = " + e.getMessage());
 		}
 		
@@ -367,7 +372,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				owler.export();
 				Utility.synchronizeEngineMetadata(engineId);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
