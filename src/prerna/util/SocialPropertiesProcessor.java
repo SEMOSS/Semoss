@@ -49,7 +49,6 @@ public class SocialPropertiesProcessor {
 		}
 
 		loadSocialProperties();
-		loadEmailProperties();
 	}
 	
 	public void loadSocialProperties() {
@@ -285,17 +284,23 @@ public class SocialPropertiesProcessor {
 	}
 	
 	public Session getEmailSession() {
+		if(this.emailSession == null) {
+			loadEmailSession();
+		}
 		return this.emailSession;
 	}
 	
 	public Properties getEmailProps() {
+		if(this.emailProps == null) {
+			loadEmailProperties();
+		}
 		return this.emailProps;
 	}
 	
 	public Map<String, String> getEmailStaticProps() {
-		if(this.emailStaticProps != null) {
-			return new HashMap<>(this.emailStaticProps);
+		if(this.emailStaticProps == null) {
+			loadEmailStaticProps();
 		}
-		return new HashMap<>();
+		return this.emailStaticProps;
 	}
 }
