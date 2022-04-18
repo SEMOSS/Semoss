@@ -24,7 +24,7 @@ public class SocialPropertiesProcessor {
 	public static final String SMTP_PASSWORD = "smtp_password";
 	public static final String SMTP_SENDER = "smtp_sender";
 
-	private static final Logger logger = LogManager.getLogger(SocialPropertiesUtil.class);
+	private static final Logger logger = LogManager.getLogger(SocialPropertiesProcessor.class);
 
 	private String socialPropFile = null;
 	
@@ -239,16 +239,16 @@ public class SocialPropertiesProcessor {
 	}
 	
 	public void loadEmailSession() {
-		if(this.socialData == null || !SocialPropertiesUtil.getInstance().emailEnabled()) {
+		if(this.socialData == null || !emailEnabled()) {
 			return;
 		}
 		if(this.emailProps == null || this.emailProps.isEmpty()) {
-			this.emailProps = SocialPropertiesUtil.getInstance().loadEmailProperties();
+			this.emailProps = loadEmailProperties();
 		}
 		if(this.emailProps == null || this.emailProps.isEmpty()) {
 			throw new IllegalArgumentException("SMTP properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
 		}
-		this.emailStaticProps = SocialPropertiesUtil.getInstance().loadEmailStaticProps();
+		this.emailStaticProps = getEmailStaticProps();
 		
 		String username = getSmtpUsername();
 		String password = getSmtpPassword();

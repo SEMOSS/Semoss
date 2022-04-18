@@ -633,6 +633,7 @@ public class Constants {
 	
 	// Social Properties
 	public static final String SOCIAL = "SOCIAL";
+	public static final String SOCIAL_PROPERTIES_FILENAME = "social.properties";
 	// Email
 	public static final String EMAIL_TEMPLATES = "EMAIL_TEMPLATES";
 	// Secrets Store
