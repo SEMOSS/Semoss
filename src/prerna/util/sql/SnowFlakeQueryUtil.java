@@ -162,8 +162,8 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 		
 		String additonalProperties = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {
-			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
-				connectionString += ";" + additonalProperties;
+			if(!additonalProperties.startsWith("&")) {
+				connectionString += "&" + additonalProperties;
 			} else {
 				connectionString += additonalProperties;
 			}
