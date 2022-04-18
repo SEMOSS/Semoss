@@ -86,18 +86,6 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.emailEnabled();
 	}
 	
-	public Properties loadEmailProperties() {
-		return SocialPropertiesUtil.processor.loadEmailProperties();
-	}
-	
-	public Map<String, String> loadEmailStaticProps() {
-		return SocialPropertiesUtil.processor.loadEmailStaticProps();
-	}
-	
-	public void loadEmailSession() {
-		SocialPropertiesUtil.processor.loadEmailSession();
-	}
-	
 	public String getSmtpUsername() {
 		return SocialPropertiesUtil.processor.getSmtpUsername();
 	}
