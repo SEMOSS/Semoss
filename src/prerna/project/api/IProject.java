@@ -32,6 +32,7 @@ import java.util.Vector;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
+import prerna.project.impl.ProjectProperties;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.util.SemossClassloader;
 
@@ -87,7 +88,7 @@ public interface IProject {
 	 * Sets the unique id for the project 
 	 * @param projectId - id to set the project 
 	 */
-	public void setProjectId(String projectId);
+	void setProjectId(String projectId);
 	
 	/**
 	 * Set the insight database
@@ -117,7 +118,7 @@ public interface IProject {
 	 * @param loader
 	 * @return
 	 */
-	public IReactor getReactor(String reactorName, SemossClassloader loader);
+	IReactor getReactor(String reactorName, SemossClassloader loader);
 	
 	// publish the engine assets to a specific location
 	// once published the assets in this app are available as a public_home from the browser
@@ -129,13 +130,19 @@ public interface IProject {
 	 * @param targetDir
 	 * @return
 	 */
-	public boolean publish(String location, String targetDir);
+	boolean publish(String location, String targetDir);
 	
 	/**
 	 * Return if an asset
 	 * @return
 	 */
-	public boolean isAsset();
+	boolean isAsset();
+	
+	/**
+	 * Get the project properties
+	 * @return
+	 */
+	ProjectProperties getProjectProperties();
 }
 
 

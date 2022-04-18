@@ -75,6 +75,7 @@ public class Project implements IProject {
 	private Properties prop = null;
 	private String projectSmssFilePath = null;
 	private boolean isAsset = false;
+	private ProjectProperties projectProperties = null;
 	
 	private RDBMSNativeEngine insightRdbms;
 	private String insightDatabaseLoc;
@@ -103,6 +104,8 @@ public class Project implements IProject {
 		if(!isAsset) {
 			loadInsightsRdbms();
 		}
+		
+		this.projectProperties = new ProjectProperties(this.projectName, this.projectId);
 	}
 	
 	@Override
@@ -113,6 +116,11 @@ public class Project implements IProject {
 	@Override
 	public boolean isAsset() {
 		return this.isAsset;
+	}
+	
+	@Override
+	public ProjectProperties getProjectProperties() {
+		return this.projectProperties;
 	}
 
 	/**
