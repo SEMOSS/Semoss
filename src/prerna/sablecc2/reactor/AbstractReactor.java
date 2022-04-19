@@ -35,7 +35,7 @@ import prerna.sablecc2.reactor.job.JobReactor;
 
 public abstract class AbstractReactor implements IReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(AbstractReactor.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(AbstractReactor.class);
 	// get the directory separator
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	protected static final String ALL_NOUN_STORE = "all";
@@ -500,9 +500,9 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public void modifySignature(String stringToFind, String stringReplacement) {
-		LOGGER.debug("Original signature value = " + this.signature);
+		classLogger.debug("Original signature value = " + this.signature);
 		this.signature = StringUtils.replaceOnce( this.signature, stringToFind, stringReplacement);
-		LOGGER.debug("New signature value = " + this.signature);
+		classLogger.debug("New signature value = " + this.signature);
 	}
 	
 	@Override
