@@ -7,12 +7,17 @@ import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.amazon.support.CustomClassLoader;
 
 public class SemossClassloader extends ClassLoader {
 
-	String folder = null;
-	Map <String, Boolean> dbLoaded = new Hashtable<String, Boolean>();
+	private static final Logger classLogger = LogManager.getLogger(SemossClassloader.class);
+	
+	private String folder = null;
+	private Map<String, Boolean> dbLoaded = new Hashtable<>();
 
 	public void setFolder(String folder)
 	{
@@ -47,14 +52,12 @@ public class SemossClassloader extends ClassLoader {
 	 *
 	 * @param name Full class name
 	 */
-	private Class<?> getClass(String name)
-			throws ClassNotFoundException {
+	private Class<?> getClass(String name) throws ClassNotFoundException {
 		// We are getting a name that looks like
 		// javablogging.package.ClassToLoad
 		// and we have to convert it into the .class file name
 		// like javablogging/package/ClassToLoad.class
-		String file = name.replace('.', File.separatorChar)
-				+ ".class";
+		String file = name.replace('.', File.separatorChar)	+ ".class";
 		byte[] b = null;
 		try {
 			// This loads the byte code data from the file
@@ -67,7 +70,7 @@ public class SemossClassloader extends ClassLoader {
 				return c;
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -84,21 +87,17 @@ public class SemossClassloader extends ClassLoader {
 	 *            Full class name
 	 */
 	@Override
-	public Class<?> loadClass(String name)
-			throws ClassNotFoundException {
+	public Class<?> loadClass(String name) throws ClassNotFoundException {
 		Class retClass = null;
 		// see if it is already loaded or in the classpath
-		try
-		{
+		try {
 			retClass = super.loadClass(name);
-		}catch(Exception ex)
-		{
-
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-		if (retClass == null) 
-		{
-			System.err.println("App Specific Class " + name);
+		if (retClass == null) {
+			classLogger.info("App Specific Class " + name);
 			retClass = getClass(name);
 		}
 		return retClass;
@@ -117,21 +116,6 @@ public class SemossClassloader extends ClassLoader {
 	 *               was some problem reading the file
 	 */
 	private byte[] loadClassData(String name) throws IOException {
-		//System.out.println("Loading class data " + name);
-
-		/*
-        // Opening the file
-        InputStream stream = getClass().getClassLoader()
-            .getResourceAsStream(name);
-        int size = stream.available();
-        byte buff[] = new byte[size];
-        DataInputStream in = new DataInputStream(stream);
-        // Reading the binary data
-        in.readFully(buff);
-        in.close();
-        return buff;
-		 */
-		// Opening the file
 		FileInputStream stream = null;
 		DataInputStream in = null;
 		byte buff[] = null;
@@ -147,24 +131,21 @@ public class SemossClassloader extends ClassLoader {
 				if(stream!=null)
 					stream.close();
 			}catch(IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			try{
 				if(in!=null)
 					in.close();
 			}catch(IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return buff;
 	}
 
 
-	protected Class	findClass(String name) throws ClassNotFoundException
-	{
-		//System.out.println("Find class called " + name);
+	protected Class	findClass(String name) throws ClassNotFoundException {
 		return super.findClass(name);
-
 	}
 
 }
