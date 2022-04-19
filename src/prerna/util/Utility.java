@@ -119,6 +119,7 @@ import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
 
 import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
 import javassist.CannotCompileException;
@@ -3530,41 +3531,30 @@ public class Utility {
 		return thisMap;
 	}
 
-	public static Map loadReactors(String folder, String key, SemossClassloader cl) {
-		return loadReactors(folder, key, cl, "classes");
+	public static Map<String, Class> loadReactors(String folder, String key, SemossClassloader customClassLoader) {
+		return loadReactors(folder, key, customClassLoader, "classes");
 	}
 
 	// loads classes through this specific class loader for the insight
-	public static Map loadReactors(String folder, String key, SemossClassloader cl, String outputFolder) {
-		HashMap thisMap = new HashMap<String, Class>();
+	public static Map<String, Class> loadReactors(String folder, String key, SemossClassloader customClassLoader, String outputFolder) {
+		Map<String, Class> reactorMap = new HashMap<>();
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
 				 logger.debug("App specific reactors are disabled");
-				 return thisMap;
-			 };
+				 return reactorMap;
+			 }
 		}
 		try {
-			// I should create the class pool everytime
-			// this way it doesn't keep others and try to get from other places
-			// does this end up loading all the other classes too ?
-			ClassPool pool = ClassPool.getDefault();
-			// takes a class and modifies the name of the package and then plugs it into the
-			// heap
-
 			// the main folder to add here is
-			// basefolder/db/insightfolder/classes - right now I have it as classes. we can
-			// change it to something else if we want
+			// basefolder/db/insightfolder/classes 
 			String classesFolder = folder + "/" + outputFolder;
 
 			classesFolder = classesFolder.replaceAll("\\\\", "/");
-			cl.folder = classesFolder;
+			customClassLoader.setFolder(classesFolder);
 
 			File file = new File(classesFolder);
 			if (file.exists()) {
-				// loads a class and tried to change the package of the class on the fly
-				// CtClass clazz = pool.get("prerna.test.CPTest");
-
 				logger.error("Loading reactors from >> " + classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
@@ -3576,33 +3566,21 @@ public class Utility {
 				}
 
 				ScanResult sr = new ClassGraph()
-						// .whitelistPackages("prerna")
 						.overrideClasspath((new File(classesFolder).toURI().toURL()))
-						// .enableAllInfo()
-						// .enableClassInfo()
+						.enableClassInfo()
 						.whitelistPackages(packages)
 						.scan();
-				// ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
-				// ScanResult sr = new
-				// ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
-
-				// ClassInfoList classes =
-				// sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
 				
-				String[] subclassLookup = new String[] {
-						"prerna.sablecc2.reactor.AbstractReactor",
-						"prerna.sablecc2.reactor.frame.AbstractFrameReactor"};
-				for(String subclass : subclassLookup) {
-					ClassInfoList classes = sr.getSubclasses(subclass);
-					Map<String, Class> reactors = new HashMap<>();
-					// add the path to the insight classes so only this guy can load it
-					pool.insertClassPath(classesFolder);
-					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-						// this will load the whole thing
-						Class newClass = cl.loadClass(classes.get(classIndex).getName());
+				// find everything implementing IReactor
+				// get implementing classes doesn't seem to work when overriding the classpath
+				// likely because the base semoss classes are not in the scope of the ClassGraph object
+				ClassInfoList classes = sr.getAllClasses(); // sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor"); 
+				for(int classIndex = 0;classIndex < classes.size();classIndex++) {
+					ClassInfo classObject = classes.get(classIndex);
+					if(isValidReactor(classObject)) {
 						String name = classes.get(classIndex).getSimpleName();
-	
-						thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+						Class actualClass = customClassLoader.loadClass(classes.get(classIndex).getName());
+						reactorMap.put(name.toUpperCase().replaceAll("REACTOR", ""), actualClass);
 					}
 				}
 			}
@@ -3610,7 +3588,28 @@ public class Utility {
 			logger.error(Constants.STACKTRACE, ex);
 		}
 
-		return thisMap;
+		return reactorMap;
+	}
+	
+	public static boolean isValidReactor(ClassInfo classObject) {
+		String className = classObject.getName();
+		if(className.equals("prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor")
+				|| className.equals("prerna.sablecc2.reactor.frame.py.AbstractPyFrameReactor")
+				|| className.equals("prerna.sablecc2.reactor.AbstractReactor")
+				|| className.equals("prerna.sablecc2.reactor.IReactor")
+				) {
+			return true;
+		}
+		if(classObject.implementsInterface("prerna.sablecc2.reactor.IReactor")) {
+			return true;
+		}
+		
+		ClassInfo superClass = classObject.getSuperclass();
+		if(superClass == null) {
+			return false;
+		}
+		
+		return isValidReactor(superClass);
 	}
 
 	// loads classes through this specific class loader for the insight
