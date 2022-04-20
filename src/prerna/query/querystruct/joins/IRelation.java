@@ -3,6 +3,7 @@ package prerna.query.querystruct.joins;
 import com.google.gson.TypeAdapter;
 
 import prerna.util.gson.BasicRelationshipAdapter;
+import prerna.util.gson.SubqueryRelationshipAdapter;
 
 public interface IRelation {
 
@@ -24,7 +25,7 @@ public interface IRelation {
 		if(type == RELATION_TYPE.BASIC) {
 			return new BasicRelationshipAdapter();
 		} else if(type == RELATION_TYPE.SUBQUERY) {
-			throw new IllegalArgumentException("Need to implement");
+			return new SubqueryRelationshipAdapter();
 		}
 		
 		return null;
