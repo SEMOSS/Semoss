@@ -24,6 +24,8 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.IQuerySort;
@@ -533,12 +535,20 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 	 * Adds the joins for the query
 	 */
 	public void addJoins() {
-		Set<String[]> relations = qs.getRelations();
-		for(String[] rel : relations) {
-			String start = rel[0];
-			String comparator = rel[1];
-			String end = rel[2];
-			addJoin(start, comparator, end);
+		for(IRelation relationship : qs.getRelations()) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
+				String from = rel.getFromConcept();
+				String joinType = rel.getJoinType();
+				String to = rel.getToConcept();
+//				String comparator = rel.getComparator();
+//				if(comparator == null) {
+//					comparator = "=";
+//				}
+				addJoin(from, joinType, to);
+			} else {
+				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
+			}
 		}
 //		Map<String, Map<String, List>> relationsData = qs.getRelations();
 //		// loop through all the relationships
@@ -561,11 +571,11 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 	 * Adds the join to the relationHash which gets added to the query in composeQuery
 	 * @param fromCol					The starting column, this can be just a table
 	 * 									or table__column
-	 * @param thisComparator			The comparator for the type of join
+	 * @param joinType					The type of join
 	 * @param toCol						The ending column, this can be just a table
 	 * 									or table__column
 	 */
-	private void addJoin(String fromCol, String thisComparator, String toCol) {
+	private void addJoin(String fromCol, String joinType, String toCol) {
 		// get the parts of the join
 		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
 		String targetTable = relConProp[0];
@@ -573,7 +583,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		String sourceTable = relConProp[2];
 		String sourceColumn = relConProp[3];
 		
-		String compName = thisComparator.replace(".", " ");
+		String compName = joinType.replace(".", " ");
 		SqlJoinStruct jStruct = new SqlJoinStruct();
 		jStruct.setJoinType(compName);
 		// add source

@@ -38,8 +38,10 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.H2SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
-import prerna.query.querystruct.RelationSet;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.RelationSet;
 import prerna.sablecc2.reactor.imports.RdbmsImporter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -488,14 +490,14 @@ public class H2Frame extends AbstractRdbmsFrame {
 					qs2.addSelector(key, prop);
 				}
 			}
-			Set<String[]> rels = new RelationSet();
+			Set<IRelation> rels = new RelationSet();
 			Map<String, Map<String, List>> curRels = qs.getRelations();
 			for(String up : curRels.keySet()) {
 				Map<String, List> innerMap = curRels.get(up);
 				for(String jType : innerMap.keySet()) {
 					List downs = innerMap.get(jType);
 					for(Object d : downs) {
-						rels.add(new String[]{up, jType, d.toString()});
+						rels.add(new BasicRelationship(new String[]{up, jType, d.toString()}));
 					}
 				}
 			}

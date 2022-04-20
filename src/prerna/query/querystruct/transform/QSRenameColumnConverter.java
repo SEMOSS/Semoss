@@ -1,6 +1,5 @@
 package prerna.query.querystruct.transform;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +15,9 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.RelationSet;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -108,20 +110,26 @@ public class QSRenameColumnConverter {
 		return convertedQs;
 	}
 
-	private static Set<String[]> convertJoins(Set<String[]> relationsSet, Map<String, String> transformationMap) {
-		Set<String[]> convertedJoins = new HashSet<String[]>();
-		for(String[] rel : relationsSet) {
-			String newStart = transformationMap.get(rel[0]);
-			if(newStart == null) {
-				newStart = rel[0];
+	private static Set<IRelation> convertJoins(Set<IRelation> relationsSet, Map<String, String> transformationMap) {
+		Set<IRelation> convertedJoins = new RelationSet();
+		for(IRelation relationship : relationsSet) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
+				
+				String newStart = transformationMap.get(rel.getFromConcept());
+				if(newStart == null) {
+					newStart = rel.getFromConcept();
+				}
+				String joinType = rel.getJoinType();
+				String newEnd = transformationMap.get(rel.getToConcept());
+				if(newEnd == null) {
+					newEnd = rel.getToConcept();
+				}
+				
+				convertedJoins.add(new BasicRelationship(new String[]{newStart, joinType, newEnd, rel.getComparator(), rel.getRelationName()}));
+			} else {
+				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
-			String comp = rel[1];
-			String newEnd = transformationMap.get(rel[2]);
-			if(newEnd == null) {
-				newEnd = rel[2];
-			}
-			
-			convertedJoins.add(new String[]{newStart, comp, newEnd});
 		}
 		return convertedJoins;
 	}

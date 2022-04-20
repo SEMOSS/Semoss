@@ -15,6 +15,8 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -171,21 +173,26 @@ public class QsToPixelConverter {
 	 * @param joins
 	 * @return
 	 */
-	public static String convertJoins(Set<String[]> joins) {
+	public static String convertJoins(Set<IRelation> joins) {
 		StringBuilder b = new StringBuilder();
 		boolean first = true;
 		// iterate through and construct the joins
-		for(String[] j : joins) {
-			if(!first) {
-				b.append(", ");
+		for(IRelation relationship : joins) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
+				if(!first) {
+					b.append(", ");
+				}
+				String startCol = rel.getFromConcept();
+				String joinType = rel.getJoinType();
+				String endCol = rel.getToConcept();
+				
+				b.append("(").append(startCol).append(", ").append(joinType)
+					.append(", ").append(endCol).append(")");
+				first = false;
+			} else {
+				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
-			String startCol = j[0];
-			String comparator = j[1];
-			String endCol = j[2];
-			
-			b.append("(").append(startCol).append(", ").append(comparator)
-				.append(", ").append(endCol).append(")");
-			first = false;
 		}
 		return b.toString();
 	}

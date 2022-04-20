@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -27,6 +28,8 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -48,6 +51,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * search
 	 */
 
+	private static final Logger classLogger = LogManager.getLogger(NaturalLanguageSearchReactor.class);
+	
 	protected static final String CLASS_NAME = NaturalLanguageSearchReactor.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	protected static final String GLOBAL = "global";
@@ -1376,19 +1381,24 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 
 		// bring in the relations
-		Set<String[]> relations = qs.getRelations();
+		Set<IRelation> relations = qs.getRelations();
 		if (!relations.isEmpty()) {
 			separator = "";
 			psb.append("Join ( ");
-			for (String[] rel : relations) {
-				String col1 = rel[0];
-				String joinType = rel[1];
-				String col2 = rel[2];
-				psb.append(separator);
-				separator = " , ";
-				psb.append("( " + col1 + ", ");
-				psb.append(joinType + ", ");
-				psb.append(col2 + " ) ");
+			for (IRelation relationship : relations) {
+				if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+					BasicRelationship rel = (BasicRelationship) relationship;
+					String col1 = rel.getFromConcept();
+					String joinType = rel.getJoinType();
+					String col2 = rel.getToConcept();
+					psb.append(separator);
+					separator = " , ";
+					psb.append("( " + col1 + ", ");
+					psb.append(joinType + ", ");
+					psb.append(col2 + " ) ");
+				} else {
+					classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
+				}
 			}
 			psb.append(") | ");
 		}
