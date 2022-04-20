@@ -45,7 +45,7 @@ public class SimpleQueryFilterAdapter extends AbstractSemossTypeAdapter<SimpleQu
 			if(name.equals("left")) {
 				left = adapter.read(in);
 			} else if(name.equals("comparator")) {
-				comparator =in.nextString();
+				comparator = in.nextString();
 			} else if(name.equals("right")) {
 				right = adapter.read(in); 
 			}

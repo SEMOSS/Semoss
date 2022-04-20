@@ -15,6 +15,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -115,25 +116,15 @@ public class CsvQueryStructAdapter  extends AbstractSemossTypeAdapter<CsvQuerySt
 				qs.setOrderBy(orders);
 			}
 			else if(name.equals("relations")) {
-				Set<String[]> relations = new LinkedHashSet<>();
-				if(relations != null && !relations.isEmpty()) {
-					in.beginArray();
-					while(in.hasNext()) {
-						in.beginArray();
-						List<String> rel = new Vector<>();
-						while(in.hasNext()) {
-							if(in.peek() == JsonToken.NULL) {
-								in.nextNull();
-								rel.add(null);
-							} else {
-								rel.add(in.nextString());
-							}
-						}
-						relations.add(rel.toArray(new String[] {}));
-						in.endArray();
-					}
-					in.endArray();
+				Set<IRelation> relations = new LinkedHashSet<>();
+				in.beginArray();
+				while(in.hasNext()) {
+					IRelationAdapter relationAdapter = new IRelationAdapter();
+					relationAdapter.setInsight(this.insight);
+					IRelation relation = relationAdapter.read(in);
+					relations.add(relation);
 				}
+				in.endArray();
 				qs.setRelations(relations);
 			}
 		}
@@ -256,16 +247,13 @@ public class CsvQueryStructAdapter  extends AbstractSemossTypeAdapter<CsvQuerySt
 		}
 		
 		// relationships
-		Set<String[]> relationships = value.getRelations();
+		Set<IRelation> relationships = value.getRelations();
 		if(relationships != null && !relationships.isEmpty()) {
 			out.name("relations");
 			out.beginArray();
-			for(String[] rel : relationships) {
-				out.beginArray();
-				for(String r : rel) {
-					out.value(r);
-				}
-				out.endArray();
+			for(IRelation rel : relationships) {
+				TypeAdapter adapter = IRelation.getAdapterForRelation(rel.getRelationType());
+				adapter.write(out, rel);
 			}
 			out.endArray();
 		}
