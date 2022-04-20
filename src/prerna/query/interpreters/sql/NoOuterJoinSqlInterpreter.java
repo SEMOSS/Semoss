@@ -21,6 +21,9 @@ import prerna.engine.api.IEngine;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Utility;
 
@@ -77,11 +80,26 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		 */
 		
 		//if there are no outer joins requested, then call the SQL interpreter instead
+		boolean hasOuter = false;
+		Set<IRelation> relationships = qs.getRelations();
+		for(IRelation relationship : relationships) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
+				if(rel.getJoinType().equals("outer.join")) {
+					hasOuter = true;
+					break;
+				}
+			} else if(relationship.getRelationType() == IRelation.RELATION_TYPE.SUBQUERY) {
+				SubqueryRelationship rel = (SubqueryRelationship) relationship;
+				if(rel.getJoinType().equals("outer.join")) {
+					hasOuter = true;
+					break;
+				}
+			}
+		}
 		
-		this.outerJoinsRequested = qs.getRelations().stream().anyMatch(s -> s[1].equalsIgnoreCase("outer.join"));
-		if(!this.outerJoinsRequested) {
-			// just return the parent
-			return super.composeQuery();
+		if(!hasOuter) {
+			return super.composeQuery();	
 		}
 		
 		addJoins();

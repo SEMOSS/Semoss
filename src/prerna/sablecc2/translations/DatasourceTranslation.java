@@ -22,6 +22,8 @@ import com.google.gson.GsonBuilder;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.PixelPreProcessor;
@@ -121,13 +123,19 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 						uniqueCols.addAll(f.getAllQueryStructColumns());
 					}
 					// add all joins
-					Set<String[]> rels = inputQs.getRelations();
-					for(String[] rel : rels) {
-						String up = rel[0];
-						String down = rel[2];
-						uniqueCols.add(up);
-						uniqueCols.add(down);
+					Set<IRelation> relations = inputQs.getRelations();
+					for (IRelation relationship : relations) {
+						if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+							BasicRelationship rel = (BasicRelationship) relationship;
+							String up = rel.getFromConcept();
+							String down = rel.getToConcept();
+							uniqueCols.add(up);
+							uniqueCols.add(down);
+						} else {
+							logger.info("Cannot process relationship of type: " + relationship.getRelationType());
+						}
 					}
+					
 //					Map<String, Map<String, List>> relations = inputQs.getRelations();
 //					for(String up : relations.keySet()) {
 //						// store the up node
