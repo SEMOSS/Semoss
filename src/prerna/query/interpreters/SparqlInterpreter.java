@@ -25,6 +25,8 @@ import prerna.query.querystruct.filters.IQueryFilter.QUERY_FILTER_TYPE;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -327,13 +329,18 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		return this.addedSelectors.get(propVarName);
 	}
 	
-	private void addJoins(Set<String[]> relations) {
+	private void addJoins(Set<IRelation> relations) {
 		this.relationshipWhereClause = new StringBuilder();
-		for(String[] rel : relations) {
-			String fromNode = rel[0];
-			String joinType = rel[1];
-			String toNode = rel[2];
-			addJoin(fromNode, joinType, toNode);
+		for (IRelation relationship : relations) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
+				String fromNode = rel.getFromConcept();
+				String joinType = rel.getJoinType();
+				String toNode = rel.getToConcept();
+				addJoin(fromNode, joinType, toNode);
+			} else {
+				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
+			}
 		}
 	}
 

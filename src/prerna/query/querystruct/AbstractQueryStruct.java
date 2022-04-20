@@ -11,6 +11,9 @@ import prerna.engine.api.IEngine;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.RelationSet;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Utility;
@@ -68,7 +71,7 @@ public abstract class AbstractQueryStruct {
 	
 	// For joins
 	// we keep a set of start, comparator, end
-	protected Set<String[]> relationsSet = new RelationSet();
+	protected Set<IRelation> relationsSet = new RelationSet();
 	
 	protected boolean overrideImplicit = false;
 
@@ -286,22 +289,26 @@ public abstract class AbstractQueryStruct {
 	
 	//////////////////////////////////////////// JOINING ////////////////////////////////////////////////////
 
-	public void setRelations(Set<String[]> relationSet) {
+	public void setRelations(Set<IRelation> relationSet) {
 		this.relationsSet = relationSet;
 	}
 	
 	public void addRelation(String fromConcept, String toConcept, String joinType) {
 		String[] eachSet = new String[]{fromConcept, joinType, toConcept};
-		relationsSet.add(eachSet);
+		this.relationsSet.add(new BasicRelationship(eachSet));
 	}
 	
 	public void addRelation(String fromConcept, String toConcept, String joinType, String comparator, String relName) {
 		String[] eachSet = new String[]{fromConcept, joinType, toConcept, comparator, relName};
-		relationsSet.add(eachSet);
+		this.relationsSet.add(new BasicRelationship(eachSet));
 	}
 	
-	public Set<String[]> getRelations(){
+	public Set<IRelation> getRelations(){
 		return this.relationsSet;
+	}
+	
+	public void addRelation(IRelation rel) {
+		this.relationsSet.add(rel);
 	}
 	
 	//////////////////////////////////////////// OTHERS /////////////////////////////////////////////////////
@@ -513,7 +520,7 @@ public abstract class AbstractQueryStruct {
 		this.havingFilters.merge(incomingFilters);		
 	}
 	
-	public void mergeRelations(Set<String[]> relationSet) {
+	public void mergeRelations(Set<IRelation> relationSet) {
 		this.relationsSet.addAll(relationSet);
 	}
 	

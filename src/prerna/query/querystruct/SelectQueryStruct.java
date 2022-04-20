@@ -10,6 +10,7 @@ import java.util.Vector;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.InsightPanel;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -670,7 +671,5 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	{
 		pragmap.clear();
 	}
-	
-	
-	
+
 }
