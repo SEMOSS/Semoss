@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
@@ -32,6 +34,8 @@ import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -42,6 +46,8 @@ import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 
 public class ImportUtility {
+
+	private static final Logger classLogger = LogManager.getLogger(ImportUtility.class);
 
 	private ImportUtility() {
 		
@@ -703,19 +709,25 @@ public class ImportUtility {
 		List<String> addedRels = new Vector<String>();
 		if(addRels) {
 			// now add the relationships
-			Set<String[]> relations = qs.getRelations();
-			for(String[] rel : relations) {
-				String up = rel[0];
-				if(aliasMap.containsKey(up)) {
-					up = aliasMap.get(up);
+			Set<IRelation> relations = qs.getRelations();
+			for (IRelation relationship : relations) {
+				if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+					BasicRelationship rel = (BasicRelationship) relationship;
+
+					String up = rel.getFromConcept();
+					if(aliasMap.containsKey(up)) {
+						up = aliasMap.get(up);
+					}
+					String joinType = rel.getJoinType();
+					String down = rel.getToConcept();
+					if(aliasMap.containsKey(down)) {
+						down = aliasMap.get(down);
+					}
+					metaData.addRelationship(up, down, joinType);
+					addedRels.add(up + down);
+				} else {
+					classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
 				}
-				String joinType = rel[1];
-				String down = rel[2];
-				if(aliasMap.containsKey(down)) {
-					down = aliasMap.get(down);
-				}
-				metaData.addRelationship(up, down, joinType);
-				addedRels.add(up + down);
 			}
 		}
 		
@@ -842,44 +854,50 @@ public class ImportUtility {
 		Map<String, String> parent = new HashMap<String, String>();
 		List<String> ignoreSelector = new ArrayList<String>();
 		// add all relationships
-		Set<String[]> relations = qs.getRelations();
-		for(String[] rel : relations) {
-			String upVertex = rel[0];
-			String downVertex = rel[2];
-			
-			String[] results = getJoinInformation(engine, upVertex, downVertex);
-			if(results != null) {
-				parent.put(results[0], results[1]);
-				parent.put(results[2], results[3]);
+		Set<IRelation> relations = qs.getRelations();
+		for (IRelation relationship : relations) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
 
-				String upQs = results[0] + "__" + results[1];
-				String downQs = results[2] + "__" + results[3];
+				String upVertex = rel.getFromConcept();
+				String downVertex = rel.getToConcept();
 				
-				String upVertexAlias = aliasMapping.get(upQs);
-				String downVertexAlias = aliasMapping.get(downQs);
-				
-				if(upVertexAlias == null || downVertexAlias == null) {
-					// this is a pass through
-					continue;
+				String[] results = getJoinInformation(engine, upVertex, downVertex);
+				if(results != null) {
+					parent.put(results[0], results[1]);
+					parent.put(results[2], results[3]);
+
+					String upQs = results[0] + "__" + results[1];
+					String downQs = results[2] + "__" + results[3];
+					
+					String upVertexAlias = aliasMapping.get(upQs);
+					String downVertexAlias = aliasMapping.get(downQs);
+					
+					if(upVertexAlias == null || downVertexAlias == null) {
+						// this is a pass through
+						continue;
+					}
+					
+					Set<String> downConnections = null;
+					if(edgeHash.containsKey(upVertexAlias)) {
+						downConnections = edgeHash.get(upVertexAlias);
+					} else {
+						downConnections = new HashSet<String>();
+						edgeHash.put(upVertexAlias, downConnections);
+					}
+					
+					if(!edgeHash.containsKey(downVertexAlias)) {
+						edgeHash.put(downVertexAlias, new HashSet<String>());
+					}
+					
+					downConnections.add(downVertexAlias);
+					
+					// add to ignore
+					ignoreSelector.add(upQs);
+					ignoreSelector.add(downQs);
 				}
-				
-				Set<String> downConnections = null;
-				if(edgeHash.containsKey(upVertexAlias)) {
-					downConnections = edgeHash.get(upVertexAlias);
-				} else {
-					downConnections = new HashSet<String>();
-					edgeHash.put(upVertexAlias, downConnections);
-				}
-				
-				if(!edgeHash.containsKey(downVertexAlias)) {
-					edgeHash.put(downVertexAlias, new HashSet<String>());
-				}
-				
-				downConnections.add(downVertexAlias);
-				
-				// add to ignore
-				ignoreSelector.add(upQs);
-				ignoreSelector.add(downQs);
+			} else {
+				classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
 		}
 		
@@ -932,12 +950,15 @@ public class ImportUtility {
 				// if the parent column is not an actual return
 				// we need to find what join it has
 				// that is a return
-				Iterator<String[]> relIt = relations.iterator();
-				while(relIt.hasNext()) {
-					String[] relation = relIt.next();
-					if(relation[2].equals(table)) {
-						parentUpColumn = relation[0];
-						break;
+				for (IRelation relationship : relations) {
+					if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+						BasicRelationship rel = (BasicRelationship) relationship;
+						if(rel.getToConcept().equals(table)) {
+							parentUpColumn = rel.getFromConcept();
+							break;
+						}
+					} else {
+						classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
 					}
 				}
 				
@@ -1008,22 +1029,28 @@ public class ImportUtility {
 		}
 		
 		// add all relationships
-		Set<String[]> relations = qs.getRelations();
-		for(String[] rel : relations) {
-			String upVertex = rel[0];
-			String downVertex = rel[2];
-			
-			String upVertexAlias = aliasMapping.get(upVertex);
-			String downVertexAlias = aliasMapping.get(downVertex);
+		Set<IRelation> relations = qs.getRelations();
+		for (IRelation relationship : relations) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
 
-			Set<String> downConnections = null;
-			if(edgeHash.containsKey(upVertexAlias)) {
-				downConnections = edgeHash.get(upVertexAlias);
+				String upVertex = rel.getFromConcept();
+				String downVertex = rel.getToConcept();
+				
+				String upVertexAlias = aliasMapping.get(upVertex);
+				String downVertexAlias = aliasMapping.get(downVertex);
+
+				Set<String> downConnections = null;
+				if(edgeHash.containsKey(upVertexAlias)) {
+					downConnections = edgeHash.get(upVertexAlias);
+				} else {
+					downConnections = new HashSet<String>();
+					edgeHash.put(upVertexAlias, downConnections);
+				}
+				downConnections.add(downVertexAlias);
 			} else {
-				downConnections = new HashSet<String>();
-				edgeHash.put(upVertexAlias, downConnections);
+				classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
-			downConnections.add(downVertexAlias);
 		}
 		
 		return edgeHash;
@@ -1213,33 +1240,39 @@ public class ImportUtility {
 		}
 		
 		// now add the relationships
-		Set<String[]> relations = qs.getRelations();
-		for(String[] rel : relations) {
-			String upVertex = rel[0];
-			String joinType = rel[1];
-			String downVertex = rel[2];
-			
-			String upKey = upVertex;
-			String downKey = downVertex;
-			
-			if(!addedQsNames.contains(upVertex)) {
-				if(upKey.contains("__")) {
-					upKey = upKey.split("__")[0];
+		Set<IRelation> relations = qs.getRelations();
+		for (IRelation relationship : relations) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
+
+				String upVertex = rel.getFromConcept();
+				String joinType = rel.getJoinType();
+				String downVertex = rel.getToConcept();
+				
+				String upKey = upVertex;
+				String downKey = downVertex;
+				
+				if(!addedQsNames.contains(upVertex)) {
+					if(upKey.contains("__")) {
+						upKey = upKey.split("__")[0];
+					}
+					metaData.addVertex(upKey);
+					metaData.setPrimKeyToVertex(upKey, true);
+					addedQsNames.add(upVertex);
 				}
-				metaData.addVertex(upKey);
-				metaData.setPrimKeyToVertex(upKey, true);
-				addedQsNames.add(upVertex);
-			}
-			if(!addedQsNames.contains(downVertex)) {
-				if(downKey.contains("__")) {
-					downKey = downKey.split("__")[0];
+				if(!addedQsNames.contains(downVertex)) {
+					if(downKey.contains("__")) {
+						downKey = downKey.split("__")[0];
+					}
+					metaData.addVertex(downKey);
+					metaData.setPrimKeyToVertex(downKey, true);
+					addedQsNames.add(downVertex);
 				}
-				metaData.addVertex(downKey);
-				metaData.setPrimKeyToVertex(downKey, true);
-				addedQsNames.add(downVertex);
+				
+				metaData.addRelationship(upVertex, downVertex, joinType);
+			} else {
+				classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
-			
-			metaData.addRelationship(upVertex, downVertex, joinType);
 		}
 		
 //		Map<String, Map<String, List>> relationships = qs.getRelations();

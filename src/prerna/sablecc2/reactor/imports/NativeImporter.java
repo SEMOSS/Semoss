@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.imports;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -9,7 +10,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.snowflake.client.jdbc.internal.org.bouncycastle.util.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -24,6 +24,8 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
@@ -188,17 +190,17 @@ public class NativeImporter extends AbstractImporter {
 	 * @param joins
 	 */
 	public void appendNecessaryRels(List<Join> joins) {
-		Set<String[]> relations = this.qs.getRelations();
+		Set<IRelation> relations = this.qs.getRelations();
 		List<IQuerySelector> selectors = this.qs.getSelectors();
 		
 		int numJoins = joins.size();
-		List<String[]> relsToAdd = new Vector<String[]>();
+		List<IRelation> relsToAdd = new ArrayList<>();
 		
 		J_LOOP : for(int i = 0; i < numJoins; i++) {
 			Join j = joins.get(i);
-			String[] jRel = new String[] {j.getRColumn(), j.getJoinType(), j.getLColumn()};
-			for(String[] rel : relations) {
-				if(Arrays.areEqual(rel, jRel)) {
+			BasicRelationship jRel = new BasicRelationship(new String[] {j.getRColumn(), j.getJoinType(), j.getLColumn()});
+			for(IRelation rel : relations) {
+				if(jRel.equals(rel)) {
 					continue J_LOOP;
 				}
 			}
@@ -216,8 +218,8 @@ public class NativeImporter extends AbstractImporter {
 			}
 		}
 		
-		for(String[] rel : relsToAdd) {
-			this.qs.addRelation(rel[0], rel[2], rel[1]);
+		for(IRelation rel : relsToAdd) {
+			this.qs.addRelation(rel);
 		}
 	}
 	

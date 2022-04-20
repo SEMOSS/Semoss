@@ -21,6 +21,8 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.IQuerySort;
@@ -698,28 +700,35 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	public Map<String, Set<String>> generateEdgeMap() {
 		Map<String, Set<String>> edgeMap = new Hashtable<>();
 		// add the relationships into the edge map
-		Set<String[]> relations = qs.getRelations();
-		for (String[] rel : relations) {
-			String startNode = rel[0];
-			String endNode = rel[2];
-
-			Set<String> joinSet = null;
-			if (edgeMap.containsKey(startNode)) {
-				joinSet = edgeMap.get(startNode);
+		Set<IRelation> relations = qs.getRelations();
+		for (IRelation relationship : relations) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
+				String startNode = rel.getFromConcept();
+				String endNode = rel.getToConcept();
+	
+				Set<String> joinSet = null;
+				if (edgeMap.containsKey(startNode)) {
+					joinSet = edgeMap.get(startNode);
+				} else {
+					joinSet = new HashSet<>();
+					edgeMap.put(startNode, joinSet);
+				}
+				joinSet.add(endNode);
 			} else {
-				joinSet = new HashSet<>();
-				edgeMap.put(startNode, joinSet);
+				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
-			joinSet.add(endNode);
 		}
 
 		return edgeMap;
 	}
-	//////////////////////////////////// end join
-	//////////////////////////////////// ////////////////////////////////////
+	
+	//////////////////////////////////// end join ////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////
 
-	//////////////////////////////////// start order by
-	//////////////////////////////////// ////////////////////////////////////
+	//////////////////////////////////// start order by //////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////
+	
 	private void addOrderBy() {
 		// grab the order by and get the corresponding display name for that
 		// order by column
