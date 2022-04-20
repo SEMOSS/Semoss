@@ -62,6 +62,11 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 			 }
 		}
 
+		//if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+			//get the app_root folder for the project
+			this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
+		}
 		
 		File file = new File(path);
 		String name = file.getName();
