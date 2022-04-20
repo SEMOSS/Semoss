@@ -292,14 +292,14 @@ public class SocialPropertiesProcessor {
 	
 	public Properties getEmailProps() {
 		if(this.emailProps == null) {
-			loadEmailProperties();
+			this.emailProps = loadEmailProperties();
 		}
 		return this.emailProps;
 	}
 	
 	public Map<String, String> getEmailStaticProps() {
 		if(this.emailStaticProps == null) {
-			loadEmailStaticProps();
+			this.emailStaticProps = loadEmailStaticProps();
 		}
 		return this.emailStaticProps;
 	}
