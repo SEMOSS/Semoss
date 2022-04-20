@@ -9,7 +9,8 @@ public class SubqueryRelationship implements IRelation {
 	private String joinType;
 	private String fromConcept;
 	private String toConcept;
-	
+	private String comparator;
+
 	public SubqueryRelationship() {
 		
 	}
@@ -20,6 +21,9 @@ public class SubqueryRelationship implements IRelation {
 		this.fromConcept = joinDetails[0];
 		this.joinType = joinDetails[1];
 		this.toConcept = joinDetails[2];
+		if(joinDetails.length > 3) {
+			this.comparator = joinDetails[4];
+		}
 	}
 
 	public SelectQueryStruct getQs() {
@@ -60,6 +64,14 @@ public class SubqueryRelationship implements IRelation {
 
 	public void setToConcept(String toConcept) {
 		this.toConcept = toConcept;
+	}
+
+	public String getComparator() {
+		return comparator;
+	}
+
+	public void setComparator(String comparator) {
+		this.comparator = comparator;
 	}
 
 	@Override
