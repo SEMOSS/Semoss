@@ -21,6 +21,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitAssetUtils;
 
@@ -52,9 +53,16 @@ public class BrowseAssetReactor extends AbstractReactor {
 			locFolder = locFolder.replaceAll("\\\\", "/");
 		}
 		
-		if(!keyValue.containsKey(keysToGet[0]) && space != null) // set the context here
+		 // set the context here
+		if(!keyValue.containsKey(keysToGet[0]) && space != null) {
 			this.insight.setContext(space);
-
+			//if we have a chroot, mount the project for that user.
+			if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+				//get the app_root folder for the project
+				this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
+			}
+		}
+			
 		
 		File dirFile = new File(assetFolder + "/" + locFolder);
 		if(!dirFile.exists()) {
