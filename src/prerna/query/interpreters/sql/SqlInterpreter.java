@@ -29,6 +29,8 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -518,11 +520,19 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	 * Adds the joins for the query
 	 */
 	public void addJoins() {
-		for(String[] relationsData : qs.getRelations()) {
-			if(relationsData.length == 3) {
-				addJoin(relationsData[0], relationsData[1], relationsData[2], "=");
-			} else if(relationsData.length == 5) {
-				addJoin(relationsData[0], relationsData[1], relationsData[2], relationsData[3]);
+		for(IRelation relationship : qs.getRelations()) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
+				String from = rel.getFromConcept();
+				String joinType = rel.getJoinType();
+				String to = rel.getToConcept();
+				String comparator = rel.getComparator();
+				if(comparator == null) {
+					comparator = "=";
+				}
+				addJoin(from, joinType, to, comparator);
+			} else {
+				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
 		}
 	}

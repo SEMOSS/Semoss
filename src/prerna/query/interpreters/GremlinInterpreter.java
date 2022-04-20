@@ -23,6 +23,8 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.BasicRelationship;
+import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -211,22 +213,28 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	 * @return
 	 */
 	public Map<String, Set<String>> generateEdgeMap() {
-		Map<String, Set<String>> edgeMap = new Hashtable<String, Set<String>>();
+		Map<String, Set<String>> edgeMap = new Hashtable<>();
 		// add the relationships into the edge map
-		Set<String[]> relations = qs.getRelations();
-		for(String[] rel : relations) {
-			String startNode = rel[0];
-			String endNode = rel[2];
-			
-			Set<String> joinSet = null;
-			if(edgeMap.containsKey(startNode)) {
-				joinSet = edgeMap.get(startNode);
+		Set<IRelation> relations = qs.getRelations();
+		for (IRelation relationship : relations) {
+			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+				BasicRelationship rel = (BasicRelationship) relationship;
+				String startNode = rel.getFromConcept();
+				String endNode = rel.getToConcept();
+	
+				Set<String> joinSet = null;
+				if (edgeMap.containsKey(startNode)) {
+					joinSet = edgeMap.get(startNode);
+				} else {
+					joinSet = new HashSet<>();
+					edgeMap.put(startNode, joinSet);
+				}
+				joinSet.add(endNode);
 			} else {
-				joinSet = new HashSet<String>();
-				edgeMap.put(startNode, joinSet);
+				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
-			joinSet.add(endNode);
 		}
+		
 //		Map<String, Map<String, List>> rels = qs.getRelations();
 //		// add the relationships into the edge map
 //		if (!rels.isEmpty()) {

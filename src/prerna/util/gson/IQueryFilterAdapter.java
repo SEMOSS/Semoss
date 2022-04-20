@@ -48,8 +48,8 @@ public class IQueryFilterAdapter extends AbstractSemossTypeAdapter<IQueryFilter>
 
 		// go to the specific instance impl to write it
 		IQueryFilter.QUERY_FILTER_TYPE filterType = value.getQueryFilterType();
-		TypeAdapter reader = IQueryFilter.getAdapterForFilter(filterType);
-		reader.write(out, value);
+		TypeAdapter adapter = IQueryFilter.getAdapterForFilter(filterType);
+		adapter.write(out, value);
 	}
 
 }
