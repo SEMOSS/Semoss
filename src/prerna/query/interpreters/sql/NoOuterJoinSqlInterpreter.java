@@ -90,8 +90,8 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 					break;
 				}
 			} else if(relationship.getRelationType() == IRelation.RELATION_TYPE.SUBQUERY) {
-				SubqueryRelationship rel = (SubqueryRelationship) relationship;
-				if(rel.getJoinType().equals("outer.join")) {
+				SubqueryRelationship subqueryRel = (SubqueryRelationship) relationship;
+				if(subqueryRel.getJoinType().equals("outer.join")) {
 					hasOuter = true;
 					break;
 				}
