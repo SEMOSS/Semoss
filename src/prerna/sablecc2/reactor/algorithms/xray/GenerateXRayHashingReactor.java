@@ -172,7 +172,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 						}
 					}
 				} catch (Exception e) {
-					logger.error("StackTrace: ", e);
+					logger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(wrapper != null) {
 						wrapper.cleanUp();
