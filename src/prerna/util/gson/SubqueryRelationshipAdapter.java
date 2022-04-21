@@ -1,6 +1,8 @@
 package prerna.util.gson;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -33,12 +35,10 @@ public class SubqueryRelationshipAdapter extends AbstractSemossTypeAdapter<Subqu
 	
 	@Override
 	public SubqueryRelationship readContent(JsonReader in) throws IOException {
-		String fromConcept = null;
-		String joinType = null;
-		String toConcept = null;
-		String comparator = null;
 		String queryAlias = null;
+		String joinType = null;
 		SelectQueryStruct qs = null;
+		List<String[]> joinOnDetails = new ArrayList<>();
 		
 		in.beginObject();
 		while(in.hasNext()) {
@@ -47,24 +47,35 @@ public class SubqueryRelationshipAdapter extends AbstractSemossTypeAdapter<Subqu
 				in.nextNull();
 				continue;
 			}
-			if(name.equals("fromConcept")) {
-				fromConcept = in.nextString();
+			if(name.equals("queryAlias")) {
+				queryAlias = in.nextString();
 			} else if(name.equals("joinType")) {
 				joinType = in.nextString();
-			} else if(name.equals("toConcept")) {
-				toConcept = in.nextString();
-			} else if(name.equals("comparator")) {
-				comparator = in.nextString();
-			} else if(name.equals("queryAlias")) {
-				queryAlias = in.nextString();
 			} else if(name.equals("qs")) {
 				SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
-				 qs = adapter.read(in);
+				qs = adapter.read(in);
+			} else if(name.equals("joinOnDetails")) {
+				in.beginArray();
+				while(in.hasNext()) {
+					List<String> joinOn = new ArrayList<>();
+					in.beginArray();
+					while(in.hasNext()) {
+						if(in.peek() == null) {
+							joinOn.add(null);
+							in.nextNull();
+						} else {
+							joinOn.add(in.nextString());
+						}
+					}
+					in.endArray();
+					// store the joinOn
+					joinOnDetails.add(joinOn.toArray(new String[] {}));
+				}
 			}
 		}
 		in.endObject();
 		
-		return new SubqueryRelationship(qs, queryAlias, new String[] {fromConcept, joinType, toConcept, comparator});
+		return new SubqueryRelationship(qs, queryAlias, joinType, joinOnDetails);
 	}
 
 	@Override
@@ -79,14 +90,23 @@ public class SubqueryRelationshipAdapter extends AbstractSemossTypeAdapter<Subqu
 		out.name("content");
 			// content object
 			out.beginObject();
-				out.name("fromConcept").value(value.getFromConcept());
-				out.name("joinType").value(value.getJoinType());
-				out.name("toConcept").value(value.getToConcept());
-				out.name("comparator").value(value.getComparator());
 				out.name("queryAlias").value(value.getQueryAlias());
+				out.name("joinType").value(value.getJoinType());
 				out.name("qs");
 				SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 				adapter.write(out, value.getQs());
+				List<String[]> joinOnDetails = value.getJoinOnDetails();
+				out.name("joinOnDetails");
+				out.beginArray();
+				for(int i = 0; i < joinOnDetails.size(); i++) {
+					String[] joinOn = joinOnDetails.get(i);
+					out.beginArray();
+					for(int j = 0; i < joinOn.length; j++) {
+						out.value(joinOn[j]);
+					}
+					out.endArray();
+				}
+				out.endArray();
 			out.endObject();
 		out.endObject();
 	}
