@@ -1,5 +1,8 @@
 package prerna.query.querystruct.joins;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import prerna.query.querystruct.SelectQueryStruct;
 
 public class SubqueryRelationship implements IRelation {
@@ -7,23 +10,24 @@ public class SubqueryRelationship implements IRelation {
 	private SelectQueryStruct qs;
 	private String queryAlias;
 	private String joinType;
-	private String fromConcept;
-	private String toConcept;
-	private String comparator;
+	private List<String[]> joinOnDetails = new ArrayList<>();
 
 	public SubqueryRelationship() {
 		
 	}
 	
-	public SubqueryRelationship(SelectQueryStruct qs, String queryAlias, String[] joinDetails) {
+	public SubqueryRelationship(SelectQueryStruct qs, String queryAlias, String joinType, String[] joinOnDetails) {
 		this.qs = qs;
 		this.queryAlias = queryAlias;
-		this.fromConcept = joinDetails[0];
-		this.joinType = joinDetails[1];
-		this.toConcept = joinDetails[2];
-		if(joinDetails.length > 3) {
-			this.comparator = joinDetails[4];
-		}
+		this.joinType = joinType;
+		this.joinOnDetails.add(joinOnDetails);
+	}
+	
+	public SubqueryRelationship(SelectQueryStruct qs, String queryAlias, String joinType, List<String[]> joinDetails) {
+		this.qs = qs;
+		this.queryAlias = queryAlias;
+		this.joinType = joinType;
+		this.joinOnDetails = joinDetails;
 	}
 
 	public SelectQueryStruct getQs() {
@@ -50,28 +54,23 @@ public class SubqueryRelationship implements IRelation {
 		this.joinType = joinType;
 	}
 
-	public String getFromConcept() {
-		return fromConcept;
+	public void setJoinOnDetails(List<String[]> joinOnDetails) {
+		this.joinOnDetails = joinOnDetails;
 	}
 
-	public void setFromConcept(String fromConcept) {
-		this.fromConcept = fromConcept;
+	public void addJoinOn(String[] joinOn) {
+		this.joinOnDetails.add(joinOn);
 	}
-
-	public String getToConcept() {
-		return toConcept;
+	
+	public void addJoinOn(String fromConcept, String toConcept, String comparator) {
+		if(comparator == null) {
+			comparator = "=";
+		}
+		this.joinOnDetails.add(new String[] {fromConcept, toConcept, comparator});
 	}
-
-	public void setToConcept(String toConcept) {
-		this.toConcept = toConcept;
-	}
-
-	public String getComparator() {
-		return comparator;
-	}
-
-	public void setComparator(String comparator) {
-		this.comparator = comparator;
+	
+	public List<String[]> getJoinOnDetails() {
+		return this.joinOnDetails;
 	}
 
 	@Override
