@@ -65,70 +65,96 @@ public class SqlJoinStructList {
 		for(int i = 0; i < numJoins; i++) {
 			// get the joins in the order they were defined
 			SqlJoinStruct j = joins.get(i);
-			String sourceTable = j.getSourceTable();
-			String sourceTableAlias = j.getSourceTableAlias();
-			String sourceCol = j.getSourceCol();
-			
-			String targetTable = j.getTargetTable();
-			String targetTableAlias = j.getTargetTableAlias();
-			String targetCol = j.getTargetCol();
-			
-			String jType = j.getJoinType();
-			String comparator = j.getComparator();
-			
-			if(i == 0) {
-				// we gotta define the first from
-				jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
-				jSyntax.append(" ").append(jType).append(" ");
-				jSyntax.append(targetTable).append(" ").append(targetTableAlias);
-
-				jSyntax.append(" on ")
-				.append(sourceTableAlias).append(".").append(sourceCol)
-				.append(comparator)
-				.append(targetTableAlias).append(".").append(targetCol);
+			if(!j.isUseSubQuery()) {
+				String sourceTable = j.getSourceTable();
+				String sourceTableAlias = j.getSourceTableAlias();
+				String sourceCol = j.getSourceCol();
 				
-				definedTables.add(sourceTable);
-				definedTables.add(targetTable);
+				String targetTable = j.getTargetTable();
+				String targetTableAlias = j.getTargetTableAlias();
+				String targetCol = j.getTargetCol();
 				
-			} else {
-				String append = " on ";
-				// the join order matters
-				// so the next join needs to have at least one of its tables
-				// already defined
-				// either the source or the target
-				if(!definedTables.contains(sourceTable)) {
-					// need to define the source
-					// if the source is not defined
-					jSyntax.append(" ").append(jType).append(" ");
+				String jType = j.getJoinType();
+				String comparator = j.getComparator();
+				
+				if(i == 0) {
+					// we gotta define the first from
 					jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
-
-					// add source table since it is now defined
-					definedTables.add(sourceTable);
-				} else if(!definedTables.contains(targetTable)) {
-					// need to define the target
 					jSyntax.append(" ").append(jType).append(" ");
 					jSyntax.append(targetTable).append(" ").append(targetTableAlias);
-
-					// add target table as it is now defined
-					definedTables.add(targetTable);
-				} 
-				else {
-//					// both are defined
-//					// need to make a new alias for the table
-//					// at this point, i am not using this to bring in new values
-//					// but to filter 
-//					jSyntax.append(" ").append(jType).append(" ");
-//					targetTableAlias = targetTableAlias + Utility.getRandomString(6);
-//					jSyntax.append(targetTable).append(" ").append(targetTableAlias);
+	
+					jSyntax.append(" on ")
+						.append(sourceTableAlias).append(".").append(sourceCol)
+						.append(comparator)
+						.append(targetTableAlias).append(".").append(targetCol);
 					
-					append = " and ";
+					definedTables.add(sourceTable);
+					definedTables.add(targetTable);
+					
+				} else {
+					String append = " on ";
+					// the join order matters
+					// so the next join needs to have at least one of its tables
+					// already defined
+					// either the source or the target
+					if(!definedTables.contains(sourceTable)) {
+						// need to define the source
+						// if the source is not defined
+						jSyntax.append(" ").append(jType).append(" ");
+						jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
+	
+						// add source table since it is now defined
+						definedTables.add(sourceTable);
+					} else if(!definedTables.contains(targetTable)) {
+						// need to define the target
+						jSyntax.append(" ").append(jType).append(" ");
+						jSyntax.append(targetTable).append(" ").append(targetTableAlias);
+	
+						// add target table as it is now defined
+						definedTables.add(targetTable);
+					} 
+					else {
+	//					// both are defined
+	//					// need to make a new alias for the table
+	//					// at this point, i am not using this to bring in new values
+	//					// but to filter 
+	//					jSyntax.append(" ").append(jType).append(" ");
+	//					targetTableAlias = targetTableAlias + Utility.getRandomString(6);
+	//					jSyntax.append(targetTable).append(" ").append(targetTableAlias);
+						
+						append = " and ";
+					}
+					
+					// define the rest of the join portion
+					jSyntax.append(append)
+						.append(sourceTableAlias).append(".").append(sourceCol)
+						.append(comparator)
+						.append(targetTableAlias).append(".").append(targetCol);
 				}
-				
-				// define the rest of the join portion
-				jSyntax.append(append)
-				.append(sourceTableAlias).append(".").append(sourceCol)
-				.append(comparator)
-				.append(targetTableAlias).append(".").append(targetCol);
+			} else {
+				jSyntax.append(" ").append(j.getJoinType())
+					.append(" (").append(j.getSubQuery()).append(") as ").append(j.getSubQueryAlias())
+					.append(" on ");
+				List<String[]> joinOnList = j.getJoinOnList();
+				if(joinOnList.isEmpty()) {
+					throw new IllegalArgumentException("Must define the columns to join on to the subquery join");
+				}
+				boolean first = true;
+				for(String[] joinOn : joinOnList) {
+					if(first) {
+						first = false;
+					} else {
+						jSyntax.append(" and ");
+					}
+					String fromTable = joinOn[0];
+					String fromColumn = joinOn[1];
+					String toTable = joinOn[2];
+					String toColumn = joinOn[3];
+					String comparator = joinOn[4];
+					jSyntax.append(fromTable).append(".").append(fromColumn)
+						.append(comparator)
+						.append(toTable).append(".").append(toColumn);
+				}
 			}
 		}
 		
@@ -143,67 +169,94 @@ public class SqlJoinStructList {
 		for(int i = 0; i < numJoins; i++) {
 			// get the joins in the order they were defined
 			SqlJoinStruct j = joins.get(i);
-			String sourceTable = j.getSourceTable();
-			String sourceTableAlias = j.getSourceTableAlias();
-			String sourceCol = j.getSourceCol();
-			
-			String targetTable = j.getTargetTable();
-			String targetTableAlias = j.getTargetTableAlias();
-			String targetCol = j.getTargetCol();
-			
-			String jType = j.getJoinType();
-			
-			if(i == 0 && traversedTables.isEmpty()) {
-				// we gotta define the first from
-				jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
-				jSyntax.append(" ").append(jType).append(" ");
-				jSyntax.append(targetTable).append(" ").append(targetTableAlias);
-
-				jSyntax.append(" on ")
-				.append(sourceTableAlias).append(".").append(sourceCol)
-				.append("=")
-				.append(targetTableAlias).append(".").append(targetCol);
+			if(!j.isUseSubQuery()) {
+				String sourceTable = j.getSourceTable();
+				String sourceTableAlias = j.getSourceTableAlias();
+				String sourceCol = j.getSourceCol();
 				
-				definedTables.add(sourceTable);
-				definedTables.add(targetTable);
-			} else {
-				// the join order matters
-				// so the next join needs to have at least one of its tables
-				// already defined
-				// either the source or the target
-				if((traversedTables.contains(sourceTable)) || (!definedTables.isEmpty() && definedTables.contains(sourceTable))) {
-					// need to define the target
+				String targetTable = j.getTargetTable();
+				String targetTableAlias = j.getTargetTableAlias();
+				String targetCol = j.getTargetCol();
+				
+				String jType = j.getJoinType();
+				String comparator = j.getComparator();
+				
+				if(i == 0 && traversedTables.isEmpty()) {
+					// we gotta define the first from
+					jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
 					jSyntax.append(" ").append(jType).append(" ");
 					jSyntax.append(targetTable).append(" ").append(targetTableAlias);
-					definedTables.add(targetTable);
-				} else {				
-					// need to define the source
-					// if the source is not defined
-					// i need to reverse the join type
-					// if it is right to left
-					// or left to right
-					jSyntax.append(" ").append(j.getReverseJoinType()).append(" ");
-					jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
+	
+					jSyntax.append(" on ")
+						.append(sourceTableAlias).append(".").append(sourceCol)
+						.append(comparator)
+						.append(targetTableAlias).append(".").append(targetCol);
+					
 					definedTables.add(sourceTable);
+					definedTables.add(targetTable);
+				} else {
+					// the join order matters
+					// so the next join needs to have at least one of its tables
+					// already defined
+					// either the source or the target
+					if((traversedTables.contains(sourceTable)) || (!definedTables.isEmpty() && definedTables.contains(sourceTable))) {
+						// need to define the target
+						jSyntax.append(" ").append(jType).append(" ");
+						jSyntax.append(targetTable).append(" ").append(targetTableAlias);
+						definedTables.add(targetTable);
+					} else {				
+						// need to define the source
+						// if the source is not defined
+						// i need to reverse the join type
+						// if it is right to left
+						// or left to right
+						jSyntax.append(" ").append(j.getReverseJoinType()).append(" ");
+						jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
+						definedTables.add(sourceTable);
+					}
+					// if the source table is in the processedTables and not in the definedTables, 
+					// then need to update the sourceTableAlias to the derivedTableName
+					if (!traversedTables.isEmpty() && 
+							traversedTables.contains(sourceTable) && !definedTables.contains(sourceTable)){
+						String origSourceTableAlias = sourceTableAlias;
+						String origSourceCol = sourceCol;
+						// for the source col, need to find it via the table.colalias reference since that's how
+						// it's stored in the derived table
+						String sourceColSelector = retTableToSelectors.get(origSourceTableAlias).stream()
+								.filter(s -> s.startsWith(origSourceTableAlias + "." + origSourceCol)).collect(Collectors.joining(""));
+						sourceCol = sourceColSelector.split("\"")[1];
+						sourceTableAlias = derivedTableName;
+					}
+					// define the rest of the join portion
+					jSyntax.append(" on ")
+						.append(sourceTableAlias).append(".").append(sourceCol)
+						.append(comparator)
+						.append(targetTableAlias).append(".").append(targetCol);
 				}
-				// if the source table is in the processedTables and not in the definedTables, 
-				// then need to update the sourceTableAlias to the derivedTableName
-				if (!traversedTables.isEmpty() && 
-						traversedTables.contains(sourceTable) && !definedTables.contains(sourceTable)){
-					String origSourceTableAlias = sourceTableAlias;
-					String origSourceCol = sourceCol;
-					// for the source col, need to find it via the table.colalias reference since that's how
-					// it's stored in the derived table
-					String sourceColSelector = retTableToSelectors.get(origSourceTableAlias).stream()
-							.filter(s -> s.startsWith(origSourceTableAlias + "." + origSourceCol)).collect(Collectors.joining(""));
-					sourceCol = sourceColSelector.split("\"")[1];
-					sourceTableAlias = derivedTableName;
+			} else {
+				jSyntax.append(" ").append(j.getJoinType())
+					.append(" (").append(j.getSubQuery()).append(") as ").append(j.getSubQueryAlias())
+					.append(" on ");
+				List<String[]> joinOnList = j.getJoinOnList();
+				if(joinOnList.isEmpty()) {
+					throw new IllegalArgumentException("Must define the columns to join on to the subquery join");
 				}
-				// define the rest of the join portion
-				jSyntax.append(" on ")
-				.append(sourceTableAlias).append(".").append(sourceCol)
-				.append("=")
-				.append(targetTableAlias).append(".").append(targetCol);
+				boolean first = true;
+				for(String[] joinOn : joinOnList) {
+					if(first) {
+						first = false;
+					} else {
+						jSyntax.append(" and ");
+					}
+					String fromTable = joinOn[0];
+					String fromColumn = joinOn[1];
+					String toTable = joinOn[2];
+					String toColumn = joinOn[3];
+					String comparator = joinOn[4];
+					jSyntax.append(fromTable).append(".").append(fromColumn)
+						.append(comparator)
+						.append(toTable).append(".").append(toColumn);
+				}
 			}
 		}
 		
@@ -263,13 +316,6 @@ public class SqlJoinStructList {
 		return outerJSyntax;
 	}
 	
-	public String getIndividualJoinSyntax() {
-		StringBuilder jIndividualSyntax = new StringBuilder();
-		
-		
-		return jIndividualSyntax.toString();
-	}
-	
 	public boolean isEmpty() {
 		return this.joins.isEmpty();
 	}
@@ -323,10 +369,14 @@ public class SqlJoinStructList {
 		j3.setTargetCol("customerNumber");
 		jList.addJoin(j3);
 		
-//		List<String[]> froms = jList.determineFromTables();
-//		for(String[] f : froms) {
-//			System.out.println(Arrays.toString(f));
-//		}
+		SqlJoinStruct j4 = new SqlJoinStruct();
+		j4.setUseSubQuery(true);
+		j4.setJoinType("inner join");
+		j4.setSubQuery("select customerNumber, someOtherColumn, someOtherColumn2 from customers");
+		j4.setSubQueryAlias("sub_customer");
+		j4.addJoinOnList(new String[] {"sub_customer", "customerNumber", "customers", "customerNumber", "="});
+		j4.addJoinOnList(new String[] {"sub_customer", "someOtherColumn", "customers", "someOtherColumn", "="});
+		jList.addJoin(j4);
 		
 		System.out.println(jList.getJoinSyntax());
 	}
