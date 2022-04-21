@@ -31,6 +31,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.joins.BasicRelationship;
 import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -531,6 +532,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					comparator = "=";
 				}
 				addJoin(from, joinType, to, comparator);
+			} else if(relationship.getRelationType() == IRelation.RELATION_TYPE.SUBQUERY){
+				addSubqueryJoin((SubqueryRelationship) relationship);
 			} else {
 				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
@@ -554,9 +557,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			String targetTable = relConProp[2];
 			String targetColumn = relConProp[3];
 			
-			String compName = thisJoinType.replace(".", " ");
+			String joinType = thisJoinType.replace(".", " ");
 			SqlJoinStruct jStruct = new SqlJoinStruct();
-			jStruct.setJoinType(compName);
+			jStruct.setJoinType(joinType);
 			// add source
 			jStruct.setSourceTable(sourceTable);
 			jStruct.setSourceTableAlias(getAlias(sourceTable));
@@ -570,6 +573,123 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			
 			joinStructList.addJoin(jStruct);
 		}
+	}
+	
+	protected void addSubqueryJoin(SubqueryRelationship rel) {
+		SelectQueryStruct subQs = rel.getQs();
+		String queryAlias = rel.getQueryAlias();
+		String joinType = rel.getJoinType().replace(".", " ");
+		List<String[]> jDetails = rel.getJoinOnDetails();
+
+		SqlInterpreter innerInterpreter = null;
+		try {
+			innerInterpreter = this.getClass().newInstance();
+		} catch (InstantiationException | IllegalAccessException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		if (innerInterpreter == null) {
+			throw new NullPointerException("innerInterpreter cannot be null here.");
+		}
+
+		innerInterpreter.setQueryStruct(subQs);
+		innerInterpreter.setLogger(this.logger);
+		String innerQuery = innerInterpreter.composeQuery();
+		
+		SqlJoinStruct jStruct = new SqlJoinStruct();
+		jStruct.setUseSubQuery(true);
+		jStruct.setSubQuery(innerQuery);
+		jStruct.setSubQueryAlias(queryAlias);
+		jStruct.setJoinType(joinType);
+		
+		for(String[] jDetail : jDetails) {
+			String fromTable = null;
+			String fromColumn = null;
+			String toTable = null;
+			String toColumn = null;
+			{
+				final String fromConcept = jDetail[0];
+				if(!fromConcept.contains("__")) {
+					throw new IllegalArgumentException("Subquery Joins require join details in format TABLE__COLUMN");
+				}
+				String[] split = fromConcept.split("__");
+				fromTable = split[0];
+				fromColumn = split[1];
+				if(engine != null && !engine.isBasic()) {
+					if(!fromTable.equals(queryAlias)) {
+						// if we already have it, just grab from hash
+						if(conceptualConceptToPhysicalMap.containsKey(fromTable)) {
+							fromTable = conceptualConceptToPhysicalMap.get(fromTable);
+						} else {
+							// we dont have it.. so query for it
+							String physicalTableUri = this.engine.getPhysicalUriFromPixelSelector(fromTable);
+							if(physicalTableUri != null) {
+								// table name is the instance name of the URI
+								String tableName = Utility.getInstanceName(physicalTableUri);
+								// store the physical name as well in case we get it later
+								conceptualConceptToPhysicalMap.put(fromTable, tableName);
+								fromTable = tableName;
+							}
+						}
+						
+						if(conceptualPropertyToPhysicalMap.containsKey(fromConcept)) {
+							fromColumn = conceptualPropertyToPhysicalMap.get(fromConcept);
+						}
+						// we don't have it... so query for it
+						String colURI = this.engine.getPhysicalUriFromPixelSelector(fromConcept);
+						if(colURI != null) {
+							// the class is the name of the column
+							String colName = Utility.getClassName(colURI);
+							conceptualPropertyToPhysicalMap.put(fromConcept, colName);
+							fromColumn = colName;
+						}
+					}
+				}
+			}
+			{
+				final String toConcept = jDetail[1];
+				if(!toConcept.contains("__")) {
+					throw new IllegalArgumentException("Subquery Joins require join details in format TABLE__COLUMN");
+				}
+				String[] split = toConcept.split("__");
+				toTable = split[0];
+				toColumn = split[1];
+				
+				if(engine != null && !engine.isBasic()) {
+					if(!toTable.equals(queryAlias)) {
+						// if we already have it, just grab from hash
+						if(conceptualConceptToPhysicalMap.containsKey(toTable)) {
+							toTable = conceptualConceptToPhysicalMap.get(toTable);
+						} else {
+							// we dont have it.. so query for it
+							String physicalTableUri = this.engine.getPhysicalUriFromPixelSelector(toTable);
+							if(physicalTableUri != null) {
+								// table name is the instance name of the URI
+								String tableName = Utility.getInstanceName(physicalTableUri);
+								// store the physical name as well in case we get it later
+								conceptualConceptToPhysicalMap.put(toTable, tableName);
+								toTable = tableName;
+							}
+						}
+						
+						if(conceptualPropertyToPhysicalMap.containsKey(toConcept)) {
+							toColumn = conceptualPropertyToPhysicalMap.get(toConcept);
+						}
+						// we don't have it... so query for it
+						String colURI = this.engine.getPhysicalUriFromPixelSelector(toConcept);
+						if(colURI != null) {
+							// the class is the name of the column
+							String colName = Utility.getClassName(colURI);
+							conceptualPropertyToPhysicalMap.put(toConcept, colName);
+							toColumn = colName;
+						}
+					}
+				}
+			}
+			String comparator = jDetail[2];
+			jStruct.addJoinOnList(new String[] {fromTable, fromColumn, toTable, toColumn, comparator});
+		}
+		
+		joinStructList.addJoin(jStruct);
 	}
 	
 	////////////////////////////////////////// end adding joins ///////////////////////////////////////

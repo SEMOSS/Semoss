@@ -1,10 +1,11 @@
 package prerna.query.interpreters.sql;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
 public class SqlJoinStruct {
-
+	
 	private String joinType;
 	
 	private String sourceTable;
@@ -16,6 +17,13 @@ public class SqlJoinStruct {
 	private String targetCol;
 	
 	private String comparator = "=";
+	
+	// specific values for setting a join to an inner query
+	// basically completely overriding the original functionality
+	private boolean useSubQuery = false;
+	private String subQuery;
+	private String subQueryAlias;
+	private List<String[]> joinOnList = new ArrayList<>();
 	
 	public SqlJoinStruct() {
 		
@@ -38,19 +46,31 @@ public class SqlJoinStruct {
 	public boolean equals(Object obj) {
 		if(obj instanceof SqlJoinStruct) {
 			SqlJoinStruct otherStruct = (SqlJoinStruct) obj;
-			if(this.joinType.equals(otherStruct.joinType)
-					// same source
-					&& this.sourceTable.equals(otherStruct.sourceTable)
-					&& this.sourceCol.equals(otherStruct.sourceCol)
-					// same target
-					&& this.targetTable.equals(otherStruct.targetTable)
-					&& this.targetCol.equals(otherStruct.targetCol)) 
-			{
-				// now test the alias
-				if(getSourceTableAlias().equals(otherStruct.getSourceTableAlias()) 
-						&& getTargetTableAlias().equals(otherStruct.getTargetTableAlias())) 
-				{
+			// if they are different types - not equal
+			if(otherStruct.useSubQuery != this.useSubQuery) {
+				return false;
+			}
+			
+			if(otherStruct.useSubQuery && this.useSubQuery) {
+				if(otherStruct.subQueryAlias.equals(this.subQueryAlias)) {
 					return true;
+				}
+				return false;
+			} else {
+				if(this.joinType.equals(otherStruct.joinType)
+						// same source
+						&& this.sourceTable.equals(otherStruct.sourceTable)
+						&& this.sourceCol.equals(otherStruct.sourceCol)
+						// same target
+						&& this.targetTable.equals(otherStruct.targetTable)
+						&& this.targetCol.equals(otherStruct.targetCol)) 
+				{
+					// now test the alias
+					if(getSourceTableAlias().equals(otherStruct.getSourceTableAlias()) 
+							&& getTargetTableAlias().equals(otherStruct.getTargetTableAlias())) 
+					{
+						return true;
+					}
 				}
 			}
 		}
@@ -173,6 +193,62 @@ public class SqlJoinStruct {
 				this.comparator = comparator;
 			}
 		}
+	}
+
+	///////////////////////////////////////////////////
+	
+	// subquery methods
+	
+	public boolean isUseSubQuery() {
+		return useSubQuery;
+	}
+
+	public void setUseSubQuery(boolean useSubQuery) {
+		this.useSubQuery = useSubQuery;
+	}
+	
+	public String getSubQuery() {
+		if(!useSubQuery) {
+			throw new IllegalArgumentException("Cannot use this method when useSubquery is false");
+		}
+		return subQuery;
+	}
+
+	public void setSubQuery(String subQuery) {
+		if(!useSubQuery) {
+			throw new IllegalArgumentException("Cannot use this method when useSubquery is false");
+		}
+		this.subQuery = subQuery;
+	}
+
+	public String getSubQueryAlias() {
+		if(!useSubQuery) {
+			throw new IllegalArgumentException("Cannot use this method when useSubquery is false");
+		}
+		return subQueryAlias;
+	}
+
+	public void setSubQueryAlias(String subQueryAlias) {
+		if(!useSubQuery) {
+			throw new IllegalArgumentException("Cannot use this method when useSubquery is false");
+		}
+		this.subQueryAlias = subQueryAlias;
+	}
+
+	public void addJoinOnList(String[] joinOn) {
+		if(!useSubQuery) {
+			throw new IllegalArgumentException("Cannot use this method when useSubquery is false");
+		}
+		
+		this.joinOnList.add(joinOn);
+	}
+
+	public List<String[]> getJoinOnList() {
+		return joinOnList;
+	}
+
+	public void setJoinOnList(List<String[]> joinOnList) {
+		this.joinOnList = joinOnList;
 	}
 	
 }
