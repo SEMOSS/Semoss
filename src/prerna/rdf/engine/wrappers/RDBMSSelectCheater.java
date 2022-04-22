@@ -72,7 +72,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 			setVariables(); //get the variables
 		} catch (Exception e){
 			e.printStackTrace();
-			ConnectionUtils.closeAllConnections(conn, rs, stmt);
+			ConnectionUtils.closeAllConnections(conn, stmt, rs);
 		}
 	}
 
@@ -86,7 +86,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 			if(curStmt != null)
 				hasMore = true;
 			else
-				ConnectionUtils.closeAllConnections(conn, rs, stmt);
+				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 		}
 		else
 			hasMore = true;

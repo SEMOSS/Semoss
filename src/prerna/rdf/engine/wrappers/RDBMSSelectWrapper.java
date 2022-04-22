@@ -71,9 +71,9 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			e.printStackTrace();
 			//in case query times out, close rs object..
 			if(useEngineConnection)
-				ConnectionUtils.closeAllConnections(null, rs, stmt);
+				ConnectionUtils.closeAllConnections(null, stmt, rs);
 			else
-				ConnectionUtils.closeAllConnections(conn, rs, stmt);
+				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 		}
 	}
 
@@ -85,9 +85,9 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			hasMore = true;
 		} else {
 			if(useEngineConnection)
-				ConnectionUtils.closeAllConnections(null, rs, stmt);
+				ConnectionUtils.closeAllConnections(null, stmt, rs);
 			else
-				ConnectionUtils.closeAllConnections(conn, rs, stmt);
+				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 		}
 		return hasMore;
 	}
