@@ -71,9 +71,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			if(this.useEngineConnection) {
-				ConnectionUtils.closeAllConnections(null, rs, stmt);
+				ConnectionUtils.closeAllConnections(null, stmt, rs);
 			} else {
-				ConnectionUtils.closeAllConnections(conn, rs, stmt);
+				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 			}
 			throw e;
 		}
@@ -450,7 +450,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			if(closeIfFail) {
-				ConnectionUtils.closeAllConnections(conn, rs, stmt);
+				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 			}
 			throw new IllegalArgumentException(e.getMessage());
 		}
