@@ -40,7 +40,7 @@ import java.sql.Statement;
  */
 public class ConnectionUtils {
 	
-	public static void closeAllConnections(Connection con, ResultSet rs, Statement ps){
+	public static void closeAllConnections(Connection con, Statement ps, ResultSet rs){
 		if(rs!=null){
 			try{
 				rs.close();
@@ -64,12 +64,16 @@ public class ConnectionUtils {
 		}
 	}
 	
+	public static void closeAllConnections(Connection con, Statement ps){
+		closeAllConnections(con, ps, null);
+	}
+	
 	public static void closeResultSet(ResultSet rs){
-		closeAllConnections(null, rs, null);
+		closeAllConnections(null, null, rs);
 	}
 	
 	public static void closePreparedStatement(Statement ps){
-		closeAllConnections(null, null, ps);
+		closeAllConnections(null, ps, null);
 	}
 	
 	public static void closeConnection(Connection con){

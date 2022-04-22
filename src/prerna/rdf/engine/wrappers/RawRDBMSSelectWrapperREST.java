@@ -58,9 +58,9 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 		} catch (Exception e){
 			e.printStackTrace();
 			if(this.useEngineConnection) {
-				ConnectionUtils.closeAllConnections(null, rs, stmt);
+				ConnectionUtils.closeAllConnections(null, stmt, rs);
 			} else {
-				ConnectionUtils.closeAllConnections(conn, rs, stmt);
+				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 			}
 		}
 	}
@@ -314,7 +314,7 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 		} catch(Exception e) {
 			e.printStackTrace();
 			if(closeIfFail) {
-				ConnectionUtils.closeAllConnections(conn, rs, stmt);
+				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 			}
 			throw new IllegalArgumentException(e.getMessage());
 		}

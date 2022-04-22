@@ -516,7 +516,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		if(isConnected()){
 			conn = null;
 		}
-		ConnectionUtils.closeAllConnections(conn, null, stmt);
+		ConnectionUtils.closeAllConnections(conn, stmt, null);
 	}
 
 	@Override
@@ -644,9 +644,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		} finally {
 			if(hasError) {
 				if(this.dataSource != null) {
-					ConnectionUtils.closeAllConnections(conn, rs, stmt);
+					ConnectionUtils.closeAllConnections(conn, stmt, rs);
 				} else {
-					ConnectionUtils.closeAllConnections(null, rs, stmt);
+					ConnectionUtils.closeAllConnections(null, stmt, rs);
 				}
 			}
 		}
