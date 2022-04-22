@@ -454,7 +454,7 @@ public class GraphUtility {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			ConnectionUtils.closeAllConnections(null, resultSet, statement);
+			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
 		return properties;
 	}
@@ -481,7 +481,7 @@ public class GraphUtility {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			ConnectionUtils.closeAllConnections(null, resultSet, statement);
+			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
 		return labels;
 	}
@@ -520,7 +520,7 @@ public class GraphUtility {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			ConnectionUtils.closeAllConnections(null, resultSet, statement);
+			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
 		return properties;
 	}
@@ -549,7 +549,7 @@ public class GraphUtility {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			ConnectionUtils.closeAllConnections(null, resultSet, statement);
+			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
 		return properties;
 	}
@@ -582,7 +582,7 @@ public class GraphUtility {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			ConnectionUtils.closeAllConnections(null, resultSet, statement);
+			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
 		return edgeMap;
 	}
@@ -614,7 +614,7 @@ public class GraphUtility {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			ConnectionUtils.closeAllConnections(null, resultSet, statement);
+			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
 		return edgeMap;
 	}

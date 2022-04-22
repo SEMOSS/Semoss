@@ -187,7 +187,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			err.setContinueThreadOfExecution(false);
 			throw err;
 		} finally {
-			ConnectionUtils.closeAllConnections(null, rs, stmt);
+			ConnectionUtils.closeAllConnections(null, stmt, rs);
 			ConnectionUtils.closePreparedStatement(insertPS);
 			ConnectionUtils.closePreparedStatement(updatePS);
 		}
