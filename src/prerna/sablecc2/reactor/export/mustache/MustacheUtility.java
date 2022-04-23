@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,7 +70,16 @@ public class MustacheUtility {
 
 		@Override
 		public Set<Entry<Object, Object>> entrySet() {
-			throw new UnsupportedOperationException();
+			Set<Entry<Object, Object>> retSet = new LinkedHashSet<>();
+			Iterator<Object> it = this.iterator();
+			int counter = 0;
+			while(it.hasNext()) {
+				Object val = it.next();
+				Entry<Object, Object> e = new AbstractMap.SimpleEntry<>(counter++, val);
+				retSet.add(e);
+			}
+			
+			return retSet;
 		}
 
 		/**
@@ -126,7 +136,16 @@ public class MustacheUtility {
 
 		@Override
 		public Set<Entry<Object, Object>> entrySet() {
-			throw new UnsupportedOperationException();
+			Set<Entry<Object, Object>> retSet = new LinkedHashSet<>();
+			Iterator<Object> it = this.iterator();
+			int counter = 0;
+			while(it.hasNext()) {
+				Object val = it.next();
+				Entry<Object, Object> e = new AbstractMap.SimpleEntry<>(counter++, val);
+				retSet.add(e);
+			}
+			
+			return retSet;
 		}
 
 		/**
@@ -169,9 +188,29 @@ public class MustacheUtility {
 				"    <td>{{data.values.1.2}}</td>\n" + 
 				"    <td>{{data.values.1.2}}</td>\n" + 
 				"  </tr>\n" + 
-				"</table>"
-				+ "  </html>";
+				"</table>\n</html>";
 		
+		System.out.println("Example 1");
+		System.out.println(MustacheUtility.compile(template, variables));
+		System.out.println("");
+		System.out.println("Example 2");
+		
+		template = "<html>"
+				+ "<table>\n" + 
+				"  <tr>\n" + 
+				"    <th>{{data.headers.0}}</th>\n" + 
+				"    <th>{{data.headers.1}}</th>\n" + 
+				"    <th>{{data.headers.2}}</th>\n" + 
+				"  </tr>\n" 
+				+ "{{#data.values}}"
+				+ "  <tr>\n"
+				+ "{{#.}}"
+				+ "    <td>{{.}}</td>\n" 
+				+"{{/.}}"
+				+ "\n  </tr>\n"
+				+ "{{/data.values}}" +
+				"</table>\n</html>";
+				
 		System.out.println(MustacheUtility.compile(template, variables));
 	}
 	
