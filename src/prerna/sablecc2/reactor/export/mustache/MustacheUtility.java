@@ -8,6 +8,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.Set;
 
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
+import com.github.mustachejava.SafeMustacheFactory;
 import com.github.mustachejava.reflect.ReflectionObjectHandler;
 
 public class MustacheUtility {
@@ -41,7 +43,7 @@ public class MustacheUtility {
 				return super.coerce(object);
 			}
 		};
-		DefaultMustacheFactory mf = new DefaultMustacheFactory();
+		DefaultMustacheFactory mf = new SafeMustacheFactory(new HashSet<>(), "");
 		mf.setObjectHandler(oh);
 		Mustache m = mf.compile(new StringReader(template), "template");
 		Writer writer = new StringWriter();
