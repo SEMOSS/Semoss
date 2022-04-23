@@ -25,6 +25,9 @@ public class MustacheUtility {
 	}
 
 	public static String compile(String template, Map<String, Object> variables) throws Exception {
+		if(variables == null || variables.isEmpty()) {
+			return template;
+		}
 		ReflectionObjectHandler oh = new ReflectionObjectHandler() {
 			@Override
 			public Object coerce(final Object object) {
