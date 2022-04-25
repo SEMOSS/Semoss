@@ -135,14 +135,19 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 			// thus, the order matters 
 			// so get a good starting from table
 			// we can use any of the froms that is not part of the join
-			List<String> startPoints = new Vector<String>();
-			if(joinStructList.isEmpty()) {
+			boolean appendStartingFrom = true;
+			if(this.joinStructList.isEmpty() || this.joinStructList.allSubqueryJoins()) {
+				appendStartingFrom = false;
 				query.append(" FROM ");
-				String[] startPoint = froms.get(0);
-				query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
-				startPoints.add(startPoint[1]);
-			} else {
-				query.append(" ").append(joinStructList.getJoinSyntax());
+				if(this.froms.isEmpty() && this.frame != null) {
+					query.append(frame.getName());
+				} else {
+					String[] startPoint = this.froms.get(0);
+					query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
+				}
+			} 
+			if(!this.joinStructList.isEmpty()) {
+				query.append(" ").append(joinStructList.getJoinSyntax(appendStartingFrom));
 			}
 		}
 
