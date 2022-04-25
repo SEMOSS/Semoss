@@ -101,7 +101,7 @@ public class SubqueryRelationshipAdapter extends AbstractSemossTypeAdapter<Subqu
 				for(int i = 0; i < joinOnDetails.size(); i++) {
 					String[] joinOn = joinOnDetails.get(i);
 					out.beginArray();
-					for(int j = 0; i < joinOn.length; j++) {
+					for(int j = 0; j < joinOn.length; j++) {
 						out.value(joinOn[j]);
 					}
 					out.endArray();
