@@ -1749,49 +1749,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- html to pdf -->
 		<dependency>
-			<!-- ALWAYS required. -->
-			<groupId>com.openhtmltopdf</groupId>
-			<artifactId>openhtmltopdf-core</artifactId>
-			<version>${openhtml.version}</version>
-		</dependency>
-		<dependency>
-			<!-- Required for PDF output. -->
-			<groupId>com.openhtmltopdf</groupId>
-			<artifactId>openhtmltopdf-pdfbox</artifactId>
-			<version>${openhtml.version}</version>
-		</dependency>
-		<dependency>
-			<!-- Required for image output only. -->
-			<groupId>com.openhtmltopdf</groupId>
-			<artifactId>openhtmltopdf-java2d</artifactId>
-			<version>${openhtml.version}</version>
-		</dependency>
-		<dependency>
-			<!-- Optional, leave out if you do not need logging via slf4j. -->
-			<groupId>com.openhtmltopdf</groupId>
-			<artifactId>openhtmltopdf-slf4j</artifactId>
-			<version>${openhtml.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<!-- Optional, leave out if you do not need logging via log4j. -->
-			<groupId>com.openhtmltopdf</groupId>
-			<artifactId>openhtmltopdf-log4j</artifactId>
-			<version>${openhtml.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-			<optional>true</optional>
+			<groupId>org.xhtmlrenderer</groupId>
+			<artifactId>flying-saucer-pdf</artifactId>
+			<version>9.1.22</version>
 		</dependency>
 		<dependency>
 			<groupId>de.ruedigermoeller</groupId>
