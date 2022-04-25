@@ -1,12 +1,12 @@
 package prerna.query.interpreters.sql;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
@@ -78,22 +78,23 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
 	// and the values are values
-	protected List<String> filterStatements = new Vector<>();
-	protected List<String> havingFilterStatements = new Vector<>();
+	protected List<String> filterStatements = new ArrayList<>();
+	protected List<String> havingFilterStatements = new ArrayList<>();
 	
 	protected transient Map<String, List<String[]>> relationshipConceptPropertiesMap = new HashMap<>();
 	
 	protected String selectors = "";
 	protected Set<String> selectorList = new HashSet<>();
 	// keep selector alias
-	protected List<String> selectorAliases = new Vector<>();
+	protected List<String> selectorAliases = new ArrayList<>();
 	// keep list of columns for tables
 	protected Map<String, List<String>> retTableToCols = new HashMap<>();
 	
 	protected String customFromAliasName = null;
-	protected List<String[]> froms = new Vector<>();
+	protected List<String[]> froms = new ArrayList<>();
 	// store the joins in the object for easy use
 	protected SqlJoinStructList joinStructList = new SqlJoinStructList();
+	protected List<String> subQsAliasNames = new ArrayList<>();
 	
 	public SqlInterpreter() {
 		
@@ -160,16 +161,19 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// thus, the order matters 
 			// so get a good starting from table
 			// we can use any of the froms that is not part of the join
-			if(joinStructList.isEmpty()) {
+			boolean appendStartingFrom = true;
+			if(this.joinStructList.isEmpty() || this.joinStructList.allSubqueryJoins()) {
+				appendStartingFrom = false;
 				query.append(" FROM ");
-				if(froms.isEmpty() && this.frame != null) {
+				if(this.froms.isEmpty() && this.frame != null) {
 					query.append(frame.getName());
 				} else {
-					String[] startPoint = froms.get(0);
+					String[] startPoint = this.froms.get(0);
 					query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
 				}
-			} else {
-				query.append(" ").append(joinStructList.getJoinSyntax());
+			} 
+			if(!this.joinStructList.isEmpty()) {
+				query.append(" ").append(joinStructList.getJoinSyntax(appendStartingFrom));
 			}
 		}
 		
@@ -368,51 +372,58 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		String table = selector.getTable();
 		String colName = selector.getColumn();
 		String tableAlias = selector.getTableAlias();
-		if(tableAlias == null) {
-			if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
-				tableAlias = this.customFromAliasName;
-			} else {
-				tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
-			}
-		}
-		// account for keywords
-		if(queryUtil.isSelectorKeyword(tableAlias)) {
-			tableAlias = queryUtil.getEscapeKeyword(tableAlias);
-		}
-		
 		String physicalColName = null;
-		if(this.customFromAliasName != null) {
-			// the column is not on a table
-			// but on the custom from
-			physicalColName = queryUtil.escapeReferencedAlias(colName);
-		} else {
-			// will be getting the physical column name
+
+		if(this.subQsAliasNames.contains(table)) {
+			// this is a column selector from a projection off a subquery
+			tableAlias = table;
 			physicalColName = colName;
-			// if engine is not null, get the info from the engine
-			if(engine != null && !engine.isBasic()) {
-				// if the colName is the primary key placeholder
-				// we will go ahead and grab the primary key from the table
-				if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-					physicalColName = getPrimKey4Table(table);
-					// the display name is defaulted to the table name
+		} else {
+			if(tableAlias == null) {
+				if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
+					tableAlias = this.customFromAliasName;
 				} else {
-					// default assumption is the info being passed is the conceptual name
-					// get the physical from the conceptual
-					physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+					tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
 				}
 			}
+			// account for keywords
+			if(queryUtil.isSelectorKeyword(tableAlias)) {
+				tableAlias = queryUtil.getEscapeKeyword(tableAlias);
+			}
+			
+			if(this.customFromAliasName != null) {
+				// the column is not on a table
+				// but on the custom from
+				physicalColName = queryUtil.escapeReferencedAlias(colName);
+			} else {
+				// will be getting the physical column name
+				physicalColName = colName;
+				// if engine is not null, get the info from the engine
+				if(engine != null && !engine.isBasic()) {
+					// if the colName is the primary key placeholder
+					// we will go ahead and grab the primary key from the table
+					if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+						physicalColName = getPrimKey4Table(table);
+						// the display name is defaulted to the table name
+					} else {
+						// default assumption is the info being passed is the conceptual name
+						// get the physical from the conceptual
+						physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+					}
+				}
+			}
+			
+			// need to perform this check 
+			// if there are no joins
+			// or all the joins are from a subquery
+			// we need to have a from table
+			if(this.joinStructList.isEmpty() || this.joinStructList.allSubqueryJoins()) {
+				addFrom(table, tableAlias);
+			}
 		}
-		
-		// need to perform this check 
-		// if there are no joins
-		// we need to have a from table
-		if(this.joinStructList.isEmpty()) {
-			addFrom(table, tableAlias);
-		}
-		
 		// keep track of all the processed columns
 		if(notEmbeddedColumn) {
-			this.retTableToCols.putIfAbsent(table, new Vector<String>());
+			this.retTableToCols.putIfAbsent(table, new ArrayList<String>());
 			this.retTableToCols.get(table).add(physicalColName);
 		}
 		
@@ -690,6 +701,10 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		joinStructList.addJoin(jStruct);
+		
+		// store the query alias
+		// so we can reference this and not go to the OWL metadata
+		subQsAliasNames.add(queryAlias);
 	}
 	
 	////////////////////////////////////////// end adding joins ///////////////////////////////////////
@@ -905,7 +920,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 		
-		List<Object> objects = new Vector<>();
+		List<Object> objects = new ArrayList<>();
 		// ugh... this is gross
 		if(rightComp.getValue() instanceof Collection) {
 			objects.addAll( (Collection) rightComp.getValue());
@@ -971,7 +986,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				// cannot use same logic as IN :(
 				int i = 0;
 				int size = objects.size();
-				List<Object> newObjects = new Vector<>();
+				List<Object> newObjects = new ArrayList<>();
 				newObjects.add(objects.get(i));
 				// always process as string
 				String myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
@@ -985,7 +1000,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				filterBuilder.append(") " + thisFilterSearch + " (").append(myFilterFormatted.toLowerCase()).append(")");
 				i++;
 				for(; i < size; i++) {
-					newObjects = new Vector<>();
+					newObjects = new ArrayList<>();
 					newObjects.add(objects.get(i));
 					// always process as string
 					myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
@@ -1051,7 +1066,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		// ... what is the point of this... this is a dumb thing... you are dumb
 
 		PixelDataType lCompType = leftComp.getNounType();
-		List<Object> leftObjects = new Vector<>();
+		List<Object> leftObjects = new ArrayList<>();
 		// ugh... this is gross
 		if(leftComp.getValue() instanceof List) {
 			leftObjects.addAll( (List) leftComp.getValue());
@@ -1068,7 +1083,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		
 		
 		PixelDataType rCompType = rightComp.getNounType();
-		List<Object> rightObjects = new Vector<>();
+		List<Object> rightObjects = new ArrayList<>();
 		// ugh... this is gross
 		if(rightComp.getValue() instanceof Collection) {
 			rightObjects.addAll( (Collection) rightComp.getValue());
@@ -1300,7 +1315,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	public StringBuilder appendOrderBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
 		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
-		List<StringBuilder> validOrderBys = new Vector<>();
+		List<StringBuilder> validOrderBys = new ArrayList<>();
 		for(IQuerySort orderBy : orderByList) {
 			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
 				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
@@ -1649,7 +1664,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// will return an array of values
-		List<String[]> retArr = new Vector<>();
+		List<String[]> retArr = new ArrayList<>();
 		
 		// if both have table and property defined, then we know exactly what we need to do
 		// for the join... so we are done!

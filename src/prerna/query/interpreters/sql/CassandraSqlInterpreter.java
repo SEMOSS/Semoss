@@ -104,7 +104,7 @@ public class CassandraSqlInterpreter extends SqlInterpreter {
 				query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
 				startPoints.add(startPoint[1]);
 			} else {
-				query.append(" ").append(joinStructList.getJoinSyntax());
+				query.append(" ").append(joinStructList.getJoinSyntax(true));
 			}
 		}
 		
