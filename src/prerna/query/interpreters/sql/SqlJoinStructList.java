@@ -56,10 +56,12 @@ public class SqlJoinStructList {
 	 * Get the from + join syntax
 	 * @return
 	 */
-	public String getJoinSyntax() {
+	public String getJoinSyntax(boolean appendStartingFrom) {
 		int numJoins = joins.size();
 		StringBuilder jSyntax = new StringBuilder();
-		jSyntax.append("FROM ");
+		if(appendStartingFrom) {
+			jSyntax.append("FROM ");
+		}
 		
 		Set<String> definedTables = new HashSet<String>();
 		for(int i = 0; i < numJoins; i++) {
@@ -320,6 +322,26 @@ public class SqlJoinStructList {
 		return this.joins.isEmpty();
 	}
 	
+	public boolean allBasicJoins() {
+		for(int i = 0; i < joins.size(); i++) {
+			if(joins.get(i).isUseSubQuery()) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	public boolean allSubqueryJoins() {
+		for(int i = 0; i < joins.size(); i++) {
+			if(!joins.get(i).isUseSubQuery()) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
 	public void clear() {
 		this.joins.clear();
 	}
@@ -378,7 +400,7 @@ public class SqlJoinStructList {
 		j4.addJoinOnList(new String[] {"sub_customer", "someOtherColumn", "customers", "someOtherColumn", "="});
 		jList.addJoin(j4);
 		
-		System.out.println(jList.getJoinSyntax());
+		System.out.println(jList.getJoinSyntax(true));
 	}
 	
 	
