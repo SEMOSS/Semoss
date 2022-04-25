@@ -16,9 +16,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
-import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.PageSizeUnits;
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -152,12 +150,11 @@ public class ToPdfReactor extends AbstractReactor {
 		try {
 			logger.info("Converting html to PDF...");
 			fos = new FileOutputStream(fileLocation);
-			PdfRendererBuilder pdfBuilder = new PdfRendererBuilder();
-			pdfBuilder.useFastMode();
-			pdfBuilder.useDefaultPageSize(11.0f, 8.5f, PageSizeUnits.INCHES);
-			pdfBuilder.withFile(tempXhtml);
-			pdfBuilder.toStream(fos);
-			pdfBuilder.run();
+			ITextRenderer renderer = new ITextRenderer();
+	        renderer.setDocument(tempXhtml.getAbsoluteFile());
+	        renderer.layout();
+	        renderer.createPDF(fos);
+	        fos.close();
 			logger.info("Done converting html to PDF...");
 		} catch (FileNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);
