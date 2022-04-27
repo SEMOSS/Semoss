@@ -630,19 +630,14 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 		// attempt to put it into environment
 		script = randomVariable + "<- file(\"" + outputPath + "\"); " + 
-				"sink(" + randomVariable + ", append=TRUE, type=\"output\"); " +
-				"sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + 
+				"sink(" + randomVariable + ", append=TRUE, type=c('output','message') ); " +
 				encapsulateForEnv(insightRootAssignment + appRootAssignment + userRootAssignment + varFolderAssignment +  script) +
 				"sink();";
 
 		// Try writing the script to a file
 		try {
-//			System.out.print("### Rscript: " + script);
 			FileUtils.writeStringToFile(scriptFile, script);
 			String finalScript = "print(source(\"" + scriptPath + "\", print.eval=TRUE, local=TRUE)); ";
-
-			// check packages
-			//checkPackages(script);
 
 			// Try running the script, which saves the output to a file
 			 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
@@ -655,6 +650,10 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			
 			// Finally, read the output and return, or throw the appropriate error
 			try {
+				if(!outputFile.exists()) {
+					throw new IllegalArgumentException("Failed to run R script. No output could be generated");
+				}
+				
 				String output = FileUtils.readFileToString(outputFile).trim();
 				
 				// clean up the output
@@ -681,13 +680,16 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				
 				// Successful case
 				return output;
-			} catch (IOException e) {
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
 				// If we have the detailed error, then throw it
 				if (error != null) {
 					throw error;
 				}
-				
-				// Otherwise throw a generic one
+				if(e.getMessage() != null) {
+					throw e;
+				}
+				// otherwise throw a generic one
 				throw new IllegalArgumentException("Failed to run R script.");
 			} finally {
 				// Cleanup
