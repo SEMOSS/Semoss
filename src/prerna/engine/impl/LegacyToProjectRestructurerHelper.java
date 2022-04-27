@@ -160,7 +160,7 @@ public class LegacyToProjectRestructurerHelper {
 	}
 
 	// Helper method to copy versions to the project folder.
-	private void userScanAndCopyVersionsIntoNewProjectFolder(String newUserFolder, String dbFolder, boolean isAsset) throws IOException {
+	public void userScanAndCopyVersionsIntoNewProjectFolder(String newUserFolder, String dbFolder, boolean isAsset) throws IOException {
 		String newVersionPath = newUserFolder + DIR_SEPARATOR + "app_root" + DIR_SEPARATOR + "version";
 		String copyToFile = newUserFolder + DIR_SEPARATOR + "app_root" + DIR_SEPARATOR + "version";
 		String oldVersionPath = dbFolder + DIR_SEPARATOR + "version";
@@ -179,7 +179,7 @@ public class LegacyToProjectRestructurerHelper {
 	}
 
 	// Helper method to copy insights db to the project folder.
-	private void userScanAndCopyInsightsDatabaseIntoNewProjectFolder(String newUserFolder, String dbFolder, boolean isAsset) throws IOException {
+	public void userScanAndCopyInsightsDatabaseIntoNewProjectFolder(String newUserFolder, String dbFolder, boolean isAsset) throws IOException {
 		String oldInsightsDatabase_mv_db = dbFolder + DIR_SEPARATOR + "insights_database.mv.db";
 		String newInsightsDatabase_mv_db = newUserFolder + DIR_SEPARATOR + "insights_database.mv.db";
 		if (!fileExists(oldInsightsDatabase_mv_db)) {
