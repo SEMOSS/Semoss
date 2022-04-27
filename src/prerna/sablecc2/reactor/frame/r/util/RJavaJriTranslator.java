@@ -612,7 +612,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			engine.end();
 		}
 		// clean up other things
-		System.out.println("R Shutdown!!");
+		logger.info("R Shutdown!!");
 	}
 
 	@Override
