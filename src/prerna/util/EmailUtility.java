@@ -70,16 +70,25 @@ public class EmailUtility {
 			Multipart multipart = new MimeMultipart();
 
 			// Create the message part
-			if(isHtml) {
-				BodyPart messageBodyPart = new MimeBodyPart();
-				// add email message
-				messageBodyPart.setDataHandler(new DataHandler(new HTMLDataSource(emailMessage)));
-				// Set email message
-				multipart.addBodyPart(messageBodyPart);
+			if(emailMessage != null) {
+				if(isHtml) {
+					BodyPart messageBodyPart = new MimeBodyPart();
+					// add email message
+					messageBodyPart.setDataHandler(new DataHandler(new HTMLDataSource(emailMessage)));
+					// Set email message
+					multipart.addBodyPart(messageBodyPart);
+				} else {
+					BodyPart messageBodyPart = new MimeBodyPart();
+					// add email message
+					messageBodyPart.setText(emailMessage);
+					// Set email message
+					multipart.addBodyPart(messageBodyPart);
+				}
 			} else {
+				// add an empty body
 				BodyPart messageBodyPart = new MimeBodyPart();
 				// add email message
-				messageBodyPart.setText(emailMessage);
+				messageBodyPart.setText("");
 				// Set email message
 				multipart.addBodyPart(messageBodyPart);
 			}
@@ -98,8 +107,8 @@ public class EmailUtility {
 			// Send email
 			Transport.send(email);
 			// Log email
-			StringBuilder logMessage = new StringBuilder(subject)
-					.append(" email has been sent: ");
+			StringBuilder logMessage = new StringBuilder("Email subject = '" + subject)
+					.append("' has been sent: ");
 			if(toRecipients != null) {
 				logMessage.append("to ").append(Arrays.toString(toRecipients)).append(". ");
 			}

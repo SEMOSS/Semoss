@@ -1,19 +1,32 @@
 package prerna.sablecc2.reactor.utils;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
+import prerna.sablecc2.reactor.export.mustache.MustacheUtility;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.Utility;
 
 public class SendEmailReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(SendEmailReactor.class);
 
 	private static final String SMTP_HOST = "smtpHost";
 	private static final String SMTP_PORT = "smtpPort";
@@ -23,12 +36,14 @@ public class SendEmailReactor extends AbstractReactor {
 	private static final String EMAIL_BCC_RECEIVER = "bcc";
 	private static final String EMAIL_SENDER = "from";
 	private static final String EMAIL_MESSAGE = "message";
+	private static final String EMAIL_MESSAGE_ENCODED = "messageEncoded";
 	private static final String MESSAGE_HTML = "html";
 	private static final String ATTACHMENTS = "attachments";
 
 	public SendEmailReactor() {
 		this.keysToGet = new String[] { SMTP_HOST, SMTP_PORT, EMAIL_SUBJECT, EMAIL_SENDER, 
-				EMAIL_MESSAGE, MESSAGE_HTML,
+				EMAIL_MESSAGE, EMAIL_MESSAGE_ENCODED, ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				MESSAGE_HTML, ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey(),
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
 				EMAIL_RECEIVER, EMAIL_CC_RECEIVER, EMAIL_BCC_RECEIVER, ATTACHMENTS };
 	}
@@ -39,25 +54,49 @@ public class SendEmailReactor extends AbstractReactor {
 		organizeKeys();
 		
 		// validate as many inputs first before establishing the email session
-		String subject = this.keyValue.get(this.keysToGet[2]);
-		if (subject == null) {
-			throw new IllegalArgumentException("Need to define " + EMAIL_SUBJECT);
-		}
-		String sender = this.keyValue.get(this.keysToGet[3]);
+		String subject = this.keyValue.get(EMAIL_SUBJECT);
+		String sender = this.keyValue.get(EMAIL_SENDER);
 		if (sender == null) {
 			sender = SocialPropertiesUtil.getInstance().getSmtpSender();
 			if(sender == null) {
 				throw new IllegalArgumentException("Need to define " + EMAIL_SENDER);
 			}
 		}
-		String message = this.keyValue.get(this.keysToGet[4]);
-		String messageHtml = this.keyValue.get(this.keysToGet[5]);
-		boolean isHtml = false;
-		if(messageHtml != null && !(messageHtml = messageHtml.trim()).isEmpty()) {
-			isHtml = Boolean.parseBoolean(messageHtml);
+		String message = this.keyValue.get(EMAIL_MESSAGE);
+		if(message == null || (message=message.trim()).isEmpty()) {
+			String messageFileLocation = null;
+			try {
+				messageFileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+			} catch(IllegalArgumentException e) {
+				// ignore - potentially no message is wanted
+			}
+			if(messageFileLocation != null) {
+				File messageFile = new File(messageFileLocation);
+				if(messageFile.exists() && messageFile.isFile()) {
+					try {
+						message = FileUtils.readFileToString(messageFile, "UTF-8");
+					} catch (IOException e) {
+						throw new IllegalArgumentException("Error reading message file with message = " + e.getMessage(), e);
+					}
+				}
+			}
+		} else if(Boolean.parseBoolean(this.keyValue.get(EMAIL_MESSAGE_ENCODED) + "")){
+			message = Utility.decodeURIComponent(message);
 		}
-		if (message == null && messageHtml == null) {
-			throw new IllegalArgumentException("Need to define the email message as " + EMAIL_MESSAGE + " or " + MESSAGE_HTML);
+//		// make sure we have a message to send
+//		if (message == null) {
+//			throw new IllegalArgumentException("Need to define the email message as " + EMAIL_MESSAGE + " or passing in file location with message body");
+//		}
+		boolean isHtml  = Boolean.parseBoolean(this.keyValue.get(MESSAGE_HTML)+"");
+		// see if using mustache template format that needs modifications
+		if(Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.MUSTACHE.getKey()) + "")) {
+			Map<String, Object> variables = mustacheVariables();
+			try {
+				message = MustacheUtility.compile(message, variables);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Invalid mustache template or variables. Detailed error message = " + e.getMessage(), e);
+			}
+			classLogger.error("Generating final html as: " + message);
 		}
 		
 		String[] to = getEmailRecipients(EMAIL_RECEIVER);
@@ -69,8 +108,8 @@ public class SendEmailReactor extends AbstractReactor {
 		}
 		
 		Session emailSession = null;
-		String smtpHost = this.keyValue.get(this.keysToGet[0]);
-		String smtpPort = this.keyValue.get(this.keysToGet[1]);
+		String smtpHost = this.keyValue.get(SMTP_HOST);
+		String smtpPort = this.keyValue.get(SMTP_PORT);
 		if( (smtpHost == null || smtpHost.isEmpty())
 				&& (smtpPort == null || smtpPort.isEmpty())) {
 			// use the default for the application defined in social.properties
@@ -79,8 +118,8 @@ public class SendEmailReactor extends AbstractReactor {
 			}
 			emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		} else {
-			String username = this.keyValue.get(this.keysToGet[6]);
-			String password = this.keyValue.get(this.keysToGet[7]);
+			String username = this.keyValue.get(ReactorKeysEnum.USERNAME.getKey());
+			String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
 			emailSession = contrustOneTimeEmailSession(smtpHost, smtpPort, username, password);
 		}
 		
@@ -159,6 +198,24 @@ public class SendEmailReactor extends AbstractReactor {
 		}
 		return null;
 	}
+	
+	private Map<String, Object> mustacheVariables() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			Object obj = grs.get(0);
+			if(!(obj instanceof Map)) {
+				throw new IllegalArgumentException(ReactorKeysEnum.MUSTACHE_VARMAP.getKey() + " must be a map object");
+			}
+			return (Map<String, Object>) obj;
+		}
+		
+		List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
+		if(mapInput != null && !mapInput.isEmpty()) {
+			return (Map<String, Object>) mapInput.get(0);
+		}
+		
+		return null;
+	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
@@ -168,6 +225,8 @@ public class SendEmailReactor extends AbstractReactor {
 			return "The smtp port.";
 		} else if (key.equals(EMAIL_MESSAGE)) {
 			return "The message of the email to send.";
+		} else if (key.equals(EMAIL_MESSAGE_ENCODED)) {
+			return "Has the message of the email been passed in encoded using <encode></encode> blocks. Default false";
 		} else if (key.equals(EMAIL_RECEIVER)) {
 			return "The receipient(s) of the email.";
 		} else if (key.equals(EMAIL_SENDER)) {
