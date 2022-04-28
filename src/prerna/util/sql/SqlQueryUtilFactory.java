@@ -20,12 +20,13 @@ import static prerna.util.sql.RdbmsTypeEnum.POSTGRES;
 import static prerna.util.sql.RdbmsTypeEnum.REDSHIFT;
 import static prerna.util.sql.RdbmsTypeEnum.SAP_HANA;
 import static prerna.util.sql.RdbmsTypeEnum.SNOWFLAKE;
-import static prerna.util.sql.RdbmsTypeEnum.SYNAPSE;
 import static prerna.util.sql.RdbmsTypeEnum.SPARK;
 import static prerna.util.sql.RdbmsTypeEnum.SQLITE;
 import static prerna.util.sql.RdbmsTypeEnum.SQL_SERVER;
+import static prerna.util.sql.RdbmsTypeEnum.SYNAPSE;
 import static prerna.util.sql.RdbmsTypeEnum.TERADATA;
 import static prerna.util.sql.RdbmsTypeEnum.TIBCO;
+import static prerna.util.sql.RdbmsTypeEnum.TRINO;
 
 import java.util.HashMap;
 import java.util.List;
@@ -101,6 +102,8 @@ public class SqlQueryUtilFactory {
 			queryUtil = new TeradataQueryUtil();
 		} else if(dbType == TIBCO) {
 			queryUtil = new TibcoQueryUtil();
+		} else if(dbType == TRINO) {
+			queryUtil = new TibcoQueryUtil();
 		} else {
 			throw new IllegalArgumentException("Unknown DB Type. Please define a query util for the DB Type " + dbType);
 		}
@@ -163,6 +166,8 @@ public class SqlQueryUtilFactory {
 			queryUtil = new TeradataQueryUtil(connectionUrl, username, password);
 		} else if(dbType == TIBCO) {
 			queryUtil = new TibcoQueryUtil(connectionUrl, username, password);
+		} else if(dbType == TRINO) {
+			queryUtil = new TrinoQueryUtil(connectionUrl, username, password);
 		} else {
 			throw new IllegalArgumentException("Unknown DB Type. Please define a query util for the DB Type " + dbType);
 		}
