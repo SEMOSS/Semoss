@@ -29,6 +29,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.export.mustache.MustacheUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -38,13 +39,11 @@ public class ToPdfReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(ToPdfReactor.class);
 	private static final String CLASS_NAME = ToPdfReactor.class.getName();
 
-	private static final String MUSTACHE = "mustache";
-	private static final String VARMAP = "varMap";
-	
 	public ToPdfReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
-				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.URL.getKey(),
-				MUSTACHE, VARMAP};
+		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.URL.getKey(), 
+				ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey()
+			};
 	}
 
 	@Override
@@ -59,16 +58,30 @@ public class ToPdfReactor extends AbstractReactor {
 		// location for pdf resources
 		String insightFolder = this.insight.getInsightFolder();
 		String htmlToParse = this.keyValue.get(ReactorKeysEnum.HTML.getKey());
-		htmlToParse = Utility.decodeURIComponent(htmlToParse);
+		if(htmlToParse == null || (htmlToParse=htmlToParse.trim()).isEmpty()) {
+			// guessing its passed as a file
+			String htmlFileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+			File htmlFile = new File(htmlFileLocation);
+			if(!htmlFile.exists() || !htmlFile.isFile()) {
+				throw new IllegalArgumentException("No html passed in directly and could not find input file");
+			}
+			try {
+				htmlToParse = FileUtils.readFileToString(htmlFile, "UTF-8");
+			} catch (IOException e) {
+				throw new IllegalArgumentException("Error reading html file with message = " + e.getMessage(), e);
+			}
+		} else {
+			htmlToParse = Utility.decodeURIComponent(htmlToParse);
+		}
 		// see if using mustache template format that needs modifications
-		if(Boolean.parseBoolean(this.keyValue.get(MUSTACHE) + "")) {
+		if(Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.MUSTACHE.getKey()) + "")) {
 			Map<String, Object> variables = mustacheVariables();
 			try {
 				htmlToParse = MustacheUtility.compile(htmlToParse, variables);
 			} catch (Exception e) {
 				throw new IllegalArgumentException("Invalid mustache template or variables. Detailed error message = " + e.getMessage(), e);
 			}
-			classLogger.info("Exporting final html as: " + htmlToParse);
+			classLogger.error("Exporting final html as: " + htmlToParse);
 		}
 		// keep track for deleting at the end
 		List<String> tempPaths = new ArrayList<>();
@@ -119,20 +132,20 @@ public class ToPdfReactor extends AbstractReactor {
 		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pdf");
 		// grab file path to write the file
-		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+		String outputFileLocation = this.keyValue.get(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
-		if (fileLocation == null) {
-			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+		if (outputFileLocation == null) {
+			outputFileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			// store it in the insight so the FE can download it
 			// only from the given insight
-			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+			outputFileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			insightFile.setDeleteOnInsightClose(true);
 		} else {
-			fileLocation += DIR_SEPARATOR + exportName;
+			outputFileLocation += DIR_SEPARATOR + exportName;
 			insightFile.setDeleteOnInsightClose(false);
 		}
-		insightFile.setFilePath(fileLocation);
+		insightFile.setFilePath(outputFileLocation);
 
 		// Flush xhtml to disk
 		String random = Utility.getRandomString(5);
@@ -149,7 +162,7 @@ public class ToPdfReactor extends AbstractReactor {
 		FileOutputStream fos = null;
 		try {
 			logger.info("Converting html to PDF...");
-			fos = new FileOutputStream(fileLocation);
+			fos = new FileOutputStream(outputFileLocation);
 			ITextRenderer renderer = new ITextRenderer();
 	        renderer.setDocument(tempXhtml.getAbsoluteFile());
 	        renderer.layout();
@@ -195,11 +208,11 @@ public class ToPdfReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> mustacheVariables() {
-		GenRowStruct grs = this.store.getNoun(VARMAP);
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			Object obj = grs.get(0);
 			if(!(obj instanceof Map)) {
-				throw new IllegalArgumentException(VARMAP + " must be a map object");
+				throw new IllegalArgumentException(ReactorKeysEnum.MUSTACHE_VARMAP.getKey() + " must be a map object");
 			}
 			return (Map<String, Object>) obj;
 		}
@@ -212,14 +225,4 @@ public class ToPdfReactor extends AbstractReactor {
 		return null;
 	}
 	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(MUSTACHE)) {
-			return "Boolean if the html passed in is a mustache template";
-		} else if(key.equals(VARMAP)) {
-			return "Map containing the replacement values for a mustache tempalte. Must pass in mustache=true for this to be utilized";
-		}
-		
-		return super.getDescriptionForKey(key);
-	}
 }
