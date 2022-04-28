@@ -1475,6 +1475,11 @@
 		    <artifactId>redshift-jdbc42</artifactId>
 		    <version>1.2.43.1067</version>
 		</dependency>
+		<dependency>
+		    <groupId>io.trino</groupId>
+		    <artifactId>trino-jdbc</artifactId>
+		    <version>376</version>
+		</dependency>
 		<!-- NODE -->
 		<dependency>
 			<groupId>com.eclipsesource.j2v8</groupId>

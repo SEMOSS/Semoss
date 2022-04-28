@@ -27,7 +27,8 @@ public enum RdbmsTypeEnum {
 	SYNAPSE("SYNAPSE", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
 	SQL_SERVER("SQL_SERVER", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
 	TERADATA("TERADATA", "com.teradata.jdbc.TeraDriver", "jdbc:teradata"),
-	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver", "jdbc:compositesw:dbapi");
+	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver", "jdbc:compositesw:dbapi"),
+	TRINO("TRINO", "io.trino.jdbc.TrinoDriver", "jdbc:trino");
 	
 	private String label;
 	private String driver;
