@@ -68,7 +68,7 @@ public class SendEmailReactor extends AbstractReactor {
 			try {
 				messageFileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
 			} catch(IllegalArgumentException e) {
-				// ignore - potentially no message is wanted
+				// ignore
 			}
 			if(messageFileLocation != null) {
 				File messageFile = new File(messageFileLocation);
@@ -83,8 +83,10 @@ public class SendEmailReactor extends AbstractReactor {
 		} else if(Boolean.parseBoolean(this.keyValue.get(EMAIL_MESSAGE_ENCODED) + "")){
 			message = Utility.decodeURIComponent(message);
 		}
-//		// make sure we have a message to send
-//		if (message == null) {
+		// depending on the email being used
+		// sometimes an email can be sent w/ no message and no subject
+		// make sure we have a message to send
+//		if (message == null || (message=message.trim()).isEmpty()) {
 //			throw new IllegalArgumentException("Need to define the email message as " + EMAIL_MESSAGE + " or passing in file location with message body");
 //		}
 		boolean isHtml  = Boolean.parseBoolean(this.keyValue.get(MESSAGE_HTML)+"");
