@@ -58,6 +58,8 @@ import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 import org.apache.poi.xssf.usermodel.XSSFDrawing;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
@@ -82,6 +84,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -524,7 +527,19 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			} else if (plotType.equals("Grid")) {
 				insertGrid(sheet.getSheetName(), task, panel);
 			} else if(plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
-				insertPivot(sheet.getSheetName(), panelId, sheetId);
+				
+				String pivRoutine = DIHelper.getInstance().getProperty("OPTIMIZE_PIVOT_EXPORT");
+				if(pivRoutine != null && pivRoutine.equalsIgnoreCase("True"))
+				{
+					prerna.sablecc2.reactor.frame.py.CollectPivotReactor cpr = new prerna.sablecc2.reactor.frame.py.CollectPivotReactor();
+					cpr.setNounStore(tOptions.getCollectStore());
+					cpr.setInsight(insight);
+					List rowObject = tOptions.getCollectStore().getNoun(cpr.keysToGet[0]).getAllValues();
+					//cpr.
+					insertPivot2(sheet.getSheetName(), cpr, rowObject);
+				}
+				else // old routine
+					insertPivot(sheet.getSheetName(), panelId, sheetId);
 			}
 			
 		} catch(Exception ex) {
@@ -1342,6 +1357,49 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		logger.info("Done processing pivot");
 	}
 	
+	private void insertPivot2(String excelSheetName, prerna.sablecc2.reactor.frame.py.CollectPivotReactor cpr, List rows) {
+		//http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0 
+		//http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0  
+		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5 - this worked
+
+		//logger.info(" HTML from Capture " + html2);
+		//html2 = insight.getChromeDriver().getHTML(driver, "//html/body//table");
+		//logger.info(" HTML from getHTML " + html2);
+		//WebElement we = driver.findElement(By.xpath("//html/body//table"));
+		//String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
+		
+		//WebElement elem1 = new WebDriverWait(driver, 10)
+		//        .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
+		//html = driver.executeScript("return document.documentElement.outerHTML;") + "";
+		//System.out.println(html);
+		//System.out.println(html2);
+		//driver.quit();
+		//driver = null; 
+		NounMetadata retData = cpr.execute();
+		
+		// you have what you need now..
+		ConstantDataTask cdt = (ConstantDataTask)retData.getValue();
+		// json is sitting in the cdt
+		String json = (String)((Map)cdt.getOutputData()).get("values");
+
+		JSONArray array = new JSONArray(json);
+		StringBuffer html2 = new StringBuffer();
+		for(int secIndex = 1;secIndex < array.length();secIndex++)
+		{
+			JSONObject obj = array.getJSONArray(secIndex).getJSONObject(0);
+			html2.append(cpr.getJson2HTML(obj, rows));
+		}
+		
+		TableToXLSXReactor txl = new TableToXLSXReactor();
+		txl.exportMap = exportMap;
+		txl.html = html2.toString();
+		txl.sheetName = excelSheetName;
+		String fileName = (String)exportMap.get("FILE_NAME");
+		
+		txl.processTable(excelSheetName, html2.toString(), fileName);
+		logger.info("Done processing pivot");
+	}
+
 	
 	/**
 	 * Creating Html content and passed TableToXLSXReactor
