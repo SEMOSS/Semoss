@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.py;
 
 import java.io.File;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -8,6 +9,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -35,6 +39,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	/**
 	 * This class is responsible for collecting data from a task and returning it
 	 */
+	
+	// need to see this https://stackoverflow.com/questions/46220167/add-columns-to-pivot-table-with-pandas
 	
 	private static final String NEW_LINE = "\n";
 	
@@ -209,6 +215,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			sections.add(ALL_SECTIONS);
 			commands = genSections(sections.get(0), sections, "", pivotFrameName, rowGroups, colGroups, 
 					subtotals, newValues, functions, true, true, json, margins,pivotNames);
+			
 		} else {
 			String sectionColumnName = sections.get(0);
 			
@@ -236,7 +243,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		}
 		
 		pivotMap.put(keysToGet[2], valuesList);
-		String htmlOutput = pyt.runPyAndReturnOutput(commands); 
+		String jsonOutput = pyt.runPyAndReturnOutput(commands); 
 		
 		/*** check to see if the pivot is within limits **/
 		NounMetadata pivotCheck = checkPivotLimits(pivotFrameName, colGroups, pivotNames);
@@ -280,7 +287,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		Map<String, Object> outputMap = new HashMap<String, Object>();
 		outputMap.put("headers", new String[] {});
 		outputMap.put("rawHeaders", new String[] {});
-		outputMap.put("values", htmlOutput);
+		outputMap.put("values", jsonOutput);
 		outputMap.put("pivotData", pivotMap);
 		cdt.setOutputData(outputMap);
 		
@@ -450,6 +457,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		return allSections.toString();
 	}
 	
+	
 	public String genPivot(String frameName, List <String> rows, List <String> columns, List <String> subtotalColumns, 
 			List <String> values, List <String> functions, boolean dropNA, boolean fill_value, 
 			boolean json, boolean margins,List<String>  pivotNames){
@@ -480,6 +488,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			}
 			column_order.append("'").append(values.get(valIndex)).append("'");
 		}
+		// add the column total to be included
+		//column_order.append(", 'Column Total'");
 		column_order.append("]");
 
 		// geenerate rows
@@ -573,9 +583,14 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// generate the pivot first
 		String totalAppender = "";
 		String marginName = " ...All Total... ";
-		String labelsCheat = "zzzzzzzzzzzz";
+		String labelsCheat = "zzzzpp";
+		if(rows.size() == 1)
+			labelsCheat = "Row Total";
+			
 		
+		margins = rows.size() == 1 || values.size() == 1;
 		String marginValue = margins?"True":"False";
+		marginValue = "False";
 
 		StringBuilder pivotString = new StringBuilder("");
 		String pivotName = Utility.getRandomString(5);
@@ -617,186 +632,236 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 //			retString.append(crosstabString).append(NEW_LINE);
 //		else 
 		retString.append(pivotString).append(NEW_LINE);
+		
+		// this one generates the totals and such
+		//pivotName  = generateTotals(rows, columns, values, pivotName, labelsCheat, retString);
+
+		
 		String outputFormat = ".to_html()";
 		if(json) {
 			outputFormat = ".to_json(orient='split')";
 		}
-		
-		// need to convert the index as well
-		// I am just going to convert everything to a string
-		//id1 = aVLQIp.index.levels[0]
-		//id1 = id1.astype('str')
-		// make all of the indices string so it doesnt complain later
-		if(margins)
-		{
-			if(rowsAndColumns.size() > 1)
-			{
-				for(int idx = 0;idx < rowsAndColumns.size();idx++)
-				{
-					String customIdxName = Utility.getRandomString(5);
-					retString.append(customIdxName).append("=").append(pivotName).append(".index.levels[").append(idx).append("]").append(NEW_LINE);
-					retString.append(customIdxName).append("=").append(customIdxName).append(".astype('str')").append(NEW_LINE);
-					// set up this level immediately
-					retString.append(pivotName).append(".index.set_levels(").append(customIdxName).append(", level=").append(idx).append(", inplace=True)").append(NEW_LINE);
-				}
-			}		
-			// generate the subtotals now
-			// need to do this for every level
-			//df1 = table.groupby(level=[0,1]).sum()
-			//		df1.index = pd.MultiIndex.from_arrays([df1.index.get_level_values(0), 
-			//		                                       df1.index.get_level_values(1)+ '_sum', 
-			//		                                       len(df1.index) * ['']])
-			
-			// df2 = table.groupby(level=0).sum()
-			//df2.index = pd.MultiIndex.from_arrays([df2.index.values + '_sum',
-			 //                                      len(df2.index) * [''], 
-			 //                                      len(df2.index) * ['']])
-			
-			// see which subtotal columns we want
-			// stop at that level when we get to
-			//df = pd.concat([table, df1, df2]).sort_index(level=[0])
-			
-			if(subtotalColumns != null)
-			{
-				StringBuilder groupBy = new StringBuilder();
-				
-				StringBuilder concat = new StringBuilder("pd.concat([").append(pivotName);
-				StringBuilder deleter = new StringBuilder("del(").append(pivotName);
-							
-				
-				for(int subIndex = 0;subIndex < subtotalColumns.size();subIndex++)
-				{
-					String groupFrameName = Utility.getRandomString(5);
-					String thisSub = subtotalColumns.get(subIndex);
-					String function = "sum()";
-					int totalerIndex = 0; // this is the place to start
-		
-					StringBuilder leveler = new StringBuilder("");
-		
-					// set up the multiindex
-					StringBuilder indexer = new StringBuilder("");
-					indexer.append("pd.MultiIndex.from_arrays([");
-					
-					boolean processLevel = true;
-					boolean totalColumn = true;
-					
-					// need to find which level this one is at
-					for(int idx = 0;idx < rowsAndColumns.size();idx++)
-					{
-						//System.err.println("Current Sub is " + thisSub + " and rows is " + rows.get(idx));
-						
-						if(processLevel)
-						{
-							// create the lever for the groupby
-							if(idx != 0)
-								leveler.append(", ");
-							leveler.append(idx);
-						}
-	
-						if(idx != 0)
-							indexer.append(", ");
-						// add the rows
-						if(rowsAndColumns.get(idx).equalsIgnoreCase(thisSub))
-						{
-							totalerIndex = idx;
-							processLevel = false;
-							totalColumn = true;
-							totalAppender = "  Total  ";
-						}
-						
-						// add these only if they are not the last level
-						//if(idx + 1 < rows.size())
-						{
-							if(totalColumn)
-							{
-								indexer.append(groupFrameName).append(".index.get_level_values(").append(idx).append(")").append(" + '").append(totalAppender).append("'");
-								totalColumn = false;
-								totalAppender  = "";
-							}
-							else 
-							{
-								indexer.append("len(").append(groupFrameName).append(".index)* ['']");
-							}
-						}						
-					}
-					
-					if(!rowsAndColumns.get(rowsAndColumns.size() -1).equalsIgnoreCase(thisSub))
-					{
-						// set up the groupby
-						StringBuffer curGroup = new StringBuffer("");
-						curGroup.append(groupFrameName).append(" = ").append(pivotName).append(".groupby(level=[").append(leveler).append("]).").append(function);
-						curGroup.append(NEW_LINE);
-						groupBy.append(curGroup.toString()).append(NEW_LINE);
-						
-						System.err.println(curGroup);
-						// set the indexer into the groupby
-						indexer.append("]");
-						indexer = new StringBuilder().append(groupFrameName).append(".index = ").append(indexer).append(")");
-						groupBy.append(indexer.toString()).append(NEW_LINE);
-						
-						// should do this only if it is the first column I think ?
-						// I need to really drop the last row
-						// everytime
-						groupBy.append("totalRows = len(").append(groupFrameName).append(")").append(NEW_LINE);
-						groupBy.append(groupFrameName).append("=").append(groupFrameName).append(".iloc[:").append("totalRows -1]").append(NEW_LINE);
-						//groupBy.append(groupFrameName).append("=").append(groupFrameName).append(".drop('").append(labelsCheat)
-							//.append("  Total  ").append("', level=0, errors='ignore')");
-						System.err.println(indexer);
-						
-						concat.append(", ").append(groupFrameName);
-						deleter.append(", ").append(groupFrameName);
-					}
-				}
-				
-				concat.append("])")
-				
-				//.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
-				//.append(".rename(columns={'").append(marginName).append("' : '").append(labelsCheat).append("'}, levels=1)")
-				.append(".sort_index(level=[0]).fillna('')");
-				if(rowsAndColumns.size() == 1) // nothing to concat
-					concat = new StringBuilder(pivotName);
-				concat.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})").append(NEW_LINE);
-	
-				
-				String finalPivotName = Utility.getRandomString(5);
-				deleter.append(", ").append(finalPivotName);
-				deleter.append(")");
-				String finalPivot = finalPivotName + " = " + concat;
-	
-				// get the number of items on this level
-				StringBuilder columnRenamer = new StringBuilder("");
-				columnRenamer.append("if len(").append(pivotName).append(".columns.get_level_values(").append(columns.size()).append(")):").append(NEW_LINE)
-					.append("\t").append(finalPivotName).append(" = ").append(finalPivotName).append(".rename(columns={'")
-					.append(labelsCheat).append("' : '").append(marginName).append("'}, level=1)");
-				
-				// change the margin name to seomthing 
-				
-				// need to drop the all total from 
-				String dropAllTotal = "";
-				
-				// if(rows.size() > 1) // else there is no total
-				// dropAllTotal = finalPivotName + " = " + finalPivotName +".drop('" + marginName + "  Total  '" +", level=0)";
-				
-				System.err.println(finalPivot);
-				System.err.println(deleter);
-				String output = "print(" + finalPivotName + "[" + column_order + "]" + outputFormat + ")"; //.encode('utf-8'))";
-				String deleteLast = "del(" + finalPivotName + ")";
-				
-				retString.append(groupBy).append(NEW_LINE).append(finalPivot).append(NEW_LINE).append(columnRenamer).append(NEW_LINE)
-					.append(dropAllTotal).append(NEW_LINE).append(output).append(NEW_LINE).append(deleter);
-			}		
-		} else {
-			retString.append(NEW_LINE).append("print(").append(pivotName).append("[").append(column_order).append("]")
-					.append(outputFormat).append(")").append(NEW_LINE);// .append("del(").append(pivotName).append(")");
-			// storing the pivot name for future to get the pivot row count
-			pivotNames.add(pivotName);
-		}
+
+
+		retString.append(NEW_LINE).append("print(").append(pivotName).append("[").append(column_order).append("]")
+				.append(outputFormat).append(")").append(NEW_LINE);// .append("del(").append(pivotName).append(")");
+		// storing the pivot name for future to get the pivot row count
+		pivotNames.add(pivotName);
 		
 		System.err.println(retString);
 		return retString.toString();
 	}
 	
-	private long getCount(String frameName, List <String> items) {
+	private String generateTotals(List <String> rows, List <String> columns, List <String> values, String pivotName, String labelCheat, StringBuilder totalString)
+	{
+		/*
+		 * --- the stuff that finally works -- 
+			piv1 = pd.pivot_table(d,values = ['id', 'age'], index = ['frame', 'gender'], aggfunc = {'id' : 'mean', 'age': 'mean'}, dropna=True,margins=False, margins_name='zzzzzzzzzzzz').fillna('')
+			sac26Tn= piv1.sum(level='frame')
+			gaeAfkZ = piv1[['id', 'age']].sum()
+			fpiv1 = piv1.append(sac26Tn.assign(gender='zzzzzzzz').set_index('gender', append=True).sort_index().append(pd.DataFrame([gaeAfkZ.values], columns=gaeAfkZ.index, index = pd.MultiIndex.from_tuples([('zzzzpp', '')], names = ['id','age']))).fillna(''))
+			fpiv1 = fpiv1.sort_index(level=['frame', 'gender'])
+			
+			fpiv1.index = pd.MultiIndex.from_tuples([(x[0].replace('zzzzpp', 'Row Total'), x[1].replace('zzzzzzzz', 'Total')) for x in fpiv1.index], names=fpiv1.index.names)
+			
+			There are three variables - rows, columns, values
+			
+			when rows > 1 no column - this is the first bifurcation. If it is 0 nothing to do
+			When rows > 1 and columns > 0 third
+			when rows = 1 but columns > 0 - Second bifurcatation
+			
+			
+		 */
+		
+		//StringBuilder totalString = new StringBuilder();
+		String finalPivotName = pivotName;
+		
+		if(rows.size() > 1)
+		{
+			finalPivotName = Utility.getRandomString(5);
+			String lastColumn = rows.get(rows.size() - 1);
+
+			StringBuilder valueString = new StringBuilder("[");
+			for(int valIndex = 0;valIndex < values.size();valIndex++) {
+				if(valIndex > 0) {
+					valueString.append(", ");
+				}
+				valueString.append("'").append(values.get(valIndex)).append("'");
+			}
+			valueString.append("]");
+			
+			//aftgto = ahF34A.append(sapwSx8.assign(gender='', location= 'zzzzzz').set_index(['gender', 'location'], append=True).sort_index())
+
+			StringBuilder rowSumColumnAdderString = new StringBuilder("");
+			StringBuilder rowSumColumnIndexString = new StringBuilder("[");
+			for(int rowIndex = 1;rowIndex < rows.size() ;rowIndex++)
+			{
+				if(rowIndex > 1) {
+					rowSumColumnAdderString.append(", ");
+					rowSumColumnIndexString.append(", ");
+				}
+				
+				rowSumColumnIndexString.append("'").append(rows.get(rowIndex)).append("'");
+				//if(rowIndex + 1 == rows.size())
+				{
+					rowSumColumnAdderString.append(rows.get(rowIndex)).append("='zzzzzz'");
+				}
+//				else
+//					rowSumColumnAdderString.append(rows.get(rowIndex)).append(" = ''");
+				
+			}
+			rowSumColumnIndexString.append("]");
+			
+			String rowTotal = "s" + Utility.getRandomString(5);
+			totalString.append(rowTotal + "= " + pivotName + ".sum(level=('" + rows.get(0) + "'))"); // this is multiple levels - you have to always do 1 less
+			totalString.append(NEW_LINE);
+
+			totalString.append(finalPivotName + " = ");
+			totalString.append(pivotName + ".append(");
+			
+			// add the row level totals first
+			//saAdRws= acaENC.sum(level='frame')
+			//aDzHlB = acaENC.append(saAdRws.assign(frame= 'zzzzzz').set_index('frame', append=True).sort_index())
+	
+			totalString.append(rowTotal + ".assign(" + rowSumColumnAdderString + ")"); // create a new column
+			totalString.append(".set_index(" + rowSumColumnIndexString + ", append=True).sort_index())");// add this column as index and sort it
+			
+			String grandTotal = "g" + Utility.getRandomString(5);
+			totalString.append(NEW_LINE).append(grandTotal + " = " + pivotName + "[" + valueString + "].sum()");
+			
+	
+			StringBuilder totalValueIndex = new StringBuilder("[(");
+			StringBuilder totalValueIndexNames = new StringBuilder("[");
+			StringBuilder valueAdderString = new StringBuilder();
+			for(int valIndex = 0;valIndex < values.size();valIndex++) {
+				if(valIndex > 0) {
+					totalValueIndex.append(", ");
+					valueAdderString.append(", ");
+					totalValueIndexNames.append(", ");
+				}
+				if(valIndex == 0)	
+					totalValueIndex.append("'zzzzpp'");
+				else
+					totalValueIndex.append("''");
+				
+				totalValueIndexNames.append("'").append(values.get(valIndex)).append("'");
+				valueAdderString.append(finalPivotName).append(".").append(values.get(valIndex));
+			}
+			totalValueIndex.append(")]");
+			totalValueIndexNames.append("]");
+		
+			// now comes the hard part
+			// creating it and appending it
+	
+			totalString.append(NEW_LINE);
+			
+			StringBuilder rowTotalReplacer = new StringBuilder("(");
+			StringBuilder rowDropper = new StringBuilder("(");
+			for(int rowIndex = 0;rowIndex < rows.size();rowIndex++)
+			{
+				if(rowIndex > 0) {
+					rowTotalReplacer.append(", ");
+					rowDropper.append(", ");
+				}
+				
+				// only need the first and last rows
+				if(rowIndex == 0)
+				{
+					rowTotalReplacer.append("x[0].replace('zzzzpp', 'Row Total')");
+					rowDropper.append("'zzzzpp'");
+				}
+				else if(rowIndex+1 == rows.size())
+				{
+					rowDropper.append("'zzzzzz'");
+					rowTotalReplacer.append("x[").append(rowIndex).append("].replace('zzzzzz', 'Total')");
+				}
+				else
+				{
+					rowDropper.append("'zzzzzz'"); // empty nothing to replace
+					rowTotalReplacer.append("x[").append(rowIndex).append("]");
+				}
+			}
+			rowTotalReplacer.append(")");
+			rowDropper.append(")");
+			
+			// now add the column totalsgapHkVh = acaENC[['id']].sum()
+			//aDzHlB = aDzHlB.append(pd.DataFrame([gapHkVh.values], columns=gapHkVh.index, index = pd.MultiIndex.from_tuples([('zzzzpp', '')], names = ['id', 'age']))).fillna('')
+			if(values.size() > 1)
+			{
+				totalString.append(finalPivotName).append(" = ").append(finalPivotName);
+				totalString.append(".append(");
+				totalString.append("pd.DataFrame(["+ grandTotal + ".values], columns=" + grandTotal + ".index, index = pd.MultiIndex.from_tuples(" + totalValueIndex + ", ");
+				totalString.append("names = " + totalValueIndexNames).append("))).fillna('')" );			
+				totalString.append(NEW_LINE);
+			}
+			else
+			{
+				// drop the row
+				totalString.append(finalPivotName).append(" = ").append(finalPivotName);
+				totalString.append(".drop([");
+				totalString.append(rowDropper);
+				totalString.append("])");
+				totalString.append(NEW_LINE);
+			}
+			// sort final pivot
+			//fpiv1 = fpiv1.sort_index(level=['frame', 'gender'])
+			StringBuilder rowString = new StringBuilder("[");
+			for(int rowIndex = 0;rowIndex < rows.size();rowIndex++) {
+				if(rowIndex > 0) {
+					rowString.append(", ");
+				}
+				rowString.append("'").append(rows.get(rowIndex)).append("'");
+			}
+			rowString.append("]");
+			totalString.append(finalPivotName).append(" = ").append(finalPivotName).append(".sort_index(level=").append(rowString).append(")");
+		
+			// now replace the indices
+			totalString.append(NEW_LINE);
+			//fpiv1.index = pd.MultiIndex.from_tuples([(x[0].replace('zzzzpp', 'Row Total'), x[1].replace('zzzzzzzz', 'Total')) for x in fpiv1.index], names=fpiv1.index.names)
+	
+
+			
+			totalString.append(finalPivotName).append(".index = ");
+			totalString.append("pd.MultiIndex.from_tuples([").append(rowTotalReplacer).append(" for x in ")
+								.append(finalPivotName).append(".index], names = ")
+								.append(finalPivotName).append(".index.names)");
+			
+			totalString.append(NEW_LINE);
+		}
+		else if(values.size() == 1)
+		{
+			
+		}
+
+		// lastly add the column total
+		if(rows.size() == 1 && columns.size() > 0) // bifur 3
+		{
+			// it already has a column total by the way of margin
+			totalString.append(finalPivotName).append(" = ");
+			totalString.append(finalPivotName).append(".rename(columns={'").append(labelCheat).append("': 'Column Total'})");
+		}
+		else // bifur 2
+		{
+			StringBuilder valueAdderString = new StringBuilder();
+			for(int valIndex = 0;valIndex < values.size();valIndex++) {
+				if(valIndex > 0) {
+					valueAdderString.append(" + ");
+				}
+				valueAdderString.append(finalPivotName).append(".").append(values.get(valIndex));
+			}
+			totalString.append(finalPivotName).append("['Column Total'] = ").append(valueAdderString);
+		}
+		
+		
+		System.err.println("This sets up the total.. ");
+		System.err.println(totalString);
+		
+		
+		return finalPivotName;
+	}
+	
+	private long getCount(String frameName, List <String> items) 
+	{
 		long retCount = 1;
 		for(int itemIndex = 0;itemIndex < items.size();itemIndex++) {
 			StringBuilder sb = new StringBuilder(frameName).append("['").append(items.get(itemIndex)).append("'].nunique()");
@@ -804,6 +869,400 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			retCount = retCount * count;
 		}
 		return retCount;
+	}
+	
+	public static String getJson2HTML(JSONObject mainObj, List <String> rows)
+	{
+		//String [] rows = new String[] {"frame", "location"};
+		String [] values = null;
+		
+		// each record is a combination of this
+		JSONArray colArray = mainObj.getJSONArray("columns");
+		values = new String[colArray.length()];
+		
+		
+		// get the index
+		JSONArray index = mainObj.getJSONArray("index");
+		String [] rowValues = new String[rows.size()];
+		
+		// tells the number of times this item is there
+		// and the childs
+		Map rowMap = new HashMap();
+		Map levelItemCount = new HashMap();
+		StringWriter outputString = new StringWriter();
+		
+		// the data
+		// process the row
+		JSONArray data = mainObj.getJSONArray("data");
+		double [][] dataArray = new double[data.length()][colArray.length()];
+		
+		for(int dataIndex = 0;dataIndex < data.length();dataIndex++)
+		{
+			JSONArray record = data.getJSONArray(dataIndex);
+			for(int recIndex = 0;recIndex < record.length();recIndex++)
+			{
+				if(record.get(recIndex) instanceof Double)
+					dataArray[dataIndex][recIndex] = record.getDouble(recIndex);
+				else
+					dataArray[dataIndex][recIndex] = 0;
+					
+			}
+		}
+		
+		// get columns
+		// PROCESS ALL THE COLUMNS
+		// chol, id
+		// male, female
+		Map itemLevelColSpan = new HashMap(); // keeps the column span
+		String[][] columns = null;//
+		String[][] columnsData = null;//
+		
+		for(int columnIndex = 0;columnIndex < colArray.length();columnIndex++)
+		{
+			if(colArray.get(columnIndex) instanceof JSONArray) // this is a multi level
+			{
+				JSONArray thisLevel = colArray.getJSONArray(columnIndex);
+				if(columns == null)
+				{
+					columns = new String[thisLevel.length()][rows.size() + values.length + 1];
+					columnsData = new String[thisLevel.length()][rows.size() + values.length + 1];
+				}
+				String parent = "";
+				for(int colLevelIndex = 0;colLevelIndex < thisLevel.length();colLevelIndex++)
+				{
+					String colName = thisLevel.getString(colLevelIndex);
+					String key = colName + "__" + colLevelIndex;
+					String location = colName + "__" + colLevelIndex + "__" + (columnIndex + rows.size());
+					if(parent.length() > 0)
+						key = parent + ":" + key;
+					
+					int colSpan = 1;
+					if(itemLevelColSpan.containsKey(key))
+					{
+						colSpan = (Integer)itemLevelColSpan.get(key);
+						location = itemLevelColSpan.get(key + "__LOCATION") +"";
+						colSpan++;
+					}
+					else
+					{
+						columns[colLevelIndex][rows.size() + columnIndex] = colName;	
+					}
+					itemLevelColSpan.put(key, colSpan);
+					itemLevelColSpan.put(key+"__LOCATION", location);
+					itemLevelColSpan.put(location, colSpan);
+					parent = key;
+					columnsData[colLevelIndex][rows.size() + columnIndex] = colName;	
+				}
+			}
+			else // this is a single level column
+			{
+				if(columns == null)
+				{
+					columns = new String[1][rows.size() + values.length + 1];
+					columnsData = new String[1][rows.size() + values.length + 1];
+				}
+			
+				columns[0][rows.size() + columnIndex] = colArray.getString(columnIndex);
+				columnsData[0][rows.size() + columnIndex] = colArray.getString(columnIndex);
+			}
+		}
+		// add the sum column last
+		columns[0][rows.size() + values.length] = "All Total";		
+		
+		// walk the hash of hash and the items recursively
+		String [][] rowDataArrayOutput = new String[index.length()][rows.size() + values.length + 1];
+		String [][] rowDataArray = new String[index.length()][rows.size() + values.length + 1]; // this keeyps track of actual parent etc. required when we print
+		
+		Map itemLevelRowSpan = new HashMap();
+		Map <String, double[]> itemLevelTotals = new HashMap<String, double[]>();
+		double [] allRowTotal = new double[values.length + 1];
+		
+		// filling in the rows
+		for(int rowIndex = 0;rowIndex < index.length();rowIndex++)
+		{
+			double summer = 0;
+			String rowKey = null;
+			if(index.get(rowIndex) instanceof JSONArray)
+			{
+				JSONArray singleRow = index.getJSONArray(rowIndex);
+				String parent = "";
+				rowKey = singleRow.getString(0);
+				for(int rowItemIndex = 0;rowItemIndex < singleRow.length();rowItemIndex++)
+				{
+					String thisItem = singleRow.getString(rowItemIndex);
+					String key = thisItem + "__" + rowItemIndex;
+					if(parent.length() > 0)
+						key = parent + ":" + key;
+					int span = 0;
+					if(itemLevelRowSpan.containsKey(key))
+					{
+						span = (Integer)itemLevelRowSpan.get(key);
+						rowDataArrayOutput[rowIndex][rowItemIndex] = "";
+					}
+					else
+					{
+						rowDataArrayOutput[rowIndex][rowItemIndex] = thisItem;
+					}
+					rowDataArray[rowIndex][rowItemIndex] = thisItem;
+					span++;
+					itemLevelRowSpan.put(key, span);
+					parent = key;
+					// need to check for number but..
+				}
+			}
+			else
+			{
+				rowKey = index.getString(0);
+				String thisItem = index.getString(rowIndex);
+				rowDataArrayOutput[rowIndex][0] = thisItem;				
+			}
+			
+			// fill the data in parallel
+			// plus 1 is for total
+			double [] totals = new double[values.length + 1];
+			for(int columnIndex = 0;columnIndex < values.length + 1;columnIndex++)
+			{
+				// fill the data
+				String key = rowKey + "__" + columnIndex; // get the first level
+				if(itemLevelTotals.containsKey(key))
+				{
+					totals = itemLevelTotals.get(key);
+				}
+				else
+					totals[columnIndex] = 0;
+				
+				if(columnIndex < values.length)
+				{
+					totals[columnIndex] += dataArray[rowIndex][columnIndex];
+					allRowTotal[columnIndex] += dataArray[rowIndex][columnIndex];
+					rowDataArrayOutput[rowIndex][rows.size() + columnIndex] = dataArray[rowIndex][columnIndex] + "";
+					summer = summer+dataArray[rowIndex][columnIndex];
+				}
+				else
+				{
+					totals[columnIndex] += summer;
+					allRowTotal[columnIndex] += summer;
+				}
+				itemLevelTotals.put(key, totals);
+			}
+			rowDataArrayOutput[rowIndex][rows.size() + values.length] = summer + "";
+		}
+		
+		// generate html
+		//System.err.println("<table border=1>");
+		outputString.append("<table>");
+		outputString.append("<thead>");
+		
+		String curLevelItem = null;
+		boolean newItem = true;
+		
+		// columns first
+		for(int trIndex = 0;trIndex < columns.length;trIndex++)
+		{
+			//System.err.println("<tr>");
+			outputString.append("<tr>");
+			String [] thisRow = columns[trIndex];
+			String [] thisDataRow = columnsData[trIndex];
+			String parent = "";
+			for(int tdIndex = 0;tdIndex < rows.size();tdIndex++)
+				//System.err.println("<td></td>");
+				outputString.append("<th></th>");
+			
+			// need something that keeps the parent at this level as we process all of these
+			// we canot keep it
+			// it has to be based on index
+			
+			for(int tdIndex = rows.size();tdIndex < thisRow.length;tdIndex++)
+			{
+				String thisItem = thisRow[tdIndex];
+				String dataItem = thisDataRow[tdIndex];
+				String cardinalKey = dataItem + "__" + trIndex + "__" + tdIndex;
+				String key = dataItem + "__" + trIndex;
+				if(parent.length() > 0)
+					key = parent + ":" + key;
+				
+				if(thisItem != null && thisItem.length() > 0)
+				{
+					//System.err.print("<td");
+					outputString.append("<th style=\"width=200px;background-color:#F6F6F6;color:#1E1E1E;\"");
+					int colSpan = 0;
+					if(itemLevelColSpan.containsKey(cardinalKey))
+					{
+						colSpan = (Integer)itemLevelColSpan.get(cardinalKey);
+						if(newItem && tdIndex == 0)
+						{
+							//rowSpan++;
+							newItem = false;
+						}
+						//System.err.print(" rowspan=" + rowSpan + " >");
+						outputString.append(" colspan=" + colSpan + " >");
+						tdIndex += (colSpan - 1); // account for the tdindex++
+					}
+					else
+						//System.err.println(">");
+						outputString.append(">");
+					//System.err.println(thisItem);
+					//System.err.println("</td>");
+					outputString.append(thisItem);
+					outputString.append("</th>");
+					
+				}
+				else if(thisItem == null)
+				{
+					//System.err.println("<td>k</td>");
+					//outputString.append("<td></td>");
+				}
+				parent = key;
+			}
+			
+			//System.err.println("<tr>");
+			outputString.append("<tr>");
+		}
+		
+		// generate row headers next
+		//System.err.println("<tr>");
+		outputString.append("<tr>");
+		for(int tdIndex = 0;tdIndex < rows.size();tdIndex++)
+			//System.err.println("<td>" + rows[tdIndex] + "</td>");			
+			outputString.append("<th style=\"width:200px;background-color:#F6F6F6;color:#1E1E1E;\">" + rows.get(tdIndex) + "</th>");			
+		// fill other tds
+		for(int tdIndex = rows.size();tdIndex < columns[0].length;tdIndex++)
+			//System.err.println("<td></td>");
+			//width:200px;background-color:#F6F6F6;color:#1E1E1E;
+			outputString.append("<th style=\"width:200px;background-color:#F6F6F6;color:#1E1E1E;\"></th>");
+		
+		//System.err.println("</tr>");
+		outputString.append("</tr>");
+		outputString.append("</thead>");
+		outputString.append("<tbody>");
+
+		// write the data
+		for(int trIndex = 0;trIndex < rowDataArrayOutput.length;trIndex++)
+		{
+			String [] thisRow = rowDataArrayOutput[trIndex];
+			String [] thisDataRow = rowDataArray[trIndex];
+			String parent = "";			
+			//System.err.println("<tr>");
+			outputString.append("<tr>");
+			for(int tdIndex = 0;tdIndex < thisRow.length;tdIndex++)
+			{
+				String thisItem = thisRow[tdIndex];
+				String dataItem = thisDataRow[tdIndex];
+				String key = dataItem + "__" + tdIndex;
+				if(parent.length() > 0)
+					key = parent + ":" + key;
+				
+				if(tdIndex == 0 && curLevelItem != null && !dataItem.equalsIgnoreCase(curLevelItem)) // logic for doing totals
+				{
+					newItem = true;
+					// add the total for this column
+					//System.err.println("<td colspan=" + (thisRow.length - (values.length + 1)) +">");					
+					outputString.append("<th style=\"background-color:#F6F6F6;color:#1E1E1E;\" colspan=" + (thisRow.length - (values.length + 1)) +">");
+					//System.err.println(curLevelItem + " -- TOTAL </td>");
+					outputString.append(curLevelItem + " -- Total </th>");
+					double [] totals = itemLevelTotals.get(curLevelItem + "__" + tdIndex);
+					
+					if(totals != null)
+					{
+						for(int totalIndex = 0;totalIndex < totals.length;totalIndex++)
+						{
+							//System.err.println("<td>" + totals[totalIndex] + "</td>");
+							outputString.append("<td style=\"font-weight:bold;\">" + totals[totalIndex] + "</td>");
+						}
+					}
+					curLevelItem = dataItem;
+					//System.err.println("</tr><tr>");
+					outputString.append("</tr><tr>");
+				}
+				else if(curLevelItem == null)
+				{
+					curLevelItem = dataItem;
+				}
+				
+				if(thisItem != null && thisItem.length() > 0)
+				{
+					//System.err.print("<td");
+					if(tdIndex < rows.size())
+						outputString.append("<th style=\"background-color:#F6F6F6;color:#1E1E1E;\"");
+					else
+						outputString.append("<td");
+					int rowSpan = 0;
+					if(itemLevelRowSpan.containsKey(key))
+					{
+						rowSpan = (Integer)itemLevelRowSpan.get(key);
+						if(newItem && tdIndex == 0)
+						{
+							//rowSpan++;
+							newItem = false;
+						}
+						//System.err.print(" rowspan=" + rowSpan + " >");
+						outputString.append(" rowspan=" + rowSpan + " >");
+					}
+					else
+						//System.err.println(">");
+						outputString.append(">");
+					//System.err.println(thisItem);
+					//System.err.println("</td>");
+					outputString.append(thisItem);
+					if(tdIndex < rows.size())
+						outputString.append("</th>");
+					else
+						outputString.append("</td>");
+					
+				}
+				parent = key;
+				
+			}
+			//System.err.println("</tr>");
+			outputString.append("</tr>");
+			
+		}
+		
+		// print out the last total
+		//System.err.println("<tr>");
+		if(curLevelItem != null)
+		{
+			outputString.append("<tr>");
+			//System.err.println("<td colspan=" + (rowDataArrayOutput[0].length - (values.length + 1)) +">");
+			//System.err.println(curLevelItem + " -- TOTAL </td>");
+			outputString.append("<th style=\"width:200px;background-color:#F6F6F6;color:#1E1E1E;\" colspan=" + (rowDataArrayOutput[0].length - (values.length + 1)) +">");
+			outputString.append(curLevelItem + " -- TOTAL </th>");
+			double [] totals = itemLevelTotals.get(curLevelItem + "__" + 0);
+			
+			if(totals != null)
+			{
+				for(int totalIndex = 0;totalIndex < totals.length;totalIndex++)
+				{
+					//System.err.println("<td>" + totals[totalIndex] + "</td>");
+					outputString.append("<td style=\"font-weight:bold;\">" + totals[totalIndex] + "</td>");
+				}
+			}
+			//System.err.println("</tr>");
+			outputString.append("</tr>");
+		}
+		
+		// finally the grand total
+		//System.err.println("<tr>");
+		outputString.append("<tr>");
+		//System.err.println("<td colspan=" + (rowDataArrayOutput[0].length - (values.length + 1)) + ">All Total</td>");
+		outputString.append("<th style=\"background-color:#F6F6F6;color:#1E1E1E;font-weight:bold;\" colspan=" + (rowDataArrayOutput[0].length - (values.length + 1)) + ">All Total</th>");
+		
+		for(int tdIndex = 0;tdIndex < allRowTotal.length;tdIndex++)
+		{
+			//System.err.println("<td>" + allRowTotal[tdIndex] + "</td>");
+			outputString.append("<td style=\"font-weight:bold;\">" + allRowTotal[tdIndex] + "</td>");
+		}
+		//System.err.println("</tr>");
+		outputString.append("</tr>");
+
+		//System.out.println("</table>");
+		outputString.append("</tbody>");
+		outputString.append("</table>");
+		
+		//System.err.println(outputString);
+		
+		return outputString.toString();
+
 	}
 		
 }
