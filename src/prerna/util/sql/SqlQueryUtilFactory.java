@@ -103,7 +103,7 @@ public class SqlQueryUtilFactory {
 		} else if(dbType == TIBCO) {
 			queryUtil = new TibcoQueryUtil();
 		} else if(dbType == TRINO) {
-			queryUtil = new TibcoQueryUtil();
+			queryUtil = new TrinoQueryUtil();
 		} else {
 			throw new IllegalArgumentException("Unknown DB Type. Please define a query util for the DB Type " + dbType);
 		}
