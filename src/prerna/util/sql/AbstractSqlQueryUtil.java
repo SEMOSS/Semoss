@@ -71,6 +71,7 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String HOSTNAME = "hostname";
 	public static final String PORT = "port";
 	public static final String DATABASE = "database";
+	public static final String CATALOG = "catalog";
 	public static final String SCHEMA = "schema";
 	public static final String USERNAME = Constants.USERNAME;
 	public static final String PASSWORD = Constants.PASSWORD;
