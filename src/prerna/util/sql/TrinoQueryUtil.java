@@ -39,9 +39,9 @@ public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 		
-		String database = (String) configMap.get(AbstractSqlQueryUtil.DATABASE);
+		String database = (String) configMap.get(AbstractSqlQueryUtil.CATALOG);
 		if(database == null || database.isEmpty()) {
-			throw new RuntimeException("Must pass in the database/catalog");
+			throw new RuntimeException("Must pass in the catalog");
 		}
 		
 		String schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
@@ -87,9 +87,9 @@ public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 		
-		String database = (String) prop.get(AbstractSqlQueryUtil.DATABASE);
+		String database = (String) prop.get(AbstractSqlQueryUtil.CATALOG);
 		if(database == null || database.isEmpty()) {
-			throw new RuntimeException("Must pass in the database/catalog");
+			throw new RuntimeException("Must pass in the catalog");
 		}
 		
 		String schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
