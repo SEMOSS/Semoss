@@ -653,7 +653,7 @@ public class AZClient extends CloudClient {
 		//String aliasAppId = alias + "__" + appId;
 		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
-		File absoluteFolder = new File(Utility.normalizePath(appRcloneConfig));
+		File absoluteFolder = new File(Utility.normalizePath(absolutePath));
 		if(absoluteFolder.isDirectory()) {
 			//this is adding a hidden file into every sub folder to make sure there is no empty directory
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
