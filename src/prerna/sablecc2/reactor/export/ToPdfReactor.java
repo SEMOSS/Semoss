@@ -167,7 +167,6 @@ public class ToPdfReactor extends AbstractReactor {
 	        renderer.setDocument(tempXhtml.getAbsoluteFile());
 	        renderer.layout();
 	        renderer.createPDF(fos);
-	        fos.close();
 			logger.info("Done converting html to PDF...");
 		} catch (FileNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -184,7 +183,7 @@ public class ToPdfReactor extends AbstractReactor {
 				}
 			}
 		}
-
+		
 		// delete temp files
 		for (String path : tempPaths) {
 			try {
