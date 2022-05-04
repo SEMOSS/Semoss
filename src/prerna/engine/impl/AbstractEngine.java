@@ -475,20 +475,21 @@ public abstract class AbstractEngine implements IEngine {
 		return this.owlFileLocation;
 	}
 	
-	public String getPropFile() {
-		return propFile;
-	}
-
 	@Override
 	public void setPropFile(String propFile) {
 		this.propFile = propFile;
 		this.prop = Utility.loadProperties(propFile);
 	}
+	
+	@Override
+	public String getPropFile() {
+		return this.propFile;
+	}
 
-	public String getOWLDefinition()
-	{
-		if(owlHelper == null)
+	public String getOWLDefinition() {
+		if(owlHelper == null) {
 			return null;
+		}
 		return owlHelper.getOWLDefinition();
 	}
 
