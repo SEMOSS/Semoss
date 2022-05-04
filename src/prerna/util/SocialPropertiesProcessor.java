@@ -294,13 +294,19 @@ public class SocialPropertiesProcessor {
 		if(this.emailProps == null) {
 			this.emailProps = loadEmailProperties();
 		}
-		return this.emailProps;
+		if(this.emailProps == null) {
+			return null;
+		}
+		return new Properties(this.emailProps);
 	}
 	
 	public Map<String, String> getEmailStaticProps() {
 		if(this.emailStaticProps == null) {
 			this.emailStaticProps = loadEmailStaticProps();
 		}
-		return this.emailStaticProps;
+		if(this.emailStaticProps == null) {
+			return null;
+		}
+		return new HashMap<>(this.emailStaticProps);
 	}
 }
