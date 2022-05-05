@@ -95,6 +95,9 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/FAVORITE/ENGINEPERMISSION")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DISCOVERABLE/ENGINEPERMISSION")) {
+				return true;
+			}
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/INSIGHT");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PROJECTID/INSIGHT")) {
@@ -212,6 +215,8 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "PERMISSION", "INT");
 		owler.addProp("ENGINEPERMISSION", "VISIBILITY", "BOOLEAN");
 		owler.addProp("ENGINEPERMISSION", "FAVORITE", "BOOLEAN");
+		owler.addProp("ENGINEPERMISSION", "DISCOVERABLE", "BOOLEAN");
+
 
 		//PROJECT
 		owler.addConcept("PROJECT", null, null);
@@ -228,8 +233,8 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "PERMISSION", "INT");
 		owler.addProp("PROJECTPERMISSION", "VISIBILITY", "BOOLEAN");
 		owler.addProp("PROJECTPERMISSION", "FAVORITE", "BOOLEAN");
+		owler.addProp("PROJECTPERMISSION", "DISCOVERABLE", "BOOLEAN");
 
-		
 		//PROJECTMETA
 		owler.addConcept("PROJECTMETA", null, null);
 		owler.addProp("PROJECTMETA", "PROJECTID", "VARCHAR(255)");
