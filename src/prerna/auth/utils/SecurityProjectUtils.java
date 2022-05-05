@@ -322,10 +322,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("This user already has access to this project. Please edit the existing permission level.");
 		}
 
-		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES('"
+		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, DISCOVERABLE, PERMISSION) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', "
 				+ "TRUE, "
+				+ "FALSE, "
 				+ AccessPermission.getIdByPermission(permission) + ");";
 
 		try {
@@ -695,7 +696,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws SQLException
 	 */
 	public static void copyProjectPermissions(String sourceProjectId, String targetProjectId) throws Exception {
-		String insertTargetAppPermissionSql = "INSERT INTO PROJECTPERMISSION (PROJECTID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
+		String insertTargetAppPermissionSql = "INSERT INTO PROJECTPERMISSION (PROJECTID, USERID, PERMISSION, VISIBILITY, DISCOVERABLE) VALUES (?, ?, ?, ?, ?)";
 		PreparedStatement insertTargetAppPermissionStatement = securityDb.getPreparedStatement(insertTargetAppPermissionSql);
 		
 		// grab the permissions, filtered on the source engine id
@@ -704,6 +705,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY"));
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__DISCOVERABLE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", sourceProjectId));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -716,6 +718,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertTargetAppPermissionStatement.setString(2, (String) row[1]);
 				insertTargetAppPermissionStatement.setInt(3, ((Number) row[2]).intValue() );
 				insertTargetAppPermissionStatement.setBoolean(4, (Boolean) row[3]);
+				insertTargetAppPermissionStatement.setBoolean(5, (Boolean) row[4]);
 				// add to batch
 				insertTargetAppPermissionStatement.addBatch();
 			}
@@ -990,7 +993,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
-						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, DISCOVERABLE, PERMISSION) VALUES (?,?,?,?,?,?)");
 				if(ps == null) {
 					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
 				}
@@ -1003,6 +1006,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, projectId);
 						ps.setBoolean(parameterIndex++, visibility);
 						// default favorite as false
+						ps.setBoolean(parameterIndex++, false);
 						ps.setBoolean(parameterIndex++, false);
 						ps.setInt(parameterIndex++, 3);
 	
@@ -1070,7 +1074,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
-						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, DISCOVERABLE, PERMISSION) VALUES (?,?,?,?,?,?)");
 				if(ps == null) {
 					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
 				}
@@ -1084,6 +1088,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						// default visibility as true
 						ps.setBoolean(parameterIndex++, true);
 						ps.setBoolean(parameterIndex++, isFavorite);
+						ps.setBoolean(parameterIndex++, false);
 						ps.setInt(parameterIndex++, 3);
 	
 						ps.addBatch();
