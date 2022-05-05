@@ -701,7 +701,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	public static void addDatabaseOwner(String databaseId, String userId) {
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES (?,?,?,?)";
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY, FAVORITE, DISCOVERABLE) VALUES (?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -711,6 +711,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setInt(parameterIndex++, AccessPermission.OWNER.getId());
 			ps.setString(parameterIndex++, databaseId);
 			ps.setBoolean(parameterIndex++, true);
+			ps.setBoolean(parameterIndex++, false);
+			ps.setBoolean(parameterIndex++, false);
 			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {
@@ -1520,7 +1522,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
-						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, DISCOVERABLE, PERMISSION) VALUES (?,?,?,?,?,?)");
 				if(ps == null) {
 					throw new IllegalArgumentException("Error generating prepared statement to set app visibility");
 				}
@@ -1533,6 +1535,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, databaseId);
 						ps.setBoolean(parameterIndex++, visibility);
 						// default favorite as false
+						ps.setBoolean(parameterIndex++, false);
+						// default discoverable as false
 						ps.setBoolean(parameterIndex++, false);
 						ps.setInt(parameterIndex++, 3);
 	
@@ -1600,7 +1604,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
-						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, DISCOVERABLE, PERMISSION) VALUES (?,?,?,?,?,?)");
 				if(ps == null) {
 					throw new IllegalArgumentException("Error generating prepared statement to set app visibility");
 				}
@@ -1614,6 +1618,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						// default visibility as true
 						ps.setBoolean(parameterIndex++, true);
 						ps.setBoolean(parameterIndex++, isFavorite);
+						// default discoverable as false
+						ps.setBoolean(parameterIndex++, false);
 						ps.setInt(parameterIndex++, 3);
 	
 						ps.addBatch();
