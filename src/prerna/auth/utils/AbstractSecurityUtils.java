@@ -241,9 +241,9 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// ENGINEPERMISSION
-		colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE" };
-		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
-		defaultValues = new Object[]{null, null, null, true, false};
+		colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE", "DISCOVERABLE" };
+		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME , BOOLEAN_DATATYPE_NAME};
+		defaultValues = new Object[]{null, null, null, true, false, false};
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues));
 		} else {
@@ -265,12 +265,21 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(queryUtil.alterTableAddColumn("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
 				}
 			}
+			// ADDED 05/03/2022
+			if(!allCols.contains("DISCOVERABLE") && !allCols.contains("DISCOVERABLE")) {
+				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+					securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("ENGINEPERMISSION", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
+				} else {
+					securityDb.insertData(queryUtil.alterTableAddColumn("ENGINEPERMISSION", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
+				}
+			}
 		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_DISCOVERABLE_INDEX", "ENGINEPERMISSION", "DISCOVERABLE"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID"));
 		} else {
 			// see if index exists
@@ -285,6 +294,9 @@ public abstract class AbstractSecurityUtils {
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE"));
+			}
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_DISCOVERABLE_INDEX", "ENGINEPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_DISCOVERABLE_INDEX", "ENGINEPERMISSION", "DISCOVERABLE"));
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID"));
@@ -377,9 +389,9 @@ public abstract class AbstractSecurityUtils {
 		
 		// PROJECTPERMISSION
 		boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", schema);
-		colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE" };
-		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
-		defaultValues = new Object[]{null, null, null, true, false};
+		colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE", "DISCOVERABLE" };
+		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+		defaultValues = new Object[]{null, null, null, true, false, false};
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types, defaultValues));
 		} else {
@@ -390,10 +402,24 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
+		// TEMPORARY CHECK! - ADDED 05/03/2022
+		{
+			List<String> allCols = queryUtil.getTableColumns(conn, "PROJECTPERMISSION", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("DISCOVERABLE") && !allCols.contains("DISCOVERABLE")) {
+				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+					securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("PROJECTPERMISSION", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
+				} else {
+					securityDb.insertData(queryUtil.alterTableAddColumn("PROJECTPERMISSION", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
+				}
+			}
+		}
+		
 		if(!projectPermissionExists) {
 			IRawSelectWrapper wrapper2 = null;
 			try {
-				wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select userid, permission, engineid, visibility, favorite from enginepermission");
+				wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select userid, permission, engineid, visibility, favorite, discoverable from enginepermission");
 				while(wrapper2.hasNext()) {
 					Object[] values = wrapper2.next().getValues();
 					// if the project exists - we will insert it
@@ -416,6 +442,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", "VISIBILITY"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_DISCOVERABLE_INDEX", "PROJECTPERMISSION", "DISCOVERABLE"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
 		} else {
 			// see if index exists
@@ -430,6 +457,9 @@ public abstract class AbstractSecurityUtils {
 			}
 			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
+			}
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_DISCOVERABLE_INDEX", "PROJECTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_DISCOVERABLE_INDEX", "PROJECTPERMISSION", "DISCOVERABLE"));
 			}
 			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
