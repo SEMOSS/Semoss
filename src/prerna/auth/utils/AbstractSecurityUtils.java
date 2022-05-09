@@ -177,8 +177,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// ENGINE
-		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "TYPE", "COST" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", "TYPE", "COST" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
@@ -188,14 +188,31 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("ENGINE", colNames, types));
 			}
 		}
+		// TEMPORARY CHECK! - ADDED 05/09/2022
+		{
+			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINE", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("DISCOVERABLE") && !allCols.contains("discoverable")) {
+				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+					securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("ENGINE", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
+				} else {
+					securityDb.insertData(queryUtil.alterTableAddColumn("ENGINE", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
+				}
+			}
+		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "ENGINE_GLOBAL_INDEX", "ENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL"));
+			}
+			if(!queryUtil.indexExists(securityDb, "ENGINE_DISCOVERABLE_INDEX", "ENGINE", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE"));
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINENAME_INDEX", "ENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME"));
@@ -302,8 +319,8 @@ public abstract class AbstractSecurityUtils {
 		// PROJECT
 		// Type and cost are the main questions - 
 		boolean projectExists = queryUtil.tableExists(conn, "PROJECT", schema);
-		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "TYPE", "COST" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", "TYPE", "COST" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECT", colNames, types));
 		} else {
@@ -313,14 +330,31 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("PROJECT", colNames, types));
 			}
 		}
+		// TEMPORARY CHECK! - ADDED 05/09/2022
+		{
+			List<String> allCols = queryUtil.getTableColumns(conn, "PROJECT", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("DISCOVERABLE") && !allCols.contains("discoverable")) {
+				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+					securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("PROJECT", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
+				} else {
+					securityDb.insertData(queryUtil.alterTableAddColumn("PROJECT", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
+				}
+			}
+		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_DISCOVERABLE_INDEX", "PROJECT", "DISCOVERABLE"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_PROJECTENAME_INDEX", "PROJECT", "PROJECTNAME"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "PROJECT_GLOBAL_INDEX", "PROJECT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL"));
+			}
+			if(!queryUtil.indexExists(securityDb, "PROJECT_DISCOVERABLE_INDEX", "PROJECT", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECT_GLOBAL_INDEX", "PROJECT", "DISCOVERABLE"));
 			}
 			if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTENAME_INDEX", "PROJECT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTENAME_INDEX", "PROJECT", "PROJECTNAME"));
@@ -334,11 +368,11 @@ public abstract class AbstractSecurityUtils {
 		if(!projectExists) {
 			IRawSelectWrapper wrapper2 = null;
 			try {
-				wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select engineid, enginename, global from engine");
+				wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select engineid, enginename, global, discoverable from engine");
 				while(wrapper2.hasNext()) {
 					Object[] values = wrapper2.next().getValues();
 					// insert into project table
-					securityDb.insertData(queryUtil.insertIntoTable("PROJECT", colNames, types, new Object[]{values[1], values[0], values[2], null, null}));
+					securityDb.insertData(queryUtil.insertIntoTable("PROJECT", colNames, types, new Object[]{values[1], values[0], values[2], values[3], null, null}));
 					
 					// store this so we also move over permissions
 					// this is the engine id which is the same as the project id
