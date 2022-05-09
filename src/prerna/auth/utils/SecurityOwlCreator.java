@@ -63,9 +63,6 @@ public class SecurityOwlCreator {
 	 * @return
 	 */
 	public boolean needsRemake() {
-		if (true) {
-			return true;
-		}
 		/*
 		 * This is a very simple check
 		 * Just looking at the tables
@@ -131,6 +128,10 @@ public class SecurityOwlCreator {
 				return true;
 			}
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DAYS_TO_LOCK_WARNING/PASSWORD_RULES")) {
+				return true;
+			}
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINE");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DISCOVERABLE/ENGINE")) {
 				return true;
 			}
 		}
