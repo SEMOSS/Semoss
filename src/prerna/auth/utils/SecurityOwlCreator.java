@@ -63,6 +63,9 @@ public class SecurityOwlCreator {
 	 * @return
 	 */
 	public boolean needsRemake() {
+		if (true) {
+			return true;
+		}
 		/*
 		 * This is a very simple check
 		 * Just looking at the tables
@@ -195,6 +198,7 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINE", "ENGINEID", "VARCHAR(255)");
 		owler.addProp("ENGINE", "ENGINENAME", "VARCHAR(255)");
 		owler.addProp("ENGINE", "GLOBAL", "BOOLEAN");
+		owler.addProp("ENGINE", "DISCOVERABLE", "BOOLEAN");
 		owler.addProp("ENGINE", "TYPE", "VARCHAR(255)");
 		owler.addProp("ENGINE", "COST", "VARCHAR(255)");
 		
@@ -218,6 +222,7 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECT", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("PROJECT", "PROJECTNAME", "VARCHAR(255)");
 		owler.addProp("PROJECT", "GLOBAL", "BOOLEAN");
+		owler.addProp("PROJECT", "DISCOVERABLE", "BOOLEAN");
 		owler.addProp("PROJECT", "TYPE", "VARCHAR(255)");
 		owler.addProp("PROJECT", "COST", "VARCHAR(255)");
 		
