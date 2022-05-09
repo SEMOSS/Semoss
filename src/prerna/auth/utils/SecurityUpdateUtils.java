@@ -632,8 +632,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global) {
-		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL) "
-				+ "VALUES (?,?,?,?,?)";
+		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL, DISCOVERABLE) "
+				+ "VALUES (?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -644,6 +644,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, dbType);
 			ps.setString(parameterIndex++, dbCost);
 			ps.setBoolean(parameterIndex++, global);
+			ps.setBoolean(parameterIndex++, false);
 			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {
@@ -814,8 +815,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	public static void addProject(String projectID, String projectName, String projectType, String projectCost, boolean global) {
-		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL) "
-				+ "VALUES (?,?,?,?,?)";
+		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL, DISCOVERABLE) "
+				+ "VALUES (?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -826,6 +827,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectType);
 			ps.setString(parameterIndex++, projectCost);
 			ps.setBoolean(parameterIndex++, global);
+			ps.setBoolean(parameterIndex++, false);
 			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {
