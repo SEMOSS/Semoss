@@ -10,27 +10,41 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import javax.net.ssl.HostnameVerifier;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -628,7 +642,73 @@ public abstract class AbstractHttpHelper {
 		}
 		
 		return retString;
+	}
+	
+	/**
+	 * Get a custom client using the info passed in
+	 * @param cookieStore
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @return
+	 */
+	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass) {
+		HttpClientBuilder builder = HttpClients.custom();
+		if(cookieStore != null) {
+			builder.setDefaultCookieStore(cookieStore);
+		}
+		
+		TrustStrategy trustStrategy = new TrustStrategy() {
+			
+			@Override
+			public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+				return true;
+			}
+		};
+		
+		HostnameVerifier verifier = new NoopHostnameVerifier();
+		
+		SSLConnectionSocketFactory connFactory = null;
+		try {
+			SSLContextBuilder sslContextBuilder = SSLContextBuilder.create().loadTrustMaterial(trustStrategy);
 
+			// add the cert if required
+			if(keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {
+				File keyStoreF = new File(keyStore);
+				if(!keyStoreF.exists() && !keyStoreF.isFile()) {
+					logger.warn("Defined a keystore to use in the request but the file " + keyStoreF.getAbsolutePath() + " does not exist");
+				} else {
+					sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(), keyStorePass.toCharArray());
+				}
+			}
+			
+			connFactory = new SSLConnectionSocketFactory(
+					sslContextBuilder.build()
+					, new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"}
+					, null
+					, verifier) 
+//			{
+//				@Override
+//				protected void prepareSocket(SSLSocket socket) {
+//		            socket.setEnabledProtocols(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3" });
+//				}
+//			}
+			;
+		} catch (KeyManagementException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (NoSuchAlgorithmException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (KeyStoreException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (UnrecoverableKeyException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (CertificateException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		builder.setSSLSocketFactory(connFactory);
+		return builder.build();
 	}
 	
 

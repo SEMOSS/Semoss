@@ -1,19 +1,10 @@
 package prerna.rpa.quartz.jobs.insight;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.HttpCookie;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import javax.net.ssl.HostnameVerifier;
 
 import org.apache.http.Header;
 import org.apache.http.NameValuePair;
@@ -23,16 +14,10 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.InterruptableJob;
@@ -45,6 +30,7 @@ import prerna.rpa.RPAProps;
 import prerna.rpa.config.JobConfigKeys;
 import prerna.rpa.quartz.CommonDataKeys;
 import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
+import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -73,6 +59,10 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		// insert the exec id so we allow the execution
 		SchedulerDatabaseUtility.insertIntoExecutionTable(execId, jobId, jobGroup);
 		
+		// add the scheduler cert if required
+		String keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
+		String keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+		
 		try {
 			// run the pixel endpoint
 			boolean success;
@@ -85,7 +75,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			String csrfToken = null;
 			CookieStore cookieStore = null;
 			if(FETCH_CSRF){
-				CloseableHttpClient httpclient = getCustomClient(null);
+				CloseableHttpClient httpclient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
 				String fetchUrl = url;
 				if(fetchUrl.endsWith("/")) {
 					fetchUrl += "api/config/fetchCsrf";
@@ -136,7 +126,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				url += "/api/schedule/executePixel";
 			}
 			
-			CloseableHttpClient httpclient = getCustomClient(cookieStore);
+			CloseableHttpClient httpclient = AbstractHttpHelper.getCustomClient(cookieStore, keyStore, keyStorePass);
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
 			if(csrfToken != null) {
@@ -243,70 +233,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
-		logger.warn("Received request to interrupt the " + jobId
-				+ " job. However, there is nothing to interrupt for this job.");
-	}
-	
-	private CloseableHttpClient getCustomClient(CookieStore cookieStore) {
-		HttpClientBuilder builder = HttpClients.custom();
-		if(cookieStore != null) {
-			builder.setDefaultCookieStore(cookieStore);
-		}
-		
-		TrustStrategy trustStrategy = new TrustStrategy() {
-			
-			@Override
-			public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-				return true;
-			}
-		};
-		
-		HostnameVerifier verifier = new NoopHostnameVerifier();
-		
-		SSLConnectionSocketFactory connFactory = null;
-		try {
-			SSLContextBuilder sslContextBuilder = SSLContextBuilder.create().loadTrustMaterial(trustStrategy);
-
-			// add the scheduler cert if required
-			String keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
-			String keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			if(keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {
-				File keyStoreF = new File(keyStore);
-				if(!keyStoreF.exists() && !keyStoreF.isFile()) {
-					logger.warn("Scheduler defined a keystore to use in the request but the file " + keyStoreF.getAbsolutePath() + " does not exist");
-				} else {
-					sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(), keyStorePass.toCharArray());
-				}
-			}
-			
-			connFactory = new SSLConnectionSocketFactory(
-					sslContextBuilder.build()
-					, new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"}
-					, null
-					, verifier) 
-//			{
-//				@Override
-//				protected void prepareSocket(SSLSocket socket) {
-//		            socket.setEnabledProtocols(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3" });
-//				}
-//			}
-			;
-		} catch (KeyManagementException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (NoSuchAlgorithmException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (KeyStoreException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (UnrecoverableKeyException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (CertificateException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		
-		builder.setSSLSocketFactory(connFactory);
-		return builder.build();
+		logger.warn("Received request to interrupt the " + jobId + " job. However, there is nothing to interrupt for this job.");
 	}
 	
 	public static void setFetchCsrf(boolean fetchCsrf) {
