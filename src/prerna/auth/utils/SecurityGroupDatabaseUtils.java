@@ -20,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 
 public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 	
@@ -437,5 +438,27 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured removing the user permissions for this database", e);
 		}
+	}
+	
+	/**
+	 * Determine if a group can view a database
+	 * @param user
+	 * @param databaseId
+	 * @return
+	 */
+	public static List<String> getAllUserGroupDatabases(User user) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		List<AuthProvider> logins = user.getLogins();
+		for(AuthProvider login : logins) {
+			AndQueryFilter andFilter = new AndQueryFilter();
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+			orFilter.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilter);
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 }
