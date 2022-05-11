@@ -1,8 +1,6 @@
 package prerna.sablecc2.reactor.utils;
 
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -10,22 +8,22 @@ import java.util.Vector;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.security.AbstractHttpHelper;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class GetRequestReactor extends AbstractReactor {
 
 	public GetRequestReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap"};
+		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", "useApplicationCert"};
 	}
 	
 	@Override
@@ -33,14 +31,18 @@ public class GetRequestReactor extends AbstractReactor {
 		organizeKeys();
 		String url = this.keyValue.get(this.keysToGet[0]);
 		List<Map<String, String>> headersMap = getHeadersMap();
-				
+		String keyStore = null;
+		String keyStorePass = null;
+		boolean useApplicationCert = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]) + "");
+		if(useApplicationCert) {
+			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
+			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+		}
+		
 		ResponseHandler<String> handler = new BasicResponseHandler();
 		CloseableHttpResponse response = null;
 		try {
-			SSLContextBuilder builder = new SSLContextBuilder();
-			//builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
-			CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
+			CloseableHttpClient httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
 			HttpGet httpGet = new HttpGet(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(int i = 0; i < headersMap.size(); i++) {
@@ -52,12 +54,6 @@ public class GetRequestReactor extends AbstractReactor {
 			}
 			response = httpClient.execute(httpGet);
 		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
-		} catch (KeyManagementException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
@@ -86,6 +82,16 @@ public class GetRequestReactor extends AbstractReactor {
 			return headers;
 		}
 		return null;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals("headersMap")) {
+			return "Map containing key-value pairs to send in the GET request";
+		} else if(key.equals("useApplicationCert")) {
+			return "Boolean if we should use the default application certificate when making the request";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
