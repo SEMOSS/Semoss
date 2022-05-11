@@ -133,6 +133,7 @@ public enum ReactorKeysEnum {
 	PARAM_VALUES_MAP("paramValues",							"Map containing the param name to param values"),
 	PARALLEL_WORKER("parallel_worker", 						"Class that will run as a thread"),
 	PASSWORD("password", 									"Password used in conjunction with the username for access to a service"),
+	PERMISSION("permission", 								"Permission level"),
 	PIXEL("pixel", 											"Pixel script as string"),
 	PIXEL_ID("pixelId", 									"The pixel id for this pixel step"),
 	PLACE_HOLDER_DATA("placeHolderData",                    "Updated place holder information of the template"),
