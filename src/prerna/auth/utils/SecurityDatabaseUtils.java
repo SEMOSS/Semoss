@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -17,6 +18,7 @@ import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -196,7 +198,6 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
 	
 	/**
 	 * 
@@ -654,5 +655,89 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Return the databases the user has explicit access to
+	 * @param singleUserId
+	 * @return
+	 */
+	public static Set<String> getDatabasesUserHasExplicitAccess(User user) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		qs.addExplicitFilter(orFilter);
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
+	}
+	
+	/**
+	 * Determine if a user can request a database
+	 * @param databaseId
+	 * @return
+	 */
+	public static boolean canRequestDatabase(String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				// if you are here, you can request
+				return true;
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * Get the list of databases the user does not have access to but can request
+	 * @param allUserDbs 
+	 * @throws Exception
+	 */
+	public static List<Map<String, Object>> getUserRequestableDatabases(Collection<String> allUserDbs) throws Exception {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", allUserDbs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}	
+
+	public static List<Map<String, Object>> getDatabaseInfo(Collection dbFilter) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", dbFilter));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Retrieve the database owner
+	 * @param user
+	 * @param databaseId
+	 * @param insightId
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static List<String> getDatabaseOwners(String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", AccessPermission.OWNER.getId()));
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 }
