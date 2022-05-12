@@ -55,14 +55,17 @@ public class BrowseAssetReactor extends AbstractReactor {
 		
 		 // set the context here
 		if(!keyValue.containsKey(keysToGet[0]) && space != null) {
-			this.insight.setContext(space);
-			//if we have a chroot, mount the project for that user.
-			if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
-				//get the app_root folder for the project
-				this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
+			try {
+				this.insight.setContext(space);
+				//if we have a chroot, mount the project for that user.
+				if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+					//get the app_root folder for the project
+					this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
+				}
+			} catch(IllegalArgumentException e) {
+				// ignore
 			}
 		}
-			
 		
 		File dirFile = new File(assetFolder + "/" + locFolder);
 		if(!dirFile.exists()) {
