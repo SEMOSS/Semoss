@@ -3595,6 +3595,7 @@ public class Utility {
 		String className = classObject.getName();
 		if(className.equals("prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor")
 				|| className.equals("prerna.sablecc2.reactor.frame.py.AbstractPyFrameReactor")
+				|| className.equals("prerna.sablecc2.reactor.frame.AbstractFrameReactor")
 				|| className.equals("prerna.sablecc2.reactor.AbstractReactor")
 				|| className.equals("prerna.sablecc2.reactor.IReactor")
 				) {
