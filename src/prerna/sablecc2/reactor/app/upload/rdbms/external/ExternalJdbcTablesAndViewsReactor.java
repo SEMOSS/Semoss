@@ -135,7 +135,6 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 					tableType = tableType.toUpperCase();
 				}
 				// get schema
-
 				String tableSchema = null;
 				if (driverEnum.equals(RdbmsTypeEnum.ORACLE)) {
 					tableSchema =  meta.getUserName();
