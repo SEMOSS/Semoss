@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -224,7 +225,39 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					}
 				}
 				else if(type == Types.BOOLEAN || type == Types.BIT) {
-					val = rs.getBoolean(colNum);
+					try {
+						val = rs.getBoolean(colNum);
+					} catch (SQLDataException e) {
+						// sometimes, this is stored as an integer or string
+						// as an example, opensearch
+						try {
+							val = rs.getInt(colNum);
+							if(val != null) {
+								if(((int) val) == 0) {
+									val = false;
+								} else {
+									val = true;
+								}
+							}
+						} catch (SQLDataException e2) {
+							val = rs.getString(colNum);
+							if(val != null) {
+								if(Integer.parseInt(val + "") == 0) {
+									val = false;
+								} else {
+									val = true;
+								}
+							}
+						}
+					}
+				}
+				// just grab the object and see what happens...
+				else if(type == Types.OTHER) {
+					try {
+						val = rs.getObject(colNum);
+					} catch(Exception e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 				else {
 					val = rs.getString(colNum);

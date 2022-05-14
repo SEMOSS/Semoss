@@ -46,6 +46,8 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		databaseId = testDatabaseId(databaseId, true);
+
 		String distanceStr = this.keyValue.get(this.keysToGet[2]);
 		if(distanceStr == null || distanceStr.isEmpty()) {
 			// default to direct matches only
