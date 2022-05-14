@@ -409,7 +409,12 @@ public class RdbmsConnectionHelper {
 	 */
 	public static String[] getTableKeys(RdbmsTypeEnum driver) {
 		String[] arr = new String[4];
-		if(driver == RdbmsTypeEnum.SNOWFLAKE|| driver == RdbmsTypeEnum.CLICKHOUSE ||driver == RdbmsTypeEnum.ATHENA || driver == RdbmsTypeEnum.CASSANDRA ) {
+		if(driver == RdbmsTypeEnum.SNOWFLAKE || 
+				driver == RdbmsTypeEnum.CLICKHOUSE || 
+				driver == RdbmsTypeEnum.ATHENA || 
+				driver == RdbmsTypeEnum.CASSANDRA ||
+				driver == RdbmsTypeEnum.OPEN_SEARCH
+				) {
 			arr[0] = "TABLE_NAME";
 			arr[1] = "TABLE_TYPE";
 			arr[2] = "TABLE_SCHEM";
@@ -470,7 +475,11 @@ public class RdbmsConnectionHelper {
 	 */
 	public static String[] getColumnKeys(RdbmsTypeEnum driver) {
 		String[] arr = new String[2];
-		if(driver == RdbmsTypeEnum.SNOWFLAKE || driver == RdbmsTypeEnum.CLICKHOUSE || driver == RdbmsTypeEnum.CASSANDRA) {
+		if(driver == RdbmsTypeEnum.SNOWFLAKE || 
+				driver == RdbmsTypeEnum.CLICKHOUSE || 
+				driver == RdbmsTypeEnum.CASSANDRA ||
+				driver == RdbmsTypeEnum.OPEN_SEARCH
+				) {
 			arr[0] = "COLUMN_NAME";
 			arr[1] = "TYPE_NAME";
 		} else {

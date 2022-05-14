@@ -61,6 +61,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		databaseId = testDatabaseId(databaseId, true);
 		boolean sync = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		File uploadFile = new File(filePath);
