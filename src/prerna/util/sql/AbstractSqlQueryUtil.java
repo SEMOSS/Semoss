@@ -179,7 +179,7 @@ public abstract class AbstractSqlQueryUtil {
 			Class.forName(type.getDriver());
 		} catch (ClassNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new SQLException("Unable to find driver for engine type");
+			throw new SQLException("Unable to find class: " + type.getDriver());
 		}
 
 		// create the iterator
