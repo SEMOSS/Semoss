@@ -3,16 +3,16 @@ package prerna.util.sql;
 import java.util.Map;
 import java.util.Properties;
 
-public class ElasticSearchAwsQueryUtil extends AnsiSqlQueryUtil {
+public class ElasticSearchQueryUtil extends AnsiSqlQueryUtil {
 	
-	ElasticSearchAwsQueryUtil() {
+	ElasticSearchQueryUtil() {
 		super();
-		setDbType(RdbmsTypeEnum.ELASTIC_SEARCH_AWS);
+		setDbType(RdbmsTypeEnum.ELASTIC_SEARCH);
 	}
 	
-	ElasticSearchAwsQueryUtil(String connectionUrl, String username, String password) {
+	ElasticSearchQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
-		setDbType(RdbmsTypeEnum.ELASTIC_SEARCH_AWS);
+		setDbType(RdbmsTypeEnum.ELASTIC_SEARCH);
 	}
 	
 	@Override
@@ -44,7 +44,7 @@ public class ElasticSearchAwsQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		// example:
-		// jdbc:elasticsearch://https://remote-host-name?auth=aws_sigv4&region=us-west-1
+		// jdbc:es://http://server:3456/?timezone=UTC&page.size=250
 		connectionString = urlPrefix+"://"+httpType+"://"+hostname+port;
 		
 		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
