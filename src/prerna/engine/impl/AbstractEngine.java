@@ -387,6 +387,11 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	@Override
+	public MetaHelper getMetaHelper() {
+		return this.owlHelper;
+	}
+	
+	@Override
 	public void setBaseDataEngine(RDFFileSesameEngine baseDataEngine) {
 		this.baseDataEngine = baseDataEngine;
 		this.owlHelper = new MetaHelper(this.baseDataEngine, getEngineType(), this.engineId);
