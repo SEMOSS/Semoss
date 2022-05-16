@@ -10,6 +10,11 @@ public class FormUtility {
 		return new StringBuilder("<smss-input ng-model=\"form.dataModel." + variableToBind + 
 				".selected\"></smss-input>\\n").toString();
 	}
+	
+	public static String getTypeAheadComponent(String variableToBind) {
+		return new StringBuilder("<smss-typeahead ng-model=\"form.dataModel." + variableToBind + 
+				".selected\" options=\"\"></smss-typeahead>\\n").toString();
+	}
 
 	public static String getDropdownComponent(String variableToBind) {
 		return new StringBuilder("<smss-dropdown model=\"form.dataModel." + variableToBind + ".selected\" options=\"form.dataModel." + 
