@@ -30,6 +30,8 @@ package prerna.engine.api;
 import java.util.Properties;
 import java.util.Vector;
 
+import prerna.engine.impl.MetaHelper;
+
 /**
  * This interface standardizes the functionality of all engines.  All engines must implement this interface 
  * so that they can be used without first recognizing what specific engine class it is.  A lot of different classes call on 
@@ -196,7 +198,14 @@ public interface IEngine extends IExplorable {
 	 * Gets the UDF - user defined functions in this data catalog
 	 * @return
 	 */
-	public String [] getUDF();
+	String [] getUDF();
+	
+	/**
+	 * Get the meta helper which does all the IExplorable operations
+	 * @return
+	 */
+	MetaHelper getMetaHelper();
+	
 }
 
 
