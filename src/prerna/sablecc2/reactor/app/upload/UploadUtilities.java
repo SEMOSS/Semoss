@@ -1815,10 +1815,10 @@ public class UploadUtilities {
 			// build html based on input component
 			if (propType == SemossDataType.DATE) {
 				htmlSb.append(FormUtility.getDatePickerComponent(property));
-			} else if (propType == SemossDataType.STRING) {
-				htmlSb.append(FormUtility.getInputComponent(property));
 			} else if (Utility.isNumericType(propType.toString())) {
 				htmlSb.append(FormUtility.getNumberPickerComponent(property));
+			} else if (propType == SemossDataType.STRING) {
+				htmlSb.append(FormUtility.getTypeAheadComponent(property));
 			}
 			
 			// build data property map for data binding
