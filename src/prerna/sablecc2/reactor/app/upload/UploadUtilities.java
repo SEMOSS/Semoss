@@ -89,9 +89,13 @@ public class UploadUtilities {
 	public static final String AUDIT_TIMELINE_INSIGHT_NAME = "What are the modifications made to the specific column(s) over time?";
 	public static final String AUDIT_TIMELINE_LAYOUT = "Line";
 	
+	public static final String INSERT_FORM_LAYOUT = "form-builder";
+	public static final String UPDATE_FORM_LAYOUT = "form-builder";
+
 	public static final String INSIGHT_ID_KEY = "id";
 	public static final String RECIPE_ID_KEY = "recipe";
-	
+	public static final String INSIGHT_NAME_KEY = "insightName";
+
 	private UploadUtilities() {
 
 	}
@@ -1219,6 +1223,15 @@ public class UploadUtilities {
 		return databaseOrProjectName + " - " + baseName;
 	}
 	
+	/**
+	 * Get a unique name for this insight
+	 * @param databaseName
+	 * @param baseName
+	 * @return
+	 */
+	public static String getInsightName(String databaseOrProjectName, String tableName, String baseName) {
+		return databaseOrProjectName + " - " + baseName;
+	}
 
 	/**
 	 * Add explore an instance to the insights database
@@ -1265,6 +1278,7 @@ public class UploadUtilities {
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put(INSIGHT_ID_KEY, insightId);
 				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+				retMap.put(INSIGHT_NAME_KEY, insightName);
 				return retMap;
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -1307,6 +1321,7 @@ public class UploadUtilities {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(INSIGHT_ID_KEY, insightId);
 			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+			retMap.put(INSIGHT_NAME_KEY, INSIGHT_USAGE_STATS_INSIGHT_NAME);
 			return retMap;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1350,6 +1365,7 @@ public class UploadUtilities {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(INSIGHT_ID_KEY, insightId);
 			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+			retMap.put(INSIGHT_NAME_KEY, insightName);
 			return retMap;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1402,6 +1418,7 @@ public class UploadUtilities {
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put(INSIGHT_ID_KEY, insightId);
 				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+				retMap.put(INSIGHT_NAME_KEY, insightName);
 				return retMap;
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -1454,6 +1471,7 @@ public class UploadUtilities {
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put(INSIGHT_ID_KEY, insightId);
 				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+				retMap.put(INSIGHT_NAME_KEY, insightName);
 				return retMap;
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -1465,21 +1483,23 @@ public class UploadUtilities {
 	/**
 	 * Add insert form for csv
 	 * 
-	 * @param appId
+	 * @param projectId
+	 * @param projectName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param insightEngine
 	 * @param owl
 	 * @param headers
+	 * @return 
 	 */
-	public static void addInsertFormInsight(String projectId, String projectName, String appId, String appName, RDBMSNativeEngine insightEngine, Owler owl, String[] headers) {
+	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine, Owler owl, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owl);
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();
 		String insightName = getInsightFormSheetName(sheetName);
-		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
-				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":" + gson.toJson(createInsertForm(databaseId, metamodel, headers)) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
@@ -1492,42 +1512,107 @@ public class UploadUtilities {
 			String description = null;
 			List<String> tags = null;
 			
-			String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave,
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 			insightEngine.commit();
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave,
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
-			String gitFolder = AssetUtility.getProjectVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+			
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put(INSIGHT_ID_KEY, insightId);
+			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+			retMap.put(INSIGHT_NAME_KEY, insightName);
+			return retMap;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		return null;
+	}
+	
+	/**
+	 * Add insert form for csv
+	 * 
+	 * @param projectId
+	 * @param projectName
+	 * @param databaseId
+	 * @param databaseName
+	 * @param insightEngine
+	 * @param owl
+	 * @return 
+	 */
+	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		MetaHelper metaHelper = Utility.getEngine(databaseId).getMetaHelper();
+		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(metaHelper);
+		// assuming single sheet
+		String sheetName = metamodel.keySet().iterator().next();
+		String insightName = getInsightFormSheetName(sheetName);
+		String[] headers = new TreeSet<>(metamodel.get(sheetName).keySet()).toArray(new String[] {});
+		Gson gson = GsonUtility.getDefaultGson();
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":" + gson.toJson(createInsertForm(databaseId, metamodel, headers)) + "}</encode>\");";
+		List<String> pixelRecipeToSave = new Vector<>();
+		pixelRecipeToSave.add(newPixel);
+		try {
+			boolean hidden = false;
+			boolean cacheable = Utility.getApplicationCacheInsight();
+			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
+			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
+			String cacheCron = Utility.getApplicationCacheCron();
+			LocalDateTime cachedOn = null;
+			String description = null;
+			List<String> tags = null;
+			
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+			insightEngine.commit();
+			// write recipe to file
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+			// add the insight to git
+			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
+			List<String> files = new Vector<>();
+			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+			GitRepoUtils.addSpecificFiles(gitFolder, files);				
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+			
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put(INSIGHT_ID_KEY, insightId);
+			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+			retMap.put(INSIGHT_NAME_KEY, insightName);
+			return retMap;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return null;
 	}
 	
 	/**
 	 * Add insert form for excel
 	 * 
 	 * @param insightDatabase
-	 * @param appId
+	 * @param projectId
+	 * @param projectName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param sheetName
 	 * @param propMap
 	 * @param headers
+	 * @return 
 	 */
-	public static void addInsertFormInsight(RDBMSNativeEngine insightDatabase, String projectId, String projectName, String appId, String appName, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
+	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightDatabase, String projectId, String projectName, String databaseId, String databaseName, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		Map<String, Map<String, SemossDataType>> metamodel = new HashMap<>();
 		metamodel.put(sheetName, propMap);
 		// assuming single sheet
 		String insightName = getInsightFormSheetName(sheetName);
-		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
-				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":"
+				+ gson.toJson(createInsertForm(databaseId, metamodel, headers)) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
@@ -1540,37 +1625,48 @@ public class UploadUtilities {
 			String description = null;
 			List<String> tags = null;
 			
-			String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave,
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave,
 					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 			insightDatabase.commit();
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave, 
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, 
 					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
-			String gitFolder = AssetUtility.getProjectVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+			
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put(INSIGHT_ID_KEY, insightId);
+			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+			retMap.put(INSIGHT_NAME_KEY, insightName);
+			return retMap;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		return null;
 	}
 
 	/**
 	 * Create Excel form insight using data validation map
 	 * 
 	 * @param insightEngine
-	 * @param appId
+	 * @param projectId
+	 * @param projectName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param sheetName
-	 * @param dataValidationMap
+	 * @param widgetJson		- data validation map
+	 * @return 
 	 */
-	public static void addInsertFormInsight(RDBMSNativeEngine insightEngine, String projectId, String projectName, String appId, String appName, String sheetName, Map<String, Object> widgetJson) {
+	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightEngine, String projectId, String projectName, String databaseId, String databaseName, String sheetName, Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = getInsightFormSheetName(sheetName);
-		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":"
 				+ gson.toJson(widgetJson) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
@@ -1584,21 +1680,29 @@ public class UploadUtilities {
 			String description = null;
 			List<String> tags = null;
 			
-			String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave, 
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, 
 					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 			insightEngine.commit();
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave,
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave,
 					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
-			String gitFolder = AssetUtility.getProjectVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+			
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put(INSIGHT_ID_KEY, insightId);
+			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+			retMap.put(INSIGHT_NAME_KEY, insightName);
+			return retMap;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		return null;
 	}
 
 	/**
@@ -1609,7 +1713,7 @@ public class UploadUtilities {
 	 */
 	public static String getInsightFormSheetName(String sheetName) {
 		// sheetNames are inserted as tables all caps
-		return "Insert into " + sheetName.toUpperCase() + " Form";
+		return "Insert Into " + sheetName.toUpperCase() + " Form";
 	}
 	
 	/**
@@ -1624,7 +1728,16 @@ public class UploadUtilities {
 		rfse.openFile(owl.getOwlPath(), null, null);
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
-		
+		return getExistingMetamodel(helper);
+	}
+	
+	/**
+	 * Map of concept to propMap with database type
+	 * 
+	 * @param owl
+	 * @return
+	 */
+	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(MetaHelper helper) {
 		List<String> conceptsList = helper.getPhysicalConcepts();
 		Map<String, Map<String, SemossDataType>> existingMetaModel = new HashMap<>();
 		for (String conceptPhysicalUri : conceptsList) {
@@ -1660,10 +1773,9 @@ public class UploadUtilities {
 		Map<String, Object> formMap = new HashMap<>();
 		formMap.put("js", new Vector<>());
 		formMap.put("css", new Vector<>());
-		Map<String, SemossDataType> propMap = new HashMap<>();
 		// assuming this is a flat table so there is only one concept
 		String conceptualName = existingMetamodel.keySet().iterator().next();
-		propMap = existingMetamodel.get(conceptualName);
+		Map<String, SemossDataType> propMap = existingMetamodel.get(conceptualName);
 		List<String> propertyList = new ArrayList<String>();
 		// order params by header order
 		for (String header : headers) {
@@ -1741,8 +1853,7 @@ public class UploadUtilities {
 		return formMap;
 	}
 
-	public static Map<String, Object> createUpdateMap(String appId, Owler owl, String concept,
-			Map<String, SemossDataType> propMap) {
+	public static Map<String, Object> createUpdateMap(String appId, Owler owl, String concept, Map<String, SemossDataType> propMap) {
 		Map<String, Object> updateMap = new HashMap<>();
 		updateMap.put("database", appId);
 		updateMap.put("table", concept);
