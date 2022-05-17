@@ -1885,12 +1885,6 @@
 		  <artifactId>sql-jdbc</artifactId>
 		  <version>1.1.0.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.amazon.opendistroforelasticsearch.client/opendistro-sql-jdbc -->
-		<dependency>
-		    <groupId>com.amazon.opendistroforelasticsearch.client</groupId>
-		    <artifactId>opendistro-sql-jdbc</artifactId>
-		    <version>1.13.0.0</version>
-		</dependency>
 		<dependency>
 			<groupId>org.xeustechnologies</groupId>
 			<artifactId>jcl-core</artifactId>
