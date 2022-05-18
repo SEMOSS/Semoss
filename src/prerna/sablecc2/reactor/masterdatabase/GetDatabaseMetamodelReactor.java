@@ -53,58 +53,58 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(getDatabase());
+		String databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(getDatabase());
 		List<String> options = getOptions();
 
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!	
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
+			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}
 		Logger logger = getLogger(CLASS_NAME);
 		boolean includeDataTypes = options.contains("datatypes");
 
-		logger.info("Pulling database metadata for database " + engineId);
+		logger.info("Pulling database metadata for database " + databaseId);
 		Map<String, Object> metamodelObject = new HashMap<>();
 		{
-			Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(engineId);
+			Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(databaseId);
 			if(cacheMetamodel != null) {
 				metamodelObject.putAll(cacheMetamodel);
 			} else {
 				includeDataTypes = true;
-				Map<String, Object> metamodel = MasterDatabaseUtility.getMetamodelRDBMS(engineId, includeDataTypes);
+				Map<String, Object> metamodel = MasterDatabaseUtility.getMetamodelRDBMS(databaseId, includeDataTypes);
 				metamodelObject.putAll(metamodel);
-				EngineSyncUtility.setMetamodel(engineId, metamodel);
+				EngineSyncUtility.setMetamodel(databaseId, metamodel);
 			}
 		}
 
 		// add logical names
 		if(options.contains("logicalnames")) {
-			logger.info("Pulling database logical names for database " + engineId);
-			Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(engineId);
+			logger.info("Pulling database logical names for database " + databaseId);
+			Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(databaseId);
 			if(logicalNames == null) {
-				logicalNames = MasterDatabaseUtility.getDatabaseLogicalNames(engineId);
-				EngineSyncUtility.setMetamodelLogicalNames(engineId, logicalNames);
+				logicalNames = MasterDatabaseUtility.getDatabaseLogicalNames(databaseId);
+				EngineSyncUtility.setMetamodelLogicalNames(databaseId, logicalNames);
 			}
 			metamodelObject.put("logicalNames", logicalNames);
 		}
 		// add descriptions
 		if(options.contains("descriptions")) {
-			logger.info("Pulling database descriptions for database " + engineId);
-			Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(engineId);
+			logger.info("Pulling database descriptions for database " + databaseId);
+			Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(databaseId);
 			if(descriptions == null) {
-				descriptions = MasterDatabaseUtility.getDatabaseDescriptions(engineId);
-				EngineSyncUtility.setMetamodelDescriptions(engineId, descriptions);
+				descriptions = MasterDatabaseUtility.getDatabaseDescriptions(databaseId);
+				EngineSyncUtility.setMetamodelDescriptions(databaseId, descriptions);
 			}
 			metamodelObject.put("descriptions", descriptions);
 		}
 
 		// this is for the OWL positions for the new layout
 		if(options.contains("positions")) {
-			logger.info("Pulling database positions for database " + engineId);
-			IEngine app = Utility.getEngine(engineId);
+			logger.info("Pulling database positions for database " + databaseId);
+			IEngine app = Utility.getEngine(databaseId);
 			// if the file is present, pull it and load
 			File owlF = SmssUtilities.getOwlFile(app.getProp());
 			if(owlF == null) {
@@ -113,9 +113,9 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				File positionFile = app.getOwlPositionFile();
 				// try to make the file
 				if(!positionFile.exists()) {
-					logger.info("Generating metamodel layout for database " + engineId);
+					logger.info("Generating metamodel layout for database " + databaseId);
 					logger.info("This process may take some time");
-					GenerateMetamodelLayout.generateLayout(engineId);
+					GenerateMetamodelLayout.generateLayout(databaseId);
 					logger.info("Metamodel layout has been generated");
 				}
 				
