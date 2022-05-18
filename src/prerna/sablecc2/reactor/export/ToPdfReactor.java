@@ -202,7 +202,7 @@ public class ToPdfReactor extends AbstractReactor {
 		this.insight.addExportFile(downloadKey, insightFile);
 		
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the tsv file"));
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the pdf file"));
 		return retNoun;
 	}
 	
