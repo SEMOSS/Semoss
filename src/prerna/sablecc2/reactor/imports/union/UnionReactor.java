@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.imports.union;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
@@ -12,11 +11,9 @@ import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-
 
 /**
  * This reactor is the entry point for the Union functionality.
@@ -30,45 +27,43 @@ import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
  * to Grid and Native.
  *
  */
-
 public class UnionReactor extends AbstractFrameReactor{
 	
-	private final static String UNION_COL_MAPPING = "cols";
+	private static final String CLASS_NAME = UnionReactor.class.getName();
+
+	private final static String FRAME1 = "frame1";
+	private final static String FRAME2 = "frame2";
 	private final static String UNION_TYPE = "unionType";
-	private final static String UNION_FRAME_A = "From";
-	private final static String UNION_FRAME_B = "To";
+	private final static String UNION_COL_MAPPING = "mapping";
 	
 	public UnionReactor() {
-		this.keysToGet = new String[] {UNION_COL_MAPPING, UNION_TYPE, UNION_FRAME_A, UNION_FRAME_B};
+		this.keysToGet = new String[] {FRAME1, FRAME2, UNION_TYPE, UNION_COL_MAPPING};
 	}
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
 		organizeKeys();
-		ITableDataFrame frame = getFrame();
-		Logger logger = getLogger(frame.getClass().getName());
-		frame.setLogger(logger);
-		ITableDataFrame curFrame = this.insight.getCurFrame();
-		String unionType = this.keyValue.get(this.keysToGet[3]);
-		//Get the specific routine based on the frame.
-		UnionRoutine routine = UnionFactory.getUnionRoutine(frame);
-		ITableDataFrame unionFrame = null;
-		////"(Historically_Black, Historically_Black);(Men_Only, Men_Only),(School, School),(SCHOOLS_UNIQUE_ROW_ID, SCHOOLS_UNIQUE_ROW_ID),(Women_Only, Women_Only)",
-		if(this.keyValue.get(this.keysToGet[0]) == null || this.keyValue.get(this.keysToGet[0]).isEmpty())
-			throw new IllegalArgumentException("There are no columns selected. Please add columns for union.");
-		Map<String, String> colMaps = new HashMap<>();
-		String[] colMappings = this.keyValue.get(this.keysToGet[0]).split(";");
-		for(String colMap : colMappings) {
-			String[] cols = colMap.split(",");
-			String rightCol = cols[0].replace("(", "").trim();
-			String leftCol = cols[1].replace(")", "").trim();
-			colMaps.put(leftCol, rightCol);
+		ITableDataFrame frame1 = getFrame(FRAME1);
+		ITableDataFrame frame2 = getFrame(FRAME2);
+		String unionType = this.keyValue.get(this.keysToGet[2]);
+		Map<String, String> colMaps = getColMapping();
+		if(colMaps == null) {
+			// assume we are mapping everything and headers are the same
+			colMaps = new HashMap<>();
+			String[] headers = frame1.getColumnHeaders();
+			for(String head : headers) {
+				colMaps.put(head, head);
+			}
 		}
+		// get the routine object
+		UnionRoutine routine = UnionFactory.getUnionRoutine(frame1);
+		ITableDataFrame unionFrame = null;
 		try {
 			//Set the cols that needs to be mapped
 			routine.setColMapping(colMaps);
 			//Run the routine here.
-			unionFrame = routine.performUnion(frame, curFrame, unionType, this.insight, logger);
+			unionFrame = routine.performUnion(frame1, frame2, unionType, this.insight, logger);
 		} catch (Exception e) {
 			throw new SemossPixelException(e.getMessage());
 		}
@@ -77,15 +72,14 @@ public class UnionReactor extends AbstractFrameReactor{
 		unionFrame.clearQueryCache();
 
 		NounMetadata noun = new NounMetadata(unionFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-		
-		if(unionFrame != frame && !(unionFrame instanceof PandasFrame)) {
-			if(frame.getName() != null) {
-				this.insight.getVarStore().put(frame.getName(), noun);
+		if(unionFrame != frame1 && !(unionFrame instanceof PandasFrame)) {
+			if(frame1.getName() != null) {
+				this.insight.getVarStore().put(frame1.getName(), noun);
 			} 
 			if(unionFrame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
 				this.insight.setDataMaker(unionFrame);
 			}
-		}else {
+		} else {
 			this.insight.getVarStore().put(unionFrame.getName(), noun);
 			this.insight.setDataMaker(unionFrame);
 		}
@@ -94,24 +88,47 @@ public class UnionReactor extends AbstractFrameReactor{
 	}
 	
 	/**
-	 * Below method queries the store and gets the appropriate
-	 * default frame.
-	 *  
+	 * Get the frame
+	 * @return
 	 */
+	private ITableDataFrame getFrame(String key) {
+		GenRowStruct frameGrs = this.store.getNoun(key);
+		if(frameGrs == null || frameGrs.isEmpty()) {
+			throw new IllegalArgumentException("Must define " + key);
+		}
+		return (ITableDataFrame) frameGrs.get(0);
+	}
 	
-	protected ITableDataFrame getFrame() {
+	/**
+	 * Get the column mapping
+	 * @return
+	 */
+	private Map<String, String> getColMapping() {
 		// try specific key
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[2]);
-		if(frameGrs != null && !frameGrs.isEmpty()) {
-			return (ITableDataFrame) frameGrs.get(0);
+		GenRowStruct mappingGrs = this.store.getNoun(UNION_COL_MAPPING);
+		if(mappingGrs == null || mappingGrs.isEmpty()) {
+			return null;
 		}
-		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(frameCur != null && !frameCur.isEmpty()) {
-			return (ITableDataFrame) frameCur.get(0).getValue();
+		return (Map<String, String>) mappingGrs.get(0);
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return super.getReactorDescription();
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(FRAME1)) {
+			return "This is the first frame where the data will be unioned unto";
+		} else if(key.equals(FRAME2)) {
+			return "This is the second frame where the data will be queried to union unto the first frame";
+		} else if(key.equals(UNION_TYPE)) {
+			return "This is either \"union\" or \"union_all\"";
+		} else if(key.equals(UNION_COL_MAPPING)) {
+			return "This is a map {\"frame1Header\":\"frame2Header\"}. If empty, assumes all headers match between the two frames.";
 		}
-		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
-		this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
-		return defaultFrame;
+		return super.getDescriptionForKey(key);
 	}
 	
 }
