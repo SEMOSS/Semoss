@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -145,6 +147,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 			}
 			htmlBuilder.append("</table>");
 		}
+		htmlBuilder.append("<p>Generated on: " + ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ")) + "</p>");
 		htmlBuilder.append("</body></html>");
 		
 		// keep track for deleting at the end
