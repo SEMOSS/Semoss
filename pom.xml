@@ -1733,21 +1733,25 @@
 			<artifactId>classgraph</artifactId>
 			<version>4.8.27</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.janusgraph/janusgraph-core -->
 		<dependency>
-			<groupId>org.janusgraph</groupId>
-			<artifactId>janusgraph-core</artifactId>
-			<version>0.2.2</version>
+		    <groupId>org.janusgraph</groupId>
+		    <artifactId>janusgraph-core</artifactId>
+		    <version>0.6.1</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.janusgraph/janusgraph-berkeleyje -->
 		<dependency>
-			<groupId>org.janusgraph</groupId>
-			<artifactId>janusgraph-berkeleyje</artifactId>
-			<version>0.2.2</version>
+		    <groupId>org.janusgraph</groupId>
+		    <artifactId>janusgraph-berkeleyje</artifactId>
+		    <version>0.6.1</version>
+		    <scope>test</scope>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.janusgraph/janusgraph-es -->
 		<dependency>
-			<groupId>org.janusgraph</groupId>
-			<artifactId>janusgraph-es</artifactId>
-			<version>0.2.2</version>
-			<exclusions>
+		    <groupId>org.janusgraph</groupId>
+		    <artifactId>janusgraph-es</artifactId>
+		    <version>0.6.1</version>
+		    <exclusions>
 				<exclusion>
 					<groupId>ch.qos.logback</groupId>
 					<artifactId>*</artifactId>
