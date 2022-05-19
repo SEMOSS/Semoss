@@ -1,13 +1,18 @@
 package prerna.query.parsers;
 
 import java.sql.Time;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.CaseExpression;
@@ -83,8 +88,11 @@ import prerna.query.querystruct.filters.IQueryFilter;
  * 		> Where
  * 				> Expression (Recursion)
  * 					
- * 			
- * 
+ * 		
+ *		TODO
+ *		1. get all the real columns and tables
+ *		2. Be able to work with create
+ * 		3. Be able to substitute one column for another column
  * 
  * 
  * 
@@ -106,6 +114,7 @@ public class SqlParser2 {
 	String columnName = null;
 	
 	boolean processCase = false;
+	boolean processAllBinary = false;
 	Stack <Boolean> processParam = new Stack<Boolean>();
 	
 
@@ -141,6 +150,8 @@ public class SqlParser2 {
 		
 		return wrapper;
 	}
+	
+	
 	
 	public void printOutput(SelectQueryStruct qs) throws Exception
 	{
@@ -663,8 +674,8 @@ public class SqlParser2 {
 			//System.err.println("Expression.. " + aExpr.getStringExpression());
 		}
 		// only the binary expression has 2 sides
-		else if(joinExpr instanceof BinaryExpression && 
-				IQueryFilter.comparatorIsValidSQL(((BinaryExpression) joinExpr).getStringExpression()))
+		else if(joinExpr instanceof BinaryExpression  
+				&& 	(processAllBinary || IQueryFilter.comparatorIsValidSQL(((BinaryExpression) joinExpr).getStringExpression())))
 		{
 			boolean paramBinary = true;
 			
@@ -1649,6 +1660,115 @@ public class SqlParser2 {
 		}
 	}
 	
+	public Map<String, List<GenExpression>> getTableColumns(String query)
+	{
+		Map<String, List<GenExpression>> newTableColumn = null;
+		try {
+			wrapper = new GenExpressionWrapper();
+			// this is the main query struct
+			GenExpression qs = new GenExpression();
+			// parse the sql
+			Statement stmt = CCJSqlParserUtil.parse(query);
+			Select select = ((Select)stmt);
+			
+			if(select.getSelectBody() instanceof PlainSelect)
+			{
+				PlainSelect sb = (PlainSelect)select.getSelectBody();
+				qs = processSelect(null, sb);
+			}
+			if(select.getSelectBody() instanceof SetOperationList)
+			{
+				qs = processOperation((SetOperationList)select.getSelectBody());
+			}
+			Map <Integer, List<GenExpression>> levelSelectors = new HashMap<Integer, List<GenExpression>>();
+			List <String> realTables = new ArrayList();
+			Map <GenExpression, List<GenExpression>> derivedColumns = new HashMap<GenExpression, List<GenExpression>>();
+			Map <String, List<GenExpression>>tableColumns = new HashMap<String, List<GenExpression>>();
+			
+			Map<String, String> aliases = new HashMap<String, String>();
+			
+			qs.printLevel2(qs, realTables, 0, null, derivedColumns, levelSelectors, tableColumns, aliases , null, false, true);
+					
+			newTableColumn = remasterColumns(realTables, tableColumns);
+		} catch (JSQLParserException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return newTableColumn;
+	}
+	
+	public Map<Integer, List<GenExpression>> getLevelColumns(String query)
+	{
+		Map <Integer, List<GenExpression>> levelSelectors = new HashMap<Integer, List<GenExpression>>();
+		try {
+			wrapper = new GenExpressionWrapper();
+			// this is the main query struct
+			GenExpression qs = new GenExpression();
+			// parse the sql
+			Statement stmt = CCJSqlParserUtil.parse(query);
+			Select select = ((Select)stmt);
+			
+			if(select.getSelectBody() instanceof PlainSelect)
+			{
+				PlainSelect sb = (PlainSelect)select.getSelectBody();
+				qs = processSelect(null, sb);
+			}
+			if(select.getSelectBody() instanceof SetOperationList)
+			{
+				qs = processOperation((SetOperationList)select.getSelectBody());
+			}
+			List <String> realTables = new ArrayList();
+			Map <GenExpression, List<GenExpression>> derivedColumns = new HashMap<GenExpression, List<GenExpression>>();
+			Map <String, List<GenExpression>>tableColumns = new HashMap<String, List<GenExpression>>();
+			
+			Map<String, String> aliases = new HashMap<String, String>();
+			
+			qs.printLevel2(qs, realTables, 0, null, derivedColumns, levelSelectors, tableColumns, aliases , null, false, true);
+					
+		} catch (JSQLParserException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return levelSelectors;
+	}
+
+	public Map <String, List<GenExpression>> remasterColumns(List <String> realTables, Map <String, List<GenExpression>> tableColumns)
+	{
+		Iterator <String> tableKeys = tableColumns.keySet().iterator();
+		Map <String, List<GenExpression>> newTableColumn = new HashMap<String, List<GenExpression>>();
+		while(tableKeys.hasNext())
+		{
+			String thisTable = tableKeys.next();
+			if(realTables.contains(thisTable))
+				newTableColumn.put(thisTable, tableColumns.get(thisTable));
+		}
+		return newTableColumn;
+	}
+
+	public void printRealColumns(Map <String, List<GenExpression>> tableColumns)
+	{
+		Iterator <String> tableKeys = tableColumns.keySet().iterator();
+		while(tableKeys.hasNext())
+		{
+			String thisTable = tableKeys.next();
+			{
+				System.err.println("Table >> " + thisTable);
+				System.err.println("-----------------------");
+				List <GenExpression> columns = tableColumns.get(thisTable);
+				for(int colIndex = 0;colIndex < columns.size();colIndex++)
+				{
+					String thisColumn = columns.get(colIndex).toString();
+					//System.err.println("Alias is " + thisColumn);
+					System.err.println(thisColumn);
+				}
+				System.err.println("...............");
+			}
+			
+		}
+	}
+
 	
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
@@ -4266,6 +4386,11 @@ public class SqlParser2 {
 		
 		test.parameterize = false;
 		//test.processCase = true;
+		Map<String, List<GenExpression>> tableColumns = test.getTableColumns(query4);
+		test.printRealColumns(tableColumns);
+		//test.printOutput(wrapper.root);
+
+		
 		GenExpressionWrapper wrapper = test.processQuery(query33);
 		test.printOutput(wrapper.root);
 		GenExpression root = wrapper.root;
