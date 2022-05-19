@@ -1,6 +1,7 @@
 package prerna.query.querystruct;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 public class WhenExpression extends GenExpression {
@@ -103,6 +104,50 @@ public class WhenExpression extends GenExpression {
 		
 		return output;
 	}
+	
+	public static StringBuffer printLevel(GenExpression qs, 
+			List <String> realTables, // this is where all the real tables are kept
+			int level, 
+			GenExpression derivedKey, 
+			Map <GenExpression, List <GenExpression>> derivedColumns,
+			Map <Integer, List <GenExpression>> levelProjections, // all the columns in a given level
+			Map <String, List <GenExpression>> tableColumns, // all the columns in a given level do we need this ?
+			Map <String, String> aliases, // aliases for this column - also need something that will keep // also keeps aliases for table
+			String tableName,
+			boolean derived, 
+			boolean projection)
+	{
+		StringBuffer output = new StringBuffer();
+		//System.err.println(" Processing >> " + aQuery);
+		WhenExpression we = (WhenExpression)qs;
+				
+		if(we.whenE.size() > 0)
+		{
+			output.append("case ");
+			
+			for(int whenIndex = 0;whenIndex < we.whenE.size();whenIndex++)
+			{
+				//System.err.println("When ...  " + whens.get(whenIndex));
+				//System.err.println("Then ...  " + thens.get(whenIndex));
+				GenExpression thisWhen = we.whenE.get(whenIndex);
+				thisWhen.printLevel2(thisWhen, realTables, level, derivedKey, derivedColumns, levelProjections, tableColumns, aliases, tableName, true, false);
+
+				GenExpression thisThen = we.thenE.get(whenIndex);
+				thisThen.printLevel2(thisThen, realTables, level, derivedKey, derivedColumns, levelProjections, tableColumns, aliases, tableName, true, false);
+
+			}
+			
+			if(we.elseE != null)
+			{
+				printLevel2(we.elseE, realTables, level, derivedKey, derivedColumns, levelProjections, tableColumns, aliases, tableName, true, false);
+			}
+			output.append(" end");			
+		}
+		
+		return output;
+	}
+
+	
 	
 
 	public void replaceTableAlias2(GenExpression qs, String oldName, String newName)
