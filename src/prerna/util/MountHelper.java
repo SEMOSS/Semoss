@@ -309,7 +309,7 @@ public class MountHelper {
 
 		String[] propsNeeded = new String[] { Constants.BASE_FOLDER, Constants.NETTY_R, Constants.NETTY_PYTHON,
 				Constants.USE_R, Constants.USE_PYTHON, Constants.R_MEM_LIMIT, Constants.INSIGHT_CACHE_DIR,
-				Settings.MVN_HOME, Settings.REPO_HOME, Constants.PY_BASE_FOLDER };
+				Settings.MVN_HOME, Settings.REPO_HOME, Constants.PY_BASE_FOLDER, Constants.R_CONNECTION_JRI};
 
 		Properties prop = new Properties();
 		for (int propIndex = 0; propIndex < propsNeeded.length; propIndex++) {
