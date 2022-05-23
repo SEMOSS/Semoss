@@ -2,7 +2,6 @@ package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -609,20 +608,18 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Map<String, Object> getAggregateDatabaseMetadata(String databaseId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAKEY"));
-		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", databaseId));
-		
 		Map<String, Object> retMap = new HashMap<String, Object>();
+
+		List<String> databaseIds = new ArrayList<>();
+		databaseIds.add(databaseId);
 
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			wrapper = getDatabaseMetadataWrapper(databaseIds, null);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
-				String metaKey = (String) data[0];
-				String metaValue = (String) data[1];
+				String metaKey = (String) data[1];
+				String metaValue = (String) data[2];
 
 				// always send as array
 				// if multi, send as array
