@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.pdmodel.PDDocument;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -31,6 +32,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.export.mustache.MustacheUtility;
+import prerna.sablecc2.reactor.export.pdf.PDFUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -42,7 +44,8 @@ public class ToPdfReactor extends AbstractReactor {
 	public ToPdfReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
 				ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.URL.getKey(), 
-				ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey()
+				ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey(), 
+				ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey(), ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey()
 			};
 	}
 
@@ -135,7 +138,7 @@ public class ToPdfReactor extends AbstractReactor {
 		String outputFileLocation = this.keyValue.get(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
-		if (outputFileLocation == null) {
+		if (outputFileLocation == null || outputFileLocation.isEmpty()) {
 			outputFileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			// store it in the insight so the FE can download it
 			// only from the given insight
@@ -184,6 +187,31 @@ public class ToPdfReactor extends AbstractReactor {
 			}
 		}
 		
+		if (Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "")) {
+			String signatureLabel = this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
+			PDDocument document = null;
+			try {
+				logger.info("Creating signature field...");
+				document = PDFUtility.createDocument(outputFileLocation);
+				if(signatureLabel != null && !(signatureLabel=signatureLabel.trim()).isEmpty()) {
+					PDFUtility.addSignatureLabel(document, signatureLabel);
+				}
+				PDFUtility.addSignatureBlock(document);
+	            document.save(outputFileLocation);
+				logger.info("Done creating signature field...");
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(document != null) {
+					try {
+						document.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+
 		// delete temp files
 		for (String path : tempPaths) {
 			try {
