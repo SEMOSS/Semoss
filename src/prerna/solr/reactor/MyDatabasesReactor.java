@@ -1,5 +1,6 @@
 package prerna.solr.reactor;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -26,14 +28,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 	
 	private static final Logger logger = LogManager.getLogger(MyDatabasesReactor.class);
 
-	private static List<String> META_KEYS_LIST = new Vector<>();
-	static {
-		META_KEYS_LIST.add("description");
-		META_KEYS_LIST.add("tag");
-	}
+	private static final String META_KEYS = "metaKeys";
 
 	public MyDatabasesReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), META_KEYS};
 	}
 
 	@Override
@@ -60,40 +58,38 @@ public class MyDatabasesReactor extends AbstractReactor {
 		for(int i = 0; i < size; i++) {
 			Map<String, Object> database = dbInfo.get(i);
 			String appId = database.get("database_id").toString();
-			
-			// just going to init for FE
-			database.put("description", "");
-			database.put("tags", new Vector<String>());
-			
 			// keep list of app ids to get the index
 			index.put(appId, Integer.valueOf(i));
 		}
 		
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), META_KEYS_LIST);
+			wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), getMetaKeys());
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String databaseId = (String) data[0];
 
 				String metaKey = (String) data[1];
-				String value = (String) data[2];
-				if(value == null) {
+				String metaValue = (String) data[2];
+				if(metaValue == null) {
 					continue;
 				}
 
 				int indexToFind = index.get(databaseId);
 				Map<String, Object> res = dbInfo.get(indexToFind);
-				// right now only handling description + tags
-				if(metaKey.equals("description")) {
-					// we only have 1 description per insight
-					// so just push
-					res.put("description", value);
-				} else if(metaKey.equals("tag")){
-					// multiple tags per insight
-					List<String> tags = (List<String>) res.get("tags");
-					// add to the list
-					tags.add(value);
+				// whatever it is, if it is single send a single value, if it is multi send as array
+				if(res.containsKey(metaKey)) {
+					Object obj = res.get(metaKey);
+					if(obj instanceof List) {
+						((List) obj).add(metaValue);
+					} else {
+						List<Object> newList = new ArrayList<>();
+						newList.add(obj);
+						newList.add(metaValue);
+						res.put(metaKey, newList);
+					}
+				} else {
+					res.put(metaKey, metaValue);
 				}
 			}
 		} catch (Exception e) {
@@ -142,11 +138,22 @@ public class MyDatabasesReactor extends AbstractReactor {
 
 		return new NounMetadata(dbInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
+	
+	private List<String> getMetaKeys() {
+		GenRowStruct grs = this.store.getNoun(META_KEYS);
+		if(grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
+		
+		return null;
+	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
 			return "The sort is a string value containing either 'name' or 'date' for how to sort";
+		} else if(key.equals(META_KEYS)) {
+			return "List of the metadata keys to return with each data source";
 		}
 		return super.getDescriptionForKey(key);
 	}

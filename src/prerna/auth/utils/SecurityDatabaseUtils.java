@@ -3,12 +3,12 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -385,83 +385,78 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
-	 * Update the database description
-	 * Will perform an insert if the description doesn't currently exist
-	 * @param databaseId
-	 * @param insideId
-	 */
-	public static void updateDatabaseDescription(String databaseId, String description) {
-		// try to do an update
-		// if nothing is updated
-		// do an insert
-		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
-		String query = "UPDATE ENGINEMETA SET METAVALUE='" 
-				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
-				+ "WHERE METAKEY='description' AND ENGINEID='" + databaseId + "'";
-		Statement stmt = null;
-		try {
-			stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
-			if(stmt.getUpdateCount() <= 0) {
-				// need to perform an insert
-				query = securityDb.getQueryUtil().insertIntoTable("ENGINEMETA", 
-						new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"}, 
-						new String[]{"varchar(255)", "varchar(255)", "clob", "int"}, 
-						new Object[]{databaseId, "description", description, 0});
-				securityDb.insertData(query);
-			}
-		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						stmt.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-		}
-	}
-	
-	/**
 	 * Update the database tags
 	 * Will delete existing values and then perform a bulk insert
 	 * @param databaseId
 	 * @param insightId
 	 * @param tags
 	 */
-	public static void updateDatabaseTags(String databaseId, List<String> tags) {
+	public static void updateDatabaseMetadata(String databaseId, Map<String, Object> metadata) {
 		// first do a delete
-		String query = "DELETE FROM ENGINEMETA WHERE METAKEY='tag' AND ENGINEID='" + databaseId + "'";
+		String deleteQ = "DELETE FROM ENGINEMETA WHERE METAKEY=? AND ENGINEID=?";
+		PreparedStatement deletePs = null;
 		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(String field : metadata.keySet()) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, field);
+				deletePs.setString(parameterIndex++, databaseId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 		}
 		
 		// now we do the new insert with the order of the tags
-		query = securityDb.getQueryUtil().createInsertPreparedStatementString("ENGINEMETA", 
-				new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"});
+		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("ENGINEMETA", new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"});
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
-			for(int i = 0; i < tags.size(); i++) {
-				String tag = tags.get(i);
-				ps.setString(1, databaseId);
-				ps.setString(2, "tag");
-				ps.setString(3, tag);
-				ps.setInt(4, i);
-				ps.addBatch();;
+			for(String field : metadata.keySet()) {
+				Object val = metadata.get(field);
+				List<Object> values = new ArrayList<>();
+				if(val instanceof List) {
+					values = (List<Object>) val;
+				} else if(val instanceof Collection) {
+					values.addAll( (Collection<Object>) val);
+				} else {
+					values.add(val);
+				}
+				
+				for(int i = 0; i < values.size(); i++) {
+					int parameterIndex = 1;
+					Object fieldVal = values.get(i);
+					
+					ps.setString(parameterIndex++, databaseId);
+					ps.setString(parameterIndex++, field);
+					ps.setString(parameterIndex++, fieldVal + "");
+					ps.setInt(parameterIndex++, i);
+					ps.addBatch();
+				}
 			}
-			
 			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -482,6 +477,105 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	
+//	/**
+//	 * Update the database description
+//	 * Will perform an insert if the description doesn't currently exist
+//	 * @param databaseId
+//	 * @param insideId
+//	 */
+//	public static void updateDatabaseDescription(String databaseId, String description) {
+//		// try to do an update
+//		// if nothing is updated
+//		// do an insert
+//		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
+//		String query = "UPDATE ENGINEMETA SET METAVALUE='" 
+//				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
+//				+ "WHERE METAKEY='description' AND ENGINEID='" + databaseId + "'";
+//		Statement stmt = null;
+//		try {
+//			stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
+//			if(stmt.getUpdateCount() <= 0) {
+//				// need to perform an insert
+//				query = securityDb.getQueryUtil().insertIntoTable("ENGINEMETA", 
+//						new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"}, 
+//						new String[]{"varchar(255)", "varchar(255)", "clob", "int"}, 
+//						new Object[]{databaseId, "description", description, 0});
+//				securityDb.insertData(query);
+//			}
+//		} catch(SQLException e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		} finally {
+//			if(stmt != null) {
+//				try {
+//					stmt.close();
+//				} catch (SQLException e) {
+//					logger.error(Constants.STACKTRACE, e);
+//				}
+//				if(securityDb.isConnectionPooling()) {
+//					try {
+//						stmt.getConnection().close();
+//					} catch (SQLException e) {
+//						logger.error(Constants.STACKTRACE, e);
+//					}
+//				}
+//			}
+//		}
+//	}
+	
+//	/**
+//	 * Update the database tags
+//	 * Will delete existing values and then perform a bulk insert
+//	 * @param databaseId
+//	 * @param insightId
+//	 * @param tags
+//	 */
+//	public static void updateDatabaseTags(String databaseId, List<String> tags) {
+//		// first do a delete
+//		String query = "DELETE FROM ENGINEMETA WHERE METAKEY='tag' AND ENGINEID='" + databaseId + "'";
+//		try {
+//			securityDb.insertData(query);
+//			securityDb.commit();
+//		} catch (SQLException e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		}
+//		
+//		// now we do the new insert with the order of the tags
+//		query = securityDb.getQueryUtil().createInsertPreparedStatementString("ENGINEMETA", 
+//				new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"});
+//		PreparedStatement ps = null;
+//		try {
+//			ps = securityDb.getPreparedStatement(query);
+//			for(int i = 0; i < tags.size(); i++) {
+//				String tag = tags.get(i);
+//				ps.setString(1, databaseId);
+//				ps.setString(2, "tag");
+//				ps.setString(3, tag);
+//				ps.setInt(4, i);
+//				ps.addBatch();;
+//			}
+//			
+//			ps.executeBatch();
+//		} catch(Exception e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		} finally {
+//			if(ps != null) {
+//				try {
+//					ps.close();
+//				} catch (SQLException e) {
+//					logger.error(Constants.STACKTRACE, e);
+//				}
+//				if(securityDb.isConnectionPooling()) {
+//					try {
+//						ps.getConnection().close();
+//					} catch (SQLException e) {
+//						logger.error(Constants.STACKTRACE, e);
+//					}
+//				}
+//			}
+//		}
+//	}
+	
 	/**
 	 * Get the wrapper for additional database metadata
 	 * @param databaseIds
@@ -497,8 +591,12 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAORDER"));
 		// filters
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", databaseIds));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metaKeys));
+		if(databaseIds != null && !databaseIds.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", databaseIds));
+		}
+		if(metaKeys != null && !metaKeys.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metaKeys));
+		}
 		// order
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAORDER"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -526,20 +624,19 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				String metaKey = (String) data[0];
 				String metaValue = (String) data[1];
 
-				// AS THIS LIST EXPANDS
-				// WE NEED TO KNOW IF THESE ARE MULTI VALUED OR SINGLE
-				if(metaKey.equals("tag")) {
-					List<String> listVal = null;
-					if(retMap.containsKey("tags")) {
-						listVal = (List<String>) retMap.get("tags");
+				// always send as array
+				// if multi, send as array
+				if(retMap.containsKey(metaKey)) {
+					Object obj = retMap.get(metaKey);
+					if(obj instanceof List) {
+						((List) obj).add(metaValue);
 					} else {
-						listVal = new Vector<String>();
-						retMap.put("tags", listVal);
+						List<Object> newList = new ArrayList<>();
+						newList.add(obj);
+						newList.add(metaValue);
+						retMap.put(metaKey, newList);
 					}
-					listVal.add(metaValue);
-				}
-				// these will be the single valued parameters
-				else {
+				} else {
 					retMap.put(metaKey, metaValue);
 				}
 			}
