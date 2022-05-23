@@ -409,8 +409,6 @@ import prerna.solr.reactor.DatabaseInfoReactor;
 import prerna.solr.reactor.DatabaseUsersReactor;
 import prerna.solr.reactor.GetInsightsReactor;
 import prerna.solr.reactor.MyDatabasesReactor;
-import prerna.solr.reactor.SetDatabaseDescriptionReactor;
-import prerna.solr.reactor.SetDatabaseTagsReactor;
 //import prerna.solr.reactor.SetInsightDescriptionReactor;
 //import prerna.solr.reactor.SetInsightTagsReactor;
 import prerna.util.DIHelper;
@@ -1066,8 +1064,8 @@ public class ReactorFactory {
 		// TODO: to be removed once FE changes to only use GetInsights
 		reactorHash.put("GetAppInsights", GetInsightsReactor.class);
 		reactorHash.put("GetInsights", GetInsightsReactor.class);
-		reactorHash.put("SetAppDescription", SetDatabaseDescriptionReactor.class);
-		reactorHash.put("SetAppTags", SetDatabaseTagsReactor.class);
+//		reactorHash.put("SetAppDescription", SetDatabaseDescriptionReactor.class);
+//		reactorHash.put("SetAppTags", SetDatabaseTagsReactor.class);
 //		reactorHash.put("GetAppWidgets", GetAppWidgetsReactor.class);
 		reactorHash.put("AddDefaultInsights", AddDefaultInsightsReactor.class);
 		// Insight Metadata
