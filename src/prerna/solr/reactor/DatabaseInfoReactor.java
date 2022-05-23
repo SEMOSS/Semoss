@@ -2,7 +2,6 @@ package prerna.solr.reactor;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
@@ -52,8 +51,6 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
 		databaseInfo.putAll(SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId));
-		databaseInfo.putIfAbsent("description", "");
-		databaseInfo.putIfAbsent("tags", new Vector<String>());
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
