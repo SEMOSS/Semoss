@@ -133,6 +133,8 @@ public enum ReactorKeysEnum {
 	PARAM_VALUES_MAP("paramValues",							"Map containing the param name to param values"),
 	PARALLEL_WORKER("parallel_worker", 						"Class that will run as a thread"),
 	PASSWORD("password", 									"Password used in conjunction with the username for access to a service"),
+	PDF_SIGNATURE_BLOCK("pdfSignatureBlock",                "Boolean to add digital signature block in exisitng pdf file"),
+	PDF_SIGNATURE_LABEL("pdfSignatureLabel",                "String containing text to add above the signature block to specify signature label"),
 	PERMISSION("permission", 								"Permission level"),
 	PIXEL("pixel", 											"Pixel script as string"),
 	PIXEL_ID("pixelId", 									"The pixel id for this pixel step"),
