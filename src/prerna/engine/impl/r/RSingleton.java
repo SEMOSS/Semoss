@@ -81,7 +81,14 @@ public class RSingleton {
 			
 			logger.info("R_HOME for process is " + rHome);
 			
-			ProcessBuilder pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);Rserve(FALSE," + port + ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)", "--vanilla");
+			ProcessBuilder pb;
+
+			if (SystemUtils.IS_OS_WINDOWS) {
+			 pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);Rserve(FALSE," + port + ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)", "--vanilla");
+			} else {
+			 pb = new ProcessBuilder(rHome, "CMD", "Rserve", "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
+			}
+			
 			Process process = pb.start();
 
 			logger.info("Waiting 1 second to allow Rserve to finish starting up...");
