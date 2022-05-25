@@ -119,7 +119,7 @@ public final class PDFUtility {
 			contentStream.beginText();
 			contentStream.setFont(PDType1Font.TIMES_ROMAN, 8);
 			contentStream.setLeading(16f);
-			contentStream.newLineAtOffset(thisPage.getMediaBox().getWidth()/2, 5);
+			contentStream.newLineAtOffset(thisPage.getMediaBox().getWidth()/2, 10);
 			contentStream.showText((startingNumber++) + "");
 			contentStream.endText();
 			contentStream.close();
