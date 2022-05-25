@@ -45,7 +45,8 @@ public class ToPdfReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
 				ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.URL.getKey(), 
 				ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey(), 
-				ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey(), ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey()
+				ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey(), ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey(),
+				ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey(), ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey(), ReactorKeysEnum.PDF_START_PAGE_NUM.getKey()
 			};
 	}
 
@@ -182,21 +183,37 @@ public class ToPdfReactor extends AbstractReactor {
 				try {
 					fos.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		
-		if (Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "")) {
-			String signatureLabel = this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
+		boolean addSignatureBlock = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
+		boolean addPageNumbers = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
+		if (addSignatureBlock || addPageNumbers) {
 			PDDocument document = null;
 			try {
 				logger.info("Creating signature field...");
 				document = PDFUtility.createDocument(outputFileLocation);
-				if(signatureLabel != null && !(signatureLabel=signatureLabel.trim()).isEmpty()) {
-					PDFUtility.addSignatureLabel(document, signatureLabel);
+				if(addSignatureBlock) {
+					String signatureLabel = this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
+					if(signatureLabel != null && !(signatureLabel=signatureLabel.trim()).isEmpty()) {
+						PDFUtility.addSignatureLabel(document, signatureLabel);
+					}
+					PDFUtility.addSignatureBlock(document);
 				}
-				PDFUtility.addSignatureBlock(document);
+				if(addPageNumbers) {
+					boolean ignoreFirstPage = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey()) + "");
+					int startingNumber = 1;
+					String startPageInput = this.keyValue.get(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey());
+					if(startPageInput != null && !(startPageInput=startPageInput.trim()).isEmpty())
+					try {
+						startingNumber = Integer.parseInt(startPageInput);
+					} catch(Exception ignore) {
+						
+					}
+					PDFUtility.addPageNumbers(document, startingNumber, ignoreFirstPage);
+				}
 	            document.save(outputFileLocation);
 				logger.info("Done creating signature field...");
 			} catch (IOException e) {
