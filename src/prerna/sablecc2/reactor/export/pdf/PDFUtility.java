@@ -70,28 +70,6 @@ public final class PDFUtility {
 		contentStream.showText(signatureLabel);
 		contentStream.endText();
 		contentStream.close();
-	   
-//		// Add a new AcroForm and add that to the document
-//	    PDAcroForm acroForm = new PDAcroForm(document);
-//	    document.getDocumentCatalog().setAcroForm(acroForm);
-//	    PDFont font = PDType1Font.HELVETICA;
-//	    PDResources resources = new PDResources();
-//	    resources.put(COSName.getPDFName("Helv"), font);
-//	    acroForm.setDefaultResources(resources);
-//	    // Create empty label field
-//	    PDTextField textBox = new PDTextField(acroForm);
-//	    textBox.setDefaultAppearance("/Helv 12 Tf 0 0 1 rg");
-//	    textBox.setPartialName("Signature Label");
-//	    PDAnnotationWidget widget = textBox.getWidgets().get(0);
-//	    PDRectangle rect = new PDRectangle(405, 65, 200, 30);
-//	    widget.setRectangle(rect);
-//	    widget.setPage(lastPage);
-//	    widget.setPrinted(true);
-//	    lastPage.getAnnotations().add(widget);
-//	    acroForm.getFields().add(textBox);
-//
-//	    // set the value last after all settings applied
-//	    textBox.setValue(signatureLabel);
 	}
 	
 	
@@ -121,6 +99,30 @@ public final class PDFUtility {
 			if(document != null) {
 				document.close();
 			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param document
+	 * @throws IOException
+	 */
+	public static void addPageNumbers(PDDocument document, int startingNumber, boolean ignoreFirstPage) throws IOException {
+		int numPages = document.getNumberOfPages();
+		for(int i = 0; i < numPages; i++) {
+			if(i == 0 && ignoreFirstPage) {
+				continue;
+			}
+			PDPage thisPage = document.getPage(i);
+			
+			PDPageContentStream contentStream = new PDPageContentStream(document, thisPage, AppendMode.APPEND, true);
+			contentStream.beginText();
+			contentStream.setFont(PDType1Font.TIMES_ROMAN, 8);
+			contentStream.setLeading(16f);
+			contentStream.newLineAtOffset(thisPage.getMediaBox().getWidth()/2, 5);
+			contentStream.showText((startingNumber++) + "");
+			contentStream.endText();
+			contentStream.close();
 		}
 	}
 }
