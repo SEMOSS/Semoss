@@ -43,8 +43,12 @@ public class ProjectProperties {
 		this.processor = new SocialPropertiesProcessor(socialPropertiesFileLoc);
 	}
 	
-	public void updateSocialProperties(String provider, Map<String, String> mods) {
-		this.processor.updateSocialProperties(provider, mods);
+	public void updateProviderProperties(String provider, Map<String, String> mods) {
+		this.processor.updateProviderProperties(provider, mods);
+	}
+	
+	public void updateAllProperties(Map<String, String> mods) {
+		this.processor.updateAllProperties(mods);
 	}
 	
 	public Map<String, Boolean> getLoginsAllowed() {
