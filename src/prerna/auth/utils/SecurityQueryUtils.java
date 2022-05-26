@@ -938,7 +938,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static boolean userIsExporter(User user) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EXPORTER", "==", "TRUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EXPORTER", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
 		
 		IRawSelectWrapper wrapper = null;
