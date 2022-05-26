@@ -2,7 +2,6 @@ package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -487,83 +486,78 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
-	 * Update the project description
-	 * Will perform an insert if the description doesn't currently exist
+	 * Update the project metadata
+	 * Will delete existing values and then perform a bulk insert
 	 * @param projectId
-	 * @param insideId
+	 * @param insightId
+	 * @param tags
 	 */
-	public static void updateProjectDescription(String projectId, String description) {
-		// try to do an update
-		// if nothing is updated
-		// do an insert
-		projectId = RdbmsQueryBuilder.escapeForSQLStatement(projectId);
-		String query = "UPDATE PROJECTMETA SET METAVALUE='" 
-				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
-				+ "WHERE METAKEY='description' AND PROJECTID='" + projectId + "'";
-		Statement stmt = null;
+	public static void updateProjectMetadata(String projectId, Map<String, Object> metadata) {
+		// first do a delete
+		String deleteQ = "DELETE FROM PROJECTMETA WHERE METAKEY=? AND PROJECTID=?";
+		PreparedStatement deletePs = null;
 		try {
-			stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
-			if(stmt.getUpdateCount() <= 0) {
-				// need to perform an insert
-				query = securityDb.getQueryUtil().insertIntoTable("PROJECTMETA", 
-						new String[]{"PROJECTID", "METAKEY", "METAVALUE", "METAORDER"}, 
-						new String[]{"varchar(255)", "varchar(255)", "clob", "int"}, 
-						new Object[]{projectId, "description", description, 0});
-				securityDb.insertData(query);
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(String field : metadata.keySet()) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, field);
+				deletePs.setString(parameterIndex++, projectId);
+				deletePs.addBatch();
 			}
-		} catch(SQLException e) {
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(stmt != null) {
+			if(deletePs != null) {
 				try {
-					stmt.close();
+					deletePs.close();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 				if(securityDb.isConnectionPooling()) {
 					try {
-						stmt.getConnection().close();
+						deletePs.getConnection().close();
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
 		}
-	}
-
-	/**
-	 * Update the project tags
-	 * Will delete existing values and then perform a bulk insert
-	 * @param projectId
-	 * @param insightId
-	 * @param tags
-	 */
-	public static void updateProjectTags(String projectId, List<String> tags) {
-		// first do a delete
-		String query = "DELETE FROM PROJECTMETA WHERE METAKEY='tag' AND PROJECTID='" + projectId + "'";
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-
+		
 		// now we do the new insert with the order of the tags
-		query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTMETA", 
-				new String[]{"PROJECTID", "METAKEY", "METAVALUE", "METAORDER"});
+		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTMETA", new String[]{"PROJECTID", "METAKEY", "METAVALUE", "METAORDER"});
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
-			for(int i = 0; i < tags.size(); i++) {
-				String tag = tags.get(i);
-				ps.setString(1, projectId);
-				ps.setString(2, "tag");
-				ps.setString(3, tag);
-				ps.setInt(4, i);
-				ps.addBatch();;
+			for(String field : metadata.keySet()) {
+				Object val = metadata.get(field);
+				List<Object> values = new ArrayList<>();
+				if(val instanceof List) {
+					values = (List<Object>) val;
+				} else if(val instanceof Collection) {
+					values.addAll( (Collection<Object>) val);
+				} else {
+					values.add(val);
+				}
+				
+				for(int i = 0; i < values.size(); i++) {
+					int parameterIndex = 1;
+					Object fieldVal = values.get(i);
+					
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, field);
+					ps.setString(parameterIndex++, fieldVal + "");
+					ps.setInt(parameterIndex++, i);
+					ps.addBatch();
+				}
 			}
-
 			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -583,6 +577,104 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
+	
+//	/**
+//	 * Update the project description
+//	 * Will perform an insert if the description doesn't currently exist
+//	 * @param projectId
+//	 * @param insideId
+//	 */
+//	public static void updateProjectDescription(String projectId, String description) {
+//		// try to do an update
+//		// if nothing is updated
+//		// do an insert
+//		projectId = RdbmsQueryBuilder.escapeForSQLStatement(projectId);
+//		String query = "UPDATE PROJECTMETA SET METAVALUE='" 
+//				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
+//				+ "WHERE METAKEY='description' AND PROJECTID='" + projectId + "'";
+//		Statement stmt = null;
+//		try {
+//			stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
+//			if(stmt.getUpdateCount() <= 0) {
+//				// need to perform an insert
+//				query = securityDb.getQueryUtil().insertIntoTable("PROJECTMETA", 
+//						new String[]{"PROJECTID", "METAKEY", "METAVALUE", "METAORDER"}, 
+//						new String[]{"varchar(255)", "varchar(255)", "clob", "int"}, 
+//						new Object[]{projectId, "description", description, 0});
+//				securityDb.insertData(query);
+//			}
+//		} catch(SQLException e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		} finally {
+//			if(stmt != null) {
+//				try {
+//					stmt.close();
+//				} catch (SQLException e) {
+//					logger.error(Constants.STACKTRACE, e);
+//				}
+//				if(securityDb.isConnectionPooling()) {
+//					try {
+//						stmt.getConnection().close();
+//					} catch (SQLException e) {
+//						logger.error(Constants.STACKTRACE, e);
+//					}
+//				}
+//			}
+//		}
+//	}
+//
+//	/**
+//	 * Update the project tags
+//	 * Will delete existing values and then perform a bulk insert
+//	 * @param projectId
+//	 * @param insightId
+//	 * @param tags
+//	 */
+//	public static void updateProjectTags(String projectId, List<String> tags) {
+//		// first do a delete
+//		String query = "DELETE FROM PROJECTMETA WHERE METAKEY='tag' AND PROJECTID='" + projectId + "'";
+//		try {
+//			securityDb.insertData(query);
+//			securityDb.commit();
+//		} catch (SQLException e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		}
+//
+//		// now we do the new insert with the order of the tags
+//		query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTMETA", 
+//				new String[]{"PROJECTID", "METAKEY", "METAVALUE", "METAORDER"});
+//		PreparedStatement ps = null;
+//		try {
+//			ps = securityDb.getPreparedStatement(query);
+//			for(int i = 0; i < tags.size(); i++) {
+//				String tag = tags.get(i);
+//				ps.setString(1, projectId);
+//				ps.setString(2, "tag");
+//				ps.setString(3, tag);
+//				ps.setInt(4, i);
+//				ps.addBatch();;
+//			}
+//
+//			ps.executeBatch();
+//		} catch(Exception e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		} finally {
+//			if(ps != null) {
+//				try {
+//					ps.close();
+//				} catch (SQLException e) {
+//					logger.error(Constants.STACKTRACE, e);
+//				}
+//				if(securityDb.isConnectionPooling()) {
+//					try {
+//						ps.getConnection().close();
+//					} catch (SQLException e) {
+//						logger.error(Constants.STACKTRACE, e);
+//					}
+//				}
+//			}
+//		}
+//	}
 
 	/**
 	 * Get the wrapper for additional project metadata
@@ -599,8 +691,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAORDER"));
 		// filters
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", metaKeys));
+		if(projectId != null && !projectId.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__PROJECTID", "==", projectId));
+		}
+		if(metaKeys != null && !metaKeys.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", metaKeys));
+		}
 		// order
 		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAORDER"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -614,35 +710,32 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Map<String, Object> getAggregateProjectMetadata(String projectId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAKEY"));
-		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__PROJECTID", "==", projectId));
-		
 		Map<String, Object> retMap = new HashMap<String, Object>();
+
+		List<String> projectIds = new ArrayList<>();
+		projectIds.add(projectId);
 
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			wrapper = getProjectMetadataWrapper(projectIds, null);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
-				String metaKey = (String) data[0];
-				String metaValue = (String) data[1];
+				String metaKey = (String) data[1];
+				String metaValue = (String) data[2];
 
-				// AS THIS LIST EXPANDS
-				// WE NEED TO KNOW IF THESE ARE MULTI VALUED OR SINGLE
-				if(metaKey.equals("tag")) {
-					List<String> listVal = null;
-					if(retMap.containsKey("tags")) {
-						listVal = (List<String>) retMap.get("tags");
+				// always send as array
+				// if multi, send as array
+				if(retMap.containsKey(metaKey)) {
+					Object obj = retMap.get(metaKey);
+					if(obj instanceof List) {
+						((List) obj).add(metaValue);
 					} else {
-						listVal = new Vector<String>();
-						retMap.put("tags", listVal);
+						List<Object> newList = new ArrayList<>();
+						newList.add(obj);
+						newList.add(metaValue);
+						retMap.put(metaKey, newList);
 					}
-					listVal.add(metaValue);
-				}
-				// these will be the single valued parameters
-				else {
+				} else {
 					retMap.put(metaKey, metaValue);
 				}
 			}
