@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.project;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -53,8 +52,6 @@ public class ProjectInfoReactor extends AbstractReactor {
 		// we filtered to a single project
 		Map<String, Object> projectInfo = baseInfo.get(0);
 		projectInfo.putAll(SecurityProjectUtils.getAggregateProjectMetadata(projectId));
-		projectInfo.putIfAbsent("description", "");
-		projectInfo.putIfAbsent("tags", new Vector<String>());
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
 	}
 
