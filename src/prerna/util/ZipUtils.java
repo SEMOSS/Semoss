@@ -351,10 +351,11 @@ public final class ZipUtils {
 			}
 		} finally {
 			try{
-				if(zipFs!=null)
+				if(zipFs!=null) {
 					zipFs.close();
+				}
 			}catch(IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		paths.put("DIR", dirs);
