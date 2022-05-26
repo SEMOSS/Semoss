@@ -148,6 +148,7 @@ public enum ReactorKeysEnum {
 	PRAGMA("pragma",											"Directives that can be provided with the query like cache"),
 	PREDEFINED_PARAM_STRUCT("preDefinedParamStruct",			"Map containing the details for a predefined paramter"),	
 	PROJECT("project", 											"Name of the project"),
+	PROJECT_PROPERTIES_MAP("propMap", 							"Map containing the values for the project properties"),
 	PROP_FILE("propFile", 									    "The path to the properties file."),
 	RANDOM_VALS("randomVals",									"The number of random values to use for the routine"),
 	QUERY_PART("querypart",										"Specify the query part that is being replaced. This will help toward REPL"),	

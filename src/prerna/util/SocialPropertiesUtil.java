@@ -51,7 +51,7 @@ public class SocialPropertiesUtil {
 	}
 	
 	public void updateSocialProperties(String provider, Map<String, String> mods) {
-		SocialPropertiesUtil.processor.updateSocialProperties(provider, mods);
+		SocialPropertiesUtil.processor.updateProviderProperties(provider, mods);
 	}
 	
 	public Map<String, Boolean> getLoginsAllowed() {

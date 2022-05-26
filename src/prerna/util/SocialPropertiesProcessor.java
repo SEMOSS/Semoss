@@ -38,6 +38,10 @@ public class SocialPropertiesProcessor {
 	private Properties emailProps = null;
 	private Map<String, String> emailStaticProps = null;
 
+	/**
+	 * Constructor
+	 * @param socialPropFile
+	 */
 	public SocialPropertiesProcessor(String socialPropFile) {
 		this.socialPropFile = socialPropFile;
 		if(this.socialPropFile == null) {
@@ -51,6 +55,9 @@ public class SocialPropertiesProcessor {
 		loadSocialProperties();
 	}
 	
+	/**
+	 * 
+	 */
 	public void loadSocialProperties() {
 		this.socialData = Utility.loadProperties(this.socialPropFile);
 		setLoginsAllowed();
@@ -83,7 +90,15 @@ public class SocialPropertiesProcessor {
 		this.loginsAllowedMap.put("registration", registration);
 	}
 	
-	public void updateSocialProperties(String provider, Map<String, String> mods) {
+	public void updateProviderProperties(String provider, Map<String, String> mods) {
+		Map<String, String> updates = new HashMap<>(mods.size());
+		for (String mod : mods.keySet()) {
+			updates.put(provider + "_" + mod, mods.get(mod));
+		}
+		updateAllProperties(updates);
+	}
+	
+	public void updateAllProperties(Map<String, String> mods) {
 		PropertiesConfiguration config = null;
 		try {
 			config = new PropertiesConfiguration(this.socialPropFile);
@@ -93,13 +108,15 @@ public class SocialPropertiesProcessor {
 		}
 
 		for (String mod : mods.keySet()) {
-			config.setProperty(provider + "_" + mod, mods.get(mod));
+			config.setProperty(mod, mods.get(mod));
 		}
 
 		try {
 			config.save();
-			this.loadSocialProperties();
-			this.loadEmailSession();
+			// null out values to be reset
+			this.emailSession = null;
+			this.emailProps = null;
+			this.emailStaticProps = null;
 		} catch (ConfigurationException e1) {
 			throw new IllegalArgumentException("An unexpected error happened when saving the new login properties. Please try again or reach out to server admin.");
 		}
