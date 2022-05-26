@@ -384,7 +384,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
-	 * Update the database tags
+	 * Update the database metadata
 	 * Will delete existing values and then perform a bulk insert
 	 * @param databaseId
 	 * @param insightId
