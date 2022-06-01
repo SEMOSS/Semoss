@@ -114,6 +114,7 @@ public class SocialPropertiesProcessor {
 		try {
 			config.save();
 			// null out values to be reset
+			this.loadSocialProperties();
 			this.emailSession = null;
 			this.emailProps = null;
 			this.emailStaticProps = null;
