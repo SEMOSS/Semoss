@@ -131,6 +131,10 @@ public class SocialPropertiesProcessor {
 		return this.socialData.getProperty(key);
 	}
 	
+	public String getProperty(String key, String defaultValue) {
+		return this.socialData.getProperty(key, defaultValue);
+	}
+	
 	public Object get(Object key) {
 		return this.socialData.get(key);
 	}
