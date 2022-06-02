@@ -62,6 +62,10 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.getProperty(key);
 	}
 	
+	public String getProperty(String key, String defaultValue) {
+		return SocialPropertiesUtil.processor.getProperty(key, defaultValue);
+	}
+	
 	public Object get(Object key) {
 		return SocialPropertiesUtil.processor.get(key);
 	}
