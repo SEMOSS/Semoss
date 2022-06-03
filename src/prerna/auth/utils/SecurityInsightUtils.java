@@ -755,6 +755,99 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Update the insight metadata for the insight
+	 * Will delete existing values and then perform a bulk insert
+	 * @param projectId
+	 * @param insightId
+	 * @param metadata
+	 */
+	public static void updateInsightMetadata(String projectId, String insightId, Map<String, Object> metadata) {
+		// first do a delete
+		final String metaKey = "tag";
+		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			for(String field : metadata.keySet()) {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, field);
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, projectId);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+			ps.getConnection().commit();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		
+		// now we do the new insert with the order of the tags
+		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA", 
+				new String[]{"PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
+		ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			for(String field : metadata.keySet()) {
+				Object val = metadata.get(field);
+				List<Object> values = new ArrayList<>();
+				if(val instanceof List) {
+					values = (List<Object>) val;
+				} else if(val instanceof Collection) {
+					values.addAll( (Collection<Object>) val);
+				} else {
+					values.add(val);
+				}
+				
+				for(int i = 0; i < values.size(); i++) {
+					int parameterIndex = 1;
+					Object fieldVal = values.get(i);
+					
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, insightId);
+					ps.setString(parameterIndex++, field);
+					ps.setString(parameterIndex++, fieldVal + "");
+					ps.setInt(parameterIndex++, i);
+					ps.addBatch();
+				}
+			}
+			ps.executeBatch();
+			ps.getConnection().commit();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
 	 * Update the insight description
 	 * Will perform an insert if the description doesn't currently exist
 	 * @param projectId
