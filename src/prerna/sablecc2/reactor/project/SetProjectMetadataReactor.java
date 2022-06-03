@@ -62,7 +62,7 @@ public class SetProjectMetadataReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Define metadata on an input datasource";
+		return "Define metadata on a project";
 	}
 	
 	@Override
