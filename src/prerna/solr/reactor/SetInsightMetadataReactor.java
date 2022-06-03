@@ -41,27 +41,23 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the insight"));
 		return noun;
 	}
-		
+	
+	/**
+	 * 
+	 * @return
+	 */
 	private Map<String, Object> getMetaMap() {
 		GenRowStruct mapGrs = this.store.getNoun(META);
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				Map<String, Object> map = new HashMap<>();
-				for (NounMetadata nm : mapInputs) {
-					map.putAll((Map<String, Object>) nm.getValue());
-				}
-				return map;
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 		}
 
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(mapInputs != null && !mapInputs.isEmpty()) {
-			Map<String, Object> map = new HashMap<>();
-			for (NounMetadata nm : mapInputs) {
-				map.putAll((Map<String, Object>) nm.getValue());
-			}
-			return map;
+			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
 
 		throw new IllegalArgumentException("Must define a metadata map");
