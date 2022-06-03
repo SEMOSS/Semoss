@@ -30,7 +30,7 @@ public class SetDatabaseMetadataReactor extends AbstractReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
 			if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+				throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 			}
 		} else {
 			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
@@ -66,7 +66,7 @@ public class SetDatabaseMetadataReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Define metadata on an input datasource";
+		return "Define metadata on a datasource";
 	}
 	
 	@Override
