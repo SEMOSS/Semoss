@@ -38,7 +38,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 	private String folderPath;
 	private List<String> databaseIds;
 	private boolean override;
-	private Map<String, List<String>> configMap;
+	private Map<String, Object> configMap;
 	
 	public GenerateXRayHashingReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
@@ -113,69 +113,154 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 			
 			List<String> selectorFilters = null;
 			if(this.configMap != null && this.configMap.containsKey(databaseId)) {
-				selectorFilters = this.configMap.get(databaseId);
+				selectorFilters = (List<String>) this.configMap.get(databaseId);
 			}
 			
-			for(String selector : pixelSelectors) {
-				// see if its part of the filters
-				// but if the selectors is empty, it means we include them all
-				if(selectorFilters != null && !selectorFilters.isEmpty() && !selectorFilters.contains(selector)) {
-					// ignore the selector
-					continue;
+			Boolean rowComparison = (Boolean) this.configMap.get("rowComparison");
+			if(rowComparison == null) {
+				rowComparison = false;
+			}
+			
+			if(rowComparison) {
+				// need to group each table into a single query
+				Map<String, SelectQueryStruct> tableToQs = new HashMap<>();
+				for(String selector : pixelSelectors) {
+					// see if its part of the filters
+					// but if the selectors is empty, it means we include them all
+					if(selectorFilters != null && !selectorFilters.isEmpty() && !selectorFilters.contains(selector)) {
+						// ignore the selector
+						continue;
+					}
+					
+					// see if the file already exists
+					// so if we are not overriding, we can skip this selector
+					String tableName = null;
+					if(selector.contains("__")) {
+						String[] split = selector.split("__");
+						tableName = split[0];
+					} else {
+						tableName = selector;
+					}
+					
+					SelectQueryStruct qs = null;
+					if(tableToQs.containsKey(tableName)) {
+						qs = tableToQs.get(tableName);
+					} else {
+						qs = new SelectQueryStruct();
+						tableToQs.put(tableName, qs);
+					}
+					qs.addSelector(new QueryColumnSelector(selector));
 				}
 				
-				// see if the file already exists
-				// so if we are not overriding, we can skip this selector
-				String outputFileName = databaseId + ";";
-				if(selector.contains("__")) {
-					String[] split = selector.split("__");
-					outputFileName += split[0] + ";" + split[1];
-				} else {
-					outputFileName += selector + ";default_node_value";
+				// now loop through all the QS we have aggregated and write the tables out
+				for(String table : tableToQs.keySet()) {
+					SelectQueryStruct qs = tableToQs.get(table);
+					String outputFileName = databaseId + ";" + table + ";row_comparison.tsv";
+					
+					String outputFile = this.folderPath + "/" + Utility.normalizePath(outputFileName);
+					if(!this.override && new File(outputFile).exists()) {
+						logger.info("Hash already exists for " + Utility.cleanLogString(table));
+						
+						// add to list of files used
+						fileNames.add(outputFileName);
+						status.add("existing");
+						continue;
+					}
+					// add to list of files used
+					fileNames.add(outputFileName);
+					status.add("new");
+
+					IRawSelectWrapper wrapper = null;
+					try {
+						wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+						File f = new File(this.folderPath + "/" + Utility.normalizePath(table) + "_base.tsv");
+						try {
+							// write file
+							// no separator so its all concat together
+							Utility.writeResultToFile(f.getAbsolutePath(), wrapper, "");
+							// read into R
+							String randomFrame = Utility.getRandomString(6);
+							this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(randomFrame, f.getAbsolutePath(), "\t"));
+							// run the script which also outputs the file
+							// we care about the file name since we use that to split to know the source
+							logger.info("Generating hash for " + Utility.cleanLogString(table));
+							this.rJavaTranslator.executeEmptyR("encode_instances(" + randomFrame + ", \"" + outputFile + "\")");
+							logger.info("Done generating hash");
+						} finally {
+							if(f.exists()) {
+								f.delete();
+							}
+						}
+					} catch (Exception e) {
+						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						if(wrapper != null) {
+							wrapper.cleanUp();
+						}
+					}
 				}
-				outputFileName += ".tsv";
-				String outputFile = this.folderPath + "/" + Utility.normalizePath(outputFileName);
-				if(!this.override && new File(outputFile).exists()) {
-					logger.info("Hash already exists for " + Utility.cleanLogString(selector));
+			} else {
+				for(String selector : pixelSelectors) {
+					// see if its part of the filters
+					// but if the selectors is empty, it means we include them all
+					if(selectorFilters != null && !selectorFilters.isEmpty() && !selectorFilters.contains(selector)) {
+						// ignore the selector
+						continue;
+					}
+					
+					// see if the file already exists
+					// so if we are not overriding, we can skip this selector
+					String outputFileName = databaseId + ";";
+					if(selector.contains("__")) {
+						String[] split = selector.split("__");
+						outputFileName += split[0] + ";" + split[1];
+					} else {
+						outputFileName += selector + ";default_node_value";
+					}
+					outputFileName += ".tsv";
+					String outputFile = this.folderPath + "/" + Utility.normalizePath(outputFileName);
+					if(!this.override && new File(outputFile).exists()) {
+						logger.info("Hash already exists for " + Utility.cleanLogString(selector));
+						
+						// add to list of files used
+						fileNames.add(outputFileName);
+						status.add("existing");
+						continue;
+					}
 					
 					// add to list of files used
 					fileNames.add(outputFileName);
-					status.add("existing");
-					continue;
-				}
-				
-				// add to list of files used
-				fileNames.add(outputFileName);
-				status.add("new");
-				
-				logger.info("Querying data for " + Utility.cleanLogString(selector));
-				SelectQueryStruct qs = new SelectQueryStruct();
-				qs.addSelector(new QueryColumnSelector(selector));
-				IRawSelectWrapper wrapper = null;
-				try {
-					wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-					File f = new File(this.folderPath + "/" + Utility.normalizePath(selector) + "_base.tsv");
+					status.add("new");
+					
+					logger.info("Querying data for " + Utility.cleanLogString(selector));
+					SelectQueryStruct qs = new SelectQueryStruct();
+					qs.addSelector(new QueryColumnSelector(selector));
+					IRawSelectWrapper wrapper = null;
 					try {
-						// write file
-						Utility.writeResultToFile(f.getAbsolutePath(), wrapper, "/t");
-						// read into R
-						String randomFrame = Utility.getRandomString(6);
-						this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(randomFrame, f.getAbsolutePath(), "\t"));
-						// run the script which also outputs the file
-						// we care about the file name since we use that to split to know the source
-						logger.info("Generating hash for " + Utility.cleanLogString(selector));
-						this.rJavaTranslator.executeEmptyR("encode_instances(" + randomFrame + ", \"" + outputFile + "\")");
-						logger.info("Done generating hash");
-					} finally {
-						if(f.exists()) {
-							f.delete();
+						wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+						File f = new File(this.folderPath + "/" + Utility.normalizePath(selector) + "_base.tsv");
+						try {
+							// write file
+							Utility.writeResultToFile(f.getAbsolutePath(), wrapper, "/t");
+							// read into R
+							String randomFrame = Utility.getRandomString(6);
+							this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(randomFrame, f.getAbsolutePath(), "\t"));
+							// run the script which also outputs the file
+							// we care about the file name since we use that to split to know the source
+							logger.info("Generating hash for " + Utility.cleanLogString(selector));
+							this.rJavaTranslator.executeEmptyR("encode_instances(" + randomFrame + ", \"" + outputFile + "\")");
+							logger.info("Done generating hash");
+						} finally {
+							if(f.exists()) {
+								f.delete();
+							}
 						}
-					}
-				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(wrapper != null) {
-						wrapper.cleanUp();
+					} catch (Exception e) {
+						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						if(wrapper != null) {
+							wrapper.cleanUp();
+						}
 					}
 				}
 			}
@@ -199,12 +284,12 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		return grs.getAllStrValues();
 	}
 
-	private Map<String, List<String>> getConfig() {
+	private Map<String, Object> getConfig() {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
 		if(grs != null && !grs.isEmpty()) {
 			NounMetadata value = grs.getNoun(0);
 			if(value.getNounType() == PixelDataType.MAP) {
-				return (Map<String, List<String>>) value.getValue();
+				return (Map<String, Object>) value.getValue();
 			}
 		}
 		return null;
@@ -226,7 +311,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		return this.override;
 	}
 	
-	Map<String, List<String>> getConfigMap() {
+	Map<String, Object> getConfigMap() {
 		return this.configMap;
 	}
 }
