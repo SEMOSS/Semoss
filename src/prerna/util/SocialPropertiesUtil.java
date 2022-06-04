@@ -114,4 +114,7 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.getEmailStaticProps();
 	}
 	
+	public void reloadProps() {
+		SocialPropertiesUtil.processor.reloadProps();
+	}
 }

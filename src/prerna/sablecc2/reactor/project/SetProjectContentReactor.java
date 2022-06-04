@@ -26,17 +26,11 @@ public class SetProjectContentReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		
-		/*
-		 * Checks to see if project based on project id exists 
-		 */
+
 		if(StringUtils.isBlank(projectId)) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 		
-		/*
-		 * Checks to make sure only the owner of project can run this reactor 
-		 */
 		if(AbstractSecurityUtils.securityEnabled()) {
 			if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
@@ -48,7 +42,6 @@ public class SetProjectContentReactor extends AbstractReactor {
 		
 		Map<String, String> mods = getMods();
 		props.updateAllProperties(mods);
-		System.out.println(props);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set new properties for project"));
 		return noun;

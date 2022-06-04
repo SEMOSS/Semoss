@@ -91,4 +91,8 @@ public class ProjectProperties {
 		return this.processor.getEmailStaticProps();
 	}
 	
+	public void reloadProps() {
+		this.processor.reloadProps();
+	}
+	
 }
