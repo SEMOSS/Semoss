@@ -43,7 +43,7 @@ public class SendEmailReactor extends AbstractReactor {
 	public SendEmailReactor() {
 		this.keysToGet = new String[] { SMTP_HOST, SMTP_PORT, EMAIL_SUBJECT, EMAIL_SENDER, 
 				EMAIL_MESSAGE, EMAIL_MESSAGE_ENCODED, ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
-				MESSAGE_HTML, ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey(),
+				ReactorKeysEnum.EMAIL_SESSION.getKey(), MESSAGE_HTML, ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey(),
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
 				EMAIL_RECEIVER, EMAIL_CC_RECEIVER, EMAIL_BCC_RECEIVER, ATTACHMENTS };
 	}
@@ -108,17 +108,22 @@ public class SendEmailReactor extends AbstractReactor {
 		if(to == null && cc == null && bcc == null) {
 			throw new IllegalArgumentException("Need to define " + EMAIL_RECEIVER + " or " + EMAIL_CC_RECEIVER + " or " + EMAIL_BCC_RECEIVER);
 		}
-		
+
 		Session emailSession = null;
+
 		String smtpHost = this.keyValue.get(SMTP_HOST);
 		String smtpPort = this.keyValue.get(SMTP_PORT);
 		if( (smtpHost == null || smtpHost.isEmpty())
 				&& (smtpPort == null || smtpPort.isEmpty())) {
-			// use the default for the application defined in social.properties
-			if(!SocialPropertiesUtil.getInstance().emailEnabled()) {
-				throw new IllegalArgumentException("Need to define an smtp server to utilize this function");
+			// use the email session if the email session is passed into the call 
+			emailSession = getEmailSessionFromCall();
+			if(emailSession == null) {
+				// use the default for the application defined in social.properties
+				if(!SocialPropertiesUtil.getInstance().emailEnabled()) {
+					throw new IllegalArgumentException("Need to define an smtp server to utilize this function");
+				}
+				emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 			}
-			emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		} else {
 			String username = this.keyValue.get(ReactorKeysEnum.USERNAME.getKey());
 			String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
@@ -131,6 +136,18 @@ public class SendEmailReactor extends AbstractReactor {
 		// send email
 		boolean success = EmailUtility.sendEmail(emailSession, to, cc, bcc, sender, subject, message, isHtml, attachments);
 		return new NounMetadata(success, PixelDataType.BOOLEAN);
+	}
+	
+	private Session getEmailSessionFromCall() {
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.EMAIL_SESSION.getKey());
+		if(mapGrs == null || mapGrs.isEmpty()) {
+			return null;
+		}
+		List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.EMAIL_SESSION);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Session) mapInputs.get(0).getValue();
+		}
+		return null;
 	}
 
 	/**

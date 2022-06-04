@@ -113,14 +113,18 @@ public class SocialPropertiesProcessor {
 
 		try {
 			config.save();
-			// null out values to be reset
-			this.loadSocialProperties();
-			this.emailSession = null;
-			this.emailProps = null;
-			this.emailStaticProps = null;
+			reloadProps();
 		} catch (ConfigurationException e1) {
 			throw new IllegalArgumentException("An unexpected error happened when saving the new login properties. Please try again or reach out to server admin.");
 		}
+	}
+	
+	public void reloadProps() {
+		// null out values to be reset
+		this.loadSocialProperties();
+		this.emailSession = null;
+		this.emailProps = null;
+		this.emailStaticProps = null;
 	}
 	
 	public Map<String, Boolean> getLoginsAllowed() {
