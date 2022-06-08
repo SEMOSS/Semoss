@@ -22,14 +22,15 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 
 	public static final String CLASS_NAME = GenerateXRayMatchingReactor.class.getName();
 	
-	private static final String SIMILARITY_KEY = "similarity";
-	private static final String CANDIDATE_KEY = "candidate";
-	private static final String MATCH_SAME_DB_KEY = "matchSameDb";
-	
+	public static final String SIMILARITY_KEY = "similarity";
+	public static final String CANDIDATE_KEY = "candidate";
+	public static final String MATCH_SAME_DB_KEY = "matchSameDb";
+	public static final String ROW_MATCHING = "rowComparison";
+
 	public GenerateXRayMatchingReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
 				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey(),
-				SIMILARITY_KEY, CANDIDATE_KEY, MATCH_SAME_DB_KEY};
+				SIMILARITY_KEY, CANDIDATE_KEY, MATCH_SAME_DB_KEY, ROW_MATCHING};
 	}
 	
 	@Override
@@ -38,7 +39,6 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		hashReactor.In();
 		hashReactor.setNounStore(this.store);
 		hashReactor.setInsight(this.insight);
-		hashReactor.keysToGet = this.keysToGet;
 		NounMetadata successfulHash = hashReactor.execute();
 		
 		Map<String, Object> filesHash = null;
