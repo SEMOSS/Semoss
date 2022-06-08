@@ -1751,8 +1751,15 @@ public class UploadUtilities {
 				// grab the conceptual name
 				String propertyPixelName = helper.getPixelSelectorFromPhysicalUri(prop);
 				String owlType = helper.getDataTypes(prop);
-				owlType = owlType.replace("TYPE:", "");
-				SemossDataType type = SemossDataType.convertStringToDataType(owlType);
+				SemossDataType type = null;
+				if(owlType != null) {
+					owlType = owlType.replace("TYPE:", "");
+					type = SemossDataType.convertStringToDataType(owlType);
+				} else {
+					// something is weird that you have no type
+					// lets assume you are a string
+					type = SemossDataType.STRING;
+				}
 				// property conceptual uris are always /Column/Table
 				String propertyConceptualName = propertyPixelName.split("__")[1];
 				propMap.put(propertyConceptualName, type);

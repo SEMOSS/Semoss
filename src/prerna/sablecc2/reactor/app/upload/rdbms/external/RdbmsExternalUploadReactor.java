@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDFS;
 
@@ -54,6 +55,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 public class RdbmsExternalUploadReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(RdbmsExternalUploadReactor.class);
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String CLASS_NAME = RdbmsExternalUploadReactor.class.getName();
@@ -160,7 +163,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				updateExistingDatabase();
 				this.logger.info("Done updating existing database");
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				this.error = true;
 				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
@@ -208,7 +211,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				*/
 				this.logger.info("Complete");
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				this.error = true;
 				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
@@ -502,7 +505,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				FileUtils.forceDelete(this.databaseFolder);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
