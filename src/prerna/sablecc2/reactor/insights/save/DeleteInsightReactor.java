@@ -63,13 +63,8 @@ public class DeleteInsightReactor extends AbstractReactor {
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 			email = accessToken.getEmail();
 			author = accessToken.getUsername();
-		} 
-//		else {
-//			projectId = MasterDatabaseUtility.testProjectIdIfAlias(projectId);
-//			if(!MasterDatabaseUtility.getAllProjectIds().contains(projectId)) {
-//				throw new IllegalArgumentException("Project " + projectId + " does not exist");
-//			}
-//		}
+		}
+
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
 		
