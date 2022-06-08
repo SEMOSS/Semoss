@@ -18,20 +18,24 @@ public class GetUserInfoReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		User user = this.insight.getUser();
-		for (AuthProvider provider : user.getLogins()) {
-			String providerName = provider.name();
-			AccessToken token = user.getAccessToken(provider);
-			Map<String, Object> providerMap = new HashMap<String, Object>();
-			providerMap.put("id", token.getId() == null ? "null" : token.getId());
-			providerMap.put("name", token.getName() == null ? "null" : token.getName());
-			providerMap.put("email", token.getEmail() == null ? "null" : token.getEmail());
-			String groupType = token.getUserGroupType();
-			Set<String> groups = token.getUserGroups();
-			Map<String, Object> groupMap = new HashMap<>();
-			groupMap.put("groupType", groupType);
-			groupMap.put("groups", groups);
-			providerMap.put("groupInfo", groupMap);
-			returnMap.put(providerName, providerMap);
+		if(user != null) {
+			for (AuthProvider provider : user.getLogins()) {
+				String providerName = provider.name();
+				AccessToken token = user.getAccessToken(provider);
+				Map<String, Object> providerMap = new HashMap<String, Object>();
+				providerMap.put("id", token.getId() == null ? "null" : token.getId());
+				providerMap.put("name", token.getName() == null ? "null" : token.getName());
+				providerMap.put("email", token.getEmail() == null ? "null" : token.getEmail());
+				String groupType = token.getUserGroupType();
+				Set<String> groups = token.getUserGroups();
+				Map<String, Object> groupMap = new HashMap<>();
+				groupMap.put("groupType", groupType);
+				groupMap.put("groups", groups);
+				providerMap.put("groupInfo", groupMap);
+				returnMap.put(providerName, providerMap);
+			}
+		} else {
+			returnMap.put("No User", "User is not logged in");
 		}
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.MAP, PixelOperationType.USER_INFO);
 		return noun;
