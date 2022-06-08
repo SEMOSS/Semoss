@@ -668,8 +668,7 @@ public class InsightAdministrator {
 	}
 
 	public static String getClobRecipeSyntax(String[] pixelRecipeToSave) {
-		String sql = gson.toJson(pixelRecipeToSave);
-		return "'" + RdbmsQueryBuilder.escapeForSQLStatement(sql) + "'";
+		return gson.toJson(pixelRecipeToSave);
 	}
 
 	public static String getClobRecipeSyntax(Collection<String> pixelRecipeToSave) {
