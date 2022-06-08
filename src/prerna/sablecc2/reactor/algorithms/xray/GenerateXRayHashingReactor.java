@@ -35,14 +35,16 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 	public static final String FILES_KEY = "files";
 	public static final String STATUS_KEY = "status";
 	
+	public static final String ROW_MATCHING = "rowComparison";
+
 	private String folderPath;
 	private List<String> databaseIds;
-	private boolean override;
 	private Map<String, Object> configMap;
 	
 	public GenerateXRayHashingReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
-				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey()};
+				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey(),
+				GenerateXRayMatchingReactor.ROW_MATCHING};
 	}
 	
 	@Override
@@ -88,8 +90,9 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		}
 		
 		// see if we are overriding the existing hash or not
-		this.override = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]) + "");
-		
+		boolean override = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.OVERRIDE.getKey()) + "");
+		boolean rowComparison = Boolean.parseBoolean(this.keyValue.get(GenerateXRayMatchingReactor.ROW_MATCHING) + "");
+
 		// get the config map
 		this.configMap = getConfig();
 		
@@ -114,11 +117,6 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 			List<String> selectorFilters = null;
 			if(this.configMap != null && this.configMap.containsKey(databaseId)) {
 				selectorFilters = (List<String>) this.configMap.get(databaseId);
-			}
-			
-			Boolean rowComparison = (Boolean) this.configMap.get("rowComparison");
-			if(rowComparison == null) {
-				rowComparison = false;
 			}
 			
 			if(rowComparison) {
@@ -158,7 +156,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 					String outputFileName = databaseId + ";" + table + ";row_comparison.tsv";
 					
 					String outputFile = this.folderPath + "/" + Utility.normalizePath(outputFileName);
-					if(!this.override && new File(outputFile).exists()) {
+					if(!override && new File(outputFile).exists()) {
 						logger.info("Hash already exists for " + Utility.cleanLogString(table));
 						
 						// add to list of files used
@@ -219,7 +217,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 					}
 					outputFileName += ".tsv";
 					String outputFile = this.folderPath + "/" + Utility.normalizePath(outputFileName);
-					if(!this.override && new File(outputFile).exists()) {
+					if(!override && new File(outputFile).exists()) {
 						logger.info("Hash already exists for " + Utility.cleanLogString(selector));
 						
 						// add to list of files used
@@ -280,12 +278,12 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 	 */
 	
 	private List<String> getDatabases() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
 		return grs.getAllStrValues();
 	}
 
 	private Map<String, Object> getConfig() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONFIG.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			NounMetadata value = grs.getNoun(0);
 			if(value.getNounType() == PixelDataType.MAP) {
@@ -305,10 +303,6 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 	
 	List<String> getDatabaseIds() {
 		return this.databaseIds;
-	}
-	
-	boolean isOverride() {
-		return this.override;
 	}
 	
 	Map<String, Object> getConfigMap() {
