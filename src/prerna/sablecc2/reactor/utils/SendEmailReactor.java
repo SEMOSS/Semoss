@@ -13,6 +13,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.project.impl.ProjectPropertyEvaluator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -138,14 +139,18 @@ public class SendEmailReactor extends AbstractReactor {
 		return new NounMetadata(success, PixelDataType.BOOLEAN);
 	}
 	
+	/**
+	 * Get an email session that is passed in
+	 * @return
+	 */
 	private Session getEmailSessionFromCall() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.EMAIL_SESSION.getKey());
-		if(mapGrs == null || mapGrs.isEmpty()) {
+		GenRowStruct emailSessionGrs = this.store.getNoun(ReactorKeysEnum.EMAIL_SESSION.getKey());
+		if(emailSessionGrs == null || emailSessionGrs.isEmpty()) {
 			return null;
 		}
-		List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.EMAIL_SESSION);
+		List<NounMetadata> mapInputs = emailSessionGrs.getNounsOfType(PixelDataType.EMAIL_SESSION);
 		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Session) mapInputs.get(0).getValue();
+			return (Session) ((ProjectPropertyEvaluator) mapInputs.get(0).getValue()).eval();
 		}
 		return null;
 	}
