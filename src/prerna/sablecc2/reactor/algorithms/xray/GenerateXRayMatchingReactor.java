@@ -52,13 +52,13 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		if(fileNames == null || fileNames.isEmpty()) {
 			throw new IllegalArgumentException("Error occured trying to generaate hash for xray");
 		}
+		List<String> databaseIds = (List<String>) filesHash.get(GenerateXRayHashingReactor.DATABASE_IDS_KEY);
 		
 		// grab values from the hashReactor
 		// since it already had to grab from store
 		init();
 		Logger logger = this.getLogger(CLASS_NAME);
 		this.keyValue = hashReactor.keyValue;
-		List<String> databaseIds = hashReactor.getDatabaseIds();
 		// get the exact files that were generated
 		String folderPath = hashReactor.getFolderPath();
 		List<String> filePaths = new Vector<String>(fileNames.size());
