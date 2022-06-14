@@ -1,11 +1,11 @@
 package prerna.sablecc2.reactor.algorithms.xray;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
@@ -34,11 +34,11 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 
 	public static final String FILES_KEY = "files";
 	public static final String STATUS_KEY = "status";
-	
+	public static final String DATABASE_IDS_KEY = "databaseIds";
+
 	public static final String ROW_MATCHING = "rowComparison";
 
 	private String folderPath;
-	private List<String> databaseIds;
 	private Map<String, Object> configMap;
 	
 	public GenerateXRayHashingReactor() {
@@ -80,7 +80,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		}
 		
 		// now we want to go through and save all the file details 
-		this.databaseIds = getDatabases();
+		List<String> databaseIds = getDatabases();
 		for(String dbId : databaseIds) {
 			if(AbstractSecurityUtils.securityEnabled()) {
 				if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), dbId)) {
@@ -104,11 +104,12 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		Map<String, Object> returnMap = new HashMap<>();
 		returnMap.put(this.keysToGet[0], folderName);
 		returnMap.put(this.keysToGet[1], space);
-		List<String> fileNames = new Vector<>();
-		List<String> status = new Vector<>();
+		List<String> fileNames = new ArrayList<>();
+		List<String> status = new ArrayList<>();
 		returnMap.put(FILES_KEY, fileNames);
 		returnMap.put(STATUS_KEY, status);
-		
+		returnMap.put(DATABASE_IDS_KEY, databaseIds);
+
 		// go through and write the database
 		for(String databaseId : databaseIds) {
 			IEngine engine = Utility.getEngine(databaseId);
@@ -296,13 +297,8 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 	/*
 	 * Getters for other reactors
 	 */
-	
 	String getFolderPath() {
 		return this.folderPath;
-	}
-	
-	List<String> getDatabaseIds() {
-		return this.databaseIds;
 	}
 	
 	Map<String, Object> getConfigMap() {
