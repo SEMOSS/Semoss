@@ -41,7 +41,7 @@ public class GenerateXRayHashingFrameReactor extends AbstractRFrameReactor {
 	
 	public GenerateXRayHashingFrameReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
-				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey(),
+				ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey(),
 				GenerateXRayMatchingReactor.ROW_MATCHING};
 	}
 	
