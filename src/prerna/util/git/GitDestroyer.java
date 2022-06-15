@@ -82,8 +82,10 @@ public class GitDestroyer {
 		// if we want to delete the file, setCached needs to be set to false
 		RmCommand rm = thisGit.rm().setCached(!deleteFile);
 		for(String daFile : files) {
-			if(daFile.contains("version")) {
-				daFile = daFile.substring(daFile.indexOf("version") + 8);
+			if(daFile.contains("/version")) {
+				daFile = daFile.substring(daFile.indexOf("/version") + 9);
+			} else if(daFile.contains("\\version")) {
+				daFile = daFile.substring(daFile.indexOf("\\version") + 9);
 			}
 			daFile = daFile.replace("\\", "/");
 			rm.addFilepattern(daFile);
