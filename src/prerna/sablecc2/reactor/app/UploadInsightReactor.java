@@ -136,7 +136,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		String newInsightId = mosfet.getRdbmsId();
 		String layout = mosfet.getLayout();
 		List<String> pixelRecipeToSave = mosfet.getRecipe();
-		boolean hidden = mosfet.isHidden();
+		boolean hidden = mosfet.isGlobal();
 		boolean cacheable = mosfet.isCacheable();
 		int cacheMinutes = mosfet.getCacheMinutes();
 		String cacheCron = mosfet.getCacheCron();

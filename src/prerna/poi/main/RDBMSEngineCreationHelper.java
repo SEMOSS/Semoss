@@ -75,7 +75,7 @@ public class RDBMSEngineCreationHelper {
 				recipeArray.add("Database(\"" + appId + "\") | SelectTable(" + newTable + ") | Limit(500) | Import();");
 				recipeArray.add("Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);");
 
-				boolean hidden = false;
+				boolean global = true;
 				boolean cacheable = Utility.getApplicationCacheInsight();
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -88,7 +88,7 @@ public class RDBMSEngineCreationHelper {
 				tags.add("preview");
 				String description = "Preview of the table " + newTable + " and all of its columns";
 
-				String insightId = admin.addInsight(insightName, layout, recipeArray, hidden, 
+				String insightId = admin.addInsight(insightName, layout, recipeArray, global, 
 						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
@@ -96,7 +96,7 @@ public class RDBMSEngineCreationHelper {
 				// write recipe to file
 				try {
 					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
-							insightId, insightName, layout, recipeArray, hidden, 
+							insightId, insightName, layout, recipeArray, global, 
 							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 							description, tags);
 					// add the insight to git
@@ -111,7 +111,7 @@ public class RDBMSEngineCreationHelper {
 				
 				// insight security
 				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, 
-						hidden, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipeArray);
+						global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipeArray);
 				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}

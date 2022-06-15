@@ -50,7 +50,7 @@ public class RDFEngineCreationHelper {
 				recipeArray.add("Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"); 
 				recipeArray.add("Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);");
 				
-				boolean hidden = false;
+				boolean global = true;
 				boolean cacheable = Utility.getApplicationCacheInsight();
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -62,14 +62,14 @@ public class RDFEngineCreationHelper {
 				tags.add("preview");
 				String description = "Preview of the concept " + pixelName + " and all of its properties";
 
-				String insightId = admin.addInsight(insightName, layout, recipeArray, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+				String insightId = admin.addInsight(insightName, layout, recipeArray, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
 
 				// write recipe to file
 				try {
 					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
-							insightId, insightName, layout, recipeArray, hidden, 
+							insightId, insightName, layout, recipeArray, global, 
 							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 					// add the insight to git
 					String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
@@ -82,7 +82,7 @@ public class RDFEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, hidden, layout, 
+				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, global, layout, 
 						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
 						recipeArray);
 				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
@@ -142,7 +142,7 @@ public class RDFEngineCreationHelper {
 				recipeArray.add("Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();");
 				recipeArray.add("Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);");
 				
-				boolean hidden = false;
+				boolean global = true;
 				boolean cacheable = Utility.getApplicationCacheInsight();
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -154,7 +154,7 @@ public class RDFEngineCreationHelper {
 				tags.add("preview");
 				String description = "Preview of the concept " + pixelName + " and all of its properties";
 
-				String insightId = admin.addInsight(insightName, layout, recipeArray, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+				String insightId = admin.addInsight(insightName, layout, recipeArray, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
 
@@ -162,7 +162,7 @@ public class RDFEngineCreationHelper {
 				try {
 					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
 							insightId, insightName, layout, recipeArray, 
-							hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
+							global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
 							description, tags);
 					// add the insight to git
 					String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
@@ -176,7 +176,7 @@ public class RDFEngineCreationHelper {
 					
 				// insight security
 				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, 
-						hidden, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipeArray); 
+						global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipeArray); 
 				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}
