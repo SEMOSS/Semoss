@@ -39,7 +39,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -242,7 +241,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHED_ON_COL));
 		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHE_ENCRYPT_COL));
 		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_PKQL_COL));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
+//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
@@ -254,9 +253,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					String insightId = row[index++].toString();
 					String insightName = row[index++].toString();
 					String insightLayout = row[index++].toString();
-					Boolean hidden = (Boolean) row[index++];
-					if(hidden == null) {
-						hidden = false;
+					Boolean isPrivate = (Boolean) row[index++];
+					if(isPrivate == null) {
+						isPrivate = false;
 					}
 					Boolean cacheable = (Boolean) row[index++];
 					if(cacheable == null) {
@@ -279,7 +278,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, projectId);
 					ps.setString(parameterIndex++, insightId);
 					ps.setString(parameterIndex++, insightName);
-					ps.setBoolean(parameterIndex++, !hidden);
+					ps.setBoolean(parameterIndex++, !isPrivate);
 					ps.setLong(parameterIndex++, 0);
 					ps.setTimestamp(parameterIndex++, timeStamp, cal);
 					ps.setTimestamp(parameterIndex++, timeStamp, cal);

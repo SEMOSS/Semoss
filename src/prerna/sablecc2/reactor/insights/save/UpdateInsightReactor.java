@@ -42,7 +42,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 	public UpdateInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
-				ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, 
+				ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), GLOBAL_KEY, 
 				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), 
 				ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY, CACHEABLE, CACHE_MINUTES};
@@ -136,7 +136,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		}
 
 		String layout = getLayout();
-		boolean hidden = getHidden();
+		boolean global = getGlobal();
 		Boolean cacheable = getUserDefinedCacheable();
 		Integer cacheMinutes = getUserDefinedCacheMinutes();
 		Boolean cacheEncrypt = getUserDefinedCacheEncrypt();
@@ -182,7 +182,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		// update insight db
 		logger.info("1) Updating insight in rdbms");
-		admin.updateInsight(existingId, insightName, layout, recipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+		admin.updateInsight(existingId, insightName, layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 		logger.info("1) Done");
 		
 		String description = getDescription();
@@ -190,14 +190,14 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		logger.info("2) Updated registered insight...");
 		editRegisteredInsightAndMetadata(project, existingId, insightName, layout, 
-				!hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
+				global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
 				recipeToSave, description, tags, this.insight.getVarStore().getFrames());
 		logger.info("2) Done...");
 		
 		// update recipe text file
 		logger.info("3) Update Mosfet file for collaboration");
 		updateRecipeFile(projectId, project.getProjectName(), 
-				existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden, 
+				existingId, insightName, layout, IMAGE_NAME, recipeToSave, global, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 				description, tags);
 		logger.info("3) Done");
@@ -236,7 +236,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		returnMap.put("cacheMinutes", cacheMinutes);
 		returnMap.put("cacheCron", cacheCron);
 		returnMap.put("cacheEncrypt", cacheEncrypt);
-		returnMap.put("isPublic", !hidden);
+		returnMap.put("isPublic", global);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
