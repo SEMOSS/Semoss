@@ -51,7 +51,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	
 	public SaveInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
-				ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), 
+				ReactorKeysEnum.LAYOUT_KEY.getKey(), GLOBAL_KEY, ReactorKeysEnum.RECIPE.getKey(), 
 				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.IMAGE.getKey(), 
 				ENCODED_KEY, CACHEABLE, CACHE_MINUTES, CACHE_ENCRYPT};
@@ -100,7 +100,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		List<ParamStruct> params = null;
 		
 		String layout = getLayout();
-		boolean hidden = getHidden();
+		boolean global = getGlobal();
 		Boolean cacheable = getUserDefinedCacheable();
 		if(cacheable == null) {
 			cacheable = Utility.getApplicationCacheInsight();
@@ -197,7 +197,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		logger.info(stepCounter + ") Add insight " + insightName + " to rdbms store...");
-		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 		logger.info(stepCounter +") Done...");
 		stepCounter++;
 
@@ -205,7 +205,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		List<String> tags = getTags();
 		
 		logger.info(stepCounter + ") Regsiter insight...");
-		registerInsightAndMetadata(project, newRdbmsId, insightName, layout, !hidden, 
+		registerInsightAndMetadata(project, newRdbmsId, insightName, layout, global, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 				recipeToSave, description, tags, this.insight.getVarStore().getFrames());
 		logger.info(stepCounter + ") Done...");
@@ -235,7 +235,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		logger.info(stepCounter + ") Add recipe to file...");
 		try {
 			MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
-					newRdbmsId, insightName, layout, recipeToSave, hidden, 
+					newRdbmsId, insightName, layout, recipeToSave, global, 
 					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 					description, tags, true);
 		} catch (IOException e) {
@@ -311,7 +311,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		returnMap.put("cacheMinutes", cacheMinutes);
 		returnMap.put("cacheCron", cacheCron);
 		returnMap.put("cacheEncrypt", cacheEncrypt);
-		returnMap.put("isPublic", !hidden);
+		returnMap.put("isPublic", global);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}

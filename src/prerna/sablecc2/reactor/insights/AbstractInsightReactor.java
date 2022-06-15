@@ -46,7 +46,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	// used for saving a base insight
 	protected static final String IMAGE_THEME_FILE = "insight_theme.json";
 	protected static final String IMAGE_NAME = "image.png";
-	protected static final String HIDDEN_KEY = "hidden";
+	protected static final String GLOBAL_KEY = "global";
 	protected static final String CACHEABLE = "cache";
 	protected static final String CACHE_MINUTES = "cacheMinutes";
 	protected static final String CACHE_CRON = "cacheCron";
@@ -138,9 +138,9 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		throw new IllegalArgumentException("Need to define the app where the insight currently exists");
 	}
 	
-	protected boolean getHidden() {
+	protected boolean getGlobal() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(HIDDEN_KEY);
+		GenRowStruct genericIdGrs = this.store.getNoun(GLOBAL_KEY);
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return (boolean) genericIdGrs.get(0);
 		}

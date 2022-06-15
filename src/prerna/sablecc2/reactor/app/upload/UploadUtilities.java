@@ -1254,7 +1254,7 @@ public class UploadUtilities {
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
 				String insightName = getInsightName(databaseName, EXPLORE_INSIGHT_INSIGHT_NAME);
-				boolean hidden = false;
+				boolean global = true;
 				boolean cacheable = Utility.getApplicationCacheInsight();
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -1264,10 +1264,10 @@ public class UploadUtilities {
 				List<String> tags = null;
 				
 				String insightId = admin.addInsight(insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, 
-						hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 				//write recipe to file
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, 
-						hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 				// add the git here
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
@@ -1297,7 +1297,7 @@ public class UploadUtilities {
 		pixelRecipeToSave.add("Frame(useageFrame) | QueryAll() | AutoTaskOptions(panel = [ \"0\" ] , layout = [ \"GRID\" ] ) | Collect(-1);");
 		pixelRecipeToSave.add("SetInsightConfig({\"panels\":{\"0\":{\"config\":{\"type\":\"golden\",\"backgroundColor\":\"\",\"opacity\":100}}},\"sheets\":{\"0\":{\"golden\":{\"content\":[{\"type\":\"row\",\"content\":[{\"type\":\"stack\",\"activeItemIndex\":0,\"width\":100,\"content\":[{\"type\":\"component\",\"componentName\":\"panel\",\"componentState\":{\"panelId\":\"0\"}}]}]}]}}},\"sheet\":\"0\"});");
 		try {
-			boolean hidden = false;
+			boolean global = true;
 			boolean cacheable = Utility.getApplicationCacheInsight();
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -1307,10 +1307,10 @@ public class UploadUtilities {
 			List<String> tags = null;
 			
 			String insightId = admin.addInsight(INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave,
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 			// write recipe to file
 			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave,
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the git here
 			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 			List<String> files = new Vector<>();
@@ -1342,7 +1342,7 @@ public class UploadUtilities {
 		String insightName = getInsightName(databaseName, GRID_DELTA_INSIGHT_NAME);
 		// write recipe to file
 		try {
-			boolean hidden = false;
+			boolean global = true;
 			boolean cacheable = Utility.getApplicationCacheInsight();
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -1352,9 +1352,9 @@ public class UploadUtilities {
 			List<String> tags = null;
 			
 			String insightId = admin.addInsight(insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave, 
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave,
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 			List<String> files = new Vector<>();
@@ -1394,7 +1394,7 @@ public class UploadUtilities {
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
 				String insightName = getInsightName(databaseName, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
-				boolean hidden = false;
+				boolean global = true;
 				boolean cacheable = Utility.getApplicationCacheInsight();
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -1404,10 +1404,10 @@ public class UploadUtilities {
 				List<String> tags = null;
 				
 				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, 
-						hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 				//write recipe to file
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave,
-						hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 				// add the insight to git
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
@@ -1447,7 +1447,7 @@ public class UploadUtilities {
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
 				String insightName = getInsightName(databaseName, AUDIT_TIMELINE_INSIGHT_NAME);
-				boolean hidden = false;
+				boolean global = true;
 				boolean cacheable = Utility.getApplicationCacheInsight();
 				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -1457,10 +1457,10 @@ public class UploadUtilities {
 				List<String> tags = null;
 				
 				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, 
-						hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 				// write recipe to file
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave,
-						hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 				// add the insight to git
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
@@ -1503,7 +1503,7 @@ public class UploadUtilities {
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
-			boolean hidden = false;
+			boolean global = true;
 			boolean cacheable = Utility.getApplicationCacheInsight();
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -1512,10 +1512,10 @@ public class UploadUtilities {
 			String description = null;
 			List<String> tags = null;
 			
-			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 			insightEngine.commit();
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new Vector<>();
@@ -1559,7 +1559,7 @@ public class UploadUtilities {
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
-			boolean hidden = false;
+			boolean global = true;
 			boolean cacheable = Utility.getApplicationCacheInsight();
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -1568,10 +1568,10 @@ public class UploadUtilities {
 			String description = null;
 			List<String> tags = null;
 			
-			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 			insightEngine.commit();
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new Vector<>();
@@ -1616,7 +1616,7 @@ public class UploadUtilities {
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
-			boolean hidden = false;
+			boolean global = true;
 			boolean cacheable = Utility.getApplicationCacheInsight();
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -1626,11 +1626,11 @@ public class UploadUtilities {
 			List<String> tags = null;
 			
 			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave,
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 			insightDatabase.commit();
 			// write recipe to file
 			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, 
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new Vector<>();
@@ -1671,7 +1671,7 @@ public class UploadUtilities {
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
-			boolean hidden = false;
+			boolean global = true;
 			boolean cacheable = Utility.getApplicationCacheInsight();
 			int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
 			boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
@@ -1681,11 +1681,11 @@ public class UploadUtilities {
 			List<String> tags = null;
 			
 			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, 
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 			insightEngine.commit();
 			// write recipe to file
 			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave,
-					hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
+					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new Vector<>();
