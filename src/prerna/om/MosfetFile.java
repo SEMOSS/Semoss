@@ -23,7 +23,7 @@ public class MosfetFile {
 	private String rdbmsId;
 	private String insightName;
 	private String layout;
-	private boolean hidden = false;
+	private boolean global = false;
 	private boolean cacheable = true;
 	private int cacheMinutes = -1;
 	private String cacheCron;
@@ -145,12 +145,12 @@ public class MosfetFile {
 		this.layout = layout;
 	}
 
-	public boolean isHidden() {
-		return hidden;
+	public boolean isGlobal() {
+		return global;
 	}
 
-	public void setHidden(boolean hidden) {
-		this.hidden = hidden;
+	public void setGlobal(boolean global) {
+		this.global = global;
 	}
 	
 	public boolean isCacheable() {
