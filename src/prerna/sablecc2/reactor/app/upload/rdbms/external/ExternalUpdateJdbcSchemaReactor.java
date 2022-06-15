@@ -13,6 +13,10 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
@@ -45,6 +49,13 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		if(AbstractSecurityUtils.securityEnabled()) {
+			User user = this.insight.getUser();
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseId);
+			if(!SecurityDatabaseUtils.userCanEditDatabase(user, databaseId)) {
+				throw new IllegalArgumentException("User does not have permission to edit this database schema");
+			}
+		}
 		IEngine database = Utility.getEngine(databaseId);
 		IRDBMSEngine nativeDatabase = null;
 		if(database instanceof IRDBMSEngine) {
