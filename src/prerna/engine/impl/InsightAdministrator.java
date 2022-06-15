@@ -55,15 +55,15 @@ public class InsightAdministrator {
 
 	//TODO: CONVERT TO PREPARED STATEMENTS!!!
 
-	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, 
+	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean global, 
 			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
-		return addInsight(insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, 
+		return addInsight(insightName, layout, pixelRecipeToSave.toArray(new String[] {}), global, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
 
 	public String addInsight(final String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave,
-			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
-		return addInsight(insightId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), hidden, 
+			boolean global, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+		return addInsight(insightId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), global, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
 
@@ -72,16 +72,16 @@ public class InsightAdministrator {
 	 * @param insightName
 	 * @param layout
 	 * @param pixelRecipeToSave
-	 * @param hidden
+	 * @param global
 	 * @param cacheable
 	 * @param cacheMinutes
 	 * @param cacheEncrypt
 	 * @return
 	 */
-	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean hidden, 
+	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean global, 
 			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		String newId = UUID.randomUUID().toString();
-		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
 
 	/**
@@ -90,14 +90,14 @@ public class InsightAdministrator {
 	 * @param insightName
 	 * @param layout
 	 * @param pixelRecipeToSave
-	 * @param hidden
+	 * @param global
 	 * @param cacheable
 	 * @param cacheMinutes
 	 * @param cacheEncrypt
 	 * @return
 	 */
 	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, 
-			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+			boolean global, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		logger.info("Adding new question with insight id :::: " + Utility.cleanLogString(insightId));
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
@@ -117,7 +117,7 @@ public class InsightAdministrator {
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, insightName);
 			ps.setString(parameterIndex++, layout);
-			ps.setBoolean(parameterIndex++, hidden);
+			ps.setBoolean(parameterIndex++, !global);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
 			if(cacheCron == null) {
@@ -304,7 +304,7 @@ public class InsightAdministrator {
 
 
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, 
-			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+			boolean global, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		logger.info("Modifying insight id :::: " + Utility.cleanLogString(existingRdbmsId));
 		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
@@ -331,7 +331,7 @@ public class InsightAdministrator {
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightName);
 			ps.setString(parameterIndex++, layout);
-			ps.setBoolean(parameterIndex++, hidden);
+			ps.setBoolean(parameterIndex++, !global);
 			ps.setBoolean(parameterIndex++, cacheable);
 			ps.setInt(parameterIndex++, cacheMinutes);
 			if(cacheCron == null || cacheCron.isEmpty()) {
@@ -383,9 +383,9 @@ public class InsightAdministrator {
 	}
 
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, Collection<String> pixelRecipeToSave, 
-			boolean hidden, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+			boolean global, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
 		updateInsight(existingRdbmsId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), 
-				hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+				global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 	}
 
 	public void updateInsightName(String existingRdbmsId, String insightName) {
@@ -538,7 +538,7 @@ public class InsightAdministrator {
 		}
 	}
 
-	public void updateInsightGlobal(String existingRdbmsId, boolean isHidden) {
+	public void updateInsightGlobal(String existingRdbmsId, boolean isGlobal) {
 		logger.info("Modifying insight id :::: " + existingRdbmsId);
 
 		String query = "UPDATE " + TABLE_NAME + " SET "
@@ -550,7 +550,7 @@ public class InsightAdministrator {
 			ps = insightEngine.getPreparedStatement(query);
 
 			int parameterIndex = 1;
-			ps.setBoolean(parameterIndex++, isHidden);
+			ps.setBoolean(parameterIndex++, !isGlobal);
 			ps.setString(parameterIndex++, existingRdbmsId);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
