@@ -1234,7 +1234,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static void addInsightUser(User user, String newUserId, String projectId, String insightId, String permission) {
-		if(!userCanEditInsight(user, projectId, insightId)) {
+		// make sure user can edit the insight
+		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
+		if(!AccessPermission.isEditor(userPermissionLvl)) {
 			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
@@ -1242,6 +1244,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		if(getUserInsightPermission(newUserId, projectId, insightId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
+		}
+		
+		// if i am not an owner
+		// then i need to check if i can edit this users permission
+		if(!AccessPermission.isOwner(userPermissionLvl)) {
+			int newPermissionLvl = AccessPermission.getIdByPermission(permission);
+			// also, cannot give some owner permission if i am just an editor
+			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+				throw new IllegalArgumentException("Cannot give owner level access to this insight since you are not currently an owner.");
+			}
 		}
 		
 		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES('"

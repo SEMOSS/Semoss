@@ -311,14 +311,27 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void addProjectUser(User user, String newUserId, String projectId, String permission) throws IllegalAccessException {
-		if(!userCanEditProject(user, projectId)) {
+		// make sure user can edit the app
+		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
+		if(!AccessPermission.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
 		}
-
+				
 		// make sure user doesn't already exist for this insight
 		if(getUserProjectPermission(newUserId, projectId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this project. Please edit the existing permission level.");
+		}
+		
+		// if i am not an owner
+		// then i need to check if i can edit this users permission
+		if(!AccessPermission.isOwner(userPermissionLvl)) {
+			int newPermissionLvl = AccessPermission.getIdByPermission(permission);
+
+			// cannot give some owner permission if i am just an editor
+			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+				throw new IllegalAccessException("Cannot give owner level access to this project since you are not currently an owner.");
+			}
 		}
 
 		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES('"
@@ -370,7 +383,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 			// also, cannot give some owner permission if i am just an editor
 			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalAccessException("Cannot give owner level access to this insight since you are not currently an owner.");
+				throw new IllegalAccessException("Cannot give owner level access to this project since you are not currently an owner.");
 			}
 		}
 
@@ -424,7 +437,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured removing the user permissions for this app");
+			throw new IllegalArgumentException("An error occured removing the user permissions for this project");
 		}
 
 		// need to also delete all insight permissions for this app
