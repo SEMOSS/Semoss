@@ -208,14 +208,27 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void addDatabaseUser(User user, String newUserId, String databaseId, String permission) throws IllegalAccessException {
-		if(!userCanEditDatabase(user, databaseId)) {
+		// make sure user can edit the database
+		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
+		if(!AccessPermission.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
-		// make sure user doesn't already exist for this insight
+		// make sure user doesn't already exist for this database
 		if(getUserDatabasePermission(newUserId, databaseId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this database. Please edit the existing permission level.");
+		}
+		
+		// if i am not an owner
+		// then i need to check if i can edit this users permission
+		if(!AccessPermission.isOwner(userPermissionLvl)) {
+			int newPermissionLvl = AccessPermission.getIdByPermission(permission);
+
+			// cannot give some owner permission if i am just an editor
+			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+				throw new IllegalAccessException("Cannot give owner level access to this database since you are not currently an owner.");
+			}
 		}
 		
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES('"
