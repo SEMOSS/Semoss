@@ -129,7 +129,7 @@ public class ExcelSheetPreProcessor {
 				Cell thisCell = thisRow.getCell(colIndex);
 				Object cellValue = ExcelParsing.getCell(thisCell);
 				// if the cell is empty
-				if(cellValue.toString().isEmpty()) {
+				if(cellValue == null || cellValue.toString().trim().isEmpty()) {
 					// ignore
 					continue;
 				} else {

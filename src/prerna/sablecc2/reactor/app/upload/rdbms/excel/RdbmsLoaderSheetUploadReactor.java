@@ -759,7 +759,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		for (int colIndex = 1; colIndex < colLength; colIndex++) {
 			Cell thisCell = row.getCell(colIndex);
 			Object value = ExcelParsing.getCell(thisCell);
-			if(value instanceof SemossDate) {
+			if(value == null) {
+				cols[colIndex] = null;
+			} else if(value instanceof SemossDate) {
 				if( ((SemossDate) value).hasTime()) {
 					cols[colIndex] = ((SemossDate) value).getFormatted("yyyy-MM-dd HH:mm:ss");
 				} else {
