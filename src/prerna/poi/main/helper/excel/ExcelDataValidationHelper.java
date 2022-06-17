@@ -62,7 +62,7 @@ public class ExcelDataValidationHelper {
 					headerMeta.put("description", comment);
 				}
 				Object header = ExcelParsing.getCell(c);
-				cleanHeader = headerChecker.recursivelyFixHeaders(header.toString(), newUniqueCleanHeaders);
+				cleanHeader = headerChecker.recursivelyFixHeaders(header + "", newUniqueCleanHeaders);
 				// get new header from user input
 				if (newHeaders.containsKey(cleanHeader)) {
 					cleanHeader = newHeaders.get(cleanHeader);
@@ -176,7 +176,7 @@ public class ExcelDataValidationHelper {
 					headerMeta.put("description", comment);
 				}
 				Object header = ExcelParsing.getCell(c);
-				cleanHeader = headerChecker.recursivelyFixHeaders(header.toString(), newUniqueCleanHeaders);
+				cleanHeader = headerChecker.recursivelyFixHeaders(header + "", newUniqueCleanHeaders);
 				// get new header from user input
 				if (newHeaders.containsKey(cleanHeader)) {
 					cleanHeader = newHeaders.get(cleanHeader);
