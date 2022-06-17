@@ -1311,7 +1311,9 @@ public class POIReader extends AbstractFileReader {
 				}
 				
 				Object propValue = ExcelParsing.getCell(nextRow.getCell(colIndex));
-				if(propValue instanceof SemossDate) {
+				if(propValue == null || propValue.toString().trim().isEmpty()) {
+					continue;
+				} else if(propValue instanceof SemossDate) {
 					propValue = ((SemossDate) propValue).getDate();
 				}
 				propHash.put(propName, propValue);
