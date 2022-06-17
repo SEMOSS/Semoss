@@ -52,9 +52,10 @@ public class ExcelParsing {
 	 */
 	public static Object getCell(Cell thisCell) {
 		if (thisCell == null) {
-			return "";
+			return null;
 		}
-		CellType type = thisCell.getCellTypeEnum();
+		
+		CellType type = thisCell.getCellType();
 		if (type == CellType.BLANK) {
 			return "";
 		}
@@ -66,7 +67,7 @@ public class ExcelParsing {
 			}
 			return thisCell.getNumericCellValue();
 		} else if (type == CellType.BOOLEAN) {
-			return thisCell.getBooleanCellValue() + "";
+			return thisCell.getBooleanCellValue();
 		} else if (type == CellType.FORMULA) {
 			// do the same for the formula value
 			CellType formulatype = thisCell.getCachedFormulaResultTypeEnum();
@@ -84,7 +85,8 @@ public class ExcelParsing {
 				return thisCell.getBooleanCellValue();
 			}
 		}
-		return "";
+		
+		return null;
 	}
 	
 	
@@ -132,7 +134,7 @@ public class ExcelParsing {
 			if(row != null) {
 				// remember, excel is 1 based while java is 0 based
 				Object value = ExcelParsing.getCell(row.getCell(cellIndex-1));
-				if(value instanceof String && value.toString().isEmpty()) {
+				if(value == null || value instanceof String && value.toString().isEmpty()) {
 					continue ROW_LOOP;
 				}
 				
