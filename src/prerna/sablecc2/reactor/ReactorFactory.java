@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.classgraph.ClassGraph;
@@ -36,6 +39,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.forms.UpdateFormReactor;
 import prerna.io.connector.surveymonkey.SurveyMonkeyListSurveysReactor;
 import prerna.poi.main.helper.excel.GetExcelFormReactor;
@@ -409,6 +413,7 @@ import prerna.solr.reactor.DatabaseInfoReactor;
 import prerna.solr.reactor.DatabaseUsersReactor;
 import prerna.solr.reactor.GetInsightsReactor;
 import prerna.solr.reactor.MyDatabasesReactor;
+import prerna.util.Constants;
 //import prerna.solr.reactor.SetInsightDescriptionReactor;
 //import prerna.solr.reactor.SetInsightTagsReactor;
 import prerna.util.DIHelper;
@@ -440,6 +445,8 @@ import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReact
 
 public class ReactorFactory {
 
+	private static final Logger logger = LogManager.getLogger(ReactorFactory.class);
+	
 	// This holds the reactors that are frame agnostic and can be used by pixel
 	public static Map<String, Class> reactorHash;
 
@@ -489,10 +496,13 @@ public class ReactorFactory {
 		
 		String additionalReactorsPath = "";
 		try {
-			additionalReactorsPath = DIHelper.getInstance().getProperty("ADDITIONAL_REACTORS");	
-			File f = new File(additionalReactorsPath);
-			if(f.exists()) {
-				loadAdditionalReactor(f);
+			additionalReactorsPath = DIHelper.getInstance().getProperty(Constants.ADDITIONAL_REACTORS);
+			if(additionalReactorsPath != null) {
+				logger.info("Loading additional reactors from file");
+				File f = new File(additionalReactorsPath);
+				if(f.exists()) {
+					loadAdditionalReactor(f);
+				}
 			}
 		} catch(Exception e) {
 			// ignore
@@ -503,7 +513,29 @@ public class ReactorFactory {
 		}
 		
 		// load it through the inspect
-		loadFromCP();
+		List<String> packagesToLoad = new ArrayList<>();
+		packagesToLoad.add("prerna");
+		String additionalPackages = null;
+		try {
+			additionalPackages = DIHelper.getInstance().getProperty(Constants.ADDITIONAL_REACTOR_PACKAGES);
+			if(additionalPackages != null && !(additionalPackages=additionalPackages.trim()).isEmpty()) {
+				logger.info("Loading additional reactors from packages [" + additionalPackages + "]");
+				String[] packagesArr = additionalPackages.split(",");
+				for(String thisPackage : packagesArr) {
+					if(!(thisPackage=thisPackage.trim()).isEmpty()) {
+						packagesToLoad.add(thisPackage);
+					}
+				}
+			}
+		} catch(Exception e) {
+			// ignore
+			// this would only be null during testing
+			// and DIHelper isn't loaded
+			// hopefully you dont have anything in a prop file you care about
+			// or update the var directly
+		}
+		
+		loadFromCP(packagesToLoad.toArray(new String[] {}));
 	}
 	
 	public static void main(String [] args)
@@ -540,17 +572,14 @@ public class ReactorFactory {
 		
 	}
 	
-	private static void loadFromCP() {
+	/**
+	 * Load reactors based on the class path
+	 * @param packages
+	 */
+	private static void loadFromCP(String... packages) {
 		try {
-			//String folder = "C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes";
-			ScanResult sr = new ClassGraph().whitelistPackages("prerna")
-					//.overrideClasspath((new File(folder).toURI().toURL()))
-					.scan();
-			//ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
-			//ScanResult sr = new ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
-
+			ScanResult sr = new ClassGraph().whitelistPackages(packages).scan();
 			ClassInfoList classes = sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
-			
 			
 			for(int classIndex = 0;classIndex < classes.size();classIndex++) {
 				String name = classes.get(classIndex).getSimpleName();
