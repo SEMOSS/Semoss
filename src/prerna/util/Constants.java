@@ -639,6 +639,9 @@ public class Constants {
 	// Secrets Store
 	public static final String SECRET_STORE_ENABLED = "SECRET_STORE_ENABLED";
 	public static final String SECRET_STORE_TYPE = "SECRET_STORE_TYPE";
+	// Additional reactors
+	public static final String ADDITIONAL_REACTORS = "ADDITIONAL_REACTORS";
+	public static final String ADDITIONAL_REACTOR_PACKAGES = "ADDITIONAL_REACTOR_PACKAGES";
 	
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";
