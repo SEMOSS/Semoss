@@ -125,6 +125,7 @@ public class ExcelParsing {
 			endRow = startRow + NUM_ROWS_TO_PREDICT_TYPES;
 		}
 
+		boolean forceBreak = false;
 		SemossDataType type = null;
 		Map<String, Integer> formatTracker = new HashMap<String, Integer>();
 		additionalFormatTracker.add(formatTracker);
@@ -156,9 +157,10 @@ public class ExcelParsing {
 				
 				// if we hit a string
 				// we are done
-				if(newTypePrediction == SemossDataType.STRING || newTypePrediction == SemossDataType.BOOLEAN) {
+				if(newTypePrediction == SemossDataType.STRING) {
+					forceBreak = true;
 					Object[] columnPrediction = new Object[2];
-					columnPrediction[0] = SemossDataType.STRING;
+					columnPrediction[0] = newTypePrediction;
 					predictedTypes[colIndex] = columnPrediction;
 					break ROW_LOOP;
 				}
@@ -176,6 +178,16 @@ public class ExcelParsing {
 					// again, we handle additional formatting
 					// at the top
 					continue;
+				}
+				
+				// if we hit a boolean
+				else if(newTypePrediction == SemossDataType.BOOLEAN) {
+					// we have a boolean and something else we dont know
+					// default to string
+					type = SemossDataType.STRING;
+					// clear the tracker so we dont send additional format logic
+					formatTracker.clear();
+					break ROW_LOOP;
 				}
 				
 				// if we hit an integer
@@ -240,30 +252,32 @@ public class ExcelParsing {
 			}
 		}
 
-		// if an entire column is empty, type will be null
-		// why someone has a csv file with an empty column, i do not know...
-		if(type == null) {
-			type = SemossDataType.STRING;
-		}
-
-		// if format tracking is empty
-		// just add the type to the matrix
-		// and continue
-		if(formatTracker.isEmpty()) {
-			Object[] columnPrediction = new Object[2];
-			columnPrediction[0] = type;
-			predictedTypes[colIndex] = columnPrediction;
-		} else {
-			// format tracker is not empty
-			// need to figure out the date situation
-			if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
-				Object[] results = FileHelperUtil.determineDateFormatting(type, formatTracker);
-				predictedTypes[colIndex] = results;
-			} else {
-				// UGH... how did you get here if you are not a date???
+		if(!forceBreak) {
+			// if an entire column is empty, type will be null
+			// why someone has a csv file with an empty column, i do not know...
+			if(type == null) {
+				type = SemossDataType.STRING;
+			}
+	
+			// if format tracking is empty
+			// just add the type to the matrix
+			// and continue
+			if(formatTracker.isEmpty()) {
 				Object[] columnPrediction = new Object[2];
 				columnPrediction[0] = type;
 				predictedTypes[colIndex] = columnPrediction;
+			} else {
+				// format tracker is not empty
+				// need to figure out the date situation
+				if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
+					Object[] results = FileHelperUtil.determineDateFormatting(type, formatTracker);
+					predictedTypes[colIndex] = results;
+				} else {
+					// UGH... how did you get here if you are not a date???
+					Object[] columnPrediction = new Object[2];
+					columnPrediction[0] = type;
+					predictedTypes[colIndex] = columnPrediction;
+				}
 			}
 		}
 	}
