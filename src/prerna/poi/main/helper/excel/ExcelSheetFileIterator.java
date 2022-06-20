@@ -130,6 +130,9 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		Object[] cleanRow = new Object[row.length];
 		for(int i = 0; i < row.length; i++) {
 			Object val = row[i];
+			if(val == null) {
+				continue;
+			}
 			SemossDataType type = types[i];
 			String additionalFormatting = additionalTypes[i];
 			
