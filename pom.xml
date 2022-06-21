@@ -1920,5 +1920,11 @@
 		    <artifactId>pdfbox</artifactId>
 		    <version>2.0.26</version>
 		</dependency>
+		<!-- https://github.com/cdarras/clamav-client -->
+		<dependency>
+    		<groupId>xyz.capybara</groupId>
+    		<artifactId>clamav-client</artifactId>
+    		<version>2.1.2</version>
+		</dependency>
 	</dependencies>
 </project>
