@@ -3378,6 +3378,24 @@ public class Utility {
 	}
 	
 	/**
+	 * Determine if virus scanner enabled
+	 * @return
+	 */
+	public static boolean isVirusScanningEnabled() {
+		String virusScanning = DIHelper.getInstance().getProperty(Constants.VIRUS_SCANNING_ENABLED);
+		if(virusScanning == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(virusScanning);
+	}
+	
+	public static boolean isVirusScanningDisabled() {
+		return !isVirusScanningEnabled();
+	}
+	
+	/**
 	 * Determine if We need to show Welcome Dialog on Application Load
 	 * @return
 	 */
