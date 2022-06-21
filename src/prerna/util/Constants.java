@@ -643,6 +643,10 @@ public class Constants {
 	public static final String ADDITIONAL_REACTORS = "ADDITIONAL_REACTORS";
 	public static final String ADDITIONAL_REACTOR_PACKAGES = "ADDITIONAL_REACTOR_PACKAGES";
 	
+	// AntiVirus Store
+	public static final String VIRUS_SCANNING_ENABLED = "VIRUS_SCANNING_ENABLED";
+	public static final String VIRUS_SCANNING_METHOD = "VIRUS_SCANNING_METHOD";
+	
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";
 	public static final String R_ANALYTICS_SCRIPTS_FOLDER = "AnalyticsRoutineScripts";
