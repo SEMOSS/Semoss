@@ -102,6 +102,20 @@ DEFAULT_INSIGHT_CACHEABLE	true
 PIVOT_ROW_MAX	1000
 PIVOT_COL_MAX	100
 
+#Secrets
+SECRET_STORE_ENABLED	false
+SECRET_STORE_TYPE		VAULT
+VAULT_DB_PATH			semoss_db
+VAULT_PROJECT_PATH		semoss_project
+VAULT_TOKEN				
+
+#Virus Scanning
+VIRUS_SCANNING_ENABLED 	false
+VIRUS_SCANNING_METHOD 	ClamAV
+CLAMAV_SCANNING_PORT 	3310
+CLAMAV_SCANNING_ADDRESS	 
+CLAMAV_SCANNING_FS		
+
 ##################################################
 ##################################################
 ##################################################
