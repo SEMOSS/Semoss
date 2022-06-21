@@ -153,6 +153,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
 			if(dbTypeString == null) {
 				dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
+				if(dbTypeString == null) {
+					dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME.toUpperCase());
+				}
 			}
 			this.driver = prop.getProperty(Constants.DRIVER);
 			// get the dbType from the input or from the driver itself
