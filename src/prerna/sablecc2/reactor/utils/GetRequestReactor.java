@@ -1,8 +1,11 @@
 package prerna.sablecc2.reactor.utils;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -19,6 +22,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.io.connector.antivirus.VirusScannerUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -32,7 +36,7 @@ import prerna.util.git.reactors.CommitAssetReactor;
 
 public class GetRequestReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(GetRequestReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetRequestReactor.class);
 
 	public GetRequestReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", "useApplicationCert", "saveFile"};
@@ -67,8 +71,9 @@ public class GetRequestReactor extends AbstractReactor {
 	private NounMetadata nonFile(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass) {
 		ResponseHandler<String> handler = new BasicResponseHandler();
 		CloseableHttpResponse response = null;
+		CloseableHttpClient httpClient = null;
 		try {
-			CloseableHttpClient httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
 			HttpGet httpGet = new HttpGet(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(int i = 0; i < headersMap.size(); i++) {
@@ -80,7 +85,7 @@ public class GetRequestReactor extends AbstractReactor {
 			}
 			response = httpClient.execute(httpGet);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 		
@@ -88,7 +93,23 @@ public class GetRequestReactor extends AbstractReactor {
 		try {
 			retString = handler.handleResponse(response);
 		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		} finally {
+			if(response != null) {
+				try {
+					response.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(httpClient != null) {
+				try {
+					httpClient.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		
 		return new NounMetadata(retString, PixelDataType.CONST_STRING);
@@ -103,8 +124,9 @@ public class GetRequestReactor extends AbstractReactor {
 		}
 		
 		CloseableHttpResponse response = null;
+		CloseableHttpClient httpClient = null;
 		try {
-			CloseableHttpClient httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
 			HttpGet httpGet = new HttpGet(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(int i = 0; i < headersMap.size(); i++) {
@@ -116,7 +138,7 @@ public class GetRequestReactor extends AbstractReactor {
 			}
 			response = httpClient.execute(httpGet);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 			
@@ -125,7 +147,7 @@ public class GetRequestReactor extends AbstractReactor {
 		if (!fileDir.exists()) {
 			Boolean success = fileDir.mkdirs();
 			if(!success) {
-				logger.info("Unable to make direction at location: " + Utility.cleanLogString(filePath));
+				classLogger.info("Unable to make direction at location: " + Utility.cleanLogString(filePath));
 			}
 		}
 		
@@ -133,18 +155,72 @@ public class GetRequestReactor extends AbstractReactor {
 		File file = new File(fileLocation);
 		
 		InputStream is = null;
+		// used if virus scanning
+		ByteArrayOutputStream baos = null;
+		ByteArrayInputStream bais = null;
 		try {
 			HttpEntity entity = response.getEntity(); 
 			is = entity.getContent();
-			FileUtils.copyInputStreamToFile(is, file);
+			
+			if (Utility.isVirusScanningEnabled()) {
+				try {
+					baos = new ByteArrayOutputStream();
+		            IOUtils.copy(is, baos);
+		            bais = new ByteArrayInputStream(baos.toByteArray());
+		            
+					Map<String, Collection<String>> viruses = VirusScannerUtils.getViruses(bais);
+					if (!viruses.isEmpty()) {	
+						String error = "File contained " + viruses.size() + " virus";
+						if (viruses.size() > 1) {
+							error = error + "es";
+						}
+						
+						throw new IllegalArgumentException(error);
+					}
+					
+					bais.reset();
+					FileUtils.copyInputStreamToFile(bais, file);
+				} catch (IOException e) {
+					throw new IllegalArgumentException("Could not read file item.", e);
+				}
+			} else {
+				FileUtils.copyInputStreamToFile(is, file);
+			}
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			classLogger.error(Constants.STACKTRACE, e);
+			String message = "Could not connect to URL at " + url;
+			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				message += ". Detailed message = " + e.getMessage();
+			}
+			throw new IllegalArgumentException(message);
 		} finally {
-			IOUtils.closeQuietly(is);
+			if(is != null) {
+				IOUtils.closeQuietly(is);
+			}
+			if(bais != null) {
+				IOUtils.closeQuietly(bais);
+			}
+			if(baos != null) {
+				IOUtils.closeQuietly(baos);
+			}
+			if(response != null) {
+				try {
+					response.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(httpClient != null) {
+				try {
+					httpClient.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		String savedName = FilenameUtils.getName(fileLocation);
-		logger.info("Saved Filename: " + savedName + " to "+ file);
+		classLogger.info("Saved Filename: " + savedName + " to "+ file);
 		this.runCommitAssetReactor(fileLocation, savedName);
 		
 		return new NounMetadata(savedName, PixelDataType.CONST_STRING);
