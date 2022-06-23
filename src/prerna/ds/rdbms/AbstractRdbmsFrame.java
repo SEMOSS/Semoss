@@ -29,6 +29,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 	private Logger logger = LogManager.getLogger(AbstractRdbmsFrame.class);
 	
 	protected Connection conn = null;
+	protected String database = null;
 	protected String schema = null;
 	protected AbstractSqlQueryUtil util = null;
 	protected RdbmsFrameBuilder builder = null;

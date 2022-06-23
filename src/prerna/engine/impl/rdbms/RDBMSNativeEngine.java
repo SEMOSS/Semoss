@@ -312,7 +312,8 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 				this.queryUtil.setConnectionUrl(this.connectionURL);
 				this.queryUtil.setUsername(this.userName);
 				this.queryUtil.setPassword(this.password);
-
+				this.queryUtil.setDatabase(this.database);
+				this.queryUtil.setSchema(this.schema);
 				// build the connection
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
@@ -369,6 +370,11 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	}
 
 	@Override
+	public String getDatabase() {
+		return this.database;
+	}
+	
+	@Override
 	public String getSchema() {
 		// if not set in the prop file
 		// try to grab from the connection details
@@ -416,6 +422,11 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			this.engineConnected = true;
 			this.autoCommit = this.engineConn.getAutoCommit();
 			this.queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
+			this.queryUtil.setConnectionUrl(this.connectionURL);
+			this.queryUtil.setUsername(this.userName);
+			this.queryUtil.setPassword(this.password);
+			this.queryUtil.setDatabase(this.database);
+			this.queryUtil.setSchema(this.schema);
 		} catch (ClassNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} catch (SQLException e) {
@@ -425,8 +436,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

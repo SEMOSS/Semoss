@@ -66,17 +66,18 @@ public class MasterDatabaseUtility {
 		}
 	}
 	
-	private static void executeInitLocalMaster(IRDBMSEngine database, Connection conn) throws SQLException {
+	private static void executeInitLocalMaster(IRDBMSEngine engine, Connection conn) throws SQLException {
 		String [] colNames = null;
 		String [] types = null;
 
-		String schema = database.getSchema();
-		AbstractSqlQueryUtil queryUtil = database.getQueryUtil();
+		String database = engine.getDatabase();
+		String schema = engine.getSchema();
+		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		
 		// since i have major changes
-		requireRemakeAndAlter(database, conn, queryUtil, schema, allowIfExistsTable);
+		requireRemakeAndAlter(engine, conn, queryUtil, database, schema, allowIfExistsTable);
 		
 		// engine table
 		colNames = new String[]{"ID", "ENGINENAME", "MODIFIEDDATE", "TYPE"};
@@ -85,7 +86,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(database, "ENGINE", schema)) {
+			if(!queryUtil.tableExists(engine, "ENGINE", database, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINE", colNames, types));
 			}
@@ -95,7 +96,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(database, "ENGINE_ID_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(engine, "ENGINE_ID_INDEX", "ENGINE", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("ENGINE_ID_INDEX", "ENGINE", "ID"));
 			}
 		}
@@ -107,7 +108,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(database, "ENGINECONCEPT", schema)) {
+			if(!queryUtil.tableExists(engine, "ENGINECONCEPT", database, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINECONCEPT", colNames, types));
 			}
@@ -118,7 +119,7 @@ public class MasterDatabaseUtility {
 			if(allowIfExistsIndexs) {
 				executeSql(conn, queryUtil.dropIndexIfExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT"));
 			} else {
-				if(queryUtil.indexExists(database, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
+				if(queryUtil.indexExists(engine, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", database, schema)) {
 					executeSql(conn, queryUtil.dropIndexIfExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT"));
 				}
 			}
@@ -131,13 +132,13 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(database, "ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", schema)) {
+			if(!queryUtil.indexExists(engine, "ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", database, schema)) {
 				List<String> iCols = new Vector<>();
 				iCols.add("ENGINE");
 				iCols.add("LOCALCONCEPTID");
 				executeSql(conn, queryUtil.createIndex("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols));
 			}
-			if(!queryUtil.indexExists(database, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", schema)) {
+			if(!queryUtil.indexExists(engine, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
 			}
 		}
@@ -149,7 +150,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("CONCEPT", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(database, "CONCEPT", schema)) {
+			if(!queryUtil.tableExists(engine, "CONCEPT", database, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("CONCEPT", colNames, types));
 			}
@@ -159,7 +160,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(database, "CONCEPT_ID_INDEX", "CONCEPT", schema)) {
+			if(!queryUtil.indexExists(engine, "CONCEPT_ID_INDEX", "CONCEPT", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
 			}
 		}
@@ -171,7 +172,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("RELATION", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(database, "RELATION", schema)) {
+			if(!queryUtil.tableExists(engine, "RELATION", database, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("RELATION", colNames, types));
 			}
@@ -182,10 +183,10 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(database, "RELATION_TARGETID_INDEX", "RELATION", schema)) {
+			if(!queryUtil.indexExists(engine, "RELATION_TARGETID_INDEX", "RELATION", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("RELATION_TARGETID_INDEX", "RELATION", "TARGETID"));
 			}
-			if(!queryUtil.indexExists(database, "RELATION_SOURCEID_INDEX", "RELATION", schema)) {
+			if(!queryUtil.indexExists(engine, "RELATION_SOURCEID_INDEX", "RELATION", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID"));
 			}
 		}
@@ -197,7 +198,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINERELATION", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(database, "ENGINERELATION", schema)) {
+			if(!queryUtil.tableExists(engine, "ENGINERELATION", database, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINERELATION", colNames, types));
 			}
@@ -209,13 +210,13 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(database, "ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", schema)) {
+			if(!queryUtil.indexExists(engine, "ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE"));
 			}
-			if(!queryUtil.indexExists(database, "ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", schema)) {
+			if(!queryUtil.indexExists(engine, "ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", "TARGETCONCEPTID"));
 			}
-			if(!queryUtil.indexExists(database, "ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", schema)) {
+			if(!queryUtil.indexExists(engine, "ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID"));
 			}
 		}
@@ -227,21 +228,21 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("KVSTORE", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(database, "KVSTORE", schema)) {
+			if(!queryUtil.tableExists(engine, "KVSTORE", database, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("KVSTORE", colNames, types));
 			}
 		}
 
 		// concept metadata
-		updateMetadataTable(database, conn, queryUtil, Constants.CONCEPT_METADATA_TABLE, schema);
+		updateMetadataTable(engine, conn, queryUtil, Constants.CONCEPT_METADATA_TABLE, database, schema);
 		colNames = new String[] {Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE };
 		types = new String[] { "varchar(255)", "varchar(800)", "varchar(20000)" };
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists(Constants.CONCEPT_METADATA_TABLE, colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(database, Constants.CONCEPT_METADATA_TABLE, schema)) {
+			if(!queryUtil.tableExists(engine, Constants.CONCEPT_METADATA_TABLE, database, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable(Constants.CONCEPT_METADATA_TABLE, colNames, types));
 			}
@@ -252,10 +253,10 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", "CONCEPTMETADATA", "PHYSICALNAMEID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(database, "CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", schema)) {
+			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
 			}
-			if(!queryUtil.indexExists(database, "CONCEPTMETADATA_PHYSICAL_NAME_ID_INDEX", "CONCEPTMETADATA", schema)) {
+			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_PHYSICAL_NAME_ID_INDEX", "CONCEPTMETADATA", database, schema)) {
 				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", "CONCEPTMETADATA", "PHYSICALNAMEID"));
 			}
 		}
@@ -267,7 +268,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(database, "XRAYCONFIGS", schema)) {
+			if(!queryUtil.tableExists(engine, "XRAYCONFIGS", database, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("XRAYCONFIGS", colNames, types));
 			}
@@ -280,7 +281,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("BITLY", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(database, "BITLY", schema)) {
+			if(!queryUtil.tableExists(engine, "BITLY", database, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("BITLY", colNames, types));
 			}
@@ -293,16 +294,17 @@ public class MasterDatabaseUtility {
 	}
 
 	@Deprecated
-	private static void requireRemakeAndAlter(IRDBMSEngine database, 
+	private static void requireRemakeAndAlter(IRDBMSEngine engine, 
 			Connection conn, 
 			AbstractSqlQueryUtil queryUtil, 
+			String database, 
 			String schema, 
 			boolean allowIfExistsTable) throws SQLException {
 		boolean require = false;
 		String q = "select parentsemossname from engineconcept limit 1";
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(database, q);
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, q);
 			if(!wrapper.hasNext()) {
 				require = true;
 			}
@@ -325,25 +327,25 @@ public class MasterDatabaseUtility {
 				executeSql(conn, queryUtil.dropTableIfExists("RELATION"));
 				executeSql(conn, queryUtil.dropTableIfExists("KVSTORE"));
 			} else {
-				if(!queryUtil.tableExists(database, "ENGINE", schema)) {
+				if(!queryUtil.tableExists(engine, "ENGINE", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINE"));
 				}
-				if(!queryUtil.tableExists(database, "ENGINECONCEPT", schema)) {
+				if(!queryUtil.tableExists(engine, "ENGINECONCEPT", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINECONCEPT"));
 				}
-				if(!queryUtil.tableExists(database, "CONCEPT", schema)) {
+				if(!queryUtil.tableExists(engine, "CONCEPT", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("CONCEPT"));
 				}
-				if(!queryUtil.tableExists(database, "CONCEPTMETADATA", schema)) {
+				if(!queryUtil.tableExists(engine, "CONCEPTMETADATA", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("CONCEPTMETADATA"));
 				}
-				if(!queryUtil.tableExists(database, "ENGINERELATION", schema)) {
+				if(!queryUtil.tableExists(engine, "ENGINERELATION", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINERELATION"));
 				}
-				if(!queryUtil.tableExists(database, "RELATION", schema)) {
+				if(!queryUtil.tableExists(engine, "RELATION", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("RELATION"));
 				}
-				if(!queryUtil.tableExists(database, "KVSTORE", schema)) {
+				if(!queryUtil.tableExists(engine, "KVSTORE", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("KVSTORE"));
 				}
 			}
@@ -351,8 +353,8 @@ public class MasterDatabaseUtility {
 	}
 	
 	@Deprecated
-	private static void updateMetadataTable(IRDBMSEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil, String tableName, String schema) throws SQLException {
-		if(queryUtil.tableExists(engine, tableName, schema)) {
+	private static void updateMetadataTable(IRDBMSEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil, String tableName, String database, String schema) throws SQLException {
+		if(queryUtil.tableExists(engine, tableName, database, schema)) {
 			boolean allowIfExists = queryUtil.allowIfExistsModifyColumnSyntax();
 			if(queryUtil.allowDropColumn()) {
 				if(allowIfExists) {

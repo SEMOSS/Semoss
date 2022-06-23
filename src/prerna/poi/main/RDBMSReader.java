@@ -631,7 +631,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	// REQUIRES THE ACCURATE SCHEMA
 	private void findIndexes(String engineName){
 		// this gets all the existing tables
-		String query = queryUtil.getIndexList(engineName);
+		String query = queryUtil.getIndexList(null, null);
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
@@ -644,7 +644,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				String indexTableName = values[1].toString();
 				//only storing off custom indexes, recreating the non custom ones on the fly on the cleanUpDBTables method
 
-				String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, engineName);
+				String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, null, null);
 				List<String> columnsInIndex = new Vector<String>();
 				IRawSelectWrapper indexInfo = null;
 				try {
@@ -766,7 +766,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				}
 
 				//check that the temp table was created before dropping the table.
-				String verifyTable = queryUtil.tableExistsQuery(tableName + "_TEMP", null); //query here would return a row count 
+				String verifyTable = queryUtil.tableExistsQuery(tableName + "_TEMP", null, null); //query here would return a row count 
 				//if temp table wasnt successfully created, go to the next table.
 				IRawSelectWrapper wrapper = null;
 				try {
