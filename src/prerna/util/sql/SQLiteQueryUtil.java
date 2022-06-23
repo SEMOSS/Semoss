@@ -404,32 +404,32 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	 */
 		
 	@Override
-	public String tableExistsQuery(String tableName, String schema) {
+	public String tableExistsQuery(String tableName, String database, String schema) {
 		// do not need to use the schema
 		return "SELECT NAME, TYPE FROM SQLITE_MASTER WHERE TYPE='table' AND NAME='" + tableName + "';";
 	}
 	
 	@Override
-	public String getAllColumnDetails(String tableName, String schema) {
+	public String getAllColumnDetails(String tableName, String database, String schema) {
 		// do not need to use the schema
 		return "SELECT NAME, TYPE FROM PRAGMA_TABLE_INFO('" + tableName + "');";
 	}
 	
 	@Override
-	public String columnDetailsQuery(String tableName, String columnName, String schema) {
+	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
 		// do not need to use the schema
 		// the column name appears to always be stored in lower case...
 		return "SELECT NAME, TYPE FROM PRAGMA_TABLE_INFO('" + tableName + "') WHERE NAME='" + columnName.toLowerCase() + "';";
 	}
 	
 	@Override
-	public String getIndexList(String schema) {
+	public String getIndexList(String database, String schema) {
 		// do not need to use the schema
 		return "SELECT DISTINCT NAME, TBL_NAME FROM SQLITE_MASTER WHERE TYPE='index';";
 	}
 
 	@Override
-	public String getIndexDetails(String indexName, String tableName, String schema) {
+	public String getIndexDetails(String indexName, String tableName, String database, String schema) {
 		//TODO: MAHER COME BACK TO GETTING THIS COLUMN
 		//TODO: MAHER COME BACK TO GETTING THIS COLUMN
 		//TODO: MAHER COME BACK TO GETTING THIS COLUMN
@@ -438,7 +438,7 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public String allIndexForTableQuery(String tableName, String schema) {
+	public String allIndexForTableQuery(String tableName, String database, String schema) {
 		//TODO: MAHER COME BACK TO GETTING THIS COLUMN
 		//TODO: MAHER COME BACK TO GETTING THIS COLUMN
 		//TODO: MAHER COME BACK TO GETTING THIS COLUMN

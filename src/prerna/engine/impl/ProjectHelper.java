@@ -229,7 +229,7 @@ public class ProjectHelper {
 		insightsRdbms.setEngineId(projectId + "_INSIGHTS_RDBMS");
 
 		AbstractSqlQueryUtil queryUtil = insightsRdbms.getQueryUtil();
-		String tableExistsQuery = queryUtil.tableExistsQuery("QUESTION_ID", insightsRdbms.getSchema());
+		String tableExistsQuery = queryUtil.tableExistsQuery("QUESTION_ID", insightsRdbms.getDatabase(), insightsRdbms.getSchema());
 		boolean tableExists = false;
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -251,7 +251,7 @@ public class ProjectHelper {
 
 			// adding new insight metadata
 			try {
-				if(!queryUtil.tableExists(insightsRdbms.getConnection(), "INSIGHTMETA", insightsRdbms.getSchema())) {
+				if(!queryUtil.tableExists(insightsRdbms.getConnection(), "INSIGHTMETA", insightsRdbms.getDatabase(), insightsRdbms.getSchema())) {
 					String[] columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
 					String[] types = new String[] { "VARCHAR(255)", "VARCHAR(255)", queryUtil.getClobDataTypeName(), "INT"};
 					try {
@@ -267,7 +267,7 @@ public class ProjectHelper {
 			{
 				List<String> allCols;
 				try {
-					allCols = queryUtil.getTableColumns(insightsRdbms.getConnection(), InsightAdministrator.TABLE_NAME, insightsRdbms.getSchema());
+					allCols = queryUtil.getTableColumns(insightsRdbms.getConnection(), InsightAdministrator.TABLE_NAME, insightsRdbms.getDatabase(), insightsRdbms.getSchema());
 					// this should return in all upper case
 					// ... but sometimes it is not -_- i.e. postgres always lowercases
 					// TEMPORARY CHECK! - added 01/29/2022

@@ -49,7 +49,7 @@ public abstract class AbstractThemeUtils {
 		if(queryUtil.allowsIfExistsTableSyntax()) {
 			themeDb.insertData(queryUtil.createTableIfNotExists("ADMIN_THEME", colNames, types));
 		} else {
-			if(!queryUtil.tableExists(themeDb.getConnection(), "ADMIN_THEME", themeDb.getSchema())) {
+			if(!queryUtil.tableExists(themeDb.getConnection(), "ADMIN_THEME", themeDb.getDatabase(), themeDb.getSchema())) {
 				themeDb.insertData(queryUtil.createTable("ADMIN_THEME", colNames, types));
 			}
 		}

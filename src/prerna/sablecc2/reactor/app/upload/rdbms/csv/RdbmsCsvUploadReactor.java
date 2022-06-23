@@ -1156,7 +1156,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 				// check that the temp table was created before dropping the
 				// table.
-				String verifyTable = queryUtil.tableExistsQuery(tableName + "_TEMP", null);
+				String verifyTable = queryUtil.tableExistsQuery(tableName + "_TEMP", null, null);
 				// if temp table wasnt successfully created, go to the next
 				// table.
 				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(database, verifyTable);
@@ -1242,7 +1242,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	// REQUIRES THE ACCURATE SCHEMA
 	private void findIndexes(IEngine database) throws Exception {
 		// this gets all the existing tables
-		String query = queryUtil.getIndexList(database.getEngineId());
+		String query = queryUtil.getIndexList(null, null);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(database, query);
 		while (wrapper.hasNext()) {
 			String tablename = "";
@@ -1254,7 +1254,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// only storing off custom indexes, recreating the non custom ones
 			// on the fly on the cleanUpDBTables method
 
-			String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, database.getEngineId());
+			String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, null, null);
 			IRawSelectWrapper indexInfo = WrapperManager.getInstance().getRawWrapper(database, indexInfoQry);
 			List<String> columnsInIndex = new Vector<String>();
 			String columnName = "";
