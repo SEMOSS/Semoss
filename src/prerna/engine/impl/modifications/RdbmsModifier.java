@@ -13,12 +13,14 @@ public class RdbmsModifier implements IEngineModifier {
 
 	private RDBMSNativeEngine engine = null;
 	private AbstractSqlQueryUtil queryUtil = null;
+	private String database = null;
 	private String schmea = null;
 	
 	@Override
 	public void setEngine(IEngine engine) {
 		this.engine = (RDBMSNativeEngine) engine;
 		this.queryUtil = this.engine.getQueryUtil();
+		this.database = this.engine.getDatabase();
 		this.schmea = this.engine.getSchema();
 	}
 
@@ -87,7 +89,7 @@ public class RdbmsModifier implements IEngineModifier {
 			indexQuery = queryUtil.createIndex(indexName, tableName, columnName);
 		} else {
 			// first need to check if there is an existing index on the column
-			String existingIndicesQuery = queryUtil.allIndexForTableQuery(tableName, this.schmea);
+			String existingIndicesQuery = queryUtil.allIndexForTableQuery(tableName, this.database, this.schmea);
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, existingIndicesQuery);
 			while(wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();

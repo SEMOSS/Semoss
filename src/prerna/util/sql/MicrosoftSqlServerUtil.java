@@ -221,28 +221,32 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public String tableExistsQuery(String tableName, String schema) {
-		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_CATALOG='" + schema + "' AND TABLE_NAME='" + tableName +"'";
+	public String tableExistsQuery(String tableName, String database, String schema) {
+		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema + "' AND TABLE_NAME='" + tableName +"'";
 	}
 	
 	@Override
-	public String tableConstraintExistsQuery(String constraintName, String tableName, String schema) {
-		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName + "' AND TABLE_NAME = '" + tableName + "' AND TABLE_CATALOG='" + schema + "'";
+	public String tableConstraintExistsQuery(String constraintName, String tableName, String database, String schema) {
+		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName 
+				+ "' AND TABLE_NAME = '" + tableName + "' AND TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema + "'";
 	}
 
 	@Override
-	public String referentialConstraintExistsQuery(String constraintName, String schema) {
-		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName + "' AND CONSTRAINT_CATALOG='" + schema + "'";
+	public String referentialConstraintExistsQuery(String constraintName, String database, String schema) {
+		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName 
+				+ "' AND CONSTRAINT_CATALOG='" + database + "' AND CONSTRAINT_SCHEMA='" + schema + "'";
 	}
 	
 	@Override
-	public String getAllColumnDetails(String tableName, String schema) {
-		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + schema + "' AND TABLE_NAME='" + tableName +"'";
+	public String getAllColumnDetails(String tableName, String database, String schema) {
+		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema 
+				+ "' AND TABLE_NAME='" + tableName +"'";
 	}
 	
 	@Override
-	public String columnDetailsQuery(String tableName, String columnName, String schema) {
-		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + schema + "' AND TABLE_NAME='" + tableName +"'" + "' AND COLUMN_NAME='" + columnName.toUpperCase() + "'";
+	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
+		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema 
+				+ "' AND TABLE_NAME='" + tableName +"'" + "' AND COLUMN_NAME='" + columnName.toUpperCase() + "'";
 	}
 	
 	@Override

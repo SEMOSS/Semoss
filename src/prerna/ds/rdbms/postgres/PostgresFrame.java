@@ -77,7 +77,7 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 			this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.POSTGRES, connectionUrl,  username, password);
 			
 			// set the builder
-			this.builder = new RdbmsFrameBuilder(this.conn, this.schema, this.util);
+			this.builder = new RdbmsFrameBuilder(this.conn, this.database, this.schema, this.util);
 		} catch (IOException ex) {
 			logger.error("Error with loading properties in config file" + ex.getMessage());
 		}

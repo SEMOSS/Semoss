@@ -35,6 +35,7 @@ public class RdbmsFrameBuilder {
 	private Logger logger = LogManager.getLogger(RdbmsFrameBuilder.class);
 
 	protected Connection conn;
+	protected String database;
 	protected String schema;
 	protected AbstractSqlQueryUtil queryUtil;
 	
@@ -42,8 +43,9 @@ public class RdbmsFrameBuilder {
 	protected Map<String, String> columnIndexMap = new Hashtable<>();
 	protected Map<String, String> multiColumnIndexMap = new Hashtable<>();
 	
-	public RdbmsFrameBuilder(Connection conn, String schema, AbstractSqlQueryUtil util) {
+	public RdbmsFrameBuilder(Connection conn, String database, String schema, AbstractSqlQueryUtil util) {
 		this.conn = conn;
+		this.database = database;
 		this.schema = schema;
 		this.queryUtil = util;
 	}
@@ -70,7 +72,7 @@ public class RdbmsFrameBuilder {
 
 		// create table if it does not already exist
 		try {
-			if (!this.queryUtil.tableExists(this.conn, tableName, this.schema)) {
+			if (!this.queryUtil.tableExists(this.conn, tableName, this.database, this.schema)) {
 				String createTable = this.queryUtil.createTable(tableName, columnNames, types);
 				runQuery(createTable);
 			}
@@ -325,12 +327,12 @@ public class RdbmsFrameBuilder {
 	public void alterTableNewColumns(String tableName, String[] headers, String[] types) {
 		types = this.queryUtil.cleanTypes(types);
 		try {
-			if (this.queryUtil.tableExists(this.conn, tableName, this.schema)) {
+			if (this.queryUtil.tableExists(this.conn, tableName, this.database, this.schema)) {
 				List<String> newHeaders = new ArrayList<>();
 				List<String> newTypes = new ArrayList<>();
 
 				// determine the new headers and types
-				List<String> currentHeaders = this.queryUtil.getTableColumns(this.conn, tableName, this.schema);
+				List<String> currentHeaders = this.queryUtil.getTableColumns(this.conn, tableName, this.database, this.schema);
 				for (int i = 0; i < headers.length; i++) {
 					if (!currentHeaders.contains(headers[i].toUpperCase())) {
 						// these are the columns to create
@@ -521,7 +523,7 @@ public class RdbmsFrameBuilder {
 	 * @return
 	 */
 	public String[] getHeaders(String tableName) {
-		List<String> columns = this.queryUtil.getTableColumns(this.conn, tableName, this.schema);
+		List<String> columns = this.queryUtil.getTableColumns(this.conn, tableName, this.database, this.schema);
 		return columns.toArray(new String[columns.size()]);
 	}
 	
@@ -532,7 +534,7 @@ public class RdbmsFrameBuilder {
 	 */
 	public boolean isEmpty(String tableName) {
 		// first check if the table exists
-		if (this.queryUtil.tableExists(this.conn, tableName, this.schema)) {
+		if (this.queryUtil.tableExists(this.conn, tableName, this.database, this.schema)) {
 			// now check if there is at least one row
 			String query = "SELECT * FROM " + tableName + " LIMIT 1";
 			Statement stmt = null;
