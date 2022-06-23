@@ -123,7 +123,7 @@ public class PersistentHash {
 		try {
 			conn = engine.getConnection();
 			// make sure the KVSTORE table exists
-			return queryUtil.tableExists(conn, TABLE_NAME, engine.getSchema());
+			return queryUtil.tableExists(conn, TABLE_NAME, engine.getDatabase(), engine.getSchema());
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {

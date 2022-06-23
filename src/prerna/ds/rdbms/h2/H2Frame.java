@@ -120,7 +120,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		// get the connection
 		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.H2_DB, connectionUrl,  "sa", "");
 		// set the builder
-		this.builder = new RdbmsFrameBuilder(this.conn, this.schema, this.util);
+		this.builder = new RdbmsFrameBuilder(this.conn, this.database, this.schema, this.util);
 		this.util.enhanceConnection(this.conn);
 	}
 

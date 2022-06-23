@@ -196,13 +196,14 @@ public class SchedulerDatabaseUtility {
 	}
 
 	public static void initialize() throws SQLException {
+		String database = schedulerDb.getDatabase();
 		String schema = schedulerDb.getSchema();
 		Connection conn = schedulerDb.getConnection();
 		try {
-			createQuartzTables(conn, schema);
-			createSemossTables(conn, schema);
-			addAllPrimaryKeys(conn, schema);
-			addAllForeignKeys(conn, schema);
+			createQuartzTables(conn, database, schema);
+			createSemossTables(conn, database, schema);
+			addAllPrimaryKeys(conn, database, schema);
+			addAllForeignKeys(conn, database, schema);
 		} finally {
 			if(schedulerDb.isConnectionPooling()) {
 				conn.close();
@@ -940,7 +941,7 @@ public class SchedulerDatabaseUtility {
 		return Utility.decodeURIComponent(recipeParameters);
 	}
 
-	private static void createQuartzTables(Connection connection, String schema) {
+	private static void createQuartzTables(Connection connection, String database, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
@@ -960,7 +961,7 @@ public class SchedulerDatabaseUtility {
 						types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_CALENDARS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_CALENDARS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(QRTZ_CALENDARS, colNames, types, constraints));
@@ -977,7 +978,7 @@ public class SchedulerDatabaseUtility {
 						types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_CRON_TRIGGERS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_CRON_TRIGGERS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(QRTZ_CRON_TRIGGERS, colNames, types, constraints));
@@ -997,7 +998,7 @@ public class SchedulerDatabaseUtility {
 						types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_FIRED_TRIGGERS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_FIRED_TRIGGERS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(QRTZ_FIRED_TRIGGERS, colNames, types, constraints));
@@ -1014,7 +1015,7 @@ public class SchedulerDatabaseUtility {
 						colNames, types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_PAUSED_TRIGGER_GRPS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_PAUSED_TRIGGER_GRPS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(QRTZ_PAUSED_TRIGGER_GRPS, colNames,
 							types, constraints));
@@ -1031,7 +1032,7 @@ public class SchedulerDatabaseUtility {
 						types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_SCHEDULER_STATE, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_SCHEDULER_STATE, database, schema)) {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(QRTZ_SCHEDULER_STATE, colNames, types, constraints));
@@ -1048,7 +1049,7 @@ public class SchedulerDatabaseUtility {
 						queryUtil.createTableIfNotExistsWithCustomConstraints(QRTZ_LOCKS, colNames, types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_LOCKS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_LOCKS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(QRTZ_LOCKS, colNames, types, constraints));
@@ -1068,7 +1069,7 @@ public class SchedulerDatabaseUtility {
 						types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_JOB_DETAILS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_JOB_DETAILS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(QRTZ_JOB_DETAILS, colNames, types, constraints));
@@ -1086,7 +1087,7 @@ public class SchedulerDatabaseUtility {
 						types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_SIMPLE_TRIGGERS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_SIMPLE_TRIGGERS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(QRTZ_SIMPLE_TRIGGERS, colNames, types, constraints));
@@ -1106,7 +1107,7 @@ public class SchedulerDatabaseUtility {
 						colNames, types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_SIMPROP_TRIGGERS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_SIMPROP_TRIGGERS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(QRTZ_SIMPROP_TRIGGERS, colNames,
 							types, constraints));
@@ -1123,7 +1124,7 @@ public class SchedulerDatabaseUtility {
 						types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_BLOB_TRIGGERS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_BLOB_TRIGGERS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(QRTZ_BLOB_TRIGGERS, colNames, types, constraints));
@@ -1144,7 +1145,7 @@ public class SchedulerDatabaseUtility {
 						queryUtil.createTableIfNotExistsWithCustomConstraints(QRTZ_TRIGGERS, colNames, types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, QRTZ_TRIGGERS, schema)) {
+				if (!queryUtil.tableExists(connection, QRTZ_TRIGGERS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(QRTZ_TRIGGERS, colNames, types, constraints));
@@ -1155,7 +1156,7 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 
-	private static void createSemossTables(Connection connection, String schema) {
+	private static void createSemossTables(Connection connection, String database, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowBlobDataType = queryUtil.allowBlobDataType();
@@ -1181,7 +1182,7 @@ public class SchedulerDatabaseUtility {
 						queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, SMSS_JOB_RECIPES, schema)) {
+				if (!queryUtil.tableExists(connection, SMSS_JOB_RECIPES, database, schema)) {
 					// make the table
 					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
 				}
@@ -1192,7 +1193,7 @@ public class SchedulerDatabaseUtility {
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
 			{
 				// since we added the pixel recipe parameters at a later point...
-				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, schema).contains(UI_STATE)) {
+				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(UI_STATE)) {
 					// alter table to add the column
 					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, UI_STATE, BLOB_DATATYPE_NAME));
 					// set it to the value of the previous name "PARAMETER"
@@ -1207,7 +1208,7 @@ public class SchedulerDatabaseUtility {
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
 			{
 				// since we added the pixel recipe parameters at a later point...
-				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, schema).contains(PIXEL_RECIPE_PARAMETERS)) {
+				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(PIXEL_RECIPE_PARAMETERS)) {
 					// alter table to add the column
 					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB_DATATYPE_NAME));
 				}
@@ -1218,7 +1219,7 @@ public class SchedulerDatabaseUtility {
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
 			{
 				// need to add new JobId
-				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, schema).contains(JOB_ID)) {
+				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(JOB_ID)) {
 					// alter table to add the column
 					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.alterTableAddColumnWithDefault("SMSS_JOB_RECIPES", "JOB_ID", "VARCHAR(200)", "PLACEHOLDER"), true);
 					// make the JOB_ID the JOB_NAME for LEGACY recipes
@@ -1237,7 +1238,7 @@ public class SchedulerDatabaseUtility {
 				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_TAGS, colNames, types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, SMSS_JOB_TAGS, schema)) {
+				if (!queryUtil.tableExists(connection, SMSS_JOB_TAGS, database, schema)) {
 					// make the table
 					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_JOB_TAGS, colNames, types, constraints));
 				}
@@ -1254,7 +1255,7 @@ public class SchedulerDatabaseUtility {
 						types, constraints));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, SMSS_AUDIT_TRAIL, schema)) {
+				if (!queryUtil.tableExists(connection, SMSS_AUDIT_TRAIL, database, schema)) {
 					// make the table
 					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types, constraints));
 				}
@@ -1265,7 +1266,7 @@ public class SchedulerDatabaseUtility {
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
 			{
 				// need to add new JobId
-				if(!queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, schema).contains(JOB_ID)) {
+				if(!queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, database, schema).contains(JOB_ID)) {
 					// change JOB_NAME to JOB_ID
 					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.modColumnName("SMSS_AUDIT_TRAIL", "JOB_NAME", "JOB_ID"), true);
 				}
@@ -1275,7 +1276,7 @@ public class SchedulerDatabaseUtility {
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
 			{
 				// adding the column is_latest 
-				if(!queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, schema).contains(IS_LATEST)) {
+				if(!queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, database, schema).contains(IS_LATEST)) {
 					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.alterTableAddColumn(SMSS_AUDIT_TRAIL, IS_LATEST, BOOLEAN_DATATYPE), true);
 					// being lazy - just update all the existing ones to be is_latest false
 					// in theory should go and find the last instance of each job id and update...
@@ -1298,7 +1299,7 @@ public class SchedulerDatabaseUtility {
 				schedulerDb.insertData(queryUtil.createTableIfNotExists(SMSS_EXECUTION, colNames, types));
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(connection, SMSS_EXECUTION, schema)) {
+				if (!queryUtil.tableExists(connection, SMSS_EXECUTION, database, schema)) {
 					// make the table
 					schedulerDb.insertData(queryUtil.createTable(SMSS_EXECUTION, colNames, types));
 				}
@@ -1309,7 +1310,7 @@ public class SchedulerDatabaseUtility {
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
 			{
 				// need to add new JobId
-				if(!queryUtil.getTableColumns(connection, SMSS_EXECUTION, schema).contains(JOB_ID)) {
+				if(!queryUtil.getTableColumns(connection, SMSS_EXECUTION, database, schema).contains(JOB_ID)) {
 					// change JOB_NAME to JOB_ID
 					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.modColumnName("SMSS_EXECUTION", "JOB_NAME", "JOB_ID"), true);
 				}
@@ -1333,7 +1334,7 @@ public class SchedulerDatabaseUtility {
 		return arrays;
 	}
 	
-	private static void addAllPrimaryKeys(Connection conn, String schema) {
+	private static void addAllPrimaryKeys(Connection conn, String database, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		if(queryUtil.allowIfExistsAddConstraint()) {
 			String query1 = "ALTER TABLE QRTZ_CALENDARS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_CALENDARS PRIMARY KEY ( SCHED_NAME, CALENDAR_NAME);";
@@ -1374,70 +1375,70 @@ public class SchedulerDatabaseUtility {
 			String query10 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT PK_QRTZ_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
 
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_CALENDARS", "QRTZ_CALENDARS", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_CALENDARS", "QRTZ_CALENDARS", database, schema)) {
 					schedulerDb.insertData(query1);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_CRON_TRIGGERS", "QRTZ_CRON_TRIGGERS", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_CRON_TRIGGERS", "QRTZ_CRON_TRIGGERS", database, schema)) {
 					schedulerDb.insertData(query2);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_FIRED_TRIGGERS", "QRTZ_FIRED_TRIGGERS", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_FIRED_TRIGGERS", "QRTZ_FIRED_TRIGGERS", database, schema)) {
 					schedulerDb.insertData(query3);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_PAUSED_TRIGGER_GRPS", "QRTZ_PAUSED_TRIGGER_GRPS", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_PAUSED_TRIGGER_GRPS", "QRTZ_PAUSED_TRIGGER_GRPS", database, schema)) {
 					schedulerDb.insertData(query4);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SCHEDULER_STATE", "QRTZ_SCHEDULER_STATE", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SCHEDULER_STATE", "QRTZ_SCHEDULER_STATE", database, schema)) {
 					schedulerDb.insertData(query5);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_LOCKS", "QRTZ_LOCKS", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_LOCKS", "QRTZ_LOCKS", database, schema)) {
 					schedulerDb.insertData(query6);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_JOB_DETAILS", "QRTZ_JOB_DETAILS", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_JOB_DETAILS", "QRTZ_JOB_DETAILS", database, schema)) {
 					schedulerDb.insertData(query7);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SIMPLE_TRIGGERS", "QRTZ_SIMPLE_TRIGGERS", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SIMPLE_TRIGGERS", "QRTZ_SIMPLE_TRIGGERS", database, schema)) {
 					schedulerDb.insertData(query8);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SIMPROP_TRIGGERS", "QRTZ_SIMPROP_TRIGGERS", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SIMPROP_TRIGGERS", "QRTZ_SIMPROP_TRIGGERS", database, schema)) {
 					schedulerDb.insertData(query9);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_TRIGGERS", "QRTZ_TRIGGERS", schema)) {
+				if(!queryUtil.tableConstraintExists(conn, "PK_QRTZ_TRIGGERS", "QRTZ_TRIGGERS", database, schema)) {
 					schedulerDb.insertData(query10);
 				}
 			} catch (SQLException se) {
@@ -1446,7 +1447,7 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 
-	private static void addAllForeignKeys(Connection conn, String schema) {
+	private static void addAllForeignKeys(Connection conn, String database, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		if(queryUtil.allowIfExistsAddConstraint()) {
 			String query1 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
@@ -1469,28 +1470,28 @@ public class SchedulerDatabaseUtility {
 			String query4 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS FOREIGN KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP ) REFERENCES QRTZ_JOB_DETAILS ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
 
 			try {
-				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS", schema)) {
+				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS", database, schema)) {
 					schedulerDb.insertData(query1);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS", schema)) {
+				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS", database, schema)) {
 					schedulerDb.insertData(query2);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS", schema)) {
+				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS", database, schema)) {
 					schedulerDb.insertData(query3);
 				}
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
-				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS", schema)) {
+				if(!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS", database, schema)) {
 					schedulerDb.insertData(query4);
 				}
 			} catch (SQLException se) {
