@@ -216,49 +216,49 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	 */
 	
 	@Override
-	public String tableExistsQuery(String tableName, String schema) {
+	public String tableExistsQuery(String tableName, String database, String schema) {
 		// do not need to use the schema
 		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
 	}
 	
 	@Override
-	public String tableConstraintExistsQuery(String constraintName, String tableName, String schema) {
+	public String tableConstraintExistsQuery(String constraintName, String tableName, String database, String schema) {
 		// do not need to use the schema
 		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName.toUpperCase() + "' AND TABLE_NAME = '" + tableName.toUpperCase() + "'";
 	}
 
 	@Override
-	public String referentialConstraintExistsQuery(String constraintName, String schema) {
+	public String referentialConstraintExistsQuery(String constraintName, String database, String schema) {
 		// do not need to use the schema
 		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName.toUpperCase() + "'";
 	}
 	
 	@Override
-	public String getAllColumnDetails(String tableName, String schema) {
+	public String getAllColumnDetails(String tableName, String database, String schema) {
 		// do not need to use the schema
 		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "';";
 	}
 	
 	@Override
-	public String columnDetailsQuery(String tableName, String columnName, String schema) {
+	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
 		// do not need to use the schema
 		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "' AND COLUMN_NAME='" + columnName.toUpperCase() + "';";
 	}
 	
 	@Override
-	public String getIndexList(String schema) {
+	public String getIndexList(String database, String schema) {
 		// do not need to use the schema
 		return "SELECT DISTINCT INDEX_NAME, TABLE_NAME FROM INFORMATION_SCHEMA.INDEXES;";
 	}
 	
 	@Override
-	public String getIndexDetails(String indexName, String tableName, String schema) {
+	public String getIndexDetails(String indexName, String tableName, String database, String schema) {
 		// do not use the schema
 		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME='" + indexName.toUpperCase() + "' AND TABLE_NAME='" + tableName.toUpperCase() + "';";
 	}
 	
 	@Override
-	public String allIndexForTableQuery(String tableName, String schema) {
+	public String allIndexForTableQuery(String tableName, String database, String schema) {
 		// do not need to use the schema
 		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='" + tableName.toUpperCase() + "';";
 	}

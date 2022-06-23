@@ -121,6 +121,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static void initialize() throws Exception {
+		String database = securityDb.getDatabase();
 		String schema = securityDb.getSchema();
 		Connection conn = securityDb.getConnection();
 		String[] colNames = null;
@@ -148,30 +149,30 @@ public abstract class AbstractSecurityUtils {
 
 			// these are right name - but were added to wrong table
 			// so will do an exists check anyway
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", schema)) {
+			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", database, schema)) {
 				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT"));
 			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", schema)) {
+			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
 				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT"));
 			}
 		} else {
 			// see if index exists
-			if(queryUtil.indexExists(securityDb, "INSIGHT_ENGINEID_INDEX", "INSIGHT", schema)) {
+			if(queryUtil.indexExists(securityDb, "INSIGHT_ENGINEID_INDEX", "INSIGHT", database, schema)) {
 				securityDb.removeData(queryUtil.dropIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT"));
 			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", schema)) {
+			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", database, schema)) {
 				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT"));
 			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA", schema)) {
+			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA", database, schema)) {
 				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA"));
 			}
-			if(queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", schema)) {
+			if(queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
 				securityDb.removeData(queryUtil.dropIndex("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION"));
 			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", schema)) {
+			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", database, schema)) {
 				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT"));
 			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", schema)) {
+			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
 				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT"));
 			}
 		}
@@ -183,14 +184,14 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "ENGINE", schema)) {
+			if(!queryUtil.tableExists(conn, "ENGINE", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ENGINE", colNames, types));
 			}
 		}
 		// TEMPORARY CHECK! - ADDED 05/09/2022
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINE", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINE", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("DISCOVERABLE") && !allCols.contains("discoverable")) {
@@ -208,16 +209,16 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "ENGINE_GLOBAL_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINE_GLOBAL_INDEX", "ENGINE", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL"));
 			}
-			if(!queryUtil.indexExists(securityDb, "ENGINE_DISCOVERABLE_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINE_DISCOVERABLE_INDEX", "ENGINE", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE"));
 			}
-			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINENAME_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINENAME_INDEX", "ENGINE", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME"));
 			}
-			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINEID_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINEID_INDEX", "ENGINE", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID"));
 			}
 		}
@@ -226,13 +227,13 @@ public abstract class AbstractSecurityUtils {
 		// check if column exists
 		// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEMETA", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEMETA", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("METAORDER") && !allCols.contains("metaorder")) {
 				if(allowIfExistsTable) {
 					securityDb.removeData(queryUtil.dropTableIfExists("ENGINEMETA"));
-				} else if(queryUtil.tableExists(conn, "ENGINEMETA", schema)) {
+				} else if(queryUtil.tableExists(conn, "ENGINEMETA", database, schema)) {
 					securityDb.removeData(queryUtil.dropTable("ENGINEMETA"));
 				}
 			}
@@ -243,7 +244,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "ENGINEMETA", schema)) {
+			if(!queryUtil.tableExists(conn, "ENGINEMETA", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ENGINEMETA", colNames, types));
 			}
@@ -252,7 +253,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID"));
 			}
 		}
@@ -265,14 +266,14 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "ENGINEPERMISSION", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ENGINEPERMISSION", colNames, types));
 			}
 		}
 		// TEMPORARY CHECK! - ADDED 03/17/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEPERMISSION", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEPERMISSION", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
@@ -291,19 +292,19 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION"));
 			}
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY"));
 			}
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
 			}
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE"));
 			}
-			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID"));
 			}
 		}
@@ -318,21 +319,21 @@ public abstract class AbstractSecurityUtils {
 		
 		// PROJECT
 		// Type and cost are the main questions - 
-		boolean projectExists = queryUtil.tableExists(conn, "PROJECT", schema);
+		boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
 		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", "TYPE", "COST" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECT", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "PROJECT", schema)) {
+			if(!queryUtil.tableExists(conn, "PROJECT", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PROJECT", colNames, types));
 			}
 		}
 		// TEMPORARY CHECK! - ADDED 05/09/2022
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "PROJECT", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "PROJECT", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("DISCOVERABLE") && !allCols.contains("discoverable")) {
@@ -350,16 +351,16 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "PROJECT_GLOBAL_INDEX", "PROJECT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECT_GLOBAL_INDEX", "PROJECT", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL"));
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECT_DISCOVERABLE_INDEX", "PROJECT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECT_DISCOVERABLE_INDEX", "PROJECT", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECT_GLOBAL_INDEX", "PROJECT", "DISCOVERABLE"));
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTENAME_INDEX", "PROJECT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTENAME_INDEX", "PROJECT", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTENAME_INDEX", "PROJECT", "PROJECTNAME"));
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTID_INDEX", "PROJECT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTID_INDEX", "PROJECT", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
 			}
 		}
@@ -395,7 +396,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTMETA", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "PROJECTMETA", schema)) {
+			if(!queryUtil.tableExists(conn, "PROJECTMETA", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PROJECTMETA", colNames, types));
 			}
@@ -404,13 +405,13 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", "PROJECTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", "PROJECTID"));
 			}
 		}
 		
 		// PROJECTPERMISSION
-		boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", schema);
+		boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
 		colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE" };
 		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
 		defaultValues = new Object[]{null, null, null, true, false};
@@ -418,7 +419,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types, defaultValues));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "PROJECTPERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PROJECTPERMISSION", colNames, types));
 			}
@@ -453,19 +454,19 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", "PERMISSION"));
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", "VISIBILITY"));
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
 			}
-			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
 			}
 		}
@@ -483,7 +484,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("WORKSPACEENGINE", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "WORKSPACEENGINE", schema)) {
+			if(!queryUtil.tableExists(conn, "WORKSPACEENGINE", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("WORKSPACEENGINE", colNames, types));
 			}
@@ -494,7 +495,7 @@ public abstract class AbstractSecurityUtils {
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "WORKSPACEENGINE", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "WORKSPACEENGINE", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -507,10 +508,10 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
 			}
-			if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
 			}			
 		}
@@ -523,7 +524,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ASSETENGINE", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "ASSETENGINE", schema)) {
+			if(!queryUtil.tableExists(conn, "ASSETENGINE", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ASSETENGINE", colNames, types));
 			}
@@ -534,7 +535,7 @@ public abstract class AbstractSecurityUtils {
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "ASSETENGINE", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "ASSETENGINE", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -547,10 +548,10 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "ASSETENGINE_TYPE_INDEX", "ASSETENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ASSETENGINE_TYPE_INDEX", "ASSETENGINE", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
 			}
-			if(!queryUtil.indexExists(securityDb, "ASSETENGINE_USERID_INDEX", "ASSETENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ASSETENGINE_USERID_INDEX", "ASSETENGINE", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
 			}
 		}
@@ -565,7 +566,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "INSIGHT", schema)) {
+			if(!queryUtil.tableExists(conn, "INSIGHT", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("INSIGHT", colNames, types));
 			}
@@ -573,7 +574,7 @@ public abstract class AbstractSecurityUtils {
 		// INSIGHT RECIPE
 		// check if column exists
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHT", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHT", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
@@ -609,7 +610,7 @@ public abstract class AbstractSecurityUtils {
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHT", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHT", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -624,16 +625,16 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
 			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHT_GLOBAL_INDEX", "INSIGHT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_GLOBAL_INDEX", "INSIGHT", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
 			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHT_PROJECTID_INDEX", "INSIGHT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_PROJECTID_INDEX", "INSIGHT", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
 			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHT_INSIGHTID_INDEX", "INSIGHT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
 			}
 		}
@@ -645,14 +646,14 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "USERINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "USERINSIGHTPERMISSION", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("USERINSIGHTPERMISSION", colNames, types));
 			}
 		}
 		// TEMPORARY CHECK! - ADDED 03/17/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
@@ -668,7 +669,7 @@ public abstract class AbstractSecurityUtils {
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -683,16 +684,16 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
 			}
-			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", "PROJECTID"));
 			}
-			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
 			}
-			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
 			}
 		}
@@ -704,7 +705,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTMETA", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "INSIGHTMETA", schema)) {
+			if(!queryUtil.tableExists(conn, "INSIGHTMETA", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("INSIGHTMETA", colNames, types));
 			}
@@ -713,7 +714,7 @@ public abstract class AbstractSecurityUtils {
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHTMETA", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHTMETA", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -727,10 +728,10 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
 			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
 			}
 		}
@@ -742,7 +743,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTFRAMES", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "INSIGHTFRAMES", schema)) {
+			if(!queryUtil.tableExists(conn, "INSIGHTFRAMES", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("INSIGHTFRAMES", colNames, types));
 			}
@@ -752,10 +753,10 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTFRAMES", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTFRAMES", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_PROJECTID_INDEX", "INSIGHTFRAMES", "PROJECTID"));
 			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTMETA", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTMETA", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTFRAMES", "INSIGHTID"));
 			}
 		}
@@ -770,20 +771,20 @@ public abstract class AbstractSecurityUtils {
 		// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 		// but some rdbms types (postgres) does not allow it
 		// so i am going ahead and moving over user to smss_user
-		if(queryUtil.tableExists(conn, "USER", schema)) {
-			performSmssUserTemporaryUpdate(securityDb, queryUtil, colNames, types, conn, schema, allowIfExistsTable);
+		if(queryUtil.tableExists(conn, "USER", database, schema)) {
+			performSmssUserTemporaryUpdate(securityDb, queryUtil, colNames, types, conn, database, schema, allowIfExistsTable);
 		} else {
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER", colNames, types));
 			} else {
 				// see if table exists
-				if(!queryUtil.tableExists(conn, "SMSS_USER", schema)) {
+				if(!queryUtil.tableExists(conn, "SMSS_USER", database, schema)) {
 					// make the table
 					securityDb.insertData(queryUtil.createTable("SMSS_USER", colNames, types));
 				}
 			}
 		}
-		List<String> smssUserCols = queryUtil.getTableColumns(conn, "SMSS_USER", schema);
+		List<String> smssUserCols = queryUtil.getTableColumns(conn, "SMSS_USER", database, schema);
 		// 2022-01-11 altering table need to check if a column exists, if not add it in
 		// this should return in all upper case
 		// ... but sometimes it is not -_- i.e. postgres always lowercases
@@ -819,7 +820,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "SMSS_USER_ID_INDEX", "SMSS_USER", schema)) {
+			if(!queryUtil.indexExists(securityDb, "SMSS_USER_ID_INDEX", "SMSS_USER", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
 			}
 		}
@@ -841,7 +842,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_GROUP", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "SMSS_GROUP", schema)) {
+			if(!queryUtil.tableExists(conn, "SMSS_GROUP", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("SMSS_GROUP", colNames, types));
 			}
@@ -852,7 +853,7 @@ public abstract class AbstractSecurityUtils {
 		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
 		//MAKING MODIFICATION FOR ADDITIONAL DESCRIPTION COLUMN - 11/17/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "SMSS_GROUP", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "SMSS_GROUP", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("DESCRIPTION") && !allCols.contains("description")) {
@@ -869,7 +870,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPENGINEPERMISSION", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "GROUPENGINEPERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "GROUPENGINEPERMISSION", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("GROUPENGINEPERMISSION", colNames, types));
 			}
@@ -883,7 +884,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPPROJECTPERMISSION", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "GROUPPROJECTPERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "GROUPPROJECTPERMISSION", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("GROUPPROJECTPERMISSION", colNames, types));
 			}
@@ -896,7 +897,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "GROUPINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "GROUPINSIGHTPERMISSION", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("GROUPINSIGHTPERMISSION", colNames, types));
 			}
@@ -909,7 +910,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ACCESSREQUEST", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "ACCESSREQUEST", schema)) {
+			if(!queryUtil.tableExists(conn, "ACCESSREQUEST", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
 			}
@@ -922,7 +923,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("TOKEN", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "TOKEN", schema)) {
+			if(!queryUtil.tableExists(conn, "TOKEN", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("TOKEN", colNames, types));
 			}
@@ -931,7 +932,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", schema)) {
+			if(!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
 			}
 		}
@@ -943,7 +944,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "PERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "PERMISSION", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PERMISSION", colNames, types));
 			}
@@ -955,7 +956,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "PERMISSION_ID_NAME_INDEX", "PERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PERMISSION_ID_NAME_INDEX", "PERMISSION", database, schema)) {
 				List<String> iCols = new Vector<String>();
 				iCols.add("ID");
 				iCols.add("NAME");
@@ -998,7 +999,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RULES", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "PASSWORD_RULES", schema)) {
+			if(!queryUtil.tableExists(conn, "PASSWORD_RULES", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PASSWORD_RULES", colNames, types));
 			}
@@ -1027,7 +1028,7 @@ public abstract class AbstractSecurityUtils {
 		{
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			List<String> passwordRulesCols = queryUtil.getTableColumns(conn, "PASSWORD_RULES", schema);
+			List<String> passwordRulesCols = queryUtil.getTableColumns(conn, "PASSWORD_RULES", database, schema);
 			if(!passwordRulesCols.contains("DAYS_TO_LOCK") && !passwordRulesCols.contains("days_to_lock")) {
 				String addColumnSql = queryUtil.alterTableAddColumn("PASSWORD_RULES", "DAYS_TO_LOCK", "INT");
 				securityDb.insertData(addColumnSql);
@@ -1039,7 +1040,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		// 2022-02-16
 		// renamed permission rules to password rules
-		if(queryUtil.tableExists(conn, "PERMISSION_RULES", schema)) {
+		if(queryUtil.tableExists(conn, "PERMISSION_RULES", database, schema)) {
 			securityDb.insertData(queryUtil.dropTable("PERMISSION_RULES"));
 		}
 		
@@ -1050,12 +1051,12 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_HISTORY", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "PASSWORD_HISTORY", schema)) {
+			if(!queryUtil.tableExists(conn, "PASSWORD_HISTORY", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PASSWORD_HISTORY", colNames, types));
 			}
 		}
-		List<String> passReuseCols = queryUtil.getTableColumns(conn, "PASSWORD_HISTORY", schema);
+		List<String> passReuseCols = queryUtil.getTableColumns(conn, "PASSWORD_HISTORY", database, schema);
 		// 2022-02-16
 		// this should return in all upper case
 		// ... but sometimes it is not -_- i.e. postgres always lowercases
@@ -1065,7 +1066,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		// 2022-02-16
 		// renamed + old had a typo.... -_-
-		if(queryUtil.tableExists(conn, "PASSWORD_RESUSE", schema)) {
+		if(queryUtil.tableExists(conn, "PASSWORD_RESUSE", database, schema)) {
 			securityDb.insertData(queryUtil.dropTable("PASSWORD_RESUSE"));
 		}
 		
@@ -1076,7 +1077,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RESET", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "PASSWORD_RESET", schema)) {
+			if(!queryUtil.tableExists(conn, "PASSWORD_RESET", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PASSWORD_RESET", colNames, types));
 			}
@@ -1084,7 +1085,7 @@ public abstract class AbstractSecurityUtils {
 		
 		// 2022-04-01
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "API_KEY", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "API_KEY", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(allCols.contains("LIMIT") || allCols.contains("limit")) {
@@ -1102,7 +1103,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("API_KEY", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "API_KEY", schema)) {
+			if(!queryUtil.tableExists(conn, "API_KEY", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
 			}
@@ -1193,6 +1194,7 @@ public abstract class AbstractSecurityUtils {
 			String[] colNames,
 			String[] types,
 			Connection conn, 
+			String database, 
 			String schema,
 			boolean allowIfExistsTable
 			) throws Exception {
@@ -1201,7 +1203,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "SMSS_USER", schema)) {
+			if(!queryUtil.tableExists(conn, "SMSS_USER", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("SMSS_USER", colNames, types));
 			}

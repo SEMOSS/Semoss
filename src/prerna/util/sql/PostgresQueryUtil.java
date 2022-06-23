@@ -215,22 +215,22 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public String tableExistsQuery(String tableName, String schema) {
+	public String tableExistsQuery(String tableName, String database, String schema) {
 		return "select table_name, table_type from information_schema.tables where table_schema='" + schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "'";
 	}
 	
 	@Override
-	public String getAllColumnDetails(String tableName, String schema) {
+	public String getAllColumnDetails(String tableName, String database, String schema) {
 		return "select column_name, data_type from information_schema.columns where table_schema='" + schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "'";
 	}
 	
 	@Override
-	public String tableConstraintExistsQuery(String constraintName, String tableName, String schema) {
+	public String tableConstraintExistsQuery(String constraintName, String tableName, String database, String schema) {
 		return "select constraint_name from information_schema.table_constraints where constraint_name = '" + constraintName.toLowerCase() + "' and table_name = '" + tableName.toLowerCase() + "' and table_schema='" + schema.toLowerCase() + "'";
 	}
 
 	@Override
-	public String referentialConstraintExistsQuery(String constraintName, String schema) {
+	public String referentialConstraintExistsQuery(String constraintName, String database, String schema) {
 		return "select constraint_name from information_schema.referential_constraints where constraint_name = '" + constraintName.toLowerCase() + "' and constraint_schema='" + schema.toLowerCase() + "'";
 	}
 	

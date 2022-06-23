@@ -84,7 +84,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.SQLITE, connectionUrl,  "", "");
 		
 		// set the builder
-		this.builder = new RdbmsFrameBuilder(this.conn, this.schema, this.util);
+		this.builder = new RdbmsFrameBuilder(this.conn, this.database, this.schema, this.util);
 		this.util.enhanceConnection(this.conn);
 		
 		this.builder.runQuery("PRAGMA synchronous = OFF");
