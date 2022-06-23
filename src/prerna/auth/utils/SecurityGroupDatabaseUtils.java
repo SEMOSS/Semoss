@@ -443,7 +443,6 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 	/**
 	 * Determine if a group can view a database
 	 * @param user
-	 * @param databaseId
 	 * @return
 	 */
 	public static List<String> getAllUserGroupDatabases(User user) {

@@ -1342,4 +1342,95 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		
 		return result;
 	}
+
+///////////////////////////////////////////////
+///////////////////////////////////////////////
+/////////////////PROJECTS//////////////////////
+
+	/**
+	 * Return the projects the user has explicit access to
+	 * 
+	 * @param singleUserId
+	 * @return
+	 */
+	public static Set<String> getProjectsUserHasExplicitAccess(User user) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		orFilter.addFilter(
+				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		qs.addExplicitFilter(orFilter);
+		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
+	}
+
+	public static List<Map<String, Object>> getProjectInfo(Collection dbFilter) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", dbFilter));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Get the list of projects the user does not have access to but can request
+	 * 
+	 * @param allUserProjects
+	 * @throws Exception
+	 */
+	public static List<Map<String, Object>> getUserRequestableProjects(Collection<String> allUserProjects) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "!=", allUserProjects));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Determine if a user can request a project
+	 * @param projectId
+	 * @return
+	 */
+	public static boolean canRequestProject(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				// if you are here, you can request
+				return true;
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * Retrieve the project owner
+	 * @param user
+	 * @param projectId
+	 * @param insightId
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static List<String> getProjectOwners(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", AccessPermission.OWNER.getId()));
+		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
+		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
 }

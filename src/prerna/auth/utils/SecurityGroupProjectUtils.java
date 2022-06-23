@@ -20,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 
 public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 
@@ -439,4 +440,24 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * Determine if a group can view a project
+	 * @param user
+	 * @return
+	 */
+	public static List<String> getAllUserGroupProjects(User user) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		List<AuthProvider> logins = user.getLogins();
+		for(AuthProvider login : logins) {
+			AndQueryFilter andFilter = new AndQueryFilter();
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+			orFilter.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilter);
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
 }

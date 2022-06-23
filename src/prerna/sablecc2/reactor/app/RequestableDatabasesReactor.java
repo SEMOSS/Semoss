@@ -38,21 +38,17 @@ public class RequestableDatabasesReactor extends AbstractReactor {
 			}
 		}
 		Map<String, Object> dbs = new HashMap<>();
-		try {
-			// get the dbs the user has access to
-			Set<String> allUserDbs = SecurityDatabaseUtils.getDatabasesUserHasExplicitAccess(user);
-			// get group dbs
-			List<String> userGroupDbs = SecurityGroupDatabaseUtils.getAllUserGroupDatabases(user);
-			allUserDbs.addAll(userGroupDbs);
-			// get info for all dbs the user has access to
-			List<Map<String, Object>> dbAccessInfo = SecurityDatabaseUtils.getDatabaseInfo(allUserDbs);
-			dbs.put("HAS_PERMISSION", dbAccessInfo);
-			// get the dbs that the user does not have access to but can request access
-			List<Map<String, Object>> requestableDbs = SecurityDatabaseUtils.getUserRequestableDatabases(allUserDbs);
-			dbs.put("CAN_REQUEST", requestableDbs);
-		} catch (Exception e) {
-//			e.printStackTrace();
-		}
+		// get the dbs the user has access to
+		Set<String> allUserDbs = SecurityDatabaseUtils.getDatabasesUserHasExplicitAccess(user);
+		// get group dbs
+		List<String> userGroupDbs = SecurityGroupDatabaseUtils.getAllUserGroupDatabases(user);
+		allUserDbs.addAll(userGroupDbs);
+		// get info for all dbs the user has access to
+		List<Map<String, Object>> dbAccessInfo = SecurityDatabaseUtils.getDatabaseInfo(allUserDbs);
+		dbs.put("HAS_PERMISSION", dbAccessInfo);
+		// get the dbs that the user does not have access to but can request access
+		List<Map<String, Object>> requestableDbs = SecurityDatabaseUtils.getUserRequestableDatabases(allUserDbs);
+		dbs.put("CAN_REQUEST", requestableDbs);
 		return new NounMetadata(dbs, PixelDataType.MAP);
 	}
 
