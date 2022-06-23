@@ -1601,49 +1601,49 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	 */
 	
 	@Override
-	public String tableExistsQuery(String tableName, String schema) {
+	public String tableExistsQuery(String tableName, String database, String schema) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 	
 	@Override
-	public String tableConstraintExistsQuery(String constraintName, String tableName, String schema) {
+	public String tableConstraintExistsQuery(String constraintName, String tableName, String database, String schema) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 
 	@Override
-	public String referentialConstraintExistsQuery(String constraintName, String schema) {
+	public String referentialConstraintExistsQuery(String constraintName, String database, String schema) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 	
 	@Override
-	public String getAllColumnDetails(String tableName, String schema) {
+	public String getAllColumnDetails(String tableName, String database, String schema) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 
 	@Override
-	public String columnDetailsQuery(String tableName, String columnName, String schema) {
+	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 
 	@Override
-	public String getIndexList(String schema) {
+	public String getIndexList(String database, String schema) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 
 	@Override
-	public String getIndexDetails(String indexName, String tableName, String schema) {
+	public String getIndexDetails(String indexName, String tableName, String database, String schema) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 	
 	@Override
-	public String allIndexForTableQuery(String tableName, String schema) {
+	public String allIndexForTableQuery(String tableName, String database, String schema) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}

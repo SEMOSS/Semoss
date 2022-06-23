@@ -116,6 +116,7 @@ public abstract class AbstractSqlQueryUtil {
 	// these should be replaced and use the properties / conDetails
 	protected String hostname;
 	protected String port;
+	protected String database;
 	protected String schema;
 
 	// reserved words
@@ -242,6 +243,10 @@ public abstract class AbstractSqlQueryUtil {
 		return port;
 	}
 
+	public String getDatabase() {
+		return database;
+	}
+	
 	public String getSchema() {
 		return schema;
 	}
@@ -270,6 +275,14 @@ public abstract class AbstractSqlQueryUtil {
 		this.connectionUrl = connectionUrl;
 	}
 	
+	public void setDatabase(String database) {
+		this.database = database;
+	}
+
+	public void setSchema(String schema) {
+		this.schema = schema;
+	}
+
 	public String getConnectionUserKey() {
 		return AbstractSqlQueryUtil.USERNAME;
 	}
@@ -1088,44 +1101,49 @@ public abstract class AbstractSqlQueryUtil {
 
 	/**
 	 * Query to execute if has next, the table exists 
-	 * The schema input is optional and only required by certain engines
+	 * The database and schema input is optional and only required by certain engines
 	 * 
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public abstract String tableExistsQuery(String tableName, String schema);
+	public abstract String tableExistsQuery(String tableName, String database, String schema);
 
 	/**
 	 * Query to execute if has next, the table constraint exists
-	 * The schema input is optional and only required by certain engines
+	 * The database and schema input is optional and only required by certain engines
+	 * 
 	 * @param constraintName
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public abstract String tableConstraintExistsQuery(String constraintName, String tableName, String schema);
+	public abstract String tableConstraintExistsQuery(String constraintName, String tableName, String database, String schema);
 	
 	/**
 	 * Query to execute if has next, the referential constraint exists
-	 * The schema input is optional and only required by certain engines
+	 * The database and schema input is optional and only required by certain engines
 	 * 
 	 * @param constraintName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public abstract String referentialConstraintExistsQuery(String constraintName, String schema);
+	public abstract String referentialConstraintExistsQuery(String constraintName, String database, String schema);
 	
 	/**
 	 * Query to get the list of column names for a table 
 	 * The schema input is optional and only required by certain engines
 	 * Returns the column name and column type
-	 * 
+	 *
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public abstract String getAllColumnDetails(String tableName, String schema);
+	public abstract String getAllColumnDetails(String tableName, String database, String schema);
 
 	/**
 	 * Query to execute to get the column details 
@@ -1133,20 +1151,22 @@ public abstract class AbstractSqlQueryUtil {
 	 * 
 	 * @param tableName
 	 * @param columnName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public abstract String columnDetailsQuery(String tableName, String columnName, String schema);
+	public abstract String columnDetailsQuery(String tableName, String columnName, String database, String schema);
 
 	/**
 	 * Query to get a list of all the indexes in the schema Since indexes are not
 	 * unique across tables, this must return (index based) 1) INDEX_NAME 2)
 	 * TABLE_NAME The schema input is optional and only required by certain engines
 	 * 
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public abstract String getIndexList(String schema);
+	public abstract String getIndexList(String database, String schema);
 
 	/**
 	 * Query to get the index details Must return data in the following order (index
@@ -1154,9 +1174,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * required by certain engines
 	 * 
 	 * @param indexName
+	 * @param tableName
+	 * @param database
+	 * @param schema
 	 * @return
 	 */
-	public abstract String getIndexDetails(String indexName, String tableName, String schema);
+	public abstract String getIndexDetails(String indexName, String tableName, String database, String schema);
 
 	/**
 	 * Query to get all the indexes on a given table Must return the data in the
@@ -1164,10 +1187,11 @@ public abstract class AbstractSqlQueryUtil {
 	 * is optional and only required by certain engines
 	 * 
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public abstract String allIndexForTableQuery(String tableName, String schema);
+	public abstract String allIndexForTableQuery(String tableName, String database, String schema);
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
@@ -1181,11 +1205,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * 
 	 * @param conn
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public boolean tableExists(Connection conn, String tableName, String schema) {
-		String query = this.tableExistsQuery(tableName, schema);
+	public boolean tableExists(Connection conn, String tableName, String database, String schema) {
+		String query = this.tableExistsQuery(tableName, database, schema);
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
@@ -1219,11 +1244,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * 
 	 * @param engine
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public boolean tableExists(IEngine engine, String tableName, String schema) {
-		String query = this.tableExistsQuery(tableName, schema);
+	public boolean tableExists(IEngine engine, String tableName, String database, String schema) {
+		String query = this.tableExistsQuery(tableName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
@@ -1244,14 +1270,15 @@ public abstract class AbstractSqlQueryUtil {
 	/**
 	 * Helper method to see if an index exists based on Query Utility class
 	 * 
-	 * @param queryUtil
+	 * @param engine
 	 * @param indexName
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public boolean indexExists(IEngine engine, String indexName, String tableName, String schema) {
-		String indexCheckQ = this.getIndexDetails(indexName, tableName, schema);
+	public boolean indexExists(IEngine engine, String indexName, String tableName, String database, String schema) {
+		String indexCheckQ = this.getIndexDetails(indexName, tableName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, indexCheckQ);
@@ -1275,11 +1302,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param conn
 	 * @param constraintName
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public boolean tableConstraintExists(Connection conn, String constraintName, String tableName, String schema) {
-		String query = this.tableConstraintExistsQuery(constraintName, tableName, schema);
+	public boolean tableConstraintExists(Connection conn, String constraintName, String tableName, String database, String schema) {
+		String query = this.tableConstraintExistsQuery(constraintName, tableName, database, schema);
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
@@ -1313,11 +1341,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param engine
 	 * @param constraintName
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public boolean tableConstraintExists(IEngine engine, String constraintName, String tableName, String schema) {
-		String query = this.tableConstraintExistsQuery(constraintName, tableName, schema);
+	public boolean tableConstraintExists(IEngine engine, String constraintName, String tableName, String database, String schema) {
+		String query = this.tableConstraintExistsQuery(constraintName, tableName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
@@ -1340,11 +1369,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * 
 	 * @param conn
 	 * @param constraintName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public boolean referentialConstraintExists(Connection conn, String constraintName, String schema) {
-		String query = this.referentialConstraintExistsQuery(constraintName, schema);
+	public boolean referentialConstraintExists(Connection conn, String constraintName, String database, String schema) {
+		String query = this.referentialConstraintExistsQuery(constraintName, database, schema);
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
@@ -1377,11 +1407,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * 
 	 * @param engine
 	 * @param constraintName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public boolean referentialConstraintExists(IEngine engine, String constraintName, String schema) {
-		String query = this.referentialConstraintExistsQuery(constraintName, schema);
+	public boolean referentialConstraintExists(IEngine engine, String constraintName, String database, String schema) {
+		String query = this.referentialConstraintExistsQuery(constraintName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
@@ -1404,12 +1435,13 @@ public abstract class AbstractSqlQueryUtil {
 	 * 
 	 * @param conn
 	 * @param tableName
+	 * @param database
 	 * @param schema
 	 * @return
 	 */
-	public List<String> getTableColumns(Connection conn, String tableName, String schema) {
+	public List<String> getTableColumns(Connection conn, String tableName, String database, String schema) {
 		List<String> tableColumns = new Vector<>();
-		String query = this.getAllColumnDetails(tableName, schema);
+		String query = this.getAllColumnDetails(tableName, database, schema);
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {

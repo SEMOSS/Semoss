@@ -262,6 +262,11 @@ public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngi
 	}
 	
 	@Override
+	public String getDatabase() {
+		return getContext().getDatabase();
+	}
+	
+	@Override
 	public String getSchema() {
 		return getContext().getSchema();
 	}

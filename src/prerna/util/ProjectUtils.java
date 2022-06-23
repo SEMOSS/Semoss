@@ -79,7 +79,7 @@ public class ProjectUtils {
 		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
 		
 		try {
-			if(!queryUtil.tableExists(insightEngine.getConnection(), InsightAdministrator.TABLE_NAME, insightEngine.getSchema())) {
+			if(!queryUtil.tableExists(insightEngine.getConnection(), InsightAdministrator.TABLE_NAME, insightEngine.getDatabase(), insightEngine.getSchema())) {
 				columns = new String[]{InsightAdministrator.QUESTION_ID_COL, InsightAdministrator.QUESTION_NAME_COL, "QUESTION_PERSPECTIVE", 
 						"QUESTION_LAYOUT", "QUESTION_ORDER", "QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", 
 						InsightAdministrator.HIDDEN_INSIGHT_COL, InsightAdministrator.CACHEABLE_COL, InsightAdministrator.CACHE_MINUTES_COL,
@@ -102,7 +102,7 @@ public class ProjectUtils {
 			}
 
 			// adding new insight metadata
-			if(!queryUtil.tableExists(insightEngine.getConnection(), "INSIGHTMETA", insightEngine.getSchema())) {
+			if(!queryUtil.tableExists(insightEngine.getConnection(), "INSIGHTMETA", insightEngine.getDatabase(), insightEngine.getSchema())) {
 				columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
 				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE, "INT"};
 				insightEngine.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
@@ -125,7 +125,7 @@ public class ProjectUtils {
 			// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
 
 			try {
-				if(!queryUtil.tableExists(insightEngine.getConnection(), "PARAMETER_ID", insightEngine.getSchema())) {
+				if(!queryUtil.tableExists(insightEngine.getConnection(), "PARAMETER_ID", insightEngine.getDatabase(), insightEngine.getSchema())) {
 					columns = new String[]{"PARAMETER_ID", "PARAMETER_LABEL", "PARAMETER_TYPE", "PARAMETER_DEPENDENCY", "PARAMETER_QUERY", 
 							"PARAMETER_OPTIONS", "PARAMETER_IS_DB_QUERY", "PARAMETER_MULTI_SELECT", "PARAMETER_COMPONENT_FILTER_ID", "PARAMETER_VIEW_TYPE", "QUESTION_ID_FK"};
 					types = new String[]{"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", "VARCHAR(2000)", BOOLEAN_DATATYPE,
@@ -137,7 +137,7 @@ public class ProjectUtils {
 			}
 
 			try {
-				if(!queryUtil.tableExists(insightEngine.getConnection(), "UI", insightEngine.getSchema())) {
+				if(!queryUtil.tableExists(insightEngine.getConnection(), "UI", insightEngine.getDatabase(), insightEngine.getSchema())) {
 					columns = new String[]{"QUESTION_ID_FK", "UI_DATA"};
 					types = new String[]{"INT", CLOB_DATATYPE};
 					insightEngine.insertData(queryUtil.createTable("UI", columns, types));

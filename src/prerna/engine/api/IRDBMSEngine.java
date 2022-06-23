@@ -91,10 +91,16 @@ public interface IRDBMSEngine extends IEngine {
 	AbstractSqlQueryUtil getQueryUtil();
 	
 	/**
-	 * Get the schema
+	 * Get the schema if its defined
 	 * @return
 	 */
 	public String getSchema();
+	
+	/**
+	 * Get the database if its defined
+	 * @return
+	 */
+	public String getDatabase();
 	
 	/**
 	 * Get the connection url
