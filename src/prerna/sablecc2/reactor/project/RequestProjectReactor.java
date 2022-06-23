@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app;
+package prerna.sablecc2.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,7 +15,7 @@ import prerna.auth.AccessPermission;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,18 +27,18 @@ import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
 
-public class RequestDatabaseReactor extends AbstractReactor {
-	private static final String REQUEST_DATABASE_EMAIL_TEMPLATE = "requestDatabase.html";
-	private static final Logger classLogger = LogManager.getLogger(RequestDatabaseReactor.class);
+public class RequestProjectReactor extends AbstractReactor {
+	private static final String REQUEST_PROJECT_EMAIL_TEMPLATE = "requestProject.html";
+	private static final Logger classLogger = LogManager.getLogger(RequestProjectReactor.class);
 
-	public RequestDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.PERMISSION.getKey() };
+	public RequestProjectReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PERMISSION.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String permission = this.keyValue.get(this.keysToGet[1]);
 
 		User user = this.insight.getUser();
@@ -46,7 +46,7 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		boolean security = AbstractSecurityUtils.securityEnabled();
 		if (security) {
 			if (user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to request an app",
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to request a project",
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -60,25 +60,25 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		}
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
-		// check user permission for the app
-		if (SecurityDatabaseUtils.getUserDatabasePermission(userId, databaseId) != null) {
-			throw new IllegalArgumentException("This user already has access to this database. Please edit the existing permission level.");
+		// check user permission for the project
+		if (SecurityProjectUtils.getUserProjectPermission(userId, projectId) != null) {
+			throw new IllegalArgumentException("This user already has access to this project. Please edit the existing permission level.");
 		}
 
-		boolean canRequest = SecurityDatabaseUtils.canRequestDatabase(databaseId);
+		boolean canRequest = SecurityProjectUtils.canRequestProject(projectId);
 		if (canRequest) {
-			sendEmail(user, databaseId, permission);
-			return NounMetadata.getSuccessNounMessage("Successfully requested the database");
+			sendEmail(user, projectId, permission);
+			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
 		} else {
-			return NounMetadata.getErrorNounMessage("Unable to request the database");
+			return NounMetadata.getErrorNounMessage("Unable to request the project");
 
 		}
 	}
 
-	private void sendEmail(User user, String databaseId, String permission) {
+	private void sendEmail(User user, String projectId, String permission) {
 		String template = getTemplateString();
 		if (template !=null && !template.isEmpty()) {
-			List<String> databaseOwners = SecurityDatabaseUtils.getDatabaseOwners(databaseId);
+			List<String> projectOwners = SecurityProjectUtils.getProjectOwners(projectId);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userName = token.getName() != null ? token.getName(): "";	
 			String userEmail = token.getEmail() != null ? token.getEmail(): "";	
@@ -86,21 +86,21 @@ public class RequestDatabaseReactor extends AbstractReactor {
 			if (permission.length() == 1) {
 				permission = AccessPermission.getPermissionValueById(permission);
 			}
-			if (databaseOwners != null && !databaseOwners.isEmpty()) {
-				String databaseName = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
+			if (projectOwners != null && !projectOwners.isEmpty()) {
+				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-				final String DATABASE_NAME_REPLACEMENT = "$databaseName$";
+				final String PROJECT_NAME_REPLACEMENT = "$projectName$";
 				final String PERMISSION_REPLACEMENT = "$permission$";
 				final String USER_NAME_REPLACEMENT = "$userName$";
 				final String USER_EMAIL_REPLACEMENT = "$userEmail$";
 				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
-				emailReplacements.put(DATABASE_NAME_REPLACEMENT, databaseName);
+				emailReplacements.put(PROJECT_NAME_REPLACEMENT, projectName);
 				emailReplacements.put(PERMISSION_REPLACEMENT, permission);
 				emailReplacements.put(USER_NAME_REPLACEMENT, userName);
 				emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
 				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-				EmailUtility.sendEmail(emailSession, databaseOwners.toArray(new String[0]), null, null,
-						SocialPropertiesUtil.getInstance().getSmtpSender(), "SEMOSS - Database Access Request", message,
+				EmailUtility.sendEmail(emailSession, projectOwners.toArray(new String[0]), null, null,
+						SocialPropertiesUtil.getInstance().getSmtpSender(), "SEMOSS - Project Access Request", message,
 						true, null);
 			}
 		}
@@ -111,9 +111,9 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		String template = null;
 		String templatePath = DIHelper.getInstance().getProperty(Constants.EMAIL_TEMPLATES);
 		if (templatePath.endsWith("\\") || templatePath.endsWith("/")) {
-			templatePath += REQUEST_DATABASE_EMAIL_TEMPLATE;
+			templatePath += REQUEST_PROJECT_EMAIL_TEMPLATE;
 		} else {
-			templatePath += "/" + REQUEST_DATABASE_EMAIL_TEMPLATE;
+			templatePath += "/" + REQUEST_PROJECT_EMAIL_TEMPLATE;
 		}
 		File templateFile = new File(templatePath);
 		if (templateFile.exists() && templateFile.isFile()) {

@@ -812,7 +812,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @param allUserDbs 
 	 * @throws Exception
 	 */
-	public static List<Map<String, Object>> getUserRequestableDatabases(Collection<String> allUserDbs) throws Exception {
+	public static List<Map<String, Object>> getUserRequestableDatabases(Collection<String> allUserDbs) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
