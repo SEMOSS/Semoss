@@ -99,6 +99,7 @@ public class ExecQueryReactor extends AbstractReactor {
 			custom = true;
 		} else if (qs instanceof UpdateQueryStruct) {
 			UpdateSqlInterpreter interp = new UpdateSqlInterpreter((UpdateQueryStruct) qs);
+			interp.setUserId(userId);
 			query = interp.composeQuery();
 			update = true;
 		} else if (qs instanceof SelectQueryStruct) {

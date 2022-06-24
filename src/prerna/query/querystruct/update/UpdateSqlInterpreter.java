@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
@@ -22,6 +23,7 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 	
 	private StringBuilder sets = new StringBuilder();
 	private String updateFrom = null;
+	private String userId = null;
 	
 	public UpdateSqlInterpreter(UpdateQueryStruct qs) {
 		this.qs = qs;
@@ -89,7 +91,13 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 			if(v == null) {
 				sets.append(column + "= NULL");
 			} else if(v instanceof String) {
-				sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
+				if(v.equals("<UUID>")) {
+					sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+				} else if(v.equals("<USER_ID>") && this.userId != null) {
+					sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'");
+				} else {
+					sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
+				}
 			} else if(v instanceof SemossDate) {
 				String dateValue = ((SemossDate) v).getFormattedDate() ;
 				if(dateValue == null || dateValue.isEmpty() || dateValue.equals("null")) {
@@ -122,9 +130,16 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 		this.updateFrom = tableList.iterator().next();
 	}
 	
+	public String getUserId() {
+		return userId;
+	}
 
-	//////////////////////////////////////////// Main function to test //////////////////////////////////////
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 	
+	//////////////////////////////////////////// Main function to test //////////////////////////////////////
+
 	public static void main(String[] args) {
 		// load engine
 //		TestUtilityMethods.loadDIHelper("C:/Users/laurlai/workspace/Semoss/RDF_Map.prop");
