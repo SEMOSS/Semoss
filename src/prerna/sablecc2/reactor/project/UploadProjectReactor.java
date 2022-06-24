@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app;
+package prerna.sablecc2.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
