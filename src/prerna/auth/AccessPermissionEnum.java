@@ -1,6 +1,6 @@
 package prerna.auth;
 
-public enum AccessPermission {
+public enum AccessPermissionEnum {
 	
 	OWNER (1, "OWNER"),
 	EDIT (2, "EDIT"),
@@ -9,7 +9,7 @@ public enum AccessPermission {
 	private final int id;
 	private final String permission;
 	
-	AccessPermission(int id, String permission) {
+	AccessPermissionEnum(int id, String permission) {
 		this.id = id;
 		this.permission = permission;
 	}
@@ -48,9 +48,9 @@ public enum AccessPermission {
 		return false;
 	}
 	
-	public static AccessPermission getPermissionByValue(String value) {
-		AccessPermission ep = AccessPermission.READ_ONLY;
-		for(AccessPermission perm : AccessPermission.values()) {
+	public static AccessPermissionEnum getPermissionByValue(String value) {
+		AccessPermissionEnum ep = AccessPermissionEnum.READ_ONLY;
+		for(AccessPermissionEnum perm : AccessPermissionEnum.values()) {
 			if(perm.permission.equalsIgnoreCase(value)) {
 				ep = perm;
 			}
@@ -60,8 +60,8 @@ public enum AccessPermission {
 	}
 	
 	public static String getPermissionValueById(String id) {
-		AccessPermission ep = AccessPermission.READ_ONLY;
-		for(AccessPermission perm : AccessPermission.values()) {
+		AccessPermissionEnum ep = AccessPermissionEnum.READ_ONLY;
+		for(AccessPermissionEnum perm : AccessPermissionEnum.values()) {
 			String permId = perm.id + "";
 			if(permId.equalsIgnoreCase(id)) {
 				ep = perm;
@@ -73,8 +73,8 @@ public enum AccessPermission {
 	}
 	
 	public static String getPermissionValueById(int id) {
-		AccessPermission ep = AccessPermission.READ_ONLY;
-		for(AccessPermission perm : AccessPermission.values()) {
+		AccessPermissionEnum ep = AccessPermissionEnum.READ_ONLY;
+		for(AccessPermissionEnum perm : AccessPermissionEnum.values()) {
 			if(perm.id == id) {
 				ep = perm;
 				break;
@@ -85,8 +85,8 @@ public enum AccessPermission {
 	}
 	
 	public static int getIdByPermission(String id) {
-		AccessPermission ep = AccessPermission.READ_ONLY;
-		for(AccessPermission perm : AccessPermission.values()) {
+		AccessPermissionEnum ep = AccessPermissionEnum.READ_ONLY;
+		for(AccessPermissionEnum perm : AccessPermissionEnum.values()) {
 			if(perm.permission.equalsIgnoreCase(id)) {
 				ep = perm;
 				break;

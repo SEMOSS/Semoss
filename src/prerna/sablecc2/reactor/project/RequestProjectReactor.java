@@ -11,7 +11,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -84,7 +84,7 @@ public class RequestProjectReactor extends AbstractReactor {
 			String userEmail = token.getEmail() != null ? token.getEmail(): "";	
 			// clean up permission
 			if (permission.length() == 1) {
-				permission = AccessPermission.getPermissionValueById(permission);
+				permission = AccessPermissionEnum.getPermissionValueById(permission);
 			}
 			if (projectOwners != null && !projectOwners.isEmpty()) {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
