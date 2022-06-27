@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
@@ -221,7 +221,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	public static void addDatabaseUser(User user, String newUserId, String databaseId, String permission) throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
-		if(!AccessPermission.isEditor(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
@@ -233,11 +233,11 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		
 		// if i am not an owner
 		// then i need to check if i can edit this users permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
-			int newPermissionLvl = AccessPermission.getIdByPermission(permission);
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			int newPermissionLvl = AccessPermissionEnum.getIdByPermission(permission);
 
 			// cannot give some owner permission if i am just an editor
-			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+			if(AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
 				throw new IllegalAccessException("Cannot give owner level access to this database since you are not currently an owner.");
 			}
 		}
@@ -246,7 +246,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "', "
 				+ "TRUE, "
-				+ AccessPermission.getIdByPermission(permission) + ");";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
 
 		try {
 			securityDb.insertData(query);
@@ -268,7 +268,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	public static void editDatabaseUserPermission(User user, String existingUserId, String databaseId, String newPermission) throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
-		if(!AccessPermission.isEditor(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
@@ -278,19 +278,19 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify database permission for a user who does not currently have access to the database");
 		}
 		
-		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		
 		// if i am not an owner
 		// then i need to check if i can edit this users permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
-			if(AccessPermission.OWNER.getId() == existingUserPermission) {
+			if(AccessPermissionEnum.OWNER.getId() == existingUserPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users database permission.");
 			}
 			
 			// also, cannot give some owner permission if i am just an editor
-			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+			if(AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
 				throw new IllegalAccessException("Cannot give owner level access to this insight since you are not currently an owner.");
 			}
 		}
@@ -317,7 +317,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	public static void removeDatabaseUser(User user, String existingUserId, String databaseId) throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
-		if(!AccessPermission.isEditor(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
@@ -329,10 +329,10 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		
 		// if i am not an owner
 		// then i need to check if i can remove this users permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
-			if(AccessPermission.OWNER.getId() == existingUserPermission) {
+			if(AccessPermissionEnum.OWNER.getId() == existingUserPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users database permission.");
 			}
 		}
@@ -852,7 +852,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", AccessPermission.OWNER.getId()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", AccessPermissionEnum.OWNER.getId()));
 		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));

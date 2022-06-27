@@ -11,7 +11,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
@@ -195,7 +195,7 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 					throw new IllegalArgumentException("Must have the role for the user defined - check row " + counter);
 				}
 
-				AccessPermission permission = AccessPermission.valueOf(role);
+				AccessPermissionEnum permission = AccessPermissionEnum.valueOf(role);
 				if(permission == null) {
 					throw new IllegalArgumentException("Must have a valid permission role - check row " + counter);
 				}

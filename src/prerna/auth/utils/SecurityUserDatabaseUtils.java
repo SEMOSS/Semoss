@@ -5,7 +5,7 @@ import java.util.Collection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -45,7 +45,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 				Object val = wrapper.next().getValues()[0];
 				if(val != null) {
 					int permission = ((Number) val).intValue();
-					return AccessPermission.getPermissionValueById(permission);
+					return AccessPermissionEnum.getPermissionValueById(permission);
 				}
 			}
 		} catch (Exception e) {
@@ -58,7 +58,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 		
 		// see if database is public
 		if(SecurityDatabaseUtils.databaseIsGlobal(databaseId)) {
-			return AccessPermission.READ_ONLY.getPermission();
+			return AccessPermissionEnum.READ_ONLY.getPermission();
 		}
 		
 		return null;
@@ -127,7 +127,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 					return false;
 				}
 				int permission = ((Number) val).intValue();
-				if(AccessPermission.isOwner(permission)) {
+				if(AccessPermissionEnum.isOwner(permission)) {
 					return true;
 				}
 			}
@@ -209,7 +209,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 					return false;
 				}
 				int permission = ((Number) val).intValue();
-				if(AccessPermission.isEditor(permission)) {
+				if(AccessPermissionEnum.isEditor(permission)) {
 					return true;
 				}
 			}
@@ -247,7 +247,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val == null) {
-					return AccessPermission.READ_ONLY.getId();
+					return AccessPermissionEnum.READ_ONLY.getId();
 				}
 				int permission = ((Number) val).intValue();
 				return permission;
@@ -259,7 +259,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 				wrapper.cleanUp();
 			}
 		}		
-		return AccessPermission.READ_ONLY.getId();
+		return AccessPermissionEnum.READ_ONLY.getId();
 	}
 	
 	/**

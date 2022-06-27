@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
@@ -131,12 +131,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserEditableInsighs(User user, String projectId) {
 		String permission = SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
-		if(permission == null || permission.equals(AccessPermission.READ_ONLY.getPermission())) {
+		if(permission == null || permission.equals(AccessPermissionEnum.READ_ONLY.getPermission())) {
 			return new Vector<>();
 		}
 		
 		// you are either an owner or an editor
-		if(permission.equals(AccessPermission.OWNER.getPermission())) {
+		if(permission.equals(AccessPermissionEnum.OWNER.getPermission())) {
 			// you are the owner
 			// you get all the insights
 			SelectQueryStruct qs = new SelectQueryStruct();
@@ -172,8 +172,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 			List<Integer> permissions = new Vector<>();
-			permissions.add(AccessPermission.OWNER.getId());
-			permissions.add(AccessPermission.EDIT.getId());
+			permissions.add(AccessPermissionEnum.OWNER.getId());
+			permissions.add(AccessPermissionEnum.EDIT.getId());
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", permissions));
 			qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__INSIGHTNAME"));
 			return QueryExecutionUtility.flushRsToMap(securityDb, qs);
@@ -496,7 +496,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static void addUserInsightCreator(User user, String projectId, String insightId) {
 		List<AuthProvider> logins = user.getLogins();
 		
-		int ownerId = AccessPermission.OWNER.getId();
+		int ownerId = AccessPermissionEnum.OWNER.getId();
 		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES (?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
@@ -1236,7 +1236,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static void addInsightUser(User user, String newUserId, String projectId, String insightId, String permission) {
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if(!AccessPermission.isEditor(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
@@ -1248,10 +1248,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		// if i am not an owner
 		// then i need to check if i can edit this users permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
-			int newPermissionLvl = AccessPermission.getIdByPermission(permission);
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			int newPermissionLvl = AccessPermissionEnum.getIdByPermission(permission);
 			// also, cannot give some owner permission if i am just an editor
-			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+			if(AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
 				throw new IllegalArgumentException("Cannot give owner level access to this insight since you are not currently an owner.");
 			}
 		}
@@ -1260,7 +1260,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ");";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
 
 		try {
 			securityDb.insertData(query);
@@ -1283,7 +1283,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static void editInsightUserPermission(User user, String existingUserId, String projectId, String insightId, String newPermission) throws IllegalAccessException {
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if(!AccessPermission.isEditor(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
@@ -1293,19 +1293,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
 		}
 		
-		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		
 		// if i am not an owner
 		// then i need to check if i can edit this users permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
-			if(AccessPermission.OWNER.getId() == existingUserPermission) {
+			if(AccessPermissionEnum.OWNER.getId() == existingUserPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users insight permission.");
 			}
 			
 			// also, cannot give some owner permission if i am just an editor
-			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+			if(AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
 				throw new IllegalAccessException("Cannot give owner level access to this insight since you are not currently an owner.");
 			}
 		}
@@ -1334,7 +1334,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static void removeInsightUser(User user, String existingUserId, String projectId, String insightId) throws IllegalAccessException {
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if(!AccessPermission.isEditor(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
@@ -1346,10 +1346,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		// if i am not an owner
 		// then i need to check if i can remove this users permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
-			if(AccessPermission.OWNER.getId() == existingUserPermission) {
+			if(AccessPermissionEnum.OWNER.getId() == existingUserPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users insight permission.");
 			}
 		}
