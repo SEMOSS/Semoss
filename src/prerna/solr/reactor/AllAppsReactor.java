@@ -15,6 +15,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
+@Deprecated
 public class AllAppsReactor extends AbstractReactor {
 	
 	private static List<String> META_KEYS_LIST = new Vector<String>();
@@ -32,9 +33,9 @@ public class AllAppsReactor extends AbstractReactor {
 		List<Map<String, Object>> appInfo = new Vector<Map<String, Object>>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appInfo = SecurityQueryUtils.getAllUserDatabaseList(this.insight.getUser());
+			appInfo = SecurityDatabaseUtils.getAllUserDatabaseList(this.insight.getUser());
 		} else {
-			appInfo = SecurityQueryUtils.getAllDatabaseList();
+			appInfo = SecurityDatabaseUtils.getAllDatabaseList();
 		}
 		
 		int size = appInfo.size();

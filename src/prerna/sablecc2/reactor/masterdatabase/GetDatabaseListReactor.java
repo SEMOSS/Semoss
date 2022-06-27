@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.sablecc2.om.GenRowStruct;
@@ -28,9 +28,9 @@ public class GetDatabaseListReactor extends AbstractReactor {
 		List<Map<String, Object>> retList = null;
 		List<String> appTypeFilter = getAppTypeFilter();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			retList = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), appTypeFilter);
+			retList = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), appTypeFilter);
 		} else {
-			retList = SecurityQueryUtils.getAllDatabaseList(appTypeFilter);
+			retList = SecurityDatabaseUtils.getAllDatabaseList(appTypeFilter);
 		}
 		
 		return new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_LIST);
