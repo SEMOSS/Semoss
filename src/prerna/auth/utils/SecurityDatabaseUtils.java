@@ -4,10 +4,15 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,12 +20,18 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermission;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
@@ -847,4 +858,516 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
+	
+	/**
+	 * Get global databases
+	 * @return
+	 */
+	public static Set<String> getGlobalDatabaseIds() {
+//		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
+	}
+	
+	/**
+	 * Get all databases for setting options that the user has access to
+	 * @param usersId
+	 * @param isAdmin
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllUserDatabaseSettings(User user) {
+//		String userFilters = getUserFilters(user);
+//		
+//		// get user specific databases
+//		String query = "SELECT DISTINCT "
+//				+ "ENGINE.ENGINEID as \"app_id\", "
+//				+ "ENGINE.ENGINENAME as \"app_name\", "
+//				+ "ENGINE.GLOBAL as \"app_global\", "
+//				+ "COALESCE(ENGINEPERMISSION.VISIBILITY, TRUE) as \"app_visibility\", "
+//				+ "COALESCE(PERMISSION.NAME, 'READ_ONLY') as \"app_permission\" "
+//				+ "FROM ENGINE "
+//				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "LEFT JOIN PERMISSION ON PERMISSION.ID=ENGINEPERMISSION.PERMISSION "
+//				+ "WHERE ENGINEPERMISSION.USERID IN " + userFilters;
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
+		{
+			QueryFunctionSelector fun = new QueryFunctionSelector();
+			fun.setFunction(QueryFunctionHelper.COALESCE);
+			fun.addInnerSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
+			fun.addInnerSelector(new QueryConstantSelector(true));
+			fun.setAlias("app_visibility");
+			qs.addSelector(fun);
+		}
+		{
+			QueryFunctionSelector fun = new QueryFunctionSelector();
+			fun.setFunction(QueryFunctionHelper.COALESCE);
+			fun.addInnerSelector(new QueryColumnSelector("PERMISSION__NAME"));
+			fun.addInnerSelector(new QueryConstantSelector("READ_ONLY"));
+			fun.setAlias("app_permission");
+			qs.addSelector(fun);
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "left.outer.join");
+		
+		Set<String> dbIdsIncluded = new HashSet<String>();
+		
+		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while (wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				String[] headers = headerRow.getHeaders();
+				Object[] values = headerRow.getValues();
+				
+				// store the database ids
+				// we will exclude these later
+				// database id is the first one to be returned
+				dbIdsIncluded.add(values[0].toString());
+				
+				Map<String, Object> map = new HashMap<String, Object>();
+				for (int i = 0; i < headers.length; i++) {
+					map.put(headers[i], values[i]);
+				}
+				result.add(map);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		// now need to add the global ones
+		// that DO NOT sit in the database permission
+		// (this is because we do not update that table when a user modifies the global)
+//		query = "SELECT DISTINCT "
+//				+ "ENGINE.ENGINEID as \"app_id\", "
+//				+ "ENGINE.ENGINENAME as \"app_name\" "
+//				+ "FROM ENGINE WHERE ENGINE.GLOBAL=TRUE AND ENGINE.ENGINEID NOT " + createFilter(engineIdsIncluded);
+//		
+//		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+		qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		{
+			QueryFunctionSelector fun = new QueryFunctionSelector();
+			fun.setFunction(QueryFunctionHelper.COALESCE);
+			fun.addInnerSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
+			fun.addInnerSelector(new QueryConstantSelector(true));
+			fun.setAlias("app_visibility");
+			qs.addSelector(fun);
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		// since some rdbms do not allow "not in ()" - we will only add if necessary
+		if (!dbIdsIncluded.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(dbIdsIncluded)));
+		}
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				String[] headers = headerRow.getHeaders();
+				Object[] values = headerRow.getValues();
+				
+				Map<String, Object> map = new HashMap<String, Object>();
+				for(int i = 0; i < headers.length; i++) {
+					map.put(headers[i], values[i]);
+				}
+				// add the others which we know
+				map.put("app_global", true);
+				map.put("app_permission", "READ_ONLY");
+				result.add(map);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		// now we need to loop through and order the results
+		Collections.sort(result, new Comparator<Map<String, Object>>() {
+
+			@Override
+			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+				String appName1 = o1.get("app_name").toString().toLowerCase();
+				String appName2 = o2.get("app_name").toString().toLowerCase();
+				return appName1.compareTo(appName2);
+			}
+		
+		});
+		
+		return result;
+	}
+
+	/**
+	 * Get the list of the database information that the user has access to
+	 * @param favoritesOnly 
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly) {
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT DISTINCT "
+//				+ "ENGINE.ENGINEID as \"app_id\", "
+//				+ "ENGINE.ENGINENAME as \"app_name\", "
+//				+ "ENGINE.TYPE as \"app_type\", "
+//				+ "ENGINE.COST as \"app_cost\","
+//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
+//				+ "FROM ENGINE "
+//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
+//				+ "WHERE "
+//				+ "( ENGINE.GLOBAL=TRUE "
+//				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + " ) "
+//				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + ") "
+//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";	
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		Collection<String> userIds = getUserFiltersQs(user);
+		
+		SelectQueryStruct qs1 = new SelectQueryStruct();
+		// selectors
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_database_name");
+		qs1.addSelector(fun);
+		qs1.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "permission"));
+		qs1.addSelector(new QueryColumnSelector("USER_FAVORITES__FAVORITE", "app_favorite"));
+		qs1.addSelector(new QueryColumnSelector("USER_FAVORITES__FAVORITE", "database_favorite"));
+		// filters
+		{
+			OrQueryFilter orFilter = new OrQueryFilter();
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			qs1.addExplicitFilter(orFilter);
+		}
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			// store first and fill in sub query after
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+			
+			// fill in the sub query with the necessary column output + filters
+			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		}
+		// favorites only
+		if(favoritesOnly) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+		}
+		// joins
+		qs1.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+
+		// get the favorites for this user
+		{
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
+			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__FAVORITE", "FAVORITE"));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			IRelation subQuery = new SubqueryRelationship(qs2, "USER_FAVORITES", "left.outer.join", new String[] {"ENGINE__ENGINEID", "USER_FAVORITES__ENGINEID", "="});
+			qs1.addRelation(subQuery);
+		}
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
+	}
+	
+	/**
+	 * Get all user database and database Ids regardless of it being hidden or not 
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllUserDatabaseList(User user) {	
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		List<Map<String, Object>> allGlobalEnginesMap = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+
+		SelectQueryStruct qs2 = new SelectQueryStruct();
+		qs2.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs2.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs2.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs2.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		qs2.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
+		
+		List<Map<String, Object>> databaseMap = QueryExecutionUtility.flushRsToMap(securityDb, qs2);
+		databaseMap.addAll(allGlobalEnginesMap);
+		return databaseMap;
+	}
+	
+	/**
+	 * Get the list of the database information that the user has access to
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllDatabaseList() {
+//		String query = "SELECT DISTINCT "
+//				+ "ENGINE.ENGINEID as \"app_id\", "
+//				+ "ENGINE.ENGINENAME as \"app_name\", "
+//				+ "ENGINE.TYPE as \"app_type\", "
+//				+ "ENGINE.COST as \"app_cost\", "
+//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
+//				+ "FROM ENGINE "
+//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_database_name");
+		qs.addSelector(fun);
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Get the list of the database information that the user has access to
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserDatabaseList(User user, String databaseFilter) {
+//		String userFilters = getUserFilters(user);
+//		String filter = createFilter(engineFilter); 
+//		String query = "SELECT DISTINCT "
+//				+ "ENGINE.ENGINEID as \"app_id\", "
+//				+ "ENGINE.ENGINENAME as \"app_name\", "
+//				+ "ENGINE.TYPE as \"app_type\", "
+//				+ "ENGINE.COST as \"app_cost\", "
+//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
+//				+ "FROM ENGINE "
+//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "WHERE "
+//				+ (!filter.isEmpty() ? ("ENGINE.ENGINEID " + filter + " AND ") : "")
+//				+ "(ENGINEPERMISSION.USERID IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
+//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_database_name");
+		qs.addSelector(fun);
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
+		}
+		{
+			OrQueryFilter orFilter = new OrQueryFilter();
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+			qs.addExplicitFilter(orFilter);
+		}
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Get the list of the database information that the user has access to
+	 * @param user
+	 * @param dbTypeFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> dbTypeFilter) {
+		Collection<String> userIds = getUserFiltersQs(user);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_database_name");
+		qs.addSelector(fun);
+		if(dbTypeFilter != null && !dbTypeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", dbTypeFilter));
+		}
+		{
+			OrQueryFilter orFilter = new OrQueryFilter();
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			qs.addExplicitFilter(orFilter);
+		}
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			// store first and fill in sub query after
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+			
+			// fill in the sub query with the necessary column output + filters
+			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		}
+		// joins
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Get the list of the database information that the user has access to
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllDatabaseList(String databaseFilter) {
+//		String filter = createFilter(engineFilter); 
+//		String query = "SELECT DISTINCT "
+//				+ "ENGINE.ENGINEID as \"app_id\", "
+//				+ "ENGINE.ENGINENAME as \"app_name\", "
+//				+ "ENGINE.TYPE as \"app_type\", "
+//				+ "ENGINE.COST as \"app_cost\", "
+//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
+//				+ "FROM ENGINE "
+// 				+ (!filter.isEmpty() ? ("WHERE ENGINE.ENGINEID " + filter + " ") : "")
+//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_database_name");
+		qs.addSelector(fun);
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
+		}
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Get the list of the database information that the user has access to
+	 * @param dbTypeFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllDatabaseList(List<String> dbTypeFilter) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_database_name");
+		qs.addSelector(fun);
+		if(dbTypeFilter != null && !dbTypeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", dbTypeFilter));
+		}
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Get user databases + global databases 
+	 * @param userId
+	 * @return
+	 */
+	public static List<String> getFullUserDatabaseIds(User user) {
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT DISTINCT ENGINEID FROM ENGINEPERMISSION WHERE USERID IN " + userFilters;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		List<String> databaseList = QueryExecutionUtility.flushToListString(securityDb, qs);
+		databaseList.addAll(SecurityDatabaseUtils.getGlobalDatabaseIds());
+		return databaseList.stream().distinct().sorted().collect(Collectors.toList());
+	}
+	
+	/**
+	 * Get the visual user databases
+	 * @param userId
+	 * @return
+	 */
+	public static List<String> getVisibleUserDatabaseIds(User user) {
+		Collection<String> userIds = getUserFiltersQs(user);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		{
+			OrQueryFilter orFilter = new OrQueryFilter();
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			qs.addExplicitFilter(orFilter);
+		}
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			// store first and fill in sub query after
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+			
+			// fill in the sub query with the necessary column output + filters
+			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		}
+		// joins
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+	
 }
