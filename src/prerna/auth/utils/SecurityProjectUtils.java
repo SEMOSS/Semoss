@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -247,7 +247,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val == null) {
-					return AccessPermission.READ_ONLY.getId();
+					return AccessPermissionEnum.READ_ONLY.getId();
 				}
 				int permission = ((Number) val).intValue();
 				return permission;
@@ -259,7 +259,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				wrapper.cleanUp();
 			}
 		}		
-		return AccessPermission.READ_ONLY.getId();
+		return AccessPermissionEnum.READ_ONLY.getId();
 	}
 
 
@@ -310,7 +310,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static void addProjectUser(User user, String newUserId, String projectId, String permission) throws IllegalAccessException {
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
-		if(!AccessPermission.isEditor(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
 		}
 				
@@ -322,11 +322,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		
 		// if i am not an owner
 		// then i need to check if i can edit this users permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
-			int newPermissionLvl = AccessPermission.getIdByPermission(permission);
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			int newPermissionLvl = AccessPermissionEnum.getIdByPermission(permission);
 
 			// cannot give some owner permission if i am just an editor
-			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+			if(AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
 				throw new IllegalAccessException("Cannot give owner level access to this project since you are not currently an owner.");
 			}
 		}
@@ -335,7 +335,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', "
 				+ "TRUE, "
-				+ AccessPermission.getIdByPermission(permission) + ");";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
 
 		try {
 			securityDb.insertData(query);
@@ -357,7 +357,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static void editProjectUserPermission(User user, String existingUserId, String projectId, String newPermission) throws IllegalAccessException {
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
-		if(!AccessPermission.isEditor(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
 		}
 
@@ -367,19 +367,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify project permission for a user who does not currently have access to the project");
 		}
 
-		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 
 		// if i am not an owner
 		// then i need to check if i can edit this users permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
-			if(AccessPermission.OWNER.getId() == existingUserPermission) {
+			if(AccessPermissionEnum.OWNER.getId() == existingUserPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users project permission.");
 			}
 
 			// also, cannot give some owner permission if i am just an editor
-			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+			if(AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
 				throw new IllegalAccessException("Cannot give owner level access to this project since you are not currently an owner.");
 			}
 		}
@@ -407,7 +407,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static void removeProjectUser(User user, String existingUserId, String projectId) throws IllegalAccessException {
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
-		if(!AccessPermission.isEditor(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
 		}
 
@@ -419,10 +419,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// if i am not an ownerId
 		// then i need to check if i can remove this users permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
-			if(AccessPermission.OWNER.getId() == existingUserPermission) {
+			if(AccessPermissionEnum.OWNER.getId() == existingUserPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users project permission.");
 			}
 		}
@@ -1411,7 +1411,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", AccessPermission.OWNER.getId()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", AccessPermissionEnum.OWNER.getId()));
 		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
 		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
