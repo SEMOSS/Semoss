@@ -16,7 +16,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
@@ -700,7 +700,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ", "
+				+ AccessPermissionEnum.getIdByPermission(permission) + ", "
 				+ "TRUE);";
 
 		try {
@@ -728,7 +728,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ", "
+				+ AccessPermissionEnum.getIdByPermission(permission) + ", "
 				+ "TRUE);";
 
 		try {
@@ -792,7 +792,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			List<String> currentProjectAccess = getProjectsUserHasExplicitAccess(userId);
 			List<String> projectIds = SecurityProjectUtils.getAllProjectIds();
 			String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
-			int permissionLevel = AccessPermission.getIdByPermission(permission);
+			int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 			boolean visible = true;
 			PreparedStatement ps = null;
 
@@ -870,7 +870,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			{
 				// now we insert the values
 				String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
-				int permissionLevel = AccessPermission.getIdByPermission(permission);
+				int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 				PreparedStatement ps = null;
 
 				try {
@@ -962,7 +962,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			List<String> currentDatabaseAccess = getDatabasesUserHasExplicitAccess(userId);
 			List<String> databaseIds = SecurityDatabaseUtils.getAllDatabaseIds();
 			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
-			int permissionLevel = AccessPermission.getIdByPermission(permission);
+			int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 			boolean visible = true;
 			PreparedStatement ps = null;
 
@@ -1040,7 +1040,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			{
 				// now we insert the values
 				String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
-				int permissionLevel = AccessPermission.getIdByPermission(permission);
+				int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 				PreparedStatement ps = null;
 
 				try {
@@ -1088,7 +1088,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void grantNewUsersDatabaseAccess(String databaseId, String permission) {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?, '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ", " + "TRUE);";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ", " + "TRUE);";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -1124,7 +1124,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void grantNewUsersProjectAccess(String projectId, String permission) {
 		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?, '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ", " + "TRUE);";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ", " + "TRUE);";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -1172,7 +1172,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', ?, "
-				+ AccessPermission.getIdByPermission(permission) + ");";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
 
 		PreparedStatement ps = null;
 		try {
@@ -1220,7 +1220,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the database");
 		}
 		
-		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		
 		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=" + newPermissionLvl
 				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
@@ -1248,7 +1248,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the project");
 		}
 		
-		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		
 		String query = "UPDATE PROJECTPERMISSION SET PERMISSION=" + newPermissionLvl
 				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
@@ -1434,7 +1434,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ");";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
 
 		try {
 			securityDb.insertData(query);
@@ -1455,7 +1455,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,'"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ");";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -1506,7 +1506,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
 		}
 		
-		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		
 		String query = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=" + newPermissionLvl
 				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
@@ -1656,7 +1656,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	public void updateDatabaseUserPermissions(String databaseId, String newPermission) {
-		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=" + newPermissionLvl 
 				+ " WHERE ENGINEID='" + RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
 		try {
@@ -1669,7 +1669,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	public void updateProjectUserPermissions(String projectId, String newPermission) {
-		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		String query = "UPDATE PROJECTPERMISSION SET PERMISSION=" + newPermissionLvl 
 				+ " WHERE PROJECTID='" + RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "';";
 		try {
@@ -1689,7 +1689,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void addAllDatabaseUsers(String databaseId, String permission) {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?, '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ", " + "TRUE);";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ", " + "TRUE);";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -1734,7 +1734,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void addAllProjectUsers(String projectId, String permission) {
 		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?, '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ", " + "TRUE);";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ", " + "TRUE);";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -1772,7 +1772,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	public void updateInsightUserPermissions(String projectId, String insightId, String newPermission) {
 		String updateQuery = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = '"
-				+ AccessPermission.getIdByPermission(newPermission) + "' WHERE PROJECTID ='"
+				+ AccessPermissionEnum.getIdByPermission(newPermission) + "' WHERE PROJECTID ='"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "' AND INSIGHTID='"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
 		try {
@@ -1795,7 +1795,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?, '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ");";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
 
 		PreparedStatement ps = null;
 		try {

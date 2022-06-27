@@ -10,7 +10,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
@@ -42,7 +42,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		// if user is owner
 		// they can do whatever they want
 		if(SecurityUserProjectUtils.userIsOwner(userIds, projectId)) {
-			return AccessPermission.OWNER.getPermission();
+			return AccessPermissionEnum.OWNER.getPermission();
 		}
 		
 //		// query the database
@@ -61,7 +61,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			if(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val != null && val instanceof Number) {
-					return AccessPermission.getPermissionValueById( ((Number) val).intValue() );
+					return AccessPermissionEnum.getPermissionValueById( ((Number) val).intValue() );
 				}
 			}
 		} catch (Exception e) {
@@ -73,7 +73,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		}
 		
 		if(SecurityInsightUtils.insightIsGlobal(projectId, insightId)) {
-			return AccessPermission.READ_ONLY.getPermission();
+			return AccessPermissionEnum.READ_ONLY.getPermission();
 		}
 		
 		return null;
@@ -148,7 +148,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					return false;
 				}
 				int permission = ((Number) val).intValue();
-				if(AccessPermission.isEditor(permission)) {
+				if(AccessPermissionEnum.isEditor(permission)) {
 					return true;
 				}
 			}
@@ -192,7 +192,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					return false;
 				}
 				int permission = ((Number) val).intValue();
-				if(AccessPermission.isOwner(permission)) {
+				if(AccessPermissionEnum.isOwner(permission)) {
 					return true;
 				}
 			}
@@ -221,7 +221,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		// they can do whatever they want
 		if(SecurityUserProjectUtils.userIsOwner(userIds, projectId)) {
 			// owner of project is owner of all the insights
-			return AccessPermission.OWNER.getId();
+			return AccessPermissionEnum.OWNER.getId();
 		}
 		
 		// else query the database
@@ -242,7 +242,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val == null) {
-					return AccessPermission.READ_ONLY.getId();
+					return AccessPermissionEnum.READ_ONLY.getId();
 				}
 				int permission = ((Number) val).intValue();
 				return permission;
@@ -254,7 +254,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				wrapper.cleanUp();
 			}
 		}
-		return AccessPermission.READ_ONLY.getId();
+		return AccessPermissionEnum.READ_ONLY.getId();
 	}
 
 	/**

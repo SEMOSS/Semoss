@@ -6,7 +6,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -110,7 +110,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		}
 
 		if(bestGroupDatabasePermission != null) {
-			return AccessPermission.isEditor(bestGroupDatabasePermission);
+			return AccessPermissionEnum.isEditor(bestGroupDatabasePermission);
 		}
 
 		return false;
@@ -157,7 +157,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		}
 
 		if(bestGroupDatabasePermission != null) {
-			return AccessPermission.isOwner(bestGroupDatabasePermission);
+			return AccessPermissionEnum.isOwner(bestGroupDatabasePermission);
 		}
 
 		return false;
@@ -231,7 +231,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		}		
 		
 		// if they are the owner based on user, then skip the group check
-		if(bestUserInsightPermission != null && AccessPermission.isOwner(bestUserInsightPermission)) {
+		if(bestUserInsightPermission != null && AccessPermissionEnum.isOwner(bestUserInsightPermission)) {
 			return bestUserInsightPermission;
 		}
 		
@@ -272,7 +272,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		
 		if(bestGroupInsightPermission == null && bestUserInsightPermission == null) {
 			if(SecurityInsightUtils.insightIsGlobal(projectId, insightId)) {
-				return AccessPermission.READ_ONLY.getId();
+				return AccessPermissionEnum.READ_ONLY.getId();
 			}
 			return null;
 		} else if(bestGroupInsightPermission == null || bestGroupInsightPermission.compareTo(bestUserInsightPermission) >= 0) {
@@ -306,7 +306,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				+ RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', "
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
-				+ AccessPermission.getIdByPermission(permission) + ");";
+				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
 		
 		try {
 			securityDb.insertData(query);
@@ -363,7 +363,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	public static void editInsightGroupPermission(User user, String groupId, String groupType, String projectId, String insightId, String newPermission) throws IllegalAccessException {
 		// make sure user can edit the insight
 		Integer userPermissionLvl = getBestInsightPermission(user, projectId, insightId);
-		if(userPermissionLvl == null || !AccessPermission.isEditor(userPermissionLvl)) {
+		if(userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
@@ -373,19 +373,19 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Attempting to modify insight permission for a group who does not currently have access to the insight");
 		}
 		
-		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		
 		// if i am not an owner
 		// then i need to check if i can edit this group permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
-			if(AccessPermission.OWNER.getId() == existingGroupPermission) {
+			if(AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this group insight permission.");
 			}
 			
 			// also, cannot give some owner permission if i am just an editor
-			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+			if(AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
 				throw new IllegalAccessException("Cannot give owner level access to this insight since you are not currently an owner.");
 			}
 		}
@@ -415,7 +415,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	public static void removeInsightGroupPermission(User user, String groupId, String groupType, String projectId, String insightId) throws IllegalAccessException {
 		// make sure user can edit the insight
 		Integer userPermissionLvl = getBestInsightPermission(user, projectId, insightId);
-		if(userPermissionLvl == null || !AccessPermission.isEditor(userPermissionLvl)) {
+		if(userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
@@ -427,10 +427,10 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		
 		// if i am not an owner
 		// then i need to check if i can remove this group permission
-		if(!AccessPermission.isOwner(userPermissionLvl)) {
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
-			if(AccessPermission.OWNER.getId() == existingGroupPermission) {
+			if(AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this group insight permission.");
 			}
 		}

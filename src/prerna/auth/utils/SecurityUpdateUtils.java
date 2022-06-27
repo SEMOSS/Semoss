@@ -20,7 +20,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermission;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
@@ -708,7 +708,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, userId);
-			ps.setInt(parameterIndex++, AccessPermission.OWNER.getId());
+			ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
 			ps.setString(parameterIndex++, databaseId);
 			ps.setBoolean(parameterIndex++, true);
 			ps.execute();
@@ -891,7 +891,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, userId);
-			ps.setInt(parameterIndex++, AccessPermission.OWNER.getId());
+			ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
 			ps.setString(parameterIndex++, projectId);
 			ps.setBoolean(parameterIndex++, true);
 			ps.execute();
