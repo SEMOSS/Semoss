@@ -6,7 +6,6 @@ import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -39,10 +38,10 @@ public class UpdateDatabaseReactor extends AbstractReactor {
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
 			// user has access!
-			baseInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), appId);
+			baseInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), appId);
 		} else {
 			// just grab the info
-			baseInfo = SecurityQueryUtils.getAllDatabaseList();
+			baseInfo = SecurityDatabaseUtils.getAllDatabaseList();
 		}
 		
 		if(baseInfo.isEmpty()) {

@@ -23,13 +23,11 @@ import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.querystruct.GenExpression;
-import prerna.query.querystruct.HardSelectQueryStruct;
-import prerna.query.querystruct.SQLQueryUtils;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -39,7 +37,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -899,6 +896,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
 		fun.setAlias("low_project_name");
 		qs1.addSelector(fun);
+		qs1.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION", "permission"));
+		qs1.addSelector(new QueryColumnSelector("USER_FAVORITES__FAVORITE", "project_favorite"));
 		// filters
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
@@ -924,31 +923,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
 		
 		// get the favorites for this user
-		SelectQueryStruct qs2 = new SelectQueryStruct();
-		qs2.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "PROJECTID"));
-		qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "project_favorite"));
-		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-		// joins
-		qs2.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-
-		List<String> queries = new ArrayList<>();
-		IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
-		interpreter.setQueryStruct(qs1);
-		queries.add(interpreter.composeQuery());
-		interpreter = securityDb.getQueryInterpreter();
-		interpreter.setQueryStruct(qs2);
-		queries.add(interpreter.composeQuery());
-
-		List<Join> joins = new ArrayList<>();
-		joins.add(new Join("project_id", "left.outer.join", "PROJECTID"));
-
-		GenExpression retExpression = SQLQueryUtils.joinSQL(queries, joins);
-		String finalQuery = GenExpression.printQS(retExpression, 
-				new StringBuffer(queries.get(0).length() + queries.get(1).length() + 300)).toString();
-		HardSelectQueryStruct finalQs = new HardSelectQueryStruct();
-		finalQs.setQuery(finalQuery);
+		{
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
+			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "FAVORITE"));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+			IRelation subQuery = new SubqueryRelationship(qs2, "USER_FAVORITES", "left.outer.join", new String[] {"PROJECT__PROJECTID", "PROJECTPERMISSION__PROJECTID", "="});
+			qs1.addRelation(subQuery);
+		}
 		
-		return QueryExecutionUtility.flushRsToMap(securityDb, finalQs);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
 	}
 	
 	/**
