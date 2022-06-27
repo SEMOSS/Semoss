@@ -1,5 +1,8 @@
 package prerna.auth;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public enum AccessPermissionEnum {
 	
 	OWNER (1, "OWNER"),
@@ -94,5 +97,15 @@ public enum AccessPermissionEnum {
 		}
 		
 		return ep.getId();
+	}
+	
+	public static Map<Integer, String> flushEnum() {
+		AccessPermissionEnum[] values = AccessPermissionEnum.values();
+		Map<Integer, String> flushed = new HashMap<>(values.length);
+		for(AccessPermissionEnum e : values) {
+			flushed.put(e.id, e.permission);
+		}
+		
+		return flushed;
 	}
 }
