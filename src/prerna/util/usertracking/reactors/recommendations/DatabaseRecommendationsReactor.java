@@ -13,7 +13,6 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -78,7 +77,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 			
 			// run communities script
 			String communityOutput = Utility.getRandomString(8);
-			List<String> myEngines = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> myEngines = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
 			String items = "";
 			for (int row = 0; row < myEngines.size(); row++) {
 				String dbid = myEngines.get(row);
@@ -107,7 +106,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 			
 			String funcR = rsb.toString();
 			this.rJavaTranslator.runR(varR + funcR);
-			List<String> enginesWithAccess = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> enginesWithAccess = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
 			ArrayList<Object> communitiesList = new ArrayList<Object>();
 			String communityJson = this.rJavaTranslator.getString(communityOutput);
 			// the script failed or they dont have the historical data

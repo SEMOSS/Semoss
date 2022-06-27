@@ -5,12 +5,11 @@ import java.util.List;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.project.api.IProject;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
@@ -119,7 +118,7 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 		// use all the databases
 		List<String> engineFilters = null;
 		if (AbstractSecurityUtils.securityEnabled()) {
-			engineFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
+			engineFilters = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
 		} else {
 			engineFilters = MasterDatabaseUtility.getAllDatabaseIds();
 		}

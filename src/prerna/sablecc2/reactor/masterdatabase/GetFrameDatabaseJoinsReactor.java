@@ -8,7 +8,6 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -28,17 +27,17 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 	public NounMetadata execute() {
 		Map<String, Map<String, List<String>>> connections = new HashMap<String, Map<String, List<String>>>();
 		
-		List<String> appFilters = null;
+		List<String> dbFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			String specificAppFilter = getApp();
-			if(specificAppFilter != null) {
-				if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), specificAppFilter)) {
-					throw new IllegalArgumentException("Database " + specificAppFilter + " does not exist or user does not have access to database");
+			String specificDbFilter = getDatabase();
+			if(specificDbFilter != null) {
+				if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), specificDbFilter)) {
+					throw new IllegalArgumentException("Database " + specificDbFilter + " does not exist or user does not have access to database");
 				}
-				appFilters = new Vector<String>();
-				appFilters.add(specificAppFilter);
+				dbFilters = new Vector<String>();
+				dbFilters.add(specificDbFilter);
 			} else {
-				appFilters = SecurityQueryUtils.getVisibleUserDatabaseIds(this.insight.getUser());
+				dbFilters = SecurityDatabaseUtils.getVisibleUserDatabaseIds(this.insight.getUser());
 			}
 		}
 		
@@ -65,7 +64,7 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 
 			// now query to find all related things to this frame header
 			List<String> conceptualNames = MasterDatabaseUtility.getConceptualNamesFromPhysicalIds(physicalNameIds);
-			List<String[]> headerConnections = MasterDatabaseUtility.getConceptualConnections(conceptualNames, appFilters);
+			List<String[]> headerConnections = MasterDatabaseUtility.getConceptualConnections(conceptualNames, dbFilters);
 			
 			// in the connections map
 			// i want to put
@@ -97,7 +96,7 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 		return new NounMetadata(connections, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
 	}
 	
-	private String getApp() {
+	private String getDatabase() {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();

@@ -13,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -46,10 +45,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 		List<Map<String, Object>> dbInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly);
+			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly);
 			this.insight.getUser().setEngines(dbInfo);
 		} else {
-			dbInfo = SecurityQueryUtils.getAllDatabaseList();
+			dbInfo = SecurityDatabaseUtils.getAllDatabaseList();
 		}
 
 		Map<String, Integer> index = new HashMap<>(dbInfo.size());

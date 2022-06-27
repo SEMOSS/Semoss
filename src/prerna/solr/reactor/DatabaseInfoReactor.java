@@ -37,11 +37,11 @@ public class DatabaseInfoReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
 			}
 			// user has access!
-			baseInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), databaseId);
+			baseInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseId);
 		} else {
 			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 			// just grab the info
-			baseInfo = SecurityQueryUtils.getAllDatabaseList(databaseId);
+			baseInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseId);
 		}
 		
 		if(baseInfo == null || baseInfo.isEmpty()) {
