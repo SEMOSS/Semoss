@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -47,14 +48,14 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 		}
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			List<String> appFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> dbFilters = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
 			if(eFilters != null) {
-				if(!appFilters.contains(eFilters.get(0))) {
+				if(!dbFilters.contains(eFilters.get(0))) {
 					throw new IllegalArgumentException("Databases " + eFilters.get(0) + " does not exist or user does not have access");
 				}
 			} else {
 				eFilters = new Vector<String>();
-				eFilters.addAll(appFilters);
+				eFilters.addAll(dbFilters);
 			}
 		}
 		

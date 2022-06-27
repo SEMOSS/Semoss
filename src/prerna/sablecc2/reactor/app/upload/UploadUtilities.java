@@ -29,8 +29,8 @@ import com.google.gson.GsonBuilder;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
@@ -2017,7 +2017,7 @@ public class UploadUtilities {
 	 * @return
 	 */
 	public static Map<String, Object> getDatabaseReturnData(User user, String databaseId) {
-		List<Map<String, Object>> baseInfo = SecurityQueryUtils.getUserDatabaseList(user, databaseId);
+		List<Map<String, Object>> baseInfo = SecurityDatabaseUtils.getUserDatabaseList(user, databaseId);
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}
