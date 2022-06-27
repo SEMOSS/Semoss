@@ -373,55 +373,65 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		String table = selector.getTable();
 		String colName = selector.getColumn();
 		String tableAlias = selector.getTableAlias();
-		if(tableAlias == null) {
-			if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
-				tableAlias = this.customFromAliasName;
-			} else {
-				tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
-			}
-		}
-		// account for keywords
-		if(this.queryUtil.isSelectorKeyword(tableAlias)) {
-			tableAlias = this.queryUtil.getEscapeKeyword(tableAlias);
-		}
-		
 		String physicalColName = null;
-		if(this.customFromAliasName != null) {
-			// the column is not on a table
-			// but on the custom from
-			physicalColName = queryUtil.escapeReferencedAlias(colName);
-		} else {
-			// will be getting the physical column name
+		String tableCol = null;
+		
+		if(this.subQsAliasNames.contains(table)) {
+			// this is a column selector from a projection off a subquery
+			tableAlias = table;
 			physicalColName = colName;
-			// if engine is not null, get the info from the engine
-			if(engine != null && !engine.isBasic()) {
-				// if the colName is the primary key placeholder
-				// we will go ahead and grab the primary key from the table
-				if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-					physicalColName = getPrimKey4Table(table);
-					// the display name is defaulted to the table name
+			tableCol = tableAlias + "." + physicalColName;
+		} else {
+			if(tableAlias == null) {
+				if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
+					tableAlias = this.customFromAliasName;
 				} else {
-					// default assumption is the info being passed is the conceptual name
-					// get the physical from the conceptual
-					physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+					tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
 				}
 			}
+			// account for keywords
+			if(this.queryUtil.isSelectorKeyword(tableAlias)) {
+				tableAlias = this.queryUtil.getEscapeKeyword(tableAlias);
+			}
+			
+			if(this.customFromAliasName != null) {
+				// the column is not on a table
+				// but on the custom from
+				physicalColName = queryUtil.escapeReferencedAlias(colName);
+			} else {
+				// will be getting the physical column name
+				physicalColName = colName;
+				// if engine is not null, get the info from the engine
+				if(engine != null && !engine.isBasic()) {
+					// if the colName is the primary key placeholder
+					// we will go ahead and grab the primary key from the table
+					if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+						physicalColName = getPrimKey4Table(table);
+						// the display name is defaulted to the table name
+					} else {
+						// default assumption is the info being passed is the conceptual name
+						// get the physical from the conceptual
+						physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+					}
+				}
+			}
+			
+			if(this.queryUtil.isSelectorKeyword(physicalColName)) {
+				physicalColName = this.queryUtil.getEscapeKeyword(physicalColName);
+			}
+			
+			//keep track of columns by their selector reference syntax
+			tableCol = tableAlias + "." + physicalColName;
+			String colAlias = selector.getAlias().toUpperCase();
+			//if the column is a foreign key column, then need to ensure that its alias is unique
+			if (colAlias.endsWith("_FK")){
+				colAlias = tableAlias.toUpperCase() + "$$" + colAlias ;
+			}
+			this.retTableToSelectors.putIfAbsent(tableAlias, new LinkedHashSet<String>());
+			this.retTableToSelectors.get(tableAlias).add(tableCol + " AS " + "\"" + colAlias +"\"");
+			//if the selector is one that user-requested, then update selectorAliases 
 		}
-		
-		if(this.queryUtil.isSelectorKeyword(physicalColName)) {
-			physicalColName = this.queryUtil.getEscapeKeyword(physicalColName);
-		}
-		
-		//keep track of columns by their selector reference syntax
-		String tableCol = tableAlias + "." + physicalColName;
-		String colAlias = selector.getAlias().toUpperCase();
-		//if the column is a foreign key column, then need to ensure that its alias is unique
-		if (colAlias.endsWith("_FK")){
-			colAlias = tableAlias.toUpperCase() + "$$" + colAlias ;
-		}
-		this.retTableToSelectors.putIfAbsent(tableAlias, new LinkedHashSet<String>());
-		this.retTableToSelectors.get(tableAlias).add(tableCol + " AS " + "\"" + colAlias +"\"");
-		//if the selector is one that user-requested, then update selectorAliases 
+		// keep track of all the processed columns
 		if (notEmbeddedColumn) {
 			// keep track of all the processed columns
 			this.retTableToCols.putIfAbsent(table, new Vector<String>());
