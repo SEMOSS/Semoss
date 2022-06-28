@@ -72,7 +72,7 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 			connDetails.put(AbstractSqlQueryUtil.HOSTNAME, host);
 			connDetails.put(AbstractSqlQueryUtil.PORT, port);
 			connDetails.put(AbstractSqlQueryUtil.SCHEMA, this.schema);
-			String connectionUrl = this.util.buildConnectionString(connDetails);
+			String connectionUrl = this.util.setConnectionDetailsfromMap(connDetails);
 			// get the connection
 			this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.POSTGRES, connectionUrl,  username, password);
 			
