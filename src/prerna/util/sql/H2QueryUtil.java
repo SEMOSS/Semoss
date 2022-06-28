@@ -65,107 +65,154 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public String buildConnectionString(Map<String, Object> configMap) throws RuntimeException {
-		if(configMap.isEmpty()){
-			throw new RuntimeException("Configuration map is empty");
+	public String setConnectionDetailsfromMap(Map<String, Object> configMap) throws RuntimeException {
+		if(configMap == null || configMap.isEmpty()){
+			throw new RuntimeException("Configuration map is null or empty");
 		}
 		
-		String connectionString = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_STRING);
-		if(connectionString != null && !connectionString.isEmpty()) {
-			return connectionString;
-		}
+		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
 		
-		connectionString = this.dbType.getUrlPrefix();
-		String hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
-		if(hostname == null || hostname.isEmpty()) {
+		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
+				(this.hostname == null || this.hostname.isEmpty())
+			) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 		
-		File f = new File(Utility.normalizePath(hostname));
-		if(f.exists()) {
-			hostname = hostname.replace(".mv.db", "");
-			connectionString += ":nio:" + hostname;
+		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
+		String port = this.port;
+		if (port != null && !port.isEmpty()) {
+			port = ":" + port;
 		} else {
-			String port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
-			if (port != null && !port.isEmpty()) {
-				port = ":" + port;
+			port = "";
+		}
+		
+		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
+		
+		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+
+		// do we need to make the connection url?
+		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
+			this.connectionUrl = this.dbType.getUrlPrefix();
+			
+			File f = new File(Utility.normalizePath(hostname));
+			if(f.exists()) {
+				hostname = hostname.replace(".mv.db", "");
+				this.connectionUrl += ":nio:" + hostname;
 			} else {
-				port = "";
+				this.connectionUrl += ":tcp://"+hostname+":"+port;
 			}
 			
-			if(port!=null && !port.isEmpty()) {
-				connectionString += ":tcp://"+hostname+":"+port;
-			}		
-		}
-
-		String schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
-		if(schema != null && !schema.isEmpty()) {
-			connectionString+="/"+schema;
-		}
-		
-		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
-		if(additonalProperties != null && !additonalProperties.isEmpty()) {
-			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
-				connectionString += ";" + additonalProperties;
-			} else {
-				connectionString += additonalProperties;
-			}
-		}
-		
-		return connectionString;
-	}
-
-	@Override
-	public String buildConnectionString(Properties prop) throws RuntimeException {
-		if(prop == null){
-			throw new RuntimeException("Properties ojbect is null");
-		}
-
-		String connectionString = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_STRING);
-		if(connectionString != null && !connectionString.isEmpty()) {
-			return connectionString;
-		}
-		
-		connectionString = this.dbType.getUrlPrefix();
-		String hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
-		if(hostname == null || hostname.isEmpty()) {
-			throw new RuntimeException("Must pass in a hostname");
-		}
-		
-		File f = new File(Utility.normalizePath(hostname));
-		if(f.exists()) {
-			hostname = hostname.replace(".mv.db", "");
-			connectionString += ":nio:" + hostname;
-		} else {
-			String port = (String) prop.get(AbstractSqlQueryUtil.PORT);
-			if (port != null && !port.isEmpty()) {
-				port = ":" + port;
-			} else {
-				port = "";
+			if(this.schema != null && !this.schema.isEmpty()) {
+				this.connectionUrl += "/"+schema;
 			}
 			
-			if(port!=null && !port.isEmpty()) {
-				connectionString += ":tcp://"+hostname+":"+port;
-			}		
-		}
-
-		String schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
-		if(schema != null && !schema.isEmpty()) {
-			connectionString+="/"+schema;
-		}
-		
-		String additonalProperties = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
-		if(additonalProperties != null && !additonalProperties.isEmpty()) {
-			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
-				connectionString += ";" + additonalProperties;
-			} else {
-				connectionString += additonalProperties;
+			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
+				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
+					this.connectionUrl += ";" + this.additionalProps;
+				} else {
+					this.connectionUrl += this.additionalProps;
+				}
 			}
 		}
 		
-		return connectionString;
+		return this.connectionUrl;
 	}
 	
+	@Override
+	public String setConnectionDetailsFromSMSS(Properties prop) throws RuntimeException {
+		if(prop == null || prop.isEmpty()){
+			throw new RuntimeException("Properties object is null or empty");
+		}
+		
+		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		
+		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
+				(this.hostname == null || this.hostname.isEmpty())
+			) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		
+		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
+		String port = this.port;
+		if (port != null && !port.isEmpty()) {
+			port = ":" + port;
+		} else {
+			port = "";
+		}
+		
+		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
+		
+		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+
+		// do we need to make the connection url?
+		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
+			this.connectionUrl = this.dbType.getUrlPrefix();
+			
+			File f = new File(Utility.normalizePath(hostname));
+			if(f.exists()) {
+				hostname = hostname.replace(".mv.db", "");
+				this.connectionUrl += ":nio:" + hostname;
+			} else {
+				this.connectionUrl += ":tcp://"+hostname+":"+port;
+			}
+			
+			if(this.schema != null && !this.schema.isEmpty()) {
+				this.connectionUrl += "/"+schema;
+			}
+			
+			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
+				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
+					this.connectionUrl += ";" + this.additionalProps;
+				} else {
+					this.connectionUrl += this.additionalProps;
+				}
+			}
+		}
+		
+		return this.connectionUrl;
+	}
+	
+	@Override
+	public String buildConnectionString() {
+		if(this.connectionUrl != null && !this.connectionUrl.isEmpty()) {
+			return this.connectionUrl;
+		}
+		
+		if(this.hostname == null || this.hostname.isEmpty()) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		
+		String port = this.port;
+		if (port != null && !port.isEmpty()) {
+			port = ":" + port;
+		} else {
+			port = "";
+		}
+		
+		File f = new File(Utility.normalizePath(hostname));
+		if(f.exists()) {
+			hostname = hostname.replace(".mv.db", "");
+			this.connectionUrl += ":nio:" + hostname;
+		} else {
+			this.connectionUrl += ":tcp://"+hostname+":"+port;
+		}
+		
+		if(this.schema != null && !this.schema.isEmpty()) {
+			this.connectionUrl += "/"+schema;
+		}
+		
+		if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
+			if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
+				this.connectionUrl += ";" + this.additionalProps;
+			} else {
+				this.connectionUrl += this.additionalProps;
+			}
+		}
+		
+		return this.connectionUrl;
+	}
 	
 	@Override
 	public void enhanceConnection(Connection con) {

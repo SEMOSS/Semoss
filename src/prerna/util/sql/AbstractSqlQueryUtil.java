@@ -65,7 +65,7 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String NO_KEY_REQUIRED = "NO_KEY_REQUIRED";
 	
 	// inputs for connection string builder
-	public static final String CONNECTION_STRING = Constants.CONNECTION_URL;
+	public static final String CONNECTION_URL = Constants.CONNECTION_URL;
 	public static final String DRIVER_NAME = "dbDriver";
 
 	public static final String HOSTNAME = "hostname";
@@ -103,7 +103,7 @@ public abstract class AbstractSqlQueryUtil {
 	private static final Logger logger = LogManager.getLogger(AbstractSqlQueryUtil.class);
 
 	protected RdbmsTypeEnum dbType = null;
-	// there are 2 differnet ways of providing the inputs
+	// there are 2 different ways of providing the inputs
 	// properties - primarily for grabbing from SMSS files
 	// map - primarily for getting input details from FE / JSON
 	protected Properties properites;
@@ -118,7 +118,8 @@ public abstract class AbstractSqlQueryUtil {
 	protected String port;
 	protected String database;
 	protected String schema;
-
+	protected String additionalProps;
+	
 	// reserved words
 	protected List<String> reservedWords = null;
 	// type conversions
@@ -136,19 +137,25 @@ public abstract class AbstractSqlQueryUtil {
 	}
 
 	/**
-	 * Build the connection string from a JSON map
+	 * Set the connection details from a map
 	 * @param configMap
 	 * @return
 	 * @throws SQLException 
 	 */
-	public abstract String buildConnectionString(Map<String, Object> configMap) throws RuntimeException;
+	public abstract String setConnectionDetailsfromMap(Map<String, Object> configMap) throws RuntimeException;
 	
 	/**
-	 * Build the connection string from a properties file (SMSS file)
+	 * Set the connection details from a properties file (SMSS file)
 	 * @param prop
 	 * @return
 	 */
-	public abstract String buildConnectionString(Properties prop) throws RuntimeException;
+	public abstract String setConnectionDetailsFromSMSS(Properties prop) throws RuntimeException;
+	
+	/**
+	 * Build the connection string after the connection details have been set
+	 * @return
+	 */
+	public abstract String buildConnectionString();
 	
 	/**
 	 * Method to get a connection to an existing RDBMS engine
@@ -238,49 +245,65 @@ public abstract class AbstractSqlQueryUtil {
 	public String getHostname() {
 		return hostname;
 	}
+	
+	public void setHostname(String hostname) {
+		this.hostname = hostname;
+	}
 
 	public String getPort() {
 		return port;
 	}
 
+	public void setPort(String port) {
+		this.port = port;
+	}
+	
 	public String getDatabase() {
 		return database;
+	}
+	
+	public void setDatabase(String database) {
+		this.database = database;
 	}
 	
 	public String getSchema() {
 		return schema;
 	}
 
+	public void setSchema(String schema) {
+		this.schema = schema;
+	}
+	
 	public String getUsername() {
 		return username;
 	}
 
-	public String getPassword() {
-		return password;
-	}
-
-	public String getConnectionUrl() {
-		return connectionUrl;
-	}
-	
 	public void setUsername(String username) {
 		this.username = username;
+	}
+	
+	public String getPassword() {
+		return password;
 	}
 	
 	public void setPassword(String password) {
 		this.password = password;
 	}
+
+	public String getAdditionalProps() {
+		return additionalProps;
+	}
+	
+	public void setAdditionalProps(String additionalProps) {
+		this.additionalProps = additionalProps;
+	}
+	
+	public String getConnectionUrl() {
+		return connectionUrl;
+	}
 	
 	public void setConnectionUrl(String connectionUrl) {
 		this.connectionUrl = connectionUrl;
-	}
-	
-	public void setDatabase(String database) {
-		this.database = database;
-	}
-
-	public void setSchema(String schema) {
-		this.schema = schema;
 	}
 
 	public String getConnectionUserKey() {

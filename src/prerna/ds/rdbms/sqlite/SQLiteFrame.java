@@ -79,7 +79,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		// build the connection url
 		Map<String, Object> connDetails = new HashMap<>();
 		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, fileLocation);
-		String connectionUrl = this.util.buildConnectionString(connDetails);
+		String connectionUrl = this.util.setConnectionDetailsfromMap(connDetails);
 		// get the connection
 		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.SQLITE, connectionUrl,  "", "");
 		
