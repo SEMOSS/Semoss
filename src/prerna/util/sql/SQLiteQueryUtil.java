@@ -43,7 +43,9 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 		//... just in case
-		this.hostname = this.hostname.replace(".mv.db", "");
+		if(this.hostname != null) {
+			this.hostname = this.hostname.replace(".mv.db", "");
+		}
 
 		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
 
@@ -78,8 +80,10 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 		//... just in case
-		this.hostname = this.hostname.replace(".mv.db", "");
-
+		if(this.hostname != null) {
+			this.hostname = this.hostname.replace(".mv.db", "");
+		}
+		
 		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
 
 		// do we need to make the connection url?
