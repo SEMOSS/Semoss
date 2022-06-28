@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.py;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -19,7 +20,11 @@ public class PySingleton {
 	public static PyTranslator pyt = null;
 	public static Client nc = null;
 	private static Logger logger = LogManager.getLogger(PySingleton.class);
-	public static String nouser = "nouser";
+	public static User nouser = new User();
+	static {
+		nouser.setAnonymous(true);
+		nouser.setAnonymousId("nouser");
+	}
 	public static String pyTupleSpace = null;
 	public static Client tcpServer;
 

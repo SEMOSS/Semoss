@@ -8,7 +8,6 @@ import java.nio.file.Paths;
 import java.util.Hashtable;
 import java.util.Map;
 
-import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,8 +23,8 @@ public class PyUtils {
 	
 	private static Boolean pyEnabled = null;
 	private static PyUtils instance;
-	public Map userTupleMap = new Hashtable();
-	Map userProcessMap = new Hashtable();
+	public Map<User, String> userTupleMap = new Hashtable<>();
+	public Map<User, Process> userProcessMap = new Hashtable<>();
 	
 	private PyUtils() {
 		
@@ -98,7 +97,7 @@ public class PyUtils {
 	}
 	
 	// just gets the directory of where the main user has started
-	public String getTempTupleSpace(Object user, String dir)
+	public String getTempTupleSpace(User user, String dir)
 	{
 		if(user != null && !userTupleMap.containsKey(user)) {
 			try {
@@ -126,7 +125,7 @@ public class PyUtils {
 	
 	
 	//chroot
-	public String startTCPServe(Object user, String chrootDir, String paramDir, String port)
+	public String startTCPServe(User user, String chrootDir, String paramDir, String port)
 	{
 		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
 		{
@@ -170,7 +169,7 @@ public class PyUtils {
 	}
 	
 
-	public String startTCPServe(Object user, String dir, String port)
+	public String startTCPServe(User user, String dir, String port)
 	{
 		if(user != null && !userTupleMap.containsKey(user)) // || (user != null && user instanceof User && !((User)user).getTCPServer(false).isConnected()))
 		{
@@ -254,9 +253,9 @@ public class PyUtils {
 			// change this to just creating a file so it is simpler
 			File closer = new File(dir + "/alldone.closeall");
 			try {
-				ExecuteWatchdog p = (ExecuteWatchdog)userProcessMap.get(user);
+				Process p = userProcessMap.get(user);
 				closer.createNewFile();
-				p.destroyProcess();
+				p.destroy();
 				// delete the directory fully
 				FileUtils.deleteDirectory(new File(dir));
 			} catch(Exception e) {
