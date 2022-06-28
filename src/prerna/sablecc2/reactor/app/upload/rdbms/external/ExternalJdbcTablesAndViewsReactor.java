@@ -58,7 +58,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		Connection con = null;
 		String connectionUrl = null;
 		try {
-			connectionUrl = queryUtil.buildConnectionString(connectionDetails);
+			connectionUrl = queryUtil.setConnectionDetailsfromMap(connectionDetails);
 		} catch (RuntimeException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}

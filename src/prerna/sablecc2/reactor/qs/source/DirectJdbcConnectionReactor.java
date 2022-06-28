@@ -45,13 +45,14 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		Connection con = null;
 		String connectionUrl = null;
 		try {
-			connectionUrl = queryUtil.buildConnectionString(connectionDetails);
+			connectionUrl = queryUtil.setConnectionDetailsfromMap(connectionDetails);
 		} catch (RuntimeException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
 		try {
 			con = AbstractSqlQueryUtil.makeConnection(queryUtil, connectionUrl, connectionDetails);
+			queryUtil.enhanceConnection(con);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			String driverError = e.getMessage();
