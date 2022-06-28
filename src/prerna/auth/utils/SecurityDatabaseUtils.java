@@ -1051,6 +1051,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
