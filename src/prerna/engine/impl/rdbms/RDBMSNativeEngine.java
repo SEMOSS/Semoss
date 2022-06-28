@@ -310,10 +310,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			try {
 				// update the query utility values
 				this.queryUtil.setConnectionUrl(this.connectionURL);
-				this.queryUtil.setUsername(this.userName);
-				this.queryUtil.setPassword(this.password);
-				this.queryUtil.setDatabase(this.database);
-				this.queryUtil.setSchema(this.schema);
+				this.queryUtil.setConnectionDetailsFromSMSS(this.prop);
 				// build the connection
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {

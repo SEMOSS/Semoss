@@ -1023,7 +1023,7 @@ public class UploadUtilities {
 			bufferedWriter.write(newLine);
 			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
 
-			String customUrl = (String) connectionDetails.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+			String customUrl = (String) connectionDetails.get(AbstractSqlQueryUtil.CONNECTION_URL);
 			if(customUrl != null && !customUrl.isEmpty()) {
 				// keys can be username/password
 				// but some will have it as accessKey/secretKey

@@ -116,7 +116,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		Map<String, Object> connDetails = new HashMap<>();
 		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, fileLocation);
 		connDetails.put(AbstractSqlQueryUtil.ADDITIONAL, "LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0");
-		String connectionUrl = this.util.buildConnectionString(connDetails);
+		String connectionUrl = this.util.setConnectionDetailsfromMap(connDetails);
 		// get the connection
 		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.H2_DB, connectionUrl,  "sa", "");
 		// set the builder

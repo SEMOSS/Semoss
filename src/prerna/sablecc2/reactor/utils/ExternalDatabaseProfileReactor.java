@@ -67,7 +67,7 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Unable to find driver for rdbms type = " + driver);
 			}
 		}
-		AbstractSqlQueryUtil util = SqlQueryUtilFactory.initialize(dbType);
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(dbType);
 		
 		String host = this.keyValue.get(this.keysToGet[1]);
 		String port = this.keyValue.get(this.keysToGet[2]);
@@ -81,7 +81,7 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 			conDetails.put(AbstractSqlQueryUtil.HOSTNAME, host);
 			conDetails.put(AbstractSqlQueryUtil.PORT, port);
 			conDetails.put(AbstractSqlQueryUtil.SCHEMA, schema);
-			String connectionUrl = util.buildConnectionString(conDetails);
+			String connectionUrl = queryUtil.setConnectionDetailsfromMap(conDetails);
 			con = AbstractSqlQueryUtil.makeConnection(dbType, connectionUrl, username, password);
 			DatabaseMetaData meta = con.getMetaData();
 			tables = meta.getTables(null, null, null, new String[] { "TABLE" });
