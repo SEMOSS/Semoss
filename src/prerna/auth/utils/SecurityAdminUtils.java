@@ -88,6 +88,61 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return false;
 	}
 	
+	/**
+	 * See if the user is an admin
+	 * @param userId
+	 * @param type
+	 * @return
+	 */
+	public boolean userIsAdmin(String userId, String type) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", type));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
+	public boolean otherAdminsExist(String userId, String type) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				if( (row[0] + "").equals(userId)
+						&& (row[1] + "").equals(type) ) {
+					continue;
+				} else {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
 	/*
 	 * all other methods should be on the instance
 	 * so that we cannot bypass security easily
@@ -411,9 +466,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * Delete a user and all its relationships.
 	 * @param userId
+	 * @param type 
 	 * @param userDelete
 	 */
-	public boolean deleteUser(String userToDelete) {
+	public boolean deleteUser(String userToDelete, String type) {
+		//TODO: need to start binding on userId + type
+		//TODO: need to start binding on userId + type
+		//TODO: need to start binding on userId + type
+		//TODO: need to start binding on userId + type
+		//TODO: need to start binding on userId + type
+		//TODO: need to start binding on userId + type
+		//TODO: need to start binding on userId + type
 		String[] deleteQueries = new String[] {
 				"DELETE FROM ENGINEPERMISSION WHERE USERID=?",
 				"DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
