@@ -891,6 +891,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
+		qs1.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
