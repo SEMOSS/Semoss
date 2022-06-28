@@ -2,7 +2,6 @@ package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -356,57 +355,57 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
 		String updateQ = updateInterp.composeQuery();
-		Statement stmt = securityDb.execUpdateAndRetrieveStatement(updateQ, true);
-		if(stmt != null){
-			securityDb.commit();
-			if(isNative) {
-				if(newUserId != null && !userId.equals(newUserId)) {
-					// need to update the password history
-					String updateQuery = "UPDATE PASSWORD_HISTORY SET USERID=? WHERE USERID=? and TYPE=?";
-					PreparedStatement ps = null;
-					try {
-						ps = securityDb.getPreparedStatement(updateQuery);
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, newUserId);
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, type);
-						ps.execute();
-						if(!ps.getConnection().getAutoCommit()) {
-							ps.getConnection().commit();
+		try {
+			securityDb.insertData(updateQ);
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		}
+		if(isNative) {
+			if(newUserId != null && !userId.equals(newUserId)) {
+				// need to update the password history
+				String updateQuery = "UPDATE PASSWORD_HISTORY SET USERID=? WHERE USERID=? and TYPE=?";
+				PreparedStatement ps = null;
+				try {
+					ps = securityDb.getPreparedStatement(updateQuery);
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newUserId);
+					ps.setString(parameterIndex++, userId);
+					ps.setString(parameterIndex++, type);
+					ps.execute();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				} finally {
+					if(ps != null) {
+						try {
+							ps.close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
 						}
-					} catch (SQLException e) {
-						e.printStackTrace();
-					} finally {
-						if(ps != null) {
+						if(securityDb.isConnectionPooling()) {
 							try {
-								ps.close();
+								ps.getConnection().close();
 							} catch (SQLException e) {
 								logger.error(Constants.STACKTRACE, e);
 							}
-							if(securityDb.isConnectionPooling()) {
-								try {
-									ps.getConnection().close();
-								} catch (SQLException e) {
-									logger.error(Constants.STACKTRACE, e);
-								}
-							}
 						}
 					}
 				}
-				if(newHashPass != null && newSalt != null) {
-					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-					try {
-						SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp, cal);
-					} catch (Exception e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
+			}
+			if(newHashPass != null && newSalt != null) {
+				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+				java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+				try {
+					SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp, cal);
+				} catch (Exception e) {
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
-			return true;
 		}
-		
-		return false;
+		return true;
     }
 	
 	/**
@@ -2028,6 +2027,34 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		logger.info("Number of accounts locked = " + numUpdated);
 		return numUpdated;
+	}
+	
+	/**
+	 * Return the number of admins
+	 * @return
+	 */
+	public int getNumAdmins() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.COUNT);
+		fun.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(fun);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return ((Number) wrapper.next().getValues()[0]).intValue();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return 0;
 	}
 
 }
