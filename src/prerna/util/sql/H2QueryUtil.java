@@ -44,6 +44,8 @@ import prerna.util.Utility;
 
 public class H2QueryUtil extends AnsiSqlQueryUtil {
 	
+	private boolean forceFile;
+	
 	H2QueryUtil() {
 		super();
 		setDbType(RdbmsTypeEnum.H2_DB);
@@ -69,6 +71,8 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		if(configMap == null || configMap.isEmpty()){
 			throw new RuntimeException("Configuration map is null or empty");
 		}
+		
+		this.forceFile = Boolean.parseBoolean( configMap.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
 		
 		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
 		
@@ -96,10 +100,13 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 			this.connectionUrl = this.dbType.getUrlPrefix();
 			
 			File f = new File(Utility.normalizePath(hostname));
-			if(f.exists()) {
+			if(this.forceFile || f.exists()) {
 				hostname = hostname.replace(".mv.db", "");
 				this.connectionUrl += ":nio:" + hostname;
 			} else {
+				if(port.isEmpty()) {
+					throw new RuntimeException("Must define a port for a tcp/ip h2 db");
+				}
 				this.connectionUrl += ":tcp://"+hostname+":"+port;
 			}
 			
@@ -125,6 +132,8 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 		
+		this.forceFile = Boolean.parseBoolean( prop.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
+
 		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
 		
 		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
@@ -151,10 +160,13 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 			this.connectionUrl = this.dbType.getUrlPrefix();
 			
 			File f = new File(Utility.normalizePath(hostname));
-			if(f.exists()) {
+			if(this.forceFile || f.exists()) {
 				hostname = hostname.replace(".mv.db", "");
 				this.connectionUrl += ":nio:" + hostname;
 			} else {
+				if(port.isEmpty()) {
+					throw new RuntimeException("Must define a port for a tcp/ip h2 db");
+				}
 				this.connectionUrl += ":tcp://"+hostname+":"+port;
 			}
 			
