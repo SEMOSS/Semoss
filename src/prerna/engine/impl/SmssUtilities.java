@@ -102,9 +102,15 @@ public class SmssUtilities {
 	 * @return
 	 */
 	public static String getUniqueName(Properties prop) {
-		String engineId = prop.getProperty(Constants.ENGINE);
-		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		return getUniqueName(engineName, engineId);
+		String id = prop.getProperty(Constants.ENGINE);
+		String name = prop.getProperty(Constants.ENGINE_ALIAS);
+		
+		if(id == null && name == null) {
+			id = prop.getProperty(Constants.PROJECT);
+			name = prop.getProperty(Constants.PROJECT_ALIAS);
+		}
+		
+		return getUniqueName(name, id);
 	}
 
 	/**
