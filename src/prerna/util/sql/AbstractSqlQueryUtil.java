@@ -99,7 +99,9 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String ROLE = "role";
 	// elasticsearch
 	public static final String HTTP_TYPE = "httpType";
-
+	// h2 force file for creating embedded file
+	public static final String FORCE_FILE = "forceFile";
+	
 	private static final Logger logger = LogManager.getLogger(AbstractSqlQueryUtil.class);
 
 	protected RdbmsTypeEnum dbType = null;
