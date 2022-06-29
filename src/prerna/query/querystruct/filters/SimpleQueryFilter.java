@@ -1341,6 +1341,20 @@ public class SimpleQueryFilter implements IQueryFilter {
 		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 		return filter;
 	}
+
+	/**
+	 * Helper method to generate query column to query column filter
+	 * @param firstColSelector
+	 * @param comparator
+	 * @param secondColSelector
+	 * @return
+	 */
+	public static SimpleQueryFilter makeColToColFilter(String firstColQs, String comparator, String secondColQs) {
+		NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(firstColQs), PixelDataType.COLUMN);
+		NounMetadata rComparison = new NounMetadata(new QueryColumnSelector(secondColQs), PixelDataType.COLUMN);
+		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, comparator, rComparison);
+		return filter;
+	}
 	
 	/**
 	 * Helper method to generate query column to query column filter
