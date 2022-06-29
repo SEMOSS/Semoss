@@ -3416,8 +3416,8 @@ public class Utility {
 	public static String getApplicationTimeZoneId() {
 		String timeZone = DIHelper.getInstance().getProperty(Constants.DEFAULT_TIME_ZONE);
 		if(timeZone == null || (timeZone=timeZone.trim()).isEmpty()) {
-			// default cache is true
-			return "EST";
+			// default time zone is EDT
+			return "EDT";
 		}
 		
 		return timeZone.trim();
