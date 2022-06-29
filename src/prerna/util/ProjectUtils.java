@@ -1,6 +1,8 @@
 package prerna.util;
 
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import prerna.engine.impl.InsightAdministrator;
@@ -8,6 +10,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ProjectUtils {
 	
@@ -40,20 +43,7 @@ public class ProjectUtils {
 		/*
 		 * This must be either H2 or SQLite
 		 */
-
-		String connectionUrl = getNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
-		prop.put(Constants.CONNECTION_URL, connectionUrl);
-		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
-			// sqlite has no username/password
-			prop.put(Constants.USERNAME, "");
-			prop.put(Constants.PASSWORD, "");
-		} else {
-			prop.put(Constants.USERNAME, "sa");
-			prop.put(Constants.PASSWORD, "");
-		}
-		prop.put(Constants.DRIVER, rdbmsType.getDriver());
-		prop.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
-		prop.put("TEMP", "TRUE");
+		prop.putAll(getNewInsightDatabaseConnectionPropValues(rdbmsType, projectId, projectName));
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
 		insightEngine.setProp(prop);
 		// opening will work since we directly injected the prop map
@@ -151,8 +141,6 @@ public class ProjectUtils {
 		insightEngine.commit();
 	}
 
-
-
 	/**
 	 * Get the default connection url for the insights database
 	 * NOTE : ONLY ALLOWING FOR H2 OR SQLITE STORAGE OPTIONS AT THE MOMENT
@@ -161,20 +149,46 @@ public class ProjectUtils {
 	 * @param appName
 	 * @return
 	 */
-	private static String getNewInsightDatabaseConnectionUrl(RdbmsTypeEnum rdbmsType, String projectId, String projectName) {
+	private static final Map<String, Object> getNewInsightDatabaseConnectionPropValues(RdbmsTypeEnum rdbmsType, String projectId, String projectName) {
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put(Constants.DRIVER, rdbmsType.getDriver());
+		retMap.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
+		retMap.put("TEMP", "TRUE");
+		
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-
-		String connectionUrl = null;
-		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
-			// append .sqlite so it looks nicer - realize it is not required
-			connectionUrl = "jdbc:sqlite:" + baseFolder + PROJECT_DIRECTORY + SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "insights_database.sqlite";
+		if(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
+			baseFolder += Constants.PROJECT_FOLDER + DIR_SEPARATOR;
 		} else {
-			connectionUrl = "jdbc:h2:nio:" + baseFolder + PROJECT_DIRECTORY + SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+			baseFolder += PROJECT_DIRECTORY;
+		}
+		
+		String hostname = null;
+		
+		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
+			// sqlite has no username/password
+			// append .sqlite so it looks nicer - realize it is not required
+			hostname = baseFolder + SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "insights_database.sqlite";
+			
+			retMap.put(AbstractSqlQueryUtil.USERNAME, "");
+			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
+		} else {
+			// h2 only has username
+			hostname = baseFolder + SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "insights_database.mv.db";
+			
+			retMap.put(AbstractSqlQueryUtil.USERNAME, "sa");
+			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
+			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
+			retMap.put(AbstractSqlQueryUtil.ADDITIONAL, "query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+
 		}
 		// regardless of OS, connection url is always /
-		connectionUrl = connectionUrl.replace('\\', '/');
-		return connectionUrl;
+		hostname = hostname.replace('\\', '/');
+		retMap.put(AbstractSqlQueryUtil.HOSTNAME, hostname);
+		
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(rdbmsType);
+		String connectionUrl = queryUtil.setConnectionDetailsfromMap(retMap);
+		retMap.put(AbstractSqlQueryUtil.CONNECTION_URL, connectionUrl);
+		return retMap;
 	}
-
 
 }
