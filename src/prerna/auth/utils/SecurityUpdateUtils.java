@@ -31,6 +31,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.ProjectHelper;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -99,7 +100,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String[] typeAndCost = getDatabaseTypeAndCost(prop);
 		boolean engineExists = containsDatabaseId(databaseId);
 		if(engineExists) {
-			logger.info("Security database already contains database with alias = " + Utility.cleanLogString(databaseName));
+			logger.info("Security database already contains database with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
 			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
@@ -154,7 +155,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String[] typeAndCost = new String[] {"",""};
 		boolean projectExists = containsProjectId(projectId);
  		if(projectExists && !reloadInsights) {
-			logger.info("Security database already contains project with alias = " + Utility.cleanLogString(projectId));
+			logger.info("Security database already contains project with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else if(!projectExists) {
 			addProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global);
