@@ -3,6 +3,7 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -897,40 +898,31 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
 		fun.setAlias("low_project_name");
 		qs1.addSelector(fun);
-		qs1.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION", "permission"));
-		qs1.addSelector(new QueryColumnSelector("USER_FAVORITES__FAVORITE", "project_favorite"));
-		// filters
-		{
-			OrQueryFilter orFilter = new OrQueryFilter();
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-			qs1.addExplicitFilter(orFilter);
-		}
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
-			
-			// fill in the sub query with the necessary column output + filters
-			subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-		}
-		// favorites only
-		if(favoritesOnly) {
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
-		}
-		// joins
-		qs1.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-		
-		// get the favorites for this user
+		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "permission"));
+		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "project_favorite"));
+		// add a join to get the user permission level, if favorite, and the visibility
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
 			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "FAVORITE"));
+			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION", "PERMISSION"));
+			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY", "VISIBILITY"));
 			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-			IRelation subQuery = new SubqueryRelationship(qs2, "USER_FAVORITES", "left.outer.join", new String[] {"PROJECT__PROJECTID", "PROJECTPERMISSION__PROJECTID", "="});
+			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "="});
 			qs1.addRelation(subQuery);
+		}
+		// filters
+		{
+			OrQueryFilter orFilter = new OrQueryFilter();
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			qs1.addExplicitFilter(orFilter);
+		}
+		// only show those that are visible
+		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==", Arrays.asList(new Object[] {true, null}), PixelDataType.BOOLEAN));
+		// favorites only
+		if(favoritesOnly) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", true, PixelDataType.BOOLEAN));
 		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
