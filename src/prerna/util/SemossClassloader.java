@@ -93,7 +93,8 @@ public class SemossClassloader extends ClassLoader {
 		try {
 			retClass = super.loadClass(name);
 		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			// ignore
+			//classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		if (retClass == null) {

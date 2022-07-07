@@ -5,7 +5,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
-import prerna.util.Utility;
 
 public class ReloadInsightClassesReactor extends AbstractReactor {
 
@@ -15,10 +14,6 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		if(!Utility.isValidJava()) {
-			throw new IllegalArgumentException("This operation is not available (tools.jar not available)");
-		}
-
 		organizeKeys();
 		String idToRemove = insight.getRdbmsId();
 		if(this.keyValue.get(this.keysToGet[0]) != null) {
