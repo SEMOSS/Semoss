@@ -38,6 +38,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -51,6 +52,10 @@ import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -82,10 +87,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -164,7 +177,7 @@ public class Utility {
 	private static final Logger logger = LogManager.getLogger(prerna.util.Utility.class);
 
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
-
+	
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
 	 * of the query matches a part of the pattern, set substring as the key with
@@ -3444,15 +3457,15 @@ public class Utility {
 		}
 	}
 
-	public static Map loadReactors(String folder, String key) {
-		HashMap thisMap = new HashMap<String, Class>();
+	public static Map<String, Class> loadReactors(String folder, String key) {
+		HashMap<String, Class> thisMap = new HashMap<>();
 		
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
-				 logger.debug("App specific reactors are disabled");
+				 logger.debug("Project specific reactors are disabled");
 				 return thisMap;
-			 };
+			 }
 		}
 		try {
 			// I should create the class pool everytime
@@ -3484,17 +3497,8 @@ public class Utility {
 				}
 
 				ScanResult sr = new ClassGraph()
-						// .whitelistPackages("prerna")
 						.overrideClasspath((new File(classesFolder).toURI().toURL()))
-						// .enableAllInfo()
-						// .enableClassInfo()
 						.whitelistPackages(packages).scan();
-				// ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
-				// ScanResult sr = new
-				// ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
-
-				// ClassInfoList classes =
-				// sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
 				
 				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
 
@@ -3559,7 +3563,7 @@ public class Utility {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
-				 logger.debug("App specific reactors are disabled");
+				 logger.debug("Project specific reactors are disabled");
 				 return reactorMap;
 			 }
 		}
@@ -4322,265 +4326,121 @@ public class Utility {
 	 * Make sure jdk tools.jar is in the classpath
 	 * @return
 	 */
-	public static boolean isValidJava() {
-		if(isjavac == null) {
-			try {
-				Class.forName("com.sun.tools.javac.Main");
-				isjavac = true;
-			} catch(ClassNotFoundException ex) {
-				isjavac = false;
-			}
-		}
-		return isjavac;
-	}
-
-	// compiler methods
-	public static int compileJava(String folder, String classpath) {
-		// TODO Auto-generated method stub
-		com.sun.tools.javac.Main javac = new com.sun.tools.javac.Main();
-		/*		String[] args2 = new String[] {
-				        "-d", "c:/users/pkapaleeswaran/workspacej3/SemossDev",
-				        "c:/users/pkapaleeswaran/workspacej3/SemossDev/independent/HelloReactor.java"
-				        , "-proc:none"
-				    };
-		*/
-		// do I have to compile individually
-		String javaFolder = folder + "/java";
-
-		File file = new File(javaFolder);
-		int status = -1;
-
-		// one last piece of optimization I need to perform is check timestamp before
-		// compiling
-		if (file.exists() && file.isDirectory()) {
-			logger.info("Compiling Java in Folder " + javaFolder);
-			List<String> files = GitAssetUtils.listAssets(javaFolder, "*.java", null, null, null);
-			String outputFolder = folder + "/classes";
-			File outDir = new File(outputFolder);
-			if (!outDir.exists())
-				outDir.mkdir();
-
-			if (files.size() > 0) {
-				String[] compiler = new String[files.size() + 5];
-				compiler[0] = "-d";
-				compiler[1] = outputFolder;
-				compiler[2] = "-cp";
-				compiler[3] = classpath;
-				compiler[4] = "-proc:none";
-
-				for (int fileIndex = 0; fileIndex < files.size(); fileIndex++)
-					compiler[fileIndex + 5] = files.get(fileIndex);
-
-				/*
-				// https://stackoverflow.com/questions/43768021/how-to-store-the-result-of-compilation-using-javac-to-a-text-file
-				// when we use process builder
-				
-				compiler[files.size() + 5] = "2>";
-				compiler[files.size() + 6] = folder + "/classes/compileerrors.out";
-				*/
-				try {
-					java.io.PrintWriter pw = new java.io.PrintWriter(new File(folder + "/classes/compileerror.out"));
-					
-					status = javac.compile(compiler, pw);
-					pw.close();
-				} catch (FileNotFoundException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				status = javac.compile(compiler);
-			}
-
-			/*for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
-			{
-				String inputFile = files.get(fileIndex);
-				// so need a way to set the classpath
-				//envClassPath = null;
-				String[] args2 = new String[] {
-				        "-d", outputFolder ,
-				        "-cp", classpath,
-				        inputFile
-				        , "-proc:none"
-				    };
+//	public static boolean isValidJava() {
+//		if(isjavac == null) {
+//			try {
+//				Class.forName("com.sun.tools.javac.Main");
+//				isjavac = true;
+//			} catch(ClassNotFoundException ex) {
+//				isjavac = false;
+//			}
+//		}
+//		return isjavac;
+//	}
+		
+	private static boolean fileInRelativeHiddenDirectory(Path file, Path folder) {
+		do {
+			file = file.getParent();
 			
-				    int status = javac.compile(args2);
-			}*/
-
+			if (file == null) {
+				break;
+			}
+			
+			// this is not applicable to windows, but is the current behavior in
+			// GitAssetUtils.listAssets(String, String, String, List<String>, List<String>)
+			if (file.getFileName().toString().startsWith(".")) {
+				return true;
+			}
+			
+		} while (!file.equals(folder));
+		
+		return false;
+	}
+	
+	private static boolean isJavaFile(Path path) {
+		return FilenameUtils.getExtension(path.toString()).equals("java");
+	}
+	
+	public static int compileJava(String folder, String classpath) {
+		int status = -1;
+		
+		String javaFolder = folder + "/java";
+		Path path = Paths.get(javaFolder);
+		
+		if (Files.isDirectory(path)) {
+			logger.info("Compiling Java in Folder " + javaFolder);
+			try (Stream<Path> p = Files.walk(path, FileVisitOption.FOLLOW_LINKS)) {
+				List<File> files = p.filter(Files::isRegularFile)
+					.map(Path::toAbsolutePath)
+					.filter(Utility::isJavaFile)
+					.filter(s -> !Utility.fileInRelativeHiddenDirectory(s, path))
+					.map(Path::toFile)
+					.collect(Collectors.toList());
+				
+				if (files.size() > 0) {
+					status = compileJava(files, folder, classpath);
+				}
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 		}
+		
 		return status;
 	}
+	
+	private static int compileJava(List<File> files, String folder, String classpath) throws IOException {
+		String outputFolder = folder + "/classes";	
+		Files.createDirectories(Paths.get(outputFolder));
 
-	public static int findOpenPort2() {
+		List<String> options = new ArrayList<>();
+		options.add("-d");
+		options.add(outputFolder);
+		options.add("-cp");
+		options.add(classpath);
+		options.add("-proc:none");
 
-		int retPort = -1;
+		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+		StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(files);
 
-		int lowPort = 1024;
-		int highPort = 6666;
-
-		if (DIHelper.getInstance().getProperty("LOW_PORT") != null)
-			lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT"));
-
-		if (DIHelper.getInstance().getProperty("HIGH_PORT") != null)
-			highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT"));
-
-		for (int port = lowPort; port < highPort; port++) {
-
-			logger.debug("Trying to see if port " + port + " is open for Rserve.");
-			try {
-				ServerSocket s = new ServerSocket(port);
-				s.close();
-				logger.debug("Success! Port: " + port);
-				retPort = port;
-				break;
-			} catch (Exception ex) {
-				// Port isn't open, notify and move on
-				logger.error("Port " + port + " is unavailable.");
-			}
-		}
-		return retPort;
+		Path error = Paths.get(outputFolder, "compileerror.out");
+		Files.deleteIfExists(error);
+		
+		try (OutputStream os = Files.newOutputStream(error)) {
+			return compileJava(os, compiler, fileManager, diagnostics, options, compilationUnits);
+		}	
 	}
+	
+	private static int compileJava(OutputStream os, JavaCompiler compiler, StandardJavaFileManager fileManager, 
+			DiagnosticCollector<JavaFileObject> diagnostics, List<String> options, 
+			Iterable<? extends JavaFileObject> compilationUnits) throws IOException {
 
-//	/**
-//	 * Update old insights... hope we get rid of this soon
-//	 * @param insightRDBMS
-//	 * @param engineName
-//	 */
-//	public static void updateOldInsights(IEngine engine) {
-//		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'QUESTION_ID'";
-//
-//		// need to get the insight
-//		IEngine insightRDBMS = engine.getInsightDatabase();
-//		if(insightRDBMS == null) {
-//			logger.info(engine.getEngineName() + " does not have an insight rdbms");
-//			return;
-//		}
-//		
-//		Map<String, Object> mapRet = (Map<String, Object>) insightRDBMS.execQuery(query);
-//		Statement stat = (Statement) mapRet.get(RDBMSNativeEngine.STATEMENT_OBJECT);
-//		ResultSet rs = (ResultSet) mapRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
-//		try {
-//			if (rs.next()) {
-////				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_LAYOUT = 'Graph' WHERE p.QUESTION_DATA_MAKER = 'GraphDataModel'");
-//				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'BTreeDataFrame', 'TinkerFrame')");
-//				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_MAKEUP = REPLACE(QUESTION_MAKEUP, 'SELECT @Concept-Concept:Concept@, ''http://www.w3.org/1999/02/22-rdf-syntax-ns#type'', ''http://semoss.org/ontologies/Concept''', 'SELECT @Concept-Concept:Concept@') WHERE p.QUESTION_DATA_MAKER = 'TinkerFrame'");
-//				insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_DATA_MAKER='TinkerFrame' WHERE QUESTION_NAME='Explore a concept from the database' OR QUESTION_NAME='Explore an instance of a selected node type'"); 
-//				
-//				// also update the base explore instance query
-//				Utility.updateExploreInstanceInsight(engine);
-//			} else {
-//				logger.error("COULD NOT FIND INSIGHTS QUESTION_ID TABLE FOR ENGINE = " + engine.getEngineName());
-//			}
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		} finally {
-//			if (rs != null) {
-//				try {
-//					rs.close();
-//				} catch (SQLException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//			if(stat != null) {
-//				try {
-//					stat.close();
-//				} catch (SQLException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		}
-//	}
-//	
-//	// i hope this doesn't need to stay here for long
-//	// only because we have a dumb way of passing insights as old question file
-//	// instead of keeping what is in the insights rdbms
-//	public static void updateExploreInstanceInsight(IEngine engine) {
-//		// ignore local master db
-//		// this is important since DataMakerComponent will try to load the engine
-//		// but the engine is already in a lock since this is called when the engine is called
-//		// this will be cleaned up once we get rid of DMC
-//		String engineName = engine.getEngineName();
-//		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)) {
-//			return;
-//		}
-//		
-//		String insightId = null;
-//		
-//		// need to get the insight
-//		IEngine insightRDBMS = engine.getInsightDatabase();
-//		if(insightRDBMS == null) {
-//			logger.info(engineName + " does not have an insight rdbms");
-//			return;
-//		}
-//		
-//		// to delete from solr, we need to get the insight id
-//		Map<String, Object> queryMap = (Map<String, Object>) insightRDBMS.execQuery("SELECT ID FROM QUESTION_ID p WHERE p.QUESTION_NAME = 'Explore an instance of a selected node type' OR p.QUESTION_NAME = 'Explore a concept from the database'");
-//		try {
-//			ResultSet rs = (ResultSet) queryMap.get(RDBMSNativeEngine.RESULTSET_OBJECT);
-//			if(rs != null) {
-//				while(rs.next()) {
-//					insightId = rs.getObject(1) + "";
-//				}
-//				
-//				// close the streams
-//				Statement stmt = (Statement) queryMap.get(RDBMSNativeEngine.STATEMENT_OBJECT);
-//				rs.close();
-//				stmt.close();
-//			}
-//			
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		}
-//		
-//		if(insightId == null) {
-//			logger.info(engineName + " does not have explore an instance query in database to update");
-//			return;
-//		}
-//		
-//		// now we need to modify the insight DMC list to be the new values
-//		QuestionAdministrator questionAdmin = new QuestionAdministrator(engine);
-//		
-//		String insightName = "Explore an instance of a selected node type";
-//		String perspective = "Generic-Perspective";
-//		String layout = "Graph";
-//		String order = "1";
-//		String dmName = "TinkerFrame";
-//		boolean isDbQuery = false;
-//		Map<String, String> dataTableAlign = new HashMap<String, String>();
-//		List<SEMOSSParam> params = new Vector<SEMOSSParam>();
-//		String uiOptions = "";
-//		
-//		// create an empty comp and add the pkqls 
-//		Vector<DataMakerComponent> dmcList = new Vector<DataMakerComponent>();
-//		DataMakerComponent emptyComp = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
-//		dmcList.add(emptyComp);
-//
-//		// add the data.model pkql
-//		PKQLTransformation trans = new PKQLTransformation();
-//		Map<String, Object> prop = new HashMap<String, Object>();
-//		String pkqlCmd = "data.model(<json>{\"jsonView\":[{\"title\":\"Select Parameters:\",\"Description\":\"Explore instances of selected concept\",\"pkqlCommand\":\""
-//				+ "data.frame('graph');data.import(api:<engine>.query([c:<concept>],(c:<concept>=[<instance>])));panel[0].viz(Graph,[]);\",\"input\": {\"concept\": "
-//				+ "{\"name\": \"concept\",\"type\":\"dropdown\",\"required\": true,\"label\": \"Concept\",\"optionsGetter\": {\"command\": \"database.concepts(<engine>);"
-//				+ "\",\"dependInput\": []},\"options\": [],\"value\": \"\"},\"instance\": {\"name\": \"instance\",\"type\": \"checkBox\",\"required\": true,\"label\": "
-//				+ "\"Instance\",\"optionsGetter\": {\"command\": \"data.query(api:<engine>.query([c:<concept>],{'limit':50, 'offset':0, 'getCount': 'false'}));\","
-//				+ "\"dependInput\": [\"concept\"]},\"options\": [],\"value\": \"\"},\"execute\": {\"name\": \"execute\",\"type\": \"buttonGroup\",\"required\": true,"
-//				+ "\"position\": \"bottom\",\"label\": \"\",\"optionsGetter\": [],\"options\": [\"Execute\"],\"value\": \"\",\"attribute\": {\"buttonGroupAttr\": "
-//				+ "\"style='display:block'\"}}}}]}</json>);";		
-//		pkqlCmd = pkqlCmd.replace("<engine>", engine.getEngineName());
-//		prop.put(PKQLTransformation.EXPRESSION, pkqlCmd);
-//		trans.setProperties(prop);
-//		emptyComp.addPostTrans(trans);
-//		
-//		questionAdmin.modifyQuestion(insightId, insightName, perspective, dmcList, layout, order, dmName, isDbQuery, dataTableAlign, params, uiOptions);
-//		
-//		Map<String, Object> solrMap = new HashMap<String, Object>();
-//		// in case we modified the explore instance name since some legacy insights have difference in naming between rdf and rdbms
-//		solrMap.put(SolrIndexEngine.INDEX_NAME, insightName);
-//		solrMap.put(SolrIndexEngine.STORAGE_NAME, insightName);
-//		try {
-//			SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + insightId, solrMap);
-//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-//				| IOException e) {
-//			e.printStackTrace();
-//		}
-//	}
+		try (PrintWriter pw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8)))) {
+			boolean hold = compiler.getTask(
+					pw, 
+					fileManager, 
+					diagnostics, 
+					options, 
+					null, 
+					compilationUnits).call();
+
+			pw.flush();
+			logDiagnostics(diagnostics.getDiagnostics(), pw);
+			
+			return hold ? 0 : -1;
+		} finally {
+			fileManager.close();
+		}
+	}	
+
+	private static void logDiagnostics(List<Diagnostic<? extends JavaFileObject>> diagnostics, PrintWriter pw) {
+		for (Diagnostic<? extends JavaFileObject> x : diagnostics) {
+			pw.println("[" + x.getKind().toString() + "] " + x.getSource().toUri() + ":" + x.getLineNumber()
+					+ " - " + x.getMessage(Locale.getDefault()));
+			pw.flush();
+		}
+	}
 
 	/**
 	 * Checks each object value is null(for all types) or NaN (for double type)

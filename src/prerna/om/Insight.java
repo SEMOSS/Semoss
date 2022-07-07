@@ -202,7 +202,7 @@ public class Insight implements Serializable {
 	protected boolean isOldInsight = false;
 	
 	// insight specific reactors
-	private transient Map<String, Class> insightSpecificHash = new HashMap<String, Class>();
+	private transient Map<String, Class> insightSpecificHash = new HashMap<>();
 		
 	// last panel id touched
 	private String lastPanelId = null;
@@ -1196,102 +1196,87 @@ public class Insight implements Serializable {
 	
 	// get insight specific class
 	public IReactor getReactor(String className) {	
-		
-		// check to see if I can access javac class
-		
 		// try to get to see if this class already exists
 		// no need to recreate if it does
 		IReactor retReac = null;
 		
-		//String cp = getCP();
-		
-		if(Utility.isValidJava() && getInsightFolder() != null)
-		{
-			File insightDirectory = new File(insightFolder);
-			// replace the version name to start with
-			String insightId = insightDirectory.getName();
-			// accounting for the version which is why the second getParent
-			// This needs to be tagged to assets here
-			String db = insightDirectory.getParentFile().getParentFile().getName();
-	//		insightFolder = insightFolder.replaceAll("\\\\", "/");
-	//		String insightId = Utility.getInstanceName(insightFolder);
-	//		String db = Utility.getClassName(insightFolder);
-	
-			//String key = db + "." + insightId ;
-			String key = insightId ;
-			int randomNum = 0;
-			//ReactorFactory.compileCache.remove(insightId);
-			
-			// see if I need to compile this again
-			if(!ReactorFactory.compileCache.containsKey(insightId)) {
-				int status = Utility.compileJava(insightFolder, getCP());
-				if(status == 0) {
-					ReactorFactory.compileCache.put(insightId, Boolean.TRUE);
-					if(ReactorFactory.randomNumberAdder.containsKey(insightId)) {
-						randomNum = ReactorFactory.randomNumberAdder.get(insightId);
-					}
-					randomNum++;
-					ReactorFactory.randomNumberAdder.put(insightId, randomNum);
-					
-					// add it to the key so we can reload
-					key = key + randomNum;
-					
-					// reset the insight specific hash ?
-					insightSpecificHash.clear();
-				}
-			}
-			
-			if(insightSpecificHash.size() == 0) {
-				//compileJava(insightFolder);
-				insightSpecificHash = Utility.loadReactors(insightFolder, key);
-			}
-			// creates the insight specific map
-			try {
-				if(insightSpecificHash.containsKey(className.toUpperCase())) {
-					Class thisReactorClass = insightSpecificHash.get(className.toUpperCase());
-					retReac = (IReactor) thisReactorClass.newInstance();
-					return retReac;
-				}
-			} catch (InstantiationException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} catch (IllegalAccessException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-			
-			// else try to find it the specific project
-			// loading it inside of version/classes
-			if(projectId != null) {
-				IProject project = Utility.getProject(projectId);
-				retReac = project.getReactor(className, null);				
-			}
+		File insightDirectory = new File(getInsightFolder());
+		// replace the version name to start with
+		String insightId = insightDirectory.getName();
 
-			// or grab the specific context
-			if(this.contextProjectId != null) {
-				IProject project = Utility.getProject(this.contextProjectId);
-				retReac = project.getReactor(className, null);		
+		String key = insightId ;
+		int randomNum = 0;
+		// see if I need to compile this again
+		if(!ReactorFactory.compileCache.containsKey(insightId)) {
+			int status = Utility.compileJava(insightFolder, getCP());
+			if(status == 0) {
+				ReactorFactory.compileCache.put(insightId, Boolean.TRUE);
+				if(ReactorFactory.randomNumberAdder.containsKey(insightId)) {
+					randomNum = ReactorFactory.randomNumberAdder.get(insightId);
+				}
+				randomNum++;
+				ReactorFactory.randomNumberAdder.put(insightId, randomNum);
+				
+				// add it to the key so we can reload
+				key = key + randomNum;
+				
+				// reset the insight specific hash ?
+				insightSpecificHash.clear();
+			} else {
+				ReactorFactory.compileCache.put(insightId, Boolean.FALSE);
 			}
-			
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-//			// check all other dbs
-//			// first one wins
-//			for(int engineIndex = 0;engineIndex < queriedDatabaseIds.size() && retReac == null;engineIndex++)
-//			{
-//				String thisEngine = queriedDatabaseIds.get(engineIndex);
-//				IProject engine = Utility.getProject(thisEngine);
-//				retReac = engine.getReactor(className, null);
-//			}
-		}			
+		}
+		
+		if(insightSpecificHash.size() == 0) {
+			insightSpecificHash = Utility.loadReactors(insightFolder, key);
+		}
+		// creates the insight specific map
+		try {
+			if(insightSpecificHash.containsKey(className.toUpperCase())) {
+				Class thisReactorClass = insightSpecificHash.get(className.toUpperCase());
+				retReac = (IReactor) thisReactorClass.newInstance();
+				return retReac;
+			}
+		} catch (InstantiationException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (IllegalAccessException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		// else try to find it the specific project
+		// loading it inside of version/classes
+		if(projectId != null) {
+			IProject project = Utility.getProject(projectId);
+			retReac = project.getReactor(className, null);				
+		}
+
+		// or grab the specific context
+		if(this.contextProjectId != null) {
+			IProject project = Utility.getProject(this.contextProjectId);
+			retReac = project.getReactor(className, null);		
+		}
+		
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+//		// check all other dbs
+//		// first one wins
+//		for(int engineIndex = 0;engineIndex < queriedDatabaseIds.size() && retReac == null;engineIndex++)
+//		{
+//			String thisEngine = queriedDatabaseIds.get(engineIndex);
+//			IProject engine = Utility.getProject(thisEngine);
+//			retReac = engine.getReactor(className, null);
+//		}
+		
 		return retReac;
 	}
 
