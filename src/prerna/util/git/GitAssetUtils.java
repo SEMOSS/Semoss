@@ -320,7 +320,6 @@ public class GitAssetUtils {
 				if(replacer != null) {
 					path = path.replaceAll(replacer, repString);
 				}*/
-				System.out.println("File " + path);
 				files.add(path.replaceFirst("/", ""));
 				String time = getDate(listOfFiles[i].lastModified());
 				fileDates.add(time);
@@ -338,12 +337,10 @@ public class GitAssetUtils {
 				dirDates.add(time);
 			}
 		}
-
 		retHash.put("FILE_LIST", files);
 		retHash.put("DIR_LIST", directories);
 		retHash.put("FILE_DATE", fileDates);
 		retHash.put("DIR_DATE", dirDates);
-
 		
 		return retHash;
 	}
