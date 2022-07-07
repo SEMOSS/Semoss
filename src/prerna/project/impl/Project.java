@@ -83,7 +83,7 @@ public class Project implements IProject {
 	/**
 	 * Hash for the specific engine reactors
 	 */
-	private Map <String, Class> dbSpecificHash = null;
+	private Map <String, Class> projectSpecificHash = null;
 	
 	/**
 	 * Custom class loader
@@ -522,8 +522,8 @@ public class Project implements IProject {
 		IReactor retReac = null;
 		//String key = db + "." + insightId ;
 		String key = this.projectId ;
-		if(dbSpecificHash == null)
-			dbSpecificHash = new HashMap<String, Class>();
+		if(projectSpecificHash == null)
+			projectSpecificHash = new HashMap<String, Class>();
 		
 		int randomNum = 0;
 		//ReactorFactory.compileCache.remove(this.projectId);
@@ -556,26 +556,26 @@ public class Project implements IProject {
 				// add it to the key so we can reload
 				key = this.projectId + randomNum;
 	
-				dbSpecificHash.clear();
+				projectSpecificHash.clear();
 			}
 			// avoid loading everytime since it is an error
 		}
 
 		
-		if(dbSpecificHash.size() == 0)
+		if(projectSpecificHash.size() == 0)
 		{
 			//compileJava(insightDirector.getParentFile().getAbsolutePath());
 			// delete the classes directory first
 			
 			// need to pass the engine name also
 			// so that the directory can be verified
-			dbSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), key);
-			dbSpecificHash.put("loaded", "TRUE".getClass());
+			projectSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), key);
+			projectSpecificHash.put("loaded", "TRUE".getClass());
 		}
 		try
 		{
-			if(dbSpecificHash.containsKey(className.toUpperCase())) {
-				Class thisReactorClass = dbSpecificHash.get(className.toUpperCase());
+			if(projectSpecificHash.containsKey(className.toUpperCase())) {
+				Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 				retReac = (IReactor) thisReactorClass.newInstance();
 				return retReac;
 			}
@@ -589,30 +589,22 @@ public class Project implements IProject {
 	}
 
 
-	public IReactor getReactor(String className, SemossClassloader customLoader) 
-	{	
-		String appFolder = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
+	public IReactor getReactor(String className, SemossClassloader customLoader) {	
+		String projectBaseFolder = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
 		
-		String pomFile = appFolder + File.separator + "version" + File.separator + "assets" + File.separator + "java" + File.separator + "pom.xml";
+		String pomFile = projectBaseFolder + File.separator + "version" + File.separator + "assets" + File.separator + "java" + File.separator + "pom.xml";
 		
-		if(new File(pomFile).exists()) // this is maven
+		if(new File(pomFile).exists()) {// this is maven
 			return getReactorMvn(className, null);
+		}
 		else // keep the old processing
 		{
 			// try to get to see if this class already exists
 			// no need to recreate if it does
 			SemossClassloader cl = engineClassLoader;
-			if(customLoader != null)
+			if(customLoader != null) {
 				cl = customLoader;
-					
-			// get the prop file and find the parent
-			File dbDirectory = new File(this.projectSmssFilePath);
-			//System.err.println("..");
-	
-			String dbFolder = this.projectName + "_" + dbDirectory.getParent()+ "/" + this.projectId;
-	
-			dbFolder = this.projectSmssFilePath.replaceAll(".smss", "");
-			
+			}
 			cl.setFolder(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes");
 			
 			IReactor retReac = null;
@@ -620,14 +612,12 @@ public class Project implements IProject {
 			String key = this.projectId ;
 			
 			int randomNum = 0;
-
-			// 
+			
 			if(!ReactorFactory.compileCache.containsKey(this.projectId))
 			{
 				engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
 				cl = engineClassLoader;
 				cl.uncommitEngine(this.projectId);
-				// if it 
 				
 				String classesFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes";
 				
@@ -643,33 +633,31 @@ public class Project implements IProject {
 					}
 				}
 				int status = Utility.compileJava(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), getCP());
-				//if(status == 0) // error or not I going to mark it. If we want to recompile. tell the system to recompile
-				{
+				if(status == 0) {
 					ReactorFactory.compileCache.put(this.projectId, Boolean.TRUE);
-					
-					if(ReactorFactory.randomNumberAdder.containsKey(this.projectId))
-						randomNum = ReactorFactory.randomNumberAdder.get(this.projectId);				
+					if(ReactorFactory.randomNumberAdder.containsKey(this.projectId)) {
+						randomNum = ReactorFactory.randomNumberAdder.get(this.projectId);			
+					}
 					randomNum++;
 					ReactorFactory.randomNumberAdder.put(this.projectId, randomNum);
-					
 					// add it to the key so we can reload
 					key = this.projectId + randomNum;	
+				} else {
+					ReactorFactory.compileCache.put(this.projectId, Boolean.FALSE);
 				}
-				// avoid loading everytime since it is an error
 			}
-	
 			
 			if(!cl.isCommitted(this.projectId))
 			{
 				//compileJava(insightDirector.getParentFile().getAbsolutePath());
 				// delete the classes directory first
-				dbSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), key, cl);
+				projectSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), key, cl);
 				cl.commitEngine(this.projectId);
 			}
 			try
 			{
-				if(dbSpecificHash.containsKey(className.toUpperCase())) {
-					Class thisReactorClass = dbSpecificHash.get(className.toUpperCase());
+				if(projectSpecificHash.containsKey(className.toUpperCase())) {
+					Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 					retReac = (IReactor) thisReactorClass.newInstance();
 					return retReac;
 				}
@@ -811,7 +799,7 @@ public class Project implements IProject {
 			mvnClassLoader = null;
 			makeMvnClassloader();
 			cl = mvnClassLoader;
-			dbSpecificHash = Utility.loadReactorsMvn(AssetUtility.getProjectBaseFolder(this.projectName, this.projectId), key, cl, "target" + File.separator + "classes");
+			projectSpecificHash = Utility.loadReactorsMvn(AssetUtility.getProjectBaseFolder(this.projectName, this.projectId), key, cl, "target" + File.separator + "classes");
 			ReactorFactory.compileCache.put(this.projectId, true);
 		}
 
@@ -819,9 +807,9 @@ public class Project implements IProject {
 		// create the reactor
 		try
 		{
-			if(dbSpecificHash != null && dbSpecificHash.containsKey(className.toUpperCase())) 
+			if(projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) 
 			{
-				Class thisReactorClass = dbSpecificHash.get(className.toUpperCase());
+				Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 				retReac = (IReactor) thisReactorClass.newInstance();
 				return retReac;
 			}
