@@ -278,7 +278,7 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 			// add the model to search panel
 			if (ENABLE_SEARCH)
 			{
-				searchPanel.searchCon.indexStatements(dataFrame);
+//				searchPanel.searchCon.indexStatements(dataFrame);
 			}
 			GraphZoomScrollPane gzPane = new GraphZoomScrollPane(view);
 			gzPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
@@ -592,7 +592,7 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 		if(searchPanel.btnHighlight.isSelected()){
 			VertexPaintTransformer ptx = (VertexPaintTransformer)view.getRenderContext().getVertexFillPaintTransformer();
 			Hashtable searchVertices = new Hashtable();
-			searchVertices.putAll(searchPanel.searchCon.cleanResHash);
+//			searchVertices.putAll(searchPanel.searchCon.cleanResHash);
 			ptx.setVertHash(searchVertices);
 			VertexLabelFontTransformer vfl = (VertexLabelFontTransformer)view.getRenderContext().getVertexFontTransformer();
 			vfl.setVertHash(searchVertices);
