@@ -58,7 +58,7 @@ import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.PickedState;
-import prerna.search.SearchController;
+//import prerna.search.SearchController;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.main.listener.impl.GraphImageExportListener;
 import prerna.ui.main.listener.impl.GraphTextSizeListener;
@@ -102,7 +102,7 @@ public class ControlPanel extends JPanel {
 	boolean search =true;
 	PickedState state;
 	VisualizationViewer target = null;
-	public SearchController searchCon;
+//	public SearchController searchCon;
 	RedoListener redoListener = new RedoListener();
 	UndoListener undoListener = new UndoListener();
 	public JButton undoBtn, redoBtn, btnDecreaseFontSize, btnIncreaseFontSize;
@@ -137,10 +137,10 @@ public class ControlPanel extends JPanel {
 		gbc_txtAbracadabra.gridy = 0;
 		add(searchText, gbc_txtAbracadabra);
 		searchText.setColumns(9);
-		searchCon = new SearchController();
-		searchCon.setText(searchText);
-		searchText.addFocusListener(searchCon);
-		searchText.addKeyListener(searchCon);
+//		searchCon = new SearchController();
+//		searchCon.setText(searchText);
+//		searchText.addFocusListener(searchCon);
+//		searchText.addKeyListener(searchCon);
 		
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
@@ -168,7 +168,7 @@ public class ControlPanel extends JPanel {
 		gbc_btnHighlight.gridx = 1;
 		gbc_btnHighlight.gridy = 0;
 		add(btnHighlight, gbc_btnHighlight);
-		btnHighlight.addActionListener(searchCon);
+//		btnHighlight.addActionListener(searchCon);
 		
 		
 		JSeparator separator = new JSeparator();
@@ -479,8 +479,8 @@ public class ControlPanel extends JPanel {
 		vertSizeListener.setTransformers((VertexShapeTransformer) target.getRenderContext().getVertexShapeTransformer());
 		vertSizeListener.setViewer(view);
 		rings.setViewer(view);
-		searchCon.setState(this.state);
-		searchCon.setTarget(view);
+//		searchCon.setState(this.state);
+//		searchCon.setTarget(view);
 	}
 	
 	/**
@@ -516,7 +516,7 @@ public class ControlPanel extends JPanel {
 		resetTransListener.setPlaySheet(gps);
 		redoListener.setPlaySheet(gps);
 		undoListener.setPlaySheet(gps);
-		searchCon.setGPS(gps);
+//		searchCon.setGPS(gps);
 		weightButton.setPlaySheet(gps);
 	}
 
