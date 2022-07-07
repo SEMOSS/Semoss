@@ -2727,7 +2727,7 @@ public class Utility {
 			logger.info("Applying lock for database " + engineId + " to pull app");
 			ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 			lock.lock();
-			logger.info("App "+ engineId + " is locked");
+			logger.info("Database "+ engineId + " is locked");
 
 			try {
 				// Need to do a double check here,
@@ -2757,7 +2757,7 @@ public class Utility {
 					// actual load engine process
 					engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
 				} else {
-					logger.debug("There is no SMSS File for the engine " + engineId + "...");
+					logger.debug("There is no SMSS File for the database " + engineId + "...");
 				}
 
 				// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
@@ -2793,7 +2793,7 @@ public class Utility {
 			} finally {
 				// Make sure to unlock now
 				lock.unlock();
-				logger.info("App "+ engineId + " is unlocked");
+				logger.info("Database "+ engineId + " is unlocked");
 			}
 		}
 
