@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -13,7 +14,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -33,6 +36,9 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.export.mustache.MustacheUtility;
 import prerna.sablecc2.reactor.export.pdf.PDFUtility;
+import prerna.sablecc2.reactor.export.pdf.PDFUtility.FormObject;
+import prerna.sablecc2.reactor.export.pdf.PDFUtility.RectanglePage;
+import prerna.sablecc2.reactor.export.pdf.PDFUtility.pageLocation;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -54,11 +60,13 @@ public class ToPdfReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
+		/**
 		User user = this.insight.getUser();
 		// throw error is user doesn't have rights to export data
 		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
+		*/
 		// location for pdf resources
 		String insightFolder = this.insight.getInsightFolder();
 		String htmlToParse = this.keyValue.get(ReactorKeysEnum.HTML.getKey());
@@ -105,7 +113,7 @@ public class ToPdfReactor extends AbstractReactor {
 			int imageNum = 1;
 			for (Element element : semossElements) {
 				String url = element.attr("url");
-	
+				
 				// Run headless chrome with semossTagUrl
 				String imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
 				while(new File(imagePath).exists()) {
@@ -125,6 +133,40 @@ public class ToPdfReactor extends AbstractReactor {
 				imageNum++;
 			}
 		}
+		
+		// TODO: Should we make this a parameter we pass in via the map and search for?
+		// TODO: Iterate over full tree and don't search on specific elements
+		Elements allElements = doc.getAllElements();
+		
+		// Create array list of dimensions for each signature element
+		// OLD: List<String> widthHeightStyle = new ArrayList<String>();
+		List<Attributes> elementAttributes = new ArrayList<Attributes>();
+		Attributes elementAttrs;
+		
+		//List<String> searchLabels = new ArrayList<String>();
+		//searchLabels.add("pdfsearchterm");
+		
+		// Add style for each element to list
+		for (Element element : allElements) {
+			elementAttrs = element.attributes();
+			//System.out.println("Attributes: " + elementAttrs);
+
+			if (element.hasAttr("pdfobject")) {
+				elementAttrs = element.attributes();
+				elementAttributes.add(elementAttrs);
+					
+				// WIP - add element text to search labels automatically
+//				if(element.text().isEmpty() || element.text() == null) {
+//					element.text("pdfsearchterm");
+//				} else {
+//					searchLabels.add(element.text());
+//					System.out.println("Element text: " + element.text());
+//				}
+				
+			}
+		}
+		
+		
 		// Convert from html to xhtml
 		doc.outputSettings().syntax(Document.OutputSettings.Syntax.xml);
 
@@ -196,11 +238,47 @@ public class ToPdfReactor extends AbstractReactor {
 				logger.info("Creating signature field...");
 				document = PDFUtility.createDocument(outputFileLocation);
 				if(addSignatureBlock) {
-					String signatureLabel = this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
-					if(signatureLabel != null && !(signatureLabel=signatureLabel.trim()).isEmpty()) {
-						PDFUtility.addSignatureLabel(document, signatureLabel);
-					}
-					PDFUtility.addSignatureBlock(document);
+//					String signatureLabel = this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
+//					if(signatureLabel != null && !(signatureLabel=signatureLabel.trim()).isEmpty()) {
+//						PDFUtility.addSignatureLabel(document, signatureLabel);
+//					}
+					//PDFUtility.addSignatureBlock(document);
+					
+					List<RectanglePage> rectPageList = new ArrayList<RectanglePage>();
+					
+					// Get list of labels to apply a signature field to
+					List<String> searchLabels = getLabels();
+					
+					// WIP - run when we've already gotten the labels from the elements automatically
+//					try {
+//						getLabels();
+//						List<String> searchLabels2 = getLabels();
+//						
+//						for (String term : searchLabels2) {
+//							if (!searchLabels.contains(term)) {
+//								searchLabels.add(term);
+//							}
+//						}
+//					} catch (Exception e) {
+//					}
+
+					List<pageLocation> pageLocationList = new ArrayList<pageLocation>();
+					ArrayList<FormObject> formObjectList = new ArrayList<FormObject>();
+					
+					pageLocationList.addAll(PDFUtility.findWordLocation(document, searchLabels));
+					
+					
+//					for (pageLocation pl : pageLocationList ) {
+//						System.out.println("Page Location: " + pl.keyword);
+//					}
+//					
+//					for (Attributes pl : elementAttributes ) {
+//						System.out.println("Attributes: " + pl);
+//					}
+					
+					formObjectList.addAll(PDFUtility.setFormObjectLocation(elementAttributes, pageLocationList));
+					PDFUtility.addPDFObjects(document, formObjectList);
+					
 				}
 				if(addPageNumbers) {
 					boolean ignoreFirstPage = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey()) + "");
@@ -246,9 +324,24 @@ public class ToPdfReactor extends AbstractReactor {
 		// only from the given insight
 		this.insight.addExportFile(downloadKey, insightFile);
 		
+		System.out.println(outputFileLocation);
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the pdf file"));
 		return retNoun;
+	}
+	
+	
+	private List<String> getLabels () {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			List<String> labels = grs.getAllStrValues();
+			if (labels != null && !labels.isEmpty()) {
+				return labels;
+			}
+			
+		}
+		
+		return null;
 	}
 	
 	private Map<String, Object> mustacheVariables() {
