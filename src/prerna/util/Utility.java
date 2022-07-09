@@ -172,10 +172,8 @@ import prerna.util.git.GitAssetUtils;
  */
 public class Utility {
 
-	private static Boolean isjavac = null;
 	public static int id = 0;
 	private static final Logger logger = LogManager.getLogger(prerna.util.Utility.class);
-
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 	
 	/**
@@ -3312,6 +3310,91 @@ public class Utility {
 		}
 		return retProp;
 	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a project
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyProjectAdd() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set project access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyProjectAddAccess() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a project public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyProjectSetPublic() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add a database
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyDatabaseAdd() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can add/set database access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyDatabaseAddAccess() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can set a project public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyDatabaseSetPublic() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+
 	
 	/**
 	 * Determine if on the application we should cache insights or not
