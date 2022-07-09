@@ -475,9 +475,6 @@ public class Constants {
 	// Security
 	public static final String SECURITY_DB = "security";
 	public static final String SECURITY_ENABLED = "security-enabled";
-	public static final String ADMIN_SET_PUBLIC = "admin-set-public";
-	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
-	public static final String ADMIN_SET_EXPORTER = "admin-set-exporter";
 	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
 	public static final String ANONYMOUS_USER_UPLOAD_DATA = "anonymous-users-upload-data";
 	public static final String USE_LOGOUT_PAGE = "use-logout-page";
@@ -489,6 +486,18 @@ public class Constants {
 	public static final String IS_ASSET_APP = "IS_ASSET_APP";
 	public static final String USER_ASSET_IDS = "USER_ASSET_IDS";
 
+	// reduce operations to only admins
+	@Deprecated
+	public static final String ADMIN_SET_PUBLIC = "admin-set-public";
+	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
+	public static final String ADMIN_SET_EXPORTER = "admin-set-exporter";
+	public static final String ADMIN_ONLY_PROJECT_ADD = "ADMIN_ONLY_PROJECT_ADD";
+	public static final String ADMIN_ONLY_PROJECT_ADD_ACCESS = "ADMIN_ONLY_PROJECT_ADD_ACCESS";
+	public static final String ADMIN_ONLY_PROJECT_SET_PUBLIC = "ADMIN_ONLY_PROJECT_SET_PUBLIC";
+	public static final String ADMIN_ONLY_DB_ADD = "ADMIN_ONLY_DB_ADD";
+	public static final String ADMIN_ONLY_DB_ADD_ACCESS	= "ADMIN_ONLY_DB_ADD_ACCESS";
+	public static final String ADMIN_ONLY_DB_SET_PUBLIC = "ADMIN_ONLY_DB_SET_PUBLIC";
+	
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
 	
