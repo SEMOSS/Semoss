@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -26,6 +27,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
@@ -74,6 +76,10 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			// throw error is user doesn't have rights to publish new apps
 			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
 				throwUserNotPublisherError();
+			}
+			
+			if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+				AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 			}
 		}
 

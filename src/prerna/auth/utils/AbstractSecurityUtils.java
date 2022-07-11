@@ -38,11 +38,23 @@ public abstract class AbstractSecurityUtils {
 
 	static RDBMSNativeEngine securityDb;
 	static boolean securityEnabled = false;
+	@Deprecated
 	static boolean adminSetPublisher = false;
 	static boolean adminSetExporter = false;
 	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
 	static boolean anonymousUsersEnabled = false;
 	static boolean anonymousUsersUploadData = false;
+
+	static boolean adminOnlyProjectAdd = false;
+	static boolean adminOnlyProjectDelete = false;
+	static boolean adminOnlyProjectAddAccess = false;
+	static boolean adminOnlyProjectSetPublic = false;
+	
+	static boolean adminOnlyDatabaseAdd = false;
+	static boolean adminOnlyDatabaseDelete = false;
+	static boolean adminOnlyDatabaseAddAccess = false;
+	static boolean adminOnlyDatabaseSetPublic = false;
+	static boolean adminOnlyDatabaseSetDiscoverable = false;
 
 	static Gson securityGson = new GsonBuilder().disableHtmlEscaping().create();
 	
@@ -98,6 +110,17 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			adminSetExporter = (adminSetsExporter instanceof Boolean && ((boolean) adminSetsExporter) ) || (Boolean.parseBoolean(adminSetsExporter.toString()));
 		}
+		
+		adminOnlyProjectAdd = Utility.getApplicationAdminOnlyProjectAdd();
+		adminOnlyProjectDelete = Utility.getApplicationAdminOnlyProjectDelete();
+		adminOnlyProjectAddAccess = Utility.getApplicationAdminOnlyProjectAddAccess();
+		adminOnlyProjectSetPublic = Utility.getApplicationAdminOnlyProjectSetPublic();
+		
+		adminOnlyDatabaseAdd = Utility.getApplicationAdminOnlyDbAdd();
+		adminOnlyDatabaseDelete = Utility.getApplicationAdminOnlyDbDelete();
+		adminOnlyDatabaseAddAccess = Utility.getApplicationAdminOnlyDbAddAccess();
+		adminOnlyDatabaseSetPublic = Utility.getApplicationAdminOnlyDbSetPublic();
+		adminOnlyDatabaseSetDiscoverable = Utility.getApplicationAdminOnlyDbSetDiscoverable();
 	}
 
 	public static boolean securityEnabled() {
@@ -112,12 +135,49 @@ public abstract class AbstractSecurityUtils {
 		return anonymousUsersEnabled() && anonymousUsersUploadData;
 	}
 	
+	@Deprecated
 	public static boolean adminSetPublisher() {
 		return securityEnabled && adminSetPublisher;
 	}
 	
 	public static boolean adminSetExporter() {
 		return securityEnabled && adminSetExporter;
+	}
+	
+	public static boolean adminOnlyProjectAdd() {
+		return securityEnabled && adminOnlyProjectAdd;
+	}
+	
+	public static boolean adminOnlyProjectDelete() {
+		return securityEnabled && adminOnlyProjectDelete;
+	}
+	
+	public static boolean adminOnlyProjectAddAccess() {
+		return securityEnabled && adminOnlyProjectAddAccess;
+	}
+	
+	public static boolean adminOnlyProjectSetPublic() {
+		return securityEnabled && adminOnlyProjectSetPublic;
+	}
+	
+	public static boolean adminOnlyDbAdd() {
+		return securityEnabled && adminOnlyDatabaseAdd;
+	}
+	
+	public static boolean adminOnlyDbDelete() {
+		return securityEnabled && adminOnlyDatabaseDelete;
+	}
+	
+	public static boolean adminOnlyDbAddAccess() {
+		return securityEnabled && adminOnlyDatabaseAddAccess;
+	}
+	
+	public static boolean adminOnlyDbSetPublic() {
+		return securityEnabled && adminOnlyDatabaseSetPublic;
+	}
+	
+	public static boolean adminOnlyDbSetDiscoverable() {
+		return securityEnabled && adminOnlyDatabaseSetDiscoverable;
 	}
 	
 	public static void initialize() throws Exception {
