@@ -88,6 +88,10 @@ EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss_Dev\\images\\embed\\semoss_logo.png
 #SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith_Dev
 SCHEDULER_ENDPOINT	http://localhost:8080/Monolith_Dev
 
+#SAML CONFIG
+SAML_PROP_LOC	C:\\workspace\\Semoss_Dev\\saml\\mesoc\\conf	
+SAML_FEDERATION_LOG_PATH	C:\\workspace\\Semoss_Dev\\saml\\mesoc\\conf\\debug\\Federation
+
 #SET THIS TO TRUE IF RUNNING LOCALLY ON LAPTOP
 #OTHERWISE, KEEP THIS FALSE FOR SERVER DEPLOYMENT
 LOCAL_DEPLOYMENT false
@@ -115,6 +119,17 @@ VIRUS_SCANNING_METHOD 	ClamAV
 CLAMAV_SCANNING_PORT 	3310
 CLAMAV_SCANNING_ADDRESS	 
 CLAMAV_SCANNING_FS		
+
+#Limit to only admins
+ADMIN_ONLY_PROJECT_ADD	true
+ADMIN_ONLY_PROJECT_DELETE	true
+ADMIN_ONLY_PROJECT_ADD_ACCESS	true
+ADMIN_ONLY_PROJECT_SET_PUBLIC	true
+ADMIN_ONLY_DB_ADD	true
+ADMIN_ONLY_DB_DELETE	true
+ADMIN_ONLY_DB_ADD_ACCESS	true
+ADMIN_ONLY_DB_SET_PUBLIC	true
+ADMIN_ONLY_DB_SET_DISCOVERABLE	true
 
 ##################################################
 ##################################################
