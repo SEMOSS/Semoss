@@ -65,7 +65,7 @@ public class RequestDatabaseReactor extends AbstractReactor {
 			throw new IllegalArgumentException("This user already has access to this database. Please edit the existing permission level.");
 		}
 
-		boolean canRequest = SecurityDatabaseUtils.canRequestDatabase(databaseId);
+		boolean canRequest = SecurityDatabaseUtils.databaseIsDiscoverable(databaseId);
 		if (canRequest) {
 			sendEmail(user, databaseId, permission);
 			return NounMetadata.getSuccessNounMessage("Successfully requested the database");

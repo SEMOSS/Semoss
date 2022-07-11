@@ -797,7 +797,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @return
 	 */
-	public static boolean canRequestDatabase(String databaseId) {
+	public static boolean databaseIsDiscoverable(String databaseId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
@@ -1192,6 +1192,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 			qs.addExplicitFilter(orFilter);
 		}
@@ -1247,6 +1248,30 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Get the list of the database information that the user has access to
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getDiscoverableDatabaseList(String databaseFilter) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_database_name");
+		qs.addSelector(fun);
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
