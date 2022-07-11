@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -69,6 +70,10 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 			// throw error is user doesn't have rights to publish new apps
 			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
 				throwUserNotPublisherError();
+			}
+			
+			if (AbstractSecurityUtils.adminOnlyDbAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+				throwFunctionalityOnlyExposedForAdminsError();
 			}
 		}
 

@@ -23,7 +23,8 @@ public class SemossPixelException extends RuntimeException implements ISemossExc
 	
 	public SemossPixelException(NounMetadata noun) {
 		this.noun = noun;
-		if(this.noun.getNounType() == PixelDataType.CONST_STRING) {
+		if(this.noun.getNounType() == PixelDataType.CONST_STRING
+				|| this.noun.getNounType() == PixelDataType.ERROR) {
 			this.message = this.noun.getValue() + "";
 		}
 	}
