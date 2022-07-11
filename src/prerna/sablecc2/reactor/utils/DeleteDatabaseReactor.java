@@ -46,6 +46,10 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 				databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
 				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 				if(!isAdmin) {
+					if(AbstractSecurityUtils.adminOnlyDbDelete()) {
+						throwFunctionalityOnlyExposedForAdminsError();
+					}
+					
 					boolean isOwner = SecurityDatabaseUtils.userIsOwner(user, databaseId);
 					if(!isOwner) {
 						throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");

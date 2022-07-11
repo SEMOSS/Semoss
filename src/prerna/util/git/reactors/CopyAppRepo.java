@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -34,6 +35,8 @@ public class CopyAppRepo extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		
+		User user = this.insight.getUser();
+		
 		String localDatabaseName = this.keyValue.get(this.keysToGet[0]);
 		if(localDatabaseName == null || localDatabaseName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the local database name");
@@ -55,19 +58,22 @@ public class CopyAppRepo extends AbstractReactor {
 
 		
 		// throw error if user is anonymous
-		if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+		if(AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
 
 		// throw error is user doesn't have rights to publish new databases
-		if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+		if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
 			throwUserNotPublisherError();
+		}
+		
+		if(AbstractSecurityUtils.adminOnlyDbAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
 		}
 		
 		try {
 			String databaseId = GitConsumer.makeDatabaseFromRemote(localDatabaseName, repository, logger);
 			ClusterUtil.reactorPushDatabase(databaseId);
-			User user = this.insight.getUser();
 			if(user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for(AuthProvider ap : logins) {
