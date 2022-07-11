@@ -667,8 +667,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public static void updateDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global) {
-		String query = "UPDATE ENGINE SET ENGINENAME=?, TYPE=?, COST=?, GLOBAL=? WHERE ENGINEID=?";
+	public static void updateDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global, boolean discoverable) {
+		String query = "UPDATE ENGINE SET ENGINENAME=?, TYPE=?, COST=?, GLOBAL=?, DISCOVERABLE=? WHERE ENGINEID=?";
 
 		PreparedStatement ps = null;
 		try {
@@ -678,6 +678,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, dbType);
 			ps.setString(parameterIndex++, dbCost);
 			ps.setBoolean(parameterIndex++, global);
+			ps.setBoolean(parameterIndex++, discoverable);
 			ps.setString(parameterIndex++, databaseId);
 			ps.execute();
 			securityDb.commit();
