@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.CloudClient;
@@ -64,13 +65,17 @@ public class ProjectHelper {
 			}
 
 			// throw error if user is anonymous
-			if(AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				AbstractReactor.throwAnonymousUserError();
 			}
 
 			// throw error is user doesn't have rights to publish new apps
-			if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
+			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
 				AbstractReactor.throwUserNotPublisherError();
+			}
+			
+			if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+				AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 			}
 		}
 
