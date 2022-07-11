@@ -16,6 +16,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -30,7 +31,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -66,13 +66,17 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			}
 			
 			// throw error if user is anonymous
-			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
 				throwAnonymousUserError();
 			}
 			
 			// throw error is user doesn't have rights to publish new databases
-			if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
 				throwUserNotPublisherError();
+			}
+			
+			if (AbstractSecurityUtils.adminOnlyDbAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+				throwFunctionalityOnlyExposedForAdminsError();
 			}
 		}
 		
