@@ -32,12 +32,15 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if(SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+				// user has access!
+				baseInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseId);
+			} else if(SecurityDatabaseUtils.databaseIsDiscoverable(databaseId)) {
+				baseInfo = SecurityDatabaseUtils.getDiscoverableDatabaseList(databaseId);
+			} else {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
 			}
-			// user has access!
-			baseInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseId);
 		} else {
 			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 			// just grab the info
