@@ -765,6 +765,15 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	/**
+	 * Throw error if functionality is only provided for admins
+	 */
+	public static void throwFunctionalityOnlyExposedForAdminsError() {
+		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("This functionality is limited to only admins"));
+		exception.setContinueThreadOfExecution(false);
+		throw exception;
+	}
+	
+	/**
 	 * Throw error since user doesn't have access to export
 	 */
 	public static void throwUserNotExporterError() {

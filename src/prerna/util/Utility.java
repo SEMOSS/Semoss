@@ -3326,6 +3326,20 @@ public class Utility {
 	}
 	
 	/**
+	 * Determine if for this instance only the admin can delete a project
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyProjectDelete() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_PROJECT_DELETE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
 	 * Determine if for this instance only the admin can add/set project access
 	 * @return
 	 */
@@ -3357,8 +3371,22 @@ public class Utility {
 	 * Determine if for this instance only the admin can add a database
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyDatabaseAdd() {
+	public static boolean getApplicationAdminOnlyDbAdd() {
 		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_ADD);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can delete a database
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyDbDelete() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_DELETE);
 		if(boolString == null) {
 			// default false
 			return false;
@@ -3371,7 +3399,7 @@ public class Utility {
 	 * Determine if for this instance only the admin can add/set database access
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyDatabaseAddAccess() {
+	public static boolean getApplicationAdminOnlyDbAddAccess() {
 		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_ADD_ACCESS);
 		if(boolString == null) {
 			// default false
@@ -3382,10 +3410,10 @@ public class Utility {
 	}
 	
 	/**
-	 * Determine if for this instance only the admin can set a project public
+	 * Determine if for this instance only the admin can set a database public
 	 * @return
 	 */
-	public static boolean getApplicationAdminOnlyDatabaseSetPublic() {
+	public static boolean getApplicationAdminOnlyDbSetPublic() {
 		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_SET_PUBLIC);
 		if(boolString == null) {
 			// default false
@@ -3394,7 +3422,20 @@ public class Utility {
 		
 		return Boolean.parseBoolean(boolString);
 	}
-
+	
+	/**
+	 * Determine if for this instance only the admin can set a database discoverable 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyDbSetDiscoverable() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_DB_SET_DISCOVERABLE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
 	
 	/**
 	 * Determine if on the application we should cache insights or not
