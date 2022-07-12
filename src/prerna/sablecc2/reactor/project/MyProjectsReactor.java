@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.project;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -53,12 +54,8 @@ public class MyProjectsReactor extends AbstractReactor {
 		// now we want to add most executed insights
 		for(int i = 0; i < size; i++) {
 			Map<String, Object> project = projectInfo.get(i);
-			// just going to init for FE
-			project.put("description", "");
-			project.put("tags", new Vector<String>());
-						
 			String projectId = project.get("project_id").toString();
-			// keep list of app ids to get the index
+			// keep list of project ids to get the index
 			index.put(projectId, Integer.valueOf(i));
 		}
 
@@ -70,23 +67,26 @@ public class MyProjectsReactor extends AbstractReactor {
 				String projectId = (String) data[0];
 
 				String metaKey = (String) data[1];
-				String value = (String) data[2];
-				if(value == null) {
+				String metaValue = (String) data[2];
+				if(metaValue == null) {
 					continue;
 				}
 
 				int indexToFind = index.get(projectId);
 				Map<String, Object> res = projectInfo.get(indexToFind);
-				// right now only handling description + tags
-				if(metaKey.equals("description")) {
-					// we only have 1 description per insight
-					// so just push
-					res.put("description", value);
-				} else if(metaKey.equals("tag")){
-					// multiple tags per insight
-					List<String> tags = (List<String>) res.get("tags");;
-					// add to the list
-					tags.add(value);
+				// whatever it is, if it is single send a single value, if it is multi send as array
+				if(res.containsKey(metaKey)) {
+					Object obj = res.get(metaKey);
+					if(obj instanceof List) {
+						((List) obj).add(metaValue);
+					} else {
+						List<Object> newList = new ArrayList<>();
+						newList.add(obj);
+						newList.add(metaValue);
+						res.put(metaKey, newList);
+					}
+				} else {
+					res.put(metaKey, metaValue);
 				}
 			}
 		} catch (Exception e) {
