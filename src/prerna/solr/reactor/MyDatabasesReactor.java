@@ -56,9 +56,9 @@ public class MyDatabasesReactor extends AbstractReactor {
 		// now we want to add most executed insights
 		for(int i = 0; i < size; i++) {
 			Map<String, Object> database = dbInfo.get(i);
-			String appId = database.get("database_id").toString();
-			// keep list of app ids to get the index
-			index.put(appId, Integer.valueOf(i));
+			String databaseId = database.get("database_id").toString();
+			// keep list of database ids to get the index
+			index.put(databaseId, Integer.valueOf(i));
 		}
 		
 		IRawSelectWrapper wrapper = null;
