@@ -705,12 +705,71 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * Set if database should be public or not
 	 * @param databaseId
-	 * @param isPublic
+	 * @param global
 	 */
-	public boolean setDatabaseGlobal(String databaseId, boolean isPublic) {
-		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + RdbmsQueryBuilder.escapeForSQLStatement(databaseId)  + "';";
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
+	public boolean setDatabaseGlobal(String databaseId, boolean global) {
+		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
+		PreparedStatement updatePs = null;
+		try {
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			updatePs.setBoolean(1, global);
+			updatePs.setString(2, databaseId);
+			updatePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * Set if the database is discoverable to all users on this instance
+	 * @param user
+	 * @param databaseId
+	 * @param discoverable
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public boolean setDatabaseDiscoverable(String databaseId, boolean discoverable) {
+		String updateQ = "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=?";
+		PreparedStatement updatePs = null;
+		try {
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			updatePs.setBoolean(1, discoverable);
+			updatePs.setString(2, databaseId);
+			updatePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
 		return true;
 	}
 	
@@ -719,10 +778,32 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param isPublic
 	 */
-	public boolean setProjectGlobal(String projectId, boolean isPublic) {
-		String query = "UPDATE PROJECT SET GLOBAL = " + isPublic + " WHERE PROJECTID ='" + RdbmsQueryBuilder.escapeForSQLStatement(projectId)  + "';";
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
+	public boolean setProjectGlobal(String projectId, boolean global) {
+		String updateQ = "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?";
+		PreparedStatement updatePs = null;
+		try {
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			updatePs.setBoolean(1, global);
+			updatePs.setString(2, projectId);
+			updatePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
 		return true;
 	}
 	

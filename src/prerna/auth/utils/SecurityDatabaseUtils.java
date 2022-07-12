@@ -366,18 +366,81 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * Set if the database is public to all users on this instance
 	 * @param user
 	 * @param databaseId
-	 * @param isPublic
+	 * @param global
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static boolean setDatabaseGlobal(User user, String databaseId, boolean isPublic) throws IllegalAccessException {
+	public static boolean setDatabaseGlobal(User user, String databaseId, boolean global) throws IllegalAccessException {
 		if(!SecurityUserDatabaseUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
-		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
-		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + databaseId + "';";
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
+
+		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
+		PreparedStatement updatePs = null;
+		try {
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			updatePs.setBoolean(1, global);
+			updatePs.setString(2, databaseId);
+			updatePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * Set if the database is discoverable to all users on this instance
+	 * @param user
+	 * @param databaseId
+	 * @param discoverable
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static boolean setDatabaseDiscoverable(User user, String databaseId, boolean discoverable) throws IllegalAccessException {
+		if(!SecurityUserDatabaseUtils.userIsOwner(user, databaseId)) {
+			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
+		}
+		
+		String updateQ = "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=?";
+		PreparedStatement updatePs = null;
+		try {
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			updatePs.setBoolean(1, discoverable);
+			updatePs.setString(2, databaseId);
+			updatePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
 		return true;
 	}
 	
