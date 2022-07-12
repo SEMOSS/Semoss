@@ -685,7 +685,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metaKeys));
 		}
 		// order
-		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAORDER"));
+		qs.addOrderBy("ENGINEMETA__METAORDER");
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return wrapper;
 	}
