@@ -10,10 +10,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.query.querystruct.transform.QsToPixelConverter;
 
 public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 
+	private static final Logger logger = LogManager.getLogger(GenRowFilters.class);
+	
 	/*
 	 * This class is used to store filters within the QueryStruct2
 	 * Idea is to allow for more complex filtering scenarios
@@ -112,20 +117,20 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 			// and we just add to the list
 			if(!append && incoming_filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 				SimpleQueryFilter i_filter = (SimpleQueryFilter) incoming_filter;
-				// get the new filter
-				Set<String> i_usedCols = i_filter.getAllUsedColumns();
-				String i_comparator = i_filter.getComparator();
-				
-				// we can only merge if there is only 1 column used
-				// if 2 cols are used, it just gets added to the gen row filter
-				if(i_usedCols.size() != 1) {
+				if(i_filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_QUERY 
+						|| i_filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.QUERY_TO_COL
+						|| i_filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL ) {
 					// add this filter to the existing QueryFilter
 					newFiltersToAppend.add(i_filter);
 					newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
 					newQsToFilter.addAll(i_filter.getAllQueryStructColumns());
 					// continue through the loop
-					continue;
+					continue NEW_FILTERS_LOOP;
 				}
+				
+				// get the new filter
+				Set<String> i_usedCols = i_filter.getAllUsedColumns();
+				String i_comparator = i_filter.getComparator();
 				
 				// compare this new filter will all the existing filters
 				// if we find something where we need to merge
@@ -142,12 +147,22 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 						// so m_usedCol must also have that exact same column to merge
 						// and, they must have the exact same comparator
 						if(i_usedCols.containsAll(m_usedCols) && i_comparator.equals(m_comparator)) {
-							// we can merge!
-							m_filter.merge(i_filter);
-							
-							// break out of the existing filters loop
-							// since we have already merged it
-							continue NEW_FILTERS_LOOP;
+							try {
+								// we can merge!
+								m_filter.merge(i_filter);
+								
+								// break out of the existing filters loop
+								// since we have already merged it
+								continue NEW_FILTERS_LOOP;
+							} catch(IllegalArgumentException e) {
+								logger.info("Bad attend at doing a merge - ignoring this and appending", e);
+								// add this filter to the existing QueryFilter
+								newFiltersToAppend.add(i_filter);
+								newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
+								newQsToFilter.addAll(i_filter.getAllQueryStructColumns());
+								// continue through the loop
+								continue NEW_FILTERS_LOOP;
+							}
 						}
 					}
 				}
