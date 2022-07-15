@@ -122,6 +122,11 @@ public class SimpleQueryFilter implements IQueryFilter {
 			// merge them based on the comparator type
 			this.lComparison = determineMerge(this.comparator, myLFilter, otherLFilter, this.lComparison.getNounType());
 		}
+		
+		// throw an error that we cannot merge
+		else {
+			throw new IllegalArgumentException("Unable to merge these filters");
+		}
 	}
 	
 	private NounMetadata determineMerge(String comparator, Object filter1, Object filter2, PixelDataType type) {
