@@ -4525,6 +4525,9 @@ public class Utility {
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+		if(compiler == null) {
+			throw new NullPointerException("Could not find the java compiler");
+		}
 		StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
 		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(files);
 
