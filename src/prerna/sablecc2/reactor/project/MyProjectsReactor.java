@@ -44,7 +44,9 @@ public class MyProjectsReactor extends AbstractReactor {
 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly);
-			this.insight.getUser().setProjects(projectInfo);
+			if(!favoritesOnly) {
+				this.insight.getUser().setProjects(projectInfo);
+			}
 		} else {
 			projectInfo = SecurityProjectUtils.getAllProjectList();
 		}
