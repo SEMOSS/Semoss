@@ -43,7 +43,7 @@ public class MyProjectsReactor extends AbstractReactor {
 		List<Map<String, Object>> projectInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly);
+			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, null);
 			if(!favoritesOnly) {
 				this.insight.getUser().setProjects(projectInfo);
 			}

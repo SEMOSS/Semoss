@@ -45,7 +45,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 		List<Map<String, Object>> dbInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly);
+			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly, null);
 			if(!favoritesOnly) {
 				this.insight.getUser().setEngines(dbInfo);
 			}
