@@ -75,7 +75,7 @@ public class BetweenQueryFilter implements IQueryFilter, Serializable {
 	}
 
 	@Override
-	public Set<String> getAllQueryStructColumns() {
+	public Set<String> getAllQueryStructNames() {
 		Set <String> retSet = new HashSet<String>();
 		retSet.add(((QueryColumnSelector)column).getColumn());
 		return retSet;
