@@ -1083,9 +1083,10 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * Get the list of the database information that the user has access to
 	 * @param favoritesOnly 
 	 * @param userId
+	 * @param engineMetadataFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly, Map<String,String> engineMetadataFilter) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT "
 //				+ "ENGINE.ENGINEID as \"app_id\", "
@@ -1102,7 +1103,6 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 //				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + ") "
 //				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";	
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
@@ -1147,6 +1147,16 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		// favorites only
 		if(favoritesOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+		}
+		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
+		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
+			for (String k : engineMetadataFilter.keySet()) {
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", k));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", engineMetadataFilter.get(k)));
+				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
+			}
 		}
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
