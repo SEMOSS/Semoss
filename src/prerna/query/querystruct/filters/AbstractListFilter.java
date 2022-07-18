@@ -47,10 +47,10 @@ public abstract class AbstractListFilter implements IQueryFilter {
 	}
 	
 	@Override
-	public Set<String> getAllQueryStructColumns() {
+	public Set<String> getAllQueryStructNames() {
 		Set<String> usedCols = new HashSet<>();
 		for(IQueryFilter f : this.filterList) {
-			usedCols.addAll(f.getAllQueryStructColumns());
+			usedCols.addAll(f.getAllQueryStructNames());
 		}
 		return usedCols;
 	}
