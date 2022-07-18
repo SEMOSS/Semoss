@@ -120,7 +120,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 					}
 					List<IQueryFilter> filters = inputQs.getExplicitFilters().getFilters();
 					for(IQueryFilter f : filters) {
-						uniqueCols.addAll(f.getAllQueryStructColumns());
+						uniqueCols.addAll(f.getAllQueryStructNames());
 					}
 					// add all joins
 					Set<IRelation> relations = inputQs.getRelations();

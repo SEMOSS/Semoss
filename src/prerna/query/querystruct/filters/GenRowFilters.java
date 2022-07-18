@@ -42,7 +42,7 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 	public void addFilters(IQueryFilter newFilter) {
 		this.filterVec.add(newFilter);
 		this.filteredColumns.addAll(newFilter.getAllUsedColumns());
-		this.qsFilteredColumns.addAll(newFilter.getAllQueryStructColumns());
+		this.qsFilteredColumns.addAll(newFilter.getAllQueryStructNames());
 	}
 	
 	public void addFilters(List<IQueryFilter> newFilters) {
@@ -92,7 +92,13 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 	public void merge(IQueryFilter filter) {
 		GenRowFilters grf = new GenRowFilters();
 		grf.addFilters(filter);
-		merge(grf);
+		merge(grf, false);
+	}
+	
+	public void merge(IQueryFilter filter, boolean append) {
+		GenRowFilters grf = new GenRowFilters();
+		grf.addFilters(filter);
+		merge(grf, append);
 	}
 	
 	public void merge(GenRowFilters incomingFilters) {
@@ -123,13 +129,13 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 					// add this filter to the existing QueryFilter
 					newFiltersToAppend.add(i_filter);
 					newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
-					newQsToFilter.addAll(i_filter.getAllQueryStructColumns());
+					newQsToFilter.addAll(i_filter.getAllQueryStructNames());
 					// continue through the loop
 					continue NEW_FILTERS_LOOP;
 				}
 				
 				// get the new filter
-				Set<String> i_usedCols = i_filter.getAllUsedColumns();
+				Set<String> i_usedQsNames = i_filter.getAllQueryStructNames();
 				String i_comparator = i_filter.getComparator();
 				
 				// compare this new filter will all the existing filters
@@ -140,13 +146,13 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 					if(my_filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 						SimpleQueryFilter m_filter = (SimpleQueryFilter) my_filter;
 						// get the columns for the existing filter
-						Set<String> m_usedCols = m_filter.getAllUsedColumns();
+						Set<String> m_usedQsNames = m_filter.getAllQueryStructNames();
 						String m_comparator = m_filter.getComparator();
 						
 						// remember i_usedCols only contains a single column
 						// so m_usedCol must also have that exact same column to merge
 						// and, they must have the exact same comparator
-						if(i_usedCols.containsAll(m_usedCols) && i_comparator.equals(m_comparator)) {
+						if(i_usedQsNames.containsAll(m_usedQsNames) && i_comparator.equals(m_comparator)) {
 							try {
 								// we can merge!
 								m_filter.merge(i_filter);
@@ -159,7 +165,7 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 								// add this filter to the existing QueryFilter
 								newFiltersToAppend.add(i_filter);
 								newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
-								newQsToFilter.addAll(i_filter.getAllQueryStructColumns());
+								newQsToFilter.addAll(i_filter.getAllQueryStructNames());
 								// continue through the loop
 								continue NEW_FILTERS_LOOP;
 							}
@@ -180,7 +186,7 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 			// store all the filtered cols
 			// regardless of filter type
 			newColumnsToFilter.addAll(incoming_filter.getAllUsedColumns());
-			newQsToFilter.addAll(incoming_filter.getAllQueryStructColumns());
+			newQsToFilter.addAll(incoming_filter.getAllQueryStructNames());
 		}
 		
 		// now loop through and add all the new filters
@@ -288,7 +294,7 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 		this.qsFilteredColumns.clear();
 		for (IQueryFilter filter : this.filterVec) {
 			this.filteredColumns.addAll(filter.getAllUsedColumns());
-			this.qsFilteredColumns.addAll(filter.getAllQueryStructColumns());
+			this.qsFilteredColumns.addAll(filter.getAllQueryStructNames());
 		}
 	}
 	
