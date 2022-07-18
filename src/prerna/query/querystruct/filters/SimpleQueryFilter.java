@@ -850,7 +850,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	}
 	
 	@Override
-	public Set<String> getAllQueryStructColumns() {
+	public Set<String> getAllQueryStructNames() {
 		Set<String> usedCols = new HashSet<>();
 		//is the left hand side a column?
 		if(isCol(lComparison)) {

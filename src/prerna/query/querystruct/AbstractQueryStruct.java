@@ -185,6 +185,10 @@ public abstract class AbstractQueryStruct {
 		this.explicitFilters.merge(newFilter);
 	}
 	
+	public void addExplicitFilter(IQueryFilter newFilter, boolean forceAppend) {
+		this.explicitFilters.merge(newFilter, forceAppend);
+	}
+	
 	public GenRowFilters getExplicitFilters() {
 		return this.explicitFilters;
 	}
@@ -194,6 +198,10 @@ public abstract class AbstractQueryStruct {
 	
 	public void addImplicitFilter(IQueryFilter newFilter) {
 		this.implicitFilters.merge(newFilter);
+	}
+	
+	public void addImplicitFilter(IQueryFilter newFilter, boolean forceAppend) {
+		this.implicitFilters.merge(newFilter, forceAppend);
 	}
 	
 	public GenRowFilters getImplicitFilters() {
