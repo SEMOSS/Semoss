@@ -50,7 +50,7 @@ public class FunctionQueryFilter implements IQueryFilter {
 	}
 
 	@Override
-	public Set<String> getAllQueryStructColumns() {
+	public Set<String> getAllQueryStructNames() {
 		Set<String> usedColumns = new HashSet<String>();
 		usedColumns.add(functionSelector.getQueryStructName());
 		return usedColumns;
