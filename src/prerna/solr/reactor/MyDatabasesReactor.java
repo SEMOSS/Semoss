@@ -46,7 +46,9 @@ public class MyDatabasesReactor extends AbstractReactor {
 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly);
-			this.insight.getUser().setEngines(dbInfo);
+			if(!favoritesOnly) {
+				this.insight.getUser().setEngines(dbInfo);
+			}
 		} else {
 			dbInfo = SecurityDatabaseUtils.getAllDatabaseList();
 		}
