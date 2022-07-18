@@ -15,6 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
@@ -583,6 +584,10 @@ public class User implements Serializable {
 	 * @return	String - the clean project name used as the var name
 	 */
 	public String addVarMap(String projectId) {
+		// initialize in case MyProjects has never been called
+		if(this.projectIdMap == null || this.projectIdMap.isEmpty()) {
+			setProjects(SecurityProjectUtils.getUserProjectList(this, false));
+		}
 		String projectName = this.projectIdMap.get(projectId);
 		if(projectName == null) {
 			return null;
