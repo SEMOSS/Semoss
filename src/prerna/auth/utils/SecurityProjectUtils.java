@@ -899,11 +899,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get the list of the engine information that the user has access to
-	 * @param favoritesOnly 
-	 * @param userId
+	 * @param user
+	 * @param favoritesOnly
+	 * @param projectMetadataFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserProjectList(User user, boolean favoritesOnly) {
+	public static List<Map<String, Object>> getUserProjectList(User user, boolean favoritesOnly, Map<String,String> projectMetadataFilter) {
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
@@ -943,6 +944,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// favorites only
 		if(favoritesOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+		}
+		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against projectids from subquery
+		if (projectMetadataFilter!=null && !projectMetadataFilter.isEmpty()) {
+			for (String k : projectMetadataFilter.keySet()) {
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				subQs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", k));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAVALUE", "==", projectMetadataFilter.get(k)));
+				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "==", subQs));
+			}
 		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
