@@ -28,9 +28,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(MyDatabasesReactor.class);
 
 	private static final String META_KEYS = "metaKeys";
+	private static final String META_FILTERS = "metaFilters";
 
 	public MyDatabasesReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), META_KEYS};
+		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), META_KEYS, META_FILTERS};
 	}
 
 	@Override
@@ -41,11 +42,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 		if(sortCol == null) {
 			sortCol = "name";
 		}
-		
 		List<Map<String, Object>> dbInfo = new Vector<>();
-
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly, null);
+			Map<String, Object> engineMetadataFilter = getMetaMap();
+			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly, engineMetadataFilter);
 			if(!favoritesOnly) {
 				this.insight.getUser().setEngines(dbInfo);
 			}
@@ -148,6 +148,21 @@ public class MyDatabasesReactor extends AbstractReactor {
 		
 		return null;
 	}
+	
+	private Map<String, Object> getMetaMap() {
+		GenRowStruct mapGrs = this.store.getNoun(META_FILTERS);
+		if(mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if(mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
@@ -155,7 +170,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 			return "The sort is a string value containing either 'name' or 'date' for how to sort";
 		} else if(key.equals(META_KEYS)) {
 			return "List of the metadata keys to return with each data source";
+		} else if(key.equals(META_FILTERS)) {
+			return "Map containing key-value pairs for filters to apply on the data source";
 		}
 		return super.getDescriptionForKey(key);
 	}
+
 }
