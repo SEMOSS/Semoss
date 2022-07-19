@@ -1086,7 +1086,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @param engineMetadataFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly, Map<String,String> engineMetadataFilter) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly, Map<String, Object> engineMetadataFilter) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT "
 //				+ "ENGINE.ENGINEID as \"app_id\", "
