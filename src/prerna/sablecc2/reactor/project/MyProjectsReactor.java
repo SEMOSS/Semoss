@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -26,13 +27,15 @@ public class MyProjectsReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(MyProjectsReactor.class);
 
 	private static List<String> META_KEYS_LIST = new Vector<>();
+	private static final String META_FILTERS = "metaFilters";
+	
 	static {
 		META_KEYS_LIST.add("description");
 		META_KEYS_LIST.add("tag");
 	}
 
 	public MyProjectsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey(), META_FILTERS};
 	}
 
 	@Override
@@ -43,7 +46,8 @@ public class MyProjectsReactor extends AbstractReactor {
 		List<Map<String, Object>> projectInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, null);
+			Map<String, Object> projectMetadataFilter = getMetaMap();
+			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, projectMetadataFilter);
 			if(!favoritesOnly) {
 				this.insight.getUser().setProjects(projectInfo);
 			}
@@ -114,5 +118,29 @@ public class MyProjectsReactor extends AbstractReactor {
 		});
 
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+	}
+	
+	private Map<String, Object> getMetaMap() {
+		GenRowStruct mapGrs = this.store.getNoun(META_FILTERS);
+		if(mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if(mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		
+		return null;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(META_FILTERS)) {
+			return "Map containing key-value pairs for filters to apply on the data source";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }
