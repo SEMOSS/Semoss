@@ -134,6 +134,25 @@ public class SqlJoinStructList {
 						.append(targetTableAlias).append(".").append(targetCol);
 				}
 			} else {
+				if(i == 0) {
+					// find the from that we need
+					String subQueryAlias = j.getSubQueryAlias();
+					List<String[]> joinOnList = j.getJoinOnList();
+					if(joinOnList.isEmpty()) {
+						throw new IllegalArgumentException("Must define the columns to join on to the subquery join");
+					}
+					String[] joinOn = joinOnList.get(0);
+					String fromTable = joinOn[0];
+					String toTable = joinOn[2];
+					if(fromTable.equals(subQueryAlias)) {
+						// add the to
+						jSyntax.append(toTable);
+					} else {
+						// add the from
+						jSyntax.append(fromTable);
+					}
+				}
+				
 				jSyntax.append(" ").append(j.getJoinType())
 					.append(" (").append(j.getSubQuery()).append(") as ").append(j.getSubQueryAlias())
 					.append(" on ");
