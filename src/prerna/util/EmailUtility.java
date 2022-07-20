@@ -95,11 +95,11 @@ public class EmailUtility {
 			}
 			// add attachments
 			if (attachments != null) {
-				for (String fileName : attachments) {
+				for (String filePath : attachments) {
 					MimeBodyPart messageBodyPart = new MimeBodyPart();
-					DataSource source = new FileDataSource(fileName);
+					DataSource source = new FileDataSource(filePath);
 					messageBodyPart.setDataHandler(new DataHandler(source));
-					messageBodyPart.setFileName(new File(fileName).getName());
+					messageBodyPart.setFileName(new File(filePath).getName());
 					multipart.addBodyPart(messageBodyPart);
 				}
 			}
