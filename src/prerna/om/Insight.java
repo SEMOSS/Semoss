@@ -1243,39 +1243,18 @@ public class Insight implements Serializable {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		
-		// else try to find it the specific project
-		// loading it inside of version/classes
-		if(projectId != null) {
-			IProject project = Utility.getProject(projectId);
-			retReac = project.getReactor(className, null);				
-		}
-
-		// or grab the specific context
+		// user has manually set the specific context
 		if(this.contextProjectId != null) {
 			IProject project = Utility.getProject(this.contextProjectId);
 			retReac = project.getReactor(className, null);		
 		}
 		
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-//		// check all other dbs
-//		// first one wins
-//		for(int engineIndex = 0;engineIndex < queriedDatabaseIds.size() && retReac == null;engineIndex++)
-//		{
-//			String thisEngine = queriedDatabaseIds.get(engineIndex);
-//			IProject engine = Utility.getProject(thisEngine);
-//			retReac = engine.getReactor(className, null);
-//		}
+		// else try to find it the project the insight is saved in
+		// loading it inside of version/classes
+		if(retReac == null && this.projectId != null) {
+			IProject project = Utility.getProject(this.projectId);
+			retReac = project.getReactor(className, null);				
+		}
 		
 		return retReac;
 	}
@@ -1461,7 +1440,8 @@ public class Insight implements Serializable {
 		// sets the context space for the user
 		// also set rhe cmd context right here
 		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
-			throw new IllegalArgumentException("Already in the context");
+//			throw new IllegalArgumentException("Already in the context");
+			return true;
 		}
 		if(this.user != null) {
 			String context = null;
