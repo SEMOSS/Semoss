@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import prerna.ds.r.RDataTable;
@@ -10,7 +11,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
-import prerna.util.Utility;
 
 public class SummaryStatsReactor extends AbstractRFrameReactor {
 	/**
@@ -33,32 +33,20 @@ public class SummaryStatsReactor extends AbstractRFrameReactor {
 		if (column.contains("__")) {
 			column = column.split("__")[1];
 		}
-		String smryDt = "smryDt" + Utility.getRandomString(6);
-		StringBuilder sb = new StringBuilder();
-		// summary stats r script
-		String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\SummaryStats.R";
-		scriptFilePath = scriptFilePath.replace("\\", "/");
-		sb.append("source(\"" + scriptFilePath + "\");");
-		sb.append(smryDt + "<- getSmryDt(" + dtName + ",'" + column + "');");
 		
-		// execute R
-		System.out.println(sb.toString());
-		this.rJavaTranslator.runR(sb.toString());
+		String script = "round(summary(" + dtName + "$" + column + "),3)";
+		double[] values = this.rJavaTranslator.getDoubleArray(script);
+		String[] headers = new String[] {"Min", "1st Quartile", "Median", "Mean", "3rd Quartile", "Max"};
 		
-		String[] smryDtCols = this.rJavaTranslator.getColumns(smryDt);
-		List<Object[]> data = this.rJavaTranslator.getBulkDataRow(smryDt, smryDtCols);
-		
-		// clean up r temp variables
-		this.rJavaTranslator.runR("rm(" + smryDt + ",getSmryDt);gc();");
-
-		if (smryDtCols.length == 0) {
-			throw new IllegalArgumentException("Summary stats are not available.");
+		List<Object[]> data = new ArrayList<Object[]>();
+		for(int i = 0; i < headers.length; i++) {
+			Object[] row = new Object[] {headers[i], values[i]};
+			data.add(row);
 		}
 		
 		//task data includes task options
-		ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, smryDtCols, data);
+		ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, new String[] {"metric", "value"}, data);
 		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-		
 	}
 	
 	//////////////////////////////////////////////////////////////////////
