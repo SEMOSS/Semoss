@@ -308,7 +308,7 @@ public class MergeReactor extends AbstractReactor {
 		}
 		
 		IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
-		if(!ImportSizeRetrictions.mergeWithinLimit(frame, it)) {
+		if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
 			SemossPixelException exception = new SemossPixelException(
 					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 							PixelDataType.CONST_STRING, 

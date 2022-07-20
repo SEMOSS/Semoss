@@ -104,7 +104,7 @@ public class ImportReactor extends AbstractReactor {
 				throw new SemossPixelException(getError(message));
 			}
 			try {
-				if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
+				if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
 					SemossPixelException exception = new SemossPixelException(
 							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 									PixelDataType.CONST_STRING, 
