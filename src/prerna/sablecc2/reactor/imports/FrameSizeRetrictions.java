@@ -7,9 +7,9 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class ImportSizeRetrictions {
+public class FrameSizeRetrictions {
 
-	private ImportSizeRetrictions() {
+	private FrameSizeRetrictions() {
 		
 	}
 	
@@ -18,7 +18,8 @@ public class ImportSizeRetrictions {
 	 */
 	private static int LIMIT_SIZE;
 	private static boolean SIZE_RESTRICTED = false;;
-	
+	private static boolean RESTRICT_NATIVE = false;;
+
 	static {
 		// null check is only for testing
 		// in case DIHelper isn't loaded
@@ -39,6 +40,7 @@ public class ImportSizeRetrictions {
 					LIMIT_SIZE = 10_000;
 				}
 			}
+			RESTRICT_NATIVE = Boolean.parseBoolean( DIHelper.getInstance().getProperty(Constants.FRAME_SIZE_LIMIT_NATIVE) + "");
 		}
 	}
 	
@@ -49,10 +51,11 @@ public class ImportSizeRetrictions {
 	 * @return
 	 */
 	public static boolean frameWithinLimits(ITableDataFrame frame) {
-		if(!SIZE_RESTRICTED || frame instanceof NativeFrame) {
+		if(!SIZE_RESTRICTED || (!RESTRICT_NATIVE && frame instanceof NativeFrame) ) {
 			// no restriction
 			// or
-			// native frame - since nothing is stored in mem
+			// depending on settings 
+			// ignore for native frame - since nothing is stored in mem
 			return true;
 		}
 		
@@ -71,10 +74,11 @@ public class ImportSizeRetrictions {
 	 * @throws Exception 
 	 */
 	public static boolean importWithinLimit(ITableDataFrame frame, IRawSelectWrapper it) throws Exception {
-		if(!SIZE_RESTRICTED || frame instanceof NativeFrame) {
+		if(!SIZE_RESTRICTED || (!RESTRICT_NATIVE && frame instanceof NativeFrame) ) {
 			// no restriction
 			// or
-			// native frame - since nothing is stored in mem
+			// depending on settings 
+			// ignore for native frame - since nothing is stored in mem
 			return true;
 		}
 
@@ -106,10 +110,11 @@ public class ImportSizeRetrictions {
 	 * @throws Exception 
 	 */
 	public static boolean mergeWithinLimit(ITableDataFrame frame, IRawSelectWrapper it) throws Exception {
-		if(!SIZE_RESTRICTED || frame instanceof NativeFrame) {
+		if(!SIZE_RESTRICTED || (!RESTRICT_NATIVE && frame instanceof NativeFrame) ) {
 			// no restriction
 			// or
-			// native frame - since nothing is stored in mem
+			// depending on settings 
+			// ignore for native frame - since nothing is stored in mem
 			return true;
 		}
 		
