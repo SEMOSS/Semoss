@@ -236,7 +236,7 @@ public class NativeImporter extends AbstractImporter {
 		nativeQs = QSAliasToPhysicalConverter.getPhysicalQs(nativeQs, this.dataframe.getMetaData());
 		IRawSelectWrapper nativeFrameIt = this.dataframe.query(nativeQs);
 		try {
-			if(!ImportSizeRetrictions.sizeWithinLimit(nativeFrameIt.getNumRecords())) {
+			if(!FrameSizeRetrictions.sizeWithinLimit(nativeFrameIt.getNumRecords())) {
 				SemossPixelException exception = new SemossPixelException(
 						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 								PixelDataType.CONST_STRING, 
@@ -266,7 +266,7 @@ public class NativeImporter extends AbstractImporter {
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		try {
-			if(!ImportSizeRetrictions.mergeWithinLimit(rFrame, mergeFrameIt)) {
+			if(!FrameSizeRetrictions.importWithinLimit(rFrame, mergeFrameIt)) {
 				SemossPixelException exception = new SemossPixelException(
 						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 								PixelDataType.CONST_STRING, 
