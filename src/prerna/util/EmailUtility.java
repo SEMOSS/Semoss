@@ -1,6 +1,7 @@
 package prerna.util;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -98,7 +99,7 @@ public class EmailUtility {
 					MimeBodyPart messageBodyPart = new MimeBodyPart();
 					DataSource source = new FileDataSource(fileName);
 					messageBodyPart.setDataHandler(new DataHandler(source));
-					messageBodyPart.setFileName(fileName);
+					messageBodyPart.setFileName(new File(fileName).getName());
 					multipart.addBodyPart(messageBodyPart);
 				}
 			}
