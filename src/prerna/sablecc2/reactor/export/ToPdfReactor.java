@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -14,7 +13,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Document;
@@ -60,13 +58,12 @@ public class ToPdfReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
-		/**
 		User user = this.insight.getUser();
 		// throw error is user doesn't have rights to export data
 		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
-		*/
+		
 		// location for pdf resources
 		String insightFolder = this.insight.getInsightFolder();
 		String htmlToParse = this.keyValue.get(ReactorKeysEnum.HTML.getKey());
