@@ -134,7 +134,7 @@ public class SqlJoinStructList {
 						.append(targetTableAlias).append(".").append(targetCol);
 				}
 			} else {
-				if(i == 0) {
+				if(appendStartingFrom && i == 0) {
 					// find the from that we need
 					String subQueryAlias = j.getSubQueryAlias();
 					List<String[]> joinOnList = j.getJoinOnList();
