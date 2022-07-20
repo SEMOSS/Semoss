@@ -38,7 +38,7 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
+import prerna.sablecc2.reactor.imports.FrameSizeRetrictions;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.sablecc2.reactor.imports.RImporter;
 import prerna.sablecc2.reactor.imports.RdbmsImporter;
@@ -307,7 +307,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		} else if(dataframe instanceof NativeFrame || dataframe instanceof PandasFrame) {
 			IRawSelectWrapper it = dataframe.iterator();
 			try {
-				if(!ImportSizeRetrictions.sizeWithinLimit(it.getNumRecords())) {
+				if(!FrameSizeRetrictions.sizeWithinLimit(it.getNumRecords())) {
 					SemossPixelException exception = new SemossPixelException(
 							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 									PixelDataType.CONST_STRING, 

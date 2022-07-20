@@ -558,6 +558,8 @@ public class Constants {
 
 	// all frame limit
 	public static final String FRAME_SIZE_LIMIT = "FRAME_SIZE_LIMIT";
+	// include limit on native
+	public static final String FRAME_SIZE_LIMIT_NATIVE = "FRAME_SIZE_LIMIT_NATIVE";
 	// default frame type for the application
 	public static final String DEFAULT_FRAME_TYPE = "DEFAULT_FRAME_TYPE";
 	// default grid frame type

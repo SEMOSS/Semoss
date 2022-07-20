@@ -24,7 +24,7 @@ import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
 import prerna.sablecc2.reactor.expression.IfError;
-import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
+import prerna.sablecc2.reactor.imports.FrameSizeRetrictions;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.GroupReactor;
 import prerna.sablecc2.reactor.qs.filter.FilterReactor;
@@ -289,7 +289,7 @@ public class GreedyTranslation extends LazyTranslation {
 	    		// size check
 	    		if(output.getNounType() == PixelDataType.FRAME) {
 	    			ITableDataFrame frame = (ITableDataFrame) output.getValue();
-	    			if(!ImportSizeRetrictions.frameWithinLimits(frame)) {
+					if(!FrameSizeRetrictions.frameWithinLimits(frame)) {
 	    				SemossPixelException exception = new SemossPixelException(
 		    					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 		    							PixelDataType.CONST_STRING, 
