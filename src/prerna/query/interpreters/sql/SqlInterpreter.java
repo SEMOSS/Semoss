@@ -162,7 +162,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// so get a good starting from table
 			// we can use any of the froms that is not part of the join
 			boolean appendStartingFrom = true;
-			if(this.joinStructList.isEmpty() || this.joinStructList.allSubqueryJoins()) {
+			if(this.joinStructList.isEmpty()) {
 				appendStartingFrom = false;
 				query.append(" FROM ");
 				if(this.froms.isEmpty() && this.frame != null) {
@@ -171,8 +171,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					String[] startPoint = this.froms.get(0);
 					query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
 				}
-			} 
-			if(!this.joinStructList.isEmpty()) {
+			} else {
 				query.append(" ").append(joinStructList.getJoinSyntax(appendStartingFrom));
 			}
 		}
@@ -417,7 +416,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// if there are no joins
 			// or all the joins are from a subquery
 			// we need to have a from table
-			if(this.joinStructList.isEmpty() || this.joinStructList.allSubqueryJoins()) {
+			if(this.joinStructList.isEmpty()) {
 				addFrom(table, tableAlias);
 			}
 		}
