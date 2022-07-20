@@ -401,7 +401,7 @@ public class MergeFramesReactor extends AbstractReactor {
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		try {
-			if(!ImportSizeRetrictions.mergeWithinLimit(frame, it)) {
+			if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
 				SemossPixelException exception = new SemossPixelException(
 						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 								PixelDataType.CONST_STRING, 

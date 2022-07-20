@@ -17,9 +17,9 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.sablecc2.reactor.imports.FrameSizeRetrictions;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
-import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 
 public class ConvertReactor extends AbstractFrameReactor {
@@ -50,7 +50,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			try {
-				if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
+				if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
 					SemossPixelException exception = new SemossPixelException(
 							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 									PixelDataType.CONST_STRING, 
