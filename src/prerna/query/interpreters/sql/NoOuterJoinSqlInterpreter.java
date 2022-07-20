@@ -442,7 +442,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		// if there are no joins
 		// or all the joins are from a subquery
 		// we need to have a from table
-		if(this.joinStructList.isEmpty() || this.joinStructList.allSubqueryJoins()) {
+		if(this.joinStructList.isEmpty()) {
 			addFrom(table, tableAlias);
 		}
 		
