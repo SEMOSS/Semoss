@@ -21,6 +21,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class GetInsightsReactor extends AbstractReactor {
 	
 	private static List<String> META_KEYS_LIST = new Vector<String>();
+	private static final String META_FILTERS = "metaFilters";
 	static {
 		META_KEYS_LIST.add("description");
 		META_KEYS_LIST.add("tag");
@@ -29,7 +30,7 @@ public class GetInsightsReactor extends AbstractReactor {
 	public GetInsightsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.TAGS.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey()};
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), META_FILTERS};
 	}
 
 	@Override
@@ -59,7 +60,6 @@ public class GetInsightsReactor extends AbstractReactor {
 		String searchTerm = this.keyValue.get(this.keysToGet[1]);
 		String limit = this.keyValue.get(this.keysToGet[2]);
 		String offset = this.keyValue.get(this.keysToGet[3]);
-		List<String> tagFilters = getTags();
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[5]));
 		String sortCol = this.keyValue.get(this.keysToGet[6]);
 		if(sortCol == null) {
@@ -74,14 +74,15 @@ public class GetInsightsReactor extends AbstractReactor {
 		} else {
 			sortBy = new QueryColumnOrderBySelector("low_name");
 		}
-		// get results
+		// get results and meta (if available, otherwise null)
 		List<Map<String, Object>> results = null;
+		Map<String, Object> insightMetadataFilter = getMetaMap();
 		// method handles if filters are null or not
 		if (AbstractSecurityUtils.securityEnabled()) {
 			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), projectFilters, searchTerm, 
-					tagFilters, favoritesOnly, sortBy, limit, offset);
+					favoritesOnly, sortBy, insightMetadataFilter, limit, offset);
 		} else {
-			results = SecurityInsightUtils.searchInsights(projectFilters, searchTerm, tagFilters, sortBy, limit, offset);
+			results = SecurityInsightUtils.searchInsights(projectFilters, searchTerm, sortBy, insightMetadataFilter, limit, offset);
 		}
 		
 		// this entire block is to add the additional metadata to the insights
@@ -160,20 +161,19 @@ public class GetInsightsReactor extends AbstractReactor {
 		return retNoun;
 	}
 	
-	/**
-	 * Get the tags to set for the insight
-	 * @return
-	 */
-	private List<String> getTags() {
-		List<String> tags = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.TAGS.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			for(int i = 0; i < grs.size(); i++) {
-				tags.add(grs.get(i).toString());
+	private Map<String, Object> getMetaMap() {
+		GenRowStruct mapGrs = this.store.getNoun(META_FILTERS);
+		if(mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 		}
-		
-		return tags;
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if(mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
 	}
 	
 	@Override

@@ -1392,12 +1392,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchUserInsights(User user, List<String> projectFilter, String searchTerm, List<String> tags, 
-			Boolean favoritesOnly, QueryColumnOrderBySelector sortBy, String limit, String offset) {
+	public static List<Map<String, Object>> searchUserInsights(User user, List<String> projectFilter, String searchTerm, 
+			Boolean favoritesOnly, QueryColumnOrderBySelector sortBy, Map<String, Object> insightMetadataFilter, String limit, String offset) {
 		
 		Collection<String> userIds = getUserFiltersQs(user);
 		// if we have filters
-		boolean tagFiltering = tags != null && !tags.isEmpty();
+//		boolean tagFiltering = tags != null && !tags.isEmpty();
 		boolean hasProjectFilters = projectFilter != null && !projectFilter.isEmpty();
 		boolean hasSearchTerm = searchTerm != null && !searchTerm.trim().isEmpty();
 		
@@ -1435,9 +1435,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addSelector(fun);
 			// joins
 			qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-			if(tagFiltering) {
-				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
-			}
+//			if(tagFiltering) {
+//				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
+//			}
 			qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
 			qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "inner.join");
 			// main filters
@@ -1465,12 +1465,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(hasSearchTerm) {
 				securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 			}
-			// on the tags
-			if(tagFiltering) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//			// on the tags
+//			if(tagFiltering) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//			}
+			// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+			if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+				for (String k : insightMetadataFilter.keySet()) {
+					SelectQueryStruct subQs = new SelectQueryStruct();
+					subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
+				}
 			}
-			
 			// add the query to the list
 			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
@@ -1492,9 +1501,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// joins
 			qs.addRelation("PROJECT", "INSIGHT", "inner.join");
 			qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-			if(tagFiltering) {
-				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
-			}
+//			if(tagFiltering) {
+//				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
+//			}
 			// main filters
 			// project and insight must be global must be global
 			OrQueryFilter projectSubset = new OrQueryFilter();
@@ -1524,12 +1533,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(hasSearchTerm) {
 				securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 			}
-			// on the tags
-			if(tagFiltering) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//			// on the tags
+//			if(tagFiltering) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//			}
+			// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+			if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+				for (String k : insightMetadataFilter.keySet()) {
+					SelectQueryStruct subQs = new SelectQueryStruct();
+					subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
+				}
 			}
-			
 			// add the query to the list
 			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
@@ -1550,9 +1568,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addSelector(fun);
 			// joins
 			qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-			if(tagFiltering) {
-				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
-			}
+//			if(tagFiltering) {
+//				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
+//			}
 			qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
 			// main filters
 			// must be owner of the project
@@ -1570,12 +1588,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(hasSearchTerm) {
 				securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 			}
-			// on the tags
-			if(tagFiltering) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//			// on the tags
+//			if(tagFiltering) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//			}
+			// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+			if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+				for (String k : insightMetadataFilter.keySet()) {
+					SelectQueryStruct subQs = new SelectQueryStruct();
+					subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
+				}
 			}
-			
 			// add the query to the list
 			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
@@ -1611,9 +1638,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				qs.addSelector(fun);
 				// joins
 				qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-				if(tagFiltering) {
-					qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
-				}
+//				if(tagFiltering) {
+//					qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
+//				}
 				qs.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "inner.join");
 				// remove the projects that are hidden
 				{
@@ -1636,19 +1663,28 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				if(hasSearchTerm) {
 					securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 				}
-				// on the tags
-				if(tagFiltering) {
-					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//				// on the tags
+//				if(tagFiltering) {
+//					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+//					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//				}
+				// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+				if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+					for (String k : insightMetadataFilter.keySet()) {
+						SelectQueryStruct subQs = new SelectQueryStruct();
+						subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+						subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+						subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+						qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
+					}
 				}
-			
 				// add the query to the list
 				IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
 				interpreter.setQueryStruct(qs);
 				unionQueries.add(interpreter.composeQuery());
 			}
 		}
-		
+
 		// TODO: NEED BETTER WAY TO DO THIS
 		// build the union query
 		StringBuffer selectorStatement = new StringBuffer("SELECT ");
@@ -1680,6 +1716,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+				
 		IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
 		interpreter.setQueryStruct(qs2);
 		String favoritesQuery = interpreter.composeQuery();
@@ -1735,7 +1772,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		finalQuery = securityDb.getQueryUtil().addLimitOffsetToQuery(finalQuery, long_limit, long_offset);
 		HardSelectQueryStruct finalQs = new HardSelectQueryStruct();
 		finalQs.setQuery(finalQuery.toString());
-		
 		return QueryExecutionUtility.flushRsToMap(securityDb, finalQs);
 	}
 	
@@ -1749,8 +1785,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchInsights(List<String> projectFilter, String searchTerm, List<String> tags, 
-			QueryColumnOrderBySelector sortBy, String limit, String offset) {
+	public static List<Map<String, Object>> searchInsights(List<String> projectFilter, String searchTerm, 
+			QueryColumnOrderBySelector sortBy, Map<String, Object> insightMetadataFilter, String limit, String offset) {
 		// NOTE - IF YOU CHANGE THE SELECTOR ALIAS - YOU NEED TO UPDATE THE PLACES
 		// THAT CALL THIS METHOD AS THAT IS PASSED IN THE SORT BY FIELD
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1782,18 +1818,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
 			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 		}
-		// if we have tag filters
-		boolean tagFiltering = tags != null && !tags.isEmpty();
-		if(tagFiltering) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
-		}
-		// joins
-		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-		if(tagFiltering) {
-			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
-			qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "inner.join");
-		}
+//		// if we have tag filters
+//		boolean tagFiltering = tags != null && !tags.isEmpty();
+//		if(tagFiltering) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//		}
+//		// joins
+//		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
+//		if(tagFiltering) {
+//			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
+//			qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "inner.join");
+//		}
 		// sort
 		if(sortBy == null) {
 			qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
@@ -1807,6 +1843,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// offset
 		if(offset != null && !offset.trim().isEmpty()) {
 			qs.setOffSet(Long.parseLong(offset));
+		}
+		// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+		if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+			for (String k : insightMetadataFilter.keySet()) {
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
+			}
 		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
