@@ -171,7 +171,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 		} else if(key.equals(META_KEYS)) {
 			return "List of the metadata keys to return with each data source";
 		} else if(key.equals(META_FILTERS)) {
-			return "Map containing key-value pairs for filters to apply on the data source";
+			return "Map containing key-value pairs for filters to apply on the data source metadata";
 		}
 		return super.getDescriptionForKey(key);
 	}
