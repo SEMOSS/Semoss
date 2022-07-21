@@ -139,7 +139,7 @@ public class MyProjectsReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(META_FILTERS)) {
-			return "Map containing key-value pairs for filters to apply on the data source";
+			return "Map containing key-value pairs for filters to apply on the project metadata";
 		}
 		return super.getDescriptionForKey(key);
 	}

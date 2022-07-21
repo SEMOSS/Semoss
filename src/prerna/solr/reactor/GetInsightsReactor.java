@@ -29,7 +29,7 @@ public class GetInsightsReactor extends AbstractReactor {
 	
 	public GetInsightsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.TAGS.getKey(),
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
 				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), META_FILTERS};
 	}
 
@@ -180,6 +180,8 @@ public class GetInsightsReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
 			return "The sort is a string value containing either 'name' or 'date' for how to sort";
+		} else if(key.equals(META_FILTERS)) {
+			return "Map containing key-value pairs for filters to apply on the insight metadata";
 		}
 		return super.getDescriptionForKey(key);
 	}
