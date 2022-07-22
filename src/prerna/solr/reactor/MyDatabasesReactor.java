@@ -55,7 +55,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 				this.insight.getUser().setEngines(dbInfo);
 			}
 		} else {
-			dbInfo = SecurityDatabaseUtils.getAllDatabaseList();
+			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(null, limit, offset);
 		}
 
 		Map<String, Integer> index = new HashMap<>(dbInfo.size());

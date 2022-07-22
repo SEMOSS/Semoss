@@ -23,7 +23,6 @@ import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -1202,24 +1201,46 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		databaseMap.addAll(allGlobalEnginesMap);
 		return databaseMap;
 	}
-	
+
 	/**
-	 * Get the list of the database information that the user has access to
-	 * @param userId
+	 * 
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList() {
-//		String query = "SELECT DISTINCT "
-//				+ "ENGINE.ENGINEID as \"app_id\", "
-//				+ "ENGINE.ENGINENAME as \"app_name\", "
-//				+ "ENGINE.TYPE as \"app_type\", "
-//				+ "ENGINE.COST as \"app_cost\", "
-//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
-//				+ "FROM ENGINE "
-//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
+		return getAllDatabaseList(null, null, null);
+	}
+	
+	/**
+	 * Get the database information
+	 * @param databaseFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllDatabaseList(String databaseFilter) {
+		List<String> filters = null;
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			filters = new ArrayList<>();
+			filters.add(databaseFilter);
+		}
+		return getAllDatabaseList(filters, null, null);
+	}
+	
+	/**
+	 * Get the database information
+	 * @param databaseFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
+		return getAllDatabaseList(databaseFilters, null, null);
+	}
+	
+	/**
+	 * Get database information
+	 * @param databaseFilters
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters, String limit, String offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
@@ -1234,8 +1255,22 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
+		if(databaseFilters != null && !databaseFilters.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilters));
+		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = Long.parseLong(limit);
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = Long.parseLong(offset);
+		}
+		qs.setLimit(long_limit);
+		qs.setOffSet(long_offset);
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
@@ -1358,70 +1393,6 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-	
-	/**
-	 * Get the list of the database information that the user has access to
-	 * @param userId
-	 * @return
-	 */
-	public static List<Map<String, Object>> getAllDatabaseList(String databaseFilter) {
-//		String filter = createFilter(engineFilter); 
-//		String query = "SELECT DISTINCT "
-//				+ "ENGINE.ENGINEID as \"app_id\", "
-//				+ "ENGINE.ENGINENAME as \"app_name\", "
-//				+ "ENGINE.TYPE as \"app_type\", "
-//				+ "ENGINE.COST as \"app_cost\", "
-//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
-//				+ "FROM ENGINE "
-// 				+ (!filter.isEmpty() ? ("WHERE ENGINE.ENGINEID " + filter + " ") : "")
-//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_database_name");
-		qs.addSelector(fun);
-		if(databaseFilter != null && !databaseFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
-		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-	
-	/**
-	 * Get the list of the database information that the user has access to
-	 * @param dbTypeFilter
-	 * @return
-	 */
-	public static List<Map<String, Object>> getAllDatabaseList(List<String> dbTypeFilter) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_database_name");
-		qs.addSelector(fun);
-		if(dbTypeFilter != null && !dbTypeFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", dbTypeFilter));
-		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
