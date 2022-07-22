@@ -24,7 +24,7 @@ public class GetProjectListReactor extends AbstractReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			retList = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null);
 		} else {
-			retList = SecurityProjectUtils.getAllProjectList();
+			retList = SecurityProjectUtils.getAllProjectList(null, null, null);
 		}
 		
 		return new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_LIST);
