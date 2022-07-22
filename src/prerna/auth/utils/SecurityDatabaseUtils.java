@@ -23,6 +23,7 @@ import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -1086,7 +1087,8 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @param engineMetadataFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly, Map<String, Object> engineMetadataFilter) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly, 
+			Map<String, Object> engineMetadataFilter, String limit, String offset) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT "
 //				+ "ENGINE.ENGINEID as \"app_id\", "
@@ -1158,6 +1160,17 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
 			}
 		}
+		
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = Long.parseLong(limit);
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = Long.parseLong(offset);
+		}
+		qs1.setLimit(long_limit);
+		qs1.setOffSet(long_offset);
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
 	}
