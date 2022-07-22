@@ -27,32 +27,36 @@ public class MyProjectsReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(MyProjectsReactor.class);
 
 	private static List<String> META_KEYS_LIST = new Vector<>();
-	private static final String META_FILTERS = "metaFilters";
 	
+	private static final String META_FILTERS = "metaFilters";
 	static {
 		META_KEYS_LIST.add("description");
 		META_KEYS_LIST.add("tag");
 	}
 
 	public MyProjectsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey(), META_FILTERS};
+		this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), META_FILTERS};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[0]));
+		String limit = this.keyValue.get(this.keysToGet[0]);
+		String offset = this.keyValue.get(this.keysToGet[1]);
+		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
 		
 		List<Map<String, Object>> projectInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			Map<String, Object> projectMetadataFilter = getMetaMap();
-			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, projectMetadataFilter);
+			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, 
+					projectMetadataFilter, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setProjects(projectInfo);
 			}
 		} else {
-			projectInfo = SecurityProjectUtils.getAllProjectList();
+			projectInfo = SecurityProjectUtils.getAllProjectList(null, limit, offset);
 		}
 
 		int size = projectInfo.size();
