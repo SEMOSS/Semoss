@@ -37,12 +37,7 @@ public class ProjectInfoReactor extends AbstractReactor {
 			// user has access!
 			baseInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
 		} else {
-//			else {
-//				projectId = MasterDatabaseUtility.testEngineIdIfAlias(projectId);
-//				// just grab the info
-//				baseInfo = SecurityQueryUtils.getAllDatabaseList(projectId);
-//			}
-			baseInfo = SecurityProjectUtils.getAllProjectList(projectId);
+			baseInfo = SecurityProjectUtils.getAllProjectList(projectId, null, null);
 		}
 		
 		if(baseInfo == null || baseInfo.isEmpty()) {
