@@ -586,7 +586,7 @@ public class User implements Serializable {
 	public String addVarMap(String projectId) {
 		// initialize in case MyProjects has never been called
 		if(this.projectIdMap == null || this.projectIdMap.isEmpty()) {
-			setProjects(SecurityProjectUtils.getUserProjectList(this, false, null));
+			setProjects(SecurityProjectUtils.getUserProjectList(this, false, null, null, null));
 		}
 		String projectName = this.projectIdMap.get(projectId);
 		if(projectName == null) {

@@ -904,7 +904,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectMetadataFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserProjectList(User user, boolean favoritesOnly, Map<String,Object> projectMetadataFilter) {
+	public static List<Map<String, Object>> getUserProjectList(User user, boolean favoritesOnly, 
+			Map<String,Object> projectMetadataFilter, String limit, String offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
@@ -956,6 +957,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = Long.parseLong(limit);
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = Long.parseLong(offset);
+		}
+		qs1.setLimit(long_limit);
+		qs1.setOffSet(long_offset);
+		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
 	}
 	
@@ -984,28 +996,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		List<Map<String, Object>> engineMap = QueryExecutionUtility.flushRsToMap(securityDb, qs2);
 		engineMap.addAll(allGlobalEnginesMap);
 		return engineMap;
-	}
-	
-	/**
-	 * Get the list of the project information that the user has access to
-	 * @param userId
-	 * @return
-	 */
-	public static List<Map<String, Object>> getAllProjectList() {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
-		fun.setAlias("low_project_name");
-		qs.addSelector(fun);
-		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
-		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**
@@ -1044,21 +1034,32 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getAllProjectList(String projectFilter) {
+	public static List<Map<String, Object>> getAllProjectList(String projectFilter, String limit, String offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
 		fun.setAlias("low_project_name");
 		qs.addSelector(fun);
-		if(projectFilter != null && !projectFilter.isEmpty()) {
+		if(projectFilter != null && !projectFilter.isEmpty()) { 
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
 		}
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+		
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = Long.parseLong(limit);
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = Long.parseLong(offset);
+		}
+		qs.setLimit(long_limit);
+		qs.setOffSet(long_offset);
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
