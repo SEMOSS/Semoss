@@ -182,6 +182,10 @@ public class AssetUtility {
 	}
 	
 	public static String getProjectVersionFolder(String projectName, String projectId) {
+		return getProjectVersionFolder(projectName, projectId, false);
+	}
+	
+	public static String getProjectVersionFolder(String projectName, String projectId, boolean ignoreGit) {
 		String appBaseFolder = getProjectBaseFolder(projectName, projectId);
 		String gitFolder = appBaseFolder + DIR_SEPARATOR + "version";
 		// if this folder does not exist create it
@@ -190,7 +194,7 @@ public class AssetUtility {
 			file.mkdir();
 		}
 		
-		if(!isGit(gitFolder)) {
+		if(!ignoreGit && !isGit(gitFolder)) {
 			GitRepoUtils.init(gitFolder);
 		}
 		return gitFolder;

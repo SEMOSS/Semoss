@@ -432,7 +432,7 @@ public class SmssUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryProjectSmss(String projectId, String projectName, RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
+	public static File createTemporaryProjectSmss(String projectId, String projectName, String gitProvider, String gitCloneUrl, RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
 		String projectTempSmssLoc = getProjectTempSmssLoc(projectId, projectName);
 
 		// i am okay with deleting the .temp if it exists
@@ -458,7 +458,13 @@ public class SmssUtilities {
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
 			bufferedWriter.write(Constants.PROJECT_TYPE + tab + prerna.project.impl.Project.class.getName() + newLine);
-
+			if(gitProvider != null && !(gitProvider=gitProvider.trim()).isEmpty()) {
+				bufferedWriter.write(Constants.PROJECT_GIT_PROVIDER + tab + gitProvider + newLine);
+			}
+			if(gitCloneUrl != null && !(gitCloneUrl=gitCloneUrl.trim()).isEmpty()) {
+				bufferedWriter.write(Constants.PROJECT_GIT_CLONE + tab + gitCloneUrl + newLine);
+			}
+			
 			String rdbmsTypeStr = null;
 			RdbmsTypeEnum rdbmsType = null;
 			if(forceInsightDatabaseType != null) {
