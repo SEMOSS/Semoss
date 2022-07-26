@@ -60,8 +60,8 @@ public class GetInsightsReactor extends AbstractReactor {
 		String searchTerm = this.keyValue.get(this.keysToGet[1]);
 		String limit = this.keyValue.get(this.keysToGet[2]);
 		String offset = this.keyValue.get(this.keysToGet[3]);
-		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[5]));
-		String sortCol = this.keyValue.get(this.keysToGet[6]);
+		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[4]));
+		String sortCol = this.keyValue.get(this.keysToGet[5]);
 		if(sortCol == null) {
 			sortCol = "name";
 		}
