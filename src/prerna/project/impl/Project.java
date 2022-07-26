@@ -33,7 +33,6 @@ import org.xeustechnologies.jcl.JarClassLoader;
 
 import com.google.gson.Gson;
 
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IHeadersDataRow;
@@ -50,6 +49,9 @@ import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
@@ -117,9 +119,13 @@ public class Project implements IProject {
 			String versionDir = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId, true);
 			if(!AssetUtility.isGit(versionDir)) {
 				User user = ThreadStore.getUser();
+				String token = null;
 				if(user != null && user.getAccessToken(this.gitProvider) != null) {
-					AccessToken token = user.getAccessToken(this.gitProvider);
-					GitPushUtils.clone(versionDir, this.projectGitRepo, token.getAccess_token(), this.gitProvider, false);
+					token = user.getAccessToken(this.gitProvider).getAccess_token();
+				}
+				NounMetadata retNoun = GitPushUtils.clone(versionDir, this.projectGitRepo, token, this.gitProvider, false);
+				if(retNoun.getNounType() == PixelDataType.ERROR) {
+					throw new SemossPixelException(retNoun);
 				}
 			}
 		}
