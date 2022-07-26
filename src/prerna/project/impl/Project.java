@@ -117,8 +117,8 @@ public class Project implements IProject {
 			String versionDir = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId, true);
 			if(!AssetUtility.isGit(versionDir)) {
 				User user = ThreadStore.getUser();
-				AccessToken token = user.getAccessToken(this.gitProvider);
-				if(token != null) {
+				if(user != null && user.getAccessToken(this.gitProvider) != null) {
+					AccessToken token = user.getAccessToken(this.gitProvider);
 					GitPushUtils.clone(versionDir, this.projectGitRepo, token.getAccess_token(), this.gitProvider, false);
 				}
 			}
