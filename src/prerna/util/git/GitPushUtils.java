@@ -12,8 +12,8 @@ import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.CommitCommand;
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PullCommand;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.PushCommand;
@@ -24,7 +24,6 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-import org.eclipse.jgit.api.CreateBranchCommand;
 
 import prerna.auth.AuthProvider;
 import prerna.sablecc2.om.PixelDataType;
@@ -261,58 +260,50 @@ public class GitPushUtils {
 	/*************** OAUTH Overloads Go Here ***********************/
 	/***************************************************************/
 
-	public static void push(String repository, String remoteToPush, String branch, String token)
-	{
+	public static void push(String repository, String remoteToPush, String branch, String token) {
 		int attempt = 1;
 		
 		String gitProvider = DIHelper.getInstance().getProperty(Constants.GIT_PROVIDER);
-
 		if(gitProvider != null && !(gitProvider.isEmpty()) && gitProvider.toLowerCase().equals(AuthProvider.GITLAB.toString().toLowerCase())) {
 			push(repository, remoteToPush, branch, token, AuthProvider.GITLAB, attempt);
 		} else {
 			push(repository, remoteToPush, branch, token, AuthProvider.GITHUB, attempt);
 		}
-		
 	}
 
-	public static void push(String repository, String remoteToPush, String branch, String token, AuthProvider prov, int attempt)
-	{
-		if(attempt < 3)
-		{
-			Boolean isGitlab = null;
-			if(prov.toString().equals(AuthProvider.GITLAB.toString())) {
-				isGitlab=true;
-			} else {
-				isGitlab=false;
-			}
-			
+	public static void push(String repository, String remoteToPush, String branch, String token, AuthProvider prov, int attempt) {
+		if(attempt < 3) {
+			Boolean isGitlab = (prov == AuthProvider.GITLAB);
+
 			File dirFile = new File(repository);
 			Git thisGit = null;
 			try {
 				thisGit = Git.open(dirFile);
-			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
-			}
-			CredentialsProvider cp = null; 
-			if(isGitlab) {
-				 cp = new UsernamePasswordCredentialsProvider("oauth2", token);
-			} else {
-				 cp = new UsernamePasswordCredentialsProvider(token, "");
-			}
-			RefSpec spec = new RefSpec("+refs/heads/master:refs/heads/master");
-
-			if (thisGit != null) {
+			
+				CredentialsProvider cp = null; 
+				if(isGitlab) {
+					cp = new UsernamePasswordCredentialsProvider("oauth2", token);
+				} else {
+					cp = new UsernamePasswordCredentialsProvider(token, "");
+				}
+	
 				PushCommand pc = thisGit.push();
 				pc.setRemote(remoteToPush);
-				pc.add(branch);
-				//pc.setRefSpecs(spec);
+				if(branch != null && !branch.isEmpty()) {
+					pc.add(branch);
+				}
 				pc.setCredentialsProvider(cp);
 				try {
 					pc.call();
 				} catch (GitAPIException e) {
 					logger.error(STACKTRACE, e);
 				}
-				thisGit.close();
+			} catch (IOException e) {
+				logger.error(STACKTRACE, e);
+			} finally {
+				if(thisGit != null) {
+					thisGit.close();
+				}
 			}
 		}
 	}
@@ -440,53 +431,56 @@ public class GitPushUtils {
        return false;
    }
 
+   public static NounMetadata clone(String workingDir, String repo, String token, AuthProvider prov) {
+	   return clone(workingDir, repo, token, prov, true);
+   }
 
-	public static NounMetadata clone(String workingDir, String repo, String token, AuthProvider prov) {
-		Boolean isGitlab = null;
-		if(prov.toString().equals(AuthProvider.GITLAB.toString())) {
-			isGitlab=true;
-		} else {
-			isGitlab=false;
-		}
-		String dirName = Utility.getInstanceName(repo).split(Pattern.quote("."))[0];
-		File dirFile = new File(workingDir+FILE_SEPARATOR+dirName);
-		
-		
-		 String trustedRepo =  DIHelper.getInstance().getProperty(Constants.GIT_TRUSTED_REPO);
-		 String defaultBranch =  DIHelper.getInstance().getProperty(Constants.GIT_DEFAULT_BRANCH);
+   
+   public static NounMetadata clone(String workingDir, String repo, String token, AuthProvider prov, boolean appendFolderName) {
+	   Boolean isGitlab = (prov == AuthProvider.GITLAB);
+	   
+	   File dirFile = null;
+	   if(appendFolderName) {
+		   String dirName = Utility.getInstanceName(repo).split(Pattern.quote("."))[0];
+		   dirFile = new File(workingDir+FILE_SEPARATOR+dirName);
+	   } else {
+		   dirFile = new File(workingDir);
+	   }
 
-		 if(trustedRepo!=null && !trustedRepo.isEmpty()) {
-			 if(!repo.startsWith(trustedRepo)) {
-					return new NounMetadata("Git clone Error: Cloning from unapproved git registry" , PixelDataType.ERROR, PixelOperationType.HELP);
-			 }
-		 }
-			 
-		CredentialsProvider cp = null; 
-		if(isGitlab) {
-			 cp = new UsernamePasswordCredentialsProvider("oauth2", token);
-		} else {
-			 cp = new UsernamePasswordCredentialsProvider(token, "");
-		}
-		
-			 CloneCommand clone = Git.cloneRepository();
+	   String trustedRepo =  DIHelper.getInstance().getProperty(Constants.GIT_TRUSTED_REPO);
+	   String defaultBranch =  DIHelper.getInstance().getProperty(Constants.GIT_DEFAULT_BRANCH);
 
-			 clone.setURI(repo);
-			 clone.setDirectory(dirFile);
-			 clone.setCredentialsProvider(cp);
-			 if(trustedRepo!=null && !trustedRepo.isEmpty()) {
-				 if(defaultBranch!=null && !defaultBranch.isEmpty()) {
-				 clone.setBranch(defaultBranch);
-				 }
-			 }
-		
-			try {
-				clone.call();
-				return new NounMetadata("Git clone success: " + repo, PixelDataType.CONST_STRING, PixelOperationType.HELP);
-			} catch (GitAPIException e) {
-				logger.error(STACKTRACE, e);
-				return new NounMetadata("Git clone Error: "+ e, PixelDataType.ERROR, PixelOperationType.HELP);
-			}
+	   if(trustedRepo!=null && !trustedRepo.isEmpty()) {
+		   if(!repo.startsWith(trustedRepo)) {
+			   return new NounMetadata("Git clone Error: Cloning from unapproved git registry" , PixelDataType.ERROR, PixelOperationType.HELP);
+		   }
+	   }
 
-	}
-	
+	   CredentialsProvider cp = null; 
+	   if(isGitlab) {
+		   cp = new UsernamePasswordCredentialsProvider("oauth2", token);
+	   } else {
+		   cp = new UsernamePasswordCredentialsProvider(token, "");
+	   }
+
+	   CloneCommand clone = Git.cloneRepository();
+	   clone.setURI(repo);
+	   clone.setDirectory(dirFile);
+	   clone.setCredentialsProvider(cp);
+	   if(trustedRepo!=null && !trustedRepo.isEmpty()) {
+		   if(defaultBranch!=null && !defaultBranch.isEmpty()) {
+			   clone.setBranch(defaultBranch);
+		   }
+	   }
+
+	   try {
+		   clone.call();
+		   return new NounMetadata("Git clone success: " + repo, PixelDataType.CONST_STRING, PixelOperationType.HELP);
+	   } catch (GitAPIException e) {
+		   logger.error(STACKTRACE, e);
+		   return new NounMetadata("Git clone Error: "+ e, PixelDataType.ERROR, PixelOperationType.HELP);
+	   }
+
+   }
+
 }
