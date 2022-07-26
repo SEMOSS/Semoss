@@ -34,11 +34,11 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GitPushUtils {
+	
 	private static final Logger logger = LogManager.getLogger(GitPushUtils.class);
 
 	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	private static final String STACKTRACE = "StackTrace: ";
 	/**
 	 * This class is not intended to be extended or used outside of its static method
 	 */
@@ -55,7 +55,7 @@ public class GitPushUtils {
 			thisGit = Git.open(new File(gitFolder));
 			status = thisGit.status().call();
 		} catch (IOException | NoWorkTreeException | GitAPIException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 		
@@ -86,7 +86,7 @@ public class GitPushUtils {
 			try {
 				ac.call();
 			} catch (GitAPIException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to add files to Git directory at " + gitFolder);
 			}
 		}
@@ -110,7 +110,7 @@ public class GitPushUtils {
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 		if (thisGit != null) {
@@ -128,7 +128,7 @@ public class GitPushUtils {
 			try {
 				ac.call();
 			} catch (GitAPIException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -153,7 +153,7 @@ public class GitPushUtils {
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		if (thisGit != null) {
 			ac = thisGit.add();
@@ -171,7 +171,7 @@ public class GitPushUtils {
 			try {
 				ac.call();
 			} catch (GitAPIException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -199,7 +199,7 @@ public class GitPushUtils {
 		try {
 			thisGit = Git.open(new File(gitFolder));
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 
@@ -216,7 +216,7 @@ public class GitPushUtils {
 			.setAuthor(author, email)
 			.call();
 		} catch (GitAPIException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		thisGit.close();
 	}
@@ -237,7 +237,7 @@ public class GitPushUtils {
 			try {
 				thisGit = Git.open(dirFile);
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			CredentialsProvider cp = new UsernamePasswordCredentialsProvider(userName, password);
 			RefSpec spec = new RefSpec("+refs/heads/master:refs/heads/master");
@@ -250,7 +250,7 @@ public class GitPushUtils {
 				try {
 					pc.call();
 				} catch (GitAPIException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				thisGit.close();
 			}
@@ -296,10 +296,10 @@ public class GitPushUtils {
 				try {
 					pc.call();
 				} catch (GitAPIException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(thisGit != null) {
 					thisGit.close();
@@ -324,7 +324,7 @@ public class GitPushUtils {
 			try {
 				thisGit = Git.open(dirFile);
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			CredentialsProvider cp = null; 
 			if(isGitlab) {
@@ -344,7 +344,7 @@ public class GitPushUtils {
 						return new NounMetadata("Git pull error", PixelDataType.CONST_STRING, PixelOperationType.HELP);
 					}
 				} catch (GitAPIException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 					return new NounMetadata("Git Pull Error: "+ e, PixelDataType.ERROR, PixelOperationType.HELP);
 				} finally {
 					thisGit.close();
@@ -372,7 +372,7 @@ public class GitPushUtils {
 				thisGit = Git.open(dirFile);
 				exists = branchNameExist(thisGit, branch);
 			} catch (IOException | GitAPIException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			CredentialsProvider cp = null; 
 			if(isGitlab) {
@@ -397,7 +397,7 @@ public class GitPushUtils {
 					checkout.call();
 					return new NounMetadata("Git checkout: " + branch, PixelDataType.CONST_STRING, PixelOperationType.HELP);
 				} catch (GitAPIException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 					return new NounMetadata("Git Checkout Error: "+ e, PixelDataType.ERROR, PixelOperationType.HELP);
 				} finally {
 					thisGit.close();
@@ -484,7 +484,7 @@ public class GitPushUtils {
 		   clone.call();
 		   return new NounMetadata("Git clone success: " + repo, PixelDataType.CONST_STRING, PixelOperationType.HELP);
 	   } catch (GitAPIException e) {
-		   logger.error(STACKTRACE, e);
+		   logger.error(Constants.STACKTRACE, e);
 		   return new NounMetadata("Git clone error: "+ e, PixelDataType.ERROR, PixelOperationType.HELP);
 	   }
 
