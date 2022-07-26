@@ -33,6 +33,9 @@ import org.xeustechnologies.jcl.JarClassLoader;
 
 import com.google.gson.Gson;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
@@ -42,6 +45,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
@@ -56,6 +60,7 @@ import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
 import prerna.util.Settings;
 import prerna.util.Utility;
+import prerna.util.git.GitPushUtils;
 
 public class Project implements IProject {
 
@@ -71,7 +76,10 @@ public class Project implements IProject {
 
 	private String projectId;
 	private String projectName;
-
+	private String projectGitProvider;
+	private String projectGitRepo;
+	private AuthProvider gitProvider;
+	
 	private Properties prop = null;
 	private String projectSmssFilePath = null;
 	private boolean isAsset = false;
@@ -100,6 +108,22 @@ public class Project implements IProject {
 		this.prop = Utility.loadProperties(projectSmssFilePath);
 		this.projectId = prop.getProperty(Constants.PROJECT);
 		this.projectName = prop.getProperty(Constants.PROJECT_ALIAS);
+		
+		if(prop.containsKey(Constants.PROJECT_GIT_PROVIDER) && prop.containsKey(Constants.PROJECT_GIT_CLONE)) {
+			this.projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
+			this.projectGitRepo = prop.getProperty(Constants.PROJECT_GIT_CLONE);
+			this.gitProvider = AuthProvider.getProviderFromString(projectGitProvider);
+
+			String versionDir = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId, true);
+			if(!AssetUtility.isGit(versionDir)) {
+				User user = ThreadStore.getUser();
+				AccessToken token = user.getAccessToken(this.gitProvider);
+				if(token != null) {
+					GitPushUtils.clone(versionDir, this.projectGitRepo, token.getAccess_token(), this.gitProvider, false);
+				}
+			}
+		}
+		
 		this.isAsset = Boolean.parseBoolean(prop.getProperty(Constants.IS_ASSET_APP));
 		if(!isAsset) {
 			loadInsightsRdbms();
@@ -171,6 +195,21 @@ public class Project implements IProject {
 	@Override
 	public String getProjectName() {
 		return this.projectName;
+	}
+	
+	@Override
+	public String getProjectGitProvider() {
+		return this.projectGitProvider;
+	}
+	
+	@Override
+	public String getProjectGitRepo() {
+		return this.projectGitRepo;
+	}
+	
+	@Override
+	public AuthProvider getGitProvider() {
+		return this.gitProvider;
 	}
 	
 	@Override

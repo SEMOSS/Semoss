@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
@@ -40,6 +41,7 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitPushUtils;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 import prerna.util.insight.InsightUtility;
@@ -65,6 +67,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		boolean savingThisInsight = false;
 		boolean optimizeRecipe = true;
 		String projectId = getProject();
+		
 		User user = this.insight.getUser();
 		String author = null;
 		String email = null;
@@ -78,6 +81,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the project");
 			}
+			
 			// Get the user's email
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 			email = accessToken.getEmail();
@@ -155,12 +159,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 		
 		IProject project = Utility.getProject(projectId);
-
 		
 		// pull the insights db again incase someone just saved something 
 		ClusterUtil.reactorPullInsightsDB(projectId);
 		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
-		
 		
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
@@ -197,7 +199,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		logger.info(stepCounter + ") Add insight " + insightName + " to rdbms store...");
-		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+		admin.addInsight(newInsightId, insightName, layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
 		logger.info(stepCounter +") Done...");
 		stepCounter++;
 
@@ -205,7 +207,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		List<String> tags = getTags();
 		
 		logger.info(stepCounter + ") Regsiter insight...");
-		registerInsightAndMetadata(project, newRdbmsId, insightName, layout, global, 
+		registerInsightAndMetadata(project, newInsightId, insightName, layout, global, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 				recipeToSave, description, tags, this.insight.getVarStore().getFrames());
 		logger.info(stepCounter + ") Done...");
@@ -213,7 +215,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// Move assets to new insight folder
 		File tempInsightFolder = new File(this.insight.getInsightFolder());
-		File newInsightFolder = new File(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + DIR_SEPARATOR + newRdbmsId);
+		File newInsightFolder = new File(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + DIR_SEPARATOR + newInsightId);
 		if(tempInsightFolder.exists()) {
 			try {
 				logger.info(stepCounter + ") Moving assets...");
@@ -228,14 +230,14 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 	    stepCounter++;
 	    // delete the cache folder for the new insight
-	 	InsightCacheUtility.deleteCache(project.getProjectId(), project.getProjectName(), newRdbmsId, null, false);
+	 	InsightCacheUtility.deleteCache(project.getProjectId(), project.getProjectName(), newInsightId, null, false);
 
 	 	// write recipe to file
 	 	// force = true to delete any existing mosfet files that were pulled from asset folder
 		logger.info(stepCounter + ") Add recipe to file...");
 		try {
 			MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
-					newRdbmsId, insightName, layout, recipeToSave, global, 
+					newInsightId, insightName, layout, recipeToSave, global, 
 					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
 					description, tags, true);
 		} catch (IOException e) {
@@ -249,7 +251,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String imageFile = getImage();
 		if(imageFile != null && !imageFile.trim().isEmpty()) {
 			logger.info(stepCounter + ") Storing insight image...");
-			storeImageFromFile(imageFile, newRdbmsId, project.getProjectId(), project.getProjectName());
+			storeImageFromFile(imageFile, newInsightId, project.getProjectId(), project.getProjectName());
 			logger.info(stepCounter + ") Done...");
 			stepCounter++;
 		}
@@ -257,7 +259,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// adding insight files to git
 		Stream<Path> walk = null;
 		try {
-			String folder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
+			String projectVersion = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 			// grab relative file paths
 			walk = Files.walk(Paths.get(newInsightFolder.toURI()));
 			List<String> files = walk
@@ -266,8 +268,19 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 					.collect(Collectors.toList());
 			files.remove(""); // removing empty path
 			logger.info(stepCounter + ") Adding insight to git...");
-			GitRepoUtils.addSpecificFiles(folder, files);
-			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"), author, email);
+			GitRepoUtils.addSpecificFiles(projectVersion, files);
+			GitRepoUtils.commitAddedFiles(projectVersion, GitUtils.getDateMessage("Saved insight '" + newInsightId + "' ("+ insightName + ") on"), author, email);
+			AuthProvider projectGitProvider = project.getGitProvider();
+			if(user != null && user.getAccessToken(projectGitProvider) != null) {
+				List<Map<String, String>> remotes = GitRepoUtils.listConfigRemotes(projectVersion);
+				if(remotes != null && !remotes.isEmpty()) {
+					AccessToken userToken = user.getAccessToken(projectGitProvider);
+					String token = userToken.getAccess_token();
+					for(Map<String, String> thisRemote : remotes) {
+						GitPushUtils.push(projectVersion, thisRemote.get("url"), null, token, projectGitProvider, 1);
+					}
+				}
+			}
 			logger.info(stepCounter + ") Done...");
 		} catch (Exception e) {
 			SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
@@ -282,7 +295,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// update the workspace cache for the saved insight
 		this.insight.setProjectId(projectId);
 		this.insight.setProjectName(project.getProjectName());
-		this.insight.setRdbmsId(newRdbmsId);
+		this.insight.setRdbmsId(newInsightId);
 		this.insight.setInsightName(insightName);
 		// this is to reset it
 		this.insight.setInsightFolder(null);
@@ -290,7 +303,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// add to the users opened insights
 		if(savingThisInsight && this.insight.getUser() != null) {
-			this.insight.getUser().addOpenInsight(projectId, newRdbmsId, this.insight.getInsightId());
+			this.insight.getUser().addOpenInsight(projectId, newInsightId, this.insight.getInsightId());
 		}
 		
 		ClusterUtil.reactorPushInsightDB(projectId);
@@ -298,12 +311,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		// TODO: delete app_ and only send project_
-		returnMap.put("app_insight_id", newRdbmsId);
+		returnMap.put("app_insight_id", newInsightId);
 		returnMap.put("app_name", project.getProjectName());
 		returnMap.put("app_id", projectId);
 		
 		returnMap.put("name", insightName);
-		returnMap.put("project_insight_id", newRdbmsId);
+		returnMap.put("project_insight_id", newInsightId);
 		returnMap.put("project_name", project.getProjectName());
 		returnMap.put("project_id", projectId);
 		returnMap.put("recipe", recipeToSave);
