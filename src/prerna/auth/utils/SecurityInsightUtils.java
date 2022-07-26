@@ -25,12 +25,12 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
@@ -1405,6 +1405,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			new String[] {"INSIGHT__PROJECTID", "app_id"},
 			new String[] {"PROJECT__PROJECTNAME", "app_name"},
 			new String[] {"INSIGHT__INSIGHTID", "app_insight_id"},
+			
+			new String[] {"INSIGHT__PROJECTID", "project_id"},
+			new String[] {"PROJECT__PROJECTNAME", "project_name"},
+			new String[] {"INSIGHT__INSIGHTID", "project_insight_id"},
+			
 			new String[] {"INSIGHT__INSIGHTNAME", "name"},
 			new String[] {"INSIGHT__EXECUTIONCOUNT", "view_count"},
 			new String[] {"INSIGHT__LAYOUT", "layout"},
@@ -1418,11 +1423,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			new String[] {"INSIGHT__GLOBAL", "insight_global"},
 		};
 		
-		// we have 3 queries to union
-		List<String> unionQueries = new ArrayList<>();
 		
-		// 1) insights that i specifically have access to and that i am not hiding
 		{
+			String insightPrefix = "INSIGHT__";
+			String projectPrefix = "PROJECT__";
+			String userInsightPrefix = "USERINSIGHTPERMISSION__";
+			String userProjectPrefix = "PROJECTPERMISSION__";
+			String groupProjectPermission = "GROUPPROJECTPERMISSION__";
+			String groupInsightPermission = "GROUPINSIGHTPERMISSION__";
+			
 			SelectQueryStruct qs = new SelectQueryStruct();
 			// selectors
 			for(int i = 0; i < projections.length; i++) {
@@ -1430,47 +1439,53 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			QueryFunctionSelector fun = new QueryFunctionSelector();
 			fun.setFunction(QueryFunctionHelper.LOWER);
-			fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+			fun.addInnerSelector(new QueryColumnSelector(insightPrefix + "INSIGHTNAME"));
 			fun.setAlias("low_name");
 			qs.addSelector(fun);
-			// joins
+			// add the USER PERMISSIONS subquery returns
+			qs.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "permission"));
+			qs.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "insight_favorite"));
+			// add PROJECT relation
 			qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-//			if(tagFiltering) {
-//				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
-//			}
-			qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
-			qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "inner.join");
-			// main filters
-			// explicit access to the insight
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
-			// remove the projects that are hidden
+			// add a join to get the user permission level and if favorite
+			{
+				SelectQueryStruct qs2 = new SelectQueryStruct();
+				qs2.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
+				qs2.addSelector(new QueryColumnSelector(userInsightPrefix + "FAVORITE", "FAVORITE"));
+				qs2.addSelector(new QueryColumnSelector(userInsightPrefix + "PERMISSION", "PERMISSION"));
+				qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "USERID", "==", userIds));
+				IRelation subQuery = null;
+				if(favoritesOnly) {
+					qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "FAVORITE", "==", true, PixelDataType.BOOLEAN));
+					// we can set this to inner join if only favorites
+					subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "inner.join", new String[] {"USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "="});
+				} else {
+					subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "="});
+				}
+				qs.addRelation(subQuery);
+			}
+			// remove hidden projects
 			{
 				SelectQueryStruct subQs = new SelectQueryStruct();
 				// store first and fill in sub query after
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
 				
 				// fill in the sub query with the single return + filters
-				subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+				subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
 			}
-			
 			// optional filters
 			// on the project
 			if(hasProjectFilters) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectFilter));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(insightPrefix + "PROJECTID", "==", projectFilter));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "PROJECTID", "==", projectFilter));
 			}
 			// on the insight name
 			if(hasSearchTerm) {
-				securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+				securityDb.getQueryUtil().appendSearchRegexFilter(qs, insightPrefix + "INSIGHTNAME", searchTerm);
 			}
-//			// on the tags
-//			if(tagFiltering) {
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
-//			}
-			// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+			// filtering by insight meta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
 			if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
 				for (String k : insightMetadataFilter.keySet()) {
 					SelectQueryStruct subQs = new SelectQueryStruct();
@@ -1480,299 +1495,476 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
 				}
 			}
-			// add the query to the list
-			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
-			interpreter.setQueryStruct(qs);
-			unionQueries.add(interpreter.composeQuery());
-		}
-		
-		// 2) insights that are global within projects that are global or i have access to
-		{
-			SelectQueryStruct qs = new SelectQueryStruct();
-			// selectors
-			for(int i = 0; i < projections.length; i++) {
-				qs.addSelector(new QueryColumnSelector(projections[i][0], projections[i][1]));
-			}
-			QueryFunctionSelector fun = new QueryFunctionSelector();
-			fun.setFunction(QueryFunctionHelper.LOWER);
-			fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-			fun.setAlias("low_name");
-			qs.addSelector(fun);
-			// joins
-			qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-			qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-//			if(tagFiltering) {
-//				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
-//			}
-			// main filters
-			// project and insight must be global must be global
-			OrQueryFilter projectSubset = new OrQueryFilter();
-			projectSubset.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-			projectSubset.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-			qs.addExplicitFilter(projectSubset);
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-			// remove the projects that are hidden
-			{
-				SelectQueryStruct subQs = new SelectQueryStruct();
-				// store first and fill in sub query after
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
-				
-				// fill in the sub query with the single return + filters
-				subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-			}
-			
-			// optional filters
-			// on the project
-			if(hasProjectFilters) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectFilter));
-			}
-			// on the insight name
-			if(hasSearchTerm) {
-				securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
-			}
-//			// on the tags
-//			if(tagFiltering) {
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
-//			}
-			// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
-			if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
-				for (String k : insightMetadataFilter.keySet()) {
-					SelectQueryStruct subQs = new SelectQueryStruct();
-					subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
-					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
-					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
-					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
-				}
-			}
-			// add the query to the list
-			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
-			interpreter.setQueryStruct(qs);
-			unionQueries.add(interpreter.composeQuery());
-		}
-		
-		// 3) insights within projects that i am the owner for
-		{
-			SelectQueryStruct qs = new SelectQueryStruct();
-			// selectors
-			for(int i = 0; i < projections.length; i++) {
-				qs.addSelector(new QueryColumnSelector(projections[i][0], projections[i][1]));
-			}
-			QueryFunctionSelector fun = new QueryFunctionSelector();
-			fun.setFunction(QueryFunctionHelper.LOWER);
-			fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-			fun.setAlias("low_name");
-			qs.addSelector(fun);
-			// joins
-			qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-//			if(tagFiltering) {
-//				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
-//			}
-			qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
-			// main filters
-			// must be owner of the project
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", true, PixelDataType.BOOLEAN));
-			
-			// optional filters
-			// on the project
-			if(hasProjectFilters) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectFilter));
-			}
-			// on the insight name
-			if(hasSearchTerm) {
-				securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
-			}
-//			// on the tags
-//			if(tagFiltering) {
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
-//			}
-			// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
-			if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
-				for (String k : insightMetadataFilter.keySet()) {
-					SelectQueryStruct subQs = new SelectQueryStruct();
-					subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
-					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
-					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
-					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
-				}
-			}
-			// add the query to the list
-			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
-			interpreter.setQueryStruct(qs);
-			unionQueries.add(interpreter.composeQuery());
-		}
-		
-		// 4) group permissions
-		{
-			// first lets make sure we have any groups
+			// filter the insight ids based on
 			OrQueryFilter orFilter = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider login : logins) {
-				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
-					continue;
-				}
-				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
-				orFilter.addFilter(andFilter);
+			qs.addExplicitFilter(orFilter);
+			// 1 - insights i have access to
+			{
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				// store first and fill in sub query after
+				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "==", subQs));
+				
+				// fill in the sub query with the single return + filters
+				subQs.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "USERID", "==", userIds));
 			}
-			if(!orFilter.isEmpty()) {
-				SelectQueryStruct qs = new SelectQueryStruct();
-				// add the group filters
-				qs.addExplicitFilter(orFilter);
-				// selectors
-				for(int i = 0; i < projections.length; i++) {
-					qs.addSelector(new QueryColumnSelector(projections[i][0], projections[i][1]));
+			// 2 - insight that are global within projects i have access to
+			{
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				// store first and fill in sub query after
+				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "==", subQs));
+				
+				// fill in the sub query with the single return + filters
+				subQs.addSelector(new QueryColumnSelector(insightPrefix + "INSIGHTID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(insightPrefix + "INSIGHTID", "==", true, PixelDataType.BOOLEAN));
+				if(hasProjectFilters) {
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(insightPrefix + "PROJECTID", "==", projectFilter));
+				} else {
+					SelectQueryStruct subQs2 = new SelectQueryStruct();
+					// store the subquery
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "PROJECTID", "==", subQs2));
+
+					subQs2.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTID"));
+					// joins
+					subQs2.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+					// project and insight must be global must be global
+					OrQueryFilter projectSubset = new OrQueryFilter();
+					projectSubset.addFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "GLOBAL", "==", true, PixelDataType.BOOLEAN));
+					projectSubset.addFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
+					subQs2.addExplicitFilter(projectSubset);
 				}
-				QueryFunctionSelector fun = new QueryFunctionSelector();
-				fun.setFunction(QueryFunctionHelper.LOWER);
-				fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-				fun.setAlias("low_name");
-				qs.addSelector(fun);
-				// joins
-				qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-//				if(tagFiltering) {
-//					qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
-//				}
-				qs.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "inner.join");
-				// remove the projects that are hidden
-				{
+			}
+			// 3 insights where i am the owner of the project
+			{
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				// store first and fill in sub query after
+				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "PROJECTID", "==", subQs));
+				
+				// fill in the sub query with the single return + filters
+				subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "PERMISSION", "==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT));
+			}
+			// 4 insights i have access to from group permissions
+			{
+				// first lets make sure we have any groups
+				OrQueryFilter groupInsightOrFilters = new OrQueryFilter();
+				OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
+				List<AuthProvider> logins = user.getLogins();
+				for(AuthProvider login : logins) {
+					if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+						continue;
+					}
+					AndQueryFilter andFilter1 = new AndQueryFilter();
+					andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+					andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+					groupInsightOrFilters.addFilter(andFilter1);
+					
+					AndQueryFilter andFilter2 = new AndQueryFilter();
+					andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+					andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+					groupProjectOrFilters.addFilter(andFilter2);
+				}
+				// 4.a does the group have explicit access
+				if(!groupInsightOrFilters.isEmpty()) {
 					SelectQueryStruct subQs = new SelectQueryStruct();
 					// store first and fill in sub query after
-					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
+					orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "==", subQs));
 					
-					// fill in the sub query with the single return + filters
-					subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
-					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+					// we need to have the insight filters
+					subQs.addSelector(new QueryColumnSelector(groupInsightPermission + "INSIGHTID"));
+					subQs.addExplicitFilter(groupInsightOrFilters);
 				}
-				// optional filters
-				// on the project
-				if(hasProjectFilters) {
-					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
-					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectFilter));
+				// 4.b does the group have project owner access
+				if(!groupProjectOrFilters.isEmpty()) {
+					SelectQueryStruct subQs = new SelectQueryStruct();
+					// store first and fill in sub query after
+					orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "==", subQs));
+					
+					// we need to have the insight filters
+					subQs.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID"));
+					subQs.addExplicitFilter(groupProjectOrFilters);
+					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "PERMISSION", "==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT));
 				}
-				// on the insight name
-				if(hasSearchTerm) {
-					securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
-				}
-//				// on the tags
-//				if(tagFiltering) {
-//					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-//					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+			}
+			
+			// add limit and offset
+			if(sortBy == null) {
+				qs.addOrderBy("low_name");;
+			} else {
+				qs.addOrderBy(sortBy);
+			}
+			
+			Long long_limit = -1L;
+			Long long_offset = -1L;
+			if(limit != null && !limit.trim().isEmpty()) {
+				long_limit = Long.parseLong(limit);
+			}
+			if(offset != null && !offset.trim().isEmpty()) {
+				long_offset = Long.parseLong(offset);
+			}
+
+			qs.setLimit(long_limit);
+			qs.setOffSet(long_offset);
+			return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		}
+		
+		
+//		// we have 3 queries to union
+//		List<String> unionQueries = new ArrayList<>();
+//		
+//		// 1) insights that i specifically have access to and that i am not hiding
+//		{
+//			SelectQueryStruct qs = new SelectQueryStruct();
+//			// selectors
+//			for(int i = 0; i < projections.length; i++) {
+//				qs.addSelector(new QueryColumnSelector(projections[i][0], projections[i][1]));
+//			}
+//			QueryFunctionSelector fun = new QueryFunctionSelector();
+//			fun.setFunction(QueryFunctionHelper.LOWER);
+//			fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+//			fun.setAlias("low_name");
+//			qs.addSelector(fun);
+//			// joins
+//			qs.addRelation("PROJECT", "INSIGHT", "inner.join");
+////			if(tagFiltering) {
+////				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
+////			}
+//			qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
+//			qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "inner.join");
+//			// main filters
+//			// explicit access to the insight
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+//			// remove the projects that are hidden
+//			{
+//				SelectQueryStruct subQs = new SelectQueryStruct();
+//				// store first and fill in sub query after
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
+//				
+//				// fill in the sub query with the single return + filters
+//				subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+//			}
+//			
+//			// optional filters
+//			// on the project
+//			if(hasProjectFilters) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectFilter));
+//			}
+//			// on the insight name
+//			if(hasSearchTerm) {
+//				securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+//			}
+////			// on the tags
+////			if(tagFiltering) {
+////				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+////				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+////			}
+//			// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+//			if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+//				for (String k : insightMetadataFilter.keySet()) {
+//					SelectQueryStruct subQs = new SelectQueryStruct();
+//					subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+//					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+//					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+//					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
 //				}
-				// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
-				if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
-					for (String k : insightMetadataFilter.keySet()) {
-						SelectQueryStruct subQs = new SelectQueryStruct();
-						subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
-						subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
-						subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
-						qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
-					}
-				}
-				// add the query to the list
-				IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
-				interpreter.setQueryStruct(qs);
-				unionQueries.add(interpreter.composeQuery());
-			}
-		}
-
-		// TODO: NEED BETTER WAY TO DO THIS
-		// build the union query
-		StringBuffer selectorStatement = new StringBuffer("SELECT ");
-		for(int i = 0; i < projections.length; i++) {
-			if(i > 0) {
-				selectorStatement.append(", ");
-			}
-			selectorStatement.append("\"").append(projections[i][1]).append("\"");
-		}
-		// don't forget the low_name that is added for sorting
-		selectorStatement.append(", \"low_name\"");
-		StringBuffer mainQuery = new StringBuffer(selectorStatement);
-		mainQuery.append(" FROM (");
-		for(int i = 0; i < unionQueries.size(); i++) {
-			if(i > 0) {
-				mainQuery.append(" UNION ");
-			}
-			mainQuery.append(unionQueries.get(i));
-		}
-		mainQuery.append(")");
-		
-		// get the favorites for this user
-		SelectQueryStruct qs2 = new SelectQueryStruct();
-		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PROJECTID", "PROJECTID"));
-		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID", "INSIGHTID"));
-		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__FAVORITE", "insight_favorite"));
-		if(hasProjectFilters) {
-			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectFilter));
-		}
-		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
-		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
-				
-		IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
-		interpreter.setQueryStruct(qs2);
-		String favoritesQuery = interpreter.composeQuery();
-		
-		String randomTName1 = Utility.getRandomString(6);
-		String randomTName2 = Utility.getRandomString(6);
-		
-		StringBuffer finalQuery = new StringBuffer(selectorStatement)
-			.append(", \"insight_favorite\"")
-			.append(" FROM ( ")
-			.append(mainQuery)
-			.append(") as ")
-			.append(randomTName1);
-		
-		// join between the 2 temp tables
-		if(favoritesOnly) {
-			finalQuery.append(" inner join (");
-		} else {
-			finalQuery.append(" left outer join (");
-		}
-		
-		finalQuery.append(favoritesQuery)
-			.append(") as ")
-			.append(randomTName2)
-			.append(" on ")
-			.append(randomTName1).append(".").append("\"app_insight_id\"")
-			.append(" = ")
-			.append(randomTName2).append(".").append("\"INSIGHTID\"")
-			.append(" and ")
-			.append(randomTName1).append(".").append("\"app_id\"")
-			.append(" = ")
-			.append(randomTName2).append(".").append("\"PROJECTID\"")
-			;
-
-		// TODO: NEED BETTER WAY TO DO THIS
-		if(sortBy == null) {
-			finalQuery.append(" ORDER BY \"low_name\" ");
-		} else {
-			String sort = sortBy.getQueryStructName();
-			String dir = sortBy.getSortDir().toString();
-			finalQuery.append(" ORDER BY \"").append(sort).append("\" ").append(dir).append(" ");;
-		}
-		
-		Long long_limit = -1L;
-		Long long_offset = -1L;
-		if(limit != null && !limit.trim().isEmpty()) {
-			long_limit = Long.parseLong(limit);
-		}
-		if(offset != null && !offset.trim().isEmpty()) {
-			long_offset = Long.parseLong(offset);
-		}
-		
-		finalQuery = securityDb.getQueryUtil().addLimitOffsetToQuery(finalQuery, long_limit, long_offset);
-		HardSelectQueryStruct finalQs = new HardSelectQueryStruct();
-		finalQs.setQuery(finalQuery.toString());
-		return QueryExecutionUtility.flushRsToMap(securityDb, finalQs);
+//			}
+//			// add the query to the list
+//			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
+//			interpreter.setQueryStruct(qs);
+//			unionQueries.add(interpreter.composeQuery());
+//		}
+//		
+//		// 2) insights that are global within projects that are global or i have access to
+//		{
+//			SelectQueryStruct qs = new SelectQueryStruct();
+//			// selectors
+//			for(int i = 0; i < projections.length; i++) {
+//				qs.addSelector(new QueryColumnSelector(projections[i][0], projections[i][1]));
+//			}
+//			QueryFunctionSelector fun = new QueryFunctionSelector();
+//			fun.setFunction(QueryFunctionHelper.LOWER);
+//			fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+//			fun.setAlias("low_name");
+//			qs.addSelector(fun);
+//			// joins
+//			qs.addRelation("PROJECT", "INSIGHT", "inner.join");
+//			qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+////			if(tagFiltering) {
+////				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
+////			}
+//			// main filters
+//			// project and insight must be global must be global
+//			OrQueryFilter projectSubset = new OrQueryFilter();
+//			projectSubset.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+//			projectSubset.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+//			qs.addExplicitFilter(projectSubset);
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+//			// remove the projects that are hidden
+//			{
+//				SelectQueryStruct subQs = new SelectQueryStruct();
+//				// store first and fill in sub query after
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
+//				
+//				// fill in the sub query with the single return + filters
+//				subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+//			}
+//			
+//			// optional filters
+//			// on the project
+//			if(hasProjectFilters) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectFilter));
+//			}
+//			// on the insight name
+//			if(hasSearchTerm) {
+//				securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+//			}
+////			// on the tags
+////			if(tagFiltering) {
+////				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+////				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+////			}
+//			// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+//			if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+//				for (String k : insightMetadataFilter.keySet()) {
+//					SelectQueryStruct subQs = new SelectQueryStruct();
+//					subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+//					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+//					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+//					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
+//				}
+//			}
+//			// add the query to the list
+//			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
+//			interpreter.setQueryStruct(qs);
+//			unionQueries.add(interpreter.composeQuery());
+//		}
+//		
+//		// 3) insights within projects that i am the owner for
+//		{
+//			SelectQueryStruct qs = new SelectQueryStruct();
+//			// selectors
+//			for(int i = 0; i < projections.length; i++) {
+//				qs.addSelector(new QueryColumnSelector(projections[i][0], projections[i][1]));
+//			}
+//			QueryFunctionSelector fun = new QueryFunctionSelector();
+//			fun.setFunction(QueryFunctionHelper.LOWER);
+//			fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+//			fun.setAlias("low_name");
+//			qs.addSelector(fun);
+//			// joins
+//			qs.addRelation("PROJECT", "INSIGHT", "inner.join");
+////			if(tagFiltering) {
+////				qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
+////			}
+//			qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
+//			// main filters
+//			// must be owner of the project
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", true, PixelDataType.BOOLEAN));
+//			
+//			// optional filters
+//			// on the project
+//			if(hasProjectFilters) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectFilter));
+//			}
+//			// on the insight name
+//			if(hasSearchTerm) {
+//				securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+//			}
+////			// on the tags
+////			if(tagFiltering) {
+////				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+////				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+////			}
+//			// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+//			if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+//				for (String k : insightMetadataFilter.keySet()) {
+//					SelectQueryStruct subQs = new SelectQueryStruct();
+//					subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+//					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+//					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+//					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
+//				}
+//			}
+//			// add the query to the list
+//			IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
+//			interpreter.setQueryStruct(qs);
+//			unionQueries.add(interpreter.composeQuery());
+//		}
+//		
+//		// 4) group permissions
+//		{
+//			// first lets make sure we have any groups
+//			OrQueryFilter orFilter = new OrQueryFilter();
+//			List<AuthProvider> logins = user.getLogins();
+//			for(AuthProvider login : logins) {
+//				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+//					continue;
+//				}
+//				AndQueryFilter andFilter = new AndQueryFilter();
+//				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+//				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+//				orFilter.addFilter(andFilter);
+//			}
+//			if(!orFilter.isEmpty()) {
+//				SelectQueryStruct qs = new SelectQueryStruct();
+//				// add the group filters
+//				qs.addExplicitFilter(orFilter);
+//				// selectors
+//				for(int i = 0; i < projections.length; i++) {
+//					qs.addSelector(new QueryColumnSelector(projections[i][0], projections[i][1]));
+//				}
+//				QueryFunctionSelector fun = new QueryFunctionSelector();
+//				fun.setFunction(QueryFunctionHelper.LOWER);
+//				fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+//				fun.setAlias("low_name");
+//				qs.addSelector(fun);
+//				// joins
+//				qs.addRelation("PROJECT", "INSIGHT", "inner.join");
+////				if(tagFiltering) {
+////					qs.addRelation("INSIGHT", "INSIGHTMETA", "inner.join");
+////				}
+//				qs.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "inner.join");
+//				// remove the projects that are hidden
+//				{
+//					SelectQueryStruct subQs = new SelectQueryStruct();
+//					// store first and fill in sub query after
+//					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
+//					
+//					// fill in the sub query with the single return + filters
+//					subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+//					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+//					subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+//				}
+//				// optional filters
+//				// on the project
+//				if(hasProjectFilters) {
+//					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
+//					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectFilter));
+//				}
+//				// on the insight name
+//				if(hasSearchTerm) {
+//					securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+//				}
+////				// on the tags
+////				if(tagFiltering) {
+////					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+////					qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+////				}
+//				// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+//				if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+//					for (String k : insightMetadataFilter.keySet()) {
+//						SelectQueryStruct subQs = new SelectQueryStruct();
+//						subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+//						subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+//						subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+//						qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
+//					}
+//				}
+//				// add the query to the list
+//				IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
+//				interpreter.setQueryStruct(qs);
+//				unionQueries.add(interpreter.composeQuery());
+//			}
+//		}
+//
+//		// TODO: NEED BETTER WAY TO DO THIS
+//		// build the union query
+//		StringBuffer selectorStatement = new StringBuffer("SELECT ");
+//		for(int i = 0; i < projections.length; i++) {
+//			if(i > 0) {
+//				selectorStatement.append(", ");
+//			}
+//			selectorStatement.append("\"").append(projections[i][1]).append("\"");
+//		}
+//		// don't forget the low_name that is added for sorting
+//		selectorStatement.append(", \"low_name\"");
+//		StringBuffer mainQuery = new StringBuffer(selectorStatement);
+//		mainQuery.append(" FROM (");
+//		for(int i = 0; i < unionQueries.size(); i++) {
+//			if(i > 0) {
+//				mainQuery.append(" UNION ");
+//			}
+//			mainQuery.append(unionQueries.get(i));
+//		}
+//		mainQuery.append(")");
+//		
+//		// get the favorites for this user
+//		SelectQueryStruct qs2 = new SelectQueryStruct();
+//		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PROJECTID", "PROJECTID"));
+//		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID", "INSIGHTID"));
+//		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__FAVORITE", "insight_favorite"));
+//		if(hasProjectFilters) {
+//			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectFilter));
+//		}
+//		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+//		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+//				
+//		IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
+//		interpreter.setQueryStruct(qs2);
+//		String favoritesQuery = interpreter.composeQuery();
+//		
+//		String randomTName1 = Utility.getRandomString(6);
+//		String randomTName2 = Utility.getRandomString(6);
+//		
+//		StringBuffer finalQuery = new StringBuffer(selectorStatement)
+//			.append(", \"insight_favorite\"")
+//			.append(" FROM ( ")
+//			.append(mainQuery)
+//			.append(") as ")
+//			.append(randomTName1);
+//		
+//		// join between the 2 temp tables
+//		if(favoritesOnly) {
+//			finalQuery.append(" inner join (");
+//		} else {
+//			finalQuery.append(" left outer join (");
+//		}
+//		
+//		finalQuery.append(favoritesQuery)
+//			.append(") as ")
+//			.append(randomTName2)
+//			.append(" on ")
+//			.append(randomTName1).append(".").append("\"app_insight_id\"")
+//			.append(" = ")
+//			.append(randomTName2).append(".").append("\"INSIGHTID\"")
+//			.append(" and ")
+//			.append(randomTName1).append(".").append("\"app_id\"")
+//			.append(" = ")
+//			.append(randomTName2).append(".").append("\"PROJECTID\"")
+//			;
+//
+//		// TODO: NEED BETTER WAY TO DO THIS
+//		if(sortBy == null) {
+//			finalQuery.append(" ORDER BY \"low_name\" ");
+//		} else {
+//			String sort = sortBy.getQueryStructName();
+//			String dir = sortBy.getSortDir().toString();
+//			finalQuery.append(" ORDER BY \"").append(sort).append("\" ").append(dir).append(" ");;
+//		}
+//		
+//		Long long_limit = -1L;
+//		Long long_offset = -1L;
+//		if(limit != null && !limit.trim().isEmpty()) {
+//			long_limit = Long.parseLong(limit);
+//		}
+//		if(offset != null && !offset.trim().isEmpty()) {
+//			long_offset = Long.parseLong(offset);
+//		}
+//		
+//		finalQuery = securityDb.getQueryUtil().addLimitOffsetToQuery(finalQuery, long_limit, long_offset);
+//		HardSelectQueryStruct finalQs = new HardSelectQueryStruct();
+//		finalQs.setQuery(finalQuery.toString());
+//		return QueryExecutionUtility.flushRsToMap(securityDb, finalQs);
 	}
 	
 	/**
