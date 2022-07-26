@@ -30,6 +30,7 @@ package prerna.project.api;
 import java.util.Properties;
 import java.util.Vector;
 
+import prerna.auth.AuthProvider;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
@@ -143,6 +144,23 @@ public interface IProject {
 	 * @return
 	 */
 	ProjectProperties getProjectProperties();
-}
+	
+	/**
+	 * Get the project git provider
+	 * @return
+	 */
+	String getProjectGitProvider();
+	
+	/**
+	 * Get the project git repository URL
+	 * @return
+	 */
+	String getProjectGitRepo();
 
+	/**
+	 * Get the rpoject git provider
+	 * @return
+	 */
+	AuthProvider getGitProvider();
+}
 

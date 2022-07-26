@@ -142,6 +142,9 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		String projectId = null;
 		String projectName = null;
 		String projectType = null;
+		String projectGitProvider = null;
+		String projectGitCloneUrl = null;
+		
 		File tempSmss = null;
 		File tempEngFolder = null;
 		File finalSmss = null;
@@ -164,6 +167,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			} else {
 				projectId = prop.getProperty(Constants.PROJECT);
 				projectName = prop.getProperty(Constants.PROJECT_ALIAS);
+				projectGitCloneUrl = prop.getProperty(Constants.PROJECT_GIT_CLONE);
 			}
 			logger.info(step + ") Done");
 			step++;
@@ -206,7 +210,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 				step++;
 
 				// move smss file
-				tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, null);
+				tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectGitProvider, projectGitCloneUrl, null);
 				FileUtils.copyFile(tempSmss, finalSmss);
 				tempSmss.delete();
 				logger.info(step + ") Done");
