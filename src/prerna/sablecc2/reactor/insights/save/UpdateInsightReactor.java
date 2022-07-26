@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.insights.save;
 
-import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +12,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cache.InsightCacheUtility;
@@ -31,6 +34,7 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitPushUtils;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 import prerna.util.insight.InsightUtility;
@@ -56,15 +60,24 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		// need to know what we are updating
 		String existingId = getRdbmsId();
 		
+		User user = this.insight.getUser();
+		String author = null;
+		String email = null;
+		
 		// security
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+			if(AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
+			if(!SecurityInsightUtils.userCanEditInsight(user, projectId, existingId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
+			
+			// Get the user's email
+			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+			email = accessToken.getEmail();
+			author = accessToken.getUsername();
 		}
 		
 		String insightName = getInsightName();
@@ -181,33 +194,63 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 
 		// update insight db
-		logger.info("1) Updating insight in rdbms");
+		int stepCounter = 1;
+		logger.info(stepCounter + ") Updating insight in rdbms");
 		admin.updateInsight(existingId, insightName, layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
-		logger.info("1) Done");
+		logger.info(stepCounter + ") Done");
+		stepCounter++;
 		
 		String description = getDescription();
 		List<String> tags = getTags();
 		
-		logger.info("2) Updated registered insight...");
+		logger.info(stepCounter + ") Updated registered insight...");
 		editRegisteredInsightAndMetadata(project, existingId, insightName, layout, 
 				global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
 				recipeToSave, description, tags, this.insight.getVarStore().getFrames());
-		logger.info("2) Done...");
+		logger.info(stepCounter + ") Done...");
+		stepCounter++;
 		
 		// update recipe text file
-		logger.info("3) Update Mosfet file for collaboration");
-		updateRecipeFile(projectId, project.getProjectName(), 
-				existingId, insightName, layout, IMAGE_NAME, recipeToSave, global, 
-				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-				description, tags);
-		logger.info("3) Done");
+		logger.info(stepCounter + ") Update Mosfet file for collaboration");
+		try {
+			MosfetSyncHelper.makeMosfitFile(projectId, project.getProjectName(), 
+					existingId, insightName, layout, recipeToSave, global, 
+					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
+					description, tags, true);
+		} catch (IOException e) {
+			UpdateInsightReactor.logger.error(Constants.STACKTRACE, e);
+			logger.info(stepCounter + ") Unable to save recipe file...");
+		}
+		logger.info(stepCounter + ") Done...");
+		stepCounter++;
+		
+		logger.info(stepCounter + ") Push updated mosfet to git");
+		String projectVersion = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
+		List<String> files = new Vector<>();
+		files.add(existingId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
+		GitRepoUtils.addSpecificFiles(projectVersion, files);
+		GitRepoUtils.commitAddedFiles(projectVersion, GitUtils.getDateMessage("Update insight '" + existingId + "' (+" + insightName + ") recipe on"), author, email);
+		AuthProvider projectGitProvider = project.getGitProvider();
+		if(user != null && user.getAccessToken(projectGitProvider) != null) {
+			List<Map<String, String>> remotes = GitRepoUtils.listConfigRemotes(projectVersion);
+			if(remotes != null && !remotes.isEmpty()) {
+				AccessToken userToken = user.getAccessToken(projectGitProvider);
+				String token = userToken.getAccess_token();
+				for(Map<String, String> thisRemote : remotes) {
+					GitPushUtils.push(projectVersion, thisRemote.get("url"), null, token, projectGitProvider, 1);
+				}
+			}
+		}
+		logger.info(stepCounter + ") Done pushing to git");
+		stepCounter++;
 		
 		// get file we are saving as an image
 		String imageFile = getImage();
 		if(imageFile != null && !imageFile.trim().isEmpty()) {
-			logger.info("4) Storing insight image...");
+			logger.info(stepCounter + ") Storing insight image...");
 			storeImageFromFile(imageFile, existingId, projectId, project.getProjectName());
-			logger.info("4) Done...");
+			logger.info(stepCounter + ") Done...");
+			stepCounter++;
 		}
 		
 		// update the workspace cache for the saved insight
@@ -270,36 +313,4 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			SecurityInsightUtils.updateInsightFrames(projectId, existingRdbmsId, insightFrames);
 		}
 	}
-	
-	/**
-	 * Update recipe: delete the old file and save as new
-	 * 
-	 * @param engineName
-	 * @param rdbmsID
-	 * @param recipeToSave
-	 */
-	protected void updateRecipeFile(String projectId, String projectName, String rdbmsID, String insightName, 
-			String layout, String imageName, List<String> recipeToSave, boolean hidden, 
-			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
-			String description, List<String> tags) {
-		String recipeLocation = AssetUtility.getProjectVersionFolder(projectName, projectId)
-				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
-		// update the mosfet
-		try {
-			MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), 
-					projectId, projectName, rdbmsID, insightName,
-					layout, imageName, recipeToSave, hidden, 
-					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-					description, tags);
-			// add to git
-			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-			List<String> files = new Vector<>();
-			files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
-			GitRepoUtils.addSpecificFiles(gitFolder, files);
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " recipe on"));
-		} catch (Exception e) {
-			UpdateInsightReactor.logger.error(Constants.STACKTRACE, e);
-		}
-	}
-	
 }

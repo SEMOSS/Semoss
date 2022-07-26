@@ -152,6 +152,7 @@ public enum ReactorKeysEnum {
 	PROJECT("project", 											"Name of the project"),
 	PROJECT_PROPERTIES_MAP("propMap", 							"Map containing the values for the project properties"),
 	PROP_FILE("propFile", 									    "The path to the properties file."),
+	PROVIDER("provider", 									    "The provider for authorization (i.e. Gitlab/Github)"),
 	RANDOM_VALS("randomVals",									"The number of random values to use for the routine"),
 	QUERY_PART("querypart",										"Specify the query part that is being replaced. This will help toward REPL"),	
 	REACTOR("reactor", 											"Reactor name"),

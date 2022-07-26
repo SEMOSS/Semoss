@@ -362,7 +362,7 @@ public class LegacyToProjectRestructurerHelper {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-		File tempProjectSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, existingRdbmsType);
+		File tempProjectSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, null, null, existingRdbmsType);
 		File smssFile = new File(tempProjectSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(tempProjectSmss, smssFile);
