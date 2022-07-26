@@ -600,7 +600,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		if (innerInterpreter == null) {
 			throw new NullPointerException("innerInterpreter cannot be null here.");
 		}
-
+		// set the necessary references
+		innerInterpreter.engine = this.engine;
+		innerInterpreter.queryUtil = this.queryUtil;
+		innerInterpreter.frame = this.frame;
+		
 		innerInterpreter.setQueryStruct(subQs);
 		innerInterpreter.setLogger(this.logger);
 		String innerQuery = innerInterpreter.composeQuery();
@@ -867,7 +871,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		if (innerInterpreter == null) {
 			throw new NullPointerException("innerInterpreter cannot be null here.");
 		}
-
+		// set the necessary references
+		innerInterpreter.engine = this.engine;
+		innerInterpreter.queryUtil = this.queryUtil;
+		innerInterpreter.frame = this.frame;
+		
 		innerInterpreter.setQueryStruct(subQs);
 		innerInterpreter.setLogger(this.logger);
 		String innerQuery = innerInterpreter.composeQuery();
