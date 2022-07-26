@@ -456,17 +456,24 @@ public class GitPushUtils {
 		   }
 	   }
 
-	   CredentialsProvider cp = null; 
-	   if(isGitlab) {
-		   cp = new UsernamePasswordCredentialsProvider("oauth2", token);
+	   CredentialsProvider cp = null;
+	   if(token != null) {
+		   if(isGitlab) {
+			   cp = new UsernamePasswordCredentialsProvider("oauth2", token);
+		   } else {
+			   cp = new UsernamePasswordCredentialsProvider(token, "");
+		   }
+		   logger.info("Cloning project " + repo + " with " + prov + " credentials");
 	   } else {
-		   cp = new UsernamePasswordCredentialsProvider(token, "");
+		   logger.info("Cloning project " + repo + " without any credentials");
 	   }
 
 	   CloneCommand clone = Git.cloneRepository();
 	   clone.setURI(repo);
 	   clone.setDirectory(dirFile);
-	   clone.setCredentialsProvider(cp);
+	   if(cp != null) {
+		   clone.setCredentialsProvider(cp);
+	   }
 	   if(trustedRepo!=null && !trustedRepo.isEmpty()) {
 		   if(defaultBranch!=null && !defaultBranch.isEmpty()) {
 			   clone.setBranch(defaultBranch);
@@ -478,7 +485,7 @@ public class GitPushUtils {
 		   return new NounMetadata("Git clone success: " + repo, PixelDataType.CONST_STRING, PixelOperationType.HELP);
 	   } catch (GitAPIException e) {
 		   logger.error(STACKTRACE, e);
-		   return new NounMetadata("Git clone Error: "+ e, PixelDataType.ERROR, PixelOperationType.HELP);
+		   return new NounMetadata("Git clone error: "+ e, PixelDataType.ERROR, PixelOperationType.HELP);
 	   }
 
    }
