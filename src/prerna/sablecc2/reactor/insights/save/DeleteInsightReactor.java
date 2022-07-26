@@ -6,19 +6,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
-import prerna.om.MosfetFile;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -27,14 +30,17 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
-import prerna.util.MosfetSyncHelper;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
+import prerna.util.git.GitPushUtils;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 
 public class DeleteInsightReactor extends AbstractReactor {
 
+	private static final Logger logger = LogManager.getLogger(DeleteInsightReactor.class);
+	
 	public DeleteInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
 	}
@@ -86,32 +92,37 @@ public class DeleteInsightReactor extends AbstractReactor {
 			try {
 				admin.dropInsight(insightId);
 			} catch (RuntimeException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			
 			// delete insight folder
-			String insightFolderPath = AssetUtility.getProjectVersionFolder(projectName, projectId)
-					+ DIR_SEPARATOR + insightId;
+			String projectVersion = AssetUtility.getProjectVersionFolder(projectName, projectId);
+			String insightFolderPath = projectVersion + DIR_SEPARATOR + insightId;
 			File insightFolder = new File(insightFolderPath);
 			Stream<Path> walk = null;
 			try {
-				// delete insight files from git
-				File mosfitF = new File(insightFolderPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
-				if(mosfitF.exists() && mosfitF.isFile()) {
-					String insightName = MosfetSyncHelper.getInsightName(mosfitF);
-					String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-					// grab relative file paths
-					walk = Files.walk(Paths.get(insightFolder.toURI()));
-					List<String> files = walk
-							.map(x -> insightId + DIR_SEPARATOR
-									+ insightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
-							.collect(Collectors.toList());
-					files.remove(""); // removing empty path
-					GitDestroyer.removeSpecificFiles(gitFolder, true, files);
-					GitRepoUtils.commitAddedFiles(gitFolder,GitUtils.getDateMessage("Deleted " + insightName + " insight on"), author, email);
+				// grab relative file paths
+				walk = Files.walk(Paths.get(insightFolder.toURI()));
+				List<String> files = walk
+						.map(x -> insightId + DIR_SEPARATOR
+								+ insightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
+						.collect(Collectors.toList());
+				files.remove(""); // removing empty path
+				GitDestroyer.removeSpecificFiles(projectVersion, true, files);
+				GitRepoUtils.commitAddedFiles(projectVersion, GitUtils.getDateMessage("Deleted insight '" + insightId + "' on"), author, email);
+				AuthProvider projectGitProvider = project.getGitProvider();
+				if(user != null && user.getAccessToken(projectGitProvider) != null) {
+					List<Map<String, String>> remotes = GitRepoUtils.listConfigRemotes(projectVersion);
+					if(remotes != null && !remotes.isEmpty()) {
+						AccessToken userToken = user.getAccessToken(projectGitProvider);
+						String token = userToken.getAccess_token();
+						for(Map<String, String> thisRemote : remotes) {
+							GitPushUtils.push(projectVersion, thisRemote.get("url"), null, token, projectGitProvider, 1);
+						}
+					}
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(walk != null) {
 					walk.close();
@@ -120,7 +131,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 				try {
 					FileUtils.deleteDirectory(insightFolder);
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			
