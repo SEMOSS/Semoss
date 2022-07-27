@@ -139,7 +139,7 @@ public class SemossDate implements Comparable<SemossDate> {
 	 * @param localDate
 	 */
 	public SemossDate(LocalDate localDate) {
-		this(Date.from( localDate.atStartOfDay( TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()).toZoneId() ).toInstant() ), "yyyy-MM-dd");
+		this(Date.from( localDate.atStartOfDay( TimeZone.getDefault().toZoneId() ).toInstant() ), "yyyy-MM-dd");
 	}
 	
 	/**
@@ -147,7 +147,7 @@ public class SemossDate implements Comparable<SemossDate> {
 	 * @param localDateTime
 	 */
 	public SemossDate(LocalDateTime localDateTime) {
-		this(Date.from( localDateTime.atZone( TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()).toZoneId() ).toInstant() ), "yyyy-MM-dd HH:mm:ss");
+		this(Date.from( localDateTime.atZone( TimeZone.getDefault().toZoneId() ).toInstant() ), "yyyy-MM-dd HH:mm:ss");
 	}
 
 	public String getPattern() {
