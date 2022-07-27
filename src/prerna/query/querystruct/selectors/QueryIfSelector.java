@@ -112,4 +112,33 @@ public class QueryIfSelector extends AbstractQuerySelector {
 	public void setPixelString(String pixelString) {
 		this.pixelString = pixelString;
 	}
+	
+	/**
+	 * Helper function to create a query if selector
+	 * @param condition
+	 * @param qsName1
+	 * @param qsName2
+	 * @param alias
+	 * @return
+	 */
+	public static QueryIfSelector makeQueryIfSelector(IQueryFilter condition, String qsName1, String qsName2, String alias) {
+		return makeQueryIfSelector(condition, new QueryColumnSelector(qsName1), new QueryColumnSelector(qsName2), alias);
+	}
+	
+	/**
+	 * Helper function to create a query if selector
+	 * @param condition
+	 * @param precedent
+	 * @param antecedent
+	 * @param alias
+	 * @return
+	 */
+	public static QueryIfSelector makeQueryIfSelector(IQueryFilter condition, IQuerySelector precedent, IQuerySelector antecedent, String alias) {
+		QueryIfSelector ifSelector = new QueryIfSelector();
+		ifSelector.setCondition(condition);
+		ifSelector.setPrecedent(precedent);
+		ifSelector.setAntecedent(antecedent);
+		ifSelector.setAlias(alias);
+		return ifSelector;
+	}
 }

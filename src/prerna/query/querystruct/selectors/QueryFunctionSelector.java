@@ -143,4 +143,69 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 		}
 		return usedCols;
 	}
+	
+	/**
+	 * Helper method to generate a function selector on a column
+	 * @param function
+	 * @param qsName
+	 * @param alias
+	 * @return
+	 */
+	public static QueryFunctionSelector makeFunctionSelector(String function, String qsName, String alias) {
+		return makeFunctionSelector(function, new QueryColumnSelector(qsName), alias);
+	}
+	
+	/**
+	 * Helper method to generate a function selector on a selector
+	 * @param function
+	 * @param selector
+	 * @param alias
+	 * @return
+	 */
+	public static QueryFunctionSelector makeFunctionSelector(String function, IQuerySelector selector, String alias) {
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(function);
+		fun.addInnerSelector(selector);
+		fun.setAlias(alias);
+		return fun;
+	}
+	
+	/**
+	 * Make coalesce selector between 2 columns
+	 * @param qsName1
+	 * @param qsName2
+	 * @param alias
+	 * @return
+	 */
+	public static QueryFunctionSelector makeCol2ColCoalesceSelector(String qsName1, String qsName2, String alias) {
+		return makeCoalesceSelector(new QueryColumnSelector(qsName1), new QueryColumnSelector(qsName2), alias);
+	}
+	
+	/**
+	 * Make coalesce selector
+	 * @param qsName1
+	 * @param value
+	 * @param alias
+	 * @return
+	 */
+	public static QueryFunctionSelector makeCol2ValCoalesceSelector(String qsName1, Object value, String alias) {
+		return makeCoalesceSelector(new QueryColumnSelector(qsName1), new QueryConstantSelector(value), alias);
+	}
+	
+	/**
+	 * Make coalesce selector
+	 * @param selector1
+	 * @param selector2
+	 * @param alias
+	 * @return
+	 */
+	public static QueryFunctionSelector makeCoalesceSelector(IQuerySelector selector1, IQuerySelector selector2, String alias) {
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+        fun.setFunction(QueryFunctionHelper.COALESCE);
+        fun.addInnerSelector(selector1);
+        fun.addInnerSelector(selector2);
+        fun.setAlias(alias);
+        return fun;
+	}
+	
 }

@@ -926,9 +926,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
-			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "FAVORITE"));
-			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION", "PERMISSION"));
-			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY", "VISIBILITY"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "PROJECTPERMISSION__FAVORITE", "FAVORITE"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "PROJECTPERMISSION__PERMISSION", "PERMISSION"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "PROJECTPERMISSION__VISIBILITY", "VISIBILITY"));
+			qs2.addGroupBy(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
 			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "="});
 			qs1.addRelation(subQuery);
