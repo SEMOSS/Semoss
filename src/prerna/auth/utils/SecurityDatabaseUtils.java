@@ -1129,9 +1129,10 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
-			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__FAVORITE", "FAVORITE"));
-			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "PERMISSION"));
-			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY", "VISIBILITY"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "ENGINEPERMISSION__FAVORITE", "FAVORITE"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "ENGINEPERMISSION__PERMISSION", "PERMISSION"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "ENGINEPERMISSION__VISIBILITY", "VISIBILITY"));
+			qs2.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
 			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "="});
 			qs1.addRelation(subQuery);
