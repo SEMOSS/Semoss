@@ -4,15 +4,14 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Constants;
@@ -34,34 +33,37 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 	}
 
 	/**
-	 * Getting a file name
-	 * 
+	 * Get the file name
+	 * @param customName
+	 * @param extension
+	 * @param appendTimestamp
+	 * @return
+	 */
+	public static String getExportFileName(String customName, String extension, boolean appendTimestamp) {
+		if(appendTimestamp) {
+			return  getExportFileName( customName,  extension);
+		} else if(customName != null && !customName.trim().isEmpty()) {
+			return Utility.normalizePath(customName.trim()) + "." + extension;
+		}
+		return Utility.normalizePath("SEMOSS_Export") + "." + extension;
+	}
+	
+	/**
+	 * Get the file name and always append the timestamp
+	 * @param customName
 	 * @param extension
 	 * @return
 	 */
 	public static String getExportFileName(String customName, String extension) {
 		// get a random file name
-		Date date = new Date();
-		SimpleDateFormat formatter = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS");
-		formatter.setTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		String modifiedDate = formatter.format(date);
+		SemossDate sDate = new SemossDate(LocalDateTime.now());
+		String dateFormatted = sDate.getFormatted("yyyy-MM-dd HH-mm-ss");
 		if(customName != null && !customName.trim().isEmpty()) {
-			return Utility.normalizePath(customName.trim() + "_" + modifiedDate) + "." + extension;
+			return Utility.normalizePath(customName.trim() + "_" + dateFormatted) + "." + extension;
 		}
-		return Utility.normalizePath("SEMOSS_Export_" + modifiedDate) + "." + extension;
+		return Utility.normalizePath("SEMOSS_Export_" + dateFormatted) + "." + extension;
 	}
-
-
-	public static String getExportFileName(String customName, String extension, boolean appendTimestamp) {
-		if(appendTimestamp) {
-			return  getExportFileName( customName,  extension);
-		} else {
-		if(customName != null && !customName.trim().isEmpty()) {
-			return Utility.normalizePath(customName.trim()) + "." + extension;
-		}
-		return Utility.normalizePath("SEMOSS_Export") + "." + extension;
-		}
-	}
+	
 	@Override
 	protected void buildTask() {
 		if (delimiter == null) {
