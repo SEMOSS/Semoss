@@ -10,7 +10,6 @@ import java.util.Vector;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -45,6 +44,12 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	public void setOrderBy(List<IQuerySort> orderByOperations) {
 		this.orderByOperations = orderByOperations;
+	}
+	
+	public void addOrderBy(List<IQuerySort> orderByOperations) {
+		for(IQuerySort orderBy : orderByOperations) {
+			addOrderBy(orderBy);
+		}
 	}
 	
 	public void addOrderBy(String concept, String property, String sortDir) {
