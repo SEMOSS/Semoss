@@ -501,5 +501,28 @@ public class SemossDate implements Comparable<SemossDate> {
 		}
 		return getDate().compareTo(o.getDate());
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if(obj == null || !(obj instanceof SemossDate)) {
+			return false;
+		}
+		
+		SemossDate o = (SemossDate) obj;
+		Date d = o.getDate();
+		
+		if(getDate() == null && d == null) {
+			return true;
+		} else if(getDate() == null || d == null) {
+			return false;
+		}
+		
+		return getDate().equals(d);
+	}
+	
+	@Override
+	public int hashCode() {
+		return getDate().hashCode();
+	}
 
 }
