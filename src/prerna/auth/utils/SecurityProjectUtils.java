@@ -25,6 +25,7 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
@@ -908,6 +909,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			Map<String,Object> projectMetadataFilter, String limit, String offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
 		
+		
+		String groupEnginePermission = "GROUPENGINEPERMISSION__";
+		String projectPrefix = "PROJECT__";
+		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
 		qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
@@ -935,8 +940,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs1.addRelation(subQuery);
 		}
 		// filters
+		OrQueryFilter orFilter = new OrQueryFilter();
 		{
-			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 			qs1.addExplicitFilter(orFilter);
@@ -955,6 +960,31 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", k));
 				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAVALUE", "==", projectMetadataFilter.get(k)));
 				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "==", subQs));
+			}
+		}
+		
+		{
+			// first lets make sure we have any groups
+			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider login : logins) {
+				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+					continue;
+				}
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				groupProjectOrFilters.addFilter(andFilter);
+			}
+			// 4.a does the group have explicit access
+			if(!groupProjectOrFilters.isEmpty()) {
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				// store first and fill in sub query after
+				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "==", subQs));
+				
+				// we need to have the insight filters
+				subQs.addSelector(new QueryColumnSelector(groupEnginePermission + "PROJECTID"));
+				subQs.addExplicitFilter(groupProjectOrFilters);
 			}
 		}
 		
