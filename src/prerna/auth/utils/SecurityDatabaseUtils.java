@@ -19,11 +19,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
@@ -1088,22 +1090,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly, 
 			Map<String, Object> engineMetadataFilter, String limit, String offset) {
-//		String userFilters = getUserFilters(user);
-//		String query = "SELECT DISTINCT "
-//				+ "ENGINE.ENGINEID as \"app_id\", "
-//				+ "ENGINE.ENGINENAME as \"app_name\", "
-//				+ "ENGINE.TYPE as \"app_type\", "
-//				+ "ENGINE.COST as \"app_cost\","
-//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
-//				+ "FROM ENGINE "
-//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-//				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
-//				+ "WHERE "
-//				+ "( ENGINE.GLOBAL=TRUE "
-//				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + " ) "
-//				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + ") "
-//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";	
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+		String enginePrefix = "ENGINE__";
+		String groupEnginePermission = "GROUPENGINEPERMISSION__";
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
@@ -1138,8 +1127,8 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			qs1.addRelation(subQuery);
 		}
 		// filters
+		OrQueryFilter orFilter = new OrQueryFilter();
 		{
-			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 			qs1.addExplicitFilter(orFilter);
@@ -1161,6 +1150,32 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		// group permissions	
+		{
+			// first lets make sure we have any groups
+			OrQueryFilter groupEngineOrFilters = new OrQueryFilter();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider login : logins) {
+				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+					continue;
+				}
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				groupEngineOrFilters.addFilter(andFilter);
+			}
+			// 4.a does the group have explicit access
+			if(!groupEngineOrFilters.isEmpty()) {
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				// store first and fill in sub query after
+				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", "==", subQs));
+				
+				// we need to have the insight filters
+				subQs.addSelector(new QueryColumnSelector(groupEnginePermission + "ENGINEID"));
+				subQs.addExplicitFilter(groupEngineOrFilters);
+			}
+		}
+		
 		Long long_limit = -1L;
 		Long long_offset = -1L;
 		if(limit != null && !limit.trim().isEmpty()) {
@@ -1171,7 +1186,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		}
 		qs1.setLimit(long_limit);
 		qs1.setOffSet(long_offset);
-
+		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
 	}
 	
