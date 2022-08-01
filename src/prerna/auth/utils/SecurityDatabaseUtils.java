@@ -87,6 +87,36 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 	
+
+	
+	/**
+	 * Get markdown for a given engine
+	 * @param user, databaseId
+	 * @return
+	 */
+	public static String getDatabaseMarkdown(User user, String databaseId) {
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", Constants.MARKDOWN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", databaseId));
+		{
+			SelectQueryStruct qs1 = new SelectQueryStruct();
+			qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+			
+			{
+				OrQueryFilter orFilter = new OrQueryFilter();
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+				qs1.addExplicitFilter(orFilter);
+			}
+			qs1.addRelation("ENGINE", "ENGINEPERMISSION", "join");
+			IRelation subQuery = new SubqueryRelationship(qs1, "ENGINE", "join", new String[] {"ENGINE__ENGINEID", "ENGINEMETA__ENGINEID", "="});
+			qs.addRelation(subQuery);
+		}
+		return QueryExecutionUtility.flushToString(securityDb, qs);
+	}
+	
 	/**
 	 * Get the database permissions for a specific user
 	 * @param singleUserId
@@ -686,6 +716,8 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		if(metaKeys != null && !metaKeys.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metaKeys));
 		}
+		// exclude markdown metadata due to potential large data size
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "!=", Constants.MARKDOWN));
 		// order
 		qs.addOrderBy("ENGINEMETA__METAORDER");
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
