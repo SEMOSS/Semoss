@@ -1570,8 +1570,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				groupInsightOrFilters.addFilter(andFilter1);
 				
 				AndQueryFilter andFilter2 = new AndQueryFilter();
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
 				groupProjectOrFilters.addFilter(andFilter2);
 			}
 			// 4.a does the group have explicit access
@@ -1615,6 +1615,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		qs.setLimit(long_limit);
 		qs.setOffSet(long_offset);
+
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
@@ -1668,7 +1669,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
 //		}
 //		// joins
-//		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
+		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
 //		if(tagFiltering) {
 //			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
 //			qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "inner.join");
