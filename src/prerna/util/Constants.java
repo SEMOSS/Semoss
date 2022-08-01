@@ -697,6 +697,7 @@ public class Constants {
 	public static final String PHYSICAL_NAME_ID = "PHYSICALNAMEID";
 	public static final String DESCRIPTION = "description";
 	public static final String TAG = "tag";
+	public static final String MARKDOWN = "markdown";
 	
 	// Metamodel keys
 	public static final String NODE_PROP = "nodeProp";
