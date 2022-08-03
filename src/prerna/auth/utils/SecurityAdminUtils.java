@@ -652,28 +652,21 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getAllDatabaseSettings() {
-//		String query = "SELECT DISTINCT "
-//				+ "ENGINE.ENGINEID as \"app_id\", "
-//				+ "ENGINE.ENGINENAME as \"app_name\", "
-//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\", "
-//				+ "ENGINE.GLOBAL as \"app_global\" "
-//				+ "FROM ENGINE "
-//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
+		return getAllDatabaseSettings(null);
+	}
+	
+	public List<Map<String, Object>> getAllDatabaseSettings(String databaseFilter) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.setAlias("low_app_name");
-		qs.addSelector(fun);
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_app_name"));
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
+		}
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
 	
 	/**
 	 * Get all project options
