@@ -980,7 +980,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get database settings - if dbFitler passed will filter to that db otherwise returns all
+	 * Get database settings - if databaseFitler passed will filter to that db otherwise returns all
 	 * @param user
 	 * @param dbFilter
 	 * @return
