@@ -35,6 +35,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -909,7 +910,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		
-		String groupEnginePermission = "GROUPENGINEPERMISSION__";
+		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
 		String projectPrefix = "PROJECT__";
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
@@ -919,13 +920,57 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
-		fun.setAlias("low_project_name");
-		qs1.addSelector(fun);
-		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "permission"));
+		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "project_favorite"));
+		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
+		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
+		
+		// this block is for max permissions
+		// If both null - return null
+		// if either not null - return the permission value that is not null
+		// if both not null - return the max permissions (I.E lowest number)
+		{
+			AndQueryFilter and = new AndQueryFilter();
+			and.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+			and.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+				
+			AndQueryFilter and1 = new AndQueryFilter();
+			and1.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			and1.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+		
+			AndQueryFilter and2 = new AndQueryFilter();
+			and2.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+			and2.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			
+			SimpleQueryFilter maxPermFilter = SimpleQueryFilter.makeColToColFilter("USER_PERMISSIONS__PERMISSION", "<", "GROUP_PERMISSIONS__PERMISSION");
+			
+			QueryIfSelector qis3 = QueryIfSelector.makeQueryIfSelector(maxPermFilter,
+						new QueryColumnSelector("USER_PERMISSIONS__PERMISSION"),
+						new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION"),
+						"permission"
+					);
+
+			QueryIfSelector qis2 = QueryIfSelector.makeQueryIfSelector(and2,
+						new QueryColumnSelector("USER_PERMISSIONS__PERMISSION"),
+						qis3,
+						"permission"
+					);
+			
+			QueryIfSelector qis1 = QueryIfSelector.makeQueryIfSelector(and1,
+						new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION"),
+						qis2,
+						"permission"
+					);
+			
+			QueryIfSelector qis = QueryIfSelector.makeQueryIfSelector(and,
+						new QueryColumnSelector("USER_PERMISSIONS__PERMISSION"),
+						qis1,
+						"permission"
+					);
+			
+			qs1.addSelector(qis);
+		}
+				
 		// add a join to get the user permission level, if favorite, and the visibility
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
@@ -938,11 +983,47 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "="});
 			qs1.addRelation(subQuery);
 		}
+		
+		// add a join to get the group permission level
+		{
+			SelectQueryStruct qs3 = new SelectQueryStruct();
+			qs3.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
+			qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupProjectPermission + "PERMISSION", "PERMISSION"));
+			qs3.addGroupBy(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
+			
+			// filter on groups
+			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider login : logins) {
+				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+					continue;
+				}
+				
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				groupProjectOrFilters.addFilter(andFilter);
+			}
+			
+			if (!groupProjectOrFilters.isEmpty()) {
+				qs3.addExplicitFilter(groupProjectOrFilters);
+			} else {
+				AndQueryFilter andFilter1 = new AndQueryFilter();
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", null));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", null));
+				qs3.addExplicitFilter(andFilter1);
+			}
+			
+			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join", new String[] {"GROUP_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "="});
+			qs1.addRelation(subQuery);
+		}
+		
 		// filters
 		OrQueryFilter orFilter = new OrQueryFilter();
 		{
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 			qs1.addExplicitFilter(orFilter);
 		}
 		// only show those that are visible
@@ -971,8 +1052,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					continue;
 				}
 				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
 				groupProjectOrFilters.addFilter(andFilter);
 			}
 			// 4.a does the group have explicit access
@@ -982,7 +1063,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "==", subQs));
 				
 				// we need to have the insight filters
-				subQs.addSelector(new QueryColumnSelector(groupEnginePermission + "PROJECTID"));
+				subQs.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID"));
 				subQs.addExplicitFilter(groupProjectOrFilters);
 			}
 		}
@@ -997,7 +1078,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		qs1.setLimit(long_limit);
 		qs1.setOffSet(long_offset);
-		
+	
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
 	}
 	
