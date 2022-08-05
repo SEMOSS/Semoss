@@ -34,6 +34,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
@@ -1109,14 +1110,58 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_database_name");
-		qs1.addSelector(fun);
-		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "permission"));
+		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
+		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
+		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "database_favorite"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "app_favorite"));
+		
+		// this block is for max permissions
+		// If both null - return null
+		// if either not null - return the permission value that is not null
+		// if both not null - return the max permissions (I.E lowest number)
+		{
+			AndQueryFilter and = new AndQueryFilter();
+			and.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+			and.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+				
+			AndQueryFilter and1 = new AndQueryFilter();
+			and1.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			and1.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+		
+			AndQueryFilter and2 = new AndQueryFilter();
+			and2.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+			and2.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			
+			SimpleQueryFilter maxPermFilter = SimpleQueryFilter.makeColToColFilter("USER_PERMISSIONS__PERMISSION", "<", "GROUP_PERMISSIONS__PERMISSION");
+			
+			QueryIfSelector qis3 = QueryIfSelector.makeQueryIfSelector(maxPermFilter,
+						new QueryColumnSelector("USER_PERMISSIONS__PERMISSION"),
+						new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION"),
+						"permission"
+					);
+
+			QueryIfSelector qis2 = QueryIfSelector.makeQueryIfSelector(and2,
+						new QueryColumnSelector("USER_PERMISSIONS__PERMISSION"),
+						qis3,
+						"permission"
+					);
+			
+			QueryIfSelector qis1 = QueryIfSelector.makeQueryIfSelector(and1,
+						new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION"),
+						qis2,
+						"permission"
+					);
+			
+			QueryIfSelector qis = QueryIfSelector.makeQueryIfSelector(and,
+						new QueryColumnSelector("USER_PERMISSIONS__PERMISSION"),
+						qis1,
+						"permission"
+					);
+			
+			qs1.addSelector(qis);
+		}
+		
 		// add a join to get the user permission level, if favorite, and the visibility
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
@@ -1129,6 +1174,42 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "="});
 			qs1.addRelation(subQuery);
 		}
+		
+		// add a join to get the group permission level
+		{
+			SelectQueryStruct qs3 = new SelectQueryStruct();
+			qs3.addSelector(new QueryColumnSelector(groupEnginePermission + "ENGINEID", "ENGINEID"));
+			qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupEnginePermission + "PERMISSION", "PERMISSION"));
+			qs3.addGroupBy(new QueryColumnSelector(groupEnginePermission + "ENGINEID", "ENGINEID"));
+			
+			// filter on groups
+			OrQueryFilter groupEngineOrFilters = new OrQueryFilter();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider login : logins) {
+				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+					continue;
+				}
+				
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				groupEngineOrFilters.addFilter(andFilter);
+			}
+			
+			if (!groupEngineOrFilters.isEmpty()) {
+				qs3.addExplicitFilter(groupEngineOrFilters);
+			} else {
+				AndQueryFilter andFilter1 = new AndQueryFilter();
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", null));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", null));
+				qs3.addExplicitFilter(andFilter1);
+			}
+			
+			
+			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join", new String[] {"GROUP_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "="});
+			qs1.addRelation(subQuery);
+		}
+		
 		// filters
 		OrQueryFilter orFilter = new OrQueryFilter();
 		{
