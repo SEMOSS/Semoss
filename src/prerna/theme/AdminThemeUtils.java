@@ -16,11 +16,12 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 
 public class AdminThemeUtils extends AbstractThemeUtils {
+	
 	private static final Logger logger = LogManager.getLogger(AdminThemeUtils.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
 	private static AdminThemeUtils instance = new AdminThemeUtils();
 
 	private AdminThemeUtils() {
@@ -60,7 +61,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
 			retVal = flushRsToMap(wrapper);
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		if (retVal == null || retVal.isEmpty()) {
@@ -87,7 +88,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
 			return flushRsToMap(wrapper);
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return new ArrayList<>();
@@ -107,7 +108,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.insertData(query);
 			themeDb.commit();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 		return true;
@@ -124,7 +125,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.insertData(query);
 			themeDb.commit();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 		return true;
@@ -152,7 +153,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.insertData(insertQuery);
 			themeDb.commit();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			return null;
 		}
 
@@ -181,7 +182,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.insertData(updateQuery);
 			themeDb.commit();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 
@@ -204,7 +205,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.removeData(deleteQuery);
 			themeDb.commit();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 		return true;
