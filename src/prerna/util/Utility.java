@@ -3438,6 +3438,20 @@ public class Utility {
 	}
 	
 	/**
+	 * Determine if for this instance only the admin can set an insight public
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyInsightSetPublic() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
 	 * Determine if on the application we should cache insights or not
 	 * @return
 	 */
