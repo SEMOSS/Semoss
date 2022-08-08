@@ -99,22 +99,24 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 						// retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
 	
 						// load all the libraries
-						retCon.eval("library(splitstackshape);");
+						retCon.eval("suppressPackageStartupMessages(library(splitstackshape));");
 						logger.info("Loaded packages splitstackshape");
+					
 						// data table
-						retCon.eval("library(data.table);");
+							
+						retCon.eval("suppressPackageStartupMessages(library(data.table));");
 						logger.info("Loaded packages data.table");
 						// reshape2
-						retCon.eval("library(reshape2);");
+						retCon.eval("suppressPackageStartupMessages(library(reshape2));");
 						logger.info("Loaded packages reshape2");
 						// stringr
-						retCon.eval("library(stringr)");
+						retCon.eval("suppressPackageStartupMessages(library(stringr));");
 						logger.info("Loaded packages stringr");
 						// lubridate
-						retCon.eval("library(lubridate);");
+						retCon.eval("suppressPackageStartupMessages(library(lubridate));");
 						logger.info("Loaded packages lubridate");
 						// dplyr
-						retCon.eval("library(dplyr);");
+						retCon.eval("suppressPackageStartupMessages(library(dplyr));");
 						logger.info("Loaded packages dplyr");
 	
 						if(this.insight != null) {
