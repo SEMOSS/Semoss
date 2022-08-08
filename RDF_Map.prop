@@ -132,6 +132,7 @@ ADMIN_ONLY_DB_DELETE	false
 ADMIN_ONLY_DB_ADD_ACCESS	false
 ADMIN_ONLY_DB_SET_PUBLIC	false
 ADMIN_ONLY_DB_SET_DISCOVERABLE	false
+ADMIN_ONLY_INSIGHT_SET_PUBLIC	false
 
 ##################################################
 ##################################################
