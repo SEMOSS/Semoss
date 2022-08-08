@@ -16,6 +16,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
@@ -150,6 +151,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		String layout = getLayout();
 		boolean global = getGlobal();
+		if(global && AbstractSecurityUtils.adminOnlyInsightSetPublic()) {
+			if(!SecurityAdminUtils.userIsAdmin(user)) {
+				throw new IllegalArgumentException("Only an admin can set an insight as public");
+			}
+		}
 		Boolean cacheable = getUserDefinedCacheable();
 		Integer cacheMinutes = getUserDefinedCacheMinutes();
 		Boolean cacheEncrypt = getUserDefinedCacheEncrypt();
