@@ -1310,5 +1310,21 @@ public class InsightUtility {
 		return affectedVars;
 	}
 	
+	/**
+	 * Get the QS for the frame with frame filters applied.  If panel is not null then add in the panel filters as well.
+	 * @param frame
+	 * @param panel
+	 * @return
+	 */
+	public static SelectQueryStruct getFilteredQsForFrame(ITableDataFrame frame, InsightPanel panel) {
+		SelectQueryStruct allDataQs = frame.getMetaData().getFlatTableQs(true);
+		// if panel is passed - add in those filters
+		if(panel != null) {
+			allDataQs.addExplicitFilter(panel.getPanelFilters(), true);
+		}
+		// always add in frame filters
+		allDataQs.addExplicitFilter(frame.getFrameFilters(), true);
+		return allDataQs;
+	}
 	
 }
