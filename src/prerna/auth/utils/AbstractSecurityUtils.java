@@ -56,6 +56,8 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyDatabaseSetPublic = false;
 	static boolean adminOnlyDatabaseSetDiscoverable = false;
 
+	static boolean adminOnlyInsightSetPublic = false;
+	
 	static Gson securityGson = new GsonBuilder().disableHtmlEscaping().create();
 	
 	/**
@@ -121,6 +123,8 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyDatabaseAddAccess = Utility.getApplicationAdminOnlyDbAddAccess();
 		adminOnlyDatabaseSetPublic = Utility.getApplicationAdminOnlyDbSetPublic();
 		adminOnlyDatabaseSetDiscoverable = Utility.getApplicationAdminOnlyDbSetDiscoverable();
+		
+		adminOnlyInsightSetPublic = Utility.getApplicationAdminOnlyInsightSetPublic();
 	}
 
 	public static boolean securityEnabled() {
@@ -178,6 +182,10 @@ public abstract class AbstractSecurityUtils {
 	
 	public static boolean adminOnlyDbSetDiscoverable() {
 		return securityEnabled && adminOnlyDatabaseSetDiscoverable;
+	}
+	
+	public static boolean adminOnlyInsightSetPublic() {
+		return securityEnabled && adminOnlyInsightSetPublic;
 	}
 	
 	public static void initialize() throws Exception {
