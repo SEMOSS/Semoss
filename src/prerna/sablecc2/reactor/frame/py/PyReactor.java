@@ -1,35 +1,18 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ICodeExecution;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.om.Insight;
-import prerna.om.InsightPanel;
 import prerna.om.Variable.LANGUAGE;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.ConstantDataTask;
-import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -71,21 +54,23 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		//String output = pyTranslator.runPyAndReturnOutput(code);
 		String output = null;
 		
-		if(code.startsWith("sns."))
+		if(code.startsWith("sns.")) {
 			return new NounMetadata("Please use PyPlot to plot your chart", PixelDataType.CONST_STRING);
+		}
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(tokens > 1)
+			if(tokens > 1) {
 				output = pyTranslator.runPyAndReturnOutput(insight.getUser().getVarMap(), code) + "";
-			else
+			} else {
 				//output = pyTranslator.runScript(code) + "";
-			output = pyTranslator.runScript(insight.getUser().getVarMap(), code) + "";
-
+				output = pyTranslator.runScript(insight.getUser().getVarMap(), code) + "";
+			}
 		} else {
-			if(tokens > 1)
+			if(tokens > 1) {
 				output = pyTranslator.runPyAndReturnOutput(code) + "";
-			else
+			} else {
 				output = pyTranslator.runScript(code) + "";
+			}
 		}
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
