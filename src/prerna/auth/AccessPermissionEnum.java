@@ -99,11 +99,21 @@ public enum AccessPermissionEnum {
 		return ep.getId();
 	}
 	
-	public static Map<Integer, String> flushEnum() {
+	public static Map<Integer, String> flushEnumInteger() {
 		AccessPermissionEnum[] values = AccessPermissionEnum.values();
 		Map<Integer, String> flushed = new HashMap<>(values.length);
 		for(AccessPermissionEnum e : values) {
 			flushed.put(e.id, e.permission);
+		}
+		
+		return flushed;
+	}
+	
+	public static Map<String, Integer> flushEnumString() {
+		AccessPermissionEnum[] values = AccessPermissionEnum.values();
+		Map<String, Integer> flushed = new HashMap<>(values.length);
+		for(AccessPermissionEnum e : values) {
+			flushed.put(e.permission, e.id);
 		}
 		
 		return flushed;
