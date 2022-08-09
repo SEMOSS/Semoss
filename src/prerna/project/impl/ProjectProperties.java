@@ -95,4 +95,8 @@ public class ProjectProperties {
 		this.processor.reloadProps();
 	}
 	
+	public File getSocialProp() {
+		return socialProp;
+	}
+	
 }
