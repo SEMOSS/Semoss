@@ -33,7 +33,7 @@ public class SetProjectPropertiesContentReactor extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
+				throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
 			}
 		}
 				

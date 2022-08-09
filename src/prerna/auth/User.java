@@ -828,9 +828,7 @@ public class User implements Serializable {
 	 * @return
 	 */
 	public boolean checkProjectAccess(String projectName, String projectId) {
-		
-		 return SecurityProjectUtils.userCanViewProject(this, projectId);
-		
+		return SecurityProjectUtils.userCanViewProject(this, projectId);
 	}
 	
 	/**
