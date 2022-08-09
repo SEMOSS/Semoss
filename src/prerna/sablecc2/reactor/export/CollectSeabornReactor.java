@@ -38,6 +38,8 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 	 * This class is responsible for collecting data from a task and returning it
 	 */
 
+	//sns.relplot(data=plotterframe, x='height', y='weight', kind='scatter')
+	
 	private int limit = 0;
 	
 	public CollectSeabornReactor() {
@@ -50,14 +52,14 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		PyTranslator pyt = this.insight.getPyTranslator();
 		pyt.setLogger(this.getLogger(this.getClass().getName()));
 		
-		String splot = keyValue.get(keysToGet[0]) +"";
+		String command = keyValue.get(keysToGet[0]) +"";
 		
 		this.task = getTask();
 		String format = "png";
 		
 		if(keyValue.containsKey(keysToGet[1]))
 			format = keyValue.get(keysToGet[1]);
-		String assignPlotter = "";
+		String assigner = "";
 		String fileName = Utility.getRandomString(6);
 		String loadDT = "";
 		String adjustTypes = "";
@@ -152,12 +154,22 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		// get the composed string and turn it into a data frame
 		String subDataTable = "pd.DataFrame(" + interp.composeQuery() + "['data'], " + columns + ")";
 
-		assignPlotter = "plotterframe = " + subDataTable; //thisFrame.getName();
+		assigner = thisFrame.getName();
+
+		command = command.replaceAll("\\s", ""); // remove all spaces
+		assigner = "plotterframe = " + subDataTable;
+		if(command.contains("data=" + thisFrame.getName() + ""))
+		{
+			command = command.replace("data=" + thisFrame.getName() + "", "data=plotterframe");
+		}
+
 		String importSeaborn = "import seaborn as sns";
 		String importMatPlot = "import matplotlib.pyplot as plt";
+		String clearPlot = "plt.clf()";
 		//assignPlotter = "plotterFrame = " + fileName;
 		//String runPlot = "daplot = sns.relplot(" + splot + ")";
-		String runPlot =  splot ;
+		// making a quick adjustment
+		String runPlot =  command ;
 		String seabornFile = Utility.getRandomString(6);
 		String printFile = "print(saveFile)";
 		String saveFileName = "saveFile = ROOT + '/" + seabornFile + "." + format + "'";
@@ -167,7 +179,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		String removeMatPlot = "del(plt)";
 		String removeSaveFile = "del(saveFile)";
 		
-		seabornFile = (String)pyt.runPyAndReturnOutput(loadDT, adjustTypes, importSeaborn, importMatPlot, assignPlotter, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, removeMatPlot, printFile, removeSaveFile);
+		seabornFile = (String)pyt.runPyAndReturnOutput(loadDT, adjustTypes, importSeaborn, importMatPlot, clearPlot, assigner, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, removeMatPlot, printFile, removeSaveFile);
 
 		// get the insight folder
 		String IF = insight.getInsightFolder();
@@ -209,7 +221,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		outputMap.put("headers", new String[] {});
 		outputMap.put("rawHeaders", new String[] {});
 		outputMap.put("values", new String[]{sw.toString()});
-		outputMap.put("splot", splot);	
+		outputMap.put("splot", command);	
 		outputMap.put("format", format);
 		
 		// set the output so it can give it
