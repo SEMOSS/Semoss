@@ -828,8 +828,9 @@ public class User implements Serializable {
 	 * @return
 	 */
 	public boolean checkProjectAccess(String projectName, String projectId) {
-		return this.projectIdMap.containsKey(projectId) && 
-				this.projectIdMap.get(projectId).equalsIgnoreCase(projectName);	
+		
+		 return SecurityProjectUtils.userCanViewProject(this, projectId);
+		
 	}
 	
 	/**
