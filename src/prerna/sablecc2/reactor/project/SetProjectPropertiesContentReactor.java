@@ -16,9 +16,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
-public class SetProjectContentReactor extends AbstractReactor {
+public class SetProjectPropertiesContentReactor extends AbstractReactor {
 	
-	public SetProjectContentReactor() {
+	public SetProjectPropertiesContentReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_PROPERTIES_MAP.getKey()};
 	}
 
