@@ -504,6 +504,11 @@ public class Constants {
 	public static final String ADMIN_ONLY_DB_SET_DISCOVERABLE = "ADMIN_ONLY_DB_SET_DISCOVERABLE";
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
 
+	@Deprecated
+	public static final String PIPELINE_LANDING_FILTER = "PIPELINE_LANDING_FILTER";
+	@Deprecated
+	public static final String PIPELINE_SOURCE_FILTER = "PIPELINE_SOURCE_FILTER";
+
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
 	
