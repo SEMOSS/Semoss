@@ -19,6 +19,7 @@ import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 
 	protected String DYNAMIC_KEY = "dynamic";
+	protected String OPTIONS_CACHE_KEY = "optionsCache";
 	protected String TASK_REFRESH_KEY = "taskRefresh";
 
 	/**
@@ -98,11 +99,16 @@ public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 			if (addFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 				SimpleQueryFilter simpleAdd = (SimpleQueryFilter) addFilter;
 				// account for the select all statements that may happen
-				if(SimpleQueryFilter.isSelectAll(simpleAdd) || SimpleQueryFilter.isUnselectAll(simpleAdd)) {
+				boolean selectAll = false;
+				if((selectAll = SimpleQueryFilter.isSelectAll(simpleAdd)) || SimpleQueryFilter.isUnselectAll(simpleAdd)) {
 					// we will need to go through the current filters that touch the column
 					// and remove them
 					String column = simpleAdd.getAllUsedColumns().iterator().next();
 					existingFilters.removeColumnFilter(column);
+					if(selectAll) {
+						// dont need to add to the filter list
+						addFiltersToIgnore.add(addFilterIdx);
+					}
 				}
 				
 				for (int filterIndex = 0; filterIndex < existingFilters.getFilters().size(); filterIndex++) {

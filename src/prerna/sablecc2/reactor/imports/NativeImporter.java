@@ -10,6 +10,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -149,7 +150,20 @@ public class NativeImporter extends AbstractImporter {
 				executedDataTypes = ((IRawSelectWrapper) it).getTypes();
 			}
 		}
-		boolean ignore = MetadataUtility.ignoreConceptData(this.qs.getEngineId());
+		boolean ignore = true;
+		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
+		if(qsType == QUERY_STRUCT_TYPE.ENGINE 
+				|| qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| qsType == QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY
+				) {
+			ignore = MetadataUtility.ignoreConceptData(this.qs.getEngineId());
+		} else if (qsType == QUERY_STRUCT_TYPE.FRAME && qs.getFrame().getFrameType() == DataFrameTypeEnum.NATIVE) {
+			ignore = MetadataUtility.ignoreConceptData(((NativeFrame)qs.getFrame()).getEngineId());
+			this.qs.setEngineId( ((NativeFrame)qs.getFrame()).getEngineId() );
+			this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+			this.qs = QSAliasToPhysicalConverter.getPhysicalQs(this.qs, qs.getFrame().getMetaData());			
+		}
+
 		ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs, ignore, executedDataTypes);
 		this.dataframe.mergeQueryStruct(this.qs);
 	}
