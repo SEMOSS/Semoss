@@ -3452,6 +3452,36 @@ public class Utility {
 	}
 	
 	/**
+	 * Get a comma separated list of widget ids to filter on
+	 * @return
+	 */
+	@Deprecated
+	public static String[] getApplicationPipelineLandingFilter() {
+		String filterList = DIHelper.getInstance().getProperty(Constants.PIPELINE_LANDING_FILTER);
+		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
+			// default null
+			return null;
+		}
+		
+		return filterList.split(",");
+	}
+	
+	/**
+	 * Get a comma separated list of widget ids to filter on
+	 * @return
+	 */
+	@Deprecated
+	public static String[] getApplicationPipelineSourceFilter() {
+		String filterList = DIHelper.getInstance().getProperty(Constants.PIPELINE_SOURCE_FILTER);
+		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
+			// default null
+			return null;
+		}
+		
+		return filterList.split(",");
+	}
+	
+	/**
 	 * Determine if on the application we should cache insights or not
 	 * @return
 	 */
