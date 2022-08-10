@@ -22,8 +22,12 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
+import prerna.sablecc2.reactor.imports.IImporter;
+import prerna.sablecc2.reactor.imports.ImportFactory;
 
 public class FilterModelStateReactor extends AbstractFilterReactor {
 
@@ -42,7 +46,7 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 	public FilterModelStateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey(),
-				DYNAMIC_KEY};
+				DYNAMIC_KEY, OPTIONS_CACHE_KEY};
 	}
 
 	@Override
@@ -84,14 +88,61 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		if (dynamicGrs != null && !dynamicGrs.isEmpty()) {
 			dynamic = Boolean.parseBoolean(dynamicGrs.get(0) + "");
 		}
+		
+		boolean optionsCache = false;
+		GenRowStruct optionsCacheGrs = this.store.getNoun(keysToGet[6]);
+		if (optionsCacheGrs != null && !optionsCacheGrs.isEmpty()) {
+			optionsCache = Boolean.parseBoolean(optionsCacheGrs.get(0) + "");
+		}
+		
+		if(dynamic && optionsCache) {
+			throw new IllegalArgumentException("Cannot have dynamic filters with cached options");
+		}
 
-		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, dynamic, panel, logger);
+		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, dynamic, optionsCache, panel, logger);
 	}
 
 	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
-			int offset, boolean dynamic, InsightPanel panel, Logger logger) {
+			int offset, boolean dynamic, boolean optionsCache, InsightPanel panel, Logger logger) {
 		DataFrameTypeEnum frameType = dataframe.getFrameType();
 
+		ITableDataFrame queryFrame = dataframe;
+		if(optionsCache) {
+			String uKey = dataframe.getName() + tableCol;
+			ITableDataFrame cache = panel.getCachedFitlerModelFrame(uKey);
+			if(cache == null) {
+				SelectQueryStruct qs = new SelectQueryStruct();
+				qs.addSelector(new QueryColumnSelector(tableCol));
+				qs.setFrame(dataframe);
+				IRawSelectWrapper it = null;
+				try {
+					it = dataframe.query(qs);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(
+							new NounMetadata("Error occured executing query before loading into frame", 
+									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				}
+				try {
+					cache = FrameFactory.getFrame(this.insight, frameType.getTypeAsString(), uKey);
+				} catch (Exception e) {
+					throw new IllegalArgumentException("Error occured trying to create the cached options frame of type " + frameType, e);
+				}
+				// insert the data for the new frame
+				IImporter importer = ImportFactory.getImporter(cache, qs, it);
+				try {
+					importer.insertData();
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
+				// now store this
+				panel.addCachedFitlerModelFrame(uKey, cache);
+			}
+			// set the new dataframe reference to the cache
+			queryFrame = cache;
+		}
+		
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		// first just return the info that was passed in
@@ -133,7 +184,7 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		// flush out the values
 		IRawSelectWrapper allValuesIt = null;
 		try {
-			allValuesIt = dataframe.query(qs);
+			allValuesIt = queryFrame.query(qs);
 			while (allValuesIt.hasNext()) {
 				options.add(allValuesIt.next().getValues()[0]);
 			}
@@ -170,7 +221,7 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		int totalCount = 0;
 		IRawSelectWrapper totalCountIt = null;
 		try {
-			totalCountIt = dataframe.query(totalCountQS);
+			totalCountIt = queryFrame.query(totalCountQS);
 			while (totalCountIt.hasNext()) {
 				Object numUnique = totalCountIt.next().getValues()[0];
 				totalCount = ((Number) numUnique).intValue();
@@ -202,10 +253,6 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		mergeFilters(panel.getTempFilterModelGrf(), extractedCurrentFilters);
 		// then merge back with the other filters
 		baseFilters.merge(extractedCurrentFilters);
-//		// add the filter word as a like filter
-//		if (filterWord != null && !filterWord.trim().isEmpty()) {
-//			baseFilters.addFilters(wFilter);
-//		}
 
 		// this is just the values of the column given the current filters
 		qs2.setExplicitFilters(baseFilters);
@@ -216,7 +263,7 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		// now run and flush out the values
 		IRawSelectWrapper unFilterValuesIt = null;
 		try {
-			unFilterValuesIt = dataframe.query(qs2);
+			unFilterValuesIt = queryFrame.query(qs2);
 			while (unFilterValuesIt.hasNext()) {
 				selectedValues.add(unFilterValuesIt.next().getValues()[0]);
 			}
@@ -239,7 +286,7 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		int selectedCount = 0;
 		IRawSelectWrapper selectedCountIt = null;
 		try {
-			selectedCountIt = dataframe.query(selectedCountQS);
+			selectedCountIt = queryFrame.query(selectedCountQS);
 			while (selectedCountIt.hasNext()) {
 				Object numUnique = selectedCountIt.next().getValues()[0];
 				selectedCount = ((Number) numUnique).intValue();
