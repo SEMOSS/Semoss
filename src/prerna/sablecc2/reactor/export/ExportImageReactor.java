@@ -15,7 +15,7 @@ public class ExportImageReactor extends AbstractReactor {
 
 	public ExportImageReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.BASE_URL.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
+				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
 	}
 
 	@Override
@@ -38,6 +38,16 @@ public class ExportImageReactor extends AbstractReactor {
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 		}
 	
+		Integer waitTime = null;
+		String waitTimeStr = this.keyValue.get(this.keysToGet[4]);
+		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
+			try {
+				waitTime = Integer.parseInt(waitTimeStr);
+			} catch(NumberFormatException e) {
+				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+			}
+		}
+		
 		// store the insight file 
 		// in the insight so the FE can download it
 		// only from the given insight
@@ -49,7 +59,7 @@ public class ExportImageReactor extends AbstractReactor {
 		this.insight.addExportFile(downloadKey, insightFile);
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 
-		this.insight.getChromeDriver().captureImage(baseUrl, imageUrl, fileLocation, sessionId);
+		this.insight.getChromeDriver().captureImage(baseUrl, imageUrl, fileLocation, sessionId, waitTime);
 		return retNoun;
 	}
 }

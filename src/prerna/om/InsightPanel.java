@@ -72,8 +72,6 @@ public class InsightPanel {
 	private transient ITableDataFrame tempFitlerModelFrame;
 	// set temporary filter model state
 	private transient GenRowFilters tempFilterModelGrf;
-	// temporal cache for frame to list of values
-	private transient Map<String, ITableDataFrame> cachedFitlerModelFrame;
 
 	public InsightPanel(String panelId, String sheetId) {
 		this.panelId = panelId;
@@ -89,8 +87,6 @@ public class InsightPanel {
 		this.orderBys = new ArrayList<IQuerySort>();
 		
 		this.tempFilterModelGrf = new GenRowFilters();
-		
-		this.cachedFitlerModelFrame = new HashMap<>();
 	}
 	
 	/**
@@ -614,32 +610,6 @@ public class InsightPanel {
 		this.tempFitlerModelFrame = tempFitlerModelFrame;
 	}
 	
-	/**
-	 * Set the temp frame for caching the filter model
-	 * @param uniqueKey
-	 * @param tempFrame
-	 */
-	public void addCachedFitlerModelFrame(String uniqueKey, ITableDataFrame tempFrame) {
-		this.cachedFitlerModelFrame.put(uniqueKey, tempFrame);
-	}
-	
-	/**
-	 * Get the temp frame cached for the filter model
-	 * @param uniqueKey
-	 * @return
-	 */
-	public ITableDataFrame getCachedFitlerModelFrame(String uniqueKey) {
-		return this.cachedFitlerModelFrame.get(uniqueKey);
-	}
-	
-	/**
-	 * Get all the cached filter model frames
-	 * @return
-	 */
-	public Map<String, ITableDataFrame> getCachedFilterModelFrame() {
-		return this.cachedFitlerModelFrame;
-	}
-
 	/**
 	 * Return the panel level sorts
 	 * @return

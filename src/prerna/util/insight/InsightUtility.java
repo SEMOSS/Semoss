@@ -314,6 +314,15 @@ public class InsightUtility {
 			taskStore.clearAllTasks();
 			classLogger.debug("Successfully cleared all stored tasks for the insight");
 	
+			Map<String, ITableDataFrame> filterCaches = insight.getCachedFilterModelFrame();
+			for(String key : filterCaches.keySet()) {
+				try {
+					filterCaches.get(key).close();
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			
 			// drop all the frame connections
 			VarStore varStore = insight.getVarStore();
 			List<String> keys = varStore.getFrameKeysCopy();
