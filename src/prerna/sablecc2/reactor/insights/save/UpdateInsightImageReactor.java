@@ -14,7 +14,8 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = UpdateInsightImageReactor.class.getName();
 	
 	public UpdateInsightImageReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.URL.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), 
+				ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
 	}
 	
 	@Override
@@ -28,10 +29,21 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 		String feUrl = getUrl();
 		String sessionId = ThreadStore.getSessionId();
 		Object params = getExecutionParams();
+		
+		Integer waitTime = null;
+		String waitTimeStr = this.keyValue.get(this.keysToGet[3]);
+		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
+			try {
+				waitTime = Integer.parseInt(waitTimeStr);
+			} catch(NumberFormatException e) {
+				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+			}
+		}
+		
 		if(params == null) {
-			ImageCaptureReactor.runImageCapture(feUrl, projectId, rdbmsId, null, sessionId);
+			ImageCaptureReactor.runImageCapture(feUrl, projectId, rdbmsId, null, sessionId, waitTime);
 		} else {
-			ImageCaptureReactor.runImageCapture(feUrl, projectId, rdbmsId, params.toString(), sessionId);
+			ImageCaptureReactor.runImageCapture(feUrl, projectId, rdbmsId, params.toString(), sessionId, waitTime);
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}

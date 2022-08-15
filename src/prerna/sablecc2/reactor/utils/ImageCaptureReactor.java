@@ -27,7 +27,8 @@ public class ImageCaptureReactor extends AbstractReactor {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public ImageCaptureReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_KEY.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.URL.getKey(), 
+				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
 	}
 
 	@Override
@@ -42,6 +43,16 @@ public class ImageCaptureReactor extends AbstractReactor {
 		String param = this.keyValue.get(this.keysToGet[2]);
 		String sessionId = ThreadStore.getSessionId();
 		
+		Integer waitTime = null;
+		String waitTimeStr = this.keyValue.get(this.keysToGet[3]);
+		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
+			try {
+				waitTime = Integer.parseInt(waitTimeStr);
+			} catch(NumberFormatException e) {
+				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+			}
+		}
+		
 		IProject coreProject = Utility.getProject(projectId);
 		// loop through the insights
 		IEngine insightsEng = coreProject.getInsightDatabase();
@@ -50,7 +61,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 			wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng, "select distinct id from question_id");
 			while(wrapper.hasNext()) {
 				String id = wrapper.next().getValues()[0] + "";
-				runImageCapture(feUrl, projectId, id, param, sessionId);
+				runImageCapture(feUrl, projectId, id, param, sessionId, waitTime);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -65,15 +76,15 @@ public class ImageCaptureReactor extends AbstractReactor {
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	public static void runImageCapture(String feUrl, String projectId, String insightId, String params, String sessionId) {
+	public static void runImageCapture(String feUrl, String projectId, String insightId, String params, String sessionId, Integer waitTime) {
 		IProject coreProject = Utility.getProject(projectId);
 		if(coreProject == null) {
 			throw new IllegalArgumentException("Cannot find project = " + projectId);
 		}
-		runImageCapture(feUrl, coreProject, projectId, insightId, params, sessionId);
+		runImageCapture(feUrl, coreProject, projectId, insightId, params, sessionId, waitTime);
 	}
 	
-	public static void runImageCapture(String feUrl, IProject coreProject, String appId, String insightId, String params, String sessionId) {
+	public static void runImageCapture(String feUrl, IProject coreProject, String appId, String insightId, String params, String sessionId, Integer waitTime) {
 		Insight insight = null;
 		try {
 			insight = coreProject.getInsight(insightId).get(0);
@@ -85,7 +96,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 		}
 		List<String> recipe = insight.getPixelList().getPixelRecipe();
 		if(params != null || !PixelUtility.isNotCacheable(recipe)) {
-			runHeadlessChrome(feUrl, insight, params, sessionId);
+			runHeadlessChrome(feUrl, insight, params, sessionId, waitTime);
 		}
 		
 //		if(params != null || !PixelUtility.hasParam(recipe)) {
@@ -124,7 +135,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 	 * @param params
 	 * @param sessionId
 	 */
-	private static void runHeadlessChrome(String feUrl, Insight insight, String params, String sessionId) {
+	private static void runHeadlessChrome(String feUrl, Insight insight, String params, String sessionId, Integer waitTime) {
 		feUrl = feUrl.trim();
 		String id = insight.getRdbmsId();
 		String projectId = insight.getProjectId();
@@ -152,7 +163,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 		} else {
 			url = feUrl+ "#!/insight?type=multi&engine=" + projectId + "&id=" + id + "&hideMenu=true&drop=5000&animation=false";
 		}
-		insight.getChromeDriver().captureImage(feUrl, url, imageDirStr + DIR_SEPARATOR + "image.png", sessionId);
+		insight.getChromeDriver().captureImage(feUrl, url, imageDirStr + DIR_SEPARATOR + "image.png", sessionId, waitTime);
 	}
 	
 
