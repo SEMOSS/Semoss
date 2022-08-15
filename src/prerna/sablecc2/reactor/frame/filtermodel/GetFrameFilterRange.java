@@ -32,7 +32,7 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 	 */
 
 	public GetFrameFilterRange() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey(), DYNAMIC_KEY };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey(), DYNAMIC_KEY , OPTIONS_CACHE_KEY};
 	}
 
 	@Override
@@ -59,7 +59,7 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 		}
 
 		boolean optionsCache = false;
-		GenRowStruct optionsCacheGrs = this.store.getNoun(keysToGet[6]);
+		GenRowStruct optionsCacheGrs = this.store.getNoun(keysToGet[3]);
 		if (optionsCacheGrs != null && !optionsCacheGrs.isEmpty()) {
 			optionsCache = Boolean.parseBoolean(optionsCacheGrs.get(0) + "");
 		}
@@ -124,7 +124,12 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 			baseFilters.merge(panel.getPanelFilters().copy());
 			baseFiltersExcludeCol.merge(panel.getPanelFilters().copy());
 		}
-		baseFiltersExcludeCol.removeColumnFilter(tableCol);
+		if(optionsCache) {
+			baseFilters = baseFilters.extractColumnFilters(tableCol);
+			baseFiltersExcludeCol = new GenRowFilters();
+		} else {
+			baseFiltersExcludeCol.removeColumnFilter(tableCol);
+		}
 
 		// for numerical, also add the min/max
 		String alias = selector.getAlias();
