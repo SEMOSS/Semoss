@@ -602,14 +602,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @param isExporter
 	 */
-	public void setUserLocked(String userId, boolean isLocked) {
-		String query = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=?";
+	public void setUserLock(String userId, String type, boolean isLocked) {
+		String query = null;
+		if(isLocked) {
+			query = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=? AND TYPE=?";
+		} else {
+			query = "UPDATE SMSS_USER SET LOCKED=?, LASTLOGIN=? WHERE ID=? AND TYPE=?";
+		}
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, isLocked);
+			if(!isLocked) {
+				// we reset the counter so lastlogin will be today
+				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+				java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+				ps.setTimestamp(parameterIndex++, timestamp, cal);
+			}
 			ps.setString(parameterIndex++, userId);
+			ps.setString(parameterIndex++, type);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
