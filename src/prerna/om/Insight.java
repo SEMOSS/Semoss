@@ -145,6 +145,9 @@ public class Insight implements Serializable {
 	// data frames within this insight
 	private transient TaskStore taskStore;
 
+	// temporal cache for a frame to point to a new frame with 1 column of just the unique values
+	private transient Map<String, ITableDataFrame> cachedFitlerModelFrame = new HashMap<>();
+	
 	// also store insight sheets
 	private transient Map<String, InsightSheet> insightSheets = new LinkedHashMap<String, InsightSheet>();
 	{
@@ -758,6 +761,32 @@ public class Insight implements Serializable {
 	
 	public void setTaskStore(TaskStore taskStore) {
 		this.taskStore = taskStore;
+	}
+	
+	/**
+	 * Set the temp frame for caching the filter model
+	 * @param uniqueKey
+	 * @param tempFrame
+	 */
+	public void addCachedFitlerModelFrame(String uniqueKey, ITableDataFrame tempFrame) {
+		this.cachedFitlerModelFrame.put(uniqueKey, tempFrame);
+	}
+	
+	/**
+	 * Get the temp frame cached for the filter model
+	 * @param uniqueKey
+	 * @return
+	 */
+	public ITableDataFrame getCachedFitlerModelFrame(String uniqueKey) {
+		return this.cachedFitlerModelFrame.get(uniqueKey);
+	}
+	
+	/**
+	 * Get all the cached filter model frames
+	 * @return
+	 */
+	public Map<String, ITableDataFrame> getCachedFilterModelFrame() {
+		return this.cachedFitlerModelFrame;
 	}
 	
 	/////////////////////////////////////////////////////////////////

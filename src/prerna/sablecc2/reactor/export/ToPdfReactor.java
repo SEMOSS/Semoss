@@ -50,7 +50,8 @@ public class ToPdfReactor extends AbstractReactor {
 				ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.URL.getKey(), 
 				ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey(), 
 				ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey(), ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey(),
-				ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey(), ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey(), ReactorKeysEnum.PDF_START_PAGE_NUM.getKey()
+				ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey(), ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey(), ReactorKeysEnum.PDF_START_PAGE_NUM.getKey(),
+				ReactorKeysEnum.IMAGE_WAIT_TIME.getKey()
 			};
 	}
 
@@ -92,6 +93,17 @@ public class ToPdfReactor extends AbstractReactor {
 			}
 			classLogger.error("Exporting final html as: " + htmlToParse);
 		}
+		
+		Integer waitTime = null;
+		String waitTimeStr = this.keyValue.get(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey());
+		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
+			try {
+				waitTime = Integer.parseInt(waitTimeStr);
+			} catch(NumberFormatException e) {
+				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+			}
+		}
+		
 		// keep track for deleting at the end
 		List<String> tempPaths = new ArrayList<>();
 
@@ -118,7 +130,7 @@ public class ToPdfReactor extends AbstractReactor {
 					imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
 				}
 				logger.info("Generating image for PDF...");
-				this.insight.getChromeDriver().captureImage(feUrl, url, imagePath, sessionId);
+				this.insight.getChromeDriver().captureImage(feUrl, url, imagePath, sessionId, waitTime);
 				tempPaths.add(imagePath);
 				logger.info("Done generating image for PDF...");
 	
