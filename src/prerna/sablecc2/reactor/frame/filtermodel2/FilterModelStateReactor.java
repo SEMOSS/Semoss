@@ -104,12 +104,12 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 
 	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
 			int offset, boolean dynamic, boolean optionsCache, InsightPanel panel, Logger logger) {
+		
 		DataFrameTypeEnum frameType = dataframe.getFrameType();
-
 		ITableDataFrame queryFrame = dataframe;
 		if(optionsCache) {
 			String uKey = dataframe.getName() + tableCol;
-			ITableDataFrame cache = panel.getCachedFitlerModelFrame(uKey);
+			ITableDataFrame cache = insight.getCachedFitlerModelFrame(uKey);
 			if(cache == null) {
 				SelectQueryStruct qs = new SelectQueryStruct();
 				qs.addSelector(new QueryColumnSelector(tableCol));
@@ -137,7 +137,7 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 					throw new SemossPixelException(e.getMessage());
 				}
 				// now store this
-				panel.addCachedFitlerModelFrame(uKey, cache);
+				insight.addCachedFitlerModelFrame(uKey, cache);
 			}
 			// set the new dataframe reference to the cache
 			queryFrame = cache;
