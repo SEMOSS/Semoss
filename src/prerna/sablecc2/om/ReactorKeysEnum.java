@@ -84,6 +84,7 @@ public enum ReactorKeysEnum {
 	ID("id", 													"This key can represent the unique id of the insight instance or the unique id of the saved insight relative to the app"),
 	ID_TYPE("id_type", 											"Type of the id for setting param. colum / column_table / column_table_operator"),
 	IMAGE("image",		 										"The location of the image file or the encoding of the image as a png"),
+	IMAGE_WAIT_TIME("imageWaitTime",		 					"Time in ms to wait for the image to be generated on the BE before operations like screenshots"),
 	INCLUDE_META_KEY("meta", 									"Boolean indication (true or false) of whether to retrieve metadata"),
 	INDEX("index", 												"A specified index for an object (e.g., the frame filter)"),
 	INSIGHT_NAME("insightName", 								"Name of the insight"),

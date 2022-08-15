@@ -10,7 +10,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -45,7 +44,7 @@ public class ToPPTReactor extends AbstractReactor {
 
 	public ToPPTReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.BASE_URL.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), };
+				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
 	}
 
 	@Override
@@ -59,19 +58,28 @@ public class ToPPTReactor extends AbstractReactor {
 		}
 		String insightFolder = this.insight.getInsightFolder();
 		String baseUrl = this.keyValue.get(this.keysToGet[0]);
+		Integer waitTime = null;
+		String waitTimeStr = this.keyValue.get(this.keysToGet[4]);
+		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
+			try {
+				waitTime = Integer.parseInt(waitTimeStr);
+			} catch(NumberFormatException e) {
+				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+			}
+		}
+		
 		List<String> urls = getUrls();
 
 		String sessionId = ThreadStore.getSessionId();
-
 		// keep list of paths to clean up and delete once the pdf is created
-		Vector<String> tempPaths = new Vector<>();
+		List<String> tempPaths = new ArrayList<>();
 		// Process all urls
 		int imageNum = 1;
 		for (String url : urls) {
 			// Run headless chrome with semossTagUrl
 			String imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
 			logger.info("Generating image for PPT...");
-			this.insight.getChromeDriver().captureImage(baseUrl, url, imagePath, sessionId);
+			this.insight.getChromeDriver().captureImage(baseUrl, url, imagePath, sessionId, waitTime);
 			tempPaths.add(imagePath);
 			logger.info("Done generating image for PPT...");
 			imageNum += 1;
