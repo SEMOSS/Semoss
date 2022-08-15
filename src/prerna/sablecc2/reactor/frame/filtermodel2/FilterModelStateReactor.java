@@ -246,9 +246,17 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 		qs2.setOffSet(offset);
 		qs2.addOrderBy(new QueryColumnOrderBySelector(tableCol));
 
-		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
-		// extract the current filters on this column
-		GenRowFilters extractedCurrentFilters = baseFilters.extractColumnFilters(tableCol);
+		GenRowFilters baseFilters = null;
+		GenRowFilters extractedCurrentFilters = null;
+		if(optionsCache) {
+			baseFilters = new GenRowFilters();
+			// extract the current filters on this column
+			extractedCurrentFilters = dataframe.getFrameFilters().copy().extractColumnFilters(tableCol);
+		} else {
+			baseFilters = dataframe.getFrameFilters().copy();
+			// extract the current filters on this column
+			extractedCurrentFilters = baseFilters.extractColumnFilters(tableCol);
+		}
 		// then deconflict with what is being proposed
 		mergeFilters(panel.getTempFilterModelGrf(), extractedCurrentFilters);
 		// then merge back with the other filters
