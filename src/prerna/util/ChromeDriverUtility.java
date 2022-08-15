@@ -31,20 +31,21 @@ public class ChromeDriverUtility {
 
 	public static boolean useNetty = false;
 
-	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
-		
+	public static void captureImage(String feUrl, String url, String imagePath, String sessionId, Integer timeout) {
 		if(useNetty)
-			NettyChromeDriverClient.captureImage(feUrl, url, imagePath, sessionId);
+			NettyChromeDriverClient.captureImage(feUrl, url, imagePath, sessionId, timeout);
 		else
 		{
 			ChromeDriver thisDriver = null;
 			try {
 				thisDriver = (ChromeDriver)makeChromeDriver(feUrl, url, 1920, 1080);
-				int timeout =800; 
-				String timeoutString = DIHelper.getInstance().getProperty(Constants.IMAGE_CAPTURE_TIMEOUT);
-				if(timeoutString != null && !timeoutString.isEmpty()) {
-					timeout = Integer.parseInt(timeoutString);
-				} 
+				if(timeout == null) {
+					timeout =800; 
+					String timeoutString = DIHelper.getInstance().getProperty(Constants.IMAGE_CAPTURE_TIMEOUT);
+					if(timeoutString != null && !timeoutString.isEmpty()) {
+						timeout = Integer.parseInt(timeoutString);
+					} 
+				}
 				captureImagePersistent(thisDriver, feUrl, url, imagePath, sessionId, timeout);
 			} finally {
 				if(thisDriver != null) {
