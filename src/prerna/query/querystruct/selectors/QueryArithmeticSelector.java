@@ -134,4 +134,33 @@ public class QueryArithmeticSelector extends AbstractQuerySelector {
 		usedCols.addAll(this.rightSelector.getAllQueryColumns());
 		return usedCols;
 	}
+	
+	/**
+	 * 
+	 * @param leftColQs
+	 * @param rightColQs
+	 * @param mathExpr
+	 * @param alias
+	 * @return
+	 */
+	public static QueryArithmeticSelector makeCol2ColSelector(String leftColQs, String rightColQs, String mathExpr, String alias) {
+		return makeCol2ColSelector(new QueryColumnSelector(leftColQs), new QueryColumnSelector(rightColQs), mathExpr, alias);
+	}
+	
+	/**
+	 * 
+	 * @param leftSelector
+	 * @param rightSelector
+	 * @param mathExpr
+	 * @param alias
+	 * @return
+	 */
+	public static QueryArithmeticSelector makeCol2ColSelector(IQuerySelector leftSelector, IQuerySelector rightSelector, String mathExpr, String alias) {
+		QueryArithmeticSelector math = new QueryArithmeticSelector();
+		math.setLeftSelector(leftSelector);
+		math.setRightSelector(rightSelector);
+		math.setMathExpr(mathExpr);
+		math.setAlias(alias);
+		return math;
+	}
 }
