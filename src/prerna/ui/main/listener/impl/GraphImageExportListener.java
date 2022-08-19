@@ -28,7 +28,6 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.Component;
-import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -44,8 +43,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
-
-import org.sourceforge.jlibeps.epsgraphics.EpsGraphics2D;
 
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
@@ -129,8 +126,8 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 			
 			if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {
 				graphicsFileOut = new FileOutputStream(fileLoc);
-				Graphics2D g = new EpsGraphics2D("Graph Export",graphicsFileOut, boundingBoxMinWidth, boundingBoxMinHeight, boundingBoxMaxWidth, boundingBoxMaxHeight);
-				cont.paint(g);
+//				Graphics2D g = new EpsGraphics2D("Graph Export",graphicsFileOut, boundingBoxMinWidth, boundingBoxMinHeight, boundingBoxMaxWidth, boundingBoxMaxHeight);
+//				cont.paint(g);
 			} else {
 				BufferedImage im = new BufferedImage(boundingBoxMaxWidth, boundingBoxMaxHeight, BufferedImage.TYPE_INT_ARGB);
 				cont.paint(im.getGraphics());
