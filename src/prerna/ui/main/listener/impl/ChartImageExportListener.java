@@ -29,7 +29,6 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.Component;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
@@ -44,8 +43,6 @@ import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
-
-import org.sourceforge.jlibeps.epsgraphics.EpsGraphics2D;
 
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
@@ -146,8 +143,8 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 	        //Export chart based upon user-chosen quality value
 			if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {
 				graphicsFileOut = new FileOutputStream(fileLoc);
-				Graphics2D g = new EpsGraphics2D("Chart Export", graphicsFileOut, 0, 0, imageWidth, imageHeight);
-				g.drawImage(i, 0, 0, null);
+//				Graphics2D g = new EpsGraphics2D("Chart Export", graphicsFileOut, 0, 0, imageWidth, imageHeight);
+//				g.drawImage(i, 0, 0, null);
 			} else {
 				if(!scale)
 				{
