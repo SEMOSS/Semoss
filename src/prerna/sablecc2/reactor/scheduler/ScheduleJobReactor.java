@@ -208,7 +208,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 		scheduler.scheduleJob(job, trigger);
 
-		logger.info("Scheduled " + jobId+ " to run on the following schedule: " + cronExpression + ".");
+		logger.info("Scheduled " + jobId + " to run on the following schedule: " + cronExpression + ".");
 
 		// Return the job key
 		return job.getKey();

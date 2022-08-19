@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
@@ -38,8 +37,6 @@ import prerna.util.Utility;
 public class TinkerEngine extends AbstractEngine {
 
 	private static final Logger logger = LogManager.getLogger(TinkerEngine.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	protected Graph g = null;
 	protected Map<String, String> typeMap = new HashMap<>();
@@ -54,7 +51,7 @@ public class TinkerEngine extends AbstractEngine {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -64,7 +61,7 @@ public class TinkerEngine extends AbstractEngine {
 			try {
 				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -112,7 +109,7 @@ public class TinkerEngine extends AbstractEngine {
 						reader.readGraph(fileLocation);
 					}
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -199,7 +196,7 @@ public class TinkerEngine extends AbstractEngine {
 			long endTime = System.currentTimeMillis();
 			logger.info("Successfully saved graph to file: " + fileLocation + "(" + (endTime - startTime) + " ms)");
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
