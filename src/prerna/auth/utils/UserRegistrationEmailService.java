@@ -4,11 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import javax.mail.Session;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.mail.Session;
 import prerna.auth.PasswordRequirements;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;

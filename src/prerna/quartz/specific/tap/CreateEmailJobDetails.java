@@ -6,12 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import javax.mail.Session;
-
 import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 
+import jakarta.mail.Session;
 import prerna.quartz.JobChain;
 import prerna.quartz.SendEmailJob;
 
