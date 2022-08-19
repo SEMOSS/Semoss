@@ -5,11 +5,10 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-import javax.mail.Session;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.mail.Session;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesProcessor;

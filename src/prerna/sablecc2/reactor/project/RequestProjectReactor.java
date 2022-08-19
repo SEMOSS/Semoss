@@ -5,12 +5,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import javax.mail.Session;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.mail.Session;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
