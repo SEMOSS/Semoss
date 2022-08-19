@@ -44,10 +44,10 @@ import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
 
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Rectangle;
-import com.itextpdf.text.pdf.PdfWriter;
+//import com.itextpdf.text.Document;
+//import com.itextpdf.text.DocumentException;
+//import com.itextpdf.text.Rectangle;
+//import com.itextpdf.text.pdf.PdfWriter;
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
@@ -86,155 +86,155 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		Component source = (Component) arg0.getSource(); //Export button
-		JSplitPane splitPane = (JSplitPane) source.getParent().getParent();
-		BrowserPlaySheet bps = (BrowserPlaySheet) splitPane.getParent().getParent().getParent(); //Parents: JLayeredPane - JRootPane - Subclass of BrowserPlaySheet
-		Browser browser = bps.getBrowser();
-		BrowserView browserView = bps.getBrowserView();
-		Image i = browserView.getImage();
-		
-		FileOutputStream graphicsFileOut = null;
-		try {
-			String exportType = "";
-			if(!autoExport)
-			{
-				//Display dialog to choose export quality
-				Object[] options = {"High Quality (*.eps)", "Low Quality (*.png)", "PDF"};
-				int n = JOptionPane.showOptionDialog(splitPane,"Please choose the type of export: ",
-						"Export", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
-				
-				switch(n) {
-					case -1: return;
-					case 0: exportType = this.HIGH_QUALITY_IMAGE_TYPE;
-										 break;
-					case 1: exportType = this.LOW_QUALITY_IMAGE_TYPE;
-										 break;
-					case 2: exportType = this.PDF_TYPE;
-										 break;
-				}
-			}
-			
-			if(fileLoc.isEmpty())
-			{
-				String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-				String folder = FILE_SEPARATOR+"export"+FILE_SEPARATOR+"Images"+FILE_SEPARATOR;
-				String writeFileName = "Graph_Export_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "");
-				if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {
-					writeFileName += ".eps";
-				} else {
-					writeFileName += ".png";
-				}
-				
-				//Create folders if necessary to export to correct path
-				fileLoc = workingDir + folder;
-				File exportFile = new File(fileLoc);
-				if(!exportFile.getCanonicalFile().isDirectory()) {
-					if(!exportFile.mkdirs())
-					Utility.showError("Please create the following directory structure in the working folder where SEMOSS currently resides:\n\n~"+FILE_SEPARATOR+"export"+FILE_SEPARATOR+"Images"+FILE_SEPARATOR);
-					return;
-				}
-				fileLoc += writeFileName;
-			}
-			
-			int imageWidth = i.getWidth(null);
-	        int imageHeight = i.getHeight(null);
-			
-	        BufferedImage dest;
-	        //Export chart based upon user-chosen quality value
-			if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {
-				graphicsFileOut = new FileOutputStream(fileLoc);
-//				Graphics2D g = new EpsGraphics2D("Chart Export", graphicsFileOut, 0, 0, imageWidth, imageHeight);
-//				g.drawImage(i, 0, 0, null);
-			} else {
-				if(!scale)
-				{
-					dest = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);				
-					Graphics g2 = dest.createGraphics();
-					g2.drawImage(i, 0, 0, null);
-				}
-				else
-				{
-					dest=new BufferedImage(scaleWidth, scaleHeight, BufferedImage.TYPE_INT_ARGB);
-					Graphics g2 = dest.createGraphics();
-					g2.drawImage(i.getScaledInstance(scaleWidth, scaleHeight, Image.SCALE_SMOOTH), 0, 0, null);
-				}
-		        if(crop)
-		        	dest = dest.getSubimage(cropX,cropY,cropWidth,cropHeight);
-	        	ImageIO.write(dest, "PNG", new File(fileLoc));
-	        	
-	        	// PDF Export
-	        	if(exportType.equals(this.PDF_TYPE)) {
-	        		FileOutputStream fileOut = null;
-					try {
-						com.itextpdf.text.Image image1 = com.itextpdf.text.Image.getInstance(fileLoc);
-						Rectangle r;
-						if(image1.getHeight() > this.MAX_DIM) {
-							r = new Rectangle((int)image1.getWidth(), (int) MAX_DIM);
-						} else if(image1.getWidth() > this.MAX_DIM) {
-							r = new Rectangle((int) MAX_DIM, (int)image1.getHeight());
-						} else {
-							r = new Rectangle((int)image1.getWidth()+20, (int)image1.getHeight()+20);
-						}
-
-						Document document = new Document(r, 15, 25, 15, 25);
-						fileOut = new FileOutputStream(fileLoc.replace(this.LOW_QUALITY_IMAGE_TYPE.toLowerCase(), this.PDF_TYPE.toLowerCase()));
-						PdfWriter.getInstance(document, fileOut);
-						document.open();
-
-						int pages = (int) Math.ceil((double)dest.getHeight() / this.MAX_DIM);
-						if(pages == 0)
-							pages = 1;
-						for(int j = 0; j < pages; j++) {
-							BufferedImage temp;
-							if(j < pages-1) {
-								temp = dest.getSubimage(0, j*(int)this.MAX_DIM, dest.getWidth(), (int)this.MAX_DIM);
-							} else {
-								temp = dest.getSubimage(0, j*(int)this.MAX_DIM, dest.getWidth(), dest.getHeight() % (int)this.MAX_DIM);
-							}
-							File tempFile = new File(i+this.LOW_QUALITY_IMAGE_TYPE);
-							ImageIO.write(temp, this.LOW_QUALITY_IMAGE_TYPE, tempFile);
-							com.itextpdf.text.Image croppedImage = com.itextpdf.text.Image.getInstance(i+this.LOW_QUALITY_IMAGE_TYPE);
-							document.add(croppedImage);
-							tempFile.delete();
-							
-							if(j < pages-1) {
-								document.newPage();
-							}
-						}
-						document.close();
-
-						File f = new File(fileLoc);
-						f.delete();
-					} catch(RuntimeException | DocumentException e) {
-						e.printStackTrace();
-					}finally{
-						try{
-							if(fileOut!=null)
-								fileOut.close();
-						}catch(IOException e) {
-							e.printStackTrace();
-						}
-					}
-				} // end if PDF
-			}
-	        if(!autoExport) {
-	        	if(exportType.equals(this.PDF_TYPE)) {
-					Utility.showMessage("Export successful: " + fileLoc.replace(this.LOW_QUALITY_IMAGE_TYPE.toLowerCase(), this.PDF_TYPE.toLowerCase()));
-				} else {
-					Utility.showMessage("Export successful: " + fileLoc);
-				}
-	        }
-		} catch (IOException e) {
-			Utility.showError("Graph export failed.");
-			e.printStackTrace();
-		}finally{
-			try{
-				if(graphicsFileOut!=null)
-					graphicsFileOut.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
+//		Component source = (Component) arg0.getSource(); //Export button
+//		JSplitPane splitPane = (JSplitPane) source.getParent().getParent();
+//		BrowserPlaySheet bps = (BrowserPlaySheet) splitPane.getParent().getParent().getParent(); //Parents: JLayeredPane - JRootPane - Subclass of BrowserPlaySheet
+//		Browser browser = bps.getBrowser();
+//		BrowserView browserView = bps.getBrowserView();
+//		Image i = browserView.getImage();
+//		
+//		FileOutputStream graphicsFileOut = null;
+//		try {
+//			String exportType = "";
+//			if(!autoExport)
+//			{
+//				//Display dialog to choose export quality
+//				Object[] options = {"High Quality (*.eps)", "Low Quality (*.png)", "PDF"};
+//				int n = JOptionPane.showOptionDialog(splitPane,"Please choose the type of export: ",
+//						"Export", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
+//				
+//				switch(n) {
+//					case -1: return;
+//					case 0: exportType = this.HIGH_QUALITY_IMAGE_TYPE;
+//										 break;
+//					case 1: exportType = this.LOW_QUALITY_IMAGE_TYPE;
+//										 break;
+//					case 2: exportType = this.PDF_TYPE;
+//										 break;
+//				}
+//			}
+//			
+//			if(fileLoc.isEmpty())
+//			{
+//				String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+//				String folder = FILE_SEPARATOR+"export"+FILE_SEPARATOR+"Images"+FILE_SEPARATOR;
+//				String writeFileName = "Graph_Export_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "");
+//				if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {
+//					writeFileName += ".eps";
+//				} else {
+//					writeFileName += ".png";
+//				}
+//				
+//				//Create folders if necessary to export to correct path
+//				fileLoc = workingDir + folder;
+//				File exportFile = new File(fileLoc);
+//				if(!exportFile.getCanonicalFile().isDirectory()) {
+//					if(!exportFile.mkdirs())
+//					Utility.showError("Please create the following directory structure in the working folder where SEMOSS currently resides:\n\n~"+FILE_SEPARATOR+"export"+FILE_SEPARATOR+"Images"+FILE_SEPARATOR);
+//					return;
+//				}
+//				fileLoc += writeFileName;
+//			}
+//			
+//			int imageWidth = i.getWidth(null);
+//	        int imageHeight = i.getHeight(null);
+//			
+//	        BufferedImage dest;
+//	        //Export chart based upon user-chosen quality value
+//			if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {
+//				graphicsFileOut = new FileOutputStream(fileLoc);
+////				Graphics2D g = new EpsGraphics2D("Chart Export", graphicsFileOut, 0, 0, imageWidth, imageHeight);
+////				g.drawImage(i, 0, 0, null);
+//			} else {
+//				if(!scale)
+//				{
+//					dest = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);				
+//					Graphics g2 = dest.createGraphics();
+//					g2.drawImage(i, 0, 0, null);
+//				}
+//				else
+//				{
+//					dest=new BufferedImage(scaleWidth, scaleHeight, BufferedImage.TYPE_INT_ARGB);
+//					Graphics g2 = dest.createGraphics();
+//					g2.drawImage(i.getScaledInstance(scaleWidth, scaleHeight, Image.SCALE_SMOOTH), 0, 0, null);
+//				}
+//		        if(crop)
+//		        	dest = dest.getSubimage(cropX,cropY,cropWidth,cropHeight);
+//	        	ImageIO.write(dest, "PNG", new File(fileLoc));
+//	        	
+//	        	// PDF Export
+//	        	if(exportType.equals(this.PDF_TYPE)) {
+//	        		FileOutputStream fileOut = null;
+//					try {
+//						Image image1 = Image.getInstance(fileLoc);
+//						Rectangle r;
+//						if(image1.getHeight() > this.MAX_DIM) {
+//							r = new Rectangle((int)image1.getWidth(), (int) MAX_DIM);
+//						} else if(image1.getWidth() > this.MAX_DIM) {
+//							r = new Rectangle((int) MAX_DIM, (int)image1.getHeight());
+//						} else {
+//							r = new Rectangle((int)image1.getWidth()+20, (int)image1.getHeight()+20);
+//						}
+//
+//						Document document = new Document(r, 15, 25, 15, 25);
+//						fileOut = new FileOutputStream(fileLoc.replace(this.LOW_QUALITY_IMAGE_TYPE.toLowerCase(), this.PDF_TYPE.toLowerCase()));
+//						PdfWriter.getInstance(document, fileOut);
+//						document.open();
+//
+//						int pages = (int) Math.ceil((double)dest.getHeight() / this.MAX_DIM);
+//						if(pages == 0)
+//							pages = 1;
+//						for(int j = 0; j < pages; j++) {
+//							BufferedImage temp;
+//							if(j < pages-1) {
+//								temp = dest.getSubimage(0, j*(int)this.MAX_DIM, dest.getWidth(), (int)this.MAX_DIM);
+//							} else {
+//								temp = dest.getSubimage(0, j*(int)this.MAX_DIM, dest.getWidth(), dest.getHeight() % (int)this.MAX_DIM);
+//							}
+//							File tempFile = new File(i+this.LOW_QUALITY_IMAGE_TYPE);
+//							ImageIO.write(temp, this.LOW_QUALITY_IMAGE_TYPE, tempFile);
+//							com.itextpdf.text.Image croppedImage = com.itextpdf.text.Image.getInstance(i+this.LOW_QUALITY_IMAGE_TYPE);
+//							document.add(croppedImage);
+//							tempFile.delete();
+//							
+//							if(j < pages-1) {
+//								document.newPage();
+//							}
+//						}
+//						document.close();
+//
+//						File f = new File(fileLoc);
+//						f.delete();
+//					} catch(RuntimeException | DocumentException e) {
+//						e.printStackTrace();
+//					}finally{
+//						try{
+//							if(fileOut!=null)
+//								fileOut.close();
+//						}catch(IOException e) {
+//							e.printStackTrace();
+//						}
+//					}
+//				} // end if PDF
+//			}
+//	        if(!autoExport) {
+//	        	if(exportType.equals(this.PDF_TYPE)) {
+//					Utility.showMessage("Export successful: " + fileLoc.replace(this.LOW_QUALITY_IMAGE_TYPE.toLowerCase(), this.PDF_TYPE.toLowerCase()));
+//				} else {
+//					Utility.showMessage("Export successful: " + fileLoc);
+//				}
+//	        }
+//		} catch (IOException e) {
+//			Utility.showError("Graph export failed.");
+//			e.printStackTrace();
+//		}finally{
+//			try{
+//				if(graphicsFileOut!=null)
+//					graphicsFileOut.close();
+//			}catch(IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
 	}
 	
 	/**
