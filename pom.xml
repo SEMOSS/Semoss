@@ -1810,11 +1810,12 @@
 			</exclusions>
 			<version>1.3</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.owasp.esapi/esapi -->
 		<dependency>
-			<groupId>org.owasp.esapi</groupId>
-			<artifactId>esapi</artifactId>
-			<version>2.1.0.1</version>
-			<exclusions>
+		    <groupId>org.owasp.esapi</groupId>
+		    <artifactId>esapi</artifactId>
+		    <version>2.5.0.0</version>
+		    <exclusions>
 				<exclusion>
 					<groupId>log4j</groupId>
 					<artifactId>*</artifactId>
@@ -1824,7 +1825,7 @@
 		<dependency>
 			<groupId>org.owasp.encoder</groupId>
 			<artifactId>encoder</artifactId>
-			<version>1.2.2</version>
+			<version>1.2.3</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.re2j</groupId>
