@@ -237,7 +237,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		GitRepoUtils.addSpecificFiles(projectVersion, files);
 		GitRepoUtils.commitAddedFiles(projectVersion, GitUtils.getDateMessage("Update insight '" + existingId + "' (+" + insightName + ") recipe on"), author, email);
 		AuthProvider projectGitProvider = project.getGitProvider();
-		if(user != null && user.getAccessToken(projectGitProvider) != null) {
+		if(user != null && projectGitProvider != null && user.getAccessToken(projectGitProvider) != null) {
 			List<Map<String, String>> remotes = GitRepoUtils.listConfigRemotes(projectVersion);
 			if(remotes != null && !remotes.isEmpty()) {
 				AccessToken userToken = user.getAccessToken(projectGitProvider);
