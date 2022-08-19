@@ -6,13 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
 import prerna.project.impl.ProjectPropertyEvaluator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -183,7 +182,7 @@ public class SendEmailReactor extends AbstractReactor {
 			props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
 			// for no man-in-the-middle attacks
 			props.put("mail.smtp.ssl.checkserveridentity", true);
-			return Session.getInstance(props, new javax.mail.Authenticator() {
+			return Session.getInstance(props, new jakarta.mail.Authenticator() {
 				protected PasswordAuthentication getPasswordAuthentication() {
 					return new PasswordAuthentication(username, password);
 				}

@@ -9,25 +9,24 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
-import javax.activation.FileDataSource;
-import javax.mail.BodyPart;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.sun.mail.smtp.SMTPSendFailedException;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
+import jakarta.activation.FileDataSource;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.SendFailedException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 
 public class EmailUtility {
 
@@ -122,7 +121,7 @@ public class EmailUtility {
 			logger.info(logMessage.toString());
 			
 			return true;
-		} catch (SMTPSendFailedException e) {
+		} catch (SendFailedException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new RuntimeException("Bad SMTP Connection");
 		} catch (MessagingException me) {
@@ -234,7 +233,7 @@ public class EmailUtility {
 		Session emailSession = null;
 		if (username != null && password != null) {
 			System.out.println("Making connection");
-			emailSession  = Session.getInstance(prop, new javax.mail.Authenticator() {
+			emailSession  = Session.getInstance(prop, new jakarta.mail.Authenticator() {
 				protected PasswordAuthentication getPasswordAuthentication() {
 					return new PasswordAuthentication(username, password);
 				}

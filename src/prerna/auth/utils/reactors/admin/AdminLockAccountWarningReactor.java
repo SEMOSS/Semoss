@@ -6,12 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.mail.Session;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.mail.Session;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;

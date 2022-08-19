@@ -7,14 +7,13 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
 import prerna.auth.AuthProvider;
 
 public class SocialPropertiesProcessor {
@@ -282,7 +281,7 @@ public class SocialPropertiesProcessor {
 		try {
 			if (username != null && password != null) {
 				logger.info("Making secured connection to the email server");
-				this.emailSession  = Session.getInstance(this.emailProps, new javax.mail.Authenticator() {
+				this.emailSession  = Session.getInstance(this.emailProps, new jakarta.mail.Authenticator() {
 					protected PasswordAuthentication getPasswordAuthentication() {
 						return new PasswordAuthentication(username, password);
 					}
