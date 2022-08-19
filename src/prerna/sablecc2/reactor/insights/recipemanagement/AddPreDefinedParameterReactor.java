@@ -209,7 +209,7 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 	 */
 	private static String getPassword() {
 		if(AddPreDefinedParameterReactor.password != null) {
-			logger.debug("Decrypting with password >> " + AddPreDefinedParameterReactor.password);
+//			logger.debug("Decrypting with password >> " + AddPreDefinedParameterReactor.password);
 			return AddPreDefinedParameterReactor.password;
 		}
 		
@@ -221,7 +221,7 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 			AddPreDefinedParameterReactor.password = DIHelper.getInstance().getProperty(Constants.PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD);
 		}
 		
-		logger.debug("Decrypting with password >> " + AddPreDefinedParameterReactor.password);
+//		logger.debug("Decrypting with password >> " + AddPreDefinedParameterReactor.password);
 		return AddPreDefinedParameterReactor.password;
 	}
 
