@@ -704,6 +704,8 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- REMOVING - AGPL -->
+		<!-- 
 		<dependency>
 			<groupId>com.itextpdf</groupId>
 			<artifactId>itextpdf</artifactId>
@@ -715,6 +717,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		 -->
 		<dependency>
 			<groupId>org.javatuples</groupId>
 			<artifactId>javatuples</artifactId>
