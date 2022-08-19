@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 public class RPAUtil {
 
-	private static final Logger LOGGER = LogManager.getLogger(RPAUtil.class.getName());
+	private static final Logger logger = LogManager.getLogger(RPAUtil.class.getName());
 
 	private RPAUtil() {
 		throw new IllegalStateException("Utility class");
@@ -29,7 +29,7 @@ public class RPAUtil {
 		try (InputStream in = new FileInputStream(filePath)){
 			string = IOUtils.toString(in, "UTF-8");
 		} catch (IOException e) {
-			LOGGER.error("Failed to read the file " + filePath + ".");
+			logger.error("Failed to read the file " + filePath + ".");
 			throw e;
 		}
 		return string;
