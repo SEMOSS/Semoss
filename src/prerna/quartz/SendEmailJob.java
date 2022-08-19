@@ -1,12 +1,11 @@
 package prerna.quartz;
 
-import javax.mail.MessagingException;
-import javax.mail.Session;
-
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
 import prerna.rpa.quartz.jobs.mail.EmailMessage;
 
 public class SendEmailJob implements org.quartz.Job {

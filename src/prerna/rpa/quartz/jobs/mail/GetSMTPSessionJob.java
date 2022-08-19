@@ -2,8 +2,6 @@ package prerna.rpa.quartz.jobs.mail;
 
 import java.util.Properties;
 
-import javax.mail.Session;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.JobDataMap;
@@ -11,6 +9,7 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.UnableToInterruptJobException;
 
+import jakarta.mail.Session;
 import prerna.rpa.quartz.CommonDataKeys;
 
 public class GetSMTPSessionJob implements org.quartz.InterruptableJob {
