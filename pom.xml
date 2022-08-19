@@ -1296,10 +1296,11 @@
 			<artifactId>zip4j</artifactId>
 			<version>1.3.2</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/us.fatehi/schemacrawler -->
 		<dependency>
-			<groupId>us.fatehi</groupId>
-			<artifactId>schemacrawler</artifactId>
-			<version>14.10.06</version>
+		    <groupId>us.fatehi</groupId>
+		    <artifactId>schemacrawler</artifactId>
+		    <version>14.21.02</version>
 		</dependency>
 		<dependency>
 			<groupId>org.rosuda</groupId>
