@@ -39,7 +39,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 	public CleanUpDatabasesReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.DRY_RUN.getKey(), ReactorKeysEnum.CLEAN_UP_CLOUD_STORAGE.getKey()};
 	}
-	//deploy test
+	// deploy test
 	// This is just so we don't call this on mistake
 	// The real security comes from security database
 	private static final String PASSWORD = "clean_up_apps_reactor_password";
