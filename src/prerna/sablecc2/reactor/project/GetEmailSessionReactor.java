@@ -1,9 +1,8 @@
 package prerna.sablecc2.reactor.project;
 
-import javax.mail.Session;
-
 import org.apache.commons.lang3.StringUtils;
 
+import jakarta.mail.Session;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;

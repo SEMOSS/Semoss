@@ -5,10 +5,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.mail.Session;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import jakarta.mail.Session;
 
 public class SocialPropertiesUtil {
 
