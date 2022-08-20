@@ -1179,11 +1179,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- REMOVING - GPL -->
+		<!-- 
 		<dependency>
 			<groupId>it.unimi.dsi</groupId>
 			<artifactId>dsiutils</artifactId>
 			<version>2.4.2</version>
-			<!-- cleanup -->
 			<exclusions>
 				<exclusion>
 					<groupId>ch.qos.logback</groupId>
@@ -1195,6 +1196,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>aurelionribon.ui</groupId>
 			<artifactId>css-engine-swing-api</artifactId>
