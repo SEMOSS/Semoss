@@ -1497,6 +1497,81 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Get the list of the database information that the user does not have access to, but is discoverable
+	 * @param favoritesOnly 
+	 * @param userId
+	 * @param engineMetadataFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserDiscoverableDatabaseList(User user, Boolean favoritesOnly, Map<String, Object> engineMetadataFilter, String limit, String offset) {
+		Collection<String> userIds = getUserFiltersQs(user);
+		
+		SelectQueryStruct qs1 = new SelectQueryStruct();
+		// selectors
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_database_name");
+		qs1.addSelector(fun);
+		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "permission"));
+		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "database_favorite"));
+		// add a join to get the user permission level, if favorite, and the visibility
+		{
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "ENGINEPERMISSION__FAVORITE", "FAVORITE"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "ENGINEPERMISSION__PERMISSION", "PERMISSION"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "ENGINEPERMISSION__VISIBILITY", "VISIBILITY"));
+			qs2.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "!=", userIds));
+			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "="});
+			qs1.addRelation(subQuery);
+		}
+		// filters
+		{
+			OrQueryFilter orFilter = new OrQueryFilter();
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			qs1.addExplicitFilter(orFilter);
+		}
+		// only show those that are visible
+		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==", Arrays.asList(new Object[] {true, null}), PixelDataType.BOOLEAN));
+		// favorites only
+		if(favoritesOnly) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+		}
+		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
+		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
+			for (String k : engineMetadataFilter.keySet()) {
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", k));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", engineMetadataFilter.get(k)));
+				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
+			}
+		}
+		
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = Long.parseLong(limit);
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = Long.parseLong(offset);
+		}
+		qs1.setLimit(long_limit);
+		qs1.setOffSet(long_offset);
+
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
+	}
+
+	
+	/**
 	 * Get user databases + global databases 
 	 * @param userId
 	 * @return

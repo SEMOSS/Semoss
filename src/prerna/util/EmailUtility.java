@@ -9,7 +9,6 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import jakarta.mail.BodyPart;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
@@ -62,30 +61,21 @@ public class EmailUtility {
 			email.setSubject(subject);
 			// Create a multipart message
 			Multipart multipart = new MimeMultipart();
-
 			// Create the message part
-			if(emailMessage != null) {
-				if(isHtml) {
-					BodyPart messageBodyPart = new MimeBodyPart();
-					// add email message
-					messageBodyPart.setContent(emailMessage, "text/html");
-					// Set email message
-					multipart.addBodyPart(messageBodyPart);
-				} else {
-					BodyPart messageBodyPart = new MimeBodyPart();
-					// add email message
-					messageBodyPart.setText(emailMessage);
-					// Set email message
-					multipart.addBodyPart(messageBodyPart);
-				}
-			} else {
-				// add an empty body
-				BodyPart messageBodyPart = new MimeBodyPart();
-				// add email message
-				messageBodyPart.setText("");
-				// Set email message
-				multipart.addBodyPart(messageBodyPart);
+			MimeBodyPart messageBodyPart = new MimeBodyPart();
+			if(emailMessage == null) {
+				emailMessage = "";
 			}
+			if(isHtml) {
+				// add email message
+				messageBodyPart.setContent(emailMessage, "text/html");
+			} else {
+				// add email message
+				messageBodyPart.setText(emailMessage);
+			}
+			// set email message
+			multipart.addBodyPart(messageBodyPart);
+			
 			// add attachments
 			if (attachments != null) {
 				for (String filePath : attachments) {
