@@ -49,11 +49,13 @@ public class UserTrackingUtils {
 	 * @param sessionId
 	 */
 	public static void registerLogout(String sessionId) {
-		IUserTracking ut = UserTrackingFactory.getUserTrackingConnector();
-		if (ut == null) {
-			throw new IllegalArgumentException("Could not find user tracker.");
+		if (Utility.isUserTrackingEnabled()) {
+			IUserTracking ut = UserTrackingFactory.getUserTrackingConnector();
+			if (ut == null) {
+				throw new IllegalArgumentException("Could not find user tracker.");
+			}
+			ut.registerLogout(sessionId);
 		}
-		ut.registerLogout(sessionId);
 	}
 	
 	// DATABASE STUFF BELOW

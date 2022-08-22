@@ -710,6 +710,15 @@ public class Constants {
 	public static final String TAG = "tag";
 	public static final String MARKDOWN = "markdown";
 	
+	// Metakey Options Table
+	public static final String ENGINE_METAKEYS = "ENGINEMETAKEYS";
+	public static final String PROJECT_METAKEYS = "PROJECTMETAKEYS";
+	public static final String INSIGHT_METAKEYS = "INSIGHTMETAKEYS";
+	public static final String METAKEY = "METAKEY";
+	public static final String SINGLE_MULTI = "SINGLEMULTI";
+	public static final String DISPLAY_ORDER = "DISPLAYORDER";
+	public static final String DISPLAY_OPTIONS = "DISPLAYOPTIONS";
+	
 	// Metamodel keys
 	public static final String NODE_PROP = "nodeProp";
 	public static final String RELATION_PROP = "relationProp";
