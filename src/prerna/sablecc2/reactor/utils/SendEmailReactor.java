@@ -31,7 +31,7 @@ public class SendEmailReactor extends AbstractReactor {
 	private static final String SMTP_HOST = "smtpHost";
 	private static final String SMTP_PORT = "smtpPort";
 	private static final String EMAIL_SUBJECT = "subject";
-	private static final String EMAIL_RECEIVER = "to";
+	private static final String EMAIL_TO_RECEIVER = "to";
 	private static final String EMAIL_CC_RECEIVER = "cc";
 	private static final String EMAIL_BCC_RECEIVER = "bcc";
 	private static final String EMAIL_SENDER = "from";
@@ -45,7 +45,7 @@ public class SendEmailReactor extends AbstractReactor {
 				EMAIL_MESSAGE, EMAIL_MESSAGE_ENCODED, ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
 				ReactorKeysEnum.EMAIL_SESSION.getKey(), MESSAGE_HTML, ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey(),
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
-				EMAIL_RECEIVER, EMAIL_CC_RECEIVER, EMAIL_BCC_RECEIVER, ATTACHMENTS };
+				EMAIL_TO_RECEIVER, EMAIL_CC_RECEIVER, EMAIL_BCC_RECEIVER, ATTACHMENTS };
 	}
 
 	@Override
@@ -101,12 +101,12 @@ public class SendEmailReactor extends AbstractReactor {
 			classLogger.error("Generating final html as: " + message);
 		}
 		
-		String[] to = getEmailRecipients(EMAIL_RECEIVER);
+		String[] to = getEmailRecipients(EMAIL_TO_RECEIVER);
 		String[] cc = getEmailRecipients(EMAIL_CC_RECEIVER);
 		String[] bcc = getEmailRecipients(EMAIL_BCC_RECEIVER);
 
 		if(to == null && cc == null && bcc == null) {
-			throw new IllegalArgumentException("Need to define " + EMAIL_RECEIVER + " or " + EMAIL_CC_RECEIVER + " or " + EMAIL_BCC_RECEIVER);
+			throw new IllegalArgumentException("Need to define " + EMAIL_TO_RECEIVER + " or " + EMAIL_CC_RECEIVER + " or " + EMAIL_BCC_RECEIVER);
 		}
 
 		Session emailSession = null;
@@ -250,8 +250,12 @@ public class SendEmailReactor extends AbstractReactor {
 			return "The message of the email to send.";
 		} else if (key.equals(EMAIL_MESSAGE_ENCODED)) {
 			return "Has the message of the email been passed in encoded using <encode></encode> blocks. Default false";
-		} else if (key.equals(EMAIL_RECEIVER)) {
-			return "The receipient(s) of the email.";
+		} else if (key.equals(EMAIL_TO_RECEIVER)) {
+			return "The to receipient(s) of the email.";
+		} else if (key.equals(EMAIL_CC_RECEIVER)) {
+			return "The cc receipient(s) of the email.";
+		} else if (key.equals(EMAIL_BCC_RECEIVER)) {
+			return "The bcc receipient(s) of the email.";
 		} else if (key.equals(EMAIL_SENDER)) {
 			return "The email sender.";
 		} else if (key.equals(EMAIL_SUBJECT)) {
