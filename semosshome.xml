@@ -26,7 +26,8 @@
 		<include>themes**/*</include>
 		<include>themes.smss</include>
         <include>foaf.xml</include>
-        <include>emailTemplates/**</include>
+        <include>UserTrackingDatabase**/*</include>
+        <include>UserTrackingDatabase.smss</include>
       </includes>
     </fileSet>
     <fileSet>
@@ -86,6 +87,14 @@
     <fileSet>
       <directory>WordNet-3.1</directory>
       <outputDirectory>WordNet-3.1</outputDirectory>
+    </fileSet>
+	<fileSet>
+      <directory>GeoIp2Artifacts</directory>
+      <outputDirectory>GeoIp2Artifacts</outputDirectory>
+    </fileSet>
+	<fileSet>
+      <directory>emailTemplates</directory>
+      <outputDirectory>emailTemplates</outputDirectory>
     </fileSet>
   </fileSets>
   <files>
