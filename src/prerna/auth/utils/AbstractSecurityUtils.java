@@ -4,6 +4,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1150,7 +1151,6 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("PASSWORD_RESET", colNames, types));
 			}
 		}
-		
 		// 2022-04-01
 		{
 			List<String> allCols = queryUtil.getTableColumns(conn, "API_KEY", database, schema);
@@ -1160,6 +1160,46 @@ public abstract class AbstractSecurityUtils {
 				securityDb.removeData(queryUtil.dropTable("API_KEY"));
 			}
 		}
+		
+		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
+		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
+		for(String tableName : metaKeyTableNames) {
+			// all have the same columns and default values
+			colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS"};
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)"};
+			defaultValues = new Object[]{null, null, null, true, false};
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists(tableName, colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, tableName, database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable(tableName, colNames, types));
+				}
+			}
+			// see if there are any default values
+			{
+				IRawSelectWrapper wrapper = null;
+				try {
+					wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from " + tableName);
+					if(wrapper.hasNext()) {
+						int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+						if(numrows == 0) {
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tags", "multi", 0, "checklist"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", 1, "checklist"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", 2, "checklist"}));
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(wrapper != null) {
+						wrapper.cleanUp();
+					}
+				}
+			}
+		}
+		
 		// apikey
 		// I am in dual mind whether to create this in security db or in 
 		// allows api keys to be set on insight
