@@ -669,6 +669,11 @@ public class Constants {
 	public static final String VIRUS_SCANNING_ENABLED = "VIRUS_SCANNING_ENABLED";
 	public static final String VIRUS_SCANNING_METHOD = "VIRUS_SCANNING_METHOD";
 	
+	// Location Tracking
+	public static final String USER_TRACKING_ENABLED = "USER_TRACKING_ENABLED";
+	public static final String USER_TRACKING_METHOD = "USER_TRACKING_METHOD";
+	public static final String USER_TRACKING_DB = "UserTrackingDatabase";
+	
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";
 	public static final String R_ANALYTICS_SCRIPTS_FOLDER = "AnalyticsRoutineScripts";

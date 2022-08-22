@@ -49,6 +49,7 @@ import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
+import prerna.usertracking.UserTrackingUtils;
 
 /**
  * This class opens a thread and watches a specific SMSS file.
@@ -62,6 +63,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		ignoreSmssList.add(Constants.SECURITY_DB);
 		ignoreSmssList.add(Constants.THEMING_DB);
 		ignoreSmssList.add(Constants.SCHEDULER_DB);
+		ignoreSmssList.add(Constants.USER_TRACKING_DB);
 	}
 	
 	private static final Logger logger = LogManager.getLogger(SMSSWebWatcher.class);
@@ -289,6 +291,25 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 		
+		
+		// load user tracking database
+		if(Utility.isUserTrackingEnabled()) {
+			String userTrackerDBName = Constants.USER_TRACKING_DB + this.extension;
+			int userTrackerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, userTrackerDBName);
+	
+			if (userTrackerDbNameIndex > -1) {
+				loadExistingDB(fileNames[userTrackerDbNameIndex]);
+				try {
+					UserTrackingUtils.initUserTrackerDatabase();
+				} catch (Exception e) {
+					// we couldn't initialize the db
+					// remove it from DIHelper
+					DIHelper.getInstance().removeDbProperty(Constants.USER_TRACKING_DB);
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
 		// THIS IS TEMPORARY UNTIL WE HAVE ALL USERS ON THE NEW VERSION
 		// USING THE DB AND PROJECT SPLIT OF AN APP
 		// TODO: need to update this for the cloud
@@ -313,13 +334,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		String themeDBName = Constants.THEMING_DB + this.extension;
 		String schedulerDBName = Constants.SCHEDULER_DB + this.extension;
+		String userTrackingDBName = Constants.USER_TRACKING_DB + this.extension;
 
 		// loop through and load all the engines
 		// but we will ignore the local master and security database
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
 				String fileName = fileNames[fileIdx];
-				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) || fileName.equals(schedulerDBName)) {
+				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) || fileName.equals(schedulerDBName) || fileName.equals(userTrackingDBName)) {
 					// again, ignore local master + security
 					continue;
 				}
