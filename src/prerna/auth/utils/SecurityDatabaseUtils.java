@@ -1545,4 +1545,62 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 	
+	public static List<Map<String, Object>> getMetakeyOptions(String tablename, String metakey) {
+//		String query = "SELECT * FROM ENGINE/PROJECT/INSIGHTMETAKEYS;
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(tablename+"__METAKEY"));
+		qs.addSelector(new QueryColumnSelector(tablename+"__SINGLEMULTI"));
+		qs.addSelector(new QueryColumnSelector(tablename+"__DISPLAYORDER"));
+		qs.addSelector(new QueryColumnSelector(tablename+"__DISPLAYOPTIONS"));
+		if (metakey != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(tablename+"__METAKEY", "==", metakey));
+		}
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+//	public static boolean updateMetakeyOptions(String tableName, List<Map<String,Object>> metaoptions) {
+//		boolean valid = false;
+//		String[] colNames = new String[]{Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS};
+//		
+//        PreparedStatement stmt = null;
+//        try {
+//			// first truncate table clean 
+//			stmt = securityDb.getPreparedStatement("TRUNCATE TABLE ?");
+//			stmt.
+//        	
+//			String truncateSql = "TRUNCATE TABLE " + tableName;
+//			stmt = securityDb.getPreparedStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
+//			stmt.executeUpdate();
+//			// then insert latest options
+//			for (int i = 0; i < metaoptions.size(); i++) {
+//				stmt.setString(1, (String) metaoptions.get(i).get("metakey"));
+//				stmt.setString(2, (String) metaoptions.get(i).get("singlemulti"));
+//				stmt.setInt(3, ((Number) metaoptions.get(i).get("order")).intValue());
+//				stmt.setString(4, (String) metaoptions.get(i).get("displayoptions"));
+//				stmt.addBatch();
+//			}
+//			stmt.executeBatch();
+//        } catch (SQLException e) {
+//        	logger.error(Constants.STACKTRACE, e);
+//        } finally {
+//        	try {
+//        		if(stmt != null) {
+//        			stmt.close();
+//        		}
+//        	} catch (SQLException e) {
+//            	logger.error(Constants.STACKTRACE, e);
+//        	}
+//        	if(securityDb.isConnectionPooling()) {
+//        		try {
+//            		if(conn != null) {
+//                		conn.close();
+//            		}
+//            	} catch (SQLException e) {
+//                	logger.error(Constants.STACKTRACE, e);
+//            	}
+//        	}
+//        }
+//        valid = true; // execute returns a false after successful insert
+//		return valid;
+//	}
 }
