@@ -1,6 +1,7 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
@@ -8,9 +9,6 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import jakarta.activation.DataHandler;
-import jakarta.activation.DataSource;
-import jakarta.activation.FileDataSource;
 import jakarta.mail.BodyPart;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -91,11 +89,15 @@ public class EmailUtility {
 			// add attachments
 			if (attachments != null) {
 				for (String filePath : attachments) {
-					MimeBodyPart messageBodyPart = new MimeBodyPart();
-					DataSource source = new FileDataSource(filePath);
-					messageBodyPart.setDataHandler(new DataHandler(source));
-					messageBodyPart.setFileName(new File(filePath).getName());
-					multipart.addBodyPart(messageBodyPart);
+					MimeBodyPart attachmentBodyPart = new MimeBodyPart();
+					try {
+						attachmentBodyPart.attachFile(new File(filePath));
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Error adding attachment", e);
+					}
+					attachmentBodyPart.setFileName(new File(filePath).getName());
+					multipart.addBodyPart(attachmentBodyPart);
 				}
 			}
 			// Send the complete email parts
