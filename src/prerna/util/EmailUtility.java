@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.activation.FileDataSource;
+import jakarta.mail.BodyPart;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
@@ -65,39 +66,27 @@ public class EmailUtility {
 			Multipart multipart = new MimeMultipart();
 
 			// Create the message part
-			// OLD WAY
-//			if(emailMessage != null) {
-//				if(isHtml) {
-//					BodyPart messageBodyPart = new MimeBodyPart();
-//					// add email message
-//					messageBodyPart.setDataHandler(new DataHandler(new HTMLDataSource(emailMessage)));
-//					// Set email message
-//					multipart.addBodyPart(messageBodyPart);
-//				} else {
-//					BodyPart messageBodyPart = new MimeBodyPart();
-//					// add email message
-//					messageBodyPart.setText(emailMessage);
-//					// Set email message
-//					multipart.addBodyPart(messageBodyPart);
-//				}
-//			} else {
-//				// add an empty body
-//				BodyPart messageBodyPart = new MimeBodyPart();
-//				// add email message
-//				messageBodyPart.setText("");
-//				// Set email message
-//				multipart.addBodyPart(messageBodyPart);
-//			}
-			// NEW WAY
 			if(emailMessage != null) {
 				if(isHtml) {
-					email.setContent(emailMessage, "text/html");
+					BodyPart messageBodyPart = new MimeBodyPart();
+					// add email message
+					messageBodyPart.setContent(emailMessage, "text/html");
+					// Set email message
+					multipart.addBodyPart(messageBodyPart);
 				} else {
-					email.setText(emailMessage);
+					BodyPart messageBodyPart = new MimeBodyPart();
+					// add email message
+					messageBodyPart.setText(emailMessage);
+					// Set email message
+					multipart.addBodyPart(messageBodyPart);
 				}
 			} else {
-				// set empty email
-				email.setText("");
+				// add an empty body
+				BodyPart messageBodyPart = new MimeBodyPart();
+				// add email message
+				messageBodyPart.setText("");
+				// Set email message
+				multipart.addBodyPart(messageBodyPart);
 			}
 			// add attachments
 			if (attachments != null) {
@@ -137,38 +126,6 @@ public class EmailUtility {
 
 		return false;
 	}
-
-//	static class HTMLDataSource implements DataSource {
-//
-//		private String html;
-//
-//		public HTMLDataSource(String htmlString) {
-//			html = htmlString;
-//		}
-//
-//		@Override
-//		public InputStream getInputStream() throws IOException {
-//			if (html == null) {
-//				throw new IOException("html message is null!");
-//			}
-//			return new ByteArrayInputStream(html.getBytes());
-//		}
-//
-//		@Override
-//		public OutputStream getOutputStream() throws IOException {
-//			throw new IOException("This DataHandler cannot write HTML");
-//		}
-//
-//		@Override
-//		public String getContentType() {
-//			return "text/html";
-//		}
-//
-//		@Override
-//		public String getName() {
-//			return "HTMLDataSource";
-//		}
-//	}
 
 	/**
 	 * Replace dynamic components in the message
