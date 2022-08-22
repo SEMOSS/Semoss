@@ -2,6 +2,7 @@ package prerna.auth.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
@@ -9,6 +10,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SecurityOwlCreator {
@@ -17,11 +19,13 @@ public class SecurityOwlCreator {
 	static {
 		conceptsRequired.add("ENGINE");
 		conceptsRequired.add("ENGINEMETA");
+		conceptsRequired.add("ENGINEMETAKEYS");
 		conceptsRequired.add("ENGINEPERMISSION");
 		conceptsRequired.add("WORKSPACEENGINE");
 		conceptsRequired.add("ASSETENGINE");
 		conceptsRequired.add("INSIGHT");
 		conceptsRequired.add("INSIGHTMETA");
+		conceptsRequired.add("INSIGHTMETAKEYS");
 		conceptsRequired.add("INSIGHTFRAMES");
 		conceptsRequired.add("USERINSIGHTPERMISSION");
 		conceptsRequired.add("SMSS_USER");
@@ -29,6 +33,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PROJECT");
 		conceptsRequired.add("PROJECTPERMISSION");
 		conceptsRequired.add("PROJECTMETA");
+		conceptsRequired.add("PROJECTMETAKEYS");
 		conceptsRequired.add("PASSWORD_RULES");
 		conceptsRequired.add("PASSWORD_HISTORY");
 		conceptsRequired.add("PASSWORD_RESET");
@@ -38,6 +43,10 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("GROUPENGINEPERMISSION");
 		conceptsRequired.add("GROUPPROJECTPERMISSION");
 		conceptsRequired.add("GROUPINSIGHTPERMISSION");
+		
+		conceptsRequired.add(Constants.ENGINE_METAKEYS);
+		conceptsRequired.add(Constants.PROJECT_METAKEYS);
+		conceptsRequired.add(Constants.INSIGHT_METAKEYS);
 		
 		// trusted token security
 		conceptsRequired.add("TOKENS");
@@ -209,6 +218,13 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEMETA", "METAKEY", "VARCHAR(255)");
 		owler.addProp("ENGINEMETA", "METAVALUE", "CLOB");
 		owler.addProp("ENGINEMETA", "METAORDER", "INT");
+		
+		// DATAMETAKEYS
+		owler.addConcept("DATAMETAKEYS", null, null);
+		owler.addProp("DATAMETAKEYS", "METAKEY", "VARCHAR(255)");
+		owler.addProp("DATAMETAKEYS", "SINGLEMULTI", "VARCHAR(255)");
+		owler.addProp("DATAMETAKEYS", "DISPLAYORDER", "INT");
+		owler.addProp("DATAMETAKEYS", "DISPLAYOPTIONS", "VARCHAR(255)");
 
 		// ENGINEPERMISSION
 		owler.addConcept("ENGINEPERMISSION", null, null);
@@ -405,6 +421,17 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "INSIGHTID", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSION", "INT");
 		
+		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
+		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
+		for(String tableName : metaKeyTableNames) {
+			// all have the same columns and default values
+			owler.addConcept(tableName, null, null);
+			owler.addProp(tableName, "METAKEY", "VARCHAR(255)");
+			owler.addProp(tableName, "SINGLEMULTI", "VARCHAR(255)");
+			owler.addProp(tableName, "DISPLAYORDER", "INT");
+			owler.addProp(tableName, "DISPLAYOPTIONS", "VARCHAR(255)");
+		}
+					
 		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.ID.GROUPENGINEPERMISSION.ID");
 		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.TYPE.GROUPENGINEPERMISSION.TYPE");
 		owler.addRelation("ENGINE", "GROUPENGINEPERMISSION", "ENGINE.ENGINEID.GROUPENGINEPERMISSION.ENGINEID");
