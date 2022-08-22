@@ -2360,7 +2360,8 @@ public class Utility {
 			boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
 			boolean isScheduler = engineId.equals(Constants.SCHEDULER_DB);
 			boolean isThemes = engineId.equals(Constants.THEMING_DB);
-			if (!isLocal && !isSecurity && !isScheduler && !isThemes) {
+			boolean isUserTracking = engineId.equals(Constants.USER_TRACKING_DB);
+			if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking) {
 				// sync up the engine metadata now
 				synchronizeEngineMetadata(engineId);
 				SecurityUpdateUtils.addDatabase(engineId);
@@ -2763,7 +2764,8 @@ public class Utility {
 				// TODO >>>cluster: tag
 				// Start with because the insights RDBMS has the id security_InsightsRDBMS
 				if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase")
-						|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler"))) {
+						|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler") 
+						|| engineId.startsWith("UserTrackingDatabase") )) {
 					Map<String, String> envMap = System.getenv();
 					if (envMap.containsKey(ZKClient.ZK_SERVER)
 							|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
@@ -3574,6 +3576,24 @@ public class Utility {
 	
 	public static boolean isVirusScanningDisabled() {
 		return !isVirusScanningEnabled();
+	}
+	
+	/**
+	 * Determine if user tracking enabled
+	 * @return
+	 */
+	public static boolean isUserTrackingEnabled() {
+		String userTracking = DIHelper.getInstance().getProperty(Constants.USER_TRACKING_ENABLED);
+		if(userTracking == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(userTracking);
+	}
+	
+	public static String getUserTrackingMethod() {
+		return DIHelper.getInstance().getProperty(Constants.USER_TRACKING_METHOD);
 	}
 	
 	/**

@@ -201,8 +201,9 @@ public class WrapperManager {
 				interpreter.setQueryStruct(qs);
 				query = interpreter.composeQuery();
 				String appId = engine.getEngineId();
-				if(Constants.LOCAL_MASTER_DB_NAME.equals(appId) || Constants.SECURITY_DB.equals(appId) 
-						|| Constants.SCHEDULER_DB.equals(appId) || Constants.THEMING_DB.equals(appId)) {
+				if(Constants.LOCAL_MASTER_DB_NAME.equals(appId) || Constants.SECURITY_DB.equals(appId)  
+						|| Constants.SCHEDULER_DB.equals(appId) || Constants.THEMING_DB.equals(appId) 
+						|| Constants.USER_TRACKING_DB.equals(appId)) {
 					returnWrapper.setEngine(engine);
 					returnWrapper.setQuery(query);
 					if(!delayExecIfPossible) {
