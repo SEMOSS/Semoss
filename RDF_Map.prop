@@ -134,6 +134,9 @@ ADMIN_ONLY_DB_SET_PUBLIC	false
 ADMIN_ONLY_DB_SET_DISCOVERABLE	false
 ADMIN_ONLY_INSIGHT_SET_PUBLIC	false
 
+USER_TRACKING_ENABLED	false
+USER_TRACKING_METHOD	GEOIP2
+
 ##################################################
 ##################################################
 ##################################################
