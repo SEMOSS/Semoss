@@ -177,4 +177,13 @@ public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 		return AbstractSqlQueryUtil.SECRET_KEY;
 	}
 	
+	@Override
+	public String getUsername() {
+		return this.accessKey;
+	}
+	
+	@Override
+	public String getPassword() {
+		return this.secretKey;
+	}
 }

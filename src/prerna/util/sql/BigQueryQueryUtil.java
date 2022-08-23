@@ -87,7 +87,7 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 	public String getConnectionPasswordKey() {
 		return AbstractSqlQueryUtil.SECRET_KEY;
 	}
-
+	
 	@Override
 	public String setConnectionDetailsfromMap(Map<String, Object> configMap) throws RuntimeException {
 		if(configMap == null || configMap.isEmpty()){
