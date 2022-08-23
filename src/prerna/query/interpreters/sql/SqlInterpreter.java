@@ -1455,7 +1455,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			String groupByColumn = null;
 
 			// account for custom from
-			if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
+			if(this.subQsAliasNames.contains(tableConceptualName)) {
+				// this is a column selector from a projection off a subquery
+				groupByTable = tableConceptualName;
+				groupByColumn = columnConceptualName;
+			} else if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
 				groupByTable = this.customFromAliasName;
 				groupByColumn = queryUtil.escapeReferencedAlias(columnConceptualName);
 			} else {
