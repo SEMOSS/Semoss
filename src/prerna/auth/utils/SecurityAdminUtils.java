@@ -150,11 +150,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get all database users
-	 * @param User
+	 * @param offset 
+	 * @param limit 
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUsers() throws IllegalArgumentException{
+	public List<Map<String, Object>> getAllUsers(long limit, long offset) throws IllegalArgumentException{
 //		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER FROM SMSS_USER ORDER BY NAME, TYPE";
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -168,6 +169,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
+		}
 		return getSimpleQuery(qs);
 	}
 	
