@@ -1275,6 +1275,69 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Get the list of the database ids that the user has access to
+	 * @param userId
+	 * @return
+	 */
+	public static List<String> getUserDatabaseIdList(User user) {
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT DISTINCT "
+//				+ "ENGINE.ENGINEID as \"app_id\", "
+//				+ "FROM ENGINE "
+//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
+//				+ "WHERE "
+//				+ "( ENGINE.GLOBAL=TRUE "
+//				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + " ) "
+//				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + ") "
+//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";	
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		Collection<String> userIds = getUserFiltersQs(user);
+		
+		SelectQueryStruct qs1 = new SelectQueryStruct();
+		// selectors
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		{
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "ENGINEPERMISSION__PERMISSION", "PERMISSION"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "ENGINEPERMISSION__VISIBILITY", "VISIBILITY"));
+			qs2.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "="});
+			qs1.addRelation(subQuery);
+		}
+		// filters
+		{
+			OrQueryFilter orFilter = new OrQueryFilter();
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			qs1.addExplicitFilter(orFilter);
+		}
+		// only show those that are visible
+		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==", Arrays.asList(new Object[] {true, null}), PixelDataType.BOOLEAN));
+		return QueryExecutionUtility.flushToListString(securityDb, qs1);
+	}
+	
+
+	/**
+	 * Get all the available metavalues
+	 * @param dbids, metakeys
+	 * @return
+	 */
+	public static List<String> getAvailableMetavalues(List<String> dbids, List<String> metakeys) {
+		System.out.println("GETAVAILABLEMETAVALUES");
+		System.out.println(dbids);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE", "Metavalues"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metakeys));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", dbids));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+	
+	/**
 	 * Get all user database and database Ids regardless of it being hidden or not 
 	 * @param userId
 	 * @return
@@ -1620,62 +1683,66 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 	
-	public static List<Map<String, Object>> getMetakeyOptions(String tablename, String metakey) {
-//		String query = "SELECT * FROM ENGINE/PROJECT/INSIGHTMETAKEYS;
+	/**
+	 * 
+	 * @param metakey
+	 * @return
+	 */
+	public static List<Map<String, Object>> getMetakeyOptions( String metakey) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(tablename+"__METAKEY"));
-		qs.addSelector(new QueryColumnSelector(tablename+"__SINGLEMULTI"));
-		qs.addSelector(new QueryColumnSelector(tablename+"__DISPLAYORDER"));
-		qs.addSelector(new QueryColumnSelector(tablename+"__DISPLAYOPTIONS"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__SINGLEMULTI"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYORDER"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYOPTIONS"));
 		if (metakey != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(tablename+"__METAKEY", "==", metakey));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETAKEYS__METAKEY", "==", metakey));
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
-//	public static boolean updateMetakeyOptions(String tableName, List<Map<String,Object>> metaoptions) {
-//		boolean valid = false;
-//		String[] colNames = new String[]{Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS};
-//		
-//        PreparedStatement stmt = null;
-//        try {
-//			// first truncate table clean 
-//			stmt = securityDb.getPreparedStatement("TRUNCATE TABLE ?");
-//			stmt.
-//        	
-//			String truncateSql = "TRUNCATE TABLE " + tableName;
-//			stmt = securityDb.getPreparedStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
-//			stmt.executeUpdate();
-//			// then insert latest options
-//			for (int i = 0; i < metaoptions.size(); i++) {
-//				stmt.setString(1, (String) metaoptions.get(i).get("metakey"));
-//				stmt.setString(2, (String) metaoptions.get(i).get("singlemulti"));
-//				stmt.setInt(3, ((Number) metaoptions.get(i).get("order")).intValue());
-//				stmt.setString(4, (String) metaoptions.get(i).get("displayoptions"));
-//				stmt.addBatch();
-//			}
-//			stmt.executeBatch();
-//        } catch (SQLException e) {
-//        	logger.error(Constants.STACKTRACE, e);
-//        } finally {
-//        	try {
-//        		if(stmt != null) {
-//        			stmt.close();
-//        		}
-//        	} catch (SQLException e) {
-//            	logger.error(Constants.STACKTRACE, e);
-//        	}
-//        	if(securityDb.isConnectionPooling()) {
-//        		try {
-//            		if(conn != null) {
-//                		conn.close();
-//            		}
-//            	} catch (SQLException e) {
-//                	logger.error(Constants.STACKTRACE, e);
-//            	}
-//        	}
-//        }
-//        valid = true; // execute returns a false after successful insert
-//		return valid;
-//	}
+	/**
+	 * 
+	 * @param metaoptions
+	 * @return
+	 */
+	public static boolean updateMetakeyOptions(List<Map<String,Object>> metaoptions) {
+		boolean valid = false;
+		String[] colNames = new String[]{Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS};
+        PreparedStatement insertPs = null;
+        String tableName = "ENGINEMETAKEYS";
+        try {
+			// first truncate table clean 
+			String truncateSql = "TRUNCATE TABLE " + tableName;
+			securityDb.removeData(truncateSql);
+			insertPs = securityDb.getPreparedStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
+			// then insert latest options
+			for (int i = 0; i < metaoptions.size(); i++) {
+				insertPs.setString(1, (String) metaoptions.get(i).get("metakey"));
+				insertPs.setString(2, (String) metaoptions.get(i).get("singlemulti"));
+				insertPs.setInt(3, ((Number) metaoptions.get(i).get("order")).intValue());
+				insertPs.setString(4, (String) metaoptions.get(i).get("displayoptions"));
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			valid = true;
+        } catch (SQLException e) {
+        	logger.error(Constants.STACKTRACE, e);
+        } finally {
+        	if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+        }
+		return valid;
+	}
 }
