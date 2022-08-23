@@ -1541,4 +1541,67 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
+	
+	/**
+	 * 
+	 * @param metakey
+	 * @return
+	 */
+	public static List<Map<String, Object>> getMetakeyOptions( String metakey) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__SINGLEMULTI"));
+		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__DISPLAYORDER"));
+		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__DISPLAYOPTIONS"));
+		if (metakey != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETAKEYS__METAKEY", "==", metakey));
+		}
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param metaoptions
+	 * @return
+	 */
+	public static boolean updateMetakeyOptions( List<Map<String,Object>> metaoptions) {
+		boolean valid = false;
+		String[] colNames = new String[]{Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS};
+        PreparedStatement insertPs = null;
+        String tableName = "PROJECTMETAKEYS";
+        try {
+			// first truncate table clean 
+			String truncateSql = "TRUNCATE TABLE " + tableName;
+			securityDb.removeData(truncateSql);
+			insertPs = securityDb.getPreparedStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
+			// then insert latest options
+			for (int i = 0; i < metaoptions.size(); i++) {
+				insertPs.setString(1, (String) metaoptions.get(i).get("metakey"));
+				insertPs.setString(2, (String) metaoptions.get(i).get("singlemulti"));
+				insertPs.setInt(3, ((Number) metaoptions.get(i).get("order")).intValue());
+				insertPs.setString(4, (String) metaoptions.get(i).get("displayoptions"));
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			valid = true;
+        } catch (SQLException e) {
+        	logger.error(Constants.STACKTRACE, e);
+        } finally {
+        	if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+        }
+		return valid;
+	}
 }
