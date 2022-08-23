@@ -28,18 +28,25 @@ public class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 	
 	private static Geoip2UserTrackingUtils instance;
 	
-	public Geoip2UserTrackingUtils() {
-		
+	private static DatabaseReader reader;
+	
+	private static String workdir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+	private static String folder = "GeoIp2Artifacts";
+	private static String fileName = "GeoLite2-City.mmdb";
+	private static String filePath = workdir + File.separator + folder + File.separator + fileName;
+	
+	public Geoip2UserTrackingUtils() throws IOException {
+		File database = new File(filePath);
+		reader = new DatabaseReader.Builder(database).build();
 	}
 	
 	public static IUserTracking getInstance() {
 		if (instance != null) {
 			return instance;
-		} 
+		}
 
-		
 		synchronized (Geoip2UserTrackingUtils.class) {
-			if(instance == null) {
+			if (instance == null) {
 				try {
 					instance = new Geoip2UserTrackingUtils();
 				} catch (Exception e) {
@@ -53,17 +60,14 @@ public class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 
 	@Override
 	public void registerLogin(String sessionId, String ip, User user, AuthProvider ap) {
-		String workdir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = "GeoIp2Artifacts";
-		String fileName = "GeoLite2-City.mmdb";
-		
-		String filePath = workdir + File.separator + folder + File.separator + fileName;
-
-		File database = new File(filePath);
+		if (reader == null) {
+			logger.error("Database reader object is null. IP Details will not be stored.");
+			instance = null;
+			return;
+		}
 		
 		UserTrackingDetails utd;
 		try {
-			DatabaseReader reader = new DatabaseReader.Builder(database).build();
 			InetAddress inet = InetAddress.getByName(ip);
 			CityResponse cr = reader.tryCity(inet).orElse(NULL_CR);
 			utd = this.cityResponseToUserTrackingDetails(cr, ip);
@@ -82,12 +86,7 @@ public class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 		super.saveSession(sessionId, utd, user, ap);
 	}
 	
-	/**
-	 * 
-	 * @param cr
-	 * @param ip
-	 * @return
-	 */
+
 	private UserTrackingDetails cityResponseToUserTrackingDetails(CityResponse cr, String ip) {
 		Location location = cr.getLocation();
 		
