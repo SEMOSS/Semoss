@@ -218,13 +218,6 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEMETA", "METAKEY", "VARCHAR(255)");
 		owler.addProp("ENGINEMETA", "METAVALUE", "CLOB");
 		owler.addProp("ENGINEMETA", "METAORDER", "INT");
-		
-		// DATAMETAKEYS
-		owler.addConcept("DATAMETAKEYS", null, null);
-		owler.addProp("DATAMETAKEYS", "METAKEY", "VARCHAR(255)");
-		owler.addProp("DATAMETAKEYS", "SINGLEMULTI", "VARCHAR(255)");
-		owler.addProp("DATAMETAKEYS", "DISPLAYORDER", "INT");
-		owler.addProp("DATAMETAKEYS", "DISPLAYOPTIONS", "VARCHAR(255)");
 
 		// ENGINEPERMISSION
 		owler.addConcept("ENGINEPERMISSION", null, null);
