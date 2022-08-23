@@ -26,17 +26,12 @@ public class MyProjectsReactor extends AbstractReactor {
 	
 	private static final Logger logger = LogManager.getLogger(MyProjectsReactor.class);
 
-	private static List<String> META_KEYS_LIST = new Vector<>();
-	
+	private static final String META_KEYS = "metaKeys";
 	private static final String META_FILTERS = "metaFilters";
-	static {
-		META_KEYS_LIST.add("description");
-		META_KEYS_LIST.add("tag");
-	}
 
 	public MyProjectsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), META_FILTERS};
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), META_KEYS, META_FILTERS};
 	}
 
 	@Override
@@ -71,7 +66,7 @@ public class MyProjectsReactor extends AbstractReactor {
 
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), META_KEYS_LIST);
+			wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), getMetaKeys());
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String projectId = (String) data[0];
@@ -140,9 +135,20 @@ public class MyProjectsReactor extends AbstractReactor {
 		return null;
 	}
 	
+	private List<String> getMetaKeys() {
+		GenRowStruct grs = this.store.getNoun(META_KEYS);
+		if(grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
+		
+		return null;
+	}
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(META_FILTERS)) {
+		if(key.equals(META_KEYS)) {
+			return "List of the metadata keys to return with each project";
+		} else if(key.equals(META_FILTERS)) {
 			return "Map containing key-value pairs for filters to apply on the project metadata";
 		}
 		return super.getDescriptionForKey(key);
