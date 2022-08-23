@@ -28,7 +28,6 @@ public class MyDatabasesReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(MyDatabasesReactor.class);
 
 	private static final String META_KEYS = "metaKeys";
-
 	private static final String META_FILTERS = "metaFilters";
 
 	public MyDatabasesReactor() {
