@@ -1587,6 +1587,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs1.addSelector(fun);
 		// only care about discoverable engines
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", false, PixelDataType.BOOLEAN));
 		// remove user permission access
 		{
 			SelectQueryStruct subQsUser = new SelectQueryStruct();
