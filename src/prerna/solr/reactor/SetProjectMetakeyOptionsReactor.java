@@ -31,6 +31,9 @@ public class SetProjectMetakeyOptionsReactor extends AbstractInsightReactor {
 		} else {
 			organizeKeys();
 			List<Map<String, Object>> metaoptions = getMetaOptions();
+			if (metaoptions==null || metaoptions.isEmpty()) {
+				throw new IllegalArgumentException("Must provide a set of metadata values to store.");
+			}
 			if(AbstractSecurityUtils.securityEnabled()) {
 				res = SecurityProjectUtils.updateMetakeyOptions(metaoptions);
 			}
