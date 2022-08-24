@@ -1210,7 +1210,6 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				qs3.addExplicitFilter(andFilter1);
 			}
 			
-			
 			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join", new String[] {"GROUP_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "="});
 			qs1.addRelation(subQuery);
 		}
@@ -1586,40 +1585,35 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		fun.setAlias("low_database_name");
 		qs1.addSelector(fun);
-		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "permission"));
 		// only care about discoverable engines
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
-		// TODO: need to remove engines i have explicit access to
-		// TODO: need to remove engines i have group access to
-		// @HANG - fill in using a ENGINEPERMISSION__ENGINEID != (subquery) as an explicit filter
-		
-//		// add a join to get the user permission level, if favorite, and the visibility
-//		{
-//			SelectQueryStruct qs2 = new SelectQueryStruct();
-//			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
-//			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "ENGINEPERMISSION__PERMISSION", "PERMISSION"));
-//			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "ENGINEPERMISSION__VISIBILITY", "VISIBILITY"));
-//			qs2.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
-//			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "!=", userIds));
-//			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "="});
-//			qs1.addRelation(subQuery);
-//		}
-//		// add a join to check group permission
-//		{
-//			SelectQueryStruct qs3 = new SelectQueryStruct();
-//			qs3.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENGINEID", "ENGINEID"));
-//			AndQueryFilter groupPermissionFilters = new AndQueryFilter();
-//			List<AuthProvider> logins = user.getLogins();
-//			for(AuthProvider login : logins) {
-//				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
-//					continue;
-//				}
-//				groupPermissionFilters.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ID", "!=", user.getAccessToken(login).getUserGroups()));
-//			}
-//			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join", new String[] {"GROUP_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "="});
-//			qs1.addRelation(subQuery);
-//		}
-		
+		// remove user permission access
+		{
+			SelectQueryStruct subQsUser = new SelectQueryStruct();
+			subQsUser.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+			subQsUser.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "!=", userIds));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQsUser));
+		}
+		{
+			// remove group permission access
+			SelectQueryStruct subQsGroup = new SelectQueryStruct();
+			subQsGroup.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENGINEID"));
+			OrQueryFilter orFilter = new OrQueryFilter();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider login : logins) {
+				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+					continue;
+				}
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
+				orFilter.addFilter(andFilter);
+			}
+			if (!orFilter.isEmpty()) {
+				subQsGroup.addExplicitFilter(orFilter);
+				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQsGroup));
+			}
+		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
 		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
 			for (String k : engineMetadataFilter.keySet()) {
