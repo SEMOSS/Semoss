@@ -14,11 +14,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class DatabaseInfoReactor extends AbstractReactor {
+public class GetDatabaseMetadataReactor extends AbstractReactor {
 	
 	private static final String META_KEYS = "metakey";
 	
-	public DatabaseInfoReactor() {
+	public GetDatabaseMetadataReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), META_KEYS};
 	}
 
@@ -31,15 +31,15 @@ public class DatabaseInfoReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an database id");
 		}
 		
-		List<Map<String, Object>> baseInfo = null;
+		Map<String, Object> databaseMeta = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
 			if(SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				// user has access!
-				baseInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseId);
+				databaseMeta = SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), false);
 			} else if(SecurityDatabaseUtils.databaseIsDiscoverable(databaseId)) {
-				baseInfo = SecurityDatabaseUtils.getDiscoverableDatabaseList(databaseId);
+				databaseMeta = SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), false);
 			} else {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
@@ -47,17 +47,10 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		} else {
 			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 			// just grab the info
-			baseInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseId);
+			databaseMeta = SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), false);
 		}
-		
-		if(baseInfo == null || baseInfo.isEmpty()) {
-			throw new IllegalArgumentException("Could not find any database data");
-		}
-		
-		// we filtered to a single database
-		Map<String, Object> databaseInfo = baseInfo.get(0);
-		databaseInfo.putAll(SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), true));
-		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+
+		return new NounMetadata(databaseMeta, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	
 	private List<String> getMetaKeys() {

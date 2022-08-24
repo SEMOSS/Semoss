@@ -699,10 +699,11 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * Get the wrapper for additional database metadata
 	 * @param databaseIds
 	 * @param metaKeys
+	 * @param ignoreMarkdown
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public static IRawSelectWrapper getDatabaseMetadataWrapper(Collection<String> databaseIds, List<String> metaKeys) throws Exception {
+	public static IRawSelectWrapper getDatabaseMetadataWrapper(Collection<String> databaseIds, List<String> metaKeys, boolean ignoreMarkdown) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
@@ -717,7 +718,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metaKeys));
 		}
 		// exclude markdown metadata due to potential large data size
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "!=", Constants.MARKDOWN));
+		if(ignoreMarkdown) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "!=", Constants.MARKDOWN));
+		}
 		// order
 		qs.addOrderBy("ENGINEMETA__METAORDER");
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -727,9 +730,11 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	/**
 	 * Get the metadata for a specific database
 	 * @param databaseId
+	 * @param metaKeys
+	 * @param ignoreMarkdown
 	 * @return
 	 */
-	public static Map<String, Object> getAggregateDatabaseMetadata(String databaseId) {
+	public static Map<String, Object> getAggregateDatabaseMetadata(String databaseId, List<String> metaKeys, boolean ignoreMarkdown) {
 		Map<String, Object> retMap = new HashMap<String, Object>();
 
 		List<String> databaseIds = new ArrayList<>();
@@ -737,7 +742,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = getDatabaseMetadataWrapper(databaseIds, null);
+			wrapper = getDatabaseMetadataWrapper(databaseIds, metaKeys, ignoreMarkdown);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String metaKey = (String) data[1];
