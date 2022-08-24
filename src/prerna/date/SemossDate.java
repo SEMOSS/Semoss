@@ -161,7 +161,7 @@ public class SemossDate implements Comparable<SemossDate> {
 	public String getFormattedDate() {
 		if(this.strDate == null) {
 			SimpleDateFormat formatter = new SimpleDateFormat(this.pattern);
-			formatter.setTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+//			formatter.setTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 			this.strDate = formatter.format(this.date);
 		}
 		return this.strDate;
