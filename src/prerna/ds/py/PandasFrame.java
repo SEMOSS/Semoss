@@ -52,12 +52,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public static final String NUMPY_IMPORT_VAR = "np_import_var";
 	public static final String NUMPY_IMPORT_STRING = "import numpy as " + NUMPY_IMPORT_VAR;
 	
-	static Map<String, SemossDataType> pyS = new Hashtable<String, SemossDataType>();
-	static Map<String, Object> pyJ = new Hashtable<String, Object>();
-	static Map<Object, String> spy = new Hashtable<Object, String>();
+	static Map<String, SemossDataType> pyS = new Hashtable<>();
+	static Map<String, Object> pyJ = new Hashtable<>();
+	static Map<Object, String> spy = new Hashtable<>();
 	
 	// gets all the commands in one fell swoop 
-	List <String> commands = new ArrayList<String>();
+	List <String> commands = new ArrayList<>();
 	
 	private PyExecutorThread py = null;
 	private String wrapperFrameName = null;
@@ -73,25 +73,26 @@ public class PandasFrame extends AbstractTableDataFrame {
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
 		pyS.put("datetime64", SemossDataType.DATE);
-		
+		pyS.put("bool", SemossDataType.BOOLEAN);
+
 
 		pyJ.put("object", java.lang.String.class);
 		pyJ.put("category", java.lang.String.class);
 		pyJ.put("int64", java.lang.Integer.class);
 		pyJ.put("float64", java.lang.Double.class);
 		pyJ.put("datetime64", java.util.Date.class);
+		pyJ.put("bool", java.lang.Boolean.class);
 
-		
 		spy.put(SemossDataType.STRING, "'str'");
 		spy.put(SemossDataType.INT, "np.int64");
 		spy.put(SemossDataType.DOUBLE, "np.float64");
 		spy.put(SemossDataType.DATE, "np.datetime32");
 		spy.put(SemossDataType.TIMESTAMP, "np.datetime32");
-		
+//		spy.put(SemossDataType.BOOLEAN, "np.bool");
+
 		spy.put("float64", "np.float32");
 		spy.put("int64", "np.int32");
 		spy.put("datetime64", "np.datetime32");
-		
 		spy.put("dtype('O')", "'str'");
 		spy.put("dtype('int64')", "int32");
 		spy.put("dtype('float64')", "float32");
@@ -178,11 +179,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
 			
 			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
-				
 				Insight in = this.pyt.insight;
-		
 				String insightFolder = in.getInsightFolder();
-			
 				try {
 					FileUtils.mkdirs(new File(insightFolder), true);
 					if(in.getUser() != null) {
@@ -336,7 +334,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				colType = "STRING";
 			}
 			
-			SemossDataType pysColType = (SemossDataType) pyS.get(colType);
+			SemossDataType pysColType = pyS.get(colType);
 			SemossDataType proposedType = dataTypeMap.get(frameName + "__" + colName);
 			if(proposedType == null) {
 				proposedType = dataTypeMap.get(colName);
@@ -349,7 +347,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			}
 			
 			//if(proposedType != null && pysColType != proposedType) {
-			if(proposedType != null && !pyproposedType.equalsIgnoreCase(colType)) {
+			if(proposedType!=null && pyproposedType!=null && !pyproposedType.equalsIgnoreCase(colType)) {
 				// create and execute the type
 				if(proposedType == SemossDataType.DATE) {
 					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore').dt.date";
@@ -367,8 +365,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 			}
 			
 			// execute all at once
-			pyt.runEmptyPy(allTypes.toString());
-			
+			if(allTypes.length() > 0) {
+				pyt.runEmptyPy(allTypes.toString());
+			}
 			//if(colType.equalsIgnoreType)
 			
 			// reduce memory size
