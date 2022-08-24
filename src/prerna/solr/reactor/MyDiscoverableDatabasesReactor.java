@@ -28,12 +28,11 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(MyDiscoverableDatabasesReactor.class);
 
 	private static final String META_KEYS = "metaKeys";
-
 	private static final String META_FILTERS = "metaFilters";
 
 	public MyDiscoverableDatabasesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), META_KEYS, META_FILTERS};
+				ReactorKeysEnum.SORT.getKey(), META_KEYS, META_FILTERS};
 	}
 
 	@Override
@@ -41,19 +40,15 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 		organizeKeys();
 		String limit = this.keyValue.get(this.keysToGet[0]);
 		String offset = this.keyValue.get(this.keysToGet[1]);
-		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
-		String sortCol = this.keyValue.get(this.keysToGet[3]);
+		String sortCol = this.keyValue.get(this.keysToGet[2]);
 		if(sortCol == null) {
 			sortCol = "name";
 		}
 		List<Map<String, Object>> dbInfo = new Vector<>();
 		if(AbstractSecurityUtils.securityEnabled()) {
 			Map<String, Object> engineMetadataFilter = getMetaMap();
-			dbInfo = SecurityDatabaseUtils.getUserDiscoverableDatabaseList(this.insight.getUser(), favoritesOnly, 
+			dbInfo = SecurityDatabaseUtils.getUserDiscoverableDatabaseList(this.insight.getUser(), 
 					engineMetadataFilter, limit, offset);
-			if(!favoritesOnly) {
-				this.insight.getUser().setEngines(dbInfo);
-			}
 		} else {
 			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(null, limit, offset);
 		}
