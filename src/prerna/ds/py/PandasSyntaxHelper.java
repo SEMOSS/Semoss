@@ -247,16 +247,18 @@ public class PandasSyntaxHelper {
 			return numpyImportVar + ".float64";
 		} else if (type == SemossDataType.DOUBLE) {
 			return numpyImportVar + ".float64";
-		} else if (type == SemossDataType.DATE) {
+		} else if(type == SemossDataType.BOOLEAN) {
+			return "object";
+//			return numpyImportVar + ".bool";
+		} if (type == SemossDataType.DATE) {
 			return "object";
 			//return numpyImportVar + ".datetime64";
 		} else if (type == SemossDataType.TIMESTAMP) {
 			//return numpyImportVar + ".datetime64";
 			return "object";
-		} else if (type == SemossDataType.STRING) {
+		} else {
 			return "object";
 		}
-		return null;
 	}
 
 	/**

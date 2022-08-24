@@ -224,6 +224,12 @@ public class RdbmsFrameBuilder {
 								ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 							}
 						}
+					} else if (type == SemossDataType.BOOLEAN) {
+						if(nextRow[colIndex] == null) {
+							ps.setNull(colIndex + 1, java.sql.Types.BOOLEAN);
+						} else {
+							ps.setBoolean(colIndex + 1, (Boolean) nextRow[colIndex]);
+						}
 					} else {
 						if(nextRow[colIndex] == null) {
 							ps.setNull(colIndex + 1, java.sql.Types.VARCHAR);
