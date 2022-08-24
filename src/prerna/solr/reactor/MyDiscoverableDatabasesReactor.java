@@ -65,7 +65,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 		
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), getMetaKeys());
+			wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), getMetaKeys(), true);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String databaseId = (String) data[0];
