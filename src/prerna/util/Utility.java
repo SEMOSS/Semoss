@@ -2499,7 +2499,6 @@ public class Utility {
 			AddToMasterDB adder = new AddToMasterDB();
 			// logic to register the engine into the local master
 			adder.registerEngineLocal(prop);
-			adder.commit(localMaster);
 		} else if (!engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) {
 			// if it has a time stamp, it means it was previously in local master
 			// logic to delete an engine from the local master
@@ -2508,7 +2507,6 @@ public class Utility {
 			// logic to add the engine into the local master
 			AddToMasterDB adder = new AddToMasterDB();
 			adder.registerEngineLocal(prop);
-			adder.commit(localMaster);
 		}
 		
 		// clear the caching of engine metadata
