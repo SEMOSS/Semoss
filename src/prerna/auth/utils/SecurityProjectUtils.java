@@ -1553,7 +1553,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__SINGLEMULTI"));
 		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__DISPLAYORDER"));
 		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__DISPLAYOPTIONS"));
-		if (metakey != null) {
+		if (metakey != null && !metakey.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETAKEYS__METAKEY", "==", metakey));
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);

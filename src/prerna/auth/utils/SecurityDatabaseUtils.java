@@ -1701,7 +1701,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__SINGLEMULTI"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYORDER"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYOPTIONS"));
-		if (metakey != null) {
+		if (metakey != null && !metakey.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETAKEYS__METAKEY", "==", metakey));
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
