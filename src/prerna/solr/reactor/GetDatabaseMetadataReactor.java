@@ -16,10 +16,8 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetDatabaseMetadataReactor extends AbstractReactor {
 	
-	private static final String META_KEYS = "metakey";
-	
 	public GetDatabaseMetadataReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), META_KEYS};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
 	}
 
 	@Override
@@ -54,7 +52,7 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 	}
 	
 	private List<String> getMetaKeys() {
-		GenRowStruct grs = this.store.getNoun(META_KEYS);
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
