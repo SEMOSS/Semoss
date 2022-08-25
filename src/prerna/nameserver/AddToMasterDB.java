@@ -673,14 +673,7 @@ public class AddToMasterDB {
 //        executeSql(conn, insertString);
 //    }
 
-    public void commit(IEngine localMaster) {
-        try {
-            ((RDBMSNativeEngine) localMaster).commitRDBMS();
-        } catch (Exception e) {
-            logger.error(Constants.STACKTRACE, e);
-        }
-    }
-
+    
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
