@@ -2448,7 +2448,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__SINGLEMULTI"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__DISPLAYORDER"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__DISPLAYOPTIONS"));
-		if (metakey != null) {
+		if (metakey != null && !metakey.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETAKEYS__METAKEY", "==", metakey));
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
