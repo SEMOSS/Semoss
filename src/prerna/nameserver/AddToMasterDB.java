@@ -32,7 +32,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -682,63 +681,12 @@ public class AddToMasterDB {
         }
     }
 
-
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Get the date for a given engine
-     *
-     * @param engineId
-     * @return
-     */
-    public Date getEngineDate(String engineId) {
-        java.util.Date retDate = null;
-        IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-        Connection conn = null;
-        Statement stmt = null;
-        ResultSet rs = null;
-        try {
-        	conn = localMaster.makeConnection();
-            String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
-            stmt = conn.createStatement();
-            rs = stmt.executeQuery(query);
-            while (rs.next()) {
-                java.sql.Timestamp modDate = rs.getTimestamp(1);
-                retDate = new java.util.Date(modDate.getTime());
-            }
-        } catch (Exception ex) {
-            logger.error(Constants.STACKTRACE, ex);
-        } finally {
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-            } catch (SQLException e) {
-                logger.error(Constants.STACKTRACE, e);
-            }
-            try {
-                if (stmt != null) {
-                    stmt.close();
-                }
-            } catch (SQLException e) {
-                logger.error(Constants.STACKTRACE, e);
-            }
-            if(localMaster.isConnectionPooling()) {
-            	try {
-            		if(conn != null) {
-    					conn.close();
-    				}
-				} catch (SQLException e) {
-	                logger.error(Constants.STACKTRACE, e);
-				}
-            }
-        }
-        return retDate;
-    }
 
     /**
      * Creates a new table xrayconfigs inserts filesName and config file string

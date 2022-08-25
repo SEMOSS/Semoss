@@ -1695,7 +1695,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @param metakey
 	 * @return
 	 */
-	public static List<Map<String, Object>> getMetakeyOptions( String metakey) {
+	public static List<Map<String, Object>> getMetakeyOptions(String metakey) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__METAKEY", "metakey"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__SINGLEMULTI", "single_multi"));
