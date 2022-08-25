@@ -1324,25 +1324,36 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs1);
 	}
 	
-
-	/**
-	 * Get all the available metavalues
-	 * @param dbids, metakeys
-	 * @return
-	 */
-	public static List<String> getAvailableMetavalues(List<String> dbids, List<String> metakeys) {
-		System.out.println("GETAVAILABLEMETAVALUES");
-		System.out.println(dbids);
-		SelectQueryStruct qs = new SelectQueryStruct();
-		// selectors
-		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE", "Metavalues"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metakeys));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", dbids));
-		return QueryExecutionUtility.flushToListString(securityDb, qs);
-	}
+    /**
+     * Get all the available engine metadata and their counts for given keys
+     * @param engineFilters
+     * @param metaKey
+     * @return
+     */
+    public static List<Map<String, Object>> getAvailableMetaValues(List<String> engineFilters, List<String> metaKeys) {
+        SelectQueryStruct qs = new SelectQueryStruct();
+        // selectors
+        qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAKEY"));
+        qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+        QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+        qs.addSelector(fSelector);
+        // filters
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metaKeys));
+        if(engineFilters != null && !engineFilters.isEmpty()) {
+            qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineFilters));
+        }
+        // group
+        qs.addGroupBy(new QueryColumnSelector("ENGINEMETA__METAKEY"));
+        qs.addGroupBy(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+        
+        return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+    }
 	
 	/**
-	 * Get all user database and database Ids regardless of it being hidden or not 
+	 * Get all user database and database ids regardless of it being hidden or not 
 	 * @param userId
 	 * @return
 	 */
