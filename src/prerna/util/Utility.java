@@ -153,6 +153,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -2477,10 +2478,8 @@ public class Utility {
 			return;
 		}
 
-		AddToMasterDB adder = new AddToMasterDB();
-
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-		Date rdbmsDate = adder.getEngineDate(engineId);
+		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(prop);
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
 
@@ -2497,6 +2496,7 @@ public class Utility {
 		}
 
 		if (rdbmsDate == null) {
+			AddToMasterDB adder = new AddToMasterDB();
 			// logic to register the engine into the local master
 			adder.registerEngineLocal(prop);
 			adder.commit(localMaster);
@@ -2506,6 +2506,7 @@ public class Utility {
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
 			remover.deleteEngineRDBMS(engineId);
 			// logic to add the engine into the local master
+			AddToMasterDB adder = new AddToMasterDB();
 			adder.registerEngineLocal(prop);
 			adder.commit(localMaster);
 		}
