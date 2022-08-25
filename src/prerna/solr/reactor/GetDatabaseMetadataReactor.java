@@ -29,15 +29,15 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an database id");
 		}
 		
-		Map<String, Object> databaseMeta = null;
+		List<Map<String, Object>> baseInfo = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
 			if(SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				// user has access!
-				databaseMeta = SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), false);
+				baseInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseId);
 			} else if(SecurityDatabaseUtils.databaseIsDiscoverable(databaseId)) {
-				databaseMeta = SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), false);
+				baseInfo = SecurityDatabaseUtils.getDiscoverableDatabaseList(databaseId);
 			} else {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
@@ -45,10 +45,19 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 		} else {
 			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 			// just grab the info
-			databaseMeta = SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), false);
+			baseInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseId);
 		}
-
-		return new NounMetadata(databaseMeta, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		
+		if(baseInfo == null || baseInfo.isEmpty()) {
+			throw new IllegalArgumentException("Could not find any database data");
+		}
+		
+		// we filtered to a single database
+		Map<String, Object> databaseInfo = baseInfo.get(0);
+		databaseInfo.putAll(SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), true));
+		// append last engine update
+		databaseInfo.put("last_updated", MasterDatabaseUtility.getEngineDate(databaseId));
+		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	
 	private List<String> getMetaKeys() {
