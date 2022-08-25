@@ -1697,10 +1697,10 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getMetakeyOptions( String metakey) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__METAKEY"));
-		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__SINGLEMULTI"));
-		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYORDER"));
-		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYOPTIONS"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__METAKEY", "metakey"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__SINGLEMULTI", "single_multi"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYORDER", "display_order"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYOPTIONS", "display_options"));
 		if (metakey != null && !metakey.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETAKEYS__METAKEY", "==", metakey));
 		}

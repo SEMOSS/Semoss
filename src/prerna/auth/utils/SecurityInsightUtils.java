@@ -2444,10 +2444,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getMetakeyOptions(String metakey) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__METAKEY"));
-		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__SINGLEMULTI"));
-		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__DISPLAYORDER"));
-		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__DISPLAYOPTIONS"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__METAKEY", "metakey"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__SINGLEMULTI", "single_multi"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__DISPLAYORDER", "display_order"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__DISPLAYOPTIONS", "display_options"));
 		if (metakey != null && !metakey.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETAKEYS__METAKEY", "==", metakey));
 		}
