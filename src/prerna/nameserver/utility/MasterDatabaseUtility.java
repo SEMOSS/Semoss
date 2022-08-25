@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -2877,7 +2878,35 @@ public class MasterDatabaseUtility {
 
 		return finalHash;
 	}
-
+	
+    /**
+     * Get the date for a given engine
+     *
+     * @param engineId
+     * @return
+     */
+    public static Date getEngineDate(String engineId) {
+        java.util.Date retDate = null;
+        IRDBMSEngine engine = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        try {
+        	conn = engine.makeConnection();
+            String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            while (rs.next()) {
+                java.sql.Timestamp modDate = rs.getTimestamp(1);
+                retDate = new java.util.Date(modDate.getTime());
+            }
+        } catch (Exception ex) {
+            logger.error(Constants.STACKTRACE, ex);
+        } finally {
+			closeResources(engine, conn, stmt, rs);
+		}
+        return retDate;
+    }
 
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
