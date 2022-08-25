@@ -1549,10 +1549,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getMetakeyOptions( String metakey) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__METAKEY"));
-		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__SINGLEMULTI"));
-		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__DISPLAYORDER"));
-		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__DISPLAYOPTIONS"));
+		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__METAKEY", "metakey"));
+		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__SINGLEMULTI", "single_multi"));
+		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__DISPLAYORDER", "display_order"));
+		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__DISPLAYOPTIONS", "display_options"));
 		if (metakey != null && !metakey.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETAKEYS__METAKEY", "==", metakey));
 		}
