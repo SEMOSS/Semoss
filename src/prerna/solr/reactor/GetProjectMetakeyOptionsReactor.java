@@ -5,15 +5,14 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetProjectMetakeyOptionsReactor extends AbstractReactor {
-	
-	private static final String META_KEYS = "metakey";
 
 	public GetProjectMetakeyOptionsReactor() {
-		this.keysToGet = new String[] {META_KEYS};
+		this.keysToGet = new String[] {ReactorKeysEnum.META_KEYS.getKey()};
 	}
 	
 	@Override
