@@ -21,7 +21,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class GetInsightsReactor extends AbstractReactor {
 	
 	private static List<String> META_KEYS_LIST = new Vector<String>();
-	private static final String META_FILTERS = "metaFilters";
+	
 	static {
 		META_KEYS_LIST.add("description");
 		META_KEYS_LIST.add("tag");
@@ -30,7 +30,7 @@ public class GetInsightsReactor extends AbstractReactor {
 	public GetInsightsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), META_FILTERS};
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.META_FILTERS.getKey()};
 	}
 
 	@Override
@@ -162,7 +162,7 @@ public class GetInsightsReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(META_FILTERS);
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {
@@ -180,8 +180,6 @@ public class GetInsightsReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
 			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		} else if(key.equals(META_FILTERS)) {
-			return "Map containing key-value pairs for filters to apply on the insight metadata";
 		}
 		return super.getDescriptionForKey(key);
 	}

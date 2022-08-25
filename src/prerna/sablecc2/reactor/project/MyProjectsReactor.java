@@ -26,12 +26,9 @@ public class MyProjectsReactor extends AbstractReactor {
 	
 	private static final Logger logger = LogManager.getLogger(MyProjectsReactor.class);
 
-	private static final String META_KEYS = "metaKeys";
-	private static final String META_FILTERS = "metaFilters";
-
 	public MyProjectsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), META_KEYS, META_FILTERS};
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()};
 	}
 
 	@Override
@@ -120,7 +117,7 @@ public class MyProjectsReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(META_FILTERS);
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {
@@ -136,21 +133,11 @@ public class MyProjectsReactor extends AbstractReactor {
 	}
 	
 	private List<String> getMetaKeys() {
-		GenRowStruct grs = this.store.getNoun(META_KEYS);
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
 		
 		return null;
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(META_KEYS)) {
-			return "List of the metadata keys to return with each project";
-		} else if(key.equals(META_FILTERS)) {
-			return "Map containing key-value pairs for filters to apply on the project metadata";
-		}
-		return super.getDescriptionForKey(key);
 	}
 }

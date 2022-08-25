@@ -27,12 +27,9 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	
 	private static final Logger logger = LogManager.getLogger(MyDiscoverableDatabasesReactor.class);
 
-	private static final String META_KEYS = "metaKeys";
-	private static final String META_FILTERS = "metaFilters";
-
 	public MyDiscoverableDatabasesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.SORT.getKey(), META_KEYS, META_FILTERS};
+				ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()};
 	}
 
 	@Override
@@ -141,7 +138,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	}
 	
 	private List<String> getMetaKeys() {
-		GenRowStruct grs = this.store.getNoun(META_KEYS);
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -150,7 +147,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(META_FILTERS);
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {
@@ -168,10 +165,6 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
 			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		} else if(key.equals(META_KEYS)) {
-			return "List of the metadata keys to return with each data source";
-		} else if(key.equals(META_FILTERS)) {
-			return "Map containing key-value pairs for filters to apply on the data source metadata";
 		}
 		return super.getDescriptionForKey(key);
 	}
