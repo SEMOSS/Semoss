@@ -1,5 +1,6 @@
 package prerna.solr.reactor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -11,16 +12,14 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-@Deprecated // replace with GetDatabaseMetaValuesReactor
-public class GetCatalogFiltersReactor extends AbstractReactor {
+public class GetDatabaseMetaValuesReactor extends AbstractReactor {
     
-    public GetCatalogFiltersReactor() {
+    public GetDatabaseMetaValuesReactor() {
         this.keysToGet = new String[] {ReactorKeysEnum.META_KEYS.getKey()};
     }
     
     @Override
     public NounMetadata execute() {
-        List<String> keys = getMetaKeys();
         List<String> dbList = null;
         if(AbstractSecurityUtils.securityEnabled()) {
             dbList = SecurityDatabaseUtils.getUserDatabaseIdList(this.insight.getUser());
@@ -28,12 +27,10 @@ public class GetCatalogFiltersReactor extends AbstractReactor {
         	dbList = SecurityDatabaseUtils.getAllDatabaseIds();
         }
         if(dbList != null && dbList.isEmpty()) {
-            return NounMetadata.getErrorNounMessage("You do not have access to any databases");
+        	return new NounMetadata(new ArrayList<>(), PixelDataType.CUSTOM_DATA_STRUCTURE);
         }
-        List<Map<String, Object>> ret = SecurityDatabaseUtils.getAvailableMetaValues(dbList, keys);
-        NounMetadata noun = new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
-        
-        return noun;
+        List<Map<String, Object>> ret = SecurityDatabaseUtils.getAvailableMetaValues(dbList, getMetaKeys());
+        return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
     }
     
     private List<String> getMetaKeys() {
