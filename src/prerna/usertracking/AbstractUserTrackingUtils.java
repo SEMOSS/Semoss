@@ -4,7 +4,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Calendar;
-import java.util.List;
 import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
@@ -34,16 +33,19 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 		
 		if(user.isAnonymous()) {
 			addSession(sessionId, utd, user.getAnonymousId(), "ANONYMOUS", timestamp, cal);
-		}
-		List<AuthProvider> logins = user.getLogins();
-		for(AuthProvider provider : logins) {
-			AccessToken token = user.getAccessToken(provider);
-			addSession(sessionId, utd, token.getId(), provider.toString(), timestamp, cal);
+		} else {
+			// since we dont want to insert the same login multiple times
+			// we will only store for the parameter ap
+			AccessToken token = user.getAccessToken(ap);
+			addSession(sessionId, utd, token.getId(), ap.toString(), timestamp, cal);
 		}
 	}
 	
 	private static void addSession(String sessionId, UserTrackingDetails utd, String userId, String type, java.sql.Timestamp timestamp, Calendar cal) {
-		String query = "INSERT INTO USER_TRACKING VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		String query = "INSERT INTO USER_TRACKING "
+				+ "(SESSIONID, USERID, TYPE, CREATED_ON, ENDED_ON, "
+				+ "IP_ADDR, IP_LAT, IP_LONG, IP_COUNTRY, IP_STATE, IP_CITY) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 		
 		PreparedStatement ps = null;
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getEngine(Constants.USER_TRACKING_DB);
@@ -54,7 +56,7 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 			ps.setString(index++, userId);
 			ps.setString(index++, type);
 			ps.setTimestamp(index++, timestamp, cal);
-			ps.setNull(index++, java.sql.Types.NULL);
+			ps.setNull(index++, java.sql.Types.TIMESTAMP);
 			ps.setString(index++, utd.getIpAddr());
 			ps.setString(index++, utd.getIpLat());
 			ps.setString(index++, utd.getIpLong());
