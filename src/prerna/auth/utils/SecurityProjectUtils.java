@@ -1540,6 +1540,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * 
+	 * @return
+	 */
+	public static List<String> getAllMetakeys() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__METAKEY"));
+		List<String> metakeys = QueryExecutionUtility.flushToListString(securityDb, qs);
+		return metakeys;
+	}
+	
+	/**
+	 * 
 	 * @param metakey
 	 * @return
 	 */

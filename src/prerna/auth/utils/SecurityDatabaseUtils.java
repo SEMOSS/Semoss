@@ -504,6 +504,17 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
+	 * 
+	 * @return
+	 */
+	public static List<String> getAllMetakeys() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__METAKEY"));
+		List<String> metakeys = QueryExecutionUtility.flushToListString(securityDb, qs);
+		return metakeys;
+	}
+	
+	/**
 	 * Update the database metadata
 	 * Will delete existing values and then perform a bulk insert
 	 * @param databaseId
