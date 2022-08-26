@@ -145,9 +145,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllProjectIds() {
-//		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
@@ -521,8 +518,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Update the project metadata
 	 * Will delete existing values and then perform a bulk insert
 	 * @param projectId
-	 * @param insightId
-	 * @param tags
+	 * @param metadata
 	 */
 	public static void updateProjectMetadata(String projectId, Map<String, Object> metadata) {
 		// first do a delete
@@ -1604,4 +1600,33 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
         }
 		return valid;
 	}
+	
+	/**
+     * Get all the available engine metadata and their counts for given keys
+     * @param engineFilters
+     * @param metaKey
+     * @return
+     */
+    public static List<Map<String, Object>> getAvailableMetaValues(List<String> projectFilters, List<String> metaKeys) {
+        SelectQueryStruct qs = new SelectQueryStruct();
+        // selectors
+        qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAKEY"));
+        qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
+        QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
+        qs.addSelector(fSelector);
+        // filters
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", metaKeys));
+        if(projectFilters != null && !projectFilters.isEmpty()) {
+            qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__PROJECTID", "==", projectFilters));
+        }
+        // group
+        qs.addGroupBy(new QueryColumnSelector("PROJECTMETA__METAKEY"));
+        qs.addGroupBy(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
+        
+        return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+    }
+    
 }
