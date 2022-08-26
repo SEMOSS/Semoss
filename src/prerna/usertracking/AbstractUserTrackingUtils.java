@@ -38,7 +38,7 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 		List<AuthProvider> logins = user.getLogins();
 		for(AuthProvider provider : logins) {
 			AccessToken token = user.getAccessToken(provider);
-			addSession(sessionId, utd, token.getId(), token.toString(), timestamp, cal);
+			addSession(sessionId, utd, token.getId(), provider.toString(), timestamp, cal);
 		}
 	}
 	
