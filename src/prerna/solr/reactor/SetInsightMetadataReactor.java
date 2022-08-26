@@ -34,6 +34,11 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 		}
 		
 		Map<String, Object> metadata = getMetaMap();
+		// check for invalid metakeys
+		List<String> validMetakeys = SecurityInsightUtils.getAllMetakeys();
+		if(!validMetakeys.containsAll(metadata.keySet())) {
+	    	throw new IllegalArgumentException("Unallowed metakeys. Can only use: "+String.join(", ", validMetakeys));
+		}
 		
 		SecurityInsightUtils.updateInsightMetadata(projectId, insightId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
