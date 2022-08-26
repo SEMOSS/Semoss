@@ -37,6 +37,12 @@ public class SetDatabaseMetadataReactor extends AbstractReactor {
 		}
 		
 		Map<String, Object> metadata = getMetaMap();
+		// check for invalid metakeys
+		List<String> validMetakeys = SecurityDatabaseUtils.getAllMetakeys();
+		if(!validMetakeys.containsAll(metadata.keySet())) {
+	    	throw new IllegalArgumentException("Unallowed metakeys. Can only use: "+String.join(", ", validMetakeys));
+		}
+		
 		SecurityDatabaseUtils.updateDatabaseMetadata(databaseId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the database"));

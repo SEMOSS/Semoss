@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.project;
+package prerna.solr.reactor;
 
 import java.util.List;
 import java.util.Map;
@@ -33,6 +33,12 @@ public class SetProjectMetadataReactor extends AbstractReactor {
 		}
 		
 		Map<String, Object> metadata = getMetaMap();
+		// check for invalid metakeys
+		List<String> validMetakeys = SecurityProjectUtils.getAllMetakeys();
+		if(!validMetakeys.containsAll(metadata.keySet())) {
+	    	throw new IllegalArgumentException("Unallowed metakeys. Can only use: "+String.join(", ", validMetakeys));
+		}
+		
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the project"));
