@@ -125,12 +125,36 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Get a list of all insight ids
+	 * @return
+	 */
+	public static List<String> getAllInsightIds() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+	
+	/**
+	 * Get the insights the user has edit access to
+	 * @param user
+	 * @return
+	 */
+	public static List<String> getUserInsightIdList(User user) {
+		Collection<String> userIds = getUserFiltersQs(user);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID", "insight_id"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+	
+	/**
 	 * Get the insights the user has edit access to
 	 * @param user
 	 * @param appId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserEditableInsighs(User user, String projectId) {
+	public static List<Map<String, Object>> getUserEditableInsights(User user, String projectId) {
 		String permission = SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
 		if(permission == null || permission.equals(AccessPermissionEnum.READ_ONLY.getPermission())) {
 			return new Vector<>();
@@ -2499,5 +2523,33 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
         }
 		return valid;
 	}
+	
+	/**
+     * Get all the available engine metadata and their counts for given keys
+     * @param engineFilters
+     * @param metaKey
+     * @return
+     */
+    public static List<Map<String, Object>> getAvailableMetaValues(List<String> insightFilter, List<String> metaKeys) {
+        SelectQueryStruct qs = new SelectQueryStruct();
+        // selectors
+        qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
+        QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
+        qs.addSelector(fSelector);
+        // filters
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", metaKeys));
+        if(insightFilter != null && !insightFilter.isEmpty()) {
+            qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__INSIGHTID", "==", insightFilter));
+        }
+        // group
+        qs.addGroupBy(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
+        qs.addGroupBy(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
+        
+        return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+    }
 
 }
