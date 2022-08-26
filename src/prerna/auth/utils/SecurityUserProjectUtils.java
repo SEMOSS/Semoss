@@ -23,7 +23,6 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 
 	private static final Logger logger = LogManager.getLogger(SecurityUserProjectUtils.class);
 
-	
 	/**
 	 * Get user databases + global databases 
 	 * @param userId
@@ -33,8 +32,8 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		List<String> databaseList = QueryExecutionUtility.flushToListString(securityDb, qs);
-		return databaseList;
+		List<String> projectIdList = QueryExecutionUtility.flushToListString(securityDb, qs);
+		return projectIdList;
 	}
 	
 	/**
