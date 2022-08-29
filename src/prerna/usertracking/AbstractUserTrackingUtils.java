@@ -57,12 +57,36 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 			ps.setString(index++, type);
 			ps.setTimestamp(index++, timestamp, cal);
 			ps.setNull(index++, java.sql.Types.TIMESTAMP);
-			ps.setString(index++, utd.getIpAddr());
-			ps.setString(index++, utd.getIpLat());
-			ps.setString(index++, utd.getIpLong());
-			ps.setString(index++, utd.getIpCountry());
-			ps.setString(index++, utd.getIpState());
-			ps.setString(index++, utd.getIpCity());
+			if(utd.getIpAddr() == null) {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(index++, utd.getIpAddr());
+			}
+			if(utd.getIpLat() == null) {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(index++, utd.getIpLat());
+			}
+			if(utd.getIpLong() == null) {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(index++, utd.getIpLong());
+			}
+			if(utd.getIpCountry() == null) {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(index++, utd.getIpCountry());
+			}
+			if(utd.getIpState() == null) {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(index++, utd.getIpState());
+			}
+			if(utd.getIpCity() == null) {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(index++, utd.getIpCity());
+			}
 			
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
