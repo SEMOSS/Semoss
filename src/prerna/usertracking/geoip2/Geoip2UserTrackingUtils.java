@@ -35,9 +35,18 @@ public class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 	private static String fileName = "GeoLite2-City.mmdb";
 	private static String filePath = workdir + File.separator + folder + File.separator + fileName;
 	
-	public Geoip2UserTrackingUtils() throws IOException {
+	public Geoip2UserTrackingUtils() {
+		loadDatabaseReader();
+	}
+	
+	private void loadDatabaseReader() {
 		File database = new File(filePath);
-		reader = new DatabaseReader.Builder(database).build();
+		try {
+			reader = new DatabaseReader.Builder(database).build();
+		} catch (IOException e) {
+			logger.error("Database reader object could not be loaded. IP Details will not be stored.");
+			logger.error(Constants.STACKTRACE, e);
+		}
 	}
 	
 	public static IUserTracking getInstance() {
@@ -60,33 +69,44 @@ public class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 
 	@Override
 	public void registerLogin(String sessionId, String ip, User user, AuthProvider ap) {
+		// try to load the reader
 		if (reader == null) {
-			logger.error("Database reader object is null. IP Details will not be stored.");
-			instance = null;
-			return;
+			loadDatabaseReader();
 		}
 		
 		UserTrackingDetails utd;
-		try {
-			InetAddress inet = InetAddress.getByName(ip);
-			CityResponse cr = reader.tryCity(inet).orElse(NULL_CR);
-			utd = this.cityResponseToUserTrackingDetails(cr, ip);
-		} catch (IOException | GeoIp2Exception e) {
-			logger.error("Error occured while trying to find ip data.", e);
+		
+		// if still no reader, return null tracking details
+		if(reader == null) {
 			utd = new UserTrackingDetails(
-				ip,
-				null,
-				null,
-				null,
-				null,
-				null
-				);
+					ip,
+					null,
+					null,
+					null,
+					null,
+					null
+					);
+		} else {
+			try {
+				InetAddress inet = InetAddress.getByName(ip);
+				CityResponse cr = reader.tryCity(inet).orElse(NULL_CR);
+				utd = this.cityResponseToUserTrackingDetails(cr, ip);
+			} catch (IOException | GeoIp2Exception e) {
+				logger.error("Error occured while trying to find ip data.", e);
+				utd = new UserTrackingDetails(
+					ip,
+					null,
+					null,
+					null,
+					null,
+					null
+					);
+			}
 		}
 		
 		super.saveSession(sessionId, utd, user, ap);
 	}
 	
-
 	private UserTrackingDetails cityResponseToUserTrackingDetails(CityResponse cr, String ip) {
 		Location location = cr.getLocation();
 		
