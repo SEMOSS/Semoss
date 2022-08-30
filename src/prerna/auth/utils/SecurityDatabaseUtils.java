@@ -1292,6 +1292,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	/**
 	 * Get the list of the database ids that the user has access to
 	 * @param user
+	 * @param includeGlobal
+	 * @param includeDiscoverable
+	 * @param includeExistingAccess
 	 * @return
 	 */
 	public static List<String> getUserDatabaseIdList(User user, boolean includeGlobal, boolean includeDiscoverable, boolean includeExistingAccess) {
