@@ -23,7 +23,7 @@ public class GetProjectMetaValuesReactor extends AbstractReactor {
     public NounMetadata execute() {
         List<String> projectIdList = null;
         if(AbstractSecurityUtils.securityEnabled()) {
-        	projectIdList = SecurityProjectUtils.getFullUserProjectIds(this.insight.getUser());
+        	projectIdList = SecurityProjectUtils.getUserProjectIdList(this.insight.getUser());
         } else {
         	projectIdList = SecurityProjectUtils.getAllProjectIds();
         }

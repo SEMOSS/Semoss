@@ -1291,47 +1291,66 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get the list of the database ids that the user has access to
-	 * @param userId
+	 * @param user
 	 * @return
 	 */
-	public static List<String> getUserDatabaseIdList(User user) {
-//		String userFilters = getUserFilters(user);
-//		String query = "SELECT DISTINCT "
-//				+ "ENGINE.ENGINEID as \"app_id\", "
-//				+ "FROM ENGINE "
-//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-//				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
-//				+ "WHERE "
-//				+ "( ENGINE.GLOBAL=TRUE "
-//				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + " ) "
-//				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + ") "
-//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";	
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+	public static List<String> getUserDatabaseIdList(User user, boolean includeGlobal, boolean includeDiscoverable, boolean includeExistingAccess) {
+		String engine = "ENGINE__";
+		String enginePermission = "ENGINEPERMISSION__";
+		String groupEnginePermission = "GROUPENGINEPERMISSION__";
+		
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-		{
-			SelectQueryStruct qs2 = new SelectQueryStruct();
-			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
-			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "ENGINEPERMISSION__PERMISSION", "PERMISSION"));
-			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "ENGINEPERMISSION__VISIBILITY", "VISIBILITY"));
-			qs2.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
-			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "="});
-			qs1.addRelation(subQuery);
-		}
+		qs1.addSelector(new QueryColumnSelector(engine + "ENGINEID", "database_id"));
 		// filters
-		{
-			OrQueryFilter orFilter = new OrQueryFilter();
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", Arrays.asList(true, null), PixelDataType.BOOLEAN));
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
-			qs1.addExplicitFilter(orFilter);
+		OrQueryFilter orFilter = new OrQueryFilter();
+		if(includeGlobal) {
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(engine + "GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		}
-		// only show those that are visible
-		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==", Arrays.asList(new Object[] {true, null}), PixelDataType.BOOLEAN));
+		if(includeDiscoverable) {
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(engine + "DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+		}
+		String existingAccessComparator = "==";
+		if(!includeExistingAccess) {
+			existingAccessComparator = "!=";
+		}
+		if(!includeExistingAccess && !includeDiscoverable) {
+			throw new IllegalArgumentException("Fitler combinations can result in ids that the user does not have access to. Please adjust your parameters");
+		}
+		{
+			// user access
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			qs2.addSelector(new QueryColumnSelector(enginePermission + "ENGINEID", "ENGINEID"));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(enginePermission + "USERID", "==", userIds));
+			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(engine + "ENGINEID", existingAccessComparator, qs2));
+		}
+		{
+			// filter on groups
+			OrQueryFilter groupEngineOrFilters = new OrQueryFilter();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider login : logins) {
+				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+					continue;
+				}
+				
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				groupEngineOrFilters.addFilter(andFilter);
+			}
+			
+			if (!groupEngineOrFilters.isEmpty()) {
+				SelectQueryStruct qs3 = new SelectQueryStruct();
+				qs3.addSelector(new QueryColumnSelector(groupEnginePermission + "ENGINEID", "ENGINEID"));
+				qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupEnginePermission + "PERMISSION", "PERMISSION"));
+				qs3.addExplicitFilter(groupEngineOrFilters);
+
+				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(engine + "ENGINEID", existingAccessComparator, qs3));
+			}
+		}
+		
 		return QueryExecutionUtility.flushToListString(securityDb, qs1);
 	}
 	
