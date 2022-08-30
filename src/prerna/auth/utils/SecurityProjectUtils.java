@@ -1079,6 +1079,125 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Get the list of the project ids that the user has access to
+	 * @param user
+	 * @return
+	 */
+	public static List<String> getUserProjectIdList(User user) {
+		
+		Collection<String> userIds = getUserFiltersQs(user);
+		
+		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
+		
+		SelectQueryStruct qs1 = new SelectQueryStruct();
+		
+		// selectors
+		qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
+
+		// this block is for max permissions
+		// If both null - return null
+		// if either not null - return the permission value that is not null
+		// if both not null - return the max permissions (I.E lowest number)
+		{
+			AndQueryFilter and = new AndQueryFilter();
+			and.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+			and.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+				
+			AndQueryFilter and1 = new AndQueryFilter();
+			and1.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			and1.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+		
+			AndQueryFilter and2 = new AndQueryFilter();
+			and2.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "==", null, PixelDataType.CONST_INT));
+			and2.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			
+			SimpleQueryFilter maxPermFilter = SimpleQueryFilter.makeColToColFilter("USER_PERMISSIONS__PERMISSION", "<", "GROUP_PERMISSIONS__PERMISSION");
+			
+			QueryIfSelector qis3 = QueryIfSelector.makeQueryIfSelector(maxPermFilter,
+						new QueryColumnSelector("USER_PERMISSIONS__PERMISSION"),
+						new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION"),
+						"permission"
+					);
+
+			QueryIfSelector qis2 = QueryIfSelector.makeQueryIfSelector(and2,
+						new QueryColumnSelector("USER_PERMISSIONS__PERMISSION"),
+						qis3,
+						"permission"
+					);
+			
+			QueryIfSelector qis1 = QueryIfSelector.makeQueryIfSelector(and1,
+						new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION"),
+						qis2,
+						"permission"
+					);
+			
+			QueryIfSelector qis = QueryIfSelector.makeQueryIfSelector(and,
+						new QueryColumnSelector("USER_PERMISSIONS__PERMISSION"),
+						qis1,
+						"permission"
+					);
+			
+			qs1.addSelector(qis);
+		}
+				
+		// add a join to get the user permission level
+		{
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "PROJECTPERMISSION__PERMISSION", "PERMISSION"));
+			qs2.addGroupBy(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "="});
+			qs1.addRelation(subQuery);
+		}
+		
+		// add a join to get the group permission level
+		{
+			SelectQueryStruct qs3 = new SelectQueryStruct();
+			qs3.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
+			qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupProjectPermission + "PERMISSION", "PERMISSION"));
+			qs3.addGroupBy(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
+			
+			// filter on groups
+			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider login : logins) {
+				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+					continue;
+				}
+				
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				groupProjectOrFilters.addFilter(andFilter);
+			}
+			
+			if (!groupProjectOrFilters.isEmpty()) {
+				qs3.addExplicitFilter(groupProjectOrFilters);
+			} else {
+				AndQueryFilter andFilter1 = new AndQueryFilter();
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", null));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", null));
+				qs3.addExplicitFilter(andFilter1);
+			}
+			
+			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join", new String[] {"GROUP_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "="});
+			qs1.addRelation(subQuery);
+		}
+		
+		// filters
+		OrQueryFilter orFilter = new OrQueryFilter();
+		{
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
+			qs1.addExplicitFilter(orFilter);
+		}
+	
+		return QueryExecutionUtility.flushToListString(securityDb, qs1);
+	}
+	
+	/**
 	 * Get all user engines and engine Ids regardless of it being hidden or not 
 	 * @param userId
 	 * @return
