@@ -28,16 +28,20 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(MyDiscoverableDatabasesReactor.class);
 
 	public MyDiscoverableDatabasesReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
+				ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()
+			};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String limit = this.keyValue.get(this.keysToGet[0]);
-		String offset = this.keyValue.get(this.keysToGet[1]);
-		String sortCol = this.keyValue.get(this.keysToGet[2]);
+		String searchTerm = this.keyValue.get(this.keysToGet[0]);
+		String limit = this.keyValue.get(this.keysToGet[1]);
+		String offset = this.keyValue.get(this.keysToGet[2]);
+		String sortCol = this.keyValue.get(this.keysToGet[3]);
+		
 		if(sortCol == null) {
 			sortCol = "name";
 		}
@@ -45,7 +49,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			Map<String, Object> engineMetadataFilter = getMetaMap();
 			dbInfo = SecurityDatabaseUtils.getUserDiscoverableDatabaseList(this.insight.getUser(), 
-					engineMetadataFilter, limit, offset);
+					engineMetadataFilter, searchTerm, limit, offset);
 		} else {
 			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(null, limit, offset);
 		}
@@ -66,7 +70,6 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String databaseId = (String) data[0];
-
 				String metaKey = (String) data[1];
 				String metaValue = (String) data[2];
 				if(metaValue == null) {
