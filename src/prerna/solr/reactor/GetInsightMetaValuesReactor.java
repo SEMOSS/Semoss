@@ -22,7 +22,7 @@ public class GetInsightMetaValuesReactor extends AbstractReactor {
     public NounMetadata execute() {
         List<String> insightIdList = null;
         if(AbstractSecurityUtils.securityEnabled()) {
-            insightIdList = SecurityInsightUtils.getUserInsightIdList(this.insight.getUser());
+            insightIdList = SecurityInsightUtils.getUserInsightIdList(this.insight.getUser(), true, true);
         } else {
         	insightIdList = SecurityInsightUtils.getAllInsightIds();
         }

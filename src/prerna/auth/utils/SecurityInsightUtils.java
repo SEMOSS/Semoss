@@ -137,152 +137,51 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * Get the ids of insights the user has access to
 	 * @param user
+	 * @param includeGlobal
+	 * @param includeExistingAccess
 	 * @return
 	 */
-	public static List<String> getUserInsightIdList(User user) {
-		
-		Collection<String> userIds = getUserFiltersQs(user);
-		
+	public static List<String> getUserInsightIdList(User user, boolean includeGlobal, boolean includeExistingAccess) {
 		String insightPrefix = "INSIGHT__";
 		String projectPrefix = "PROJECT__";
-		String userInsightPrefix = "USERINSIGHTPERMISSION__";
+		String userInsightPermissionPrefix = "USERINSIGHTPERMISSION__";
 		String userProjectPrefix = "PROJECTPERMISSION__";
-		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
-		String groupInsightPermission = "GROUPINSIGHTPERMISSION__";
+		String projectPermissionPrefix = "PROJECTPERMISSION__";
+		String groupProjectPermissionPrefix = "GROUPPROJECTPERMISSION__";
+		String groupInsightPermissionPrefix = "GROUPINSIGHTPERMISSION__";
 		
+		String existingAccessComparator = "==";
+		if(!includeExistingAccess) {
+			existingAccessComparator = "!=";
+		}
+		
+		Collection<String> userIds = getUserFiltersQs(user);
+
 		SelectQueryStruct qs = new SelectQueryStruct();
-		
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "insight_id"));
-		
 		// add PROJECT relation
 		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-		// add a join to get the user permission level
-		{
-			SelectQueryStruct qs2 = new SelectQueryStruct();
-			qs2.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
-			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "USERID", "==", userIds));
-			IRelation subQuery = null;
-			subQuery = new SubqueryRelationship(qs2, "INSIGHT_USER_PERMISSIONS", "left.outer.join", new String[] {"INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "="});
-			qs.addRelation(subQuery);
-		}
-		// add a join to get the user project permission
-		{
-			SelectQueryStruct qs2 = new SelectQueryStruct();
-			qs2.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID", "PROJECTID"));
-			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
-			IRelation subQuery = new SubqueryRelationship(qs2, "PROJECT_USER_PERMISSIONS", "left.outer.join", new String[] {"PROJECT_USER_PERMISSIONS__PROJECTID", insightPrefix + "PROJECTID", "="});
-			qs.addRelation(subQuery);
-		}
 		
-		// add a join to get the group insight permission level
-		{
-			SelectQueryStruct qs3 = new SelectQueryStruct();
-			qs3.addSelector(new QueryColumnSelector(groupInsightPermission + "INSIGHTID", "INSIGHTID"));
-			
-			// filter on groups
-			OrQueryFilter groupInsightOrFilters = new OrQueryFilter();
-			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider login : logins) {
-				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
-					continue;
-				}
-				AndQueryFilter andFilter1 = new AndQueryFilter();
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
-				groupInsightOrFilters.addFilter(andFilter1);
-				
-				AndQueryFilter andFilter2 = new AndQueryFilter();
-				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
-				groupProjectOrFilters.addFilter(andFilter2);
-			}
-			
-			if (!groupInsightOrFilters.isEmpty()) {
-				qs3.addExplicitFilter(groupInsightOrFilters);
-			} else {
-				AndQueryFilter andFilter1 = new AndQueryFilter();
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "TYPE", "==", null));
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "ID", "==", null));
-				qs3.addExplicitFilter(andFilter1);
-			}
-			
-			IRelation subQuery = new SubqueryRelationship(qs3, "INSIGHT_GROUP_PERMISSIONS", "left.outer.join", new String[] {"INSIGHT_GROUP_PERMISSIONS__INSIGHTID", "INSIGHT__INSIGHTID", "="});
-			qs.addRelation(subQuery);
-		}
-		
-		// add a join to get the group project permission level
-		{
-			SelectQueryStruct qs4 = new SelectQueryStruct();
-			qs4.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
-			
-			// filter on groups
-			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider login : logins) {
-				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
-					continue;
-				}
-				
-				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
-				groupProjectOrFilters.addFilter(andFilter);
-			}
-			
-			if (!groupProjectOrFilters.isEmpty()) {
-				qs4.addExplicitFilter(groupProjectOrFilters);
-			} else {
-				AndQueryFilter andFilter1 = new AndQueryFilter();
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", null));
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", null));
-				qs4.addExplicitFilter(andFilter1);
-			}
-			
-			IRelation subQuery = new SubqueryRelationship(qs4, "PROJECT_GROUP_PERMISSIONS", "left.outer.join", new String[] {"PROJECT_GROUP_PERMISSIONS__PROJECTID", insightPrefix + "PROJECTID", "="});
-			qs.addRelation(subQuery);
-		}
-
-		// remove hidden projects
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
-			
-			// fill in the sub query with the single return + filters
-			subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "VISIBILITY", "==", false, PixelDataType.BOOLEAN));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
-		}
-
-		// filter the insight ids based on
+		// filters
 		OrQueryFilter orFilter = new OrQueryFilter();
-		qs.addExplicitFilter(orFilter);
-		// 1 - insights i have access to
-		{
+		
+		if(includeGlobal) {
+			// global insights that user has access to the projects
 			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "==", subQs));
+			// store the subqs
+			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "PROJECTID", "==", subQs));
 			
-			// fill in the sub query with the single return + filters
-			subQs.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "USERID", "==", userIds));
-		}
-		// 2 - insight that are global within projects i have access to
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "==", subQs));
-			
-			// fill in the sub query with the single return + filters
-			subQs.addSelector(new QueryColumnSelector(insightPrefix + "INSIGHTID"));
+			// build the subqs
+			subQs.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTID"));
+			// insight global
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(insightPrefix + "GLOBAL", "==", true, PixelDataType.BOOLEAN));
-
-			SelectQueryStruct subQs2 = new SelectQueryStruct();
 			
+			// project access (or global)
+			SelectQueryStruct subQs2 = new SelectQueryStruct();
 			// store the subquery
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "PROJECTID", "==", subQs2));
-
+			
+			// build the subqs2
 			subQs2.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTID"));
 			// joins
 			subQs2.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
@@ -292,20 +191,24 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			projectSubset.addFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
 			subQs2.addExplicitFilter(projectSubset);
 		}
-		// 3 insights where i am the owner of the project
 		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "PROJECTID", "==", subQs));
-			
-			// fill in the sub query with the single return + filters
-			subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "PERMISSION", "==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT));
+			// insight access
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			qs2.addSelector(new QueryColumnSelector(userInsightPermissionPrefix + "INSIGHTID", "INSIGHTID"));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPermissionPrefix + "USERID", "==", userIds));
+			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", existingAccessComparator, qs2));
 		}
-		// 4 insights i have access to from group permissions
 		{
-			// first lets make sure we have any groups
+			// project access
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			qs2.addSelector(new QueryColumnSelector(projectPermissionPrefix + "PROJECTID", "PROJECTID"));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPermissionPrefix + "USERID", "==", userIds));
+			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "PROJECTID", existingAccessComparator, qs2));
+		}
+		{
+			// group insight access
+			SelectQueryStruct qs3 = new SelectQueryStruct();
+			qs3.addSelector(new QueryColumnSelector(groupInsightPermissionPrefix + "INSIGHTID", "INSIGHTID"));
 			OrQueryFilter groupInsightOrFilters = new OrQueryFilter();
 			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
 			List<AuthProvider> logins = user.getLogins();
@@ -314,37 +217,52 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					continue;
 				}
 				AndQueryFilter andFilter1 = new AndQueryFilter();
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermissionPrefix + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermissionPrefix + "ID", "==", user.getAccessToken(login).getUserGroups()));
 				groupInsightOrFilters.addFilter(andFilter1);
 				
 				AndQueryFilter andFilter2 = new AndQueryFilter();
-				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermissionPrefix + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter2.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermissionPrefix + "ID", "==", user.getAccessToken(login).getUserGroups()));
 				groupProjectOrFilters.addFilter(andFilter2);
 			}
-			// 4.a does the group have explicit access
-			if(!groupInsightOrFilters.isEmpty()) {
-				SelectQueryStruct subQs = new SelectQueryStruct();
-				// store first and fill in sub query after
-				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "==", subQs));
-				
-				// we need to have the insight filters
-				subQs.addSelector(new QueryColumnSelector(groupInsightPermission + "INSIGHTID"));
-				subQs.addExplicitFilter(groupInsightOrFilters);
+			if (!groupInsightOrFilters.isEmpty()) {
+				qs3.addExplicitFilter(groupInsightOrFilters);
+			} else {
+				AndQueryFilter andFilter1 = new AndQueryFilter();
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermissionPrefix + "TYPE", "==", null));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupInsightPermissionPrefix + "ID", "==", null));
+				qs3.addExplicitFilter(andFilter1);
 			}
-			// 4.b does the group have project owner access
-			if(!groupProjectOrFilters.isEmpty()) {
-				SelectQueryStruct subQs = new SelectQueryStruct();
-				// store first and fill in sub query after
-				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "==", subQs));
-				
-				// we need to have the insight filters
-				subQs.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID"));
-				subQs.addExplicitFilter(groupProjectOrFilters);
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "PERMISSION", "==", AccessPermissionEnum.OWNER.getId(), PixelDataType.CONST_INT));
-			}
+			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", existingAccessComparator, qs3));
 		}
+		{
+			// group project permission
+			SelectQueryStruct qs4 = new SelectQueryStruct();
+			qs4.addSelector(new QueryColumnSelector(groupProjectPermissionPrefix + "PROJECTID", "PROJECTID"));
+			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider login : logins) {
+				if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+					continue;
+				}
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermissionPrefix + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermissionPrefix + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				groupProjectOrFilters.addFilter(andFilter);
+			}
+			if (!groupProjectOrFilters.isEmpty()) {
+				qs4.addExplicitFilter(groupProjectOrFilters);
+			} else {
+				AndQueryFilter andFilter1 = new AndQueryFilter();
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermissionPrefix + "TYPE", "==", null));
+				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermissionPrefix + "ID", "==", null));
+				qs4.addExplicitFilter(andFilter1);
+			}
+			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", existingAccessComparator, qs4));
+		}
+		
+		qs.addExplicitFilter(orFilter);
 
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
