@@ -57,13 +57,25 @@ public class RequestDatabaseReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 		}
+		
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
-		// check user permission for the app
-		if (SecurityDatabaseUtils.getUserDatabasePermission(userId, databaseId) != null) {
-			throw new IllegalArgumentException("This user already has access to this database. Please edit the existing permission level.");
+		// check user permission for the database
+		Integer currentUserPermission = SecurityDatabaseUtils.getUserDatabasePermission(userId, databaseId);
+		if(currentUserPermission != null) {
+			// make sure requesting new level of permission
+			int requestPermission = -1;
+			try {
+				requestPermission = Integer.parseInt(permission);
+			} catch(NumberFormatException ignore) {
+				requestPermission = AccessPermissionEnum.getPermissionByValue(permission).getId();
+			}
+			
+			if(requestPermission == currentUserPermission) {
+				throw new IllegalArgumentException("This user already has access to this database with the given permission level");
+			}
 		}
-
+		
 		boolean canRequest = SecurityDatabaseUtils.databaseIsDiscoverable(databaseId);
 		if (canRequest) {
 			sendEmail(user, databaseId, permission);
