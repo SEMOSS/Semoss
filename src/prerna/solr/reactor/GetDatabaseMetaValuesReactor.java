@@ -22,7 +22,7 @@ public class GetDatabaseMetaValuesReactor extends AbstractReactor {
     public NounMetadata execute() {
         List<String> dbList = null;
         if(AbstractSecurityUtils.securityEnabled()) {
-            dbList = SecurityDatabaseUtils.getUserDatabaseIdList(this.insight.getUser());
+            dbList = SecurityDatabaseUtils.getUserDatabaseIdList(this.insight.getUser(), true, false, true);
         } else {
         	dbList = SecurityDatabaseUtils.getAllDatabaseIds();
         }
