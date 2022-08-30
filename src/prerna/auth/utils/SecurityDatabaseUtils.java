@@ -1306,22 +1306,22 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getUserDatabaseIdList(User user, boolean includeGlobal, boolean includeDiscoverable, boolean includeExistingAccess) {
-		String engine = "ENGINE__";
-		String enginePermission = "ENGINEPERMISSION__";
-		String groupEnginePermission = "GROUPENGINEPERMISSION__";
+		String enginePrefix = "ENGINE__";
+		String enginePermissionPrefix = "ENGINEPERMISSION__";
+		String groupEnginePermissionPrefix = "GROUPENGINEPERMISSION__";
 		
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
-		qs1.addSelector(new QueryColumnSelector(engine + "ENGINEID", "database_id"));
+		qs1.addSelector(new QueryColumnSelector(enginePrefix + "ENGINEID", "database_id"));
 		// filters
 		OrQueryFilter orFilter = new OrQueryFilter();
 		if(includeGlobal) {
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(engine + "GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(enginePrefix + "GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		}
 		if(includeDiscoverable) {
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(engine + "DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(enginePrefix + "DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
 		}
 		String existingAccessComparator = "==";
 		if(!includeExistingAccess) {
@@ -1333,9 +1333,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		{
 			// user access
 			SelectQueryStruct qs2 = new SelectQueryStruct();
-			qs2.addSelector(new QueryColumnSelector(enginePermission + "ENGINEID", "ENGINEID"));
-			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(enginePermission + "USERID", "==", userIds));
-			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(engine + "ENGINEID", existingAccessComparator, qs2));
+			qs2.addSelector(new QueryColumnSelector(enginePermissionPrefix + "ENGINEID", "ENGINEID"));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(enginePermissionPrefix + "USERID", "==", userIds));
+			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", existingAccessComparator, qs2));
 		}
 		{
 			// filter on groups
@@ -1347,21 +1347,23 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				}
 				
 				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", user.getAccessToken(login).getUserGroups()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermissionPrefix + "TYPE", "==", user.getAccessToken(login).getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermissionPrefix + "ID", "==", user.getAccessToken(login).getUserGroups()));
 				groupEngineOrFilters.addFilter(andFilter);
 			}
 			
 			if (!groupEngineOrFilters.isEmpty()) {
 				SelectQueryStruct qs3 = new SelectQueryStruct();
-				qs3.addSelector(new QueryColumnSelector(groupEnginePermission + "ENGINEID", "ENGINEID"));
-				qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupEnginePermission + "PERMISSION", "PERMISSION"));
+				qs3.addSelector(new QueryColumnSelector(groupEnginePermissionPrefix + "ENGINEID", "ENGINEID"));
+				qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, groupEnginePermissionPrefix + "PERMISSION", "PERMISSION"));
 				qs3.addExplicitFilter(groupEngineOrFilters);
 
-				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(engine + "ENGINEID", existingAccessComparator, qs3));
+				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", existingAccessComparator, qs3));
 			}
 		}
 		
+		qs1.addExplicitFilter(orFilter);
+
 		return QueryExecutionUtility.flushToListString(securityDb, qs1);
 	}
 	
