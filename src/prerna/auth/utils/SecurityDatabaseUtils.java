@@ -1652,7 +1652,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		{
 			SelectQueryStruct subQsUser = new SelectQueryStruct();
 			subQsUser.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-			subQsUser.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "!=", userIds));
+			subQsUser.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQsUser));
 		}
 		{

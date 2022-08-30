@@ -60,8 +60,19 @@ public class RequestProjectReactor extends AbstractReactor {
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
 		// check user permission for the project
-		if (SecurityProjectUtils.getUserProjectPermission(userId, projectId) != null) {
-			throw new IllegalArgumentException("This user already has access to this project. Please edit the existing permission level.");
+		Integer currentUserPermission = SecurityProjectUtils.getUserProjectPermission(userId, projectId);
+		if(currentUserPermission != null) {
+			// make sure requesting new level of permission
+			int requestPermission = -1;
+			try {
+				requestPermission = Integer.parseInt(permission);
+			} catch(NumberFormatException ignore) {
+				requestPermission = AccessPermissionEnum.getPermissionByValue(permission).getId();
+			}
+			
+			if(requestPermission == currentUserPermission) {
+				throw new IllegalArgumentException("This user already has access to this project with the given permission level");
+			}
 		}
 
 		boolean canRequest = SecurityProjectUtils.canRequestProject(projectId);
