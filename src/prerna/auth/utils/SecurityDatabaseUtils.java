@@ -1103,17 +1103,21 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get the list of the database information that the user has access to
-	 * @param favoritesOnly 
-	 * @param userId
+	 * @param user
+	 * @param favoritesOnly
 	 * @param engineMetadataFilter
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly, 
-			Map<String, Object> engineMetadataFilter, String limit, String offset) {
+			Map<String, Object> engineMetadataFilter, String searchTerm, String limit, String offset) {
 
 		String enginePrefix = "ENGINE__";
 		String groupEnginePermission = "GROUPENGINEPERMISSION__";
 		Collection<String> userIds = getUserFiltersQs(user);
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
@@ -1237,6 +1241,10 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		// favorites only
 		if(favoritesOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+		}
+		// optional word filter on the engine name
+		if(hasSearchTerm) {
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, "ENGINE__ENGINENAME", searchTerm);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
 		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
@@ -1609,13 +1617,19 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get the list of the database information that the user does not have access to, but is discoverable
-	 * @param favoritesOnly 
-	 * @param userId
+	 * @param user
 	 * @param engineMetadataFilter
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDiscoverableDatabaseList(User user, Map<String, Object> engineMetadataFilter, String limit, String offset) {
+	public static List<Map<String, Object>> getUserDiscoverableDatabaseList(User user, 
+			Map<String, Object> engineMetadataFilter, 
+			String searchTerm, String limit, String offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
+		
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
@@ -1658,6 +1672,10 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				subQsGroup.addExplicitFilter(orFilter);
 				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQsGroup));
 			}
+		}
+		// optional word filter on the engine name
+		if(hasSearchTerm) {
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, "ENGINE__ENGINENAME", searchTerm);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
 		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {

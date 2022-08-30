@@ -28,25 +28,30 @@ public class MyDatabasesReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(MyDatabasesReactor.class);
 
 	public MyDatabasesReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), 
+				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()
+			};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String limit = this.keyValue.get(this.keysToGet[0]);
-		String offset = this.keyValue.get(this.keysToGet[1]);
-		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
-		String sortCol = this.keyValue.get(this.keysToGet[3]);
+		String searchTerm = this.keyValue.get(this.keysToGet[0]);
+		String limit = this.keyValue.get(this.keysToGet[1]);
+		String offset = this.keyValue.get(this.keysToGet[2]);
+		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
+		String sortCol = this.keyValue.get(this.keysToGet[4]);
 		if(sortCol == null) {
 			sortCol = "name";
 		}
+		
 		List<Map<String, Object>> dbInfo = new Vector<>();
 		if(AbstractSecurityUtils.securityEnabled()) {
 			Map<String, Object> engineMetadataFilter = getMetaMap();
 			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly, 
-					engineMetadataFilter, limit, offset);
+					engineMetadataFilter, searchTerm, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setEngines(dbInfo);
 			}
