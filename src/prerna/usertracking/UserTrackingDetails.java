@@ -23,9 +23,8 @@ public class UserTrackingDetails {
 		this.ipLong = ipLong;
 		this.ipCountry = ipCountry;
 		this.ipState = ipState;
-		this.ipCity = ipCity;		
-	}
-	
+		this.ipCity = ipCity;
+	}	
 	
 	public String getIpAddr() {
 		return ipAddr;
