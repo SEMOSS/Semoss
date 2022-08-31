@@ -1,9 +1,10 @@
 package prerna.usertracking;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.usertracking.geoip2.Geoip2UserTrackingUtils;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class UserTrackingFactory {
@@ -20,6 +21,11 @@ public class UserTrackingFactory {
 		}
 
 		String method = Utility.getUserTrackingMethod();
+		if(method == null) {
+			logger.warn("User Tracking is enabled but could not find key for method ('" + Constants.USER_TRACKING_METHOD + "')");
+			return null;
+		}
+		
 		if (method.equalsIgnoreCase(IUserTracking.GEO_IP2)) {
 			return Geoip2UserTrackingUtils.getInstance();
 		} else {
