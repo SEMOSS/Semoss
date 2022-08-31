@@ -1283,6 +1283,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		// add the sort
+		qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+
 		Long long_limit = -1L;
 		Long long_offset = -1L;
 		if(limit != null && !limit.trim().isEmpty()) {
@@ -1640,11 +1643,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_database_name");
-		qs1.addSelector(fun);
+		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
 		// only care about discoverable engines
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", false, PixelDataType.BOOLEAN));
@@ -1689,6 +1688,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
 			}
 		}
+		
+		// add the sort
+		qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
 		Long long_limit = -1L;
 		Long long_offset = -1L;

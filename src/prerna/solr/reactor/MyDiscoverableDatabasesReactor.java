@@ -1,8 +1,6 @@
 package prerna.solr.reactor;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,7 +27,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	public MyDiscoverableDatabasesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()
+				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()
 			};
 	}
 
@@ -40,11 +37,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 		String searchTerm = this.keyValue.get(this.keysToGet[0]);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
-		String sortCol = this.keyValue.get(this.keysToGet[3]);
-		
-		if(sortCol == null) {
-			sortCol = "name";
-		}
+
 		List<Map<String, Object>> dbInfo = new Vector<>();
 		if(AbstractSecurityUtils.securityEnabled()) {
 			Map<String, Object> engineMetadataFilter = getMetaMap();
@@ -101,42 +94,6 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 			}
 		}
 		
-		// need to go through and sort the values
-		if(sortCol.equalsIgnoreCase("date")) {
-			Collections.sort(dbInfo, new Comparator<Map<String, Object>>() {
-
-				// we want descending - not ascending
-				// so values are swapped
-				@Override
-				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-					SemossDate d1 = (SemossDate) o1.get("lastModifiedDate");
-					SemossDate d2 = (SemossDate) o2.get("lastModifiedDate");
-					
-					if(d1 == null) {
-						return 1;
-					}
-					if(d2 == null) {
-						return -1;
-					}
-
-					return d2.compareTo(d1);
-				}
-			});
-		} else {
-			Collections.sort(dbInfo, new Comparator<Map<String, Object>>() {
-
-				// we want descending - not ascending
-				// so values are swapped
-				@Override
-				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-					String name1 = (String) o1.get("low_database_name");
-					String name2 = (String) o2.get("low_database_name");
-					
-					return name1.compareTo(name2);
-				}
-			});
-		}
-
 		return new NounMetadata(dbInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	
