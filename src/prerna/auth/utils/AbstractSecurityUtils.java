@@ -1184,10 +1184,13 @@ public abstract class AbstractSecurityUtils {
 					wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from " + tableName);
 					if(wrapper.hasNext()) {
 						int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-						if(numrows == 0) {
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", 0, "checklist"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", 1, "checklist"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", 2, "checklist"}));
+						if(numrows < 4) {
+							securityDb.removeData("TRUNCATE TABLE " + tableName);
+							int order = 0;
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "checklist"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "checklist"}));
 						}
 					}
 				} catch (Exception e) {
