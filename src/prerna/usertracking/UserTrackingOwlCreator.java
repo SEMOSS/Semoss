@@ -33,7 +33,7 @@ public class UserTrackingOwlCreator {
 	
 	// concepts are tables within db
 	// props are cols w/i concepts
-	private static List<String> conceptsRequired = new Vector<String>();
+	private static List<String> conceptsRequired = new ArrayList<String>();
 	static {
 		conceptsRequired.add("USER_TRACKING");
 	}
