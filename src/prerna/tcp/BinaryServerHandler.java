@@ -17,7 +17,6 @@ import org.openqa.selenium.chrome.ChromeDriver;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.EventLoopGroup;
@@ -200,10 +199,8 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
-					}finally
-					{
-						return ps;
 					}
+					return ps;
 				}
 				if(ps.engine == PayloadStruct.ENGINE.PYTHON)
 				{
@@ -277,48 +274,47 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 			{
 				ex.printStackTrace();
 				ps.ex = ex.getMessage();
-			}finally
-			{
-				// should this be in a lock
-				// since it be parallel updating ?
-				//synchronized(lock)
-				{
-					if(buf.readableBytes() > 0)
-					{
-						// need to see how many more bytes remain
-						// do we need to do this
-						// given it is a full block?
-						//buf.discardReadBytes( );
-						//System.err.println("whoa.. this is interesting.. ");
-			    		//System.err.println("Post processing " + "Readable byte " + buf.readableBytes() + "  index " + buf.readerIndex() + "  writer " + buf.writerIndex());
-			    		LOGGER.info("Post processing " + "Readable byte " + buf.readableBytes() + "  index " + buf.readerIndex() + "  writer " + buf.writerIndex());
-						ByteBuf buf2 = buf.copy(buf.readerIndex(), buf.readableBytes());
-						buf.release();
-						buf = buf2;
-			    		//System.err.println("Post processing - After Copy " + "Readable byte " + buf.readableBytes() + "  index " + buf.readerIndex() + "  writer " + buf.writerIndex());
-			    		getTotal();
-					   	if(buf.readableBytes() >= totalBytes)
-					   	{
-					   		//System.err.println("Last piece ? probably ?");
-					   		LOGGER.info("This is possibly the offender ? " + totalBytes + " <> " + buf.readableBytes());
-							byte[]  data2 = new byte[totalBytes];
-							buf.readBytes(data2); 
-							
-							PayloadStruct ps2 = (PayloadStruct)FstUtil.deserialize(data2);
-					   		return getFinalOutput(ctx, ps2);
-					   	}
-					}
-					else
-					{
-						//
-						buf.release();
-						buf = null;
-						totalBytes = -1;
-						//buf = null;
-					}
-				}
-				return ps;
 			}
+
+			// should this be in a lock
+			// since it be parallel updating ?
+			//synchronized(lock)
+			{
+				if(buf.readableBytes() > 0)
+				{
+					// need to see how many more bytes remain
+					// do we need to do this
+					// given it is a full block?
+					//buf.discardReadBytes( );
+					//System.err.println("whoa.. this is interesting.. ");
+		    		//System.err.println("Post processing " + "Readable byte " + buf.readableBytes() + "  index " + buf.readerIndex() + "  writer " + buf.writerIndex());
+		    		LOGGER.info("Post processing " + "Readable byte " + buf.readableBytes() + "  index " + buf.readerIndex() + "  writer " + buf.writerIndex());
+					ByteBuf buf2 = buf.copy(buf.readerIndex(), buf.readableBytes());
+					buf.release();
+					buf = buf2;
+		    		//System.err.println("Post processing - After Copy " + "Readable byte " + buf.readableBytes() + "  index " + buf.readerIndex() + "  writer " + buf.writerIndex());
+		    		getTotal();
+				   	if(buf.readableBytes() >= totalBytes)
+				   	{
+				   		//System.err.println("Last piece ? probably ?");
+				   		LOGGER.info("This is possibly the offender ? " + totalBytes + " <> " + buf.readableBytes());
+						byte[]  data2 = new byte[totalBytes];
+						buf.readBytes(data2); 
+						
+						PayloadStruct ps2 = (PayloadStruct)FstUtil.deserialize(data2);
+				   		return getFinalOutput(ctx, ps2);
+				   	}
+				}
+				else
+				{
+					//
+					buf.release();
+					buf = null;
+					totalBytes = -1;
+					//buf = null;
+				}
+			}
+			return ps;
 		}
 	}
 	
