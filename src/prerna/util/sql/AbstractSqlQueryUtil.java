@@ -512,6 +512,8 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getGroupConcatFunctionSyntax();
 	
 	public abstract String getSubstringFunctionSyntax();
+	
+	public abstract String getDateFormatFunctionSyntax();
 
 	public abstract String getLowerFunctionSyntax();
 
