@@ -166,6 +166,11 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getDateFormatFunctionSyntax() {
+		return "STRFTIME";
+	}
+	
+	@Override
 	public String getCurrentDate() {
 		return "DATE('now')";
 	}
