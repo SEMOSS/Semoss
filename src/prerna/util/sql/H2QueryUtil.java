@@ -264,6 +264,11 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getDateFormatFunctionSyntax() {
+		return "FORMATDATETIME";
+	}
+	
+	@Override
 	public String escapeReferencedAlias(String alias) {
 		return "\"" + alias + "\"";
 	}
