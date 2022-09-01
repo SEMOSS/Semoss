@@ -121,10 +121,8 @@ public class SocketServerHandler implements Runnable
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
-					}finally
-					{
-						return ps;
 					}
+					return ps;
 				}
 				if(ps.engine == PayloadStruct.ENGINE.PYTHON)
 				{
