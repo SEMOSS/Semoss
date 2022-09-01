@@ -24,7 +24,8 @@ public class QueryFunctionHelper {
 	public static final String COALESCE = "Coalesce";
 	public static final String REGEXP_LIKE = "RegexLike";
 	public static final String SUBSTRING = "Substring";
-
+	public static final String DATE_FORMAT = "DateFormat";
+	
 	// Date functions
 	public static final String DATE_ADD = "DateAdd";
 	public static final String MONTH_NAME = "MonthName";
@@ -269,6 +270,8 @@ public class QueryFunctionHelper {
 			inputFunction = "RegexLike";
 		} else if(inputFunction.equalsIgnoreCase(SUBSTRING)) {
 			inputFunction = "Substring";
+		} else if(inputFunction.equalsIgnoreCase(DATE_FORMAT)) {
+			inputFunction = "DateFormat";
 		}
 		
 		return inputFunction;
