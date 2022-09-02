@@ -41,15 +41,15 @@ public class MyDatabasesReactor extends AbstractReactor {
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
 		
 		List<Map<String, Object>> dbInfo = new Vector<>();
+		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			Map<String, Object> engineMetadataFilter = getMetaMap();
 			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly, 
 					engineMetadataFilter, searchTerm, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setEngines(dbInfo);
 			}
 		} else {
-			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(null, limit, offset);
+			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(null, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
 		Map<String, Integer> index = new HashMap<>(dbInfo.size());

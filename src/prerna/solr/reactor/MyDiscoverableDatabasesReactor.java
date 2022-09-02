@@ -39,12 +39,12 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 		String offset = this.keyValue.get(this.keysToGet[2]);
 
 		List<Map<String, Object>> dbInfo = new Vector<>();
+		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			Map<String, Object> engineMetadataFilter = getMetaMap();
 			dbInfo = SecurityDatabaseUtils.getUserDiscoverableDatabaseList(this.insight.getUser(), 
 					engineMetadataFilter, searchTerm, limit, offset);
 		} else {
-			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(null, limit, offset);
+			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(null, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
 		Map<String, Integer> index = new HashMap<>(dbInfo.size());
