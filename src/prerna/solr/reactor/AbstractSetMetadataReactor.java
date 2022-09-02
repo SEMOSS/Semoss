@@ -79,14 +79,14 @@ public abstract class AbstractSetMetadataReactor extends AbstractReactor {
 				List<Object> newList = new ArrayList<>();
 				for(Object o : (Collection) value) {
 					if(o instanceof String) {
-						newList.add( ((String) o).replaceAll("\\n", "\n").replaceAll("\\t", "\t") );
+						newList.add( ((String) o).replaceAll("\\\\n", "\n").replaceAll("\\\\t", "\t") );
 					} else {
 						newList.add(o);
 					}
 				}
 				replacements.put(key, value);
 			} else if(value instanceof String) {
-				value = ((String) value).replaceAll("\\n", "\n").replaceAll("\\t", "\t");
+				value = ((String) value).replaceAll("\\\\n", "\n").replaceAll("\\\\t", "\t");
 				replacements.put(key, value);
 			}
 		}
