@@ -15,7 +15,8 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 	
 	public SetDatabaseMetadataReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), META, 
+		this.keysToGet = new String[]{
+				ReactorKeysEnum.DATABASE.getKey(), META, 
 				ReactorKeysEnum.ENCODED.getKey(), ReactorKeysEnum.JSON_CLEANUP.getKey()
 			};
 	}
