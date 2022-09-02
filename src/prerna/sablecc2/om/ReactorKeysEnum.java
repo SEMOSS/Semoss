@@ -56,6 +56,7 @@ public enum ReactorKeysEnum {
 	ENABLE("enable",											"Boolean whether to enable"),
 	EVENTS_KEY("events", 										"Events map input"),
 	EXISTING("existing", 										"Add to exisitng app"),
+	ENCODED("encoded",											"Boolean if the input is encoded using <encode></encode> and must be decoded. To be used when the reactor allows encoded and unencoded input based on the complexity of the input"),
 	END("end",	 									            "Ending value for a between reactor"),
 	END_ROW("endRow",	 									    "The ending row number to import from a file."),
 	EXPIRES_ON("expires",	 									"The date when the api expires"),
