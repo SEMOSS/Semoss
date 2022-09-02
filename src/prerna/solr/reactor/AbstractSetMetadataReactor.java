@@ -1,5 +1,8 @@
 package prerna.solr.reactor;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,19 +43,54 @@ public abstract class AbstractSetMetadataReactor extends AbstractReactor {
 				return new Gson().fromJson(decodedStr, Map.class);
 			}
 		} else {
+			Boolean jsonCleanup = Boolean.parseBoolean( this.keyValue.get(ReactorKeysEnum.JSON_CLEANUP.getKey()) + "");
 			if(metaGrs != null && !metaGrs.isEmpty()) {
 				List<NounMetadata> mapInputs = metaGrs.getNounsOfType(PixelDataType.MAP);
 				if(mapInputs != null && !mapInputs.isEmpty()) {
-					return (Map<String, Object>) mapInputs.get(0).getValue();
+					Map<String, Object> retMap = (Map<String, Object>) mapInputs.get(0).getValue();
+					if(jsonCleanup) {
+						cleanupMap(retMap);
+					}
+					return retMap;
 				}
 			}
 	
 			List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
+				Map<String, Object> retMap = (Map<String, Object>) mapInputs.get(0).getValue();
+				if(jsonCleanup) {
+					cleanupMap(retMap);
+				}
+				return retMap;
 			}
 		}
 
 		throw new IllegalArgumentException("Must define a metadata map");
+	}
+	
+	protected void cleanupMap(Map<String, Object> map) {
+		Map<String, Object> replacements = new HashMap<>();
+		for(String key : map.keySet()) {
+			Object value = map.get(key);
+			if(value instanceof Map) {
+				cleanupMap((Map<String, Object>) value);
+			}
+			if(value instanceof Collection) {
+				List<Object> newList = new ArrayList<>();
+				for(Object o : (Collection) value) {
+					if(o instanceof String) {
+						newList.add( ((String) o).replaceAll("\\n", "\n").replaceAll("\\t", "\t") );
+					} else {
+						newList.add(o);
+					}
+				}
+				replacements.put(key, value);
+			} else if(value instanceof String) {
+				value = ((String) value).replaceAll("\\n", "\n").replaceAll("\\t", "\t");
+				replacements.put(key, value);
+			}
+		}
+		
+		map.putAll(replacements);
 	}
 }
