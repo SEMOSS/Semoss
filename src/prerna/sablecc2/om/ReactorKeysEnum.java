@@ -96,6 +96,7 @@ public enum ReactorKeysEnum {
 	JOB_NAME("jobName", 	                                    "The name of the job"),
 	JOB_TAGS("jobTags",     	                              	"List of job tags to use for filtering"),
 	JOINS("joins", 												"Joins on the frame"),
+	JSON_CLEANUP("jsonCleanup",     	                        "Boolean to clean unallowed characters like \n and \t"),
 	LAYER("layer", 												"The id for the layer of this visualization"),				
 	LAMBDA("lambda", 											"Name of the lambda transformtion to perform"),				
 	LANGUAGE("language",                    	                "Language in which this expression needs to be interpreted"),
