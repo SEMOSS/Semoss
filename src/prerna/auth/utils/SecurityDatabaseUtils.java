@@ -1129,6 +1129,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
@@ -1431,7 +1432,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList() {
-		return getAllDatabaseList(null, null, null);
+		return getAllDatabaseList(null, null, null, null, null);
 	}
 	
 	/**
@@ -1445,7 +1446,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			filters = new ArrayList<>();
 			filters.add(databaseFilter);
 		}
-		return getAllDatabaseList(filters, null, null);
+		return getAllDatabaseList(filters, null, null, null, null);
 	}
 	
 	/**
@@ -1454,17 +1455,23 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
-		return getAllDatabaseList(databaseFilters, null, null);
+		return getAllDatabaseList(databaseFilters, null, null, null, null);
 	}
 	
 	/**
 	 * Get database information
 	 * @param databaseFilters
+	 * @param engineMetadataFilter
+	 * @param searchTerm
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters, String limit, String offset) {
+	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters, Map<String, Object> engineMetadataFilter,
+			String searchTerm, String limit, String offset) {
+		
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
@@ -1474,15 +1481,26 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_database_name");
-		qs.addSelector(fun);
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
 		if(databaseFilters != null && !databaseFilters.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilters));
 		}
+		// optional word filter on the engine name
+		if(hasSearchTerm) {
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "ENGINE__ENGINENAME", searchTerm);
+		}
+		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
+		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
+			for (String k : engineMetadataFilter.keySet()) {
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", k));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", engineMetadataFilter.get(k)));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
+			}
+		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		// add the sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
 		Long long_limit = -1L;
@@ -1526,6 +1544,8 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -1642,6 +1662,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
 		// only care about discoverable engines
