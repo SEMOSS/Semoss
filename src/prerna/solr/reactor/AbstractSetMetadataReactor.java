@@ -1,0 +1,58 @@
+package prerna.solr.reactor;
+
+import java.util.List;
+import java.util.Map;
+
+import com.google.gson.Gson;
+
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
+
+public abstract class AbstractSetMetadataReactor extends AbstractReactor {
+
+	protected static final String META = "meta";
+	
+	/**
+	 * Get the meta map and account for encoded input or not
+	 * @return
+	 */
+	protected Map<String, Object> getMetaMap() {
+		Boolean encoded = Boolean.parseBoolean( this.keyValue.get(ReactorKeysEnum.ENCODED.getKey()) + "");
+		GenRowStruct metaGrs = this.store.getNoun(META);
+		if(encoded) {
+			if(metaGrs != null && !metaGrs.isEmpty()) {
+				List<NounMetadata> encodedStrInputs = metaGrs.getNounsOfType(PixelDataType.CONST_STRING);
+				if(encodedStrInputs != null && !encodedStrInputs.isEmpty()) {
+					String encodedStr = (String) encodedStrInputs.get(0).getValue();
+					String decodedStr = Utility.decodeURIComponent(encodedStr);
+					return new Gson().fromJson(decodedStr, Map.class);
+				}
+			}
+	
+			List<NounMetadata> encodedStrInputs = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
+			if(encodedStrInputs != null && !encodedStrInputs.isEmpty()) {
+				String encodedStr = (String) encodedStrInputs.get(0).getValue();
+				String decodedStr = Utility.decodeURIComponent(encodedStr);
+				return new Gson().fromJson(decodedStr, Map.class);
+			}
+		} else {
+			if(metaGrs != null && !metaGrs.isEmpty()) {
+				List<NounMetadata> mapInputs = metaGrs.getNounsOfType(PixelDataType.MAP);
+				if(mapInputs != null && !mapInputs.isEmpty()) {
+					return (Map<String, Object>) mapInputs.get(0).getValue();
+				}
+			}
+	
+			List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+			if(mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+
+		throw new IllegalArgumentException("Must define a metadata map");
+	}
+}
