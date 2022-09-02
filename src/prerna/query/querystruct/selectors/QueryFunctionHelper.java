@@ -229,6 +229,8 @@ public class QueryFunctionHelper {
 		} else if(inputFunction.equalsIgnoreCase(COUNT) 
 				|| inputFunction.equalsIgnoreCase(UNIQUE_COUNT) ) {
 			return "INT";
+		} else if (inputFunction.equalsIgnoreCase(DATE_FORMAT) || inputFunction.equalsIgnoreCase(DATE_ADD) ) {
+			return "DATE";
 		}
 		
 		// default, it is probably a number
