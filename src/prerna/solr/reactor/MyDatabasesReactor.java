@@ -27,7 +27,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 	public MyDatabasesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), 
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.DATABASE.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()
 			};
 	}
@@ -39,17 +39,18 @@ public class MyDatabasesReactor extends AbstractReactor {
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
+		List<String> databaseFilter = getDatabaseFilters();
 		
 		List<Map<String, Object>> dbInfo = new Vector<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly, 
+			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseFilter, favoritesOnly, 
 					engineMetadataFilter, searchTerm, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setEngines(dbInfo);
 			}
 		} else {
-			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(null, engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
 		Map<String, Integer> index = new HashMap<>(dbInfo.size());
@@ -103,6 +104,15 @@ public class MyDatabasesReactor extends AbstractReactor {
 		return new NounMetadata(dbInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	
+	private List<String> getDatabaseFilters() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
+		
+		return null;
+	}
+	
 	private List<String> getMetaKeys() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
 		if(grs != null && !grs.isEmpty()) {
@@ -131,6 +141,8 @@ public class MyDatabasesReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
 			return "The sort is a string value containing either 'name' or 'date' for how to sort";
+		} else if(key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "This is an optional database filter";
 		}
 		return super.getDescriptionForKey(key);
 	}
