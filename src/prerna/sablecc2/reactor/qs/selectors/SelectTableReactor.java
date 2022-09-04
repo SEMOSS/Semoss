@@ -19,13 +19,13 @@ public class SelectTableReactor extends AbstractQueryStructReactor {
 		organizeKeys();
 		// must have used Database reactor before hand
 		// so we know this must be the id
-		String appId = qs.getEngineId();
-		if(appId == null) {
-			throw new IllegalArgumentException("Must define the app using Database(<input id here>) prior to SelectTable");
+		String databaseId = qs.getEngineId();
+		if(databaseId == null) {
+			throw new IllegalArgumentException("Must define the database using Database(<input id here>) prior to SelectTable");
 		}
 		String table  = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
 		
-		List<String> selectors = MasterDatabaseUtility.getConceptPixelSelectors(table, appId);
+		List<String> selectors = MasterDatabaseUtility.getConceptPixelSelectors(table, databaseId);
 		for(int i = 0; i < selectors.size(); i++) {
 			QueryColumnSelector qsSelector = new QueryColumnSelector(selectors.get(i));
 			qs.addSelector(qsSelector);
