@@ -1104,6 +1104,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	/**
 	 * Get the list of the database information that the user has access to
 	 * @param user
+	 * @param databaseFilters
 	 * @param favoritesOnly
 	 * @param engineMetadataFilter
 	 * @param searchTerm
@@ -1111,8 +1112,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly, 
-			Map<String, Object> engineMetadataFilter, String searchTerm, String limit, String offset) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> databaseFilters,
+			Boolean favoritesOnly, Map<String, Object> engineMetadataFilter, 
+			String searchTerm, String limit, String offset) {
 
 		String enginePrefix = "ENGINE__";
 		String groupEnginePermission = "GROUPENGINEPERMISSION__";
@@ -1231,6 +1233,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		}
 		
 		// filters
+		if(databaseFilters != null && !databaseFilters.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilters));
+		}
 		OrQueryFilter orFilter = new OrQueryFilter();
 		{
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
@@ -1643,6 +1648,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	/**
 	 * Get the list of the database information that the user does not have access to, but is discoverable
 	 * @param user
+	 * @param databaseFilters
 	 * @param engineMetadataFilter
 	 * @param searchTerm
 	 * @param limit
@@ -1650,6 +1656,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserDiscoverableDatabaseList(User user, 
+			 List<String> databaseFilters,
 			Map<String, Object> engineMetadataFilter, 
 			String searchTerm, String limit, String offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -1694,6 +1701,10 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				subQsGroup.addExplicitFilter(orFilter);
 				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQsGroup));
 			}
+		}
+		// filters
+		if(databaseFilters != null && !databaseFilters.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilters));
 		}
 		// optional word filter on the engine name
 		if(hasSearchTerm) {
