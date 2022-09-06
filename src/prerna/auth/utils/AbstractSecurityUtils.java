@@ -1178,6 +1178,7 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			// see if there are any default values
+			boolean fresh = false;
 			{
 				IRawSelectWrapper wrapper = null;
 				try {
@@ -1189,8 +1190,33 @@ public abstract class AbstractSecurityUtils {
 							int order = 0;
 							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
 							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "checklist"}));
-							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "checklist"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead"}));
+							fresh = true;
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(wrapper != null) {
+						wrapper.cleanUp();
+					}
+				}
+			}
+			// DATE 2022-09-06
+			if(!fresh) {
+				IRawSelectWrapper wrapper = null;
+				try {
+					wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select DISPLAYOPTIONS from " + tableName + " where metakey='domain'");
+					if(wrapper.hasNext()) {
+						String display = wrapper.next().getValues()[0] + "";
+						if(!display.equals("multi-typeahead")) {
+							securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
+							int order = 0;
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"tag", "multi", order++, "multi-typeahead"}));
+							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"domain", "multi", order++, "multi-typeahead"}));
 						}
 					}
 				} catch (Exception e) {
