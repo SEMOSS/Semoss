@@ -1185,7 +1185,7 @@ public abstract class AbstractSecurityUtils {
 					if(wrapper.hasNext()) {
 						int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
 						if(numrows < 4) {
-							securityDb.removeData("TRUNCATE TABLE " + tableName);
+							securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
 							int order = 0;
 							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{Constants.MARKDOWN, "single", order++, "markdown"}));
 							securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, new Object[]{"description", "single", order++, "textarea"}));
