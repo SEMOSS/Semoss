@@ -37,6 +37,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PASSWORD_RULES");
 		conceptsRequired.add("PASSWORD_HISTORY");
 		conceptsRequired.add("PASSWORD_RESET");
+		conceptsRequired.add("DATABASEACCESSREQUEST");
 		
 		// new group tables
 		conceptsRequired.add("SMSS_GROUP");
@@ -355,6 +356,19 @@ public class SecurityOwlCreator {
 		owler.addProp("PASSWORD_RESET", "EMAIL", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "TOKEN", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "DATE_ADDED", "TIMESTAMP");
+		
+		// DATABASEACCESSREQUEST 
+		//"REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP"
+		owler.addConcept("DATABASEACCESSREQUEST", null, null);
+		owler.addProp("DATABASEACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
+		owler.addProp("DATABASEACCESSREQUEST", "REQUEST_TYPE", "VARCHAR(255)");
+		owler.addProp("DATABASEACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
+		owler.addProp("DATABASEACCESSREQUEST", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("DATABASEACCESSREQUEST", "PERMISSION", "INT");
+		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
+		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
+		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
+		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
 		
 		
 		// joins
