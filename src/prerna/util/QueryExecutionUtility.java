@@ -51,6 +51,30 @@ public class QueryExecutionUtility {
 	}
 	
 	/**
+	 * Utility method to flush result set into an integer
+	 * Assumes single return at index 0
+	 * @param wrapper
+	 * @return
+	 */
+	public static Integer flushToInteger(IEngine engine, SelectQueryStruct qs) {
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				return (Integer) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Utility method to flush result set into list
 	 * Assumes single return at index 0
 	 * @param wrapper
