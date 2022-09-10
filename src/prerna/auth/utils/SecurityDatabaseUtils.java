@@ -2,8 +2,10 @@ package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -12,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -39,6 +42,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityDatabaseUtils extends AbstractSecurityUtils {
@@ -125,6 +129,41 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	public static Integer getUserDatabasePermission(String singleUserId, String databaseId) {
 		return SecurityUserDatabaseUtils.getUserDatabasePermission(singleUserId, databaseId);
+	}
+	
+	/**
+	 * Get the request pending database permission for a specific user
+	 * @param singleUserId
+	 * @param databaseId
+	 * @return
+	 */
+	public static Integer getUserAccessRequestDatabasePermission(String userId, String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__REQUEST_USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__ENGINEID", "==", databaseId));
+		return QueryExecutionUtility.flushToInteger(securityDb, qs);
+	}
+	
+	/**
+	 * Get the request pending database permission for a specific user
+	 * @param singleUserId
+	 * @param databaseId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserAccessRequestsByDatabase(String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__REQUEST_USERID"));
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__REQUEST_TYPE"));
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__REQUEST_TIMESTAMP"));
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__APPROVER_USERID"));
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__APPROVER_TYPE"));
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__APPROVER_DECISION"));
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__APPROVER_TIMESTAMP"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__ENGINEID", "==", databaseId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**
@@ -930,6 +969,81 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * set user access request
+	 * @param userId
+	 * @param userType
+	 * @param databaseId
+	 * @param permission
+	 * @return
+	 */
+	public static void setUserAccessRequest(String userId, String userType, String databaseId, int permission) {
+		// first do a delete
+		String deleteQ = "DELETE FROM DATABASEACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND ENGINEID=?";
+		PreparedStatement deletePs = null;
+		try {
+			int index = 1;
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			deletePs.setString(index++, userId);
+			deletePs.setString(index++, userType);
+			deletePs.setString(index++, databaseId);
+			deletePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while deleting user access request with detailed message = " + e.getMessage());
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+
+		// now we do the new insert 
+		String insertQ = "INSERT INTO DATABASEACCESSREQUEST (REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, ENGINEID, PERMISSION) VALUES (?,?,?,?,?)'";
+		PreparedStatement insertPs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+
+			int index = 1;
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			insertPs.setString(index++, userId);
+			insertPs.setString(index++, userType);
+			insertPs.setTimestamp(index++, timestamp, cal);
+			insertPs.setString(index++, databaseId);
+			insertPs.setInt(index++, permission);
+			insertPs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
 	}
 	
 	/**
@@ -1817,7 +1931,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
         String tableName = "ENGINEMETAKEYS";
         try {
 			// first truncate table clean 
-			String truncateSql = "TRUNCATE TABLE " + tableName;
+			String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
 			securityDb.removeData(truncateSql);
 			insertPs = securityDb.getPreparedStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
 			// then insert latest options
