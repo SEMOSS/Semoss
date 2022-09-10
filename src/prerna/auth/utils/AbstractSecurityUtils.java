@@ -972,7 +972,7 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		// ACCESSREQUEST
+		// ACCESSREQUEST [LEGACY]
 		colNames = new String[] { "ID", "SUBMITTEDBY", "ENGINE", "PERMISSION" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
 		if(allowIfExistsTable) {
@@ -982,6 +982,19 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.tableExists(conn, "ACCESSREQUEST", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
+			}
+		}
+		
+		// DATABASEACCESSREQUEST 
+		colNames = new String[] { "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("DATABASEACCESSREQUEST ", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "DATABASEACCESSREQUEST ", database, schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("DATABASEACCESSREQUEST ", colNames, types));
 			}
 		}
 		
