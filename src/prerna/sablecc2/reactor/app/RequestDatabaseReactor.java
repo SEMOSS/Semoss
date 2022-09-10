@@ -27,6 +27,7 @@ import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
 
 public class RequestDatabaseReactor extends AbstractReactor {
+	
 	private static final String REQUEST_DATABASE_EMAIL_TEMPLATE = "requestDatabase.html";
 	private static final Logger classLogger = LogManager.getLogger(RequestDatabaseReactor.class);
 
@@ -39,7 +40,14 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		String permission = this.keyValue.get(this.keysToGet[1]);
-
+		// turn permission into an integer in case it was added as the string version of the value
+		int requestPermission = -1;
+		try {
+			requestPermission = Integer.parseInt(permission);
+		} catch(NumberFormatException ignore) {
+			requestPermission = AccessPermissionEnum.getPermissionByValue(permission).getId();
+		}
+					
 		User user = this.insight.getUser();
 
 		boolean security = AbstractSecurityUtils.securityEnabled();
@@ -62,30 +70,32 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		String userId = token.getId();
 		// check user permission for the database
 		Integer currentUserPermission = SecurityDatabaseUtils.getUserDatabasePermission(userId, databaseId);
-		if(currentUserPermission != null) {
-			// make sure requesting new level of permission
-			int requestPermission = -1;
-			try {
-				requestPermission = Integer.parseInt(permission);
-			} catch(NumberFormatException ignore) {
-				requestPermission = AccessPermissionEnum.getPermissionByValue(permission).getId();
-			}
-			
-			if(requestPermission == currentUserPermission) {
-				throw new IllegalArgumentException("This user already has access to this database with the given permission level");
-			}
+		if(currentUserPermission != null && requestPermission == currentUserPermission) {
+			throw new IllegalArgumentException("This user already has access to this database with the given permission level");
 		}
-		
+		//check user pending permission for database
+		Integer currentPendingUserPermission = SecurityDatabaseUtils.getUserAccessRequestDatabasePermission(userId, databaseId);
+		if(currentPendingUserPermission != null && requestPermission == currentPendingUserPermission) {
+			throw new IllegalArgumentException("This user has already requested access to this database with the given permission level");
+		}
+		// checking to make sure database is discoverable
 		boolean canRequest = SecurityDatabaseUtils.databaseIsDiscoverable(databaseId);
 		if (canRequest) {
+			String userType = token.getProvider().toString();
+			SecurityDatabaseUtils.setUserAccessRequest(userId, userType, databaseId, requestPermission);
 			sendEmail(user, databaseId, permission);
 			return NounMetadata.getSuccessNounMessage("Successfully requested the database");
 		} else {
 			return NounMetadata.getErrorNounMessage("Unable to request the database");
-
 		}
 	}
 
+	/**
+	 * 
+	 * @param user
+	 * @param databaseId
+	 * @param permission
+	 */
 	private void sendEmail(User user, String databaseId, String permission) {
 		String template = getTemplateString();
 		if (template !=null && !template.isEmpty()) {
@@ -115,9 +125,12 @@ public class RequestDatabaseReactor extends AbstractReactor {
 						true, null);
 			}
 		}
-
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private String getTemplateString() {
 		String template = null;
 		String templatePath = DIHelper.getInstance().getProperty(Constants.EMAIL_TEMPLATES);
@@ -136,5 +149,4 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		}
 		return template;
 	}
-
 }
