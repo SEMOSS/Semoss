@@ -15,8 +15,6 @@ public class GetFrameMetamodelReactor extends AbstractFrameReactor {
 	 * {@link prerna.sablecc2.reactor.masterdatabase.GetDatabaseMetamodelReactor}
 	 */
 	
-	private static final String CLASS_NAME = GetFrameMetamodelReactor.class.getName();
-	
 	public GetFrameMetamodelReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey()};
 	}
