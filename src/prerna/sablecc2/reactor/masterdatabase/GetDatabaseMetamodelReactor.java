@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -29,6 +30,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
+import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
@@ -39,8 +41,10 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 	 * {@link  prerna.sablecc2.reactor.frame.GetFrameMetamodelReactor}
 	 */
 	
-	private static final Gson GSON = new GsonBuilder().create();
 	private static final String CLASS_NAME = GetDatabaseMetamodelReactor.class.getName();
+	
+	private static final Logger classLogger = LogManager.getLogger(GetDatabaseMetamodelReactor.class);
+	private static final Gson gson = new GsonBuilder().create();
 
 	/*
 	 * Get the database metamodel + meta options
@@ -114,20 +118,25 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				File positionFile = app.getOwlPositionFile();
 				// try to make the file
 				if(!positionFile.exists()) {
-					logger.info("Generating metamodel layout for database " + databaseId);
-					logger.info("This process may take some time");
-					GenerateMetamodelLayout.generateLayout(databaseId);
-					logger.info("Metamodel layout has been generated");
+					try {
+						logger.info("Generating metamodel layout for database " + databaseId);
+						logger.info("This process may take some time");
+						GenerateMetamodelLayout.generateLayout(databaseId);
+						logger.info("Metamodel layout has been generated");
+					} catch(Exception e) {
+						classLogger.info("Error in creating database metamodel layout");
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 				
 				if(positionFile.exists()) {
 					// load the file
 					Path path = positionFile.toPath();
 					try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-						Map<String, Object> positionMap = GSON.fromJson(reader, Map.class);
+						Map<String, Object> positionMap = gson.fromJson(reader, Map.class);
 						metamodelObject.put("positions", positionMap);
 					} catch (IOException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
