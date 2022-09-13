@@ -340,9 +340,8 @@ public class GenerateMetamodelLayout {
 	}
 
 	private static Map<String, Rectangle2D> getRectangles(Graph graph, Map<String, Integer> nodeSizes) {
-		Iterator<Node> nodeIt = graph.getNodeSet().iterator();
 		Map<String, Rectangle2D> rectangles = new HashMap<>();
-		nodeIt = graph.getNodeSet().iterator();
+		Iterator<Node> nodeIt = graph.iterator();
 
 		while (nodeIt.hasNext()) {
 			Node node = nodeIt.next();
@@ -385,7 +384,7 @@ public class GenerateMetamodelLayout {
 			}
 		}
 
-		Iterator<Node> nodeIt = graph.getNodeSet().iterator();
+		Iterator<Node> nodeIt = graph.iterator();
 		int numberOfNodes = graph.getNodeCount();
 		double leftM;
 		double topM;
