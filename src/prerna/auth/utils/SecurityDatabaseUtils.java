@@ -1011,7 +1011,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		}
 
 		// now we do the new insert 
-		String insertQ = "INSERT INTO DATABASEACCESSREQUEST (REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, ENGINEID, PERMISSION) VALUES (?,?,?,?,?)'";
+		String insertQ = "INSERT INTO DATABASEACCESSREQUEST (REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, ENGINEID, PERMISSION) VALUES (?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
