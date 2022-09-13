@@ -126,6 +126,9 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 					} catch(Exception e) {
 						classLogger.info("Error in creating database metamodel layout");
 						classLogger.error(Constants.STACKTRACE, e);
+					} catch(NoClassDefFoundError e) {
+						classLogger.info("Error in creating database metamodel layout");
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 				
