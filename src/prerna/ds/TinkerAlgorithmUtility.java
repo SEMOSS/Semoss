@@ -1,5 +1,7 @@
 package prerna.ds;
 
+import java.util.Comparator;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
@@ -7,8 +9,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import com.sun.jersey.core.util.StringIgnoreCaseKeyComparator;
 
 public final class TinkerAlgorithmUtility {
 
@@ -26,7 +26,14 @@ public final class TinkerAlgorithmUtility {
 	 */
 	public static String runLoopIdentifer(TinkerFrame tf, int cycleSize) {
 		GraphTraversal<Vertex, Path> traversal = tf.g.traversal().V().as("a").repeat(__.out().simplePath()).times(cycleSize)
-				.where(__.out().as("a")).path().dedup().by(__.unfold().order().by(TinkerFrame.TINKER_ID, new StringIgnoreCaseKeyComparator()).dedup().fold());
+				.where(__.out().as("a")).path().dedup().by(__.unfold().order().by(TinkerFrame.TINKER_ID, new Comparator<String>() {
+
+					@Override
+					public int compare(String o1, String o2) {
+						return o1.toLowerCase().compareTo(o2.toLowerCase());
+					}
+					
+				}).dedup().fold());
 		
 		StringBuilder cycles = new StringBuilder();
 		while(traversal.hasNext()) {
