@@ -1,6 +1,10 @@
 package prerna.auth.utils;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -287,5 +291,65 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 				wrapper.cleanUp();
 			}
 		}
+	} 	
+	
+	/**
+	 * Get the database permissions for a specific user
+	 * @param singleUserId
+	 * @param databaseId
+	 * @return
+	 */
+	public static Map<String, Object> getUsersDatabasePermission(List<String> userIds, String databaseId) {
+		//TODO: why would a user have more than 1 permission?
+		//TODO: why would a user have more than 1 permission?
+		//TODO: why would a user have more than 1 permission?
+		//TODO: why would a user have more than 1 permission?
+		//TODO: why would a user have more than 1 permission?
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = getUsersDatabasePermissionWrapper(userIds, databaseId);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				String userId = (String) data[0];
+				Integer permission = (Integer) data[1];
+				if(retMap.containsKey(userId)) {
+					Object obj = retMap.get(userId);
+					if(obj instanceof List) {
+						((List) obj).add(permission);
+					} else {
+						List<Object> newList = new ArrayList<>();
+						newList.add(obj);
+						newList.add(permission);
+						retMap.put(userId, newList);
+					}
+				} else {
+					retMap.put(userId, permission);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		return retMap;
+	}
+	
+	/**
+	 * Get the database permissions for a specific user
+	 * @param singleUserId
+	 * @param databaseId
+	 * @return
+	 */
+	public static IRawSelectWrapper getUsersDatabasePermissionWrapper(List<String> userIds, String databaseId) throws Exception {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		return wrapper;
 	}
 }
