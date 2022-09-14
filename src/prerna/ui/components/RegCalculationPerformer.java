@@ -27,24 +27,17 @@
  *******************************************************************************/
 package prerna.ui.components;
 
-
 import java.util.ArrayList;
-
-import javax.swing.JDesktopPane;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.codehaus.jet.regression.estimators.OLSMultipleLinearRegressionEstimator;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.RegExplorerPlaySheet;
 import prerna.ui.components.playsheets.RegressionAnalysisPlaySheet;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 /**
  * This class is used to perform regression calculations.
@@ -71,34 +64,33 @@ public class RegCalculationPerformer implements IAlgorithm{
 	 * and regressors and then creates a new tab to display on.
 	 */
 	public void regCalculate() {
-		
 		runQuery();
 
-		OLSMultipleLinearRegressionEstimator regEst = new OLSMultipleLinearRegressionEstimator();
-		regEst.addData(yValues,xValues,null);
-		double[] indepVarSlopes = regEst.estimateRegressionParameters();
-		ArrayList<Double> indepVarMedianValues = new ArrayList<Double>();
-		ArrayList<Double> indepVarSlopeValues = new ArrayList<Double>();
-		for(int i=0;i<indepVarSlopes.length;i++)
-		{
-			indepVarSlopeValues.add(indepVarSlopes[i]);
-		}
-		for(int i=0;i<xValues[0].length;i++)
-		{
-			double sum=0.0;
-			for(int j=0;j<xValues.length;j++)
-			{
-				sum+=xValues[j][i];
-			}
-			indepVarMedianValues.add(sum/xValues.length);
-		}		
-		RegExplorerPlaySheet newTab = new RegExplorerPlaySheet();
-		newTab.setValues(dependentVar,independentVarList,indepVarMedianValues,indepVarSlopeValues);
-		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-		newTab.setJDesktopPane(pane);
-		newTab.createView();
-		regPlaySheet.jTab.add("Regression Explorer", newTab);
-		regPlaySheet.jTab.setSelectedComponent(newTab);
+//		OLSMultipleLinearRegressionEstimator regEst = new OLSMultipleLinearRegressionEstimator();
+//		regEst.addData(yValues,xValues,null);
+//		double[] indepVarSlopes = regEst.estimateRegressionParameters();
+//		ArrayList<Double> indepVarMedianValues = new ArrayList<Double>();
+//		ArrayList<Double> indepVarSlopeValues = new ArrayList<Double>();
+//		for(int i=0;i<indepVarSlopes.length;i++)
+//		{
+//			indepVarSlopeValues.add(indepVarSlopes[i]);
+//		}
+//		for(int i=0;i<xValues[0].length;i++)
+//		{
+//			double sum=0.0;
+//			for(int j=0;j<xValues.length;j++)
+//			{
+//				sum+=xValues[j][i];
+//			}
+//			indepVarMedianValues.add(sum/xValues.length);
+//		}		
+//		RegExplorerPlaySheet newTab = new RegExplorerPlaySheet();
+//		newTab.setValues(dependentVar,independentVarList,indepVarMedianValues,indepVarSlopeValues);
+//		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+//		newTab.setJDesktopPane(pane);
+//		newTab.createView();
+//		regPlaySheet.jTab.add("Regression Explorer", newTab);
+//		regPlaySheet.jTab.setSelectedComponent(newTab);
 	}
 	
 	/**

@@ -886,7 +886,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
 		// this returns a list of existing permissions
-		Map<String, Object> existingUserPermission = SecurityUserDatabaseUtils.getUsersDatabasePermission(userIds, databaseId);
+		Map<String, Integer> existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermissions(userIds, databaseId);
 		if (!existingUserPermission.isEmpty()) {
 			throw new IllegalArgumentException("The following users already have access to this database. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
@@ -1508,7 +1508,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public void removeDatabaseUsers(List<String> existingUserIds, String databaseId) {
-		Map<String, Object> existingUserPermission = SecurityUserDatabaseUtils.getUsersDatabasePermission(existingUserIds, databaseId);
+		Map<String, Integer> existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermissions(existingUserIds, databaseId);
 		
 		// make sure these users all exist and have access
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
