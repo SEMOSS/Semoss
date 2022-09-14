@@ -5,8 +5,12 @@ import java.io.Serializable;
 public class PayloadStruct implements Serializable{
 	
 	public String epoc = null;
-	public enum ENGINE {R, PYTHON, CHROME, ECHO};
-	public ENGINE engine = ENGINE.R; // setting default to R
+	// other operations to introduce
+	// ENGINE 
+	// SET
+	
+	public enum OPERATION {R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT}; 
+	public OPERATION operation = OPERATION.R; // setting default to R
 	public String methodName = "method";
 	public Object [] payload = null;
 	public Class [] payloadClasses = null;
@@ -22,5 +26,25 @@ public class PayloadStruct implements Serializable{
 	public String aliasReturn = null;
 	
 	public boolean hasReturn = true; // if it is a void set this to true
+	
+	// parent epoc
+	// to make sure that this is something that is a follow on
+	public String parentEpoc = null; // do we need this other than for trace ?
+	// is this request or response
+	public boolean response = false;
+	
+	// object identifier
+	// this is specifically useful for things like engine etc. 
+	public String objId = null;
+	
+	// specify the project id for reactor loads
+	public String projectId = null;
+	
+	// specify the portal id for reactor loads
+	public String portalId = null;
+	
+	// set the insight id
+	public String insightId = null;
+	
 	
 }

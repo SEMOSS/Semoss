@@ -1,5 +1,6 @@
 package prerna.sablecc2.om;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -10,7 +11,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.IReactor;
 
-public class GenRowStruct {
+public class GenRowStruct implements Serializable{
 
 	// string or number - const
 	// column - name of column

@@ -30,9 +30,21 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	// the code that was executed
 	private String code = null;
+	
+	@Override 
+	public NounMetadata execute()
+	{
+		String retString = "Java console is now discontinued. Please use mvn directly for performing all java operations";
+		retString = retString  + "Use mvn exec:java -Dexec.mainClass=\"your.company.className\" -Dexec.classpathScope=\"compile(if you want compile scope)\"";
+		retString = retString  + "Or just use java your.company.className";
+		
+		return new NounMetadata(retString, PixelDataType.CONST_STRING);
+	}
+	
+	
 
-	@Override
-	public NounMetadata execute() {
+	//@Override
+	public NounMetadata execute_old() {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			if(Boolean.parseBoolean(disable_terminal)) {
