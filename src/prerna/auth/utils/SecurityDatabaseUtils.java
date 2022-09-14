@@ -434,6 +434,72 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * 
+	 * @param editedUserId
+	 * @param databaseId
+	 * @return
+	 */
+	public static void removeDatabaseUsers(User user, List<String> existingUserIds, String databaseId)  throws IllegalAccessException {
+		// make sure user can edit the database
+		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
+		}
+		
+		// get user permissions to remove
+		Map<String, Integer> existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermissions(existingUserIds, databaseId);
+		
+		// make sure all users to remove currently has access to database
+		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
+		toRemoveUserIds.removeAll(existingUserPermission.keySet());
+		if (!toRemoveUserIds.isEmpty()) {
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the database: "+String.join(",", toRemoveUserIds));
+		}
+		
+		// if user is not an owner, check to make sure they are not removing owner access
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
+			if(permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
+				throw new IllegalArgumentException("As a non-owner, you cannot remove access of an owner.");
+			}
+		}
+		
+		// first do a delete
+		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(int i=0; i<existingUserIds.size(); i++) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, existingUserIds.get(i));
+				deletePs.setString(parameterIndex++, databaseId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
 	 * Set if the database is public to all users on this instance
 	 * @param user
 	 * @param databaseId
@@ -1963,65 +2029,6 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			}
         }
 		return valid;
-	}
-	
-	/**
-	 * 
-	 * @param editedUserId
-	 * @param databaseId
-	 * @return
-	 */
-	public static void removeDatabaseUsers(User user, List<String> existingUserIds, String databaseId)  throws IllegalAccessException {
-		// TODO: ALSO NEED TO CHECK THAT IF EDITOR, YOU ARE NOT REMOVING ACCESS OF OWNER
-		// BUT IF USER IS OWNER - THEY CAN REMOVE THE ACCESS OF OTHER OWNERS AND EDITORS
-		
-		// make sure user can edit the database
-		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
-		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
-		}
-		
-		Map<String, Object> existingUserPermission = SecurityUserDatabaseUtils.getUsersDatabasePermission(existingUserIds, databaseId);
-		
-		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
-		toRemoveUserIds.removeAll(existingUserPermission.keySet());
-		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the database: "+String.join(",", toRemoveUserIds));
-		}
-		
-		// first do a delete
-		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
-		PreparedStatement deletePs = null;
-		try {
-			deletePs = securityDb.getPreparedStatement(deleteQ);
-			for(int i=0; i<existingUserIds.size(); i++) {
-				int parameterIndex = 1;
-				deletePs.setString(parameterIndex++, existingUserIds.get(i));
-				deletePs.setString(parameterIndex++, databaseId);
-				deletePs.addBatch();
-			}
-			deletePs.executeBatch();
-			if(!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
-			}
-		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(deletePs != null) {
-				try {
-					deletePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						deletePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-		}
 	}
 	
 }
