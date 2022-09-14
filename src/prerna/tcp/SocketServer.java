@@ -1,5 +1,6 @@
 package prerna.tcp;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -8,7 +9,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
 
@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 
 import jep.Jep;
-import prerna.ds.py.PyExecutorThread;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -55,6 +54,7 @@ public class SocketServer implements Runnable
 	Object crash = new Object();
 	
 	SocketServerHandler ssh = new SocketServerHandler();
+	String baseFolder = null;
 		
 	static boolean multi = false; // allow multiple threads at the same time
 	
@@ -75,18 +75,22 @@ public class SocketServer implements Runnable
 		
 		if(args == null || args.length == 0)
 		{
-			args = new String[4];
+			args = new String[5];
 			args[0] = "C:\\users\\pkapaleeswaran\\workspacej3\\SemossDev\\config";
 			args[1] = "C:\\users\\pkapaleeswaran\\workspacej3\\SemossDev\\RDF_Map.prop";;
 			args[2] = "9999";
-			//args[3] = "py";
-			args[3] = "r";
+			args[3] = "py";
+			
+			//args[3] = "r";
+			args[4] = "c:/users/pkapaleeswaran/workspacej3/semossdev/py";
 			test = true;
 			multi = true;
 				
 		}
 		
 		String log4JPropFile = Paths.get(Utility.normalizePath(args[0]), "log4j2.properties").toAbsolutePath().toString();
+		
+		DIHelper.getInstance().setLocalProperty("core", "false");
 		
 		FileInputStream fis = null;
 		ConfigurationSource source = null;
@@ -110,6 +114,20 @@ public class SocketServer implements Runnable
 		
 		
 		SocketServer worker = new SocketServer();
+		
+		try {
+			Properties prop2 = new Properties();
+			prop2.load(new FileInputStream(new File(args[1])));
+			worker.baseFolder = "" + prop2.get(Constants.BASE_FOLDER);
+			worker.baseFolder = worker.baseFolder.replace('\\', '/');
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
 		DIHelper.getInstance().loadCoreProp(args[1]);
 		DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
@@ -164,6 +182,7 @@ public class SocketServer implements Runnable
 	public void run()
 	{
 		// do the listening here and then spawn the thread
+		
 		while(!done)
 		{
 			if(this.clientSocket == null || multi)
@@ -176,6 +195,8 @@ public class SocketServer implements Runnable
 		        }	
 		        try {
 			        ssh = new SocketServerHandler();
+			        DIHelper.getInstance().setLocalProperty("SSH", ssh);
+			        ssh.setPyBase(baseFolder + "/" + Constants.PY_BASE_FOLDER); 
 		        	ssh.setLogger(LOGGER);
 					ssh.setOutputStream(clientSocket.getOutputStream());
 					is = clientSocket.getInputStream();

@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -23,9 +22,15 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
+import prerna.om.Insight;
+import prerna.project.impl.Project;
+import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaRserveTranslator;
+import prerna.tcp.workers.ReactorWorker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.FstUtil;
@@ -42,6 +47,9 @@ public class SocketServerHandler implements Runnable
 	int bytesReadSoFar = 0;
 	int lenBytesReadSoFar = 0;
 	boolean done = false;
+	boolean blocking = false; // processes one payload and moves to the next one. This is how it currently behaves
+	long averageMillis = 200;
+
 	
 	SocketServer server = null;
 	
@@ -60,11 +68,20 @@ public class SocketServerHandler implements Runnable
 	boolean test = false;
 			
 	RConnection retCon = null;
+
 	Map <String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
+	Map <String, Insight> insightMap = new HashMap<String, Insight>();
+	Map <String, Project> projectMap = new HashMap<String, Project>();
+
+	
+	public Map <String, PayloadStruct> incoming = new HashMap<String, PayloadStruct>();
+	public Map <String, PayloadStruct> outgoing = new HashMap<String, PayloadStruct>();
 	
 	String pyBase = "py";
 	
 	public  Logger LOGGER = null;	
+	
+	int curEpoc = 1;
 		
 	public void setLogger(Logger LOGGER)
 	{
@@ -91,13 +108,23 @@ public class SocketServerHandler implements Runnable
 				//unprocessed.put(ps.epoc, ps);
 				//attemptCount.put(ps.epoc, 1);
 
+				incoming.put(ps.epoc, ps);
+				ps.response = true;
+				outgoing.put(ps.epoc, ps);
+
+				
 				////System.err.println("Payload set to " + ps);
 				if(ps.methodName.equalsIgnoreCase("EMPTYEMPTYEMPTY")) // trigger message ignore
 					return ps;
 				if(ps.methodName.equalsIgnoreCase("CLOSE_ALL_LOGOUT<o>")) // we are done kill everything
 					cleanUp();
-
-				if(ps.engine == PayloadStruct.ENGINE.R)
+				if(ps.methodName.equalsIgnoreCase("RELEASE_ALL")) // we are done kill everything
+				{
+					releaseAll();
+					return ps;
+				}
+				
+				if(ps.operation == PayloadStruct.OPERATION.R)
 				{
 					try
 					{
@@ -109,6 +136,7 @@ public class SocketServerHandler implements Runnable
 						retObject[0] = output;
 						ps.payload = retObject;
 						ps.processed = true;
+						ps.response = true;
 					}catch(InvocationTargetException ex)
 					{
 						LOGGER.info(ex + ps.methodName);
@@ -124,7 +152,7 @@ public class SocketServerHandler implements Runnable
 					}
 					return ps;
 				}
-				if(ps.engine == PayloadStruct.ENGINE.PYTHON)
+				if(ps.operation == PayloadStruct.OPERATION.PYTHON)
 				{
 					// get the py translator for the first time
 					getPyTranslator();
@@ -144,9 +172,12 @@ public class SocketServerHandler implements Runnable
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
+					}finally
+					{
+						return ps;
 					}
 				}
-				else if(ps.engine == PayloadStruct.ENGINE.CHROME)
+				else if(ps.operation == PayloadStruct.OPERATION.CHROME)
 				{
 					try
 					{
@@ -169,10 +200,14 @@ public class SocketServerHandler implements Runnable
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
+					}finally
+					{
+						return ps;
 					}
 					
 				}
-				else if(ps.engine == PayloadStruct.ENGINE.ECHO)
+				
+				else if(ps.operation == PayloadStruct.OPERATION.ECHO)
 				{
 					try
 					{
@@ -189,9 +224,117 @@ public class SocketServerHandler implements Runnable
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
+					}finally
+					{
+						return ps;
 					}
 				}
-
+				else if(ps.operation == PayloadStruct.OPERATION.INSIGHT)
+				{
+					try
+					{
+						Insight output = (Insight)ps.payload[0];
+						output.setPyTranslator(pyt);
+						if(output.getREnv() != null)
+							output.setRJavaTranslator(rtMap.get(output.getREnv()));
+						ps.payload = new Object[] {"Set insight successfully"};
+						ps.payloadClasses = new Class[] {String.class};
+						ps.processed = true;
+						ps.response = true;
+						insightMap.put(output.getInsightId(), output);
+					}catch(Exception ex)
+					{
+						LOGGER.debug(ex);
+						//ex.printStackTrace();
+						//System.err.println("Method.. " + ps.methodName);
+						ps.ex = ExceptionUtils.getStackTrace(ex);						
+						//TCPChromeDriverUtility.quit("stop");
+					}finally
+					{
+						return ps;
+					}
+				}
+				else if(ps.operation == PayloadStruct.OPERATION.REACTOR)
+				{
+					try
+					{
+						Insight insight = insightMap.get(ps.insightId);
+						// no need for another thread
+						// you are already in a thread
+						String reactorName = ps.objId;
+						ps.response = true;
+						
+						// get the project
+						// Project serves no purpose other than just giving me the reactor
+						Project project = null;
+						if(projectMap.containsKey(insight.getProjectId()))
+						{
+							project = (Project)projectMap.get(insight.getProjectId());
+						}
+						else
+						{
+							project = new Project();
+							project.setProjectId(insight.getProjectId());
+							project.setProjectName(insight.getProjectName());
+							// dont give me a wrapper.. give me the real reactor
+							projectMap.put(insight.getProjectId(), project);
+							String projectSock = insight.getProjectId() + "__SOCKET";
+							
+							DIHelper.getInstance().setProjectProperty(projectSock, project);
+						}						
+						// I dont know if I can do this or I have to use that jar class loader
+						IReactor reactor = project.getReactor(reactorName, null);
+						reactor.setInsight(insight);
+						reactor.setNounStore((NounStore)ps.payload[0]);
+						LOGGER.info("Set the nounstore on reactor");
+						
+						// execute
+						NounMetadata nmd = reactor.execute();
+						LOGGER.info("Execution of reactor complete");
+						// return the response
+						ps.payload = new Object[] {nmd};
+						ps.payloadClasses = new Class[] {NounMetadata.class};
+					}catch(Exception ex)
+					{
+						LOGGER.debug(ex);
+						//ex.printStackTrace();
+						//System.err.println("Method.. " + ps.methodName);
+						ps.ex = ExceptionUtils.getStackTrace(ex);						
+						//TCPChromeDriverUtility.quit("stop");
+					}finally
+					{
+						return ps;
+					}
+				}
+				else if(ps.operation == PayloadStruct.OPERATION.PROJECT)
+				{
+					// make a method call
+					try
+					{
+						Project project = projectMap.get(ps.projectId);
+						if(project != null)
+						{
+							Method method = findProjectMethod(project, ps.methodName, ps.payloadClasses);
+					    	Object retObject = null;					    	
+							retObject = method.invoke(project, ps.payload);
+							ps.processed = true;
+							ps.response = true;
+						}
+						ps.payload = new Object [] {"method "+ ps.methodName + " execution complete"};
+						ps.payloadClasses = new Class [] {String.class};
+					}catch(Exception ex)
+					{
+						LOGGER.debug(ex);
+						//ex.printStackTrace();
+						//System.err.println("Method.. " + ps.methodName);
+						ps.ex = ExceptionUtils.getStackTrace(ex);						
+						//TCPChromeDriverUtility.quit("stop");
+					}finally
+					{
+						return ps;
+					}
+				}
+				
 			}catch(Exception ex)
 			{
 				ex.printStackTrace();
@@ -199,14 +342,25 @@ public class SocketServerHandler implements Runnable
 			}finally
 			{
 			}
-			return ps;
+			// set it as the response
+			return null;
 		}
 	}	
 
 	
-	public void writeResponse(PayloadStruct ps)
+	public PayloadStruct writeResponse(PayloadStruct ps)
 	{
 		byte [] psBytes = null;
+		// if this is the response
+		// all set
+		// package the bytes and send the response
+		if(!ps.response || ps.epoc == null)
+		{
+			ps.epoc = "ss" + curEpoc;
+			curEpoc++;
+			outgoing.put(ps.epoc, ps);
+		}
+		
 		try 
 		{
 			psBytes = FstUtil.packBytes(ps);
@@ -216,19 +370,14 @@ public class SocketServerHandler implements Runnable
 			{
 				// hmm we are in the non serializable land
 				// let us try it this way now
-				ps.payload[0] = "Output is not serializable. Forcing stringify" + ps.payload[0];
+				ps.payload = new String[] {"Output is not serializable. Forcing stringify <" + ps.payload[0] + ">"};
 				psBytes = FstUtil.packBytes(ps);
 			}
 		}
-		//System.out.println("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> ");
-		LOGGER.info("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> ");
-
-		// remove it
-		//unprocessed.remove(ps.epoc);
-		//attemptCount.remove(ps.epoc);
-		//psBytes = "abcd".getBytes();
-		//System.err.println("Writing payload " + psBytes.length);
 		
+		// send it
+		//System.out.println("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> ");
+		LOGGER.info("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> " );
 		try
 		{
 			os.write(psBytes);
@@ -236,10 +385,78 @@ public class SocketServerHandler implements Runnable
 		{
 			
 		}
-		// try to process it
-		//processUnProcessed(ctx);
-		//LOGGER.info("Result Flushed " + ps.methodName);
+
+		// if this is what socket is sending 
+		// i.e. response to an operation core semoss requested
+		// job is done - clear it from the queues
+		// incoming was the request, outgoing was the response
+		if(ps.response) // clear from the current
+		{
+			// remove from unprocessed
+			incoming.remove(ps.epoc);
+			outgoing.remove(ps.epoc);
+		}
+		// if this is a request for core semoss
+		// block the thread until we get response
+		// notification happens in the run block see below
+		// put the current structure into outgoing
+		// block on that payload object
+		// wait
+		else// this is for interim operations
+		{
+			// put this into unprocessed
+			// synchronize on the payload
+			// and then wait
+			//System.err.println(" Here in request " + ps);
+			while(!incoming.containsKey(ps.epoc))
+			{
+				synchronized(ps)
+				{
+					try 
+					{
+						// wait to see if there is response
+						LOGGER.info("Going into wait for epoc " + ps.epoc);
+						ps.wait(averageMillis); 
+						// once response remove this from the outgoing queue
+						// the main input is available on incoming
+					} catch (InterruptedException e) 
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+			LOGGER.info("Got re sponse for " + ps.epoc);
+			// assumes we already got the response 
+			outgoing.remove(ps.epoc);
+			ps = incoming.remove(ps.epoc);
+			return ps;
+
+		}
+		return null;
 	}
+	
+	public void releaseAll()
+	{
+		// take all the unprocessed and remove all of it
+		Iterator <String> keys = incoming.keySet().iterator();
+		while(keys.hasNext())
+		{
+			String thisEpoc = keys.next();
+			PayloadStruct ps = incoming.get(thisEpoc);
+			
+			if(ps != null)
+			{
+				String message = "Releasing this payload";
+				if(ps.payload != null && ps.payload.length >= 1)
+					message = message + ps.payload[0];
+				ps.payload = new String[] {message};
+				writeResponse(ps);
+			}
+		}
+	}
+	
+	
     
     public void cleanUp()
     {
@@ -349,6 +566,50 @@ public class SocketServerHandler implements Runnable
     	return retMethod;
     }
 
+    public Method findProjectMethod(Project rt, String methodName, Class [] arguments)
+    {
+    	Method retMethod = null;
+    	
+    	// look for it in the child class if not parent class
+    	// we can even cache this later
+    	try {
+			if(arguments != null)
+			{
+				try
+				{
+					retMethod = rt.getClass().getDeclaredMethod(methodName, arguments);
+				}catch(Exception ex)
+				{
+					
+				}
+				if(retMethod == null)
+					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
+				
+			}
+			else
+			{
+				try
+				{
+					retMethod = rt.getClass().getDeclaredMethod(methodName);				
+				}catch(Exception ex)
+				{
+					
+				}
+				if(retMethod == null)
+					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
+			}
+			LOGGER.info("Found the method " + retMethod);
+		} catch (NoSuchMethodException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return retMethod;
+    }
+
+    
     public Method findPyMethod(String methodName, Class [] arguments)
     {
     	Method retMethod = null;
@@ -536,6 +797,10 @@ public class SocketServerHandler implements Runnable
 	@Override
 	public void run()
 	{
+		// there are 2 types of interactions
+		// #1 SEMOSS Core sends a request and this responds - In this case the packet comes with response = false to say this is a request
+		// #2 This asks SEMOSS core to perform an operation like database insert or update etc. 
+
 		while(!done)
 		{
 			try
@@ -553,13 +818,51 @@ public class SocketServerHandler implements Runnable
 					if(bytesReadSoFar == curBytes.length) // we got what we need.. let us go
 					{
 						Object retObject = FstUtil.deserialize(curBytes);
-						PayloadStruct output = getFinalOutput((PayloadStruct)retObject);
 						
-						writeResponse(output);
-						lenBytes = null;
-						curBytes = null;
-						bytesReadSoFar = 0;
-						lenBytesReadSoFar = 0;
+						// need something here which basically tries to see if this is a request or a response	
+						// #1 - This is a request for socket - handle it
+						if(!((PayloadStruct)retObject).response) // this is a request that is coming here
+						{
+							lenBytes = null;
+							curBytes = null;
+							bytesReadSoFar = 0;
+							lenBytesReadSoFar = 0;
+
+							if(blocking)
+							{
+								PayloadStruct output = getFinalOutput((PayloadStruct)retObject);
+								writeResponse(output);
+							}
+							
+							else
+							{
+								WorkerThread wt = new WorkerThread(this, (PayloadStruct)retObject);
+								Thread t = new Thread(wt);
+								t.start();
+							}
+						}
+						// #2 - Response to an operation being performed by core semoss
+						else
+						{
+							// this is a response to the request that just came in
+							// synchronize on the ps and then notify
+							PayloadStruct responseStruct = (PayloadStruct)retObject;
+							LOGGER.info("Received payload with epoc "+ responseStruct.epoc);
+							PayloadStruct requestStruct = outgoing.get(responseStruct.epoc);
+							LOGGER.info("Have response with epoc " + outgoing.containsKey(responseStruct.epoc));
+							incoming.put(responseStruct.epoc, responseStruct);
+							if(requestStruct != null)
+							{
+								synchronized(requestStruct)
+								{
+									requestStruct.notifyAll(); // this will give the thread back what it was looking for
+								}
+							}
+							lenBytes = null;
+							curBytes = null;
+							bytesReadSoFar = 0;
+							lenBytesReadSoFar = 0;
+						}
 					}
 				}
 				else

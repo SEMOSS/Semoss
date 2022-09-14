@@ -167,7 +167,7 @@ public class Insight implements Serializable {
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
 	protected String tupleSpace = null;
-	private transient AbstractRJavaTranslator rJavaTranslator;
+	private transient AbstractRJavaTranslator rJavaTranslator; // need a way keep the environment name so it is communicated
 	private transient PyTranslator pyt;
 	private transient PyExecutorThread jepThread = null;
 
@@ -224,6 +224,11 @@ public class Insight implements Serializable {
 	
 	// chrome proxy
 	private transient ChromeDriverUtility chromeUtil = null;
+	
+	private String rEnvName = null;
+	
+	// specifies if this insight has been serialized
+	public boolean serialized = false;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -748,6 +753,7 @@ public class Insight implements Serializable {
 	
 	public void setRJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
 		this.rJavaTranslator = rJavaTranslator;
+		this.rEnvName = rJavaTranslator.env;
 	}
 	
 	public boolean rInstantiated() {
@@ -1747,6 +1753,11 @@ public class Insight implements Serializable {
 
 		
 		return null;
+	}
+	
+	public String getREnv()
+	{
+		return this.rEnvName;
 	}
 
 	

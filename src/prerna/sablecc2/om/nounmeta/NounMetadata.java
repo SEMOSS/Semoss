@@ -1,5 +1,6 @@
 package prerna.sablecc2.om.nounmeta;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.util.gson.GsonUtility;
 
-public class NounMetadata {
+public class NounMetadata implements Serializable{
 	
 	Object value;
 	PixelDataType noun;

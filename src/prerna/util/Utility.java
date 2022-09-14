@@ -159,6 +159,8 @@ import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
+import prerna.tcp.SocketServerHandler;
+import prerna.tcp.workers.EngineSocketWrapper;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -2582,51 +2584,64 @@ public class Utility {
 	public static IProject getProject(String projectId, boolean pullIfNeeded) {
 		IProject project = null;
 		
-		if(DIHelper.getInstance().getProjectProperty(projectId) != null) {
-			project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
-		} else {
-			// Acquire the lock on the engine,
-			// don't want several calls to try and load the engine at the same
-			// time
-			logger.info("Applying lock for project " + projectId);
-			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
-			lock.lock();
-			logger.info("Project "+ projectId + " is locked");
+		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
+		{
 
-			try {
-				// Need to do a double check here,
-				// so if a different thread was waiting for the engine to load,
-				// it doesn't go through this process again
-				if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
-					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
-				}
-				
-				// If in a clustered environment, then pull the app first
-				// TODO >>>timb: need to pull sec and lmd each time. They also need
-				// correct jdbcs...
-				if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-					try {
-						CloudClient.getClient().pullProject(projectId);
-					} catch (IOException | InterruptedException e) {
-						logger.error(Constants.STACKTRACE, e);
-						return null;
+
+			if(DIHelper.getInstance().getProjectProperty(projectId) != null) {
+				project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+			} else {
+				// Acquire the lock on the engine,
+				// don't want several calls to try and load the engine at the same
+				// time
+				logger.info("Applying lock for project " + projectId);
+				ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+				lock.lock();
+				logger.info("Project "+ projectId + " is locked");
+	
+				try {
+					// Need to do a double check here,
+					// so if a different thread was waiting for the engine to load,
+					// it doesn't go through this process again
+					if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
+						return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 					}
+					
+					// If in a clustered environment, then pull the app first
+					// TODO >>>timb: need to pull sec and lmd each time. They also need
+					// correct jdbcs...
+					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
+						try {
+							CloudClient.getClient().pullProject(projectId);
+						} catch (IOException | InterruptedException e) {
+							logger.error(Constants.STACKTRACE, e);
+							return null;
+						}
+					}
+	
+					// Now that the app has been pulled, grab the smss file
+					String smssFile = (String) DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE);
+	
+					// Start up the engine using the details in the smss
+					if (smssFile != null) {
+						// actual load engine process
+						project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
+					} else {
+						logger.debug("There is no SMSS File for the project " + projectId + "...");
+					}
+				} finally {
+					// Make sure to unlock now
+					lock.unlock();
+					logger.info("Project "+ projectId + " is unlocked");
 				}
-
-				// Now that the app has been pulled, grab the smss file
-				String smssFile = (String) DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE);
-
-				// Start up the engine using the details in the smss
-				if (smssFile != null) {
-					// actual load engine process
-					project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
-				} else {
-					logger.debug("There is no SMSS File for the project " + projectId + "...");
-				}
-			} finally {
-				// Make sure to unlock now
-				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+			}
+		}
+		else
+		{
+			String projectSock = projectId + "__SOCKET";
+			
+			if(DIHelper.getInstance().getProjectProperty(projectSock) != null) {
+				project = (IProject) DIHelper.getInstance().getProjectProperty(projectSock);
 			}
 		}
 		
@@ -2714,88 +2729,96 @@ public class Utility {
 	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = null;
 
-		// If the engine has already been loaded, then return it
-		// Don't acquire the lock here, because that would slow things down
-		if (DIHelper.getInstance().getDbProperty(engineId) != null) {
-			engine = (IEngine) DIHelper.getInstance().getDbProperty(engineId);
-		} else {
-			// Acquire the lock on the engine,
-			// don't want several calls to try and load the engine at the same
-			// time
-			logger.info("Applying lock for database " + engineId + " to pull app");
-			ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
-			lock.lock();
-			logger.info("Database "+ engineId + " is locked");
+		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
+		{
 
-			try {
-				// Need to do a double check here,
-				// so if a different thread was waiting for the engine to load,
-				// it doesn't go through this process again
-				if (DIHelper.getInstance().getDbProperty(engineId) != null) {
-					return (IEngine) DIHelper.getInstance().getDbProperty(engineId);
-				}
-				
-				// If in a clustered environment, then pull the app first
-				// TODO >>>timb: need to pull sec and lmd each time. They also need
-				// correct jdbcs...
-				if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-					try {
-						CloudClient.getClient().pullApp(engineId);
-					} catch (IOException | InterruptedException e) {
-						logger.error(Constants.STACKTRACE, e);
-						return null;
+			
+			// If the engine has already been loaded, then return it
+			// Don't acquire the lock here, because that would slow things down
+			if (DIHelper.getInstance().getDbProperty(engineId) != null) {
+				engine = (IEngine) DIHelper.getInstance().getDbProperty(engineId);
+			} else {
+				// Acquire the lock on the engine,
+				// don't want several calls to try and load the engine at the same
+				// time
+				logger.info("Applying lock for database " + engineId + " to pull app");
+				ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+				lock.lock();
+				logger.info("Database "+ engineId + " is locked");
+	
+				try {
+					// Need to do a double check here,
+					// so if a different thread was waiting for the engine to load,
+					// it doesn't go through this process again
+					if (DIHelper.getInstance().getDbProperty(engineId) != null) {
+						return (IEngine) DIHelper.getInstance().getDbProperty(engineId);
 					}
-				}
-
-				// Now that the app has been pulled, grab the smss file
-				String smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
-
-				// Start up the engine using the details in the smss
-				if (smssFile != null) {
-					// actual load engine process
-					engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
-				} else {
-					logger.debug("There is no SMSS File for the database " + engineId + "...");
-				}
-
-				// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
-				// TODO >>>timb: remove node exists error or catch it
-				// TODO >>>cluster: tag
-				// Start with because the insights RDBMS has the id security_InsightsRDBMS
-				if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase")
-						|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler") 
-						|| engineId.startsWith("UserTrackingDatabase") )) {
-					Map<String, String> envMap = System.getenv();
-					if (envMap.containsKey(ZKClient.ZK_SERVER)
-							|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
-						if (ClusterUtil.LOAD_ENGINES_LOCALLY) {
-
-							// Only publish if actually loading on this box
-							// TODO >>>timb: this logic only works insofar as we are assuming a user-based
-							// docker layer in addition to the app containers
-							String host = "unknown";
-
-							if (envMap.containsKey(ZKClient.HOST)) {
-								host = envMap.get(ZKClient.HOST);
-							}
-							
-							if (envMap.containsKey(ZKClient.HOST.toUpperCase())) {
-								host = envMap.get(ZKClient.HOST.toUpperCase());
-							}
-							
-							// we are in business
-							ZKClient client = ZKClient.getInstance();
-							client.publishDB(engineId + "@" + host);
+					
+					// If in a clustered environment, then pull the app first
+					// TODO >>>timb: need to pull sec and lmd each time. They also need
+					// correct jdbcs...
+					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
+						try {
+							CloudClient.getClient().pullApp(engineId);
+						} catch (IOException | InterruptedException e) {
+							logger.error(Constants.STACKTRACE, e);
+							return null;
 						}
 					}
+	
+					// Now that the app has been pulled, grab the smss file
+					String smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
+	
+					// Start up the engine using the details in the smss
+					if (smssFile != null) {
+						// actual load engine process
+						engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
+					} else {
+						logger.debug("There is no SMSS File for the database " + engineId + "...");
+					}
+	
+					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
+					// TODO >>>timb: remove node exists error or catch it
+					// TODO >>>cluster: tag
+					// Start with because the insights RDBMS has the id security_InsightsRDBMS
+					if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase")
+							|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler") 
+							|| engineId.startsWith("UserTrackingDatabase") )) {
+						Map<String, String> envMap = System.getenv();
+						if (envMap.containsKey(ZKClient.ZK_SERVER)
+								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
+							if (ClusterUtil.LOAD_ENGINES_LOCALLY) {
+	
+								// Only publish if actually loading on this box
+								// TODO >>>timb: this logic only works insofar as we are assuming a user-based
+								// docker layer in addition to the app containers
+								String host = "unknown";
+	
+								if (envMap.containsKey(ZKClient.HOST)) {
+									host = envMap.get(ZKClient.HOST);
+								}
+								
+								if (envMap.containsKey(ZKClient.HOST.toUpperCase())) {
+									host = envMap.get(ZKClient.HOST.toUpperCase());
+								}
+								
+								// we are in business
+								ZKClient client = ZKClient.getInstance();
+								client.publishDB(engineId + "@" + host);
+							}
+						}
+					}
+				} finally {
+					// Make sure to unlock now
+					lock.unlock();
+					logger.info("Database "+ engineId + " is unlocked");
 				}
-			} finally {
-				// Make sure to unlock now
-				lock.unlock();
-				logger.info("Database "+ engineId + " is unlocked");
 			}
 		}
-
+		else // this is happening on the socket side
+		{
+			engine = new EngineSocketWrapper(engineId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
+		}
 		return engine;
 	}
 

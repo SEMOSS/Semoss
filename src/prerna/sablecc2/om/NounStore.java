@@ -1,12 +1,13 @@
 package prerna.sablecc2.om;
 
+import java.io.Serializable;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
 
-public class NounStore {
+public class NounStore implements Serializable{
 
 	// each noun is typically a gen row struct
 	// I need to keep track of a couple of things
