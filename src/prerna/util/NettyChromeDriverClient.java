@@ -130,7 +130,7 @@ public class NettyChromeDriverClient extends ChromeDriverUtility{
 	{
 		// go through the objects and if they are set to null then make them as string null
 		PayloadStruct ps = new PayloadStruct();
-		ps.engine = PayloadStruct.ENGINE.CHROME;
+		ps.operation = PayloadStruct.OPERATION.CHROME;
 		ps.methodName = methodName;
 		ps.payload = objects;
 		ps.longRunning = true;
