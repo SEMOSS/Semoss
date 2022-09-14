@@ -30,7 +30,6 @@ import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaRserveTranslator;
-import prerna.tcp.workers.ReactorWorker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.FstUtil;
