@@ -32,7 +32,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	Insight insight = null;
 	Logger logger = null;
-	String env = "environment()";
+	public String env = "environment()";
 	
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
