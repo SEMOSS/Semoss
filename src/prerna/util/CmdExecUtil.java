@@ -140,8 +140,9 @@ public class CmdExecUtil {
 				&& !upCommand.startsWith("CD") 
 				&& !upCommand.startsWith("DIR") && !upCommand.startsWith("LS") 
 				&& !upCommand.startsWith("MV") && !upCommand.startsWith("MOVE") 
-				&& !upCommand.startsWith("GIT") && !upCommand.startsWith("PWD") && !upCommand.startsWith("RESET"))
-			return "Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, pwd, git ";
+				&& !upCommand.startsWith("GIT") && !upCommand.startsWith("PWD") 
+				&& !upCommand.startsWith("RESET") && !upCommand.startsWith("MVN"))
+			return "Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, pwd, git, mvn (Experimental) ";
 		
 		return null;
 		

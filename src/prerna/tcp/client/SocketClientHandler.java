@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.tcp.PayloadStruct;
+import prerna.tcp.client.workers.EngineWorker;
 import prerna.util.Constants;
 import prerna.util.FstUtil;
 
@@ -113,13 +114,34 @@ public class SocketClientHandler implements Runnable {
 						try
 						{
 							Object retObject = FstUtil.deserialize(curBytes);
+							PayloadStruct ps = (PayloadStruct)retObject;
 							if(retObject != null)
 							{
-								printObject(retObject);
-								lenBytes = null;
-								bytesReadSoFar = 0;
-								lenBytesReadSoFar = 0;
-								curBytes = null;
+								if(ps.response)
+								{
+									//logger.info("In the got response block ");
+									printObject(retObject);
+									lenBytes = null;
+									bytesReadSoFar = 0;
+									lenBytesReadSoFar = 0;
+									curBytes = null;
+								}
+								else
+								{
+									// there could be other operations 
+									// for now it is the engine
+									//logger.info("In the request block...");
+
+									if(ps.operation == PayloadStruct.OPERATION.ENGINE)
+									{
+										Thread ew = new Thread(new EngineWorker((SocketClient)nc, ps));
+										ew.start();
+										lenBytes = null;
+										bytesReadSoFar = 0;
+										lenBytesReadSoFar = 0;
+										curBytes = null;
+									}
+								}
 							}
 							else
 							{

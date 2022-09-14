@@ -20,6 +20,7 @@ import prerna.tcp.PayloadStruct;
 import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 import prerna.util.Settings;
+import prerna.util.Utility;
 
 public class SocketClient extends Client implements Runnable {
 
@@ -123,51 +124,59 @@ public class SocketClient extends Client implements Runnable {
 
     	
     	int attempt = 0;
-    	String id = "ps"+ count.getAndIncrement();
-    	ps.epoc = id;
+    	String id = ps.epoc;
+    	if(!ps.response || id == null)
+    	{
+	    	id = "ps"+ count.getAndIncrement();
+	    	ps.epoc = id;
+    	}
     	ps.longRunning = true;
     	    	
     	synchronized(ps) // going back to single threaded .. earlier it was ps
     	{	
     		//if(ps.hasReturn)
     		// put it into request map
-    		requestMap.put(id, ps);
+    		if(!ps.response)
+    			requestMap.put(id, ps);
 
     		writePayload(ps);
 	    	// send the message
 			
     		// time to wait = average time * 10
-    		
-			int pollNum = 1; // 1 second
-			while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killall)
-			{
-				//logger.info("Checking to see if there was a response");
-				try
+    		// if this is a request wait for it
+    		if(!ps.response) // this is a response to something the socket has asked
+    		{
+				int pollNum = 1; // 1 second
+				while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killall)
 				{
-					if(pollNum < 10)
-						ps.wait(averageMillis);
-					else //if(ps.longRunning) // this is to make sure the kill all is being checked
-						ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
-					pollNum++;
-				}catch (InterruptedException e) 
-				{
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					//logger.info("Checking to see if there was a response");
+					try
+					{
+						if(pollNum < 10)
+							ps.wait(averageMillis);
+						else //if(ps.longRunning) // this is to make sure the kill all is being checked
+							ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
+						pollNum++;
+					}catch (InterruptedException e) 
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					/*
+					// trigger after 400 milliseconds
+					if(pollNum == 2 && !ps.longRunning)
+					{
+						logger.info("Writing empty message " + ps.epoc);
+						writeEmptyPayload();
+					}
+					*/
 				}
-				/*
-				// trigger after 400 milliseconds
-				if(pollNum == 2 && !ps.longRunning)
+				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
 				{
-					logger.info("Writing empty message " + ps.epoc);
-					writeEmptyPayload();
+					logger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
+					
 				}
-				*/
-			}
-			if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
-			{
-				logger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
-				
-			}
+    		}
 
 			// after 10 seconds give up
 			//printUnprocessed();
@@ -191,12 +200,20 @@ public class SocketClient extends Client implements Runnable {
     private void writeEmptyPayload()
     {
     	PayloadStruct ps = new PayloadStruct();
-    	ps.epoc="0000";
+    	ps.epoc=Utility.getRandomString(8);
     	ps.methodName = "EMPTYEMPTYEMPTY";
     	writePayload(ps);
     }
     
-    
+
+    public void writeReleaseAllPayload()
+    {
+    	PayloadStruct ps = new PayloadStruct();
+    	ps.epoc=Utility.getRandomString(8);
+    	ps.methodName = "RELEASE_ALL";
+    	writePayload(ps);
+    }
+
     
     public void stopPyServe(String dir)
     {
