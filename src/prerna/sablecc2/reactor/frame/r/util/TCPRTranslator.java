@@ -783,7 +783,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	{
 		// go through the objects and if they are set to null then make them as string null
 		PayloadStruct ps = new PayloadStruct();
-		ps.engine = PayloadStruct.ENGINE.R;
+		ps.operation = PayloadStruct.OPERATION.R;
 		ps.methodName = methodName;
 		ps.payload = objects;
 		ps.env = this.env;

@@ -14,11 +14,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -29,7 +37,12 @@ import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 import org.xeustechnologies.jcl.JarClassLoader;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 
@@ -56,6 +69,8 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
+import prerna.tcp.PayloadStruct;
+import prerna.tcp.client.CustomReactorWrapper;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -103,7 +118,7 @@ public class Project implements IProject {
 	
 	// publish cache
 	private boolean publish = false;
-	
+		
 	@Override
 	public void openProject(String projectSmssFilePath) {
 		this.projectSmssFilePath = projectSmssFilePath;
@@ -197,7 +212,11 @@ public class Project implements IProject {
 	public String getProjectId() {
 		return this.projectId;
 	}
-	
+
+	public void setProjectName(String projectName) {
+		this.projectName = projectName;
+	}
+
 	@Override
 	public String getProjectName() {
 		return this.projectName;
@@ -549,98 +568,101 @@ public class Project implements IProject {
 	///////////////////// Load project specific reactors //////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	
-	
-	public IReactor getReactor(String className) 
-	{	
-		// try to get to see if this class already exists
-		// no need to recreate if it does
-		
-		// get the prop file and find the parent
-
-		File dbDirectory = new File(this.projectSmssFilePath);
-		System.err.println(".");
-
-		String dbFolder = this.projectName + "_" + dbDirectory.getParent()+ "/" + this.projectId;
-
-		dbFolder = this.projectSmssFilePath.replaceAll(".smss", "");
-		
-		IReactor retReac = null;
-		//String key = db + "." + insightId ;
-		String key = this.projectId ;
-		if(projectSpecificHash == null)
-			projectSpecificHash = new HashMap<String, Class>();
-		
-		int randomNum = 0;
-		//ReactorFactory.compileCache.remove(this.projectId);
-		// compile the classes
-		// TODO: do this evaluation automatically see if java folder is older than classes folder 
-		if(!ReactorFactory.compileCache.containsKey(this.projectId))
-		{
-			String classesFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes";
-			File classesDir = new File(classesFolder);
-			if(classesDir.exists() && classesDir.isDirectory())
-			{
-				try {
-					//FileUtils.cleanDirectory(classesDir);
-					//classesDir.mkdir();
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			int status = Utility.compileJava(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), getCP());
-			if(status == 0)
-			{
-				ReactorFactory.compileCache.put(this.projectId, Boolean.TRUE);
-				
-				if(ReactorFactory.randomNumberAdder.containsKey(this.projectId))
-					randomNum = ReactorFactory.randomNumberAdder.get(this.projectId);				
-				randomNum++;
-				ReactorFactory.randomNumberAdder.put(this.projectId, randomNum);
-				
-				// add it to the key so we can reload
-				key = this.projectId + randomNum;
-	
-				projectSpecificHash.clear();
-			}
-			// avoid loading everytime since it is an error
-		}
-
-		
-		if(projectSpecificHash.size() == 0)
-		{
-			//compileJava(insightDirector.getParentFile().getAbsolutePath());
-			// delete the classes directory first
-			
-			// need to pass the engine name also
-			// so that the directory can be verified
-			projectSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), key);
-			projectSpecificHash.put("loaded", "TRUE".getClass());
-		}
-		try
-		{
-			if(projectSpecificHash.containsKey(className.toUpperCase())) {
-				Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
-				retReac = (IReactor) thisReactorClass.newInstance();
-				return retReac;
-			}
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		}
-			
-		return retReac;
-	}
+	// this is not used anymore
+//	
+//	public IReactor getReactor(String className) 
+//	{	
+//		// try to get to see if this class already exists
+//		// no need to recreate if it does
+//		
+//		// get the prop file and find the parent
+//
+//		File dbDirectory = new File(this.projectSmssFilePath);
+//		System.err.println(".");
+//
+//		String dbFolder = this.projectName + "_" + dbDirectory.getParent()+ "/" + this.projectId;
+//
+//		dbFolder = this.projectSmssFilePath.replaceAll(".smss", "");
+//		
+//		IReactor retReac = null;
+//		//String key = db + "." + insightId ;
+//		String key = this.projectId ;
+//		if(projectSpecificHash == null)
+//			projectSpecificHash = new HashMap<String, Class>();
+//		
+//		int randomNum = 0;
+//		//ReactorFactory.compileCache.remove(this.projectId);
+//		// compile the classes
+//		// TODO: do this evaluation automatically see if java folder is older than classes folder 
+//		if(!ReactorFactory.compileCache.containsKey(this.projectId))
+//		{
+//			String classesFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes";
+//			File classesDir = new File(classesFolder);
+//			if(classesDir.exists() && classesDir.isDirectory())
+//			{
+//				try {
+//					//FileUtils.cleanDirectory(classesDir);
+//					//classesDir.mkdir();
+//				} catch (Exception e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+//			}
+//			int status = Utility.compileJava(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), getCP());
+//			if(status == 0)
+//			{
+//				ReactorFactory.compileCache.put(this.projectId, Boolean.TRUE);
+//				
+//				if(ReactorFactory.randomNumberAdder.containsKey(this.projectId))
+//					randomNum = ReactorFactory.randomNumberAdder.get(this.projectId);				
+//				randomNum++;
+//				ReactorFactory.randomNumberAdder.put(this.projectId, randomNum);
+//				
+//				// add it to the key so we can reload
+//				key = this.projectId + randomNum;
+//	
+//				projectSpecificHash.clear();
+//			}
+//			// avoid loading everytime since it is an error
+//		}
+//
+//		
+//		if(projectSpecificHash.size() == 0)
+//		{
+//			//compileJava(insightDirector.getParentFile().getAbsolutePath());
+//			// delete the classes directory first
+//			
+//			// need to pass the engine name also
+//			// so that the directory can be verified
+//			projectSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), key);
+//			projectSpecificHash.put("loaded", "TRUE".getClass());
+//		}
+//		try
+//		{
+//			if(projectSpecificHash.containsKey(className.toUpperCase())) {
+//				Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
+//				retReac = (IReactor) thisReactorClass.newInstance();
+//				return retReac;
+//			}
+//		} catch (InstantiationException e) {
+//			e.printStackTrace();
+//		} catch (IllegalAccessException e) {
+//			e.printStackTrace();
+//		}
+//			
+//		return retReac;
+//	}
 
 
 	public IReactor getReactor(String className, SemossClassloader customLoader) {	
+
+		IReactor retReac = null;
 		String projectBaseFolder = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
 		
 		String pomFile = projectBaseFolder + File.separator + "version" + File.separator + "assets" + File.separator + "java" + File.separator + "pom.xml";
 		
 		if(new File(pomFile).exists()) {// this is maven
-			return getReactorMvn(className, null);
+			retReac =  getReactorMvn(className, null);
 		}
 		else // keep the old processing
 		{
@@ -652,7 +674,6 @@ public class Project implements IProject {
 			}
 			cl.setFolder(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes");
 			
-			IReactor retReac = null;
 			//String key = db + "." + insightId ;
 			String key = this.projectId ;
 			
@@ -704,13 +725,24 @@ public class Project implements IProject {
 				if(projectSpecificHash.containsKey(className.toUpperCase())) {
 					Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 					retReac = (IReactor) thisReactorClass.newInstance();
-					return retReac;
 				}
 			} catch (InstantiationException e) {
 				e.printStackTrace();
 			} catch (IllegalAccessException e) {
 				e.printStackTrace();
 			}
+		}
+		
+		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) && retReac != null)
+		{
+			// need to convert this to reactor wrapper before I give it to be executed			
+			CustomReactorWrapper wrapper = new CustomReactorWrapper();
+			wrapper.realReactor = retReac;
+			wrapper.reactorCallName = className;
+			return wrapper;
+		}
+		else
+		{
 			return retReac;
 		}
 	}
@@ -813,7 +845,73 @@ public class Project implements IProject {
 		
 		// if there is no java.. dont even bother with this
 		// no need to spend time on any of this
-		if(! (new File(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + File.separator + "assets" + File.separator + "java").exists()))
+		if(! (new File(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + File.separator + "java").exists()))
+			return retReac;
+			
+		// try to get to see if this class already exists
+		// no need to recreate if it does
+		JarClassLoader cl = mvnClassLoader;
+		if(customLoader != null)
+			cl = customLoader;
+		
+				
+		//String key = db + "." + insightId ;
+		String key = this.projectId ;
+		
+		//ReactorFactory.compileCache.remove(this.projectId);
+		// this is the routine to compile the java classes
+		// this is always user triggered
+		// not sure we need to compile again
+		// eval reload tried to see if the mvn dependency was created after the compile
+		// if not it will reload
+		// make the classloader
+		String assetsFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
+		String pomFile  =  assetsFolder + File.separator + "java" + File.separator + "pom.xml" ; // it is sitting in the asset root/version/assets/java
+
+		if(mvnClassLoader == null || evalMvnReload())
+		{
+			mvnClassLoader = null;
+			makeMvnClassloader();
+			cl = mvnClassLoader;
+			// try to load it directly from assets
+			String targetFolder = getTargetFolder(pomFile);
+			targetFolder = targetFolder + File.separator + "classes"; // target folder is relative to java folder for the main assets
+			projectSpecificHash = Utility.loadReactorsMvn(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + File.separator + "java", key, cl, targetFolder);
+			ReactorFactory.compileCache.put(this.projectId, true);
+		}
+
+		// now that you have the reactor
+		// create the reactor
+		try
+		{
+			if(projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) 
+			{
+				Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
+				retReac = (IReactor) thisReactorClass.newInstance();
+				
+				return retReac;
+			}
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
+		return retReac;
+	}
+
+	// new reactor method that uses maven
+	// the end user will execute maven. No automation is required there
+	// need to compare target directory date with current
+	// if so create a new classloader and load it
+	private IReactor getPortalReactorMvn(String className, JarClassLoader customLoader) 
+	{	
+		// run through every portal and load
+		
+		IReactor retReac = null;
+		
+		// if there is no java.. dont even bother with this
+		// no need to spend time on any of this
+		if(! (new File(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + File.separator + "java").exists()))
 			return retReac;
 			
 		// try to get to see if this class already exists
@@ -839,12 +937,18 @@ public class Project implements IProject {
 		// eval reload tried to see if the mvn dependency was created after the compile
 		// if not it will reload
 		// make the classloader
+		
+
 		if(mvnClassLoader == null || evalMvnReload())
 		{
 			mvnClassLoader = null;
 			makeMvnClassloader();
 			cl = mvnClassLoader;
+			// try to load it directly from assets
 			projectSpecificHash = Utility.loadReactorsMvn(AssetUtility.getProjectBaseFolder(this.projectName, this.projectId), key, cl, "target" + File.separator + "classes");
+			// if not load it from the 
+			Map <String, Class> versionHash = Utility.loadReactorsMvn(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + File.separator + "java", key, cl, "target" + File.separator + "classes");
+			projectSpecificHash.putAll(versionHash);
 			ReactorFactory.compileCache.put(this.projectId, true);
 		}
 
@@ -856,7 +960,12 @@ public class Project implements IProject {
 			{
 				Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 				retReac = (IReactor) thisReactorClass.newInstance();
-				return retReac;
+				
+				// need to convert this to reactor wrapper before I give it to be executed
+				CustomReactorWrapper wrapper = new CustomReactorWrapper();
+				wrapper.realReactor = retReac;
+				
+				return wrapper;
 			}
 		} catch (InstantiationException e) {
 			e.printStackTrace();
@@ -865,6 +974,7 @@ public class Project implements IProject {
 		}
 		return retReac;
 	}
+
 	
 	private void makeMvnClassloader() {
 		if(mvnClassLoader == null) // || if the classes folder is newer than the dependency file name
@@ -878,7 +988,7 @@ public class Project implements IProject {
 			// get all the new jars first
 			// to add to the classloader
 			String appRoot = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
-			String versionFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
+			String assetsFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
 			
 			String mvnHome = System.getProperty(Settings.MVN_HOME);
 			if(mvnHome == null)
@@ -890,7 +1000,7 @@ public class Project implements IProject {
 			// appRoot / classes
 			// get the libraries
 			// run maven dependency:list to get all the dependencies and process
-			List <String> classpaths = composeClasspath(appRoot, versionFolder, mvnHome);
+			List <String> classpaths = composeClasspath(appRoot, assetsFolder, mvnHome);
 			if(classpaths != null) {
 				for(int classPathIndex = 0;classPathIndex < classpaths.size();classPathIndex++) {
 					// add all the libraries
@@ -906,27 +1016,34 @@ public class Project implements IProject {
 	private List <String> composeClasspath(String appRoot, String versionFolder, String mvnHome)
 	{
 		// java files are in /version/assets/java
-		String pomFile  =  versionFolder + File.separator + "assets" + File.separator + "java" + File.separator + "pom.xml" ; // it is sitting in the asset root/version/assets/java
-		InvocationRequest request = new DefaultInvocationRequest();
-		//request.
-		request.setPomFile( new File(pomFile) );
-        String outputFile = appRoot + File.separator + "mvn_dep.output"; // need to change this java
-        
-        request.setMavenOpts("-DoutputType=graphml -DoutputFile=" + outputFile + " -DincludeScope=runtime ");
-		request.setGoals( Collections.singletonList("dependency:list" ) );
-
-		Invoker invoker = new DefaultInvoker();
-
-		invoker.setMavenHome(new File(Utility.normalizePath(mvnHome)));
+		String pomFile  =  versionFolder + File.separator + "java" + File.separator + "pom.xml" ; // it is sitting in the asset root/version/assets/java
 		BufferedReader br = null;
-		try {
-			InvocationResult result = invoker.execute( request );
-			 
-			if ( result.getExitCode() != 0 )
-			{
-			    throw new IllegalStateException( "Build failed." );
-			}
-			
+		try 
+		{
+	        String outputFile = appRoot + File.separator + "mvn_dep.output"; // need to change this java
+	        
+	        // run this only if mvn dependencies have been wiped out
+	        File outputFile1 = new File(outputFile);
+	        
+	        if(!outputFile1.exists())
+	        {
+				InvocationRequest request = new DefaultInvocationRequest();
+				//request.
+				request.setPomFile( new File(pomFile) );
+		        request.setMavenOpts("-DoutputType=graphml -DoutputFile=" + outputFile + " -DincludeScope=runtime ");
+				request.setGoals( Collections.singletonList("dependency:list" ) );
+	
+				Invoker invoker = new DefaultInvoker();
+	
+				invoker.setMavenHome(new File(Utility.normalizePath(mvnHome)));
+				InvocationResult result = invoker.execute( request );
+				 
+				if ( result.getExitCode() != 0 )
+				{
+				    throw new IllegalStateException( "Build failed." );
+				}
+	        }
+	        
 			// otherwise we have the list
 			String repoHome = System.getProperty(Settings.REPO_HOME);
 			if(repoHome == null)
@@ -973,9 +1090,22 @@ public class Project implements IProject {
 		          }
 		        }
 		}
-
-
         return null;
+	}
+	
+	public void clearClassCache()
+	{
+		String appRoot = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
+		File mvnDepFile = new File(appRoot + File.separator + "mvn_dep.output");
+		
+		// delete the maven dep file
+		if(mvnDepFile.exists())
+			mvnDepFile.delete();
+		
+		// set the classloader to null
+		mvnClassLoader = null;
+		
+		// this should probably go into reload insight classes
 	}
 	
 	private boolean evalMvnReload() {
@@ -998,6 +1128,50 @@ public class Project implements IProject {
 		long mvnDepModifiedLong = mvnDepFile.lastModified();
 		
 		return classModifiedLong > mvnDepModifiedLong;
+	}
+		
+	// get the target folder
+	public String getTargetFolder(String pomFile)
+	{
+		String targetFolder = null;
+		try {
+			InputSource is = new InputSource(new FileInputStream(pomFile));
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			
+			Document d = builder.parse(is);
+			
+			
+			XPathFactory xpathfactory = XPathFactory.newInstance();
+			XPath xpath = xpathfactory.newXPath();
+ 
+
+			XPathExpression expr = xpath.compile("//project/build/directory/text()");
+			Object result = expr.evaluate(d, XPathConstants.NODESET);
+			NodeList nodes = (NodeList) result;
+			for (int i = 0; i < nodes.getLength(); i++) {
+			  targetFolder = nodes.item(i).getNodeValue();
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+      	  logger.error(Constants.STACKTRACE, e);
+		} catch (XPathExpressionException e) {
+			// TODO Auto-generated catch block
+      	  logger.error(Constants.STACKTRACE, e);
+		} catch (DOMException e) {
+			// TODO Auto-generated catch block
+      	  logger.error(Constants.STACKTRACE, e);
+		} catch (ParserConfigurationException e) {
+			// TODO Auto-generated catch block
+      	  logger.error(Constants.STACKTRACE, e);
+		} catch (SAXException e) {
+			// TODO Auto-generated catch block
+      	  logger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+      	  logger.error(Constants.STACKTRACE, e);
+		}		
+	    return targetFolder;
 	}
 	
 }
