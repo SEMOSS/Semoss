@@ -1,7 +1,5 @@
 package prerna.tcp;
 
-import prerna.test.InterimReactorTest;
-
 public class WorkerThread implements Runnable {
 
 	SocketServerHandler ssh = null;
