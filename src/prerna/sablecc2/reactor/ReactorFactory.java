@@ -1585,6 +1585,10 @@ public class ReactorFactory {
 	}
 	
 	public static void recompile(String name) {
+		
+		// need to delete the maven dep-output file so that it can redo again
+		// need a way to inform socket to rebuild the maven
+		
 		if(name != null) {
 			compileCache.remove(name);
 		}

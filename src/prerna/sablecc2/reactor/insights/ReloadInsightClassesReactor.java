@@ -1,10 +1,13 @@
 package prerna.sablecc2.reactor.insights;
 
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
+import prerna.tcp.PayloadStruct;
+import prerna.util.Utility;
 
 public class ReloadInsightClassesReactor extends AbstractReactor {
 
@@ -21,6 +24,22 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		}
 
 		ReactorFactory.recompile(idToRemove);
+
+		// clear the project
+		IProject project = Utility.getProject(insight.getProjectId());
+		
+		project.clearClassCache();
+		if(this.insight.getUser() != null && this.insight.getUser().getTCPServer(false) != null)
+		{
+			PayloadStruct ps = new PayloadStruct();
+			ps.operation = ps.operation.PROJECT;
+			ps.projectId = insight.getProjectId();
+			ps.methodName = "clearClassCache";
+			ps.hasReturn = false;
+			
+			this.insight.getUser().getTCPServer(false).executeCommand(ps);
+		}				
+
 		
 		//TODO:
 		//TODO:

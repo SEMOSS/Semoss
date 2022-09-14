@@ -162,5 +162,8 @@ public interface IProject {
 	 * @return
 	 */
 	AuthProvider getGitProvider();
+	
+	// clears the class cache
+	void clearClassCache();
 }
 
