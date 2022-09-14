@@ -30,7 +30,7 @@ public class TCPPyTranslator extends PyTranslator {
 		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 
 		PayloadStruct ps = constructPayload(methodName, script);
-		ps.engine = PayloadStruct.ENGINE.PYTHON;
+		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.payloadClasses = new Class[] {String.class};
 		ps.longRunning = true;
 		if(nc.isConnected())
@@ -70,7 +70,7 @@ public class TCPPyTranslator extends PyTranslator {
 	{
 		// go through the objects and if they are set to null then make them as string null
 		PayloadStruct ps = new PayloadStruct();
-		ps.engine = PayloadStruct.ENGINE.R;
+		ps.operation = PayloadStruct.OPERATION.R;
 		ps.methodName = methodName;
 		ps.payload = objects;
 		
