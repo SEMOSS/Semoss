@@ -299,33 +299,16 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @return
 	 */
-	public static Map<String, Object> getUsersDatabasePermission(List<String> userIds, String databaseId) {
-		//TODO: why would a user have more than 1 permission?
-		//TODO: why would a user have more than 1 permission?
-		//TODO: why would a user have more than 1 permission?
-		//TODO: why would a user have more than 1 permission?
-		//TODO: why would a user have more than 1 permission?
-		Map<String, Object> retMap = new HashMap<String, Object>();
+	public static Map<String, Integer> getUserDatabasePermissions(List<String> userIds, String databaseId) {
+		Map<String, Integer> retMap = new HashMap<String, Integer>();
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = getUsersDatabasePermissionWrapper(userIds, databaseId);
+			wrapper = getUserDatabasePermissionsWrapper(userIds, databaseId);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String userId = (String) data[0];
 				Integer permission = (Integer) data[1];
-				if(retMap.containsKey(userId)) {
-					Object obj = retMap.get(userId);
-					if(obj instanceof List) {
-						((List) obj).add(permission);
-					} else {
-						List<Object> newList = new ArrayList<>();
-						newList.add(obj);
-						newList.add(permission);
-						retMap.put(userId, newList);
-					}
-				} else {
-					retMap.put(userId, permission);
-				}
+				retMap.put(userId, permission);
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -343,7 +326,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @return
 	 */
-	public static IRawSelectWrapper getUsersDatabasePermissionWrapper(List<String> userIds, String databaseId) throws Exception {
+	public static IRawSelectWrapper getUserDatabasePermissionsWrapper(List<String> userIds, String databaseId) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));

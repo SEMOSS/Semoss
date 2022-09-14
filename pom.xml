@@ -812,11 +812,14 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.python/jython -->
-<!-- 		<dependency>
+		<!-- 	
+		<dependency>
 			<groupId>org.python</groupId>
 			<artifactId>jython</artifactId>
 			<version>2.7.1b3</version>
-		</dependency> -->
+		</dependency> 
+		-->
+		<!-- 
 		<dependency>
 			<groupId>org.codehaus.jet</groupId>
 			<artifactId>jet-regression</artifactId>
@@ -828,6 +831,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.jgrapht</groupId>
 			<artifactId>jgrapht-core</artifactId>
