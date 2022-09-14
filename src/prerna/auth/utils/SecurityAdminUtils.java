@@ -7,10 +7,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -874,6 +877,60 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param newUserId
+	 * @param databaseId
+	 * @param permission
+	 * @return
+	 */
+	public void addDatabaseUserPermissions(String databaseId, List<Map<String,String>> permission) {
+		// first, check to make sure these users do not already have permissions to database
+		// get list of userids from permission list map
+		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
+		// this returns a list of existing permissions
+		Map<String, Object> existingUserPermission = SecurityUserDatabaseUtils.getUsersDatabasePermission(userIds, databaseId);
+		if (!existingUserPermission.isEmpty()) {
+			throw new IllegalArgumentException("The following users already have access to this database. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
+		}
+		
+		// insert new user permissions in bulk
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<permission.size(); i++) {
+				int parameterIndex = 1;
+				insertPs.setString(parameterIndex++, permission.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, databaseId);
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				insertPs.setString(parameterIndex++, "TRUE");
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param newUserId
 	 * @param projectId
 	 * @param permission
 	 * @return
@@ -1441,6 +1498,56 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this database");
+		}
+	}
+	
+	/**
+	 * 
+	 * @param editedUserId
+	 * @param databaseId
+	 * @return
+	 */
+	public void removeDatabaseUsers(List<String> existingUserIds, String databaseId) {
+		Map<String, Object> existingUserPermission = SecurityUserDatabaseUtils.getUsersDatabasePermission(existingUserIds, databaseId);
+		
+		// make sure these users all exist and have access
+		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
+		toRemoveUserIds.removeAll(existingUserPermission.keySet());
+		if (!toRemoveUserIds.isEmpty()) {
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the database: "+String.join(",", toRemoveUserIds));
+		}
+
+		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(int i=0; i<existingUserIds.size(); i++) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, existingUserIds.get(i));
+				deletePs.setString(parameterIndex++, databaseId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 		}
 	}
 	
