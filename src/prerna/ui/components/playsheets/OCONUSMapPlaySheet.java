@@ -39,7 +39,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
@@ -204,7 +203,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		output = table;
 		Gson gson = new Gson();
 		logger.info("Converted gson");
-		JSValue val = browser.executeJavaScriptAndReturnValue("start('" + gson.toJson(table) + "');");
+//		JSValue val = browser.executeJavaScriptAndReturnValue("start('" + gson.toJson(table) + "');");
 		output.clear();
 		data.clear();
 		allHash.clear();

@@ -27,13 +27,6 @@
  *******************************************************************************/
 package prerna.ui.main.listener.impl;
 
-import java.util.Hashtable;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
-
-import prerna.engine.impl.rdf.BigDataEngine;
-
 /**
  */
 public class InferEngineFunction extends AbstractBrowserSPARQLFunction {
@@ -43,16 +36,16 @@ public class InferEngineFunction extends AbstractBrowserSPARQLFunction {
 	 * @param arg0 Object[]
 	
 	 * @return Object */
-	@Override
-	public JSValue invoke(JSValue... arg0) {
-		if(engine instanceof BigDataEngine){
-			//((BigDataEngine)engine).commit();
-			((BigDataEngine)engine).infer();
-		}
-		Hashtable retHash = new Hashtable();
-		retHash.put("success", true);
-		Gson gson = new Gson();        
-		return JSValue.create(gson.toJson(retHash));
-	}
+//	@Override
+//	public JSValue invoke(JSValue... arg0) {
+//		if(engine instanceof BigDataEngine){
+//			//((BigDataEngine)engine).commit();
+//			((BigDataEngine)engine).infer();
+//		}
+//		Hashtable retHash = new Hashtable();
+//		retHash.put("success", true);
+//		Gson gson = new Gson();        
+//		return JSValue.create(gson.toJson(retHash));
+//	}
 	
 }

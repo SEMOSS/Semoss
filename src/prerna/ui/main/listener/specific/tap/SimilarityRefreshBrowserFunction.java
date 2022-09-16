@@ -34,22 +34,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.BrowserFunction;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 import prerna.ui.components.specific.tap.SimilarityHeatMapSheet;
-
 
 /**
  * An browser class for refreshing similarity comparison heat map based on selected parameters.
  */
-public class SimilarityRefreshBrowserFunction implements BrowserFunction {
+public class SimilarityRefreshBrowserFunction {
 
 	static final Logger logger = LogManager.getLogger(SimilarityRefreshBrowserFunction.class.getName());
 	ArrayList<String> orderedVars = new ArrayList<String>();
 	Hashtable<String, Hashtable<String, Hashtable<String, Object>>> paramDataHash;
-	Browser browser;
+//	Browser browser;
 	Hashtable<String, Hashtable<String, String>> keyHash = new Hashtable<String, Hashtable<String, String>>();
 	final String valueString = "Score";
 	Gson gson = new Gson();
@@ -62,20 +58,18 @@ public class SimilarityRefreshBrowserFunction implements BrowserFunction {
 	
 	 * @return Object */
 	
-	@Override
-	public JSValue invoke(JSValue... arg0){
-//		logger.info("args: ");
-//		for(Object arg : arg0)
-//			System.out.println(arg);
-		String[] selectedVars = gson.fromJson(arg0[0].getString(), String[].class);
-		Hashtable<String, Double> specifiedWeights = gson.fromJson(arg0[1].getString(), Hashtable.class);
-		
-		boolean simBoo = simHeat.refreshSimHeat(selectedVars, specifiedWeights);
-		
-		return JSValue.create(simBoo);
-	}
-	
-	
+//	@Override
+//	public JSValue invoke(JSValue... arg0){
+////		logger.info("args: ");
+////		for(Object arg : arg0)
+////			System.out.println(arg);
+//		String[] selectedVars = gson.fromJson(arg0[0].getString(), String[].class);
+//		Hashtable<String, Double> specifiedWeights = gson.fromJson(arg0[1].getString(), Hashtable.class);
+//		
+//		boolean simBoo = simHeat.refreshSimHeat(selectedVars, specifiedWeights);
+//		
+//		return JSValue.create(simBoo);
+//	}
 	
 	public void setSimHeatPlaySheet(SimilarityHeatMapSheet simHeat){
 		this.simHeat = simHeat;

@@ -28,18 +28,12 @@
 package prerna.ui.components;
 
 import java.awt.BorderLayout;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 import javax.swing.JButton;
 import javax.swing.JInternalFrame;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.LoggerProvider;
-import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.main.listener.impl.ChartPullDataListener;
@@ -57,8 +51,8 @@ public class BrowserTabSheet3 extends JInternalFrame implements Runnable{
 	ChartPullDataListener cp = null;
 	GraphPlaySheet ps = null;
 	static final Logger logger = LogManager.getLogger(BrowserTabSheet3.class.getName());
-	public Browser browser = new Browser();
-	public BrowserView browserView;
+//	public Browser browser = new Browser();
+//	public BrowserView browserView;
 	public JButton pullData;
 
 	/**
@@ -68,30 +62,30 @@ public class BrowserTabSheet3 extends JInternalFrame implements Runnable{
 	 */
 	public BrowserTabSheet3(String fileName, GraphPlaySheet ps) {
 		super("Charts", true, true, true, true);
-		browserView = new BrowserView(browser);
+//		browserView = new BrowserView(browser);
 		this.ps = ps;
 
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		//webBrowser.navigate("file://" + workingDir + "/SimpleTest.html");
 		//browser.
 		cp = new ChartPullDataListener();
-		cp.setBrowser(browser);
+//		cp.setBrowser(browser);
 		cp.setPlaySheet(ps);
 
-		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
-		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
-		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
-
-		browser.loadURL("file://" + workingDir + fileName);
+//		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+//		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+//		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
+//
+//		browser.loadURL("file://" + workingDir + fileName);
 		// browser.registerFunction("MyFunction", new SPARQLExecuteFunction());
-		while (browser.isLoading()) {
-			try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+//		while (browser.isLoading()) {
+//			try {
+//				TimeUnit.MILLISECONDS.sleep(50);
+//			} catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
 		setPlaySheet(null);
 		runCallIt();
 
@@ -100,7 +94,7 @@ public class BrowserTabSheet3 extends JInternalFrame implements Runnable{
 		pullData.addActionListener(cp);
 
 		add(pullData, BorderLayout.NORTH);
-		add(browserView, BorderLayout.CENTER);
+//		add(browserView, BorderLayout.CENTER);
 	}
 
 	/**

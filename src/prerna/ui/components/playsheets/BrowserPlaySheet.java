@@ -34,8 +34,6 @@ import java.beans.PropertyVetoException;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 import javax.swing.JDesktopPane;
 import javax.swing.JPanel;
@@ -49,15 +47,10 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.JSValue;
-import com.teamdev.jxbrowser.chromium.LoggerProvider;
-import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 import prerna.engine.api.IEngine;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
-import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 
 /**
  * The BrowserPlaySheet creates an instance of a browser to utilize the D3 Javascript library to create visualizations.
@@ -66,8 +59,8 @@ public class BrowserPlaySheet extends TablePlaySheet {
 	
 	private static final Logger logger = LogManager.getLogger(BrowserPlaySheet.class.getName());
 	public Boolean empty = false;
-	public Browser browser;
-	public BrowserView browserView;
+//	public Browser browser;
+//	public BrowserView browserView;
 	public String fileName;
 	JSplitPane splitPane;
 	protected JTabbedPane jTab;
@@ -102,10 +95,10 @@ public class BrowserPlaySheet extends TablePlaySheet {
 		String startStr = "start('" + gson.toJson(table) + "');";
 		startStr = startStr.replaceAll("\\\\", "\\\\\\\\");
 		System.out.println(startStr);
-		JSValue val = browser.executeJavaScriptAndReturnValue(startStr);
+//		JSValue val = browser.executeJavaScriptAndReturnValue(startStr);
 		
-		String remoteDebuggingURL = browser.getRemoteDebuggingURL();
-		System.out.println(">>>>>>>>>>>>>>> REMOTE DEBUGGING URL: " +  remoteDebuggingURL);
+//		String remoteDebuggingURL = browser.getRemoteDebuggingURL();
+//		System.out.println(">>>>>>>>>>>>>>> REMOTE DEBUGGING URL: " +  remoteDebuggingURL);
 	}
 	
 	/**
@@ -121,13 +114,13 @@ public class BrowserPlaySheet extends TablePlaySheet {
 	public void createView() {
 		super.createView();
 		// BrowserServices.getInstance().setPromptService(new SilentPromptService());
-		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
-		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
-		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
-		if (browser == null) {
-			empty = true;
-			return;
-		}
+//		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+//		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+//		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
+//		if (browser == null) {
+//			empty = true;
+//			return;
+//		}
 		// browser.getView().getComponent().addMouseListener(new MouseAdapter() {
 		// @Override
 		// public void mouseWheelMoved(MouseWheelEvent e) {
@@ -144,17 +137,17 @@ public class BrowserPlaySheet extends TablePlaySheet {
 		//
 		// }
 		// });
-		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
-		browser.loadURL(fileName);
-		
-		while (browser.isLoading()) {
-			try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+//		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
+//		browser.loadURL(fileName);
+//		
+//		while (browser.isLoading()) {
+//			try {
+//				TimeUnit.MILLISECONDS.sleep(50);
+//			} catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
 		empty = false;
 		if (dataHash.get("dataSeries") instanceof HashSet) {
 			HashSet dataSeries = (HashSet) dataHash.get("dataSeries");
@@ -219,8 +212,8 @@ public class BrowserPlaySheet extends TablePlaySheet {
 	 */
 	@Override
 	public void addPanel() {
-		browser = new Browser();
-		browserView = new BrowserView(browser);
+//		browser = new Browser();
+//		browserView = new BrowserView(browser);
 		try {
 			table = new JTable();
 			this.jTab = new JTabbedPane();
@@ -251,7 +244,7 @@ public class BrowserPlaySheet extends TablePlaySheet {
 			// callIt(table);
 			JPanel panel = new JPanel();
 			panel.setLayout(new BorderLayout());
-			panel.add(browserView, BorderLayout.CENTER);
+//			panel.add(browserView, BorderLayout.CENTER);
 			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 			gbc_scrollPane.fill = GridBagConstraints.BOTH;
 			gbc_scrollPane.gridx = 0;
@@ -283,8 +276,8 @@ public class BrowserPlaySheet extends TablePlaySheet {
 	}
 	
 	public void addPanelAsTab(String tabName) {
-		browser = new Browser();
-		browserView = new BrowserView(browser);
+//		browser = new Browser();
+//		browserView = new BrowserView(browser);
 		try {
 			table = new JTable();
 			
@@ -297,7 +290,7 @@ public class BrowserPlaySheet extends TablePlaySheet {
 			this.addInternalFrameListener(psListener);
 			
 			mainPanel.setLayout(new BorderLayout());
-			mainPanel.add(browserView, BorderLayout.CENTER);
+//			mainPanel.add(browserView, BorderLayout.CENTER);
 			
 			updateProgressBar("0%...Preprocessing", 0);
 			resetProgressBar();
@@ -323,17 +316,17 @@ public class BrowserPlaySheet extends TablePlaySheet {
 	 * Method getBrowser. Gets the current browser.
 	 * @return Browser - the current browser.
 	 */
-	public Browser getBrowser() {
-		return this.browser;
-	}
+//	public Browser getBrowser() {
+//		return this.browser;
+//	}
 	
 	/**
 	 * Getter for the browser view
 	 * @return
 	 */
-	public BrowserView getBrowserView() {
-		return this.browserView;
-	}
+//	public BrowserView getBrowserView() {
+//		return this.browserView;
+//	}
 	
 	public void setJTab(JTabbedPane jTab) {
 		this.jTab = jTab;

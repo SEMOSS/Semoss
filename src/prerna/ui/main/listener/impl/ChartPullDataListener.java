@@ -35,7 +35,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.Browser;
 
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
@@ -46,7 +45,7 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
 public class ChartPullDataListener implements ActionListener {
 	GraphPlaySheet ps = null;
 	static final Logger logger = LogManager.getLogger(ChartPullDataListener.class.getName());
-	Browser browser = null;
+//	Browser browser = null;
 	
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
@@ -62,10 +61,10 @@ public class ChartPullDataListener implements ActionListener {
 	 * Method setBrowser.  Sets the browser that the listener will access.
 	 * @param browser Browser
 	 */
-	public void setBrowser (Browser browser)
-	{
-		this.browser = browser;
-	}
+//	public void setBrowser (Browser browser)
+//	{
+//		this.browser = browser;
+//	}
 	
     /**
      * Method setPlaySheet.  Sets the playsheet that the listener will access.
@@ -88,7 +87,7 @@ public class ChartPullDataListener implements ActionListener {
 		//newHash.put("Edges", edgeHash);
 		Gson gson = new Gson();
 		logger.info("Converted " + gson.toJson(newHash));
-	    browser.executeJavaScript("start('" + gson.toJson(newHash) + "');");
+//	    browser.executeJavaScript("start('" + gson.toJson(newHash) + "');");
 	}
 
 
