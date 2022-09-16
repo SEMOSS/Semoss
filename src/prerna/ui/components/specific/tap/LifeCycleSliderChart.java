@@ -33,7 +33,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 import java.util.Hashtable;
-import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -46,14 +45,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -66,8 +62,8 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 
 	private static final Logger logger = LogManager.getLogger(LifeCycleSliderChart.class.getName());
 	//public JPanel cheaterPanel = new JPanel();
-	public Browser browser;
-	public BrowserView browserView;
+//	public Browser browser;
+//	public BrowserView browserView;
 	Hashtable <String, String[]> hardwareHash;
 	String fileName;
 
@@ -77,8 +73,8 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 	 */
 	public LifeCycleSliderChart() {
 		super();
-		browser = new Browser();
-		browserView = new BrowserView(browser);
+//		browser = new Browser();
+//		browserView = new BrowserView(browser);
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/lifecycle.html";
@@ -108,7 +104,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 			//callIt(table);
 			JPanel panel = new JPanel();
 			panel.setLayout(new BorderLayout());
-			panel.add(browserView, BorderLayout.CENTER);
+//			panel.add(browserView, BorderLayout.CENTER);
 			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 			gbc_scrollPane.fill = GridBagConstraints.BOTH;
 			gbc_scrollPane.gridx = 0;
@@ -199,16 +195,16 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		}
 		updateProgressBar("100%...Table Generation Complete", 100);
 		showAll();
-		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
-		browser.loadURL(fileName);
-		while (browser.isLoading()) {
-		    try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+//		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
+//		browser.loadURL(fileName);
+//		while (browser.isLoading()) {
+//		    try {
+//				TimeUnit.MILLISECONDS.sleep(50);
+//			} catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
 		callIt();
 	}
 	
@@ -223,7 +219,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		Hashtable<String, String[]> newHash = hardwareHash;
 		Gson gson = new Gson();
 		logger.info("Converted " + gson.toJson(newHash));
-	    browser.executeJavaScript("start('" + gson.toJson(newHash) + "');");
+//	    browser.executeJavaScript("start('" + gson.toJson(newHash) + "');");
 	}
 
 	/**

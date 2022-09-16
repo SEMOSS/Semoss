@@ -27,35 +27,12 @@
  *******************************************************************************/
 package prerna.ui.main.listener.impl;
 
-import java.awt.Component;
-import java.awt.Graphics;
-import java.awt.Image;
 import java.awt.event.ActionEvent;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.text.DateFormat;
-import java.util.Date;
 
-import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
-import javax.swing.JOptionPane;
-import javax.swing.JSplitPane;
-
-//import com.itextpdf.text.Document;
-//import com.itextpdf.text.DocumentException;
-//import com.itextpdf.text.Rectangle;
-//import com.itextpdf.text.pdf.PdfWriter;
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * Controls the export of a chart to a vector image.

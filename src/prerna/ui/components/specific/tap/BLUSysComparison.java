@@ -39,9 +39,6 @@ import java.util.Set;
 
 import javax.swing.JPanel;
 
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.swing.BrowserView;
-
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -87,8 +84,8 @@ public class BLUSysComparison extends SimilarityHeatMapSheet {
 
 	@Override
 	public void addPanel() {
-		browser = new Browser();
-		browserView = new BrowserView(browser);
+//		browser = new Browser();
+//		browserView = new BrowserView(browser);
 		try {
 			JPanel mainPanel = new JPanel();
 			BrowserPlaySheetListener psListener = new BrowserPlaySheetListener();
@@ -103,7 +100,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet {
 
 			JPanel panel = new JPanel();
 			panel.setLayout(new BorderLayout());
-			panel.add(browserView, BorderLayout.CENTER);
+//			panel.add(browserView, BorderLayout.CENTER);
 			GridBagConstraints gbcScrollPane = new GridBagConstraints();
 			gbcScrollPane.fill = GridBagConstraints.BOTH;
 			gbcScrollPane.gridx = 0;

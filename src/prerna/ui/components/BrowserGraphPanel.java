@@ -29,8 +29,6 @@ package prerna.ui.components;
 
 import java.awt.BorderLayout;
 import java.util.Hashtable;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 import javax.swing.JPanel;
 
@@ -38,11 +36,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.LoggerProvider;
-import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
-import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -53,8 +47,8 @@ import prerna.util.Utility;
 public class BrowserGraphPanel extends JPanel{
 	static final Logger logger = LogManager.getLogger(BrowserGraphPanel.class.getName());
 
-	public Browser browser = null;
-	public BrowserView browserView;
+//	public Browser browser = null;
+//	public BrowserView browserView;
 	/**
 	 * Constructor for BrowserGraphPanel.
 	 * @param fileName 	File name.
@@ -62,11 +56,11 @@ public class BrowserGraphPanel extends JPanel{
 	 */
 	public BrowserGraphPanel(String fileName)
 	{
-		browser = new Browser();
-		browserView = new BrowserView(browser);
-		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
-		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
-		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
+//		browser = new Browser();
+//		browserView = new BrowserView(browser);
+//		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+//		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+//		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
 		//		try{
 		//		if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla15"))
 		//			  browser = BrowserFactory.createBrowser(BrowserType.Mozilla15);
@@ -78,19 +72,19 @@ public class BrowserGraphPanel extends JPanel{
 		//			  browser = BrowserFactory.createBrowser(BrowserType.Safari);
 
 		//BrowserServices.getInstance().setPromptService(new SilentPromptService());
-		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
+//		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		browser.loadURL("file://" + workingDir + fileName);
-		while (browser.isLoading()) {
-			try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+//		browser.loadURL("file://" + workingDir + fileName);
+//		while (browser.isLoading()) {
+//			try {
+//				TimeUnit.MILLISECONDS.sleep(50);
+//			} catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
 		setLayout(new BorderLayout());
-		add(browserView, BorderLayout.CENTER);
+//		add(browserView, BorderLayout.CENTER);
 		//		}
 		//		catch(UnsupportedBrowserTypeException e){
 		//			displayCheckBoxError();
@@ -117,7 +111,7 @@ public class BrowserGraphPanel extends JPanel{
 
 		//webBrowser.executeJavascript("helloWorld('" + gson.toJson(newHash) + "');"); //Please tell me this is awesome !!!!!!');");
 		//Please tell me this is awesome !!!!!!');");
-		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
+//		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 	}
 	//	/**
 	//	 * Method displayCheckBoxError.

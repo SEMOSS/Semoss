@@ -30,7 +30,6 @@ package prerna.ui.components.specific.tap;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,7 +38,6 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.HeatMapPlaySheet;
-import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -207,15 +205,15 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 		}
 		
 		updateProgressBar("80%...Generating Heat Map from Data", 80);
-		browser.loadURL(fileName);
-		while (browser.isLoading()) {
-		    try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+//		browser.loadURL(fileName);
+//		while (browser.isLoading()) {
+//		    try {
+//				TimeUnit.MILLISECONDS.sleep(50);
+//			} catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
 		
 		allHash = new Hashtable();
 
@@ -231,16 +229,16 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 	@Override
 	public void createView()
 	{
-		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
-		browser.loadURL(fileName);
-		while (browser.isLoading()) {
-		    try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+//		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
+//		browser.loadURL(fileName);
+//		while (browser.isLoading()) {
+//		    try {
+//				TimeUnit.MILLISECONDS.sleep(50);
+//			} catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
 		
 		callIt(allHash);
 		updateProgressBar("100%...Heat Map Generation Complete", 100);

@@ -28,10 +28,6 @@
 package prerna.ui.main.listener.impl;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -40,8 +36,6 @@ import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
-/**
- */
 public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 	
 	GraphPlaySheet gps;
@@ -51,51 +45,51 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 	 * @param arg0 Object[]
 	
 	 * @return Object */
-	@Override
-	public JSValue invoke(JSValue... arg0) {
-		Hashtable retHash = new Hashtable();
-		ArrayList ret = new ArrayList();
-		boolean success = true;
-		logger.info("Arguments are " + arg0);
-		
-		//get the query from the args
-		String query = (arg0[0].getString()).trim(); 
-		
-		//run the query against the set repository
-		try {
-			logger.info("Using repository " + engine);
-			
-			if(query.toUpperCase().startsWith("INSERT") || query.toUpperCase().startsWith("DELETE")){
-				logger.info("running update : " + query);
-				success = processUpdate(query, engine);
-				
-				// if a playsheet has been set to this function, run this update against the playsheet so that we can refresh the graph
-				// not sure how to handle this with graphtinkerplaysheet... don't think this is used any more though
-//				if(gps!=null)
-//					gps.getDataMaker().updateAllModels(query);
-			}
-
-			else if(query.startsWith("SELECT") ){
-				logger.info("running select : " + query);
-				ret = processSelect(query, engine);
-			}
-			
-			else { 
-				System.err.println("UNKNOWN QUERY TYPE SENT TO JAVA FOR PROCESSING");
-			}
-		} catch (RuntimeException e) {
-			logger.fatal(e);
-			success = false;
-		}
-
-		Object[] retArray = ret.toArray();
-		retHash.put("results", retArray);
-		retHash.put("success", success);
-
-		Gson gson = new Gson();
-        
-		return JSValue.create(gson.toJson(retHash));
-	}
+//	@Override
+//	public JSValue invoke(JSValue... arg0) {
+//		Hashtable retHash = new Hashtable();
+//		ArrayList ret = new ArrayList();
+//		boolean success = true;
+//		logger.info("Arguments are " + arg0);
+//		
+//		//get the query from the args
+//		String query = (arg0[0].getString()).trim(); 
+//		
+//		//run the query against the set repository
+//		try {
+//			logger.info("Using repository " + engine);
+//			
+//			if(query.toUpperCase().startsWith("INSERT") || query.toUpperCase().startsWith("DELETE")){
+//				logger.info("running update : " + query);
+//				success = processUpdate(query, engine);
+//				
+//				// if a playsheet has been set to this function, run this update against the playsheet so that we can refresh the graph
+//				// not sure how to handle this with graphtinkerplaysheet... don't think this is used any more though
+////				if(gps!=null)
+////					gps.getDataMaker().updateAllModels(query);
+//			}
+//
+//			else if(query.startsWith("SELECT") ){
+//				logger.info("running select : " + query);
+//				ret = processSelect(query, engine);
+//			}
+//			
+//			else { 
+//				System.err.println("UNKNOWN QUERY TYPE SENT TO JAVA FOR PROCESSING");
+//			}
+//		} catch (RuntimeException e) {
+//			logger.fatal(e);
+//			success = false;
+//		}
+//
+//		Object[] retArray = ret.toArray();
+//		retHash.put("results", retArray);
+//		retHash.put("success", success);
+//
+//		Gson gson = new Gson();
+//        
+//		return JSValue.create(gson.toJson(retHash));
+//	}
 	
 	/**
 	 * Method processUpdate.

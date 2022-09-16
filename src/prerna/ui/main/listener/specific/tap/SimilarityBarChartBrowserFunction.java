@@ -27,22 +27,17 @@
  *******************************************************************************/
 package prerna.ui.main.listener.specific.tap;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.BrowserFunction;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 import prerna.ui.components.specific.tap.SimilarityHeatMapSheet;
 
 /**
  * An browser class for refreshing similarity comparison heat map based on selected parameters.
  */
-public class SimilarityBarChartBrowserFunction implements BrowserFunction {
+public class SimilarityBarChartBrowserFunction {
 
 	static final Logger logger = LogManager.getLogger(SimilarityBarChartBrowserFunction.class.getName());
 	Hashtable<String, Hashtable<String, Hashtable<String, Object>>> paramDataHash;
@@ -55,18 +50,18 @@ public class SimilarityBarChartBrowserFunction implements BrowserFunction {
 	 * @param arg0 Object[]
 	
 	 * @return Object */
-	@Override
-	public JSValue invoke(JSValue... arg0){
-		Gson gson = new Gson();
-
-		String cellKey = arg0[0].getString();
-		logger.info("cellKey = " + cellKey);
-		ArrayList<String> selectedVars = gson.fromJson(arg0[1].getString(), ArrayList.class);
-		Hashtable<String, Double> specifiedWeights = new Hashtable<String, Double> ();
-		JSValue finalJson = JSValue.create(gson.toJson(simHeat.getSimBarChartData(cellKey, selectedVars, specifiedWeights)));
-		System.out.println("Java is done");
-		return finalJson;
-	}
+//	@Override
+//	public JSValue invoke(JSValue... arg0){
+//		Gson gson = new Gson();
+//
+//		String cellKey = arg0[0].getString();
+//		logger.info("cellKey = " + cellKey);
+//		ArrayList<String> selectedVars = gson.fromJson(arg0[1].getString(), ArrayList.class);
+//		Hashtable<String, Double> specifiedWeights = new Hashtable<String, Double> ();
+//		JSValue finalJson = JSValue.create(gson.toJson(simHeat.getSimBarChartData(cellKey, selectedVars, specifiedWeights)));
+//		System.out.println("Java is done");
+//		return finalJson;
+//	}
 	
 	/**
 	 * Method setParamDataHash.  Sets the hashtable and orders the keys for processing

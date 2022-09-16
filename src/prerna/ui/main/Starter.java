@@ -40,7 +40,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.ibm.icu.util.StringTokenizer;
-import com.teamdev.jxbrowser.chromium.BrowserPreferences;
 
 import prerna.engine.api.IEngine;
 import prerna.ui.components.PlayPane;
@@ -101,7 +100,7 @@ public class Starter {
 		String propFile = workingDir + "/RDF_Map.prop";
 		Logger logger = LogManager.getLogger(prerna.ui.main.Starter.class);
 		// set browser preference to enable chrome tools for visualizations using jxbrowser
-		BrowserPreferences.setChromiumSwitches("--remote-debugging-port=9222");
+//		BrowserPreferences.setChromiumSwitches("--remote-debugging-port=9222");
 
 		//Object monitor = new Object(); // stupid object for being a monitor
 		

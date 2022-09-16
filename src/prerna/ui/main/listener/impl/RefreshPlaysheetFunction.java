@@ -27,18 +27,12 @@
  *******************************************************************************/
 package prerna.ui.main.listener.impl;
 
-import java.util.Hashtable;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.BrowserFunction;
-import com.teamdev.jxbrowser.chromium.JSValue;
-
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * Refreshes the view of the graph play sheet.
  */
-public class RefreshPlaysheetFunction implements BrowserFunction {
+public class RefreshPlaysheetFunction {
 	
 	GraphPlaySheet gps;
 	
@@ -55,16 +49,16 @@ public class RefreshPlaysheetFunction implements BrowserFunction {
 	 * @param arg0 Object[]
 	
 	 * @return Object */
-	@Override
-	public JSValue invoke(JSValue... arg0) {
-		gps.refineView();
-
-		Hashtable retHash = new Hashtable();
-		retHash.put("success", true);
-
-		Gson gson = new Gson();
-        
-		return JSValue.create(gson.toJson(retHash));
-	}
+//	@Override
+//	public JSValue invoke(JSValue... arg0) {
+//		gps.refineView();
+//
+//		Hashtable retHash = new Hashtable();
+//		retHash.put("success", true);
+//
+//		Gson gson = new Gson();
+//        
+//		return JSValue.create(gson.toJson(retHash));
+//	}
 	
 }

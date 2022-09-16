@@ -78,7 +78,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	{
 		super.registerFunctions();
 		SysSimHealthGridListener healthGridCall = new SysSimHealthGridListener();
-	   	browser.registerFunction("healthGrid",  healthGridCall);    	
+//	   	browser.registerFunction("healthGrid",  healthGridCall);    	
 	}
 	
 	@Override

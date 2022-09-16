@@ -27,36 +27,25 @@
  *******************************************************************************/
 package prerna.ui.main.listener.impl;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.JSValue;
-import com.teamdev.jxbrowser.chromium.events.FailLoadingEvent;
-import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
-import com.teamdev.jxbrowser.chromium.events.FrameLoadEvent;
-import com.teamdev.jxbrowser.chromium.events.LoadEvent;
-import com.teamdev.jxbrowser.chromium.events.LoadListener;
-import com.teamdev.jxbrowser.chromium.events.ProvisionalLoadingEvent;
-import com.teamdev.jxbrowser.chromium.events.StartLoadingEvent;
 
 import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.util.Constants;
 
 /**
  */
-public class NodeEditorNavigationListener implements LoadListener{
+public class NodeEditorNavigationListener {
 	
 	static final Logger logger = LogManager.getLogger(NodeEditorNavigationListener.class.getName());
 
 	SEMOSSVertex node = null;
-	Browser browser = null;
+//	Browser browser = null;
 	Hashtable filterHash;
 	GraphPlaySheet gps;
 	IEngine engine;
@@ -89,17 +78,17 @@ public class NodeEditorNavigationListener implements LoadListener{
 	/**
 	 * Method getBrowser.  Gets the current browser.	
 	 * @return Browser */
-	public Browser getBrowser() {
-		return browser;
-	}
+//	public Browser getBrowser() {
+//		return browser;
+//	}
 
 	/**
 	 * Method setBrowser.  Sets the browser that the listener will access.
 	 * @param browser Browser
 	 */
-	public void setBrowser(Browser browser) {
-		this.browser = browser;
-	}
+//	public void setBrowser(Browser browser) {
+//		this.browser = browser;
+//	}
 	
 	/**
 	 * Method setNode.  Sets the node that the listener will access.
@@ -124,63 +113,64 @@ public class NodeEditorNavigationListener implements LoadListener{
     	String nodeType = "";
     	
     	String query = "SELECT ?type WHERE {<"+uri+"> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type}";
-    	String retHashJson = filterFunction.invoke(JSValue.create(query)).getString();
+//    	String retHashJson = filterFunction.invoke(JSValue.create(query)).getString();
     	Gson gson = new Gson();
-    	Hashtable retHash = gson.fromJson(retHashJson, Hashtable.class);
-    	ArrayList<ArrayList> retArray = (ArrayList<ArrayList>) retHash.get("results");
-    	ArrayList array = retArray.get(0);
-    	nodeType = (String) array.get(0);
-    	
-    	return nodeType;
+//    	Hashtable retHash = gson.fromJson(retHashJson, Hashtable.class);
+//    	ArrayList<ArrayList> retArray = (ArrayList<ArrayList>) retHash.get("results");
+//    	ArrayList array = retArray.get(0);
+//    	nodeType = (String) array.get(0);
+//    	
+//    	return nodeType;
+    	return null;
     }
 
-	@Override
-	public void onDocumentLoadedInFrame(FrameLoadEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onDocumentLoadedInMainFrame(LoadEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onFailLoadingFrame(FailLoadingEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onFinishLoadingFrame(FinishLoadingEvent arg0) {
-		
-	    
-	    //register the various functions for javascript to call
-	    SPARQLExecuteFilterBaseFunction filterBaseFunction = new SPARQLExecuteFilterBaseFunction();
-	    filterBaseFunction.setFilterHash(filterHash);
-	    filterBaseFunction.setEngine(engine);
-
-	    
-	    //get the parameters to pass it
-	    String uri = (String) node.getProperty(Constants.URI);
-	    String nodeName = (String) node.getProperty(Constants.VERTEX_NAME);
-	    String nodeType = getFullNodeType(uri, filterBaseFunction);
-	    
-	    browser.executeJavaScript("start('" + uri + "', '" + nodeName + "', '" + nodeType + "');");
-	    //cp.callIt();
-		
-	}
-
-	@Override
-	public void onProvisionalLoadingFrame(ProvisionalLoadingEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onStartLoadingFrame(StartLoadingEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
+//	@Override
+//	public void onDocumentLoadedInFrame(FrameLoadEvent arg0) {
+//		// TODO Auto-generated method stub
+//		
+//	}
+//
+//	@Override
+//	public void onDocumentLoadedInMainFrame(LoadEvent arg0) {
+//		// TODO Auto-generated method stub
+//		
+//	}
+//
+//	@Override
+//	public void onFailLoadingFrame(FailLoadingEvent arg0) {
+//		// TODO Auto-generated method stub
+//		
+//	}
+//
+//	@Override
+//	public void onFinishLoadingFrame(FinishLoadingEvent arg0) {
+//		
+//	    
+//	    //register the various functions for javascript to call
+//	    SPARQLExecuteFilterBaseFunction filterBaseFunction = new SPARQLExecuteFilterBaseFunction();
+//	    filterBaseFunction.setFilterHash(filterHash);
+//	    filterBaseFunction.setEngine(engine);
+//
+//	    
+//	    //get the parameters to pass it
+//	    String uri = (String) node.getProperty(Constants.URI);
+//	    String nodeName = (String) node.getProperty(Constants.VERTEX_NAME);
+//	    String nodeType = getFullNodeType(uri, filterBaseFunction);
+//	    
+//	    browser.executeJavaScript("start('" + uri + "', '" + nodeName + "', '" + nodeType + "');");
+//	    //cp.callIt();
+//		
+//	}
+//
+//	@Override
+//	public void onProvisionalLoadingFrame(ProvisionalLoadingEvent arg0) {
+//		// TODO Auto-generated method stub
+//		
+//	}
+//
+//	@Override
+//	public void onStartLoadingFrame(StartLoadingEvent arg0) {
+//		// TODO Auto-generated method stub
+//		
+//	}
 }
