@@ -50,7 +50,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.specific.tap.DHMSMDeploymentStrategyPlaySheet;
@@ -272,7 +271,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		allData.put("data", dataHash);	
 		allData.put("label", "savings");
 		// execute method to restart values when different deployment schedule is initiated
-		JSValue val = ps.sysMap.browser.executeJavaScriptAndReturnValue("refresh();");
+//		JSValue val = ps.sysMap.browser.executeJavaScriptAndReturnValue("refresh();");
 		//*****Sends data for map visualization to the JS file
 		ps.sysMap.callIt(allData);
 	}
