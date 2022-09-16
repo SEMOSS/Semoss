@@ -58,7 +58,7 @@ public class BrowserPlaySheetListener extends PlaySheetListener {
 		String system = "system";
 		JInternalFrame jf = e.getInternalFrame();
 		BrowserPlaySheet ps = (BrowserPlaySheet)jf;
-		ps.browser.dispose();
+//		ps.browser.dispose();
 //		ps.dispose();
 //		ps.getDesktopPane().remove(ps);
 

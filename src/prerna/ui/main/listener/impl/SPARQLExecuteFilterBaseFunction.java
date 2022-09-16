@@ -30,16 +30,11 @@ package prerna.ui.main.listener.impl;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
-/**
- */
 public class SPARQLExecuteFilterBaseFunction extends AbstractBrowserSPARQLFunction {
 
 	Hashtable filterHash;
@@ -56,19 +51,19 @@ public class SPARQLExecuteFilterBaseFunction extends AbstractBrowserSPARQLFuncti
 	 * @param arg0 Object[]
 	
 	 * @return Object */
-	@Override
-	public JSValue invoke(JSValue... arg0) {
-		logger.info("Arguments are " + arg0);
-		
-		//get the query from the args
-		String query = (arg0[0].getString()).trim(); 
-
-		Hashtable retHash = process(query);
-
-		Gson gson = new Gson();
-        
-		return JSValue.create(gson.toJson(retHash));
-	}
+//	@Override
+//	public JSValue invoke(JSValue... arg0) {
+//		logger.info("Arguments are " + arg0);
+//		
+//		//get the query from the args
+//		String query = (arg0[0].getString()).trim(); 
+//
+//		Hashtable retHash = process(query);
+//
+//		Gson gson = new Gson();
+//        
+//		return JSValue.create(gson.toJson(retHash));
+//	}
 	
 	public Hashtable process(String query){
 		Hashtable retHash = new Hashtable();

@@ -28,17 +28,11 @@
 package prerna.ui.components;
 
 import java.awt.BorderLayout;
-import java.util.logging.Level;
 
 import javax.swing.JInternalFrame;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.LoggerProvider;
-import com.teamdev.jxbrowser.chromium.events.LoadListener;
-import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
@@ -51,11 +45,11 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
 public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnable{
 
 	protected static final String LS = System.getProperty("line.separator");
-	LoadListener navListener = null;
+//	LoadListener navListener = null;
 	GraphPlaySheet ps = null;
 	static final Logger logger = LogManager.getLogger(BrowserTabSheetFullAddress.class.getName());
-	public Browser browser;
-	public BrowserView browserView;
+//	public Browser browser;
+//	public BrowserView browserView;
 	String fileName;
 
 	/**
@@ -64,22 +58,22 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 	 */
 	public BrowserTabSheetFullAddress() {
 		super("Charts", true, true, true, true);
-		browser = new Browser();
-		browserView = new BrowserView(browser);
-		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
-		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
-		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
+//		browser = new Browser();
+//		browserView = new BrowserView(browser);
+//		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+//		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+//		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
 	}
 
 	/**
 	 * Used to navigate the browser window.
 	 */
 	public void navigate(){
-		browser.addLoadListener(navListener);
-		browser.loadURL(fileName);
+//		browser.addLoadListener(navListener);
+//		browser.loadURL(fileName);
 		//browser.executeScript("resolve: RdfEditCtrl.resolve");
 		setLayout(new BorderLayout());
-		add(browserView, BorderLayout.CENTER);
+//		add(browserView, BorderLayout.CENTER);
 	}
 
 	/**
@@ -103,9 +97,9 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 	 * Sets the navigation listener.
 	 * @param navListener 	Navigation listener.
 	 */
-	public void setNavListener(LoadListener navListener){
-		this.navListener = navListener;
-	}
+//	public void setNavListener(LoadListener navListener){
+//		this.navListener = navListener;
+//	}
 
 
 

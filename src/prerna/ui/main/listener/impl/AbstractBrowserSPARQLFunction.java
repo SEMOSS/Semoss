@@ -30,16 +30,13 @@ package prerna.ui.main.listener.impl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.teamdev.jxbrowser.chromium.BrowserFunction;
-import com.teamdev.jxbrowser.chromium.JSValue;
-
 import prerna.engine.api.IEngine;
 
 
 /**
  * An abstract browser class for SPARQL functions.
  */
-public abstract class AbstractBrowserSPARQLFunction implements BrowserFunction {
+public abstract class AbstractBrowserSPARQLFunction {
 
 	static final Logger logger = LogManager.getLogger(AbstractBrowserSPARQLFunction.class.getName());
 	IEngine engine;
@@ -49,8 +46,8 @@ public abstract class AbstractBrowserSPARQLFunction implements BrowserFunction {
 	 * @param arg0 Object[]
 	
 	 * @return Object */
-	@Override
-	public abstract JSValue invoke(JSValue... arg0);
+//	@Override
+//	public abstract JSValue invoke(JSValue... arg0);
 	
 	/**
 	 * Method setEngine.  Sets the local engine to the IEngine parameter.

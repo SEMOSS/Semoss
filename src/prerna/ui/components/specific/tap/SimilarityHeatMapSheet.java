@@ -34,14 +34,11 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.LoggerProvider;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.main.listener.specific.tap.SimilarityBarChartBrowserFunction;
@@ -89,18 +86,18 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
 		registerFunctions();
-		browser.loadURL("file://" + workingDir + "/html/MHS-RDFSemossCharts/app/sysDup.html");
-		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
-		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
-		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
-		while (browser.isLoading()) {
-		    try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				logger.error("StackTrace: ", e);
-			}
-		}
+//		browser.loadURL("file://" + workingDir + "/html/MHS-RDFSemossCharts/app/sysDup.html");
+//		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+//		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+//		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
+//		while (browser.isLoading()) {
+//		    try {
+//				TimeUnit.MILLISECONDS.sleep(50);
+//			} catch (InterruptedException e) {
+//				Thread.currentThread().interrupt();
+//				logger.error("StackTrace: ", e);
+//			}
+//		}
 
 		registerFunctions();
 
@@ -125,10 +122,10 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	{
     	refreshFunction = new SimilarityRefreshBrowserFunction();
     	refreshFunction.setSimHeatPlaySheet(this);
-    	browser.registerFunction("refreshFunction",  refreshFunction);
+//    	browser.registerFunction("refreshFunction",  refreshFunction);
     	SimilarityBarChartBrowserFunction barChartFunction = new SimilarityBarChartBrowserFunction();
     	barChartFunction.setSimHeatPlaySheet(this);
-    	browser.registerFunction("barChartFunction",  barChartFunction);
+//    	browser.registerFunction("barChartFunction",  barChartFunction);
 	}
 	/**
 	 * Formats data hashtable into proper format needed for charting.
@@ -212,7 +209,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		//send available dimensions:
 		String availCatString = "dimensionData('" + gson.toJson(args) + "', 'categories');";
 		logger.info(availCatString);
-		browser.executeJavaScript(availCatString);
+//		browser.executeJavaScript(availCatString);
 		
 		Enumeration enumKey = allHash.keys();
 		while (enumKey.hasMoreElements())
@@ -220,10 +217,10 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 			String key = (String) enumKey.nextElement();
 			Object value = allHash.get(key);
 			
-			browser.executeJavaScript("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
+//			browser.executeJavaScript("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
 			//logger.info("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
 		}
-		browser.executeJavaScript("start();");
+//		browser.executeJavaScript("start();");
 		updateProgressBar("100%...Visualization Complete", 100);
 		logger.info("Finished creating the visualization.");
 		allHash.clear();
@@ -294,7 +291,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		sendData(calculatedHash);
 		
 		logger.info("Java is done -- calling function");
-		browser.executeJavaScript("refreshDataFunction();");
+//		browser.executeJavaScript("refreshDataFunction();");
 		logger.info("Java is REALLY done");
 		
 		return true;
@@ -305,7 +302,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		for(Map<String, Map<String, Double>> hash : calculatedArray)
 		{
 			logger.info("Sending hash with " + hash.size());
-			browser.executeJavaScript("dataBuilder('" + gson.toJson(hash) + "');");
+//			browser.executeJavaScript("dataBuilder('" + gson.toJson(hash) + "');");
 			logger.info("Done sending");
 		}
 		

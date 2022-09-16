@@ -75,7 +75,7 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		gbc_btnGroupedStacked.gridy = 0;
 		JButton transitionGroupedStacked = new JButton("Transition Grouped");
 		ColumnChartGroupedStackedListener gsListener = new ColumnChartGroupedStackedListener();
-		gsListener.setBrowser(this.browser);
+//		gsListener.setBrowser(this.browser);
 		transitionGroupedStacked.addActionListener(gsListener);
 		ctrlPanel.add(transitionGroupedStacked, gbc_btnGroupedStacked);
 

@@ -27,22 +27,8 @@
  *******************************************************************************/
 package prerna.ui.main.listener.specific.tap;
 
-import javax.swing.JDesktopPane;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
-
-import prerna.engine.api.IEngine;
-import prerna.om.InsightStore;
-import prerna.om.OldInsight;
-import prerna.ui.components.specific.tap.HealthGridSheet;
-import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.ui.main.listener.impl.AbstractBrowserSPARQLFunction;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
-/**
- */
 public class SysSimHealthGridListener extends AbstractBrowserSPARQLFunction {
 	
 //	AbstractGraphPlaySheet gps;
@@ -54,50 +40,50 @@ public class SysSimHealthGridListener extends AbstractBrowserSPARQLFunction {
 	 * @param arg0 Object[]
 	 * @return Object 
 	 */
-	@Override
-	public JSValue invoke(JSValue... arg0) {
-		Gson gson = new Gson();
-		String sysArrayString = arg0[0].getString();
-		String[] sysArray = gson.fromJson(sysArrayString, String[].class);
-		
-		String sysOfInterest = sysArray[0];
-		
-		HealthGridSheet hgs = new HealthGridSheet();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(coreDb);
-		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?attm, 0.0) AS ?ArchitecturalComplexity) (COALESCE(?iatm, 0.0) AS ?InformationAssurance) (COALESCE(?nfrtm, 0.0) AS ?NonFunctionalRequirements) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (COALESCE(?status, \"TBD\") AS ?SystemStatus) ?highlight WHERE { BIND(<http://health.mil/ontologies/Concept/System/ABACUS> AS ?highlight){?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud} } OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv} } OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ArchitecturalComplecxityTM>  ?attm ;}  OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/InformationAssuranceTM>  ?iatm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/NonFunctionalRequirementsTM>  ?nfrtm ;}OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Phase> ?status }{?status <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle> } } } BINDINGS ?System {@SystemList@}";
-		query = query.replace("ABACUS",sysOfInterest);
-		String sysBindingList= "";
-		
-		for (int i=0; i<sysArray.length;i++)
-		{
-			sysBindingList=sysBindingList+"(<" + coreInstanceSystemURI+sysArray[i] + ">)";
-		}
-		query = query.replaceAll("@SystemList@", sysBindingList);	
-		
-		
-		
-		String question ="System Similarity HealthGrid Custom";
-		hgs.setTitle("System Similarity HealthGrid for "+ sysOfInterest);
-		hgs.setQuery(query);
-		hgs.setRDFEngine(engine);
+//	@Override
+//	public JSValue invoke(JSValue... arg0) {
+//		Gson gson = new Gson();
+//		String sysArrayString = arg0[0].getString();
+//		String[] sysArray = gson.fromJson(sysArrayString, String[].class);
+//		
+//		String sysOfInterest = sysArray[0];
+//		
+//		HealthGridSheet hgs = new HealthGridSheet();
+//		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(coreDb);
+//		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?attm, 0.0) AS ?ArchitecturalComplexity) (COALESCE(?iatm, 0.0) AS ?InformationAssurance) (COALESCE(?nfrtm, 0.0) AS ?NonFunctionalRequirements) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (COALESCE(?status, \"TBD\") AS ?SystemStatus) ?highlight WHERE { BIND(<http://health.mil/ontologies/Concept/System/ABACUS> AS ?highlight){?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud} } OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv} } OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ArchitecturalComplecxityTM>  ?attm ;}  OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/InformationAssuranceTM>  ?iatm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/NonFunctionalRequirementsTM>  ?nfrtm ;}OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Phase> ?status }{?status <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle> } } } BINDINGS ?System {@SystemList@}";
+//		query = query.replace("ABACUS",sysOfInterest);
+//		String sysBindingList= "";
+//		
+//		for (int i=0; i<sysArray.length;i++)
+//		{
+//			sysBindingList=sysBindingList+"(<" + coreInstanceSystemURI+sysArray[i] + ">)";
+//		}
+//		query = query.replaceAll("@SystemList@", sysBindingList);	
+//		
+//		
+//		
+//		String question ="System Similarity HealthGrid Custom";
+//		hgs.setTitle("System Similarity HealthGrid for "+ sysOfInterest);
+//		hgs.setQuery(query);
+//		hgs.setRDFEngine(engine);
+////		hgs.setQuestionID(question);
+//		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance()
+//				.getLocalProp(Constants.DESKTOP_PANE);
+//		hgs.setJDesktopPane(pane);
+//		// need to create the playsheet create runner
+//		Runnable playRunner = null;
+//		playRunner = new PlaysheetCreateRunner(hgs);
+////		QuestionPlaySheetStore.getInstance().put(question, hgs);
+//		OldInsight insight = new OldInsight(engine, "", "");
+//		insight.setInsightName(question);
+//		insight.setPlaySheet(hgs);
+//		String insightID = InsightStore.getInstance().put(insight);
+//		insight.setInsightId(insightID);
 //		hgs.setQuestionID(question);
-		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance()
-				.getLocalProp(Constants.DESKTOP_PANE);
-		hgs.setJDesktopPane(pane);
-		// need to create the playsheet create runner
-		Runnable playRunner = null;
-		playRunner = new PlaysheetCreateRunner(hgs);
-//		QuestionPlaySheetStore.getInstance().put(question, hgs);
-		OldInsight insight = new OldInsight(engine, "", "");
-		insight.setInsightName(question);
-		insight.setPlaySheet(hgs);
-		String insightID = InsightStore.getInstance().put(insight);
-		insight.setInsightId(insightID);
-		hgs.setQuestionID(question);
-		
-		Thread playThread = new Thread(playRunner);
-		playThread.start();
-		return arg0[0];
-	}
+//		
+//		Thread playThread = new Thread(playRunner);
+//		playThread.start();
+//		return arg0[0];
+//	}
 	
 }

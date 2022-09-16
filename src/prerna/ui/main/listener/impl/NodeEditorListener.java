@@ -75,10 +75,10 @@ public class NodeEditorListener implements ActionListener {
 		NodeEditorNavigationListener navListener = new NodeEditorNavigationListener();
 		navListener.setNode(node);
 		navListener.setFilterHash(((GraphDataModel)playSheet.getDataMaker()).baseFilterHash);
-		navListener.setBrowser(tabS.browser);
+//		navListener.setBrowser(tabS.browser);
 		navListener.setEngine(engine);
 		navListener.setGps(gps);
-		tabS.setNavListener(navListener);
+//		tabS.setNavListener(navListener);
 		System.err.println(fullAddress);
 		tabS.setPlaySheet(playSheet);
 		playSheet.jTab.add("Node Editor", tabS);
@@ -86,21 +86,21 @@ public class NodeEditorListener implements ActionListener {
 		SPARQLExecuteFunction sparqlFunction = new SPARQLExecuteFunction();
 	    sparqlFunction.setEngine(engine);
 	    sparqlFunction.setGps(gps);
-	    tabS.browser.registerFunction("SPARQLExecute", sparqlFunction);
+//	    tabS.browser.registerFunction("SPARQLExecute", sparqlFunction);
 	    SPARQLExecuteFilterNoBaseFunction filterFunction = new SPARQLExecuteFilterNoBaseFunction();
 	    filterFunction.setFilterHash(((GraphDataModel)playSheet.getDataMaker()).baseFilterHash);
 	    filterFunction.setEngine(engine);
-	    tabS.browser.registerFunction("SPARQLExecuteFilterNoBase", filterFunction);
+//	    tabS.browser.registerFunction("SPARQLExecuteFilterNoBase", filterFunction);
 	    SPARQLExecuteFilterBaseFunction filterBaseFunction = new SPARQLExecuteFilterBaseFunction();
 	    filterBaseFunction.setFilterHash(((GraphDataModel)playSheet.getDataMaker()).baseFilterHash);
 	    filterBaseFunction.setEngine(engine);
-	    tabS.browser.registerFunction("SPARQLExecuteFilterBase", filterBaseFunction);
+//	    tabS.browser.registerFunction("SPARQLExecuteFilterBase", filterBaseFunction);
 	    InferEngineFunction inferFunction = new InferEngineFunction();
 	    inferFunction.setEngine(engine);
-	    tabS.browser.registerFunction("InferFunction", inferFunction);
+//	    tabS.browser.registerFunction("InferFunction", inferFunction);
 	    RefreshPlaysheetFunction refreshFunction = new RefreshPlaysheetFunction();
 	    refreshFunction.setGps(gps);
-	    tabS.browser.registerFunction("RefreshFunction", refreshFunction);
+//	    tabS.browser.registerFunction("RefreshFunction", refreshFunction);
 		tabS.navigate();
 	}	
 	
