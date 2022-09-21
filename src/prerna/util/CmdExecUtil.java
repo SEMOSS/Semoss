@@ -37,8 +37,11 @@ public class CmdExecUtil {
 		// need a way to whitelist all the stuff here
 		// like rm, del etc. etc. 
 		String commandNotAllowed = commandAllowed(command);
-		if(commandNotAllowed != null)
+		// allowing all commands
+		
+		/*if(commandNotAllowed != null)
 			return commandNotAllowed;
+		*/
 		
 		String output = null;
 		try {
@@ -130,8 +133,8 @@ public class CmdExecUtil {
 		if(workingDir.equalsIgnoreCase(mountDir) && command.contains("..")) // you cannot do anything in the root
 			return mountName;
 
-		if((upCommand.startsWith("DEL") || upCommand.startsWith("RM") || upCommand.startsWith("CP") || upCommand.startsWith("COPY") || upCommand.startsWith("MV") || upCommand.startsWith("MOVE") ||  upCommand.startsWith("LS") || upCommand.startsWith("DIR") || upCommand.startsWith("PWD")) && (command.contains("..") || command.contains("\\") || command.contains("/")))
-			return " Delete, move, copy, list is only allowed for a single level ";
+		//if((upCommand.startsWith("DEL") || upCommand.startsWith("RM") || upCommand.startsWith("CP") || upCommand.startsWith("COPY") || upCommand.startsWith("MV") || upCommand.startsWith("MOVE") ||  upCommand.startsWith("LS") || upCommand.startsWith("DIR") || upCommand.startsWith("PWD")) && (command.contains("..") || command.contains("\\") || command.contains("/")))
+		//	return " Delete, move, copy, list is only allowed for a single level ";
 		
 		if(command.contains("&") || command.contains("&&"))
 			return "Concatenating commands is not allowed";
@@ -141,7 +144,8 @@ public class CmdExecUtil {
 				&& !upCommand.startsWith("DIR") && !upCommand.startsWith("LS") 
 				&& !upCommand.startsWith("MV") && !upCommand.startsWith("MOVE") 
 				&& !upCommand.startsWith("GIT") && !upCommand.startsWith("PWD") 
-				&& !upCommand.startsWith("RESET") && !upCommand.startsWith("MVN"))
+				&& !upCommand.startsWith("RESET") && !upCommand.startsWith("MVN")
+				&& !upCommand.startsWith("DEL"))
 			return "Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, pwd, git, mvn (Experimental) ";
 		
 		return null;

@@ -69,9 +69,9 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
-import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.CustomReactorWrapper;
 import prerna.util.AssetUtility;
+import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
@@ -118,6 +118,9 @@ public class Project implements IProject {
 	
 	// publish cache
 	private boolean publish = false;
+	
+	// maven not set
+	private boolean mvnNotSet = false;
 		
 	@Override
 	public void openProject(String projectSmssFilePath) {
@@ -661,8 +664,12 @@ public class Project implements IProject {
 		
 		String pomFile = projectBaseFolder + File.separator + "version" + File.separator + "assets" + File.separator + "java" + File.separator + "pom.xml";
 		
-		if(new File(pomFile).exists()) {// this is maven
-			retReac =  getReactorMvn(className, null);
+		if(new File(pomFile).exists()) 
+		{// this is maven
+			if(!mvnNotSet)
+				retReac =  getReactorMvn(className, null);
+			else
+				retReac = null;
 		}
 		else // keep the old processing
 		{
@@ -872,6 +879,8 @@ public class Project implements IProject {
 		{
 			mvnClassLoader = null;
 			makeMvnClassloader();
+			if(mvnNotSet) // no point none of the stuff is set anyways
+				return null; 
 			cl = mvnClassLoader;
 			// try to load it directly from assets
 			String targetFolder = getTargetFolder(pomFile);
@@ -994,7 +1003,10 @@ public class Project implements IProject {
 			if(mvnHome == null)
 				mvnHome = DIHelper.getInstance().getProperty(Settings.MVN_HOME);
 			if(mvnHome == null)
-				throw new IllegalStateException("Maven home should be defined in RDF_MAP / environment");
+			{
+				mvnNotSet = true;
+				return;
+			}
 			
 			// classes are in 
 			// appRoot / classes
@@ -1021,38 +1033,49 @@ public class Project implements IProject {
 		try 
 		{
 	        String outputFile = appRoot + File.separator + "mvn_dep.output"; // need to change this java
-	        
-	        // run this only if mvn dependencies have been wiped out
-	        File outputFile1 = new File(outputFile);
-	        
-	        if(!outputFile1.exists())
-	        {
-				InvocationRequest request = new DefaultInvocationRequest();
-				//request.
-				request.setPomFile( new File(pomFile) );
-		        request.setMavenOpts("-DoutputType=graphml -DoutputFile=" + outputFile + " -DincludeScope=runtime ");
-				request.setGoals( Collections.singletonList("dependency:list" ) );
-	
-				Invoker invoker = new DefaultInvoker();
-	
-				invoker.setMavenHome(new File(Utility.normalizePath(mvnHome)));
-				InvocationResult result = invoker.execute( request );
-				 
-				if ( result.getExitCode() != 0 )
-				{
-				    throw new IllegalStateException( "Build failed." );
-				}
-	        }
-	        
+			if(mvnHome != null)
+			{
+		        
+		        // run this only if mvn dependencies have been wiped out
+		        File outputFile1 = new File(outputFile);
+		        
+		        if(!outputFile1.exists())
+		        {
+					InvocationRequest request = new DefaultInvocationRequest();
+					//request.
+					request.setPomFile( new File(pomFile) );
+			        request.setMavenOpts("-DoutputType=graphml -DoutputFile=" + outputFile + " -DincludeScope=runtime ");
+					request.setGoals( Collections.singletonList("dependency:list" ) );
+		
+					Invoker invoker = new DefaultInvoker();
+		
+					invoker.setMavenHome(new File(Utility.normalizePath(mvnHome)));
+					InvocationResult result = invoker.execute( request );
+					 
+					if ( result.getExitCode() != 0 )
+					{
+					    throw new IllegalStateException( "Build failed." );
+					}
+		        }
+		        
+			}
+			else // may be maven is not set but mvn as a executor is available
+			{
+				CmdExecUtil ceu = new CmdExecUtil(projectName, versionFolder + File.separator + "java");
+				// mvn dependency:list -DoutputType=graphml -DoutputFile=./dep.list -DincludeScope=runtime -f pom.xml
+				ceu.executeCommand("mvn dependency:list -DoutputType=graphml -DoutputFile=" + outputFile + " -DincludeScope=runtime -f " + pomFile);
+			}
+			// now process the dependency list 
+			// and then delete it
 			// otherwise we have the list
 			String repoHome = System.getProperty(Settings.REPO_HOME);
 			if(repoHome == null)
 				repoHome = DIHelper.getInstance().getProperty(Settings.REPO_HOME);
 			if(repoHome == null)
-			    throw new IllegalStateException( "Repository Location is not known" );
-
-			// now process the dependency list
-			// and then delete it
+			{
+				mvnNotSet = true;
+				return null;
+			}
 			
 			List <String> finalCP = new Vector<String>();
 			File classesFile = new File(outputFile);
