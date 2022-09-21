@@ -344,7 +344,16 @@ public class MountHelper {
 		mountFolder(baseFolder + FILE_SEPARATOR + Constants.PY_BASE_FOLDER,
 				baseFolder + FILE_SEPARATOR + Constants.PY_BASE_FOLDER, true);
 		mountFolder(getCP(), getCP(), true);
+		
+		
+		String m2Location = DIHelper.getInstance().getProperty(Settings.REPO_HOME);
+		File m2LocationF = new File(m2Location);
+		if(m2LocationF.exists() && m2LocationF.isDirectory()) {
+			mountFolder(m2Location, m2Location, false);
+		}
 
+
+		
 		// TODO add insight cache here too - get users insight cache
 		mountTarget(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),
 				DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR), false);
