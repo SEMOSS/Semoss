@@ -424,6 +424,21 @@ public class MasterDatabaseUtility {
 	 * @param conceptualName
 	 * @return
 	 */
+	public static List<String> getLocalConceptIdsFromLogicalName(List<String> logicalNames) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__LOGICALNAME", "==", logicalNames));
+
+		return QueryExecutionUtility.flushToListString(engine, qs);
+	}
+	
+	/**
+	 * Return all the logical names for a given conceptual name
+	 * @param conceptualName
+	 * @return
+	 */
 	public static List<String> getLocalConceptIdsFromPixelName(List<String> pixelNames) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 

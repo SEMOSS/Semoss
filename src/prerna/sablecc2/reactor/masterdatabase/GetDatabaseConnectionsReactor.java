@@ -56,7 +56,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 		}
 		
 		List<String> inputColumnValues = getColumns();
-		List<String> localConceptIds = MasterDatabaseUtility.getLocalConceptIdsFromPixelName(inputColumnValues);
+		List<String> localConceptIds = MasterDatabaseUtility.getLocalConceptIdsFromLogicalName(inputColumnValues);
 		localConceptIds.addAll(MasterDatabaseUtility.getConceptualIdsWithSimilarLogicalNames(localConceptIds));
 		
 		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(localConceptIds, appliedDatabaseFilters);
@@ -74,7 +74,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 			if(cGrs != null && !cGrs.isEmpty()) {
 				List<String> columns = new Vector<String>();
 				for(int i = 0; i < cGrs.size(); i++) {
-					String value = cGrs.get(i).toString();
+					String value = cGrs.get(i).toString().toLowerCase();
 					if(value.contains("__")) {
 						columns.add(value.split("__")[1].replaceAll("\\s+", "_"));
 					} else {
@@ -88,7 +88,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 		// is it inline w/ currow
 		List<String> columns = new Vector<String>();
 		for(int i = 0; i < this.curRow.size(); i++) {
-			String value = this.curRow.get(i).toString();
+			String value = this.curRow.get(i).toString().toLowerCase();
 			if(value.contains("__")) {
 				columns.add(value.split("__")[1].replaceAll("\\s+", "_"));
 			} else {
