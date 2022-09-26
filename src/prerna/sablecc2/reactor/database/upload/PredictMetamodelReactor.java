@@ -17,6 +17,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.upload.UploadInputUtility;
 
 public class PredictMetamodelReactor extends AbstractReactor {
 	
