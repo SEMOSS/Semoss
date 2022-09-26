@@ -8,7 +8,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
+import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
 
 public class SetProjectMetadataReactor extends AbstractSetMetadataReactor {
 	
