@@ -10,10 +10,10 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.upload.UploadInputUtility;
 
 public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 

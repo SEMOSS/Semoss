@@ -26,13 +26,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
-import prerna.sablecc2.reactor.database.upload.UploadUtilities;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
+import prerna.util.upload.UploadInputUtility;
+import prerna.util.upload.UploadUtilities;
 
 /**
  * Deprecating this file as the functionality has been divided into two new classes,
