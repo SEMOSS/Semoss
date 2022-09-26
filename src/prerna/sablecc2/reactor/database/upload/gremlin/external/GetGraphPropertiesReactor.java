@@ -20,9 +20,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
 import prerna.util.GraphUtility;
 import prerna.util.MyGraphIoMappingBuilder;
+import prerna.util.upload.UploadInputUtility;
 
 public class GetGraphPropertiesReactor extends AbstractReactor {
 	

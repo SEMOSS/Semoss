@@ -30,8 +30,6 @@ import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.database.upload.AbstractUploadFileReactor;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
-import prerna.sablecc2.reactor.database.upload.UploadUtilities;
 import prerna.sablecc2.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -39,6 +37,8 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
+import prerna.util.upload.UploadInputUtility;
+import prerna.util.upload.UploadUtilities;
 
 public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
