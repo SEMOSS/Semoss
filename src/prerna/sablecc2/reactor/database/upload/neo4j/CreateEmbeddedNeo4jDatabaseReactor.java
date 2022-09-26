@@ -6,9 +6,9 @@ import java.io.IOException;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.neo4j.Neo4jEmbeddedEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
-import prerna.sablecc2.reactor.database.upload.UploadUtilities;
 import prerna.sablecc2.reactor.database.upload.gremlin.AbstractCreateExternalGraphReactor;
+import prerna.util.upload.UploadInputUtility;
+import prerna.util.upload.UploadUtilities;
 
 public class CreateEmbeddedNeo4jDatabaseReactor extends AbstractCreateExternalGraphReactor {
 	

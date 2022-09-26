@@ -25,12 +25,12 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 import prerna.util.git.GitRepoUtils;
+import prerna.util.upload.UploadInputUtility;
 
 public class UploadInsightReactor extends AbstractInsightReactor {
 	
