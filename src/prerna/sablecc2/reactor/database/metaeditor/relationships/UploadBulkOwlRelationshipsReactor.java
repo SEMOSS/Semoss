@@ -27,11 +27,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.database.metaeditor.AbstractMetaEditorReactor;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
+import prerna.util.upload.UploadInputUtility;
 
 public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 

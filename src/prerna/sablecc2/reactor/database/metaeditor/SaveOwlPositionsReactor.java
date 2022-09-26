@@ -16,8 +16,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
 import prerna.util.Utility;
+import prerna.util.upload.UploadInputUtility;
 
 public class SaveOwlPositionsReactor extends AbstractReactor {
 

@@ -15,9 +15,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
 import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.GenericReactor;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Utility;
+import prerna.util.upload.UploadInputUtility;
 
 public class FileReadReactor extends AbstractQueryStructReactor {
 

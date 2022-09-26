@@ -14,9 +14,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
-import prerna.sablecc2.reactor.database.upload.UploadUtilities;
 import prerna.util.Utility;
+import prerna.util.upload.UploadInputUtility;
+import prerna.util.upload.UploadUtilities;
 
 public class RdfReplaceDatabaseCsvUploadReactor extends RdfCsvUploadReactor {
 

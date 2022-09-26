@@ -25,13 +25,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.database.upload.AbstractUploadFileReactor;
-import prerna.sablecc2.reactor.database.upload.UploadInputUtility;
-import prerna.sablecc2.reactor.database.upload.UploadUtilities;
 import prerna.sablecc2.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.upload.UploadInputUtility;
+import prerna.util.upload.UploadUtilities;
 
 public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 
