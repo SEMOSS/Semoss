@@ -72,7 +72,7 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.app.template.TemplateUtility;
+import prerna.sablecc2.reactor.database.project.TemplateUtility;
 import prerna.util.Utility;
 
 public class TableToXLSXReactor	extends AbstractReactor {
