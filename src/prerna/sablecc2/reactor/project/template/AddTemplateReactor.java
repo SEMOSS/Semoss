@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.database.project;
+package prerna.sablecc2.reactor.project.template;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,12 +20,12 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class UpdateTemplateReactor extends AbstractReactor {
+public class AddTemplateReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(UpdateTemplateReactor.class);
-	private static final String CLASS_NAME = UpdateTemplateReactor.class.getName();
-	
-	public UpdateTemplateReactor() {
+	private static final Logger classLogger = LogManager.getLogger(AddTemplateReactor.class);
+	private static final String CLASS_NAME = AddTemplateReactor.class.getName();
+
+	public AddTemplateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.TEMPLATE_NAME.getKey(),
 				ReactorKeysEnum.TEMPLATE_FILE.getKey() };
 	}
@@ -73,7 +73,7 @@ public class UpdateTemplateReactor extends AbstractReactor {
 			throw new IllegalArgumentException("An error occurred moving the template into the template folder", e);
 		}
 		// write/update to properties file
-		Map<String, String> templateDataMap = TemplateUtility.editTemplate(projectId, templateFile, templateName);
+		Map<String, String> templateDataMap = TemplateUtility.addTemplate(projectId, templateFile, templateName);
 		// push to cloud
 		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		logger.info("Finished synchronizing templates with template directory");
@@ -82,4 +82,5 @@ public class UpdateTemplateReactor extends AbstractReactor {
 		// template information with template name as key and file name as the value
 		return new NounMetadata(templateDataMap, PixelDataType.MAP);
 	}
+
 }
