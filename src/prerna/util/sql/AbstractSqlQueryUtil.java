@@ -36,6 +36,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -325,7 +326,7 @@ public abstract class AbstractSqlQueryUtil {
 	}
 	
 	public Map<String, String> getTypeConversionMap() {
-		return typeConversionMap;
+		return Collections.unmodifiableMap(typeConversionMap);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -802,6 +803,15 @@ public abstract class AbstractSqlQueryUtil {
 	 * Create a new table with passed in columns + types + default values
 	 * 
 	 * @param tableName
+	 * @param colToTypeMap
+	 * @return
+	 */
+	public abstract String createTable(String tableName, Map<String, String> colToTypeMap);
+	
+	/**
+	 * Create a new table with passed in columns + types + default values
+	 * 
+	 * @param tableName
 	 * @param colNames
 	 * @param types
 	 * @param defaultValues
@@ -941,6 +951,15 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract String alterTableAddColumns(String tableName, String[] newColumns, String[] newColTypes);
 
+	/**
+	 * Add new columns to an existing table
+	 * 
+	 * @param tableName
+	 * @param newColToTypeMap
+	 * @return
+	 */
+	public abstract String alterTableAddColumns(String tableName, Map<String, String> newColToTypeMap);
+	
 	/**
 	 * Add new columns to an existing table with default value
 	 * 
