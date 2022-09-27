@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.database.project;
+package prerna.sablecc2.reactor.project.template;
 
 import java.io.File;
 import java.io.FileInputStream;
