@@ -1,7 +1,6 @@
 package prerna.rpa.quartz.jobs.insight;
 
 import java.io.IOException;
-import java.net.HttpCookie;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -16,7 +15,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -73,9 +71,9 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			url = url.trim();
 			
 			String csrfToken = null;
-			CookieStore cookieStore = null;
+			CookieStore httpCookieStore = new BasicCookieStore();
+			CloseableHttpClient httpclient = AbstractHttpHelper.getCustomClient(httpCookieStore, keyStore, keyStorePass);
 			if(FETCH_CSRF){
-				CloseableHttpClient httpclient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
 				String fetchUrl = url;
 				if(fetchUrl.endsWith("/")) {
 					fetchUrl += "api/config/fetchCsrf";
@@ -85,7 +83,6 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				HttpGet httpget = new HttpGet(url);
 				httpget.addHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
 				httpget.addHeader("X-CSRF-Token","fetch");
-				cookieStore = new BasicCookieStore();
 				CloseableHttpResponse response = null;
 				try {
 					response = httpclient.execute(httpget);
@@ -93,16 +90,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 					for(Header h : allheaders) {
 						if(h.getName().equals("X-CSRF-Token")) {
 							csrfToken = h.getValue();
-						} else if(h.getName().equals("Set-Cookie")) {
-							// move over all the cookies
-							List<HttpCookie> cookies = HttpCookie.parse(h.getValue());
-							for(HttpCookie c : cookies) {
-								BasicClientCookie cookie = new BasicClientCookie(c.getName(), c.getValue());
-								cookie.setSecure(c.getSecure());
-								cookie.setPath(c.getPath());
-								cookie.setDomain(c.getDomain());
-								cookieStore.addCookie(cookie);
-							}
+							break;
 						}
 					}
 				} catch (ClientProtocolException e) {
@@ -126,7 +114,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				url += "/api/schedule/executePixel";
 			}
 			
-			CloseableHttpClient httpclient = AbstractHttpHelper.getCustomClient(cookieStore, keyStore, keyStorePass);
+			// use the same cookie store from above if values are set
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
 			if(csrfToken != null) {
