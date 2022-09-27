@@ -38,10 +38,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -50,7 +53,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.impl.util.Owler;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -103,7 +108,7 @@ public abstract class AbstractSqlQueryUtil {
 	// h2 force file for creating embedded file
 	public static final String FORCE_FILE = "forceFile";
 	
-	private static final Logger logger = LogManager.getLogger(AbstractSqlQueryUtil.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractSqlQueryUtil.class);
 
 	protected RdbmsTypeEnum dbType = null;
 	// there are 2 different ways of providing the inputs
@@ -189,7 +194,7 @@ public abstract class AbstractSqlQueryUtil {
 		try {
 			Class.forName(type.getDriver());
 		} catch (ClassNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SQLException("Unable to find class: " + type.getDriver());
 		}
 
@@ -202,7 +207,7 @@ public abstract class AbstractSqlQueryUtil {
 				conn = DriverManager.getConnection(connectionUrl, userName, password);
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SQLException(e.getMessage());
 		}
 
@@ -406,9 +411,9 @@ public abstract class AbstractSqlQueryUtil {
 				inputstream = inputClob.getAsciiStream();
 				return IOUtils.toString(inputstream);
 			} catch (SQLException sqe) {
-				logger.error(Constants.STACKTRACE, sqe);
+				classLogger.error(Constants.STACKTRACE, sqe);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return null;
@@ -1271,14 +1276,14 @@ public abstract class AbstractSqlQueryUtil {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1303,7 +1308,7 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -1332,7 +1337,7 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -1368,14 +1373,14 @@ public abstract class AbstractSqlQueryUtil {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1400,7 +1405,7 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -1435,14 +1440,14 @@ public abstract class AbstractSqlQueryUtil {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1466,7 +1471,7 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -1497,25 +1502,118 @@ public abstract class AbstractSqlQueryUtil {
 				tableColumns.add(rs.getString(1).toUpperCase());
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (rs != null) {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 
 		return tableColumns;
+	}
+	
+	public static DatabaseUpdateMetadata performDatabaseAdditions(IRDBMSEngine rdbmsDb, Map<String, Map<String, String>> updates, Logger logger) {
+		DatabaseUpdateMetadata meta = new DatabaseUpdateMetadata();
+		
+		Set<String> tableExists = new HashSet<>();
+
+		AbstractSqlQueryUtil queryUtil = rdbmsDb.getQueryUtil();
+		Map<String, String> typeConversionMap = queryUtil.getTypeConversionMap();
+		
+		try {
+			Connection conn = rdbmsDb.getConnection();
+			String database = rdbmsDb.getDatabase();
+			String schema = rdbmsDb.getSchema();
+			
+			// first run a validation on the input
+			for(String tableName : updates.keySet()) {
+				logger.info("Validating table " + tableName);
+				if(queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
+					logger.info("Validating columns for " + tableName);
+					// we are altering - make sure everything is valid
+					
+					List<String> currentColumns = queryUtil.getTableColumns(conn, tableName, database, schema);
+					Set<String> currentColumnsLower = currentColumns.stream().map(s -> s.toLowerCase()).collect(Collectors.toSet());
+					
+					Set<String> newColumns = updates.get(tableName).keySet();
+					Set<String> newColumnsLower = newColumns.stream().map(s -> s.toLowerCase()).collect(Collectors.toSet());
+					
+					Set<String> overlap = newColumnsLower.stream().filter(s -> currentColumnsLower.contains(s)).collect(Collectors.toSet());
+					if(!overlap.isEmpty()) {
+						throw new IllegalArgumentException("The following column names already exist: " + overlap);
+					}
+
+					tableExists.add(tableName);
+				}
+			}
+		} catch(SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error validating the input. Detailed message = " + e.getMessage());
+		}
+		
+		// create an owler to track the meta modifications
+		Owler owler = new Owler(rdbmsDb);
+		meta.setOwler(owler);
+		
+		StringBuilder errorMessages = new StringBuilder();
+		// now do the operations
+		for(String tableName : updates.keySet()) {
+
+			Map<String, String> finalColumnUpdates = new HashMap<>(updates.size());
+
+			Map<String, String> columnUpdates = updates.get(tableName);
+			for(String column : columnUpdates.keySet()) {
+
+				String columnType = columnUpdates.get(column).toUpperCase();
+				if(typeConversionMap.containsKey(columnType)) {
+					columnType = typeConversionMap.get(columnType);
+				}
+
+				finalColumnUpdates.put(column, columnType);
+			}
+
+			String query = null;
+			if(tableExists.contains(tableName)) {
+				logger.info("Altering table " + tableName);
+				query = queryUtil.alterTableAddColumns(tableName, finalColumnUpdates);
+			} else {
+				logger.info("Creating table " + tableName);
+				query = queryUtil.createTable(tableName, finalColumnUpdates);
+			}
+			try {
+				rdbmsDb.insertData(query);
+				
+				// add to the owl
+				logger.info("Updating metadata for table " + tableName);
+				owler.addConcept(tableName, null, null);
+				for(String column : finalColumnUpdates.keySet()) {
+					String columnType = finalColumnUpdates.get(column);
+					owler.addProp(tableName, column, columnType);
+				}
+				
+				// store the metadata
+				meta.addSuccessfulUpdate(tableName);
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				errorMessages.append("Error executing query = '" + query +"' with detailed error = " + e.getMessage() + ". ");
+				meta.addFailedUpdates(tableName);
+			}
+		}
+		
+		meta.setCombinedErrors(errorMessages.toString());
+		
+		return meta;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

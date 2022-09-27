@@ -36,7 +36,11 @@ public class UploadInputUtility {
 	public static final String CLEAN_STRING_VALUES = ReactorKeysEnum.CLEAN.getKey();
 	public static final String REMOVE_DUPLICATE_ROWS = ReactorKeysEnum.DEDUPLICATE.getKey();
 	public static final String REPLACE_EXISTING = ReactorKeysEnum.REPLACE.getKey();
+	// this is really a dumb format... not sure why we have this
+	@Deprecated 
 	public static final String METAMODEL = ReactorKeysEnum.METAMODEL.getKey();
+	// basic {tablename:{columnname:columntype}}
+	public static final String METAMODEL_ADDITIONS = ReactorKeysEnum.METAMODEL_ADDITIONS.getKey();
 	public static final String END_ROW = ReactorKeysEnum.END_ROW.getKey();
 	public static final String START_ROW = ReactorKeysEnum.START_ROW.getKey();
 	public static final String PROP_FILE = "propFile";
@@ -332,6 +336,14 @@ public class UploadInputUtility {
 			return null;
 		}
 		return (Map<String, Object>) grs.get(0);
+	}
+	
+	public static Map<String, Map<String, String>> getMetamodelAdditions(NounStore store) {
+		GenRowStruct grs = store.getNoun(METAMODEL_ADDITIONS);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, Map<String, String>>) grs.get(0);
 	}
 
 	public static Map<String, Object> getMetamodelFromPropFile(NounStore store, Insight in) {
