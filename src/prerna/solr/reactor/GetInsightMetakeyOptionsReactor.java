@@ -19,7 +19,7 @@ public class GetInsightMetakeyOptionsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String metakey = this.keyValue.get(this.keysToGet[0]);
-		List<Map<String, Object>> ret = SecurityInsightUtils.getMetakeyOptions( metakey);
+		List<Map<String, Object>> ret = SecurityInsightUtils.getMetakeyOptions(metakey);
 		NounMetadata noun = new NounMetadata(ret, PixelDataType.PIXEL_OBJECT);
 		return noun;
 	}
