@@ -59,7 +59,7 @@ public class GsonUtility {
 	public static Gson getDefaultGson(boolean pretty) {
 		GsonBuilder gsonBuilder = new GsonBuilder()
 				.disableHtmlEscaping()
-				.excludeFieldsWithModifiers(Modifier.STATIC)
+				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
 				.registerTypeAdapter(Double.class, new NumberAdapter())
 				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 				
