@@ -863,19 +863,47 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
-		String columName = colNames[0];
-		if(isSelectorKeyword(columName)) {
-			columName = getEscapeKeyword(columName);
+		String columnName = colNames[0];
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
 		}
 		
-		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columnName).append(" ").append(types[0]);
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			columName = colNames[colIndex];
-			if(isSelectorKeyword(columName)) {
-				columName = getEscapeKeyword(columName);
+			columnName = colNames[colIndex];
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
 			}
-			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
+			retString.append(" , ").append(columnName).append("  ").append(types[colIndex]);
 		}
+		retString = retString.append(");");
+		return retString.toString();
+	}
+	
+	@Override
+	public String createTable(String tableName, Map<String, String> colToTypeMap) {
+		// should escape keywords
+		tableName = cleanTableName(tableName);
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (");
+		int i = 0;
+		for(String columnName : colToTypeMap.keySet()) {
+			String columnType = colToTypeMap.get(columnName);
+			if(i > 0) {
+				retString.append(" , ");
+			}
+			
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
+			}
+			retString.append(columnName).append("  ").append(columnType);
+			
+			i++;
+		}
+		
 		retString = retString.append(");");
 		return retString.toString();
 	}
@@ -887,12 +915,12 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
-		String columName = colNames[0];
-		if(isSelectorKeyword(columName)) {
-			columName = getEscapeKeyword(columName);
+		String columnName = colNames[0];
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
 		}
 		
-		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columnName).append(" ").append(types[0]);
 		if(defaultValues[0] != null) {
 			retString.append(" DEFAULT ");
 			if(defaultValues[0] instanceof String) {
@@ -902,11 +930,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			}
 		}
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			columName = colNames[colIndex];
-			if(isSelectorKeyword(columName)) {
-				columName = getEscapeKeyword(columName);
+			columnName = colNames[colIndex];
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
 			}
-			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
+			retString.append(" , ").append(columnName).append("  ").append(types[colIndex]);
 			// add default values
 			if(defaultValues[colIndex] != null) {
 				retString.append(" DEFAULT ");
@@ -928,21 +956,21 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
-		String columName = colNames[0];
-		if(isSelectorKeyword(columName)) {
-			columName = getEscapeKeyword(columName);
+		String columnName = colNames[0];
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
 		}
 		
-		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columnName).append(" ").append(types[0]);
 		if(customConstraints[0] != null) {
 			retString.append(" ").append(customConstraints[0]).append(" ");
 		}
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			columName = colNames[colIndex];
-			if(isSelectorKeyword(columName)) {
-				columName = getEscapeKeyword(columName);
+			columnName = colNames[colIndex];
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
 			}
-			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
+			retString.append(" , ").append(columnName).append("  ").append(types[colIndex]);
 			// add default values
 			if(customConstraints[colIndex] != null) {
 				retString.append(" ").append(customConstraints[colIndex]).append(" ");
@@ -963,18 +991,18 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
-		String columName = colNames[0];
-		if(isSelectorKeyword(columName)) {
-			columName = getEscapeKeyword(columName);
+		String columnName = colNames[0];
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
 		}
 		
-		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (").append(columnName).append(" ").append(types[0]);
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			columName = colNames[colIndex];
-			if(isSelectorKeyword(columName)) {
-				columName = getEscapeKeyword(columName);
+			columnName = colNames[colIndex];
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
 			}
-			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
+			retString.append(" , ").append(columnName).append("  ").append(types[colIndex]);
 		}
 		retString = retString.append(");");
 		return retString.toString();
@@ -991,12 +1019,12 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
-		String columName = colNames[0];
-		if(isSelectorKeyword(columName)) {
-			columName = getEscapeKeyword(columName);
+		String columnName = colNames[0];
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
 		}
 		
-		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (").append(columnName).append(" ").append(types[0]);
 		if(defaultValues[0] != null) {
 			retString.append(" DEFAULT ");
 			if(defaultValues[0] instanceof String) {
@@ -1006,11 +1034,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			}
 		}
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			columName = colNames[colIndex];
-			if(isSelectorKeyword(columName)) {
-				columName = getEscapeKeyword(columName);
+			columnName = colNames[colIndex];
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
 			}
-			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
+			retString.append(" , ").append(columnName).append("  ").append(types[colIndex]);
 			// add default values
 			if(defaultValues[colIndex] != null) {
 				retString.append(" DEFAULT ");
@@ -1036,21 +1064,21 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
-		String columName = colNames[0];
-		if(isSelectorKeyword(columName)) {
-			columName = getEscapeKeyword(columName);
+		String columnName = colNames[0];
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
 		}
 		
-		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (").append(columnName).append(" ").append(types[0]);
 		if(customConstraints[0] != null) {
 			retString.append(" ").append(customConstraints[0]).append(" ");
 		}
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			columName = colNames[colIndex];
-			if(isSelectorKeyword(columName)) {
-				columName = getEscapeKeyword(columName);
+			columnName = colNames[colIndex];
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
 			}
-			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
+			retString.append(" , ").append(columnName).append("  ").append(types[colIndex]);
 			// add default values
 			if(customConstraints[colIndex] != null) {
 				retString.append(" ").append(customConstraints[colIndex]).append(" ");
@@ -1203,7 +1231,39 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 				newColumn = getEscapeKeyword(newColumn);
 			}
 			
-			alterString.append(newColumns[i] + "  " + newColTypes[i]);
+			alterString.append(newColumn + "  " + newColTypes[i]);
+		}
+		alterString.append(");");
+		return alterString.toString();
+	}
+	
+	@Override
+	public String alterTableAddColumns(String tableName, Map<String, String> newColToTypeMap) {
+		if(!allowMultiAddColumn()) {
+			throw new UnsupportedOperationException("Does not support multi add column syntax");
+		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " ADD (");
+		int i = 0;
+		for(String newColumn : newColToTypeMap.keySet()) {
+			String newColType = newColToTypeMap.get(newColumn);
+			if (i > 0) {
+				alterString.append(", ");
+			}
+			
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn + "  " + newColType);
+			
+			i++;
 		}
 		alterString.append(");");
 		return alterString.toString();
@@ -1233,7 +1293,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 				newColumn = getEscapeKeyword(newColumn);
 			}
 			
-			alterString.append(newColumns[i] + "  " + newColTypes[i]);
+			alterString.append(newColumn + "  " + newColTypes[i]);
 			
 			// add default values
 			if(defaultValues[i] != null) {
