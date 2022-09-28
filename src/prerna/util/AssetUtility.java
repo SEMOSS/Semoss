@@ -157,7 +157,7 @@ public class AssetUtility {
 		assetFolder = assetFolder.replace('\\', '/');
 		
 		// need to make adjustment here so that if it is not version then ignore initing here
-		if(in.isSavedInsight() && !isGit(assetFolder) && !assetFolder.trim().endsWith("app_root")) {
+		if(in.isSavedInsight() && !isGit(assetFolder) && !assetFolder.trim().endsWith(Constants.APP_ROOT_FOLDER)) {
 			GitRepoUtils.init(assetFolder);
 		}
 		return assetFolder;
@@ -187,7 +187,7 @@ public class AssetUtility {
 	
 	public static String getProjectVersionFolder(String projectName, String projectId, boolean ignoreGit) {
 		String appBaseFolder = getProjectBaseFolder(projectName, projectId);
-		String gitFolder = appBaseFolder + DIR_SEPARATOR + "version";
+		String gitFolder = appBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER;
 		// if this folder does not exist create it
 		File file = new File(Utility.normalizePath(gitFolder));
 		if (!file.exists()) {			
@@ -225,7 +225,7 @@ public class AssetUtility {
 		}
 		
 		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR 
-				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "app_root" );
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + Constants.APP_ROOT_FOLDER );
 
 		File baseProjectFolderFile = new File(baseProjectFolder);
 		if(!baseProjectFolderFile.exists()) {
@@ -244,19 +244,19 @@ public class AssetUtility {
 		}
 
 		String oldBaseAppFolder = Utility.normalizePath(baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR 
-				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "version" );
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + Constants.VERSION_FOLDER );
 
 		File oldBaseAppFolderFile = new File(oldBaseAppFolder);
 
 		if(oldBaseAppFolderFile.exists()) {
 			try {
 				System.err.println(">>>>> Rehoming Catalog : " + projectName + " <<<<<<");
-				Files.move(oldBaseAppFolderFile.toPath(), new File(newRoot + DIR_SEPARATOR + "version").toPath(), StandardCopyOption.REPLACE_EXISTING);
+				Files.move(oldBaseAppFolderFile.toPath(), new File(newRoot + DIR_SEPARATOR + Constants.VERSION_FOLDER).toPath(), StandardCopyOption.REPLACE_EXISTING);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		}		
+		}
 	}
 	
 	/*
@@ -276,7 +276,7 @@ public class AssetUtility {
 		}
 		
 		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.USER_FOLDER + DIR_SEPARATOR 
-				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "app_root" );
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + Constants.APP_ROOT_FOLDER );
 
 		File baseAppFolderFile = new File(baseProjectFolder);
 		if(!baseAppFolderFile.exists()) {
