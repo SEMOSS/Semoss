@@ -373,6 +373,8 @@ public class Constants {
 	public static final String OWL = "OWL";
 	public static final String DB_FOLDER = "db";
 	public static final String PROJECT_FOLDER = "project";
+	public static final String APP_ROOT_FOLDER = "app_root";
+	public static final String VERSION_FOLDER = "version";
 	public static final String USER_FOLDER = "user";
 
 	@Deprecated

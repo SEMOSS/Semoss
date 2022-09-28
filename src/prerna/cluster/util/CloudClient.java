@@ -84,9 +84,9 @@ public abstract class CloudClient {
 	 * MAHER MODIFIED METHODS
 	 */
 	
-	public abstract void pullAppImageFolder() throws IOException, InterruptedException;
+	public abstract void pullDatabaseImageFolder() throws IOException, InterruptedException;
 
-	public abstract void pushAppImageFolder() throws IOException, InterruptedException;
+	public abstract void pushDatabaseImageFolder() throws IOException, InterruptedException;
 	
 	public abstract void pullProjectImageFolder() throws IOException, InterruptedException;
 
@@ -111,6 +111,10 @@ public abstract class CloudClient {
 	public abstract void pushProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
 
 	public abstract void pullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+
+	public abstract void pushInsight(String projectId, String rdbmsId) throws IOException, InterruptedException;
+
+	public abstract void pullInsight(String projectId, String rdbmsId) throws IOException, InterruptedException;
 
 	public abstract void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded) throws IOException, InterruptedException;
 	

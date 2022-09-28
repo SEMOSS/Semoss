@@ -469,9 +469,9 @@ public class InsightCacheUtility {
 		// from an existing insight as the .cache folder gets moved
 
 		String folderDir = getInsightCacheFolderPath(projectId, projectName, rdbmsId, parameters);
-		Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR 
+		Path projectFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR 
 				+ Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId));
-		Path relative = appFolder.relativize( Paths.get(folderDir));
+		Path relative = projectFolder.relativize( Paths.get(folderDir));
 		if(pullCloud) {
 			ClusterUtil.reactorPullProjectFolder(projectId, folderDir, relative.toString());
 		}

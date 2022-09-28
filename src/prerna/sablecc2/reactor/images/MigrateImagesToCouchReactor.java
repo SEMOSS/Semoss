@@ -97,7 +97,7 @@ public class MigrateImagesToCouchReactor extends AbstractReactor {
 		}
 		if (repull) {
 			try {
-				CloudClient.getClient().pullAppImageFolder();
+				CloudClient.getClient().pullDatabaseImageFolder();
 				CloudClient.getClient().pullProjectImageFolder();
 			} catch (IOException | InterruptedException e) {
 				LOGGER.warn("Error pulling cloud image folders: " + e.getMessage(), e);
