@@ -445,10 +445,10 @@ public class ClusterUtil {
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
-		}		
+		}
 	}
 	
-	public static void reactorPushInsightFolder(String projectId, String rdbmsId) {
+	public static void reactorPushInsight(String projectId, String rdbmsId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				CloudClient.getClient().pushInsight(projectId, rdbmsId);
@@ -462,7 +462,7 @@ public class ClusterUtil {
 		}
 	}
 	
-	public static void reactorPullInsightFolder(String projectId, String rdbmsId) {
+	public static void reactorPullInsight(String projectId, String rdbmsId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				CloudClient.getClient().pullInsight(projectId, rdbmsId);
