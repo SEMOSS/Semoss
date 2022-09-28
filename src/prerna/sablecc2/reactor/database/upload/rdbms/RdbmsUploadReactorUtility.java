@@ -44,7 +44,6 @@ public class RdbmsUploadReactorUtility {
 		sqlHash.put(SemossDataType.STRING.toString(), "VARCHAR(2000)");
 		sqlHash.put(SemossDataType.DATE.toString(), "DATE");
 		sqlHash.put(SemossDataType.TIMESTAMP.toString(), "TIMESTAMP");
-
 	}
 	
 	/**

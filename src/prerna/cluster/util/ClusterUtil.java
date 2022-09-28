@@ -395,11 +395,11 @@ public class ClusterUtil {
 	public static void  reactorPushProjectFolder(IProject project, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
-			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+			String projectHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
 					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId());
-			Path appHomePath = Paths.get(appHome);
-			Path relative = appHomePath.relativize( Paths.get(absolutePath));
+			Path projectHomePath = Paths.get(projectHome);
+			Path relative = projectHomePath.relativize( Paths.get(absolutePath));
 			ClusterUtil.reactorPushProjectFolder(project.getProjectId(), absolutePath, relative.toString());
 
 		}		
@@ -423,13 +423,12 @@ public class ClusterUtil {
 	public static void  reactorPullProjectFolder(IProject project, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
-			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+			String projectHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
 					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId());
-			Path appHomePath = Paths.get(appHome);
-			Path relative = appHomePath.relativize( Paths.get(absolutePath));
+			Path projectHomePath = Paths.get(projectHome);
+			Path relative = projectHomePath.relativize( Paths.get(absolutePath));
 			ClusterUtil.reactorPullProjectFolder(project.getProjectId(), absolutePath, relative.toString());
-
 		}		
 	}
 
@@ -438,6 +437,35 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				CloudClient.getClient().pullProjectFolder(projectId, absolutePath, remoteRelativePath);
+			}  catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}		
+	}
+	
+	public static void reactorPushInsightFolder(String projectId, String rdbmsId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pushInsight(projectId, rdbmsId);
+			}  catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	public static void reactorPullInsightFolder(String projectId, String rdbmsId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pullInsight(projectId, rdbmsId);
 			}  catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
@@ -499,7 +527,7 @@ public class ClusterUtil {
 		else {
 			try {
 				//first try to pull the images folder, Return it after the pull, or else we make the file
-				CloudClient.getClient().pullAppImageFolder();
+				CloudClient.getClient().pullDatabaseImageFolder();
 				//so i dont always know the extension, but every image should be named by the appid which means i need to search the folder for something like the file
 				images = imageFolder.listFiles(new FilenameFilter() {
 					@Override
@@ -519,7 +547,7 @@ public class ClusterUtil {
 					} else{
 						TextToGraphic.makeImage(databaseId, imageFilePath);
 					}
-					CloudClient.getClient().pushAppImageFolder();
+					CloudClient.getClient().pushDatabaseImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
 				imageFile = new File(imageFilePath);
@@ -586,7 +614,7 @@ public class ClusterUtil {
 					} else{
 						TextToGraphic.makeImage(projectId, imageFilePath);
 					}
-					CloudClient.getClient().pushAppImageFolder();
+					CloudClient.getClient().pushProjectImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
 				imageFile = new File(imageFilePath);

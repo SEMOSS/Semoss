@@ -37,6 +37,7 @@ import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.ProjectHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
@@ -424,8 +425,6 @@ public class AZClient extends CloudClient {
 	}
 
 
-
-
 	@Override
 	public void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
 		IEngine engine = Utility.getEngine(appId, false);
@@ -609,27 +608,21 @@ public class AZClient extends CloudClient {
 		if (project == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
-		String appRcloneConfig = null;
-		//String alias = SecurityQueryUtils.getEngineAliasForId(appId);
-		//String aliasAppId = alias + "__" + appId;
-		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		String rcloneConfig = null;
 
-		// adding a lock for now, but there may be times we don't need one and other times we do
-		// reaching h2 db from version folder vs static assets in asset app
-		// synchronize on the app id
 		logger.info("Applying lock for " + projectId + " to pull folder " + remoteRelativePath);
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
 		logger.info("Project "+ projectId + " is locked");
 		try {
-			appRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
+			rcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
 			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + projectId);
 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+PROJECT_CONTAINER_PREFIX+projectId+  "/" + remoteRelativePath, absolutePath);
+			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", rcloneConfig + ":"+PROJECT_CONTAINER_PREFIX+projectId+  "/" + remoteRelativePath, absolutePath);
 		} finally {
 			try {
-				if (appRcloneConfig != null) {
-					deleteRcloneConfig(appRcloneConfig);
+				if (rcloneConfig != null) {
+					deleteRcloneConfig(rcloneConfig);
 				}
 			}
 			finally {
@@ -1040,6 +1033,60 @@ public class AZClient extends CloudClient {
 				// always unlock regardless of errors
 				lock.unlock();
 				logger.info("Project "+ projectId + " is unlocked");
+			}
+		}
+	}
+	
+	@Override
+	public void pushInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+		String rcloneConfig = null;
+
+		try {
+			rcloneConfig = createRcloneConfig(projectId);
+
+			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
+			File insightFolder = new File(insightFolderPath);
+			insightFolder.mkdir();
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
+					insightFolder.getPath(),
+					rcloneConfig + ":"+PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+rdbmsId);
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+		} finally {
+			if (rcloneConfig != null) {
+				deleteRcloneConfig(rcloneConfig);
+			}
+		}
+	}
+
+	@Override
+	public void pullInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+		String rcloneConfig = null;
+
+		try {
+			rcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
+
+			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
+			File insightFolder = new File(insightFolderPath);
+			insightFolder.mkdir();
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
+					rcloneConfig + ":"+PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+rdbmsId,
+					insightFolder.getPath());
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+		} finally {
+			if (rcloneConfig != null) {
+				deleteRcloneConfig(rcloneConfig);
 			}
 		}
 	}
@@ -1465,7 +1512,7 @@ public class AZClient extends CloudClient {
 	}
 
 	@Override
-	public void pullAppImageFolder() throws IOException, InterruptedException {
+	public void pullDatabaseImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
 			rCloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
@@ -1488,7 +1535,7 @@ public class AZClient extends CloudClient {
 	}
 
 	@Override
-	public void pushAppImageFolder() throws IOException, InterruptedException {
+	public void pushDatabaseImageFolder() throws IOException, InterruptedException {
 		String appRcloneConfig = null;
 		try {
 			appRcloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);

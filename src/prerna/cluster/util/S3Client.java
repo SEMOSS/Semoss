@@ -22,6 +22,7 @@ import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.ProjectHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
@@ -476,7 +477,7 @@ public class S3Client extends CloudClient {
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
 		}
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to push folder " + remoteRelativePath);
+		logger.info("Applying lock for project " + projectId + " to push folder " + remoteRelativePath);
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
 		logger.info("Project "+ projectId + " is locked");
@@ -789,7 +790,7 @@ public class S3Client extends CloudClient {
 				File thisProjectFolder = new File(projectFolder + FILE_SEPARATOR + Utility.normalizePath(aliasProjectId));
 				thisProjectFolder.mkdir();
 				// Pull the contents of the app folder before the smss
-				logger.info("Pulling app from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisProjectFolder.getPath()));
+				logger.info("Pulling project from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisProjectFolder.getPath()));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+RCLONE_PROJECT_PATH+projectId, thisProjectFolder.getPath());
 				logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisProjectFolder.getPath()));
 
@@ -862,7 +863,7 @@ public class S3Client extends CloudClient {
 				DIHelper.getInstance().removeProjectProperty(projectId);
 				project.closeProject();
 
-				// Push the app folder
+				// Push the project folder
 				logger.info("Pushing project from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", thisProjectFolder, rCloneConfig+RCLONE_PROJECT_PATH+projectId);
 				logger.debug("Done pushing from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
@@ -989,7 +990,7 @@ public class S3Client extends CloudClient {
 	}
 
 	@Override
-	public void pullAppImageFolder() throws IOException, InterruptedException {
+	public void pullDatabaseImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
 			rCloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
@@ -1011,7 +1012,7 @@ public class S3Client extends CloudClient {
 	}
 
 	@Override
-	public void pushAppImageFolder() throws IOException, InterruptedException {
+	public void pushDatabaseImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
 			rCloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
@@ -1303,6 +1304,62 @@ public class S3Client extends CloudClient {
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+BUCKET+"/semoss-imagecontainer", imagesFolderPath);
 			// now push into the correct folder
 			runRcloneProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig+":"+BUCKET+"/"+ClusterUtil.DB_IMAGES_BLOB);
+		} finally {
+			if (rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+	
+	@Override
+	public void pushInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+		String rCloneConfig = null;
+
+		try {
+			rCloneConfig = createRcloneConfig(projectId);
+
+			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
+			File insightFolder = new File(insightFolderPath);
+			insightFolder.mkdir();
+			// Pull the contents of the app folder before the smss
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
+					insightFolder.getPath(),
+					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+rdbmsId);
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+		} finally {
+			if (rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+
+	@Override
+	public void pullInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+		String rCloneConfig = null;
+
+		try {
+			rCloneConfig = createRcloneConfig(projectId);
+
+			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
+			File insightFolder = new File(insightFolderPath);
+			insightFolder.mkdir();
+			// Pull the contents of the app folder before the smss
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
+					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+rdbmsId, 
+					insightFolder.getPath());
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
