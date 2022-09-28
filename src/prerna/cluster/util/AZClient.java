@@ -1038,7 +1038,61 @@ public class AZClient extends CloudClient {
 	}
 	
 	@Override
-	public void pushInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
+	public void pushInsight(String projectId, String insightId) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+		String rcloneConfig = null;
+
+		try {
+			rcloneConfig = createRcloneConfig(projectId);
+
+			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
+			File insightFolder = new File(insightFolderPath);
+			insightFolder.mkdir();
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
+					insightFolder.getPath(),
+					rcloneConfig+":"+PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId);
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+		} finally {
+			if (rcloneConfig != null) {
+				deleteRcloneConfig(rcloneConfig);
+			}
+		}
+	}
+
+	@Override
+	public void pullInsight(String projectId, String insightId) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+		String rcloneConfig = null;
+
+		try {
+			rcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
+
+			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
+			File insightFolder = new File(insightFolderPath);
+			insightFolder.mkdir();
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
+					rcloneConfig+":"+PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId,
+					insightFolder.getPath());
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+		} finally {
+			if (rcloneConfig != null) {
+				deleteRcloneConfig(rcloneConfig);
+			}
+		}
+	}
+	
+	@Override
+	public void pushInsightImage(String projectId, String insightId, String imageFileName) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId, false);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -1049,14 +1103,14 @@ public class AZClient extends CloudClient {
 			rcloneConfig = createRcloneConfig(projectId);
 
 			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
-			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
 			File insightFolder = new File(insightFolderPath);
 			insightFolder.mkdir();
-			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
-					insightFolder.getPath(),
-					rcloneConfig + ":"+PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+rdbmsId);
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+					insightFolder.getPath()+"/"+imageFileName,
+					rcloneConfig+":"+PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId+"/"+imageFileName);
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 		} finally {
 			if (rcloneConfig != null) {
 				deleteRcloneConfig(rcloneConfig);
@@ -1064,33 +1118,6 @@ public class AZClient extends CloudClient {
 		}
 	}
 
-	@Override
-	public void pullInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
-		IProject project = Utility.getProject(projectId, false);
-		if (project == null) {
-			throw new IllegalArgumentException("Project not found...");
-		}
-		String rcloneConfig = null;
-
-		try {
-			rcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
-
-			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
-			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
-			File insightFolder = new File(insightFolderPath);
-			insightFolder.mkdir();
-			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
-			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
-					rcloneConfig + ":"+PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+rdbmsId,
-					insightFolder.getPath());
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
-		} finally {
-			if (rcloneConfig != null) {
-				deleteRcloneConfig(rcloneConfig);
-			}
-		}
-	}
-	
 	@Override
 	public void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded) throws IOException, InterruptedException {
 		IProject project = null;

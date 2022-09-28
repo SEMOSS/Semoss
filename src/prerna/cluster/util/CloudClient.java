@@ -112,10 +112,12 @@ public abstract class CloudClient {
 
 	public abstract void pullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
 
-	public abstract void pushInsight(String projectId, String rdbmsId) throws IOException, InterruptedException;
+	public abstract void pushInsight(String projectId, String insightId) throws IOException, InterruptedException;
 
-	public abstract void pullInsight(String projectId, String rdbmsId) throws IOException, InterruptedException;
+	public abstract void pullInsight(String projectId, String insightId) throws IOException, InterruptedException;
 
+	public abstract void pushInsightImage(String projectId, String insightId, String imageFileName) throws IOException, InterruptedException;
+	
 	public abstract void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded) throws IOException, InterruptedException;
 	
 	public abstract void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException;

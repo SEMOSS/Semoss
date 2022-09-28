@@ -1312,8 +1312,8 @@ public class S3Client extends CloudClient {
 	}
 	
 	@Override
-	public void pushInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
-		IProject project = Utility.getProject(projectId, false);
+	public void pushInsight(String projectId, String insightId) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
 		}
@@ -1323,15 +1323,15 @@ public class S3Client extends CloudClient {
 			rCloneConfig = createRcloneConfig(projectId);
 
 			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
-			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
 			File insightFolder = new File(insightFolderPath);
 			insightFolder.mkdir();
 			// Pull the contents of the app folder before the smss
-			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
 					insightFolder.getPath(),
-					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+rdbmsId);
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId);
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1340,7 +1340,35 @@ public class S3Client extends CloudClient {
 	}
 
 	@Override
-	public void pullInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
+	public void pullInsight(String projectId, String insightId) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+		String rCloneConfig = null;
+
+		try {
+			rCloneConfig = createRcloneConfig(projectId);
+
+			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
+			File insightFolder = new File(insightFolderPath);
+			insightFolder.mkdir();
+			// Pull the contents of the app folder before the smss
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
+					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId, 
+					insightFolder.getPath());
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+		} finally {
+			if (rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+	
+	@Override
+	public void pushInsightImage(String projectId, String insightId, String imageFileName) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId, false);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -1351,15 +1379,15 @@ public class S3Client extends CloudClient {
 			rCloneConfig = createRcloneConfig(projectId);
 
 			// only need to pull the insight folder - 99% the project is always already loaded to get to this point
-			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
+			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
 			File insightFolder = new File(insightFolderPath);
 			insightFolder.mkdir();
 			// Pull the contents of the app folder before the smss
-			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
-					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+rdbmsId, 
-					insightFolder.getPath());
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+rdbmsId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+					insightFolder.getPath()+"/"+imageFileName,
+					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId+"/"+imageFileName);
+			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
