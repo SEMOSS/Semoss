@@ -590,7 +590,10 @@ public class ReactorFactory {
 					String [] packagePaths = packageName.split("\\.");
 					//System.out.println("Package name " + packageName);
 					packageName = packagePaths[packagePaths.length - 1];
-					boolean frame = packagePaths[packagePaths.length - 2].equalsIgnoreCase("frame");
+					boolean frame = false;
+					if (packagePaths.length > 2) {
+						frame = packagePaths[packagePaths.length - 2].equalsIgnoreCase("frame");
+					}
 					// we will allow for 1 more level 
 					// i.e. things of the form so *.frame.r.?
 					if(!frame && packagePaths.length > 3) {
