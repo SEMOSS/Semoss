@@ -1704,7 +1704,21 @@ public class AZClient extends CloudClient {
 	//////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////// Static Util Methods ////////////////////////////////////
 
+	/**
+	 * Create the SAS for the container
+	 * REMEMBER TO PASS IN THE PREFIX project-, db-, user- through the constants DB_CONTAINER_PREFIX, PROJECT_CONTAINER_PREFIX, USER_CONTAINER_PREFIX
+	 * @param container
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
 	private static String createRcloneConfig(String container) throws IOException, InterruptedException {
+		if(!(container.startsWith(DB_CONTAINER_PREFIX) || container.startsWith(PROJECT_CONTAINER_PREFIX) || container.startsWith(USER_CONTAINER_PREFIX)
+				|| container.startsWith(ClusterUtil.DB_IMAGES_BLOB) || container.startsWith(ClusterUtil.PROJECT_IMAGES_BLOB))) {
+			logger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
+			logger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
+			logger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
+		}
 		logger.debug("Generating SAS for container=" + container);
 		String sasUrl = client.getSAS(container);
 		String rcloneConfig = Utility.getRandomString(10);
