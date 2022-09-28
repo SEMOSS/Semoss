@@ -1382,7 +1382,6 @@ public class S3Client extends CloudClient {
 		try {
 			rcloneConfig = createRcloneConfig(projectId);
 
-			String insightImageFilePath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId + "/" + newImageFileName);
 			String remoteInsightImageFilePath = RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 
 			// since extensions might be different, need to actually delete the old file by name
@@ -1392,13 +1391,21 @@ public class S3Client extends CloudClient {
 				logger.info("Deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
 				runRcloneDeleteFileProcess(rcloneConfig, "rclone", "deletefile", oldFileToDelete);
 				logger.debug("Done deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
+			} else {
+				logger.info("No old insight image on remote to delete");
 			}
-			
-			logger.info("Pushing new insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
-			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
-					insightImageFilePath,
-					rcloneConfig+remoteInsightImageFilePath);
-			logger.debug("Done pushing new insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
+
+			if(newImageFileName != null) {
+				String insightImageFilePath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId + "/" + newImageFileName);
+	
+				logger.info("Pushing new insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
+				runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
+						insightImageFilePath,
+						rcloneConfig+remoteInsightImageFilePath);
+				logger.debug("Done pushing new insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
+			} else {
+				logger.info("No new insight image to add to remote");
+			}
 		} finally {
 			if (rcloneConfig != null) {
 				deleteRcloneConfig(rcloneConfig);
