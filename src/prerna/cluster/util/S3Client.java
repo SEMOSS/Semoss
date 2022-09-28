@@ -1327,11 +1327,11 @@ public class S3Client extends CloudClient {
 			File insightFolder = new File(insightFolderPath);
 			insightFolder.mkdir();
 			// Pull the contents of the app folder before the smss
-			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			logger.info("Pulling insight insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
 					insightFolder.getPath(),
 					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId);
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			logger.debug("Done pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1359,7 +1359,7 @@ public class S3Client extends CloudClient {
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
 					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId, 
 					insightFolder.getPath());
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			logger.debug("Done pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1382,12 +1382,11 @@ public class S3Client extends CloudClient {
 			String insightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
 			File insightFolder = new File(insightFolderPath);
 			insightFolder.mkdir();
-			// Pull the contents of the app folder before the smss
-			logger.info("Pulling insight from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			logger.info("Pushing insight image from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
 					insightFolder.getPath()+"/"+imageFileName,
 					rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId+"/"+imageFileName);
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			logger.debug("Done pushing insight image from remote=" + Utility.cleanLogString(projectId+"--"+insightId) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
