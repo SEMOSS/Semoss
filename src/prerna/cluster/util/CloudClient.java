@@ -116,7 +116,7 @@ public abstract class CloudClient {
 
 	public abstract void pullInsight(String projectId, String insightId) throws IOException, InterruptedException;
 
-	public abstract void pushInsightImage(String projectId, String insightId, String imageFileName) throws IOException, InterruptedException;
+	public abstract void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws IOException, InterruptedException;
 	
 	public abstract void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded) throws IOException, InterruptedException;
 	
@@ -178,6 +178,16 @@ public abstract class CloudClient {
 		commandList.add("--config");
 		commandList.add(configPath);
 		commandList.add("--fast-list");
+		String[] newCommand = commandList.toArray(new String[] {});
+		return runAnyProcess(newCommand);	
+	}
+	
+	protected static List<String> runRcloneDeleteFileProcess(String rcloneConfig, String... command) throws IOException, InterruptedException {
+		String configPath = getConfigPath(rcloneConfig);
+		List<String> commandList = new ArrayList<>();
+		commandList.addAll(Arrays.asList(command));
+		commandList.add("--config");
+		commandList.add(configPath);
 		String[] newCommand = commandList.toArray(new String[] {});
 		return runAnyProcess(newCommand);	
 	}
