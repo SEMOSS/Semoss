@@ -1098,7 +1098,7 @@ public class AZClient extends CloudClient {
 	}
 	
 	@Override
-	public void pushInsightImage(String projectId, String insightId, String imageFileName) throws IOException, InterruptedException {
+	public void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId, false);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -1108,8 +1108,17 @@ public class AZClient extends CloudClient {
 		try {
 			rcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
 
-			String insightImageFilePath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId + "/" + imageFileName);
-			String remoteInsightImageFilePath = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId+"/"+imageFileName;
+			String insightImageFilePath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId + "/" + newImageFileName);
+			String remoteInsightImageFilePath = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
+			
+			// since extensions might be different, need to actually delete the old file by name
+			if(oldImageFileName != null) {
+				String oldFileToDelete = remoteInsightImageFilePath+"/"+oldImageFileName;
+				
+				logger.info("Deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
+				runRcloneDeleteFileProcess(rcloneConfig, "rclone", "deletefile", oldFileToDelete);
+				logger.debug("Done deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
+			}
 			
 			logger.info("Pushing insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
 			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
