@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -143,6 +144,219 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__REQUEST_USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__ENGINEID", "==", databaseId));
 		return QueryExecutionUtility.flushToInteger(securityDb, qs);
+	}
+	
+	/**
+	 * Approving user access requests and giving user access in permissions
+	 * @param userId
+	 * @param userType
+	 * @param databaseId
+	 * @param requests
+	 */
+	public static void approveDatabaseUserAccessRequests(User user, String databaseId, List<Map<String, String>> requests) throws IllegalAccessException{
+		// make sure user has right permission level to approve access requests
+		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
+		}
+		
+		// get user permissions of all requests
+		List<String> permissions = new ArrayList<String>();
+	    for(Map<String,String> i:requests){
+	    	permissions.add(i.get("permission"));
+	    }
+
+		// if user is not an owner, check to make sure they cannot grant owner access
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalArgumentException("You cannot grant user access to others.");
+		} else {
+			if(!AccessPermissionEnum.isOwner(userPermissionLvl) && permissions.contains("OWNER")) {
+				throw new IllegalArgumentException("As a non-owner, you cannot grant owner access.");
+			}
+		}
+				
+		// bulk delete
+		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
+				deletePs.setString(parameterIndex++, databaseId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		// insert new user permissions in bulk
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, databaseId);
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				insertPs.setBoolean(parameterIndex++, true);
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+
+		// now we do the new bulk update to databaseaccessrequest table
+		String updateQ = "UPDATE DATABASEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE REQUEST_USERID = ? AND ENGINEID = ?";
+		PreparedStatement updatePs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+			String userId = token.getId();
+			String userType = token.getProvider().toString();
+			for(int i=0; i<requests.size(); i++) {
+				int index = 1;
+				// set
+				updatePs.setInt(index++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				updatePs.setString(index++, userId);
+				updatePs.setString(index++, userType);
+				updatePs.setString(index++, "APPROVED");
+				updatePs.setTimestamp(index++, timestamp, cal);
+				// where
+				updatePs.setString(index++, (String) requests.get(i).get("userid"));
+				updatePs.setString(index++, databaseId);
+				updatePs.addBatch();
+			}
+			updatePs.executeBatch();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Denying user access requests to database
+	 * @param userId
+	 * @param userType
+	 * @param databaseId
+	 * @param requests
+	 */
+	public static void denyDatabaseUserAccessRequests(User user, String databaseId, List<String> UserIdList) throws IllegalAccessException {
+		// make sure user has right permission level to approve acces requests
+		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
+		}
+
+		// only database owners can deny user access requests
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			throw new IllegalArgumentException("Insufficient privileges to deny user access requests.");
+		}
+		
+		// bulk update to databaseaccessrequest table
+		String updateQ = "UPDATE DATABASEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE REQUEST_USERID = ? AND ENGINEID = ?";
+		PreparedStatement updatePs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+			String userId = token.getId();
+			String userType = token.getProvider().toString();
+			for(int i=0; i<UserIdList.size(); i++) {
+				int index = 1;
+				//set
+				updatePs.setString(index++, userId);
+				updatePs.setString(index++, userType);
+				updatePs.setString(index++, "DENIED");
+				updatePs.setTimestamp(index++, timestamp, cal);
+				//where
+				updatePs.setString(index++, UserIdList.get(i));
+				updatePs.setString(index++, databaseId);
+				updatePs.addBatch();
+			}
+			updatePs.executeBatch();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
 	}
 	
 	/**
@@ -325,6 +539,76 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this APP");
+		}
+	}
+	
+	
+	/**
+	 * 
+	 * @param newUserId
+	 * @param databaseId
+	 * @param permission
+	 * @return
+	 */
+	public static void addDatabaseUserPermissions(User user, String databaseId, List<Map<String,String>> permission) throws IllegalAccessException {
+		
+		// make sure user can edit the database
+		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
+		}
+		
+		// check to make sure these users do not already have permissions to database
+		// get list of userids from permission list map
+		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
+		// this returns a list of existing permissions
+		Map<String, Integer> existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermissions(userIds, databaseId);
+		if (!existingUserPermission.isEmpty()) {
+			throw new IllegalArgumentException("The following users already have access to this database. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
+		}
+		
+		// if user is not an owner, check to make sure they are not adding owner access
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			List<String> permissionList = permission.stream().map(map -> map.get("permission")).collect(Collectors.toList());
+			if(permissionList.contains("OWNER")) {
+				throw new IllegalArgumentException("As a non-owner, you cannot add owner user access.");
+			}
+		}
+		
+		// insert new user permissions in bulk
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<permission.size(); i++) {
+				int parameterIndex = 1;
+				insertPs.setString(parameterIndex++, permission.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, databaseId);
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				insertPs.setString(parameterIndex++, "TRUE");
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 		}
 	}
 	
