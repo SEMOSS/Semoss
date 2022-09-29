@@ -1064,6 +1064,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		// add the sort
+		qs1.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+		
 		Long long_limit = -1L;
 		Long long_offset = -1L;
 		if(limit != null && !limit.trim().isEmpty()) {
