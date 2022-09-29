@@ -49,50 +49,52 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
-		Map<String, Integer> index = new HashMap<>(dbInfo.size());
-		int size = dbInfo.size();
-		// now we want to add most executed insights
-		for(int i = 0; i < size; i++) {
-			Map<String, Object> database = dbInfo.get(i);
-			String databaseId = database.get("database_id").toString();
-			// keep list of database ids to get the index
-			index.put(databaseId, Integer.valueOf(i));
-		}
-		
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), getMetaKeys(), true);
-			while(wrapper.hasNext()) {
-				Object[] data = wrapper.next().getValues();
-				String databaseId = (String) data[0];
-				String metaKey = (String) data[1];
-				String metaValue = (String) data[2];
-				if(metaValue == null) {
-					continue;
-				}
-
-				int indexToFind = index.get(databaseId);
-				Map<String, Object> res = dbInfo.get(indexToFind);
-				// whatever it is, if it is single send a single value, if it is multi send as array
-				if(res.containsKey(metaKey)) {
-					Object obj = res.get(metaKey);
-					if(obj instanceof List) {
-						((List) obj).add(metaValue);
-					} else {
-						List<Object> newList = new ArrayList<>();
-						newList.add(obj);
-						newList.add(metaValue);
-						res.put(metaKey, newList);
-					}
-				} else {
-					res.put(metaKey, metaValue);
-				}
+		if(!dbInfo.isEmpty()) {
+			Map<String, Integer> index = new HashMap<>(dbInfo.size());
+			int size = dbInfo.size();
+			// now we want to add most executed insights
+			for(int i = 0; i < size; i++) {
+				Map<String, Object> database = dbInfo.get(i);
+				String databaseId = database.get("database_id").toString();
+				// keep list of database ids to get the index
+				index.put(databaseId, Integer.valueOf(i));
 			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), getMetaKeys(), true);
+				while(wrapper.hasNext()) {
+					Object[] data = wrapper.next().getValues();
+					String databaseId = (String) data[0];
+					String metaKey = (String) data[1];
+					String metaValue = (String) data[2];
+					if(metaValue == null) {
+						continue;
+					}
+	
+					int indexToFind = index.get(databaseId);
+					Map<String, Object> res = dbInfo.get(indexToFind);
+					// whatever it is, if it is single send a single value, if it is multi send as array
+					if(res.containsKey(metaKey)) {
+						Object obj = res.get(metaKey);
+						if(obj instanceof List) {
+							((List) obj).add(metaValue);
+						} else {
+							List<Object> newList = new ArrayList<>();
+							newList.add(obj);
+							newList.add(metaValue);
+							res.put(metaKey, newList);
+						}
+					} else {
+						res.put(metaKey, metaValue);
+					}
+				}
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
 		}
 		
