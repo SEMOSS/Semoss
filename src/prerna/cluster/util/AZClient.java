@@ -1115,7 +1115,7 @@ public class AZClient extends CloudClient {
 				String oldFileToDelete = remoteInsightImageFilePath+"/"+oldImageFileName;
 				
 				logger.info("Deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
-				runRcloneDeleteFileProcess(rcloneConfig, "rclone", "deletefile", oldFileToDelete);
+				runRcloneDeleteFileProcess(rcloneConfig, "rclone", "deletefile", rcloneConfig+":"+oldFileToDelete);
 				logger.debug("Done deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
 			} else {
 				logger.info("No old insight image on remote to delete");
