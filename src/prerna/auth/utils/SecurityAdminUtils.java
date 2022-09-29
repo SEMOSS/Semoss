@@ -2324,5 +2324,180 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		return 0;
 	}
+	
+	/**
+	 * Approving user access requests and giving user access in permissions
+	 * @param userId
+	 * @param userType
+	 * @param databaseId
+	 * @param requests
+	 */
+	public static void approveDatabaseUserAccessRequests(String userId, String userType, String databaseId, List<Map<String, Object>> requests) {
+		// bulk delete
+		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
+				deletePs.setString(parameterIndex++, databaseId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		// insert new user permissions in bulk
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, databaseId);
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
+				insertPs.setBoolean(parameterIndex++, true);
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+
+		// now we do the new bulk update to databaseaccessrequest table
+		String updateQ = "UPDATE DATABASEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE REQUEST_USERID = ? AND ENGINEID = ?";
+		PreparedStatement updatePs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			for(int i=0; i<requests.size(); i++) {
+				int index = 1;
+				//set
+				updatePs.setInt(index++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
+				updatePs.setString(index++, userId);
+				updatePs.setString(index++, userType);
+				updatePs.setString(index++, "APPROVED");
+				updatePs.setTimestamp(index++, timestamp, cal);
+				//where
+				updatePs.setString(index++, (String) requests.get(i).get("userid"));
+				updatePs.setString(index++, databaseId);
+				updatePs.addBatch();
+			}
+			updatePs.executeBatch();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Denying user access requests to database
+	 * @param userId
+	 * @param userType
+	 * @param databaseId
+	 * @param requests
+	 */
+	public static void denyDatabaseUserAccessRequests(String userId, String userType, String databaseId, List<String> UserIdList) {
+		// bulk update to databaseaccessrequest table
+		String updateQ = "UPDATE DATABASEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE REQUEST_USERID = ? AND ENGINEID = ?";
+		PreparedStatement updatePs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			for(int i=0; i<UserIdList.size(); i++) {
+				int index = 1;
+				//set
+				updatePs.setString(index++, userId);
+				updatePs.setString(index++, userType);
+				updatePs.setString(index++, "DENIED");
+				updatePs.setTimestamp(index++, timestamp, cal);
+				//where
+				updatePs.setString(index++, UserIdList.get(i));
+				updatePs.setString(index++, databaseId);
+				updatePs.addBatch();
+			}
+			updatePs.executeBatch();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
 
 }
