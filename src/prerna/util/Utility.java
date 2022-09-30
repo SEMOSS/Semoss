@@ -3506,6 +3506,36 @@ public class Utility {
 	}
 	
 	/**
+	 * Get a comma separated list of widget ids to filter on
+	 * @return
+	 */
+	@Deprecated
+	public static String[] getApplicationWidgetTabShareExport() {
+		String filterList = DIHelper.getInstance().getProperty(Constants.WIDGET_TAB_SHARE_EXPORT);
+		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
+			// default null
+			return null;
+		} 
+		
+		return filterList.split(",");
+	}
+	
+	/**
+	 * Get a comma separated list of widget ids to filter on
+	 * @return
+	 */
+	@Deprecated
+	public static String[] getApplicationWidgetTabExportDashboard() {
+		String filterList = DIHelper.getInstance().getProperty(Constants.WIDGET_TAB_EXPORT_DASHBOARD);
+		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
+			// default null
+			return null;
+		} 
+		
+		return filterList.split(",");
+	}
+	
+	/**
 	 * Determine if on the application we should cache insights or not
 	 * @return
 	 */
