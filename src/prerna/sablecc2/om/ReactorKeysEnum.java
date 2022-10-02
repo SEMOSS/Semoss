@@ -110,6 +110,7 @@ public enum ReactorKeysEnum {
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight."),
 	METAMODEL("metamodel", 										"The metamodel map for a database."),
 	METAMODEL_ADDITIONS("metamodelAdd", 						"Basic metamodel containing {tableName:{columnName:columnType}} for a database."),
+	METAMODEL_DELETIONS("metamodelDelete", 						"Basic metamodel containing {tableName:[column1Name, column2Name]} for database columns to be deleted."),
 	MERGE_CELLS("merge", 										"When the export is generated should the rowspans, colspans be merged"),
 	MUSTACHE("mustache", 										"Boolean true/false if the html passed in is a mustache template"),
 	MUSTACHE_VARMAP("mustacheVars", 							"Map containing the replacement values for a mustache tempalte. Most reactors will require mustache=true for this to be utilized"),
