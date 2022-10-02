@@ -1,5 +1,6 @@
 package prerna.util.sql;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
@@ -432,6 +433,33 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String modColumnName(String tableName, String curColName, String newColName) {
 		return "sp_rename '" + tableName + "." + curColName + "', '" + newColName + "', 'COLUMN';";
+	}
+	
+	@Override
+	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " DROP COLUMN ");
+		int i = 0;
+		for(String newColumn : columnNames) {
+			if (i > 0) {
+				alterString.append(", ");
+			}
+			
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn);
+			
+			i++;
+		}
+		alterString.append(";");
+		return alterString.toString();
 	}
 	
 	@Override
