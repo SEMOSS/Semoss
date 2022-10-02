@@ -308,10 +308,6 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public String alterTableAddColumn(String tableName, String newColumn, String newColType) {
-		if(!allowAddColumn()) {
-			throw new UnsupportedOperationException("Does not support add column syntax");
-		}
-		
 		// should escape keywords
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
@@ -324,10 +320,6 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public String alterTableAddColumnWithDefault(String tableName, String newColumn, String newColType, Object defualtValue) {
-		if(!allowAddColumn()) {
-			throw new UnsupportedOperationException("Does not support add column syntax");
-		}
-		
 		// should escape keywords
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
@@ -336,6 +328,94 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 			newColumn = getEscapeKeyword(newColumn);
 		}
 		return "ALTER TABLE " + tableName + " ADD " + newColumn + " " + newColType + " DEFAULT '" + defualtValue + "';";
+	}
+	
+	@Override
+	public String alterTableAddColumns(String tableName, String[] newColumns, String[] newColTypes) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " ADD ");
+		for (int i = 0; i < newColumns.length; i++) {
+			if (i > 0) {
+				alterString.append(", ");
+			}
+			
+			String newColumn = newColumns[i];
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn + "  " + newColTypes[i]);
+		}
+		alterString.append(";");
+		return alterString.toString();
+	}
+	
+	@Override
+	public String alterTableAddColumns(String tableName, Map<String, String> newColToTypeMap) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " ADD ");
+		int i = 0;
+		for(String newColumn : newColToTypeMap.keySet()) {
+			String newColType = newColToTypeMap.get(newColumn);
+			if (i > 0) {
+				alterString.append(", ");
+			}
+			
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn + "  " + newColType);
+			
+			i++;
+		}
+		alterString.append(";");
+		return alterString.toString();
+	}
+
+	@Override
+	public String alterTableAddColumnsWithDefaults(String tableName, String[] newColumns, String[] newColTypes, Object[] defaultValues) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " ADD ");
+		for (int i = 0; i < newColumns.length; i++) {
+			if (i > 0) {
+				alterString.append(", ");
+			}
+			
+			String newColumn = newColumns[i];
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn + "  " + newColTypes[i]);
+			
+			// add default values
+			if(defaultValues[i] != null) {
+				alterString.append(" DEFAULT ");
+				if(defaultValues[i]  instanceof String) {
+					alterString.append("'").append(defaultValues[i]).append("'");
+				} else {
+					alterString.append(defaultValues[i]);
+				}
+			}
+		}
+		alterString.append(";");
+		return alterString.toString();
 	}
 	
 	@Override
