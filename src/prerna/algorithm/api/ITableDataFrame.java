@@ -229,6 +229,34 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	DataFrameTypeEnum getFrameType();
 	
+	/**
+	 * 
+	 * @param sql
+	 * @return
+	 */
+	Object querySQL(String sql);
+
+	/**
+	 * 
+	 * @param sql
+	 * @return
+	 */
+	Object queryCSV(String sql);
+
+	/**
+	 * 
+	 * @param sql
+	 * @return
+	 */
+	Object queryJSON(String sql);
+
+	/**
+	 * support for variable text
+	 * returns the new frame
+	 * @return
+	 */
+	String createVarFrame();
+	
 	//////////////////////////////////////////////////
 	//////////////////////////////////////////////////
 	//////////////////////////////////////////////////
@@ -268,19 +296,5 @@ public interface ITableDataFrame extends IDataMaker {
 //	 */
 //	@Deprecated
 //	void performAnalyticAction(IAnalyticActionRoutine routine) throws RuntimeException;
-	
-	// JDBC Support
-	public Object querySQL(String sql);
-
-	// CSV Support
-	public Object queryCSV(String sql);
-
-	// JSON Support
-	public Object queryJSON(String sql);
-
-	// support for variable text
-	// returns the new frame
-	public String createVarFrame();
-	
 	
 }
