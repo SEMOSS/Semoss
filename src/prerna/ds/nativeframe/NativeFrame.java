@@ -10,7 +10,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
@@ -36,6 +40,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -486,6 +491,34 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	public DataFrameTypeEnum getFrameType() {
 		return DataFrameTypeEnum.NATIVE;
+	}
+	
+	@Override
+	public Object querySQL(String query) {
+		Map<String, Object> retMap = new HashMap<>();
+		List <List<Object>> data = new ArrayList<List<Object>>();
+		
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
+		qs.setQuery(query);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = query(qs);
+			while(wrapper.hasNext()) {
+				data.add( Arrays.asList(wrapper.next().getValues()) );
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing sql: " + query);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		retMap.put("data", data);
+		retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr( wrapper.getTypes()) );
+		retMap.put("columns", wrapper.getHeaders());
+		return retMap;
 	}
 
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE *************************************************/
