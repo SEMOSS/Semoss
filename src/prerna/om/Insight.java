@@ -54,7 +54,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -1677,82 +1676,52 @@ public class Insight implements Serializable {
 	
 	
 	// query the frame and get the data
-	public Object query(String sql, String srcFrameName)
-	{
-		ITableDataFrame curFrame = getCurFrame();
-		
-		if(curFrame.getFrameType() == DataFrameTypeEnum.PYTHON)
-		{
-			// procedure to query python
-			// later this if would be gone. the querySQL is part of the interface
-			return curFrame.querySQL(sql);
-			
+	public Object query(String sql, String srcFrameName) {
+		ITableDataFrame frame = null;
+		if(srcFrameName != null && !srcFrameName.isEmpty()) {
+			NounMetadata noun = this.varStore.get(srcFrameName);
+			if(noun == null) {
+				throw new IllegalArgumentException("Unable to find frame = " + srcFrameName);
+			}
+			frame = (ITableDataFrame) noun.getValue();
+		} else {
+			frame = getCurFrame();
 		}
-		else if(curFrame.getFrameType() == DataFrameTypeEnum.R)
-		{
-			// procedure to query python
-			// later this if would be gone. the querySQL is part of the interface
-			return curFrame.querySQL(sql);
-			
-		}
-
-		
-		return null;
+		return frame.querySQL(sql);
 	}
 	
 	// query the frame and get the data
-	public Object queryCSV(String sql, String srcFrameName)
-	{
-		ITableDataFrame curFrame = getCurFrame();
-		
-		if(curFrame.getFrameType() == DataFrameTypeEnum.PYTHON)
-		{
-			// procedure to query python
-			// later this if would be gone. the querySQL is part of the interface
-			return curFrame.queryCSV(sql);
-			
+	public Object queryCSV(String sql, String srcFrameName) {
+		ITableDataFrame frame = null;
+		if(srcFrameName != null && !srcFrameName.isEmpty()) {
+			NounMetadata noun = this.varStore.get(srcFrameName);
+			if(noun == null) {
+				throw new IllegalArgumentException("Unable to find frame = " + srcFrameName);
+			}
+			frame = (ITableDataFrame) noun.getValue();
+		} else {
+			frame = getCurFrame();
 		}
-		else if(curFrame.getFrameType() == DataFrameTypeEnum.R)
-		{
-			// procedure to query python
-			// later this if would be gone. the querySQL is part of the interface
-			return curFrame.queryCSV(sql);
-			
-		}
-
-		
-		return null;
+		return frame.queryCSV(sql);
 	}
 
 	// query the frame and get the data
-	public Object queryJSON(String sql, String srcFrameName)
-	{
-		ITableDataFrame curFrame = getCurFrame();
-		// combine python and R into 1 if block or just remove it
-		if(curFrame.getFrameType() == DataFrameTypeEnum.PYTHON)
-		{
-			// procedure to query python
-			// later this if would be gone. the querySQL is part of the interface
-			return curFrame.queryJSON(sql);
-			
+	public Object queryJSON(String sql, String srcFrameName) {
+		ITableDataFrame frame = null;
+		if(srcFrameName != null && !srcFrameName.isEmpty()) {
+			NounMetadata noun = this.varStore.get(srcFrameName);
+			if(noun == null) {
+				throw new IllegalArgumentException("Unable to find frame = " + srcFrameName);
+			}
+			frame = (ITableDataFrame) noun.getValue();
+		} else {
+			frame = getCurFrame();
 		}
-		else if(curFrame.getFrameType() == DataFrameTypeEnum.R)
-		{
-			// procedure to query python
-			// later this if would be gone. the querySQL is part of the interface
-			return curFrame.queryJSON(sql);
-			
-		}
-
-		
-		return null;
+		return frame.queryJSON(sql);
 	}
 	
-	public String getREnv()
-	{
+	public String getREnv() {
 		return this.rEnvName;
 	}
-
-	
 	
 }
