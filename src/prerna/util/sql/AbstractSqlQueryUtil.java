@@ -760,6 +760,13 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract boolean allowDropColumn();
 
 	/**
+	 * Does the engine allow you to drop multiple columns in a single statement
+	 * 
+	 * @return
+	 */
+	public abstract boolean allowMultiDropColumn();
+	
+	/**
 	 * Does the engine allow "CREATE TABLE IF NOT EXISTS " syntax
 	 * 
 	 * @return
@@ -993,6 +1000,15 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String alterTableDropColumnIfExists(String tableName, String columnName);
+
+	/**
+	 * Drop columns from an existing table
+	 * 
+	 * @param tableName
+	 * @param columnNames
+	 * @return
+	 */
+	public abstract String alterTableDropColumns(String tableName, Collection<String> columnNames);
 
 	/**
 	 * Modify a column definition
@@ -1602,6 +1618,91 @@ public abstract class AbstractSqlQueryUtil {
 					owler.addProp(tableName, column, columnType);
 				}
 				
+				// store the metadata
+				meta.addSuccessfulUpdate(tableName);
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				errorMessages.append("Error executing query = '" + query +"' with detailed error = " + e.getMessage() + ". ");
+				meta.addFailedUpdates(tableName);
+			}
+		}
+		
+		meta.setCombinedErrors(errorMessages.toString());
+		
+		return meta;
+	}
+
+	public static DatabaseUpdateMetadata performDatabaseDeletions(IRDBMSEngine rdbmsDb, Map<String, List<String>> updates, Logger logger) {
+		DatabaseUpdateMetadata meta = new DatabaseUpdateMetadata();
+		
+		Set<String> tableDeletes = new HashSet<>();
+		
+		AbstractSqlQueryUtil queryUtil = rdbmsDb.getQueryUtil();
+		
+		// validate that the tables and columns provided exist, and tag tables for removal if all or no columns given
+		try {
+			Connection conn = rdbmsDb.getConnection();
+			String database = rdbmsDb.getDatabase();
+			String schema = rdbmsDb.getSchema();
+			
+			for(String tableName : updates.keySet()) {
+				logger.info("Validating table " + tableName);
+				if(queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
+					logger.info("Validating columns for " + tableName);
+					
+					List<String> currentColumns = queryUtil.getTableColumns(conn, tableName, database, schema);
+					Set<String> currentColumnsLower = currentColumns.stream().map(s -> s.toLowerCase()).collect(Collectors.toSet());
+					
+					Set<String> givenColumnsLower = updates.get(tableName).stream().map(s -> s.toLowerCase()).collect(Collectors.toSet());
+					
+					if(givenColumnsLower.isEmpty()) {
+						tableDeletes.add(tableName);
+					} else {
+						Set<String> gap = givenColumnsLower.stream().filter(s -> !currentColumnsLower.contains(s)).collect(Collectors.toSet());
+						if(!gap.isEmpty()) {
+							throw new IllegalArgumentException("The following column names do not exist in table " + tableName + ": " + gap);
+						}
+						if(givenColumnsLower.size() == currentColumnsLower.size()) {
+							tableDeletes.add(tableName);
+						}
+					}
+				} else {
+					throw new IllegalArgumentException("The following table does not exist:" + tableName);
+				}
+			}
+		} catch(SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error validating the input. Detailed message = " + e.getMessage());
+		}
+		
+		// create an owler to track the meta modifications
+		Owler owler = new Owler(rdbmsDb);
+		meta.setOwler(owler);
+		
+		StringBuilder errorMessages = new StringBuilder();
+		// now do the operations
+		for(String tableName : updates.keySet()) {
+			boolean deleteTable = tableDeletes.contains(tableName);
+			String query = null;
+			if(deleteTable) {
+				logger.info("Dropping table " + tableName);
+				query = queryUtil.dropTable(tableName);
+			} else {
+				logger.info("Removing columns from table " + tableName);
+				query = queryUtil.alterTableDropColumns(tableName, updates.get(tableName));
+			}
+			try {
+				rdbmsDb.insertData(query);
+				
+				// update the owl
+				logger.info("Updating metadata for table " + tableName);
+				if(deleteTable) {
+					owler.removeConcept(rdbmsDb.getEngineId(), tableName);
+				} else {
+					for(String column : updates.get(tableName)) {
+						owler.removeProp(tableName, column, null);
+					}
+				}
 				// store the metadata
 				meta.addSuccessfulUpdate(tableName);
 			} catch(Exception e) {
