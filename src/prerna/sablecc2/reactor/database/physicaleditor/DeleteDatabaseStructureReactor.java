@@ -27,20 +27,20 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.DatabaseUpdateMetadata;
 
-public class ModifyDatabaseStructureReactor extends AbstractReactor {
+public class DeleteDatabaseStructureReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(DeleteDatabaseStructureReactor.class);
+	private static final String CLASS_NAME = DeleteDatabaseStructureReactor.class.getName();
 
-	private static final Logger classLogger = LogManager.getLogger(ModifyDatabaseStructureReactor.class);
-	private static final String CLASS_NAME = ModifyDatabaseStructureReactor.class.getName();
-
-	public ModifyDatabaseStructureReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.METAMODEL_ADDITIONS.getKey()};
+	public DeleteDatabaseStructureReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.METAMODEL_DELETIONS.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		Logger logger = getLogger(CLASS_NAME);
-
+		
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
@@ -54,16 +54,16 @@ public class ModifyDatabaseStructureReactor extends AbstractReactor {
 			}
 		}
 		
-		// table > column > type
-		Map<String, Map<String, String>> updates = getAdditions();
+		// table > [column1,column2,...]
+		Map<String, List<String>> updates = getDeletions();
 		
 		IEngine engine = Utility.getEngine(databaseId);
 		if(!(engine instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("This operation only works on relational databases");
 		}
 		ClusterUtil.reactorPullOwl(databaseId);
-
-		DatabaseUpdateMetadata dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) engine, updates, logger);
+		
+		DatabaseUpdateMetadata dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseDeletions((IRDBMSEngine) engine, updates, logger);
 		Owler owler = dbUpdateMeta.getOwler();
 		String errorMessages = dbUpdateMeta.getCombinedErrors();
 		
@@ -78,7 +78,7 @@ public class ModifyDatabaseStructureReactor extends AbstractReactor {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			NounMetadata noun = new NounMetadata(dbUpdateMeta, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(getError("Error occurred savig the metadata file with the executed changes"));
+			noun.addAdditionalReturn(getError("Error occurred saving the metadata file with the executed changes"));
 			if(!errorMessages.isEmpty()) {
 				noun.addAdditionalReturn(getError(errorMessages));
 			}
@@ -94,21 +94,20 @@ public class ModifyDatabaseStructureReactor extends AbstractReactor {
 		
 		return noun;
 	}
-
-	private Map<String, Map<String, String>> getAdditions() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METAMODEL_ADDITIONS.getKey());
+	
+	private Map<String, List<String>> getDeletions() {
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METAMODEL_DELETIONS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Map<String, String>>) mapInputs.get(0).getValue();
+				return (Map<String, List<String>>) mapInputs.get(0).getValue();
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Map<String, String>>) mapInputs.get(0).getValue();
+			return (Map<String, List<String>>) mapInputs.get(0).getValue();
 		}
 
-		throw new IllegalArgumentException("Must define the map containing {tablename:{columnname:datatype}} for the additions");
+		throw new IllegalArgumentException("Must define the map containing {tablename:[column1name, column2name, ...]} for the deletions");
 	}
-	
 }
