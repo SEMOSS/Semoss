@@ -831,6 +831,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
+	public boolean allowMultiDropColumn() {
+		return true;
+	}
+	
+	@Override
 	public boolean allowsIfExistsTableSyntax() {
 		return true;
 	}
@@ -1344,6 +1349,37 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		return "ALTER TABLE " + tableName + " DROP COLUMN IF EXISTS " + columnName + ";";
 	}
 	
+	@Override
+	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
+		if(!allowMultiDropColumn()) {
+			throw new UnsupportedOperationException("Does not support multi drop column syntax");
+		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " DROP COLUMN (");
+		int i = 0;
+		for(String newColumn : columnNames) {
+			if (i > 0) {
+				alterString.append(", ");
+			}
+			
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn);
+			
+			i++;
+		}
+		alterString.append(");");
+		return alterString.toString();
+	}
+
 	@Override
 	public String modColumnType(String tableName, String columnName, String dataType) {
 		if(!allowRedefineColumn()) {
