@@ -1280,7 +1280,6 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			throw new UnsupportedOperationException("Does not support multi add column syntax");
 		}
 		
-		
 		// should escape keywords
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
