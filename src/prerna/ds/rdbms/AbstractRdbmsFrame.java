@@ -3,7 +3,11 @@ package prerna.ds.rdbms;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -16,6 +20,7 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
@@ -212,6 +217,34 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		String iteratorQuery = interp.composeQuery();
 		logger.info("Done generating SQL query");
 		return query(iteratorQuery);
+	}
+	
+	@Override
+	public Object querySQL(String query) {
+		Map<String, Object> retMap = new HashMap<>();
+		List <List<Object>> data = new ArrayList<List<Object>>();
+		
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
+		qs.setQuery(query);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = query(qs);
+			while(wrapper.hasNext()) {
+				data.add( Arrays.asList(wrapper.next().getValues()) );
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing sql: " + query);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		retMap.put("data", data);
+		retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr( wrapper.getTypes()) );
+		retMap.put("columns", wrapper.getHeaders());
+		return retMap;
 	}
 	
 	@Override
