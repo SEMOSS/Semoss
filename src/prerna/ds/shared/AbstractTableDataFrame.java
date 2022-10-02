@@ -892,27 +892,23 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	// need to be overridden by specific frame
-	public Object querySQL(String query)
-	{
-		return null;
+	public Object querySQL(String query) {
+		throw new IllegalArgumentException("Method not implemented for frame = " + this.getClass().getSimpleName());
 	}
 
 	// need to be overridden by specific frame
-	public Object queryCSV(String query)
-	{
-		return null;
+	public Object queryCSV(String query) {
+		throw new IllegalArgumentException("Method not implemented for frame = " + this.getClass().getSimpleName());
 	}
 
 	// need to be overridden by specific frame
-	public Object queryJSON(String query)
-	{
-		return null;
+	public Object queryJSON(String query) {
+		throw new IllegalArgumentException("Method not implemented for frame = " + this.getClass().getSimpleName());
 	}
 
 	// need to be overridden by specific frames
-	public String createVarFrame()
-	{
-		return null;
+	public String createVarFrame() {
+		throw new IllegalArgumentException("Method not implemented for frame = " + this.getClass().getSimpleName());
 	}
 
 //	@Override

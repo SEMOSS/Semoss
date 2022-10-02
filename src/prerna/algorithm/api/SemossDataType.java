@@ -93,5 +93,39 @@ public enum SemossDataType {
 
 		return null;
 	}
+	
+	public static String convertDataTypeToString(SemossDataType dataType) {
+		if(dataType == null) {
+			return null;
+		}
 
+		if(dataType == SemossDataType.STRING || dataType == SemossDataType.FACTOR) {
+			return "STRING";
+		} else if(dataType == SemossDataType.INT) {
+			return "INT";
+		} else if(dataType == SemossDataType.DOUBLE) {
+			return "DOUBLE";
+		} else if(dataType == SemossDataType.DATE) {
+			return "DATE";
+		} else if(dataType == SemossDataType.TIMESTAMP) {
+			return "TIMESTAMP";
+		} else if(dataType == SemossDataType.BOOLEAN) {
+			return "BOOLEAN";
+		}
+		
+		return null;
+	}
+	
+	public static String[] convertSemossDataTypeArrToStringArr(SemossDataType[] dataTypes) {
+		if(dataTypes == null) {
+			return null;
+		}
+		
+		String[] retArr = new String[dataTypes.length];
+		for(int i = 0; i < dataTypes.length; i++) {
+			retArr[i] = convertDataTypeToString(dataTypes[i]);
+		}
+		
+		return retArr;
+	}
 }
