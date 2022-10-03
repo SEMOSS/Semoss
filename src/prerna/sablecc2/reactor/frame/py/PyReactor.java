@@ -59,18 +59,23 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		}
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(tokens > 1) {
-				output = pyTranslator.runPyAndReturnOutput(insight.getUser().getVarMap(), code) + "";
-			} else {
+			//if(tokens > 1) 
+			{
+				output = pyTranslator.runSingle(insight.getUser().getVarMap(), code) + "";
+			} 
+			/*else {
 				//output = pyTranslator.runScript(code) + "";
 				output = pyTranslator.runScript(insight.getUser().getVarMap(), code) + "";
-			}
-		} else {
-			if(tokens > 1) {
-				output = pyTranslator.runPyAndReturnOutput(code) + "";
-			} else {
+			}*/
+		} else 
+		{
+			//if(tokens > 1) 
+			{
+				output = pyTranslator.runSingle(null, code) + "";
+			} 
+			/*else {
 				output = pyTranslator.runScript(code) + "";
-			}
+			}*/
 		}
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));

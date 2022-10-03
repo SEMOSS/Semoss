@@ -26,37 +26,39 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		ReactorFactory.recompile(idToRemove);
 
 		// clear the project
-		IProject project = Utility.getProject(insight.getProjectId());
-		
-		project.clearClassCache();
-		if(this.insight.getUser() != null && this.insight.getUser().getTCPServer(false) != null)
+		if(insight.getProjectId() != null)
 		{
-			PayloadStruct ps = new PayloadStruct();
-			ps.operation = ps.operation.PROJECT;
-			ps.projectId = insight.getProjectId();
-			ps.methodName = "clearClassCache";
-			ps.hasReturn = false;
+			IProject project = Utility.getProject(insight.getProjectId());
 			
-			this.insight.getUser().getTCPServer(false).executeCommand(ps);
-		}				
-
-		
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-//		List<String> queriedEngines = insight.getQueriedDatabaseIds();
-//		for(int engineIndex = 0; engineIndex < queriedEngines.size(); engineIndex++) {
-//			ReactorFactory.recompile(insight.getQueriedDatabaseIds().get(engineIndex));
-//		}
-		
-		return new NounMetadata("Recompile Completed", PixelDataType.CONST_STRING);
+			project.clearClassCache();
+			if(this.insight.getUser() != null && this.insight.getUser().getTCPServer(false) != null)
+			{
+				PayloadStruct ps = new PayloadStruct();
+				ps.operation = ps.operation.PROJECT;
+				ps.projectId = insight.getProjectId();
+				ps.methodName = "clearClassCache";
+				ps.hasReturn = false;
+				
+				this.insight.getUser().getTCPServer(false).executeCommand(ps);
+			}				
+	
+			
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+	//		List<String> queriedEngines = insight.getQueriedDatabaseIds();
+	//		for(int engineIndex = 0; engineIndex < queriedEngines.size(); engineIndex++) {
+	//			ReactorFactory.recompile(insight.getQueriedDatabaseIds().get(engineIndex));
+	//		}
+		}
+			return new NounMetadata("Recompile Completed", PixelDataType.CONST_STRING);
 	}
 }
