@@ -31,6 +31,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -325,6 +326,33 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	public String allIndexForTableQuery(String tableName, String database, String schema) {
 		// do not need to use the schema
 		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='" + tableName.toUpperCase() + "';";
+	}
+	
+	@Override
+	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " DROP COLUMN (");
+		int i = 0;
+		for(String newColumn : columnNames) {
+			if (i > 0) {
+				alterString.append(", ");
+			}
+			
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn);
+			
+			i++;
+		}
+		alterString.append(");");
+		return alterString.toString();
 	}
 
 	public String hashColumn(String tableName, String[] columns){

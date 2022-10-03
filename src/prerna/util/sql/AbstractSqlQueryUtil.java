@@ -1684,15 +1684,24 @@ public abstract class AbstractSqlQueryUtil {
 		for(String tableName : updates.keySet()) {
 			boolean deleteTable = tableDeletes.contains(tableName);
 			String query = null;
-			if(deleteTable) {
-				logger.info("Dropping table " + tableName);
-				query = queryUtil.dropTable(tableName);
-			} else {
-				logger.info("Removing columns from table " + tableName);
-				query = queryUtil.alterTableDropColumns(tableName, updates.get(tableName));
-			}
 			try {
-				rdbmsDb.insertData(query);
+				if(deleteTable) {
+					logger.info("Dropping table " + tableName);
+					query = queryUtil.dropTable(tableName);
+					rdbmsDb.insertData(query);
+				} else {
+					logger.info("Removing columns from table " + tableName);
+					// prefer using multi-drop if supported
+					if(queryUtil.allowMultiDropColumn()) {
+						query = queryUtil.alterTableDropColumns(tableName, updates.get(tableName));
+						rdbmsDb.insertData(query);
+					} else {
+						for(String columnName : updates.get(tableName)) {
+							query = queryUtil.alterTableDropColumn(tableName, columnName);
+							rdbmsDb.insertData(query);
+						}
+					}
+				}
 				
 				// update the owl
 				logger.info("Updating metadata for table " + tableName);

@@ -420,6 +420,11 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 		return false;
 	}
 	
+	@Override
+	public boolean allowMultiDropColumn() {
+		return false;
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	@Override
