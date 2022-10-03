@@ -698,9 +698,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			}
 			if(securityDb.isConnectionPooling()) {
 				if(ps != null) {
-				ps.getConnection().close();
+					ps.getConnection().close();
 				}
-				}
+			}
 		}
 		
 		return uniqueToken;
