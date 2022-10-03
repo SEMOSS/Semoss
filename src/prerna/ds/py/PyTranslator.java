@@ -523,6 +523,150 @@ public class PyTranslator
 		
 	}
 	
+	public synchronized String runSingle(Map <String, StringBuffer> appMap, String inscript)
+	{
+		// Clean the script
+		String script = convertArrayToString(inscript);
+		script = script.trim();
+		
+		// find if the script is simple
+		
+		
+		// Get temp folder and file locations
+		// also define a ROOT variable
+		String removePathVariables = "";
+		String insightRootAssignment = "";
+		String appRootAssignment = "";
+		String userRootAssignment = "";
+
+		String insightRootPath = null;
+		String appRootPath = null;
+		String userRootPath = null;
+		
+		String pyTemp = null;
+		if(this.insight != null) {
+			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
+			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
+			removePathVariables = ", ROOT";
+			
+			if(this.insight.isSavedInsight()) {
+				appRootPath = this.insight.getAppFolder();
+				appRootPath = appRootPath.replace('\\', '/');
+				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
+				removePathVariables += ", APP_ROOT";
+			}
+			try {
+				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+				userRootPath = userRootPath.replace('\\', '/');
+				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
+				removePathVariables += ", USER_ROOT";
+			} catch(Exception ignore) {
+				// ignore
+			}
+			
+			pyTemp = insightRootPath + "/Py/Temp/";
+		} else {
+			pyTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/Py/Temp/").replace('\\', '/');
+		}
+		
+		// get the custom var String
+		String varFolderAssignment = "";
+		if(appMap != null && appMap.containsKey("PY_VAR_STRING"))
+			varFolderAssignment = appMap.get("PY_VAR_STRING").toString();		
+		
+		File pyTempF = new File(pyTemp);
+		if(!pyTempF.exists()) {
+			pyTempF.mkdirs();
+			pyTempF.setExecutable(true);
+			pyTempF.setReadable(true);
+			pyTempF.setReadable(true);
+		}
+		
+		
+		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
+			if(this.insight.getUser() != null) {
+				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+			}
+		}
+		
+		String pyFileName = Utility.getRandomString(12);
+		String scriptPath = pyTemp +  pyFileName + ".py";
+		File scriptFile = new File(scriptPath);	
+		String outputPath = pyTemp + pyFileName + ".txt";
+		File outputFile = new File(outputPath);
+
+		
+		// attempt to put it into environment
+
+		{
+			// Try writing the script to a file
+			try {
+				FileUtils.writeStringToFile(scriptFile, script);
+	
+				// check packages
+				//checkPackages(script);
+	
+				// Try running the script, which saves the output to a file
+				 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
+				RuntimeException error = null;
+				try {
+					executeEmptyPyDirect("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())");
+					//executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
+				} catch (RuntimeException e) {
+					e.printStackTrace();
+					error = e; // Save the error so we can report it
+				}
+				
+				// Finally, read the output and return, or throw the appropriate error
+				try {
+					String output = FileUtils.readFileToString(outputFile).trim();
+					// Error cases
+					
+					// clean up the output
+					if(userRootPath != null && output.contains(userRootPath)) {
+						output = output.replace(userRootPath, "$USER_IF");
+					}
+					if(appRootPath != null && output.contains(appRootPath)) {
+						output = output.replace(appRootPath, "$APP_IF");
+					}
+					if(insightRootPath != null && output.contains(insightRootPath)) {
+						output = output.replace(insightRootPath, "$IF");
+					}
+					if(varFolderAssignment != null && varFolderAssignment.length() > 0)
+					{
+						output = cleanCustomVar(output, appMap);
+					}
+					
+					// Successful case
+					return output;
+				} catch (IOException e) {
+					// If we have the detailed error, then throw it
+					if (error != null) {
+						throw error;
+					}
+					
+					// Otherwise throw a generic one
+					throw new IllegalArgumentException("Failed to run Py script.");
+				} finally {
+					// Cleanup
+					outputFile.delete();
+					try {
+						//this.executeEmptyR("rm(" + randomVariable + removePathVariables + ");");
+						//this.executeEmptyR("gc();"); // Garbage collection
+					} catch (Exception e) {
+						logger.warn("Unable to cleanup Py.", e);
+					}
+				}
+			} catch (IOException e) {
+				throw new IllegalArgumentException("Error in writing Py script for execution.", e);
+			} finally {
+				
+				// Cleanup
+				scriptFile.delete();
+			}
+		}		
+	}
+
 	
 	//overloading the run script method to pass in the user map
 	
