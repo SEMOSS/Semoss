@@ -1,5 +1,7 @@
 package prerna.util.sql;
 
+import java.util.Collection;
+
 public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 	
 	MySQLQueryUtil() {
@@ -96,5 +98,32 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String allIndexForTableQuery(String tableName, String database, String schema) {
 		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA='" + schema + "' AND TABLE_NAME='" + tableName + "';";
+	}
+	
+	@Override
+	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " DROP COLUMN ");
+		int i = 0;
+		for(String newColumn : columnNames) {
+			if (i > 0) {
+				alterString.append(", DROP COLUMN ");
+			}
+			
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn);
+			
+			i++;
+		}
+		alterString.append(";");
+		return alterString.toString();
 	}
 }

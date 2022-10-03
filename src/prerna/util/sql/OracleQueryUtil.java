@@ -1,5 +1,6 @@
 package prerna.util.sql;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
@@ -195,4 +196,40 @@ public class OracleQueryUtil extends AnsiSqlQueryUtil {
 		return "DROP INDEX " + indexName;
 	}
 	
+	@Override
+	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " DROP (");
+		int i = 0;
+		for(String newColumn : columnNames) {
+			if (i > 0) {
+				alterString.append(", ");
+			}
+			
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn);
+			
+			i++;
+		}
+		alterString.append(")");
+		return alterString.toString();
+	}
+	
+	@Override
+	public String tableExistsQuery(String tableName, String database, String schema) {
+		return "SELECT TABLE_NAME FROM ALL_TABLES WHERE TABLE_NAME = '" + tableName.toUpperCase() +"'";
+	}
+	
+	@Override
+	public String getAllColumnDetails(String tableName, String database, String schema) {
+		return "SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
+	}
 }
