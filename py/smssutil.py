@@ -57,7 +57,7 @@ def canLoad(file):
 	return finalList
 
 def runwrapper(file, output, error,g):
-	import contextlib, io, sys
+	import contextlib, io, sys,os
 	ofile = open(output, "w")
 	efile = open(error, "w")
 	with contextlib.redirect_stdout(ofile):
@@ -68,6 +68,28 @@ def runwrapper(file, output, error,g):
 			print(e)
 	ofile.close()
 	efile.close()
+
+def runwrappereval(file, output, error,g):
+	import contextlib, io, sys,os
+	ofile = open(output, "w")
+	efile = open(error, "w")
+	with contextlib.redirect_stdout(ofile):
+		datafile = open(file, "r")
+		command = datafile.read()
+		try:
+			output_obj = eval(command, g)
+			if output_obj is not None:
+				print(output_obj)
+		except Exception as e:
+			try:
+				exec(command, g)
+			except Exception as e:
+				print(e)
+	ofile.close()
+	efile.close()
+
+
+
 	
 def runwrapper3(file, output, error,g):
 	import contextlib, io
