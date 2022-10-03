@@ -986,8 +986,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// DATABASEACCESSREQUEST 
-		colNames = new String[] { "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+		colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("DATABASEACCESSREQUEST ", colNames, types));
 		} else {
@@ -995,6 +995,16 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.tableExists(conn, "DATABASEACCESSREQUEST ", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("DATABASEACCESSREQUEST ", colNames, types));
+			}
+		}
+		//MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
+		{
+			List<String> allCols = queryUtil.getTableColumns(conn, "DATABASEACCESSREQUEST", database, schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("ID") && !allCols.contains("id")) {
+				String addIdColumn = queryUtil.alterTableAddColumn("DATABASEACCESSREQUEST", "ID", "VARCHAR(255)");
+				securityDb.insertData(addIdColumn);
 			}
 		}
 		

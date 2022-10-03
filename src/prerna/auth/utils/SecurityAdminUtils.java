@@ -2404,7 +2404,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		// now we do the new bulk update to databaseaccessrequest table
-		String updateQ = "UPDATE DATABASEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE REQUEST_USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE DATABASEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement updatePs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -2419,7 +2419,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, "APPROVED");
 				updatePs.setTimestamp(index++, timestamp, cal);
 				//where
-				updatePs.setString(index++, (String) requests.get(i).get("userid"));
+				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				updatePs.setString(index++, databaseId);
 				updatePs.addBatch();
 			}
@@ -2455,15 +2455,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @param requests
 	 */
-	public static void denyDatabaseUserAccessRequests(String userId, String userType, String databaseId, List<String> UserIdList) {
+	public static void denyDatabaseUserAccessRequests(String userId, String userType, String databaseId, List<String> RequestIdList) {
 		// bulk update to databaseaccessrequest table
-		String updateQ = "UPDATE DATABASEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE REQUEST_USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE DATABASEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement updatePs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 			updatePs = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<UserIdList.size(); i++) {
+			for(int i=0; i<RequestIdList.size(); i++) {
 				int index = 1;
 				//set
 				updatePs.setString(index++, userId);
@@ -2471,7 +2471,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, "DENIED");
 				updatePs.setTimestamp(index++, timestamp, cal);
 				//where
-				updatePs.setString(index++, UserIdList.get(i));
+				updatePs.setString(index++, RequestIdList.get(i));
 				updatePs.setString(index++, databaseId);
 				updatePs.addBatch();
 			}
