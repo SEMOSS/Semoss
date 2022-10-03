@@ -1347,37 +1347,6 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		}
 		return "ALTER TABLE " + tableName + " DROP COLUMN IF EXISTS " + columnName + ";";
 	}
-	
-	@Override
-	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
-		if(!allowMultiDropColumn()) {
-			throw new UnsupportedOperationException("Does not support multi drop column syntax");
-		}
-		
-		// should escape keywords
-		if(isSelectorKeyword(tableName)) {
-			tableName = getEscapeKeyword(tableName);
-		}
-		
-		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " DROP COLUMN (");
-		int i = 0;
-		for(String newColumn : columnNames) {
-			if (i > 0) {
-				alterString.append(", ");
-			}
-			
-			// should escape keywords
-			if(isSelectorKeyword(newColumn)) {
-				newColumn = getEscapeKeyword(newColumn);
-			}
-			
-			alterString.append(newColumn);
-			
-			i++;
-		}
-		alterString.append(");");
-		return alterString.toString();
-	}
 
 	@Override
 	public String modColumnType(String tableName, String columnName, String dataType) {
@@ -1746,6 +1715,12 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	
 	@Override
 	public String allIndexForTableQuery(String tableName, String database, String schema) {
+		// there is no commonality that i have found for this
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+	}
+	
+	@Override
+	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}

@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
@@ -284,6 +285,33 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String referentialConstraintExistsQuery(String constraintName, String database, String schema) {
 		return "select constraint_name from information_schema.referential_constraints where constraint_name = '" + constraintName.toLowerCase() + "' and constraint_schema='" + schema.toLowerCase() + "'";
+	}
+	
+	@Override
+	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " DROP COLUMN ");
+		int i = 0;
+		for(String newColumn : columnNames) {
+			if (i > 0) {
+				alterString.append(", DROP COLUMN ");
+			}
+			
+			// should escape keywords
+			if(isSelectorKeyword(newColumn)) {
+				newColumn = getEscapeKeyword(newColumn);
+			}
+			
+			alterString.append(newColumn);
+			
+			i++;
+		}
+		alterString.append(";");
+		return alterString.toString();
 	}
 	
 }
