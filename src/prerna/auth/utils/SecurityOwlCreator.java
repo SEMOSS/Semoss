@@ -144,6 +144,11 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DISCOVERABLE/ENGINE")) {
 				return true;
 			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ID/DATABASEACCESSREQUEST")) {
+				return true;
+			}
 		}
 		
 		List<String[]> allRelationships = securityDb.getPhysicalRelationships();
@@ -357,9 +362,9 @@ public class SecurityOwlCreator {
 		owler.addProp("PASSWORD_RESET", "TOKEN", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "DATE_ADDED", "TIMESTAMP");
 		
-		// DATABASEACCESSREQUEST 
-		//"REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP"
+		// DATABASEACCESSREQUEST
 		owler.addConcept("DATABASEACCESSREQUEST", null, null);
+		owler.addProp("DATABASEACCESSREQUEST", "ID", "VARCHAR(255)");
 		owler.addProp("DATABASEACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
 		owler.addProp("DATABASEACCESSREQUEST", "REQUEST_TYPE", "VARCHAR(255)");
 		owler.addProp("DATABASEACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
