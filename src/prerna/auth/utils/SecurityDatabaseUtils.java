@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -143,6 +144,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__REQUEST_USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__APPROVER_DECISION", "==", null));
 		return QueryExecutionUtility.flushToInteger(securityDb, qs);
 	}
 	
@@ -246,7 +248,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		}
 
 		// now we do the new bulk update to databaseaccessrequest table
-		String updateQ = "UPDATE DATABASEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE REQUEST_USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE DATABASEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement updatePs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -264,7 +266,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, "APPROVED");
 				updatePs.setTimestamp(index++, timestamp, cal);
 				// where
-				updatePs.setString(index++, (String) requests.get(i).get("userid"));
+				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
 				updatePs.setString(index++, databaseId);
 				updatePs.addBatch();
 			}
@@ -300,7 +302,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @param requests
 	 */
-	public static void denyDatabaseUserAccessRequests(User user, String databaseId, List<String> UserIdList) throws IllegalAccessException {
+	public static void denyDatabaseUserAccessRequests(User user, String databaseId, List<String> RequestIdList) throws IllegalAccessException {
 		// make sure user has right permission level to approve acces requests
 		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -313,7 +315,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		}
 		
 		// bulk update to databaseaccessrequest table
-		String updateQ = "UPDATE DATABASEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE REQUEST_USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE DATABASEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement updatePs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -322,7 +324,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
 			String userType = token.getProvider().toString();
-			for(int i=0; i<UserIdList.size(); i++) {
+			for(int i=0; i<RequestIdList.size(); i++) {
 				int index = 1;
 				//set
 				updatePs.setString(index++, userId);
@@ -330,7 +332,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, "DENIED");
 				updatePs.setTimestamp(index++, timestamp, cal);
 				//where
-				updatePs.setString(index++, UserIdList.get(i));
+				updatePs.setString(index++, RequestIdList.get(i));
 				updatePs.setString(index++, databaseId);
 				updatePs.addBatch();
 			}
@@ -367,6 +369,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserAccessRequestsByDatabase(String databaseId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__ID"));
 		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__REQUEST_USERID"));
 		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__REQUEST_TYPE"));
 		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__REQUEST_TIMESTAMP"));
@@ -377,6 +380,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__APPROVER_DECISION"));
 		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__APPROVER_TIMESTAMP"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__APPROVER_DECISION", "==", null));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
@@ -1331,7 +1335,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	public static void setUserAccessRequest(String userId, String userType, String databaseId, int permission) {
 		// first do a delete
-		String deleteQ = "DELETE FROM DATABASEACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND ENGINEID=?";
+		String deleteQ = "DELETE FROM DATABASEACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND ENGINEID=? AND APPROVER_DECISION IS NULL";
 		PreparedStatement deletePs = null;
 		try {
 			int index = 1;
@@ -1361,7 +1365,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		}
 
 		// now we do the new insert 
-		String insertQ = "INSERT INTO DATABASEACCESSREQUEST (REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, ENGINEID, PERMISSION) VALUES (?,?,?,?,?)";
+		String insertQ = "INSERT INTO DATABASEACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, ENGINEID, PERMISSION) VALUES (?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -1369,6 +1373,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 
 			int index = 1;
 			insertPs = securityDb.getPreparedStatement(insertQ);
+			insertPs.setString(index++, UUID.randomUUID().toString());
 			insertPs.setString(index++, userId);
 			insertPs.setString(index++, userType);
 			insertPs.setTimestamp(index++, timestamp, cal);
