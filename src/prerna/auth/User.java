@@ -388,7 +388,7 @@ public class User implements Serializable {
 	
 	/**
 	 * Store the open insight
-	 * @param engine
+	 * @param operation
 	 * @param rdbmsId
 	 * @param insightId
 	 */
@@ -842,7 +842,7 @@ public class User implements Serializable {
 		mountDir = mountDir.replace("/assets", "");
 		
 		// also set the cmd context right here
-		this.cmdUtil = new CmdExecUtil(context, mountDir);
+		this.cmdUtil = new CmdExecUtil(context, mountDir, getTCPServer(true));
 	}
 	
 	public CmdExecUtil getCmdUtil() {
