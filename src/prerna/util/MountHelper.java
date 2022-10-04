@@ -352,6 +352,11 @@ public class MountHelper {
 			mountFolder(m2Location, m2Location, false);
 		}
 
+		String mvnLocation = DIHelper.getInstance().getProperty(Settings.MVN_HOME);
+		File mvnLocationF = new File(mvnLocation);
+		if(mvnLocationF.exists() && mvnLocationF.isDirectory()) {
+			mountFolder(mvnLocation, mvnLocation, false);
+		}
 
 		
 		// TODO add insight cache here too - get users insight cache
