@@ -11,6 +11,9 @@ import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
 
+import prerna.tcp.PayloadStruct;
+import prerna.tcp.client.Client;
+
 public class CmdExecUtil {
 
 	// the user already keeps a list of mappings
@@ -20,107 +23,137 @@ public class CmdExecUtil {
 	String workingDir = mountDir;
 	String commandAppender = "cmd";
 	String pwdCommand = "pwd";
+	Client tcpClient = null;
+	String insightId = null;
 
 	
-	public CmdExecUtil(String mountName, String mountDir)
+	public CmdExecUtil(String mountName, String mountDir, Client tcpClient)
 	{
 		getCommandAppender();
 		mountDir = mountDir.replace("\\", "/");
 		this.mountName = mountName;
 		this.mountDir = mountDir;
 		this.workingDir = mountDir;
+		this.tcpClient = tcpClient;
 		System.err.println("Working Dir is set to ..  " + workingDir);
+		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
+		{
+			PayloadStruct ps = new PayloadStruct();
+			ps.operation = ps.operation.CMD;
+			ps.payload = new Object[] {mountName, mountDir};
+			ps.methodName = "constructor";
+			ps.hasReturn = false;
+			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);			
+		}
 	}
+	
 	
 	public String executeCommand(String command)
 	{
-		// need a way to whitelist all the stuff here
-		// like rm, del etc. etc. 
-		String commandNotAllowed = commandAllowed(command);
-		// allowing all commands
-		
-		/*if(commandNotAllowed != null)
-			return commandNotAllowed;
-		*/
-		
 		String output = null;
-		try {
-			
-			if(command.equalsIgnoreCase("reset"))
-			{
-				workingDir = mountDir;
-				output = workingDir;
-			}
-			else if(command.startsWith("cd"))
-			{
-				// remoe the cd and then add to working dir
-				command = command.replace("cd", "");
-				command = command.trim();
-				if(command.startsWith("/"))
-				{
-					output =  " Invalid command ";
-				}
-				else
-					output = adjustWorkingDir(command);
-			}
-			else if(command.startsWith("pwd"))
-			{
-				output = workingDir;
-			}
-			else if(!command.startsWith("cd") && !command.startsWith("dir"))
-			{
-				String finalCommand = new String("");
-				//command = "cd " + workingDir + " && " + command;
-				// concat everything and then execute
-				output = runCommand(command)[1];
-			}
-			else if(command.toLowerCase().startsWith("dir") || command.toLowerCase().startsWith("ls"))
-			{
-				
-				StringBuilder finalCommand = new StringBuilder("");
-				//command = "cd " + workingDir + " && " + command;
-				String [] foutput = runCommand(command);
-				boolean success = foutput[0].equalsIgnoreCase("true");
-				output = foutput[1];
-				
-				if(success && output.length() > 0 && !output.toUpperCase().contains(mountDir.toUpperCase()))
-					output = "No Such Directory ";
-				else if(success && output.length() > 0)
-				{
-					//output = output.replace(mountDir, mountName);
-				}
-			}
-			else // this is where we allow other commands
-			{
-				String []foutput = runCommand(command);
-				output = foutput[1];
-				if(output.length() == 0)
-				{
-					// add only if the output is not resulting
-					String newCommand = command; // + " & cd"; 
-					output = runCommand(newCommand)[1];
-					output = output.replace("\\", "/");
-					output = output.replace("\\r","");
-					output = output.replace("\\n","");
-					output = output.trim();
-					System.err.println("[" + output + "]");
-					if(output.toUpperCase().contains(mountDir.toUpperCase()))
-					{
-						workingDir = output;
-					}
-					else if(output.length() > 0)
-						output = "Already at the root";
-				}
-				//output = output.replace(mountDir, mountName);
+		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
+		{
+			PayloadStruct ps = new PayloadStruct();
+			ps.operation = ps.operation.CMD;
+			ps.payload = new Object[] {command};
+			ps.methodName = "executeCommand";
+			ps.insightId = mountName + "__" + mountDir;
+			ps.payloadClasses = new Class[] {String.class};
 
-			}
-		}  catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);
+			return (String)retPS.payload[0];
 		}
-		// replace the mount dir location
-		output = replaceAppAlias(output);
-		return output;
+		else
+		{
+	
+			// need a way to whitelist all the stuff here
+			// like rm, del etc. etc. 
+			String commandNotAllowed = commandAllowed(command);
+			// allowing all commands
+			
+			/*if(commandNotAllowed != null)
+				return commandNotAllowed;
+			*/
+			
+			try {
+				
+				if(command.equalsIgnoreCase("reset"))
+				{
+					workingDir = mountDir;
+					output = workingDir;
+				}
+				else if(command.startsWith("cd"))
+				{
+					// remoe the cd and then add to working dir
+					command = command.replace("cd", "");
+					command = command.trim();
+					// disable this
+					if(command.startsWith("/"))
+					{
+						output =  " Invalid command ";
+					}
+					else
+						output = adjustWorkingDir(command);
+				}
+				else if(command.startsWith("pwd"))
+				{
+					output = workingDir;
+				}
+				else if(!command.startsWith("cd") && !command.startsWith("dir"))
+				{
+					String finalCommand = new String("");
+					//command = "cd " + workingDir + " && " + command;
+					// concat everything and then execute
+					output = runCommand(command)[1];
+				}
+				else if(command.toLowerCase().startsWith("dir") || command.toLowerCase().startsWith("ls"))
+				{
+					
+					StringBuilder finalCommand = new StringBuilder("");
+					//command = "cd " + workingDir + " && " + command;
+					String [] foutput = runCommand(command);
+					boolean success = foutput[0].equalsIgnoreCase("true");
+					output = foutput[1];
+					
+					if(success && output.length() > 0 && !output.toUpperCase().contains(mountDir.toUpperCase()))
+						output = "No Such Directory ";
+					else if(success && output.length() > 0)
+					{
+						//output = output.replace(mountDir, mountName);
+					}
+				}
+				else // this is where we allow other commands
+				{
+					String []foutput = runCommand(command);
+					output = foutput[1];
+					if(output.length() == 0)
+					{
+						// add only if the output is not resulting
+						String newCommand = command; // + " & cd"; 
+						output = runCommand(newCommand)[1];
+						output = output.replace("\\", "/");
+						output = output.replace("\\r","");
+						output = output.replace("\\n","");
+						output = output.trim();
+						System.err.println("[" + output + "]");
+						if(output.toUpperCase().contains(mountDir.toUpperCase()))
+						{
+							workingDir = output;
+						}
+						else if(output.length() > 0)
+							output = "Already at the root";
+					}
+					//output = output.replace(mountDir, mountName);
+	
+				}
+			}  catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// replace the mount dir location
+			output = replaceAppAlias(output);
+			return output;
+		}
 	}
 	
 	private String commandAllowed(String command)
@@ -312,7 +345,7 @@ public class CmdExecUtil {
 	
 	public static void main(String[] args) throws Exception{
 		// TODO Auto-generated method stub
-		CmdExecUtil test = new CmdExecUtil("mango", "c:/users/pkapaleeswaran/workspacej3/gittest");
+		CmdExecUtil test = new CmdExecUtil("mango", "c:/users/pkapaleeswaran/workspacej3/gittest", null);
 		test.runUserCommand();
 		
 	}
