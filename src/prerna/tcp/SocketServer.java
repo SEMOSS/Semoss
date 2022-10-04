@@ -90,6 +90,7 @@ public class SocketServer implements Runnable
 		
 		String log4JPropFile = Paths.get(Utility.normalizePath(args[0]), "log4j2.properties").toAbsolutePath().toString();
 		
+		// set to say this is not core
 		DIHelper.getInstance().setLocalProperty("core", "false");
 		
 		FileInputStream fis = null;
