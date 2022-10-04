@@ -1061,7 +1061,8 @@ public class Project implements IProject {
 			}
 			else // may be maven is not set but mvn as a executor is available
 			{
-				CmdExecUtil ceu = new CmdExecUtil(projectName, versionFolder + File.separator + "java");
+				// need to make the modification to this
+				CmdExecUtil ceu = new CmdExecUtil(projectName, versionFolder + File.separator + "java", null);
 				// mvn dependency:list -DoutputType=graphml -DoutputFile=./dep.list -DincludeScope=runtime -f pom.xml
 				ceu.executeCommand("mvn dependency:list -DoutputType=graphml -DoutputFile=" + outputFile + " -DincludeScope=runtime -f " + pomFile);
 			}
