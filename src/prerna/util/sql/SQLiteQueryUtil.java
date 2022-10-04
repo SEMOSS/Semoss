@@ -407,7 +407,7 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public boolean allowDropColumn() {
-		return false;
+		return true;
 	}
 	
 	@Override
