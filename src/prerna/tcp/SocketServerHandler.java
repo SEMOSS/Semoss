@@ -30,6 +30,7 @@ import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaRserveTranslator;
+import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.FstUtil;
@@ -71,6 +72,7 @@ public class SocketServerHandler implements Runnable
 	Map <String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
 	Map <String, Insight> insightMap = new HashMap<String, Insight>();
 	Map <String, Project> projectMap = new HashMap<String, Project>();
+	Map <String, CmdExecUtil> cmdMap = new HashMap<String, CmdExecUtil>();
 
 	
 	public Map <String, PayloadStruct> incoming = new HashMap<String, PayloadStruct>();
@@ -332,7 +334,48 @@ public class SocketServerHandler implements Runnable
 					{
 						return ps;
 					}
+				}else if(ps.operation == PayloadStruct.OPERATION.CMD)
+				{
+					// make a method call
+					try
+					{
+						if(ps.methodName.equalsIgnoreCase("constructor"))
+						{
+							String mountName = ""+ ps.payload[0];
+							String dir = "" + ps.payload[1];
+							if(!cmdMap.containsKey(mountName + "__" + dir))
+							{
+								CmdExecUtil cmd = new CmdExecUtil(mountName, dir, null);
+								cmdMap.put(mountName + "__" + dir, cmd);
+							}
+							ps.payload = new Object [] {"constructor execution complete"};
+							ps.payloadClasses = new Class [] {String.class};
+						}
+						
+						else
+						{
+							CmdExecUtil thisCmd = cmdMap.get(ps.insightId);
+							if(thisCmd != null)
+							{
+								String output = thisCmd.executeCommand(""+ps.payload[0]);
+								ps.processed = true;
+								ps.response = true;
+								ps.payload = new Object[] {output};
+							}
+						}
+					}catch(Exception ex)
+					{
+						LOGGER.debug(ex);
+						//ex.printStackTrace();
+						//System.err.println("Method.. " + ps.methodName);
+						ps.ex = ExceptionUtils.getStackTrace(ex);						
+						//TCPChromeDriverUtility.quit("stop");
+					}finally
+					{
+						return ps;
+					}
 				}
+
 				
 			}catch(Exception ex)
 			{
