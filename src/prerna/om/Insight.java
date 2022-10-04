@@ -1491,7 +1491,7 @@ public class Insight implements Serializable {
 			String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 			String mountDir = AssetUtility.getProjectVersionFolder(projectName, projectId);
 	
-			this.cmdUtil = new CmdExecUtil(projectName, mountDir);
+			this.cmdUtil = new CmdExecUtil(projectName, mountDir, this.user.getTCPServer(false));
 			this.contextProjectId = projectId;
 			return true;
 		}
