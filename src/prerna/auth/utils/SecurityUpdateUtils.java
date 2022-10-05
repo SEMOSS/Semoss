@@ -1096,77 +1096,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
 					logger.info("User " + newUser.getId() + " already exists");
-					// make sure user is not locked out
-					Object[] lastLoginDetails = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(newUser.getId(), newUser.getProvider());
-					if(lastLoginDetails != null) {
-						Boolean isLocked = (Boolean) lastLoginDetails[0];
-						if(isLocked == null) {
-							isLocked = false;
-						}
-						SemossDate lastLogin = null;
-						SemossDate lastPassReset = null;
-						if(lastLoginDetails[1] != null) {
-							Object potentialDateValue = lastLoginDetails[1];
-							if(potentialDateValue instanceof SemossDate) {
-								lastLogin = (SemossDate) potentialDateValue;
-							} else if(potentialDateValue instanceof String) {
-								lastLogin = SemossDate.genTimeStampDateObj(potentialDateValue + "");
-							}
-						}
-						if(lastLoginDetails[2] != null) {
-							Object potentialDateValue = lastLoginDetails[2];
-							if(potentialDateValue instanceof SemossDate) {
-								lastPassReset = (SemossDate) potentialDateValue;
-							} else if(potentialDateValue instanceof String) {
-								lastPassReset = SemossDate.genTimeStampDateObj(potentialDateValue + "");
-							}
-						}
-						
-						int daysToLock = PasswordRequirements.getInstance().getDaysToLock();
-						int daysToResetPass = PasswordRequirements.getInstance().getPasswordExpirationDays();
-						
-						newUser.setLocked(isLocked);
-						newUser.setLastLogin(lastLogin);
-						newUser.setLastPasswordReset(lastPassReset);
-						
-						if(isLocked) {
-							logger.info("User " + newUser.getId() + " is locked");
-							return false;
-						} 
-						
-						if(daysToLock > 0 && lastLogin != null) {
-							// check to make sure user is not locked
-							TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
-							LocalDateTime currentTime = Instant.ofEpochMilli(new Date().getTime()).atZone(tz.toZoneId()).toLocalDateTime();
-							if(currentTime.isAfter(lastLogin.getLocalDateTime().plusDays(daysToLock))) {
-								logger.info("User " + newUser.getId() + " is now locked due to not logging in for over " + daysToLock + " days");
-								// we should lock the account
-								SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
-								newUser.setLocked(true);
-								return false;
-							}
-						}
-						
-//						if(daysToResetPass > 0) {
-//							// check to make sure user is not locked
-//							TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
-//							LocalDateTime currentTime = Instant.ofEpochMilli(new Date().getTime()).atZone(tz.toZoneId()).toLocalDateTime();
-//							if(currentTime.isAfter(lastLogin.getLocalDateTime().plusDays(daysToResetPass))) {
-//								logger.info("User " + newUser.getId() + " is now locked due to not resetting password for over " + daysToResetPass + " days");
-//								// we should lock the account
-//								SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
-//								newUser.setLocked(true);
-//								return false;
-//							}
-//						}
-					}
-					
-					// if not locked
-					// update the last success login
-					if(!newUser.isLocked()) {
-						SecurityUpdateUtils.updateUserLastLogin(newUser.getId(), newUser.getProvider());
-					}
-					return false;
+					return validateUserLogin(newUser);
 				}
 
 				// need to synchronize the adding of new users
@@ -1260,6 +1190,86 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		return false;
+	}
+	
+	/**
+	 * 
+	 * @param newUser
+	 * @return
+	 * @throws Exception 
+	 */
+	public static boolean validateUserLogin(AccessToken newUser) throws Exception {
+		// make sure user is not locked out
+		Object[] lastLoginDetails = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(newUser.getId(), newUser.getProvider());
+		if(lastLoginDetails != null) {
+			Boolean isLocked = (Boolean) lastLoginDetails[0];
+			if(isLocked == null) {
+				isLocked = false;
+			}
+			SemossDate lastLogin = null;
+			SemossDate lastPassReset = null;
+			if(lastLoginDetails[1] != null) {
+				Object potentialDateValue = lastLoginDetails[1];
+				if(potentialDateValue instanceof SemossDate) {
+					lastLogin = (SemossDate) potentialDateValue;
+				} else if(potentialDateValue instanceof String) {
+					lastLogin = SemossDate.genTimeStampDateObj(potentialDateValue + "");
+				}
+			}
+			if(lastLoginDetails[2] != null) {
+				Object potentialDateValue = lastLoginDetails[2];
+				if(potentialDateValue instanceof SemossDate) {
+					lastPassReset = (SemossDate) potentialDateValue;
+				} else if(potentialDateValue instanceof String) {
+					lastPassReset = SemossDate.genTimeStampDateObj(potentialDateValue + "");
+				}
+			}
+			
+			int daysToLock = PasswordRequirements.getInstance().getDaysToLock();
+			int daysToResetPass = PasswordRequirements.getInstance().getPasswordExpirationDays();
+			
+			newUser.setLocked(isLocked);
+			newUser.setLastLogin(lastLogin);
+			newUser.setLastPasswordReset(lastPassReset);
+			
+			if(isLocked) {
+				logger.info("User " + newUser.getId() + " is locked");
+				return false;
+			} 
+			
+			if(daysToLock > 0 && lastLogin != null) {
+				// check to make sure user is not locked
+				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
+				LocalDateTime currentTime = Instant.ofEpochMilli(new Date().getTime()).atZone(tz.toZoneId()).toLocalDateTime();
+				if(currentTime.isAfter(lastLogin.getLocalDateTime().plusDays(daysToLock))) {
+					logger.info("User " + newUser.getId() + " is now locked due to not logging in for over " + daysToLock + " days");
+					// we should lock the account
+					SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
+					newUser.setLocked(true);
+					return false;
+				}
+			}
+			
+//			if(daysToResetPass > 0) {
+//				// check to make sure user is not locked
+//				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
+//				LocalDateTime currentTime = Instant.ofEpochMilli(new Date().getTime()).atZone(tz.toZoneId()).toLocalDateTime();
+//				if(currentTime.isAfter(lastLogin.getLocalDateTime().plusDays(daysToResetPass))) {
+//					logger.info("User " + newUser.getId() + " is now locked due to not resetting password for over " + daysToResetPass + " days");
+//					// we should lock the account
+//					SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
+//					newUser.setLocked(true);
+//					return false;
+//				}
+//			}
+		}
+		
+		// if not locked
+		// update the last success login
+		if(!newUser.isLocked()) {
+			SecurityUpdateUtils.updateUserLastLogin(newUser.getId(), newUser.getProvider());
+		}
 		return false;
 	}
 	
