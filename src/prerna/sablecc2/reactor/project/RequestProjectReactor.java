@@ -36,6 +36,7 @@ public class RequestProjectReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String permission = this.keyValue.get(this.keysToGet[1]);
@@ -61,22 +62,27 @@ public class RequestProjectReactor extends AbstractReactor {
 		String userId = token.getId();
 		// check user permission for the project
 		Integer currentUserPermission = SecurityProjectUtils.getUserProjectPermission(userId, projectId);
-		if(currentUserPermission != null) {
-			// make sure requesting new level of permission
-			int requestPermission = -1;
-			try {
-				requestPermission = Integer.parseInt(permission);
-			} catch(NumberFormatException ignore) {
-				requestPermission = AccessPermissionEnum.getPermissionByValue(permission).getId();
-			}
-			
-			if(requestPermission == currentUserPermission) {
-				throw new IllegalArgumentException("This user already has access to this project with the given permission level");
-			}
+		// make sure requesting new level of permission
+		int requestPermission = -1;
+		try {
+			requestPermission = Integer.parseInt(permission);
+		} catch(NumberFormatException ignore) {
+			requestPermission = AccessPermissionEnum.getPermissionByValue(permission).getId();
 		}
-
+		if(currentUserPermission != null && requestPermission == currentUserPermission) {
+			throw new IllegalArgumentException("This user already has access to this project with the given permission level");
+		}
+		
+		//check user pending permission
+		Integer currentPendingUserPermission = SecurityProjectUtils.getUserAccessRequestProjectPermission(userId, projectId);
+		if(currentPendingUserPermission != null && requestPermission == currentPendingUserPermission) {
+			throw new IllegalArgumentException("This user has already requested access to this project with the given permission level");
+		}
+		// checking to make sure project is discoverable
 		boolean canRequest = SecurityProjectUtils.canRequestProject(projectId);
 		if (canRequest) {
+			String userType = token.getProvider().toString();
+			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestPermission);
 			sendEmail(user, projectId, permission);
 			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
 		} else {
