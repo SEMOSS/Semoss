@@ -24,7 +24,7 @@ public class CustomReactorWrapper extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		
-		sc = (SocketClient)this.insight.getUser().getTCPServer(false);
+		sc = (SocketClient)this.insight.getUser().getTCPServer(true);
 
 		
 		pushInsight();
