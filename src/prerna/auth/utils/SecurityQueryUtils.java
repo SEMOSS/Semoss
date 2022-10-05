@@ -8,6 +8,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
@@ -147,7 +148,33 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
-
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditorsParams(String databaseId, String userId, String permission, long limit, long offset) {
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
+		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
@@ -162,6 +189,33 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	public static List<Map<String, Object>> getFullProjectOwnersAndEditorsParams(String projectId, String userId, String permission, long limit, long offset) {
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
+		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
+		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
+		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	

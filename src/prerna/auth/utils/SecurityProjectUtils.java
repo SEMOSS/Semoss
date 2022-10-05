@@ -324,39 +324,43 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return AccessPermissionEnum.READ_ONLY.getId();
 	}
 
-
 	/**
-	 * Retrieve the list of users for a given project
+	 * Retrieve the list of users for a given project with parameters
 	 * @param user
-	 * @param engineId
-	 * @param insightId
+	 * @param projectId
+	 * @param userId
+	 * @param permission
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getProjectUsers(User user, String projectId) throws IllegalAccessException {
+	public static List<Map<String, Object>> getProjectUsers(User user, String projectId, String userId, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("The user does not have access to view this project");
 		}
-
-		//		String query = "SELECT SMSS_USER.ID AS \"id\", "
-		//				+ "SMSS_USER.NAME AS \"name\", "
-		//				+ "PERMISSION.NAME AS \"permission\" "
-		//				+ "FROM SMSS_USER "
-		//				+ "INNER JOIN ENGINEPERMISSION ON (USER.ID = ENGINEPERMISSION.USERID) "
-		//				+ "INNER JOIN PERMISSION ON (ENGINEPERMISSION.PERMISSION = PERMISSION.ID) "
-		//				+ "WHERE ENGINEPERMISSION.ENGINEID='" + appId + "';"
-		//				;
-		//		
-		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
 		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
 		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
+		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -2030,7 +2034,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
 				insertPs.setString(parameterIndex++, projectId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
-				insertPs.setString(parameterIndex++, "TRUE");
+				insertPs.setBoolean(parameterIndex++, true);
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
