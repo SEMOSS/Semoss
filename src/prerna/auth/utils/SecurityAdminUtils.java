@@ -1450,6 +1450,71 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param existingUserId
+	 * @param databaseId
+	 * @param newPermission
+	 * @return
+	 * @throws IllegalAccessException 
+	 */
+	public static void editDatabaseUserPermissions(String databaseId, List<Map<String, String>> requests) throws IllegalAccessException {
+
+		// get userid of all requests
+		List<String> existingUserIds = new ArrayList<String>();
+	    for(Map<String,String> i:requests){
+	    	existingUserIds.add(i.get("userid"));
+	    }
+			    
+		// get user permissions to edit
+		Map<String, Integer> existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermissions(existingUserIds, databaseId);
+		
+		// make sure all users to edit currently has access to database
+		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
+		toRemoveUserIds.removeAll(existingUserPermission.keySet());
+		if (!toRemoveUserIds.isEmpty()) {
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the database: "+String.join(",", toRemoveUserIds));
+		}
+		
+		// update user permissions in bulk
+		String insertQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ? WHERE USERID = ? AND ENGINEID = ?";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				//SET
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				//WHERE
+				insertPs.setString(parameterIndex++, requests.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, databaseId);
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}	
+	}
+	
 	
 	/**
 	 * 
