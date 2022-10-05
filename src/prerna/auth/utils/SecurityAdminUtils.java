@@ -828,12 +828,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * DEPRECIATED DO NOT USE
 	 * Get all the users for a databases
 	 * @param databaseId
 	 * @return
 	 */
+	@Deprecated
 	public List<Map<String, Object>> getAppUsers(String databaseId) {
 		return SecurityQueryUtils.getFullDatabaseOwnersAndEditors(databaseId);
+	}
+
+	/**
+	 * Get all the users for a databases
+	 * @param databaseId
+	 * @param userId
+	 * @param permission
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<Map<String, Object>> getDatabaseUsers(String databaseId, String userId, String permission, long limit, long offset) {
+		return SecurityQueryUtils.getFullDatabaseOwnersAndEditorsParams(databaseId, userId, permission, limit, offset);
 	}
 	
 	
@@ -842,8 +857,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @return
 	 */
-	public List<Map<String, Object>> getProjectUsers(String projectId) {
-		return SecurityQueryUtils.getFullProjectOwnersAndEditors(projectId);
+	public List<Map<String, Object>> getProjectUsers(String projectId, String userId, String permission, long limit, long offset) {
+		return SecurityQueryUtils.getFullProjectOwnersAndEditorsParams(projectId, userId, permission, limit, offset);
 	}
 	
 	/**
@@ -1840,27 +1855,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__INSIGHTNAME"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
-//	/**
-//	 * @deprecated
-//	 * @param appId
-//	 * @param insightIds
-//	 * @throws Exception 
-//	 */
-//	public void deleteAppInsights(String appId, List<String> insightIds) throws Exception {
-//		IEngine engine = Utility.getEngine(appId);
-//		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
-//	
-//		// delete from insights database
-//		admin.dropInsight(insightIds);
-//
-//		// delete from the security database
-//		String insightFilters = createFilter(insightIds);
-//		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilters + " AND ENGINEID='" + appId + "';";
-//		query += "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID " + insightFilters + " AND ENGINEID='" + appId + "'";
-//		securityDb.insertData(query);
-//		securityDb.commit();
-//	}
 	
 	/**
 	 * @param projectId
