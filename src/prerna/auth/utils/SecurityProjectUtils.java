@@ -2,8 +2,10 @@ package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -12,6 +14,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -19,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -42,6 +47,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityProjectUtils extends AbstractSecurityUtils {
@@ -159,6 +165,49 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static Integer getUserProjectPermission(String singleUserId, String projectId) {
 		return SecurityUserProjectUtils.getUserProjectPermission(singleUserId, projectId);
 	}
+	
+	/**
+	 * Get the project permissions for a specific user
+	 * @param singleUserId
+	 * @param projectId
+	 * @return
+	 */
+	public static Map<String, Integer> getUserProjectPermissions(List<String> userIds, String projectId) {
+		Map<String, Integer> retMap = new HashMap<String, Integer>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = getUserProjectPermissionsWrapper(userIds, projectId);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				String userId = (String) data[0];
+				Integer permission = (Integer) data[1];
+				retMap.put(userId, permission);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		return retMap;
+	}
+	
+	/**
+	 * Get the project permissions for a specific user
+	 * @param singleUserId
+	 * @param projectId
+	 * @return
+	 */
+	public static IRawSelectWrapper getUserProjectPermissionsWrapper(List<String> userIds, String projectId) throws Exception {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		return wrapper;
+	}
 
 	/**
 	 * See if specific project is global
@@ -220,6 +269,20 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static boolean userCanEditProject(User user, String projectId) {
 		return SecurityUserProjectUtils.userCanEditProject(user, projectId)
 				|| SecurityGroupProjectUtils.userGroupCanEditProject(user, projectId);
+	}
+	
+	/**
+	 * Get the request pending database permission for a specific user
+	 * @param singleUserId
+	 * @param projectId
+	 * @return
+	 */
+	public static Integer getUserAccessRequestProjectPermission(String userId, String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__REQUEST_USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__PROJECTID", "==", projectId));
+		return QueryExecutionUtility.flushToInteger(securityDb, qs);
 	}
 
 	/**
@@ -392,6 +455,85 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured updating the user permissions for this project");
 		}
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param existingUserId
+	 * @param projectId
+	 * @param newPermission
+	 * @return
+	 * @throws IllegalAccessException 
+	 */
+	public static void editProjectUserPermissions(User user, String projectId, List<Map<String, String>> requests) throws IllegalAccessException {
+		// make sure user can edit the database
+		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
+		}
+		
+		
+		// get userid of all requests
+		List<String> existingUserIds = new ArrayList<String>();
+	    for(Map<String,String> i:requests){
+	    	existingUserIds.add(i.get("userid"));
+	    }
+			    
+		// get user permissions to edit
+		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(existingUserIds, projectId);
+		
+		// make sure all users to edit currently has access to database
+		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
+		toRemoveUserIds.removeAll(existingUserPermission.keySet());
+		if (!toRemoveUserIds.isEmpty()) {
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the project: "+String.join(",", toRemoveUserIds));
+		}
+		
+		// if user is not an owner, check to make sure they are not editting owner access
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
+			if(permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
+				throw new IllegalArgumentException("As a non-owner, you cannot edit access of an owner.");
+			}
+		}
+		
+		// update user permissions in bulk
+		String insertQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ?";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				//SET
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				//WHERE
+				insertPs.setString(parameterIndex++, requests.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, projectId);
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}	
 	}
 
 
@@ -1715,4 +1857,450 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
         return QueryExecutionUtility.flushRsToMap(securityDb, qs);
     }
     
+    
+    /**
+	 * set user access request
+	 * @param userId
+	 * @param userType
+	 * @param projectId
+	 * @param permission
+	 * @return
+	 */
+	public static void setUserAccessRequest(String userId, String userType, String projectId, int permission) {
+		// first do a delete
+		String deleteQ = "DELETE FROM PROJECTACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND APPROVER_DECISION IS NULL";
+		PreparedStatement deletePs = null;
+		try {
+			int index = 1;
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			deletePs.setString(index++, userId);
+			deletePs.setString(index++, userType);
+			deletePs.setString(index++, projectId);
+			deletePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while deleting user access request with detailed message = " + e.getMessage());
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+
+		// now we do the new insert 
+		String insertQ = "INSERT INTO PROJECTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, PROJECTID, PERMISSION) VALUES (?, ?,?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+
+			int index = 1;
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			insertPs.setString(index++, UUID.randomUUID().toString());
+			insertPs.setString(index++, userId);
+			insertPs.setString(index++, userType);
+			insertPs.setTimestamp(index++, timestamp, cal);
+			insertPs.setString(index++, projectId);
+			insertPs.setInt(index++, permission);
+			insertPs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Get the request pending database permission for a specific user
+	 * @param singleUserId
+	 * @param databaseId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserAccessRequestsByProject(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_USERID"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_TYPE"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_TIMESTAMP"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PROJECTID"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__APPROVER_USERID"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__APPROVER_TYPE"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__APPROVER_DECISION"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__APPROVER_TIMESTAMP"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__APPROVER_DECISION", "==", null));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Approving user access requests and giving user access in permissions
+	 * @param userId
+	 * @param userType
+	 * @param projectId
+	 * @param requests
+	 */
+	public static void approveProjectUserAccessRequests(User user, String projectId, List<Map<String, String>> requests) throws IllegalAccessException {
+		
+		// make sure user has right permission level to approve access requests
+		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
+		}
+		
+		// get user permissions of all requests
+		List<String> permissions = new ArrayList<String>();
+	    for(Map<String,String> i:requests){
+	    	permissions.add(i.get("permission"));
+	    }
+
+		// if user is not an owner, check to make sure they cannot grant owner access
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalArgumentException("You cannot grant user access to others.");
+		} else {
+			if(!AccessPermissionEnum.isOwner(userPermissionLvl) && permissions.contains("OWNER")) {
+				throw new IllegalArgumentException("As a non-owner, you cannot grant owner access.");
+			}
+		}
+				
+		// bulk delete
+		String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
+				deletePs.setString(parameterIndex++, projectId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		// insert new user permissions in bulk
+		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, projectId);
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				insertPs.setString(parameterIndex++, "TRUE");
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+
+		// now we do the new bulk update to projectaccessrequest table
+		String updateQ = "UPDATE PROJECTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
+		PreparedStatement updatePs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+			String userId = token.getId();
+			String userType = token.getProvider().toString();
+			for(int i=0; i<requests.size(); i++) {
+				int index = 1;
+				updatePs.setInt(index++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				updatePs.setString(index++, userId);
+				updatePs.setString(index++, userType);
+				updatePs.setString(index++, "APPROVED");
+				updatePs.setTimestamp(index++, timestamp, cal);
+				
+				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
+				
+				updatePs.addBatch();
+			}
+			updatePs.executeBatch();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Denying user access requests to project
+	 * @param userId
+	 * @param userType
+	 * @param projectId
+	 * @param requests
+	 */
+	public static void denyProjectUserAccessRequests(User user, String projectId, List<String> requestIdList) throws IllegalAccessException {
+		
+		// make sure user has right permission level to approve access requests
+		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
+		}
+
+		// only project owners can deny user access requests
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			throw new IllegalArgumentException("Insufficient privileges to deny user access requests.");
+		}
+				
+		// bulk update to projectaccessrequest table
+		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
+		PreparedStatement updatePs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+			String userId = token.getId();
+			String userType = token.getProvider().toString();
+			for(int i=0; i<requestIdList.size(); i++) {
+				int index = 1;
+				updatePs.setString(index++, userId);
+				updatePs.setString(index++, userType);
+				updatePs.setString(index++, "DENIED");
+				updatePs.setTimestamp(index++, timestamp, cal);
+				
+				updatePs.setString(index++, requestIdList.get(i));
+				
+				updatePs.addBatch();
+			}
+			updatePs.executeBatch();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param newUserId
+	 * @param projectId
+	 * @param permission
+	 * @return
+	 */
+	public static void addProjectUserPermissions(User user, String projectId, List<Map<String,String>> permission) throws IllegalAccessException {
+		
+		// make sure user can edit the project
+		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
+		}
+		
+		// check to make sure these users do not already have permissions to project
+		// get list of userids from permission list map
+		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
+		// this returns a list of existing permissions
+		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(userIds, projectId);
+		if (!existingUserPermission.isEmpty()) {
+			throw new IllegalArgumentException("The following users already have access to this project. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
+		}
+		
+		// if user is not an owner, check to make sure they are not adding owner access
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			List<String> permissionList = permission.stream().map(map -> map.get("permission")).collect(Collectors.toList());
+			if(permissionList.contains("OWNER")) {
+				throw new IllegalArgumentException("As a non-owner, you cannot add owner user access.");
+			}
+		}
+		
+		// insert new user permissions in bulk
+		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<permission.size(); i++) {
+				int parameterIndex = 1;
+				insertPs.setString(parameterIndex++, permission.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, projectId);
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				insertPs.setBoolean(parameterIndex++, true);
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param editedUserId
+	 * @param projectId
+	 * @return
+	 */
+	public static void removeProjectUsers(User user, List<String> existingUserIds, String projectId)  throws IllegalAccessException {
+		// make sure user can edit the project
+		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
+		}
+		
+		// get user permissions to remove
+		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(existingUserIds, projectId);
+		
+		// make sure all users to remove currently has access to database
+		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
+		toRemoveUserIds.removeAll(existingUserPermission.keySet());
+		if (!toRemoveUserIds.isEmpty()) {
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the project: "+String.join(",", toRemoveUserIds));
+		}
+		
+		// if user is not an owner, check to make sure they are not removing owner access
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
+			if(permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
+				throw new IllegalArgumentException("As a non-owner, you cannot remove access of an owner.");
+			}
+		}
+		
+		// first do a delete
+		String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(int i=0; i<existingUserIds.size(); i++) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, existingUserIds.get(i));
+				deletePs.setString(parameterIndex++, projectId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
 }

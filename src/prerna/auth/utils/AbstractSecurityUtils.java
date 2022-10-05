@@ -1008,6 +1008,19 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
+		// PROJECTACCESSREQUEST 
+		colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTACCESSREQUEST ", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "PROJECTACCESSREQUEST ", database, schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("PROJECTACCESSREQUEST ", colNames, types));
+			}
+		}
+		
 		// TOKENS
 		colNames = new String[] { "IPADDR", "VAL", "DATEADDED" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
