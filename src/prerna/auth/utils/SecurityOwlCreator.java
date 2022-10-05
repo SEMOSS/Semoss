@@ -38,6 +38,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PASSWORD_HISTORY");
 		conceptsRequired.add("PASSWORD_RESET");
 		conceptsRequired.add("DATABASEACCESSREQUEST");
+		conceptsRequired.add("PROJECTACCESSREQUEST");
 		
 		// new group tables
 		conceptsRequired.add("SMSS_GROUP");
@@ -374,6 +375,19 @@ public class SecurityOwlCreator {
 		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
 		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
 		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
+		
+		// PROJECTACCESSREQUEST 
+		owler.addConcept("PROJECTACCESSREQUEST", null, null);
+		owler.addProp("PROJECTACCESSREQUEST", "ID", "VARCHAR(255)");
+		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
+		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_TYPE", "VARCHAR(255)");
+		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
+		owler.addProp("PROJECTACCESSREQUEST", "PROJECTID", "VARCHAR(255)");
+		owler.addProp("PROJECTACCESSREQUEST", "PERMISSION", "INT");
+		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
+		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
+		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
+		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
 		
 		
 		// joins
