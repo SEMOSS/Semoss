@@ -589,7 +589,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				insertPs.setString(parameterIndex++, permission.get(i).get("userid"));
 				insertPs.setString(parameterIndex++, databaseId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
-				insertPs.setString(parameterIndex++, "TRUE");
+				insertPs.setBoolean(parameterIndex++, true);
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -664,6 +664,85 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured updating the user permissions for this insight");
 		}
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param existingUserId
+	 * @param databaseId
+	 * @param newPermission
+	 * @return
+	 * @throws IllegalAccessException 
+	 */
+	public static void editDatabaseUserPermissions(User user, String databaseId, List<Map<String, String>> requests) throws IllegalAccessException {
+		// make sure user can edit the database
+		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
+		}
+		
+		
+		// get userid of all requests
+		List<String> existingUserIds = new ArrayList<String>();
+	    for(Map<String,String> i:requests){
+	    	existingUserIds.add(i.get("userid"));
+	    }
+			    
+		// get user permissions to edit
+		Map<String, Integer> existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermissions(existingUserIds, databaseId);
+		
+		// make sure all users to edit currently has access to database
+		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
+		toRemoveUserIds.removeAll(existingUserPermission.keySet());
+		if (!toRemoveUserIds.isEmpty()) {
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the database: "+String.join(",", toRemoveUserIds));
+		}
+		
+		// if user is not an owner, check to make sure they are not editting owner access
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
+			if(permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
+				throw new IllegalArgumentException("As a non-owner, you cannot edit access of an owner.");
+			}
+		}
+		
+		// update user permissions in bulk
+		String insertQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ? WHERE USERID = ? AND ENGINEID = ?";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				//SET
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				//WHERE
+				insertPs.setString(parameterIndex++, requests.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, databaseId);
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}	
 	}
 	
 	/**
