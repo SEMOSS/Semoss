@@ -568,6 +568,9 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		// Clean the script
 		script = script.trim();
 		
+		// update script with try catch
+		script = "tryCatch({" + script + "}, error=function(e){e$message})";
+		
 		// Get temp folder and file locations
 		// also define a ROOT variable
 		String removePathVariables = "";
@@ -720,7 +723,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			}
 		}
 	}
-	
+		
 	private static String cleanErrorOutput(String output) {
 		output = output.replaceAll("Error in eval\\(expr, envir, enclos\\) : ", "")
 				 .replaceAll("Error in eval\\(ei, envir\\) : ", "")
