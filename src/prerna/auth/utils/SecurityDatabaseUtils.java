@@ -468,34 +468,39 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * Retrieve the list of users for a given database
 	 * @param user
 	 * @param databaseId
-	 * @param insightId
+	 * @param userId
+	 * @param permission
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getDatabaseUsers(User user, String databaseId) throws IllegalAccessException {
+	public static List<Map<String, Object>> getDatabaseUsers(User user, String databaseId, String userId, String permission, long limit, long offset) throws IllegalAccessException {
 		if(!userCanViewDatabase(user, databaseId)) {
 			throw new IllegalArgumentException("The user does not have access to view this database");
 		}
-		
-//		String query = "SELECT SMSS_USER.ID AS \"id\", "
-//				+ "SMSS_USER.NAME AS \"name\", "
-//				+ "PERMISSION.NAME AS \"permission\" "
-//				+ "FROM SMSS_USER "
-//				+ "INNER JOIN ENGINEPERMISSION ON (USER.ID = ENGINEPERMISSION.USERID) "
-//				+ "INNER JOIN PERMISSION ON (ENGINEPERMISSION.PERMISSION = PERMISSION.ID) "
-//				+ "WHERE ENGINEPERMISSION.ENGINEID='" + databaseId + "';"
-//				;
-//		
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
 		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
+		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
