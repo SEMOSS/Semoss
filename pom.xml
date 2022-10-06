@@ -1236,11 +1236,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc -->
 		<dependency>
-			<groupId>com.microsoft</groupId>
-			<artifactId>sqlserver</artifactId>
-			<version>4</version>
-			<exclusions>
+		    <groupId>com.microsoft.sqlserver</groupId>
+		    <artifactId>mssql-jdbc</artifactId>
+		    <version>11.2.1.jre8</version>
+		    <exclusions>
 				<exclusion>
 					<groupId>*</groupId>
 					<artifactId>*</artifactId>
