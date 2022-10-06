@@ -1572,6 +1572,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PROJECTPERMISSION__VISIBILITY", true, "project_visibility"));
 		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "project_permission"));
@@ -1581,7 +1582,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
 		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "left.outer.join");
-		
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+
 		Set<String> engineIdsIncluded = new HashSet<String>();
 		
 		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
@@ -1618,6 +1620,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+			qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PROJECTPERMISSION__VISIBILITY", true, "project_visibility"));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			// since some rdbms do not allow "not in ()" - we will only add if necessary
@@ -1657,8 +1660,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	
 				@Override
 				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-					String appName1 = o1.get("project_name").toString().toLowerCase();
-					String appName2 = o2.get("project_name").toString().toLowerCase();
+					String appName1 = o1.get("low_project_name").toString();
+					String appName2 = o2.get("low_project_name").toString();
 					return appName1.compareTo(appName2);
 				}
 			
