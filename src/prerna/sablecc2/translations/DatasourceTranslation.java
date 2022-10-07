@@ -225,7 +225,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 				  + "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"%7B%22type%22%3A%22echarts%22%7D\" ) ; "
 				  + "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"%7B%22core_engine%22%3A%22NEWSEMOSSAPP%22%7D\" ) ; "
 				  + "CreateFrame ( Grid ) .as ( [ 'FRAME549443' ] ) ; "
-				  + "GoogleSheetSource ( id=[ \"1EZbv_mXn_tnguDG02awFwQ30EqGMoWKZBflUVlcLgxY\" ] , sheetNames=[ \"diabetes\" ] , type=[ \".spreadsheet\" ] ) | Import ( ) ;"
+//				  + "GoogleSheetSource ( id=[ \"1EZbv_mXn_tnguDG02awFwQ30EqGMoWKZBflUVlcLgxY\" ] , sheetNames=[ \"diabetes\" ] , type=[ \".spreadsheet\" ] ) | Import ( ) ;"
 				  + "FileRead(filePath=[\"C:/workspace/Semoss_Dev/Movie_Data2018_03_27_13_08_21_0875.csv\"],dataTypeMap=[{\"Nominated\":\"STRING\",\"Title\":\"STRING\",\"Genre\":\"STRING\",\"Studio\":\"STRING\",\"Director\":\"STRING\",\"Revenue_Domestic\":\"NUMBER\",\"MovieBudget\":\"NUMBER\",\"Revenue_International\":\"NUMBER\",\"RottenTomatoes_Critics\":\"NUMBER\",\"RottenTomatoes_Audience\":\"NUMBER\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"Movie_Data\"])|Select(DND__Nominated, DND__Title, DND__Genre, DND__Studio, DND__Director, DND__Revenue_Domestic, DND__MovieBudget, DND__Revenue_International, DND__RottenTomatoes_Critics, DND__RottenTomatoes_Audience).as([Nominated, Title, Genre, Studio, Director, Revenue_Domestic, MovieBudget, Revenue_International, RottenTomatoes_Critics, RottenTomatoes_Audience]) | Filter(DND__Genre == \"Drama\") | Filter(DND__MovieBudget > 10) |Import ( ) ; "
 				  + "Database(Movie_RDBMS) | Select(Title, Title__MovieBudget, Studio) | Join((Title, inner.join, Studio)) | Import(); "
 				  + "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ; "

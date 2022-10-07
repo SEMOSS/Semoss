@@ -31,6 +31,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
+import prerna.usertracking.UserTrackingUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
@@ -95,7 +96,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		List<String> recipeIds = null;
 		List<String> additionalSteps = null;
 		List<ParamStruct> params = null;
-
+		Set<String> queriedDatabaseIds = null;
+		
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
 			if(optimizeRecipe) {
@@ -122,11 +124,13 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				}
 			}
 			params = InsightUtility.getInsightParams(this.insight);
+			queriedDatabaseIds = this.insight.getQueriedDatabaseIds();
 		} else {
 			// default for recipe encoded when no key is passed is true
 			if(recipeEncoded()) {
 				recipeToSave = decodeRecipe(recipeToSave);
 			}
+			queriedDatabaseIds = PixelUtility.getDatabaseIds(user, recipeToSave);
 		}
 		
 		IProject project = Utility.getProject(projectId);
@@ -212,7 +216,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		logger.info(stepCounter + ") Updated registered insight...");
 		editRegisteredInsightAndMetadata(project, existingId, insightName, layout, 
 				global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
-				recipeToSave, description, tags, this.insight.getVarStore().getFrames());
+				recipeToSave, description, tags, this.insight.getVarStore().getFrames(), queriedDatabaseIds);
 		logger.info(stepCounter + ") Done...");
 		stepCounter++;
 		
@@ -292,17 +296,25 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 	/**
 	 * Edit an existing insight saved within security database
-	 * @param appId
+	 * @param project
 	 * @param existingRdbmsId
 	 * @param insightName
 	 * @param layout
+	 * @param global
+	 * @param cacheable
+	 * @param cacheableMinutes
+	 * @param cacheCron
+	 * @param cachedOn
+	 * @param cacheEncrypt
+	 * @param recipe
 	 * @param description
 	 * @param tags
-	 * @param insightFrames 
+	 * @param insightFrames
+	 * @param queriedDatabaseIds
 	 */
 	private void editRegisteredInsightAndMetadata(IProject project, String existingRdbmsId, String insightName, String layout, 
 			boolean global, boolean cacheable, int cacheableMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
-			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
+			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds) {
 		String projectId = project.getProjectId();
 		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, global, 
 				layout, cacheable, cacheableMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
@@ -318,5 +330,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(insightFrames != null && !insightFrames.isEmpty()) {
 			SecurityInsightUtils.updateInsightFrames(projectId, existingRdbmsId, insightFrames);
 		}
+		UserTrackingUtils.updateEngineUsage(queriedDatabaseIds, existingRdbmsId, projectId);
 	}
 }

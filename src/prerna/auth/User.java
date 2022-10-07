@@ -3,6 +3,7 @@ package prerna.auth;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -516,6 +518,64 @@ public class User implements Serializable {
 		
 		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
 		return token.getId();
+	}
+	
+	public static List<Pair<String, String>> getUserIdAndType(User user) {
+		if (user == null) {
+			throw new IllegalArgumentException("User cannot be null.");
+		}
+
+		if (user.isAnonymous()) {
+			throw new IllegalArgumentException("User cannot be anonymous.");
+		}
+
+		if (!AbstractSecurityUtils.securityEnabled()) {
+			throw new IllegalArgumentException("Security must be enabled.");
+		}
+
+		List<Pair<String, String>> creds = new ArrayList<>();
+		if (user.getLogins() != null) {
+			for (AuthProvider login : user.getLogins()) {
+				String userid = user.getAccessToken(login).getId();
+				Pair<String, String> added = Pair.of(userid, login.name());
+				creds.add(added);
+			}
+		}
+
+		if (creds.size() == 0) {
+			throw new IllegalArgumentException("User needs to be logged in.");
+		}
+
+		return creds;
+	}
+
+	public static List<Pair<String, String>> getPrimaryUserIdAndType(User user) {
+		if (user == null) {
+			throw new IllegalArgumentException("User cannot be null.");
+		}
+
+		if (user.isAnonymous()) {
+			throw new IllegalArgumentException("User cannot be anonymous.");
+		}
+
+		if (!AbstractSecurityUtils.securityEnabled()) {
+			throw new IllegalArgumentException("Security must be enabled.");
+		}
+
+		List<Pair<String, String>> creds = new ArrayList<>();
+
+		AuthProvider login = user.getPrimaryLogin();
+		if (login == null) {
+			throw new IllegalArgumentException("User must have primary login");
+		}
+		String userid = user.getAccessToken(login).getId();
+		creds.add(Pair.of(userid, login.name()));
+
+		if (creds.size() == 0) {
+			throw new IllegalArgumentException("User needs to be logged in.");
+		}
+
+		return creds;
 	}
 	
 	/////////////////////////////////////////////////////
