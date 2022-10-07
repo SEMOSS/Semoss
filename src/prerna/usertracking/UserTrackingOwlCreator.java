@@ -2,46 +2,91 @@ package prerna.usertracking;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class UserTrackingOwlCreator {
 	
-	private List<Pair<String, String>> columnNamesAndTypes = Arrays.asList(
-			Pair.of("SESSIONID", "VARCHAR(255)"),
-			Pair.of("USERID", "VARCHAR(255)"),
-			Pair.of("TYPE", "VARCHAR(255)"),
-			Pair.of("CREATED_ON", "TIMESTAMP"),
-			Pair.of("ENDED_ON", "TIMESTAMP"),
-			Pair.of("IP_ADDR", "VARCHAR(255)"),
-			Pair.of("IP_LAT", "VARCHAR(255)"),
-			Pair.of("IP_LONG", "VARCHAR(255)"),
-			Pair.of("IP_COUNTRY", "VARCHAR(255)"),
-			Pair.of("IP_STATE", "VARCHAR(255)"),
-			Pair.of("IP_CITY", "VARCHAR(255)")			
-		);
+	// each column name paired to its type in a var
+	private List<Pair<String, String>> userTrackingColumns = null;
+	private List<Pair<String, String>> engineViewsColumns = null;
+	private List<Pair<String, String>> engineUsesColumns = null;
+	private List<Pair<String, String>> userCatalogVotes = null;
+	// Pairs table name with its respective columns
+	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
 	
 	// concepts are tables within db
 	// props are cols w/i concepts
-	private static List<String> conceptsRequired = new ArrayList<String>();
+	private static List<String> conceptsRequired = new Vector<String>();
 	static {
 		conceptsRequired.add("USER_TRACKING");
+		conceptsRequired.add("ENGINE_VIEWS");
+		conceptsRequired.add("ENGINE_USES");
+		conceptsRequired.add("USER_CATALOG_VOTES");
 	}
 	
-	private IEngine sessionDb;
+	private IRDBMSEngine sessionDb;
 	
-	public UserTrackingOwlCreator(IEngine sessionDb) {
+	public UserTrackingOwlCreator(IRDBMSEngine sessionDb) {
 		this.sessionDb = sessionDb;
+		createColumnsAndTypes(this.sessionDb.getQueryUtil());
+	}
+	
+	private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
+		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
+		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
+		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
+		this.userTrackingColumns = Arrays.asList(
+				Pair.of("SESSIONID", "VARCHAR(255)"),
+				Pair.of("USERID", "VARCHAR(255)"),
+				Pair.of("TYPE", "VARCHAR(255)"),
+				Pair.of("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.of("ENDED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.of("IP_ADDR", "VARCHAR(255)"),
+				Pair.of("IP_LAT", "VARCHAR(255)"),
+				Pair.of("IP_LONG", "VARCHAR(255)"),
+				Pair.of("IP_COUNTRY", "VARCHAR(255)"),
+				Pair.of("IP_STATE", "VARCHAR(255)"),
+				Pair.of("IP_CITY", "VARCHAR(255)")            
+			);
+		
+		this.engineViewsColumns = Arrays.asList(
+				Pair.of("ENGINEID", "VARCHAR(255)"),
+				Pair.of("DATE", "DATE"),
+				Pair.of("VIEWS", "INT")
+			);
+		
+		this.engineUsesColumns = Arrays.asList(
+				Pair.of("ENGINEID", "VARCHAR(255)"),
+				Pair.of("INSIGHTID", "VARCHAR(255)"),
+				Pair.of("PROJECTID", "VARCHAR(255)"),
+				Pair.of("DATE", "DATE")
+			);
+		
+		this.userCatalogVotes = Arrays.asList(
+				Pair.of("USERID", "VARCHAR(255)"),
+				Pair.of("TYPE", "VARCHAR(255)"),
+				Pair.of("ENGINEID", "VARCHAR(255)"),
+				Pair.of("VOTE", "INT"),
+				Pair.of("LAST_MODIFIED", TIMESTAMP_DATATYPE_NAME)
+			);
+		
+		allSchemas = Arrays.asList(
+				Pair.of("USER_TRACKING", userTrackingColumns),
+				Pair.of("ENGINE_VIEWS", engineViewsColumns),
+				Pair.of("ENGINE_USES", engineUsesColumns),
+				Pair.of("USER_CATALOG_VOTES", userCatalogVotes)
+			);
 	}
 	
 	/**
@@ -66,16 +111,40 @@ public class UserTrackingOwlCreator {
 		}
 		
 		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
-		if(check1) {
-			List<String> props = sessionDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/USER_TRACKING");
-			
-			props = sessionDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/USER_TRACKING");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/USER_TRACKING")) {
-				return true;
-			}
-			
+		
+		if (!check1) {
+			return true;
 		}
-		return true;
+		
+		// check all columns
+		for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
+			String tableName = tableWithColumns.getLeft();
+			String[] columnNames = tableWithColumns.getRight().stream()
+					.map(Pair::getRight).toArray(String[]::new);
+
+			for (String columnName : columnNames) {
+				if (columnChecks(tableName, columnName)) {
+					return true;
+				}
+			}
+		}
+		
+		// does not need to be remade
+		return false;
+	}
+	
+	
+	private boolean columnChecks(String tableName, String columnName) {
+		String propsURI = "http://semoss.org/ontologies/Concept/" + tableName;
+		String relationURI = "http://semoss.org/ontologies/Relation/Contains/" 
+				+ columnName + "/" + tableName; 
+
+		List<String> props = sessionDb.getPropertyUris4PhysicalUri(propsURI);	
+		if(!props.contains(relationURI)) {
+			return true;
+		}
+		
+		return false;
 	}
 		
 	
@@ -114,19 +183,36 @@ public class UserTrackingOwlCreator {
 	private void writeNewOwl(String owlLocation) throws IOException {
 		Owler owler = new Owler(owlLocation, ENGINE_TYPE.RDBMS);
 
-		// ENGINE
-		owler.addConcept("USER_TRACKING", null, null);
-		
-		for (Pair<String, String> x : columnNamesAndTypes) {	
-			owler.addProp("USER_TRACKING", x.getLeft(), x.getRight());
+		// ENGINE	
+		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
+			String tableName = columns.getLeft();
+			owler.addConcept(tableName, null, null);
+			for (Pair<String, String> x : columns.getRight()) {	
+				owler.addProp(tableName, x.getLeft(), x.getRight());
+			}
 		}
 		
 		owler.commit();
 		owler.export();
 	}
 	
-	public List<Pair<String, String>> getColumnNamesAndTypes() {
-		return columnNamesAndTypes;
+	public List<Pair<String, String>> getUserTrackingColumns() {
+		return this.userTrackingColumns;
 	}
 	
+	public List<Pair<String, String>> getEngineViewsColumns() {
+		return this.engineViewsColumns;
+	}
+	
+	public List<Pair<String, String>> getEngineUsesColumns() {
+		return this.engineUsesColumns;
+	}
+	
+	public List<Pair<String, String>> getUserCatalogVotesSchema() {
+		return this.userCatalogVotes;
+	}
+	
+	public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {
+		return this.allSchemas;
+	}
 }
