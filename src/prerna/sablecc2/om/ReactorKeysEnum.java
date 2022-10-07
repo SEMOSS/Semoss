@@ -216,6 +216,7 @@ public enum ReactorKeysEnum {
 	USE_LABEL("useLabel",										"Boolean to use the label to query a graph database"),
 	VALUE("value", 												"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 											"Numeric or string values used as input text or inputs to an operation"),
+	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture.");

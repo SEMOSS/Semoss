@@ -37,7 +37,11 @@ public enum AuthProvider {
 	GENERIC,
 	;
 
-	// TODO: i really dislike this... looks dumb for things like "Ms", "Cac"...
+	/**
+	 * Really gross looking... you get things like "Ms", "Cac"...
+	 * IF CREATING NEW LOGIC, PLEASE USE AuthProvider.name
+	 */
+	@Deprecated
 	public String toString() {
 		return name().charAt(0) + name().substring(1).toLowerCase();
 	}

@@ -74,6 +74,24 @@ public class QueryExecutionUtility {
 		return null;
 	}
 	
+	public static Long flushToLong(IEngine engine, SelectQueryStruct qs) {
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				return (Long) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return null;
+	}
+	
 	/**
 	 * Utility method to flush result set into list
 	 * Assumes single return at index 0

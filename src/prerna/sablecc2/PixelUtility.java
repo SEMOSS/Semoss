@@ -37,6 +37,7 @@ import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
 import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.parsers.ParamStructToJsonGenerator;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -481,6 +482,62 @@ public class PixelUtility {
 		}
 
 		return translation.getDatasourcePixels();
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param expression
+	 * @return
+	 */
+	public static Set<String> getDatabaseIds(User user, List<String> expression) {
+		StringBuilder finalExpression = new StringBuilder();
+		expression.forEach(s -> finalExpression.append(s));
+		return getDatabaseIds(user, finalExpression.toString());
+	}
+	
+	/**
+	 * Get the data sources within the full expression
+	 * @param expression
+	 * @return
+	 */
+	public static Set<String> getDatabaseIds(User user, String expression) {
+		/*
+		 * Using a translation object to go through and figure out all 
+		 * the datasources and how we would want to manipulate
+		 * and change them as people swap the data but want to use the same
+		 * routine / analysis
+		 */
+		
+		Insight in = new Insight();
+		in.setUser(user);
+		DatasourceTranslation translation = new DatasourceTranslation(in);
+		try {
+			expression = PixelPreProcessor.preProcessPixel(expression, new ArrayList<String>(), new HashMap<String, String>());
+			Parser p = new Parser(
+					new Lexer(
+							new PushbackReader(
+									new InputStreamReader(
+											new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
+			Start tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+		} catch (ParserException | LexerException | IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+
+		Set<String> databaseIds = new HashSet<>();
+		List<Map<String, Object>> datasourcePixels = translation.getDatasourcePixels();
+		for(Map<String, Object> datasourceMetaMap : datasourcePixels) {
+			Map<String, Object> paramMap = (Map<String, Object>) datasourceMetaMap.get("params");
+			SelectQueryStruct qs = (SelectQueryStruct) paramMap.get("qs");
+			if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE
+					|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+				databaseIds.add(qs.getEngineId());
+			}
+		}
+		
+		return databaseIds;
 	}
 	
 	/**
