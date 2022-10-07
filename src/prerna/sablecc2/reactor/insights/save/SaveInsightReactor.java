@@ -38,6 +38,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
+import prerna.usertracking.UserTrackingUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
@@ -103,7 +104,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		List<String> recipeIds = null;
 		List<String> additionalSteps = null;
 		List<ParamStruct> params = null;
-		
+		Set<String> queriedDatabaseIds = null;
+
 		String layout = getLayout();
 		boolean global = getGlobal();
 		if(global && AbstractSecurityUtils.adminOnlyInsightSetPublic()) {
@@ -157,11 +159,13 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				}
 			}
 			params = InsightUtility.getInsightParams(this.insight);
+			queriedDatabaseIds = this.insight.getQueriedDatabaseIds();
 		} else {
 			// default for recipe encoded when no key is passed is true
 			if(recipeEncoded()) {
 				recipeToSave = decodeRecipe(recipeToSave);
 			}
+			queriedDatabaseIds = PixelUtility.getDatabaseIds(user, recipeToSave);
 		}
 		
 		IProject project = Utility.getProject(projectId);
@@ -215,7 +219,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		logger.info(stepCounter + ") Regsiter insight...");
 		registerInsightAndMetadata(project, newInsightId, insightName, layout, global, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-				recipeToSave, description, tags, this.insight.getVarStore().getFrames());
+				recipeToSave, description, tags, this.insight.getVarStore().getFrames(), queriedDatabaseIds);
 		logger.info(stepCounter + ") Done...");
 		stepCounter++;
 		
@@ -344,15 +348,18 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param global
 	 * @param cacheable
 	 * @param cacheMinutes
+	 * @param cacheCron
+	 * @param cachedOn
 	 * @param cacheEncrypt
 	 * @param recipe
 	 * @param description
 	 * @param tags
 	 * @param insightFrames
+	 * @param queriedDatabaseIds
 	 */
 	private void registerInsightAndMetadata(IProject project, String insightIdToSave, String insightName, String layout, boolean global,
 			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
-			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames) {
+			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds) {
 		String projectId = project.getProjectId();
 		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, global, layout, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
@@ -371,5 +378,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(insightFrames != null && !insightFrames.isEmpty()) {
 			SecurityInsightUtils.updateInsightFrames(projectId, insightIdToSave, insightFrames);
 		}
+		// keep track of any engines used
+		UserTrackingUtils.addEngineUsage(queriedDatabaseIds, insightIdToSave, projectId);
 	}
 }
