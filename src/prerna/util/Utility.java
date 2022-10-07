@@ -3644,6 +3644,10 @@ public class Utility {
 		return Boolean.parseBoolean(userTracking);
 	}
 	
+	public static boolean isUserTrackingDisabled() {
+		return !isUserTrackingEnabled();
+	}
+	
 	public static String getUserTrackingMethod() {
 		return DIHelper.getInstance().getProperty(Constants.USER_TRACKING_METHOD);
 	}

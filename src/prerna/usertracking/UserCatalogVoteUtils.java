@@ -1,0 +1,273 @@
+package prerna.usertracking;
+
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
+
+
+public class UserCatalogVoteUtils extends UserTrackingUtils {
+
+	private static Logger logger = LogManager.getLogger(UserCatalogVoteUtils.class);
+	
+	private static String VOTE_TN = "USER_CATALOG_VOTES";
+	private static String VOTE_PRE = "USER_CATALOG_VOTES__";
+	
+	public static Map<Pair<String, String>, Integer> getVote(List<Pair<String, String>> creds, String catalogId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "USERID"));
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "TYPE"));
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
+		
+
+		OrQueryFilter of = new OrQueryFilter();
+		for (Pair<String, String> cred : creds) {
+			AndQueryFilter af = new AndQueryFilter();
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "USERID", "==", cred.getLeft()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "TYPE", "==", cred.getRight()));
+			of.addFilter(af);
+		}
+		qs.addExplicitFilter(of);
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", catalogId));
+		
+		IRawSelectWrapper wrapper = null;
+		Map<Pair<String, String>, Integer> votes = new HashMap<>();
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
+			if (wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				Object[] values = headerRow.getValues();
+				
+				if (values[0] != null && values[1] != null && values[2] != null) {
+					Pair<String, String> credential = Pair.of(values[0].toString(), values[1].toString());
+					Integer vote = ((Number) values[2]).intValue();
+					votes.put(credential, vote);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return votes;
+	}
+
+	public static int getAllVotes(String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector sum = new QueryFunctionSelector();
+		sum.addInnerSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
+		sum.setAlias("total");
+		sum.setFunction(QueryFunctionHelper.SUM);
+		qs.addSelector(sum);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", databaseId));
+		
+		int val = 0;
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
+
+			if(wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				Object[] values = headerRow.getValues();
+				if (values[0] != null) {
+					val = ((Number) values[0]).intValue();
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return val;
+	}
+
+	public static void vote(List<Pair<String, String>> creds, String catalogId, int vote) {
+		Map<Pair<String, String>, Integer> votes = getVote(creds, catalogId);
+
+		List<Pair<String, String>> toUpdate = new ArrayList<>();
+		List<Pair<String, String>> toInsert = new ArrayList<>();
+
+		for (Pair<String, String> cred : creds) {
+			if (votes.containsKey(cred)) {
+				int existing = votes.get(cred);
+				if (existing != vote) {
+					toUpdate.add(cred);
+				}
+			} else {
+				toInsert.add(cred);
+			}
+		}
+
+		if (toInsert.size() != 0) {
+			insert(toInsert, catalogId, vote);
+		}
+
+		if (toUpdate.size() != 0) {
+			update(toUpdate, catalogId, vote);
+		}
+	}
+
+	private static void update(List<Pair<String, String>> creds, String catalogId, int vote) {
+		String query = "UPDATE " + VOTE_TN + " SET VOTE = ?, LAST_MODIFIED = ? WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
+		
+		PreparedStatement ps = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+			ps = userTrackingDb.getPreparedStatement(query);
+			for (Pair<String, String> cred : creds) {
+				int index = 1;
+				ps.setInt(index, vote);
+				ps.setTimestamp(index, Timestamp.valueOf(LocalDateTime.now()), cal);
+				ps.setString(index++, cred.getLeft());
+				ps.setString(index++, cred.getRight());
+				ps.setString(index++, catalogId);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(userTrackingDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}	
+	}
+
+	public static void delete(List<Pair<String, String>> creds, String catalogId) {
+		 String query = "DELETE FROM " + VOTE_TN + " WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
+		 PreparedStatement ps = null;
+			try {
+				ps = userTrackingDb.getPreparedStatement(query);
+					for (Pair<String, String> cred : creds) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, cred.getLeft());
+					ps.setString(parameterIndex++, cred.getRight());
+					ps.setString(parameterIndex++, catalogId);
+					ps.addBatch();
+				}
+				ps.execute();
+			} catch(Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+					if(userTrackingDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
+			}
+	}
+
+	private static void insert(List<Pair<String, String>> creds, String cid, int vote) {
+		String query = "INSERT INTO " + VOTE_TN + " (USERID, TYPE, ENGINEID, VOTE, LAST_MODIFIED) VALUES (?, ?, ?, ?, ?)";
+		
+		PreparedStatement ps = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+			ps = userTrackingDb.getPreparedStatement(query);
+			
+			for (Pair<String, String> cred : creds) {
+				int index = 1;
+				ps.setString(index++, cred.getLeft());
+				ps.setString(index++, cred.getRight());
+				ps.setString(index++, cid);
+				ps.setInt(index++, vote);
+				ps.setTimestamp(index++, Timestamp.valueOf(LocalDateTime.now()), cal);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(userTrackingDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+
+	
+	
+	
+	public static List<String> getRecommendedDatabases(int limit, List<String> accessibleDbs) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
+		
+		QueryFunctionSelector sum = new QueryFunctionSelector();
+		sum.addInnerSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
+		sum.setAlias("total");
+		sum.setFunction(QueryFunctionHelper.SUM);
+		qs.addSelector(sum);
+		
+		// filter out any non viewable databases
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", accessibleDbs));
+
+		qs.addGroupBy(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
+		
+		qs.addOrderBy("total", "desc");
+		qs.setLimit(limit);
+		
+		
+		return QueryExecutionUtility.flushToListString(userTrackingDb, qs);
+	}
+	
+}
