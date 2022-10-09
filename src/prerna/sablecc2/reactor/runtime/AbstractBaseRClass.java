@@ -596,7 +596,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	////////////////////////////////////////////////////////////
 	//////////////////// Tinker R Methods //////////////////////
 
-	protected void synchronizeGraphToR() {
+	public void synchronizeGraphToR() {
 		String defaultName = getDefaultName();
 		synchronizeGraphToR(defaultName);
 	}
