@@ -372,7 +372,7 @@ public class PyTranslator {
 		if (this.insight != null) {
 			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
 			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
-			removePathVariables = ", ROOT";
+			removePathVariables = " ROOT";
 
 			if (this.insight.isSavedInsight()) {
 				appRootPath = this.insight.getAppFolder();
@@ -439,7 +439,7 @@ public class PyTranslator {
 			try {
 				FileUtils.writeStringToFile(preScriptFile, preScript);
 				// execute all the commands for setting variables etc.
-				executeEmptyPyDirect("exec(open(" + preScriptPath + ").read())");
+				executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())");
 
 				FileUtils.writeStringToFile(scriptFile, script);
 
@@ -537,7 +537,7 @@ public class PyTranslator {
 		if (this.insight != null) {
 			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
 			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
-			removePathVariables = ", ROOT";
+			removePathVariables = " ROOT";
 
 			if (this.insight.isSavedInsight()) {
 				appRootPath = this.insight.getAppFolder();
@@ -596,7 +596,7 @@ public class PyTranslator {
 		// Try writing the script to a file
 		try {
 			FileUtils.writeStringToFile(preScriptFile, preScript);
-			executeEmptyPyDirect("exec(open(" + preScriptPath + ").read())");
+			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())");
 			FileUtils.writeStringToFile(scriptFile, script);
 
 			// check packages
