@@ -10,6 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.sablecc2.reactor.runtime.BaseRUtil;
 import prerna.util.Utility;
 
 /**
@@ -36,6 +37,20 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		TinkerFrame frame = (TinkerFrame) getFrame();
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
+		
+		// if graph name is not there
+		// this has not been synchronized
+		// synchronize it
+		if(graphName == null)
+		{
+			BaseRUtil bru = new BaseRUtil();
+			bru.setRJavaTranslator(rJavaTranslator);
+			bru.dataframe = this.getFrame();
+			bru.setInsight(insight);
+			bru.synchronizeGraphToR();
+			graphName = (String) retrieveVariable("GRAPH_NAME");
+		}
+		
 		String inputLayout = this.keyValue.get(this.keysToGet[0]);
 
 		try {
