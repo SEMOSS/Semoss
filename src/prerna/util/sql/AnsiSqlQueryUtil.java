@@ -103,7 +103,9 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.REGEXP_LIKE)) {
 			return getRegexLikeFunctionSyntax();
 		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.SUBSTRING)) {
-				return getSubstringFunctionSyntax();
+			return getSubstringFunctionSyntax();
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.CAST)){ 
+			return getCastFunctionSyntax();	
 		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.DATE_FORMAT)) {
 			return getDateFormatFunctionSyntax();
 		// Date functions
@@ -186,6 +188,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String getSubstringFunctionSyntax() {
 		return "SUBSTRING";
+	}
+	
+	@Override
+	public String getCastFunctionSyntax() {
+		return "CAST";
 	}
 	
 	@Override
