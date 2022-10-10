@@ -25,6 +25,7 @@ public class QueryFunctionHelper {
 	public static final String REGEXP_LIKE = "RegexLike";
 	public static final String SUBSTRING = "Substring";
 	public static final String DATE_FORMAT = "DateFormat";
+	public static final String CAST = "CAST";
 	
 	// Date functions
 	public static final String DATE_ADD = "DateAdd";
