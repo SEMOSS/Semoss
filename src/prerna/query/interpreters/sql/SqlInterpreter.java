@@ -42,6 +42,7 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
@@ -446,6 +447,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		if(selector.isDistinct()) {
 			expression.append("DISTINCT ");
 		}
+
 		int size = innerSelectors.size();	
 		for(int i = 0; i< size; i++) {
 			if(i == 0) {
@@ -453,6 +455,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else {
 				expression.append(",").append(processSelector(innerSelectors.get(i), false));
 			}
+		}
+		
+		if(function.equalsIgnoreCase(QueryFunctionHelper.CAST)){
+			String dataType = selector.getDataType();
+			expression.append(" AS " + dataType);
 		}
 		
 		// add any default function options as defined by the query util
