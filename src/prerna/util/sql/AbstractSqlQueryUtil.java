@@ -520,6 +520,8 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getSubstringFunctionSyntax();
 	
 	public abstract String getDateFormatFunctionSyntax();
+	
+	public abstract String getCastFunctionSyntax();
 
 	public abstract String getLowerFunctionSyntax();
 
