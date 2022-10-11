@@ -35,11 +35,10 @@ public class IfReactor extends SelectReactor {
 		GenRowStruct qsInputs = this.getCurRow();
 		if(qsInputs != null && !qsInputs.isEmpty()) {
 			List<IQuerySelector> selectors = new Vector<IQuerySelector>();
-			// there shoul be three here
+			// there should be three here
 			NounMetadata input = qsInputs.getNoun(0);
 			IQuerySelector conditionSelector = getSelector(input);
-			if(conditionSelector instanceof QueryConstantSelector)
-			{
+			if(conditionSelector instanceof QueryConstantSelector) {
 				IQueryFilter filter = (IQueryFilter)((QueryConstantSelector)conditionSelector).getConstant();
 				qis.setCondition(filter);
 			}
@@ -48,8 +47,7 @@ public class IfReactor extends SelectReactor {
 			qis.setPrecedent(precedent);
 
 			NounMetadata input3 = qsInputs.getNoun(2);
-			if(input3 != null)
-			{
+			if(input3 != null) {
 				IQuerySelector antecedent = getSelector(input3);
 				qis.setAntecedent(antecedent);
 			}
@@ -58,11 +56,13 @@ public class IfReactor extends SelectReactor {
 			qs.mergeSelectors(selectors);
 		}
 		
-		if(qs.getPragmap() == null)
+		if(qs.getPragmap() == null) {
 			qs.setPragmap(new java.util.HashMap());
+		}
 		
-		if(insight.getPragmap() != null)
+		if(insight.getPragmap() != null) {
 			qs.getPragmap().putAll(insight.getPragmap());
+		}
 		
 		// convert this into one single query struct and then return it
 		// first one is a filter query struct

@@ -83,6 +83,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	public TinkerGraph g = null;
 
+	private boolean iGraphSynched = false;
+	
 	/***********************************  CONSTRUCTORS  **********************************/
 	
 	public TinkerFrame() {
@@ -105,6 +107,15 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		String uuid = UUID.randomUUID().toString().toUpperCase();
 		uuid = uuid.replace("-", "_");
 		setName("TINKER_" + uuid);
+	}
+	
+	
+	public boolean isIGraphSynched() {
+		return iGraphSynched;
+	}
+
+	public void setIGraphSynched(boolean iGraphSynched) {
+		this.iGraphSynched = iGraphSynched;
 	}
 
 	/*********************************  END CONSTRUCTORS  ********************************/
@@ -628,6 +639,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 
 	
+	
 //	// Backdoor entry
 //	public void openBackDoor(){
 //		Thread thread = new Thread(){
@@ -714,7 +726,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //                }
 //    }
     
-	
 	public GraphTraversal runGremlin(String gremlinQuery){
 		//instead of running the openCommandLine we are going to specify the query that we want to return data for. 
 		GraphTraversal gt = null;
