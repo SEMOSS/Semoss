@@ -1,8 +1,8 @@
 package prerna.sablecc2.reactor.frame.graph.r;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -10,13 +10,16 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
+import prerna.engine.impl.tinker.iGraphUtilities;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 
 public class NodeDetailsReactor extends AbstractRFrameReactor {
@@ -31,12 +34,23 @@ public class NodeDetailsReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
-		String[] packages = new String[] {"igraph"};
+		String[] packages = new String[] { "igraph" };
 		this.rJavaTranslator.checkPackages(packages);
+		this.rJavaTranslator.executeEmptyR("library(igraph)");
 		Logger logger = getLogger(CLASS_NAME);
-		String graphName = (String) retrieveVariable("GRAPH_NAME");
-		TinkerFrame frame = (TinkerFrame) getFrame();
 
+		ITableDataFrame frame = getFrame();
+		if(!(frame instanceof TinkerFrame)) {
+			throw new IllegalArgumentException("Frame must be a graph frame type");
+		}
+		TinkerFrame graph = (TinkerFrame) frame;
+		if(!graph.isIGraphSynched()) {
+			AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
+			String wd = this.insight.getInsightFolder();
+			iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
+		}
+		String graphName = graph.getName();
+		
 		String type = this.keyValue.get(this.keysToGet[1]);
 		String instance = this.keyValue.get(this.keysToGet[2]);
 		String panelId = this.keyValue.get(this.keysToGet[3]);
@@ -45,7 +59,7 @@ public class NodeDetailsReactor extends AbstractRFrameReactor {
 		}
 		String uniqueNodeId = type + ":" + instance;
 		
-		GraphTraversal<Vertex, Vertex> it = frame.g.traversal().V().has(TinkerFrame.TINKER_ID, uniqueNodeId);
+		GraphTraversal<Vertex, Vertex> it = graph.g.traversal().V().has(TinkerFrame.TINKER_ID, uniqueNodeId);
 		Vertex v = null;
 		if(it.hasNext()) {
 			v = it.next();
@@ -55,7 +69,7 @@ public class NodeDetailsReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Could not find vertex of type = " + type + " and value = " + instance);
 		}
 		
-		List<Object[]> gridData = new Vector<Object[]>();
+		List<Object[]> gridData = new ArrayList<Object[]>();
 		
 		long inE = 0;
 		long outE = 0;
@@ -90,7 +104,7 @@ public class NodeDetailsReactor extends AbstractRFrameReactor {
 		}
 		logger.info("Calculating eigen value");
 		// get eigen value
-		eigen = frame.eigen(type, instance);
+		eigen = graph.eigen(type, instance);
 		
 		// store these values
 		gridData.add(new Object[]{"# in E", inE});
