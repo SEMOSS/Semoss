@@ -4,13 +4,15 @@ import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
+import prerna.engine.impl.tinker.iGraphUtilities;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
-import prerna.sablecc2.reactor.runtime.BaseRUtil;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Utility;
 
 /**
@@ -35,24 +37,20 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		this.rJavaTranslator.executeEmptyR("library(igraph)");
 		Logger logger = getLogger(CLASS_NAME);
-		TinkerFrame frame = (TinkerFrame) getFrame();
-		String graphName = (String) retrieveVariable("GRAPH_NAME");
-		
-		// if graph name is not there
-		// this has not been synchronized
-		// synchronize it
-		if(graphName == null)
-		{
-			BaseRUtil bru = new BaseRUtil();
-			bru.setRJavaTranslator(rJavaTranslator);
-			bru.dataframe = this.getFrame();
-			bru.setInsight(insight);
-			bru.synchronizeGraphToR();
-			graphName = (String) retrieveVariable("GRAPH_NAME");
+
+		ITableDataFrame frame = getFrame();
+		if(!(frame instanceof TinkerFrame)) {
+			throw new IllegalArgumentException("Frame must be a graph frame type");
 		}
+		TinkerFrame graph = (TinkerFrame) frame;
+		if(!graph.isIGraphSynched()) {
+			AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
+			String wd = this.insight.getInsightFolder();
+			iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
+		}
+		String graphName = graph.getName();
 		
 		String inputLayout = this.keyValue.get(this.keysToGet[0]);
-
 		try {
 			logger.info("Determining vertex positions...");
 			String tempOutputLayout = "xy_layout" + Utility.getRandomString(8);

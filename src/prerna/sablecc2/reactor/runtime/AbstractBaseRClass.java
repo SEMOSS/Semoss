@@ -697,53 +697,53 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// }
 	}
 
-	/**
-	 * Remove all nodes of a specific type and with a specific value
-	 * 
-	 * @param type
-	 * @param data
-	 */
-	protected void removeNode(String type, String data) {
-		java.lang.System.setSecurityManager(curManager);
-		if (dataframe instanceof TinkerFrame) {
-			List<Object> removeList = new Vector<Object>();
-			removeList.add(data);
-			((TinkerFrame) dataframe).remove(type, removeList);
-			String output = "Removed nodes for  " + data + " with values " + removeList;
-			System.out.println(output);
-			dataframe.updateDataId();
-			removeNodeFromR(type, removeList);
-		}
-		java.lang.System.setSecurityManager(reactorManager);
-	}
-
-	/**
-	 * Delete nodes from R iGraph
-	 * 
-	 * @param type
-	 * @param nodeList
-	 */
-	protected void removeNodeFromR(String type, List<Object> nodeList) {
-		String graphName = (String) retrieveVariable("GRAPH_NAME");
-		if (graphName == null) {
-			// we will not have a graph name if the graph has not been
-			// synchronized to R
-			return;
-		}
-		for (int nodeIndex = 0; nodeIndex < nodeList.size(); nodeIndex++) {
-			String name = type + ":" + nodeList.get(nodeIndex);
-			try {
-				java.lang.System.out.println("Deleting node = " + name);
-				// eval is abstract and is determined by the specific R
-				// implementation
-				this.rJavaTranslator.executeEmptyR(graphName + " <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName
-						+ ", \"" + TinkerFrame.TINKER_ID + "\") == \"" + name + "\"])");
-			} catch (Exception ex) {
-				java.lang.System.out.println("ERROR ::: Could not delete node = " + name);
-				classLogger.error(Constants.STACKTRACE, ex);
-			}
-		}
-	}
+//	/**
+//	 * Remove all nodes of a specific type and with a specific value
+//	 * 
+//	 * @param type
+//	 * @param data
+//	 */
+//	protected void removeNode(String type, String data) {
+//		java.lang.System.setSecurityManager(curManager);
+//		if (dataframe instanceof TinkerFrame) {
+//			List<Object> removeList = new Vector<Object>();
+//			removeList.add(data);
+//			((TinkerFrame) dataframe).remove(type, removeList);
+//			String output = "Removed nodes for  " + data + " with values " + removeList;
+//			System.out.println(output);
+//			dataframe.updateDataId();
+//			removeNodeFromR(type, removeList);
+//		}
+//		java.lang.System.setSecurityManager(reactorManager);
+//	}
+//
+//	/**
+//	 * Delete nodes from R iGraph
+//	 * 
+//	 * @param type
+//	 * @param nodeList
+//	 */
+//	protected void removeNodeFromR(String type, List<Object> nodeList) {
+//		String graphName = (String) retrieveVariable("GRAPH_NAME");
+//		if (graphName == null) {
+//			// we will not have a graph name if the graph has not been
+//			// synchronized to R
+//			return;
+//		}
+//		for (int nodeIndex = 0; nodeIndex < nodeList.size(); nodeIndex++) {
+//			String name = type + ":" + nodeList.get(nodeIndex);
+//			try {
+//				java.lang.System.out.println("Deleting node = " + name);
+//				// eval is abstract and is determined by the specific R
+//				// implementation
+//				this.rJavaTranslator.executeEmptyR(graphName + " <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName
+//						+ ", \"" + TinkerFrame.TINKER_ID + "\") == \"" + name + "\"])");
+//			} catch (Exception ex) {
+//				java.lang.System.out.println("ERROR ::: Could not delete node = " + name);
+//				classLogger.error(Constants.STACKTRACE, ex);
+//			}
+//		}
+//	}
 
 	public void key() {
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
