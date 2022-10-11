@@ -1,9 +1,6 @@
 package prerna.sablecc2.reactor.runtime;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -15,8 +12,6 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.ICache;
@@ -29,6 +24,7 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.r.RSingleton;
+import prerna.engine.impl.tinker.TinkerUtilities;
 import prerna.poi.main.HeadersException;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -629,7 +625,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 			// create this directory
 			file.mkdir();
-			String fileName = writeGraph(wd);
+			String fileName = TinkerUtilities.serializeGraph((TinkerFrame) dataframe, wd);
 
 			wd = wd.replace("\\", "/");
 
@@ -775,34 +771,4 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		System.out.println(" Key Nodes \n " + names);
 	}
 	
-	/**
-	 * Serialize the TinkerGraph in GraphML format
-	 * 
-	 * @param directory
-	 * @return
-	 */
-	public String writeGraph(String directory) {
-		String absoluteFileName = null;
-		if (dataframe instanceof TinkerFrame) {
-			final Graph graph = ((TinkerFrame) dataframe).g;
-			absoluteFileName = "output" + java.lang.System.currentTimeMillis() + ".xml";
-			String fileName = directory + "/" + absoluteFileName;
-			OutputStream os = null;
-			try {
-				os = new FileOutputStream(fileName);
-				graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
-			} catch (Exception ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
-			} finally {
-				try {
-					if (os != null) {
-						os.close();
-					}
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		return absoluteFileName;
-	}
 }
