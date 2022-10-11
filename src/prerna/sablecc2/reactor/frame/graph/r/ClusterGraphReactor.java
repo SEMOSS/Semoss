@@ -4,12 +4,15 @@ import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
+import prerna.engine.impl.tinker.iGraphUtilities;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Utility;
 
 public class ClusterGraphReactor extends AbstractRFrameReactor {
@@ -36,17 +39,26 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		this.rJavaTranslator.executeEmptyR("library(igraph)");
 		Logger logger = getLogger(CLASS_NAME);
-		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		String routine = this.keyValue.get(this.keysToGet[0]);
-		TinkerFrame frame = (TinkerFrame) getFrame();
 
+		ITableDataFrame frame = getFrame();
+		if(!(frame instanceof TinkerFrame)) {
+			throw new IllegalArgumentException("Frame must be a graph frame type");
+		}
+		TinkerFrame graph = (TinkerFrame) frame;
+		if(!graph.isIGraphSynched()) {
+			AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
+			String wd = this.insight.getInsightFolder();
+			iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
+		}
+		String graphName = graph.getName();
+		
 		try {
 			logger.info("Determining graph clusters...");
 			String clusterName = "clus" + Utility.getRandomString(8);
 			// run iGraph routine
 			if (routine.toLowerCase().equals("clusters")) {
 				this.rJavaTranslator.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ")");
-
 			} else if (routine.toLowerCase().equals("cluster_walktrap")) {
 				this.rJavaTranslator.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ", membership=TRUE)");
 			} else {
@@ -57,7 +69,7 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 			colorClusters(clusterName);
 			// clean up temp variable
 			this.rJavaTranslator.executeEmptyR("rm(" + clusterName + ")");
-			return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+			return new NounMetadata(graph, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
