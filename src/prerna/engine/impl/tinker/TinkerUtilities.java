@@ -41,13 +41,12 @@ public class TinkerUtilities {
 	 * @return
 	 */
 	public static String serializeGraph(TinkerFrame dataframe, String directory) {
-		String absoluteFileName = null;
 		final Graph graph = ((TinkerFrame) dataframe).g;
-		absoluteFileName = "output" + java.lang.System.currentTimeMillis() + ".xml";
-		String fileName = directory + "/" + absoluteFileName;
+		String fileName = "output" + java.lang.System.currentTimeMillis() + ".xml";
+		String filePath = directory + "/" + fileName;
 		OutputStream os = null;
 		try {
-			os = new FileOutputStream(fileName);
+			os = new FileOutputStream(filePath);
 			graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
 		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
@@ -60,6 +59,6 @@ public class TinkerUtilities {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		return absoluteFileName;
+		return filePath;
 	}
 }
