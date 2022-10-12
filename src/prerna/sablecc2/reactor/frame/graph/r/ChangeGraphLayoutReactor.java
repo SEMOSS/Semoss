@@ -13,6 +13,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -63,22 +64,20 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.executeEmptyR(tempOutputLayout + "<-layout.norm(" + tempOutputLayout + ", ymin=" + yMin
 					+ ", ymax=" + yMax + ", xmin=" + xMin + ", xmax=" + xMax + ")");
 			logger.info("Done calculating positions...");
-			synchronizeXY(tempOutputLayout);
+			synchronizeXY(graph, graphName, tempOutputLayout);
 			// clean up temp variable
 			this.rJavaTranslator.executeEmptyR("rm(" + tempOutputLayout + ")");
 			return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		} catch (Exception ex) {
-			logger.error("StackTrace: ", ex);
+			logger.error(Constants.STACKTRACE, ex);
 		}
 
 		throw new IllegalArgumentException("Unable to change layout");
 	}
 
-	private void synchronizeXY(String layout) {
+	private void synchronizeXY(TinkerFrame graph, String graphName, String layout) {
 		Logger logger = getLogger(CLASS_NAME);
-		TinkerFrame frame = (TinkerFrame) getFrame();
 		logger.info("Synchronizing vertex positions into frame...");
-		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		double[][] memberships = this.rJavaTranslator.getDoubleMatrix(layout);
 		String[] axis = null;
 		if (memberships[0].length == 2) {
@@ -91,7 +90,7 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 		for (int memIndex = 0; memIndex < memberships.length; memIndex++) {
 			String thisID = ids[memIndex];
 			Vertex retVertex = null;
-			GraphTraversal<Vertex, Vertex> gt = frame.g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
+			GraphTraversal<Vertex, Vertex> gt = graph.g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
 			if (gt.hasNext()) {
 				retVertex = gt.next();
 			}

@@ -66,7 +66,7 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 			}
 
 			logger.info("Done calculating graph clusters...");
-			colorClusters(clusterName);
+			colorClusters(graph, graphName, clusterName);
 			// clean up temp variable
 			this.rJavaTranslator.executeEmptyR("rm(" + clusterName + ")");
 			return new NounMetadata(graph, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
@@ -77,19 +77,17 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 		throw new IllegalArgumentException("Unable to cluster graph");
 	}
 
-	private void colorClusters(String clusterName) {
+	private void colorClusters(TinkerFrame graph, String graphName, String clusterName) {
 		Logger logger = getLogger(CLASS_NAME);
-		TinkerFrame frame = (TinkerFrame) getFrame();
 
 		logger.info("Synchronizing graph clusters into frame...");
-		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		double[] memberships = this.rJavaTranslator.getDoubleArray(clusterName + "$membership");
 		String[] IDs = this.rJavaTranslator
 				.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
 		for (int memIndex = 0; memIndex < memberships.length; memIndex++) {
 			String thisID = IDs[memIndex];
 			Vertex retVertex = null;
-			GraphTraversal<Vertex, Vertex> gt = frame.g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
+			GraphTraversal<Vertex, Vertex> gt = graph.g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
 			if (gt.hasNext()) {
 				retVertex = gt.next();
 			}

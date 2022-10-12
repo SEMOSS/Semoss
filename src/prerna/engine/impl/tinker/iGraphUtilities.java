@@ -20,11 +20,11 @@ public class iGraphUtilities {
 	 */
 	public static void synchronizeGraphToR(TinkerFrame graph, AbstractRJavaTranslator rJavaTranslator, String graphName, String wd, Logger logger) {
 		try {
-			String fileName = TinkerUtilities.serializeGraph(graph, wd);
-			wd = wd.replace("\\", "/");
+			String filePath = TinkerUtilities.serializeGraph(graph, wd);
+			filePath = filePath.replace("\\", "/");
 
 			StringBuilder builder = new StringBuilder("library(\"igraph\");");
-			builder.append(graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");");
+			builder.append(graphName + "<- read_graph(\"" + filePath + "\", \"graphml\");");
 			// load the graph
 			rJavaTranslator.executeEmptyR(builder.toString());
 			graph.setIGraphSynched(true);
