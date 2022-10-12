@@ -635,6 +635,47 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		return true;
 	}
+	
+	/**
+	 * Set project discoverable
+	 * @param user
+	 * @param projectId
+	 * @param discoverable
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static boolean setProjectDiscoverable(User user, String projectId, boolean discoverable) throws IllegalAccessException {
+		if(!SecurityProjectUtils.userIsOwner(user, projectId)) {
+			throw new IllegalAccessException("The user doesn't have the permission to set this project as discoverable. Only the owner or an admin can perform this action.");
+		}
+		
+		String updateQ = "UPDATE PROJECT SET DISCOVERABLE=? WHERE PROJECTID=?";
+		PreparedStatement updatePs = null;
+		try {
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			updatePs.setBoolean(1, discoverable);
+			updatePs.setString(2, projectId);
+			updatePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		return true;
+	}
 
 	/**
 	 * update the project name
