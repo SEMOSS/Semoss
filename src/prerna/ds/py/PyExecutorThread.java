@@ -73,10 +73,24 @@ public final class PyExecutorThread extends Thread {
 								logger.debug("<<<<<<<<<<<");
 								try {
 									thisResponse = jep.getValue(thisCommand);
+								} catch (Exception ex) 
+								{
+									try
+									{
+										jep.eval(thisCommand);
+									}catch(Exception ex2)
+									{
+
+									}
+									finally
+									{
+										response.put(thisCommand, "");
+									}
+								}finally
+								{
+									if(thisResponse == null)
+										thisResponse = "";
 									response.put(thisCommand, thisResponse);
-								} catch (Exception ex) {
-									jep.eval(thisCommand);
-									response.put(thisCommand, "");
 								}
 
 								daLock.notify();
