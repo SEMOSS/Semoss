@@ -47,6 +47,9 @@ public class QueryFunctionSelectorAdapter extends AbstractSemossTypeAdapter<Quer
 				value.setColCast(in.nextString());
 			} else if(key.equals("function")) {
 				value.setFunction(in.nextString());
+			} else if (key.equals("dataType")) {
+				value.setDataType(in.nextString());
+
 			} else if(key.equals("innerSelectors")) {
 				List<IQuerySelector> innerList = new Vector<IQuerySelector>();
 				
@@ -85,6 +88,7 @@ public class QueryFunctionSelectorAdapter extends AbstractSemossTypeAdapter<Quer
 		out.name("function").value(value.getFunction());
 		out.name("distinct").value(value.isDistinct());
 		out.name("colCast").value(value.getColCast());
+		out.name("dataType").value(value.getDataType());
 
 		out.name("innerSelectors");
 		out.beginArray();
