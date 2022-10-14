@@ -132,9 +132,9 @@ public class ParamStructToJsonGenerator {
 							// for sqs or hqs
 							// or pixel / query
 							String base = null;
-							if(param.getModelAppId() != null && !param.getModelAppId().isEmpty()
-									&& !"FAKE_ENGINE".equals(param.getModelAppId())) {
-								base = "(" + infiniteVar + " = Database(\"" + param.getModelAppId() + "\") | ";
+							if(param.getDatabaseId() != null && !param.getDatabaseId().isEmpty()
+									&& !"FAKE_ENGINE".equals(param.getDatabaseId())) {
+								base = "(" + infiniteVar + " = Database(\"" + param.getDatabaseId() + "\") | ";
 							} else {
 								ParamStructDetails detailParam = param.getDetailsList().get(0);
 								String sourceString = detailParam.getImportSource();

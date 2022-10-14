@@ -87,7 +87,9 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 				output.put("baseQsType", "sqs");
 			}
 			output.put("qsType", qs.getQsType());
+			// legacy to remove
 			output.put("appId", qs.getEngineId());
+			output.put("databaseId", qs.getEngineId());
 			output.put("pixelId", pixelStep.getId());
 			output.put("pixelString", pixelStep.getPixelString());
 			output.put("params", paramOutput);
@@ -99,7 +101,31 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 	}
 	
 	private List<ParamStruct> getParamsForImport(SelectQueryStruct qs, Pixel pixelObj) {
-		List<ParamStruct> paramList = new Vector<>();
+		List<ParamStruct> paramList = new ArrayList<>();
+		// we will always append a param struct for the actual import itself
+//		{
+//			ParamStruct datasouceStruct = new ParamStruct();
+//			datasouceStruct.setDatabaseId(qs.getEngineId());
+//			datasouceStruct.setModelDisplay("dropdown");
+//			ParamStructDetails detailsStruct = new ParamStructDetails();
+//			detailsStruct.setBaseQsType(BASE_QS_TYPE.SQS);
+//			detailsStruct.setDatabaseId(qs.getEngineId());
+//			detailsStruct.setPixelId(pixelObj.getId());
+//			detailsStruct.setPixelString(pixelObj.getPixelString());
+//			detailsStruct.setTableName("_DATASOURCE_ID");
+//			detailsStruct.setColumnName("_DATASOURCE_ID");
+//			detailsStruct.setOperator("==");
+//			detailsStruct.setType(PixelDataType.CONST_STRING);
+//			detailsStruct.setQuote(QUOTE.DOUBLE);
+//			detailsStruct.setCurrentValue(qs.getEngineId());
+//			detailsStruct.setParameterFillType(PARAMETER_FILL_TYPE.DATASOURCE);
+//			detailsStruct.setLevel(LEVEL.DATASOURCE);
+//			ParamStruct pStruct = new ParamStruct();
+//			pStruct.setMultiple(false);
+//			pStruct.setSearchable(true);
+//			pStruct.addParamStructDetails(detailsStruct);
+//			paramList.add(pStruct);
+//		}
 		
 		if(qs instanceof HardSelectQueryStruct || qs.getCustomFrom() != null) {
 			// do the logic of getting the params. The only issue here is
@@ -116,7 +142,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 				while(structIterator.hasNext()) {
 					ParamStructDetails nextStructDetails = structIterator.next();
 					nextStructDetails.setBaseQsType(BASE_QS_TYPE.HQS);
-					nextStructDetails.setAppId(qs.getEngineId());
+					nextStructDetails.setDatabaseId(qs.getEngineId());
 					nextStructDetails.setPixelId(pixelObj.getId());
 					nextStructDetails.setPixelString(pixelObj.getPixelString());
 					ParamStruct nextStruct = new ParamStruct();
@@ -164,7 +190,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					
 					ParamStructDetails detailsStruct = new ParamStructDetails();
 					detailsStruct.setBaseQsType(BASE_QS_TYPE.SQS);
-					detailsStruct.setAppId(qs.getEngineId());
+					detailsStruct.setDatabaseId(qs.getEngineId());
 					detailsStruct.setPixelId(pixelObj.getId());
 					detailsStruct.setPixelString(pixelObj.getPixelString());
 					detailsStruct.setTableName(colS.getTable());

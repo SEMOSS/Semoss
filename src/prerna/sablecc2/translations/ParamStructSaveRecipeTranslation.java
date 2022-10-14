@@ -13,6 +13,7 @@ import prerna.om.Insight;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
+import prerna.query.parsers.ParamStructDetails.PARAMETER_FILL_TYPE;
 import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -90,7 +91,7 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 					// loop through all the params
 					// and see if this pixelId is included
 					// and which params are required to be applied
-					List<ParamStructDetails> thisImportParams = new Vector<>();
+					List<ParamStructDetails> thisImportParams = new ArrayList<>();
 					Map<ParamStructDetails, ParamStruct> detailsLookup = new HashMap<>();
 					for(ParamStruct struct  : this.paramStructs) {
 						for(ParamStructDetails details : struct.getDetailsList()) {
@@ -131,7 +132,16 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 							continue ROUTINE_LOOP;
 						}
 						
-						String newExpr = sourceStr + "| Query(\"<encode>" + finalQuery + "</encode>\") | " + this.importStr + " ;";
+						ParamStructDetails datasoucreParameter = getDatasourceParameter(thisImportParams);
+						String newExpr = null;
+						if(datasoucreParameter != null) {
+							ParamStruct paramStruct = detailsLookup.get(datasoucreParameter);
+							// assume Database()
+							newExpr = "Database(<\"" + paramStruct.getParamName() + ">\")";
+						} else {
+							newExpr = this.sourceStr;
+						}
+						newExpr += " | Query(\"<encode>" + finalQuery + "</encode>\") | " + this.importStr + ";";
 						this.pixels.add(newExpr);
 						
 					} else {
@@ -155,14 +165,17 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 							for(int i = 0; i < thisImportParams.size(); i++) {
 								// we need to do this based on the level
 								ParamStructDetails importParam = thisImportParams.get(i);
-								modification = QsFilterParameterizeConverter2.modifyFilter(modification, importParam, detailsLookup.get(importParam));
-								// if we have returned a new filter object
-								// that means it has been modified
-								if(modification != f) {
-									paramIndexFound.add(i);
-									// switch the reference of f in this example
-									// so that not all the param index get added
-									f = modification;
+								if(importParam.getParameterFillType() == PARAMETER_FILL_TYPE.FILTER) {
+									ParamStruct paramStruct = detailsLookup.get(importParam);
+									modification = QsFilterParameterizeConverter2.modifyFilter(modification, importParam, paramStruct);
+									// if we have returned a new filter object
+									// that means it has been modified
+									if(modification != f) {
+										paramIndexFound.add(i);
+										// switch the reference of f in this example
+										// so that not all the param index get added
+										f = modification;
+									}
 								}
 							}
 							
@@ -184,34 +197,37 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 							// this is a param we have not found yet
 							// add new filters
 							ParamStructDetails importParam = thisImportParams.get(i);
-							ParamStruct pStruct = detailsLookup.get(importParam);
-							String comparator = importParam.getOperator();
-							if(comparator == null || comparator.isEmpty()) {
-								comparator = "==";
-							}
-							// this is the replacement
-							String replacement = null;
-							if(ParamStruct.PARAM_FILL_USE_ARRAY_TYPES.contains(pStruct.getModelDisplay()) 
-									|| importParam.getQuote() == QUOTE.NO) {
-								replacement = "[<" + pStruct.getParamName() + ">]";
-							} else {
-								PixelDataType importType = importParam.getType();
-								if(importType == PixelDataType.CONST_INT || importType == PixelDataType.CONST_DECIMAL) {
-									replacement = "<" + pStruct.getParamName() + ">";
-								} else {
-									replacement = "\"<" + pStruct.getParamName() + ">\"";
+							if(importParam.getParameterFillType() == PARAMETER_FILL_TYPE.FILTER) {
+
+								ParamStruct pStruct = detailsLookup.get(importParam);
+								String comparator = importParam.getOperator();
+								if(comparator == null || comparator.isEmpty()) {
+									comparator = "==";
 								}
+								// this is the replacement
+								String replacement = null;
+								if(ParamStruct.PARAM_FILL_USE_ARRAY_TYPES.contains(pStruct.getModelDisplay()) 
+										|| importParam.getQuote() == QUOTE.NO) {
+									replacement = "[<" + pStruct.getParamName() + ">]";
+								} else {
+									PixelDataType importType = importParam.getType();
+									if(importType == PixelDataType.CONST_INT || importType == PixelDataType.CONST_DECIMAL) {
+										replacement = "<" + pStruct.getParamName() + ">";
+									} else {
+										replacement = "\"<" + pStruct.getParamName() + ">\"";
+									}
+								}
+								SimpleQueryFilter paramF = new SimpleQueryFilter(
+										new NounMetadata(new QueryColumnSelector(importParam.getTableName() + "__" + importParam.getColumnName()), PixelDataType.COLUMN), 
+										comparator, 
+										new NounMetadata(replacement, PixelDataType.CONST_STRING)
+										);
+								
+								// add these filters into the AND
+								andFilter.addFilter(paramF);
+								
+								logger.info("Adding new filter for column = " + pStruct.getParamName() );
 							}
-							SimpleQueryFilter paramF = new SimpleQueryFilter(
-									new NounMetadata(new QueryColumnSelector(importParam.getTableName() + "__" + importParam.getColumnName()), PixelDataType.COLUMN), 
-									comparator, 
-									new NounMetadata(replacement, PixelDataType.CONST_STRING)
-									);
-							
-							// add these filters into the AND
-							andFilter.addFilter(paramF);
-							
-							logger.info("Adding new filter for column = " + pStruct.getParamName() );
 						}
 						
 						// swap the filter lists
@@ -224,14 +240,23 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 							currentImportFilters.add(andFilter);
 						}
 						
-						String newExpr = sourceStr + "|" + QsToPixelConverter.getPixel(this.importQs, false) + " | " + this.importStr + " ;";
+						ParamStructDetails datasoucreParameter = getDatasourceParameter(thisImportParams);
+						String newExpr = null;
+						if(datasoucreParameter != null) {
+							ParamStruct paramStruct = detailsLookup.get(datasoucreParameter);
+							// assume Database()
+							newExpr = "Database(<\"" + paramStruct.getParamName() + ">\")";
+						} else {
+							newExpr = this.sourceStr;
+						}
+						newExpr += " | " + QsToPixelConverter.getPixel(this.importQs, false) + " | " + this.importStr + ";";
 						this.pixels.add(newExpr);
 					}
 					
 					// set the import string into the details
 					// this is so we know if it is Database or FileRead or something else
 					for(ParamStructDetails details : thisImportParams) {
-						details.setImportSource(sourceStr);
+						details.setImportSource(this.sourceStr);
 					}
 					
 					// reset
@@ -298,6 +323,15 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
     		}
     	}
     }
+	
+	private ParamStructDetails getDatasourceParameter(List<ParamStructDetails> thisImportParams) {
+		for(ParamStructDetails detail : thisImportParams) {
+			if(detail.getParameterFillType() == PARAMETER_FILL_TYPE.DATASOURCE) {
+				return detail;
+			}
+		}
+		return null;
+	}
 	
     /////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////
