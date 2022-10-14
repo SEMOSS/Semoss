@@ -8,12 +8,18 @@ import prerna.sablecc2.om.PixelDataType;
 
 public class ParamStructDetails {
 
-	public enum LEVEL {COLUMN, TABLE, OPERATOR, OPERATORU};
+	public enum LEVEL {DATASOURCE, COLUMN, TABLE, OPERATOR, OPERATORU};
 	public enum QUOTE {NO, SINGLE, DOUBLE};
 	public enum BASE_QS_TYPE {SQS, HQS};
-	
+	public enum PARAMETER_FILL_TYPE {DATASOURCE, FILTER}
+
 	private BASE_QS_TYPE baseQsType = BASE_QS_TYPE.SQS;
+	// what type of parameter am i filling? a filter? a datasource?
+	private PARAMETER_FILL_TYPE parameterFillType = PARAMETER_FILL_TYPE.FILTER;
+
+	@Deprecated
 	private String appId = null;
+	private String databaseId = null;
 	private String pixelId = null;
 	private String pixelString = null;
 	
@@ -50,12 +56,13 @@ public class ParamStructDetails {
 		this.baseQsType = baseQsType;
 	}
 
-	public String getAppId() {
-		return appId;
+	public String getDatabaseId() {
+		return databaseId;
 	}
 
-	public void setAppId(String appId) {
-		this.appId = appId;
+	public void setDatabaseId(String databaseId) {
+		this.databaseId = databaseId;
+		this.appId = databaseId;
 	}
 
 	public void setPixelId(String pixelId) {
@@ -185,6 +192,14 @@ public class ParamStructDetails {
 		this.optimizedPixelId = optimizedPixelId;
 	}
 
+	public PARAMETER_FILL_TYPE getParameterFillType() {
+		return parameterFillType;
+	}
+	
+	public void setParameterFillType(PARAMETER_FILL_TYPE parameterFillType) {
+		this.parameterFillType = parameterFillType;
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -207,7 +222,10 @@ public class ParamStructDetails {
 	 * @return
 	 */
 	public static ParamStructDetails generateParamStructDetails(Map<String, Object> mapInputs) {
-		String appId = (String) mapInputs.get("appId");
+		String databaseId = (String) mapInputs.get("databaseId");
+		if(databaseId == null) {
+			databaseId = (String) mapInputs.get("appId");
+		}
 		String importSource = (String) mapInputs.get("importSource");
 		String pixelId = (String) mapInputs.get("pixelId");
 		if(pixelId == null || pixelId.isEmpty()) {
@@ -229,9 +247,10 @@ public class ParamStructDetails {
 		String type = (String) mapInputs.get("type");
 		String level = (String) mapInputs.get("level");
 		String quote = (String) mapInputs.get("quote");
-
+		String parameterFillType = (String) mapInputs.get("parameterFillType");
+		
 		ParamStructDetails pStruct = new ParamStructDetails();
-		pStruct.setAppId(appId);
+		pStruct.setDatabaseId(databaseId);
 		pStruct.setImportSource(importSource);
 		pStruct.setPixelId(pixelId);
 		pStruct.setPixelString(pixelString);
@@ -254,6 +273,9 @@ public class ParamStructDetails {
 		}
 		if(quote != null && !quote.isEmpty()) {
 			pStruct.setQuote(QUOTE.valueOf(quote));
+		}
+		if(parameterFillType != null && !parameterFillType.isEmpty()) {
+			pStruct.setParameterFillType(PARAMETER_FILL_TYPE.valueOf(parameterFillType));
 		}
 		
 		return pStruct;

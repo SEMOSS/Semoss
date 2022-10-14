@@ -1252,7 +1252,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 				ParamStruct ps = (ParamStruct) param.getValue();
 				// going to get just the first psd and get data from that
 				result = ps.getDetailsList().get(0).getCurrentValue() + "";
-				databaseId = ps.getModelAppId();
+				databaseId = ps.getDatabaseId();
 			} else {
 				// check for PREAPPLIED filters if param not there in paramterized store
 				param = insight.getVarStore()
@@ -1261,7 +1261,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 					ParamStruct ps = (ParamStruct) param.getValue();
 					if (ps.isPreApplied()) {
 						result = ps.getDetailsList().get(0).getCurrentValue() + "";
-						databaseId = ps.getModelAppId();
+						databaseId = ps.getDatabaseId();
 					}
 				}
 			}
