@@ -1011,14 +1011,19 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	public List<Map<String, Object>> getAllDatabaseSettings(String databaseFilter) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		// correct alias names
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
+		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_app_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
 		if(databaseFilter != null && !databaseFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
 		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
