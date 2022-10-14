@@ -65,7 +65,9 @@ public class ParamStruct {
 	private String paramName = null;
 	// this is the model app id
 	// but consolidating the key for FE
+	@Deprecated
 	private String appId = null;
+	private String databaseId = null;
 	private String modelQuery = null;
 	private Object manualChoices = null;
 	private String modelDisplay = null; // need to turn this into an enum
@@ -109,12 +111,13 @@ public class ParamStruct {
 		this.paramName = paramName;
 	}
 	
-	public String getModelAppId() {
-		return appId;
+	public String getDatabaseId() {
+		return databaseId;
 	}
 
-	public void setModelAppId(String modelAppId) {
-		this.appId = modelAppId;
+	public void setDatabaseId(String databaseId) {
+		this.databaseId = databaseId;
+		this.appId = databaseId;
 	}
 
 	public String getModelQuery() {
@@ -218,7 +221,10 @@ public class ParamStruct {
 		Boolean searchable = (Boolean) mapInputs.get("searchable");
 		Boolean multiple = (Boolean) mapInputs.get("multiple");
 		String paramName = (String) mapInputs.get("paramName");
-		String modelAppId = (String) mapInputs.get("appId");
+		String databaseId = (String) mapInputs.get("databaseId");
+		if(databaseId == null) {
+			databaseId = (String) mapInputs.get("appId");
+		}
 		String modelQuery = (String) mapInputs.get("modelQuery");
 		Object manualChoices = mapInputs.get("manualChoices");
 		String modelDisplay = (String) mapInputs.get("modelDisplay");
@@ -230,6 +236,7 @@ public class ParamStruct {
 		// these are enums
 		String fillType = (String) mapInputs.get("fillType");
 		FILL_TYPE fillT = FILL_TYPE.valueOf(fillType);
+		
 		ParamStruct pStruct = new ParamStruct();
 		if(fillType != null && !fillType.isEmpty()) {
 			pStruct.setFillType(fillT);
@@ -242,7 +249,7 @@ public class ParamStruct {
 			pStruct.setMultiple(multiple);
 		}
 		pStruct.setParamName(paramName);
-		pStruct.setModelAppId(modelAppId);
+		pStruct.setDatabaseId(databaseId);
 		pStruct.setModelQuery(modelQuery);
 		pStruct.setManualChoices(manualChoices);
 		pStruct.setModelDisplay(modelDisplay);
