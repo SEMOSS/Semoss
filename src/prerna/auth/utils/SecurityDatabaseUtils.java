@@ -257,7 +257,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
 			String userType = token.getProvider().toString();
-			for(int i=0; i<requests.size(); i++) {
+			for(int i = 0; i < requests.size(); i++) {
 				int index = 1;
 				// set
 				updatePs.setInt(index++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
@@ -302,7 +302,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @param requests
 	 */
-	public static void denyDatabaseUserAccessRequests(User user, String databaseId, List<String> RequestIdList) throws IllegalAccessException {
+	public static void denyDatabaseUserAccessRequests(User user, String databaseId, List<String> requestIds) throws IllegalAccessException {
 		// make sure user has right permission level to approve acces requests
 		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -324,7 +324,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
 			String userType = token.getProvider().toString();
-			for(int i=0; i<RequestIdList.size(); i++) {
+			for(int i = 0; i  <requestIds.size(); i++) {
 				int index = 1;
 				//set
 				updatePs.setString(index++, userId);
@@ -332,7 +332,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, "DENIED");
 				updatePs.setTimestamp(index++, timestamp, cal);
 				//where
-				updatePs.setString(index++, RequestIdList.get(i));
+				updatePs.setString(index++, requestIds.get(i));
 				updatePs.setString(index++, databaseId);
 				updatePs.addBatch();
 			}
