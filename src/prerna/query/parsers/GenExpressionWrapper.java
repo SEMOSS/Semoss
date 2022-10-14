@@ -291,6 +291,10 @@ public class GenExpressionWrapper {
 		for(int paramIndex = 0; paramIndex < incomingStructs.size(); paramIndex++) {
 			ParamStructDetails thisStruct = incomingStructs.get(paramIndex);
 			LEVEL thisStructLevel = thisStruct.getLevel();
+			if(thisStructLevel == LEVEL.DATASOURCE) {
+				// not relevant for the query
+				continue;
+			}
 			
 			ParamStruct pStruct = detailsLookup.get(thisStruct);
 			// normally this is for using [<paramanme>] vs just <paramname>
