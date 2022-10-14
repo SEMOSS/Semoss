@@ -3018,7 +3018,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @param requests
 	 */
-	public static void denyDatabaseUserAccessRequests(String userId, String userType, String databaseId, List<String> RequestIdList) {
+	public static void denyDatabaseUserAccessRequests(String userId, String userType, String databaseId, List<String> requestIds) {
 		// bulk update to databaseaccessrequest table
 		String updateQ = "UPDATE DATABASEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement updatePs = null;
@@ -3026,7 +3026,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 			updatePs = securityDb.getPreparedStatement(updateQ);
-			for(int i=0; i<RequestIdList.size(); i++) {
+			for(int i = 0; i < requestIds.size(); i++) {
 				int index = 1;
 				//set
 				updatePs.setString(index++, userId);
@@ -3034,7 +3034,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, "DENIED");
 				updatePs.setTimestamp(index++, timestamp, cal);
 				//where
-				updatePs.setString(index++, RequestIdList.get(i));
+				updatePs.setString(index++, requestIds.get(i));
 				updatePs.setString(index++, databaseId);
 				updatePs.addBatch();
 			}
