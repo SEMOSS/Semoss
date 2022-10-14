@@ -512,8 +512,8 @@ public class Constants {
 	public static final String PIPELINE_SOURCE_FILTER = "PIPELINE_SOURCE_FILTER";
 	@Deprecated
 	public static final String WIDGET_TAB_SHARE_EXPORT = "WIDGET_TAB_SHARE_EXPORT";
-	@Deprecated
-	public static final String WIDGET_TAB_EXPORT_DASHBOARD = "WIDGET_TAB_EXPORT_DASHBOARD";
+//	@Deprecated
+//	public static final String WIDGET_TAB_EXPORT_DASHBOARD = "WIDGET_TAB_EXPORT_DASHBOARD";
 	
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
