@@ -94,7 +94,7 @@ public class QSParseParamStruct {
 		ParamStruct param = new ParamStruct();
 		ParamStructDetails paramDetails = new ParamStructDetails();
 		paramDetails.setBaseQsType(BASE_QS_TYPE.SQS);
-		paramDetails.setAppId(qs.getEngineId());
+		paramDetails.setDatabaseId(qs.getEngineId());
 		paramDetails.setPixelId(pixelObj.getId());
 		paramDetails.setPixelString(pixelObj.getPixelString());
 		paramDetails.setOperator(comparator);
