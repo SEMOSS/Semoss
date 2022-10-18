@@ -404,11 +404,8 @@ public class SmssUtilities {
 	 * @param appName
 	 * @return
 	 */
-	private static String getNewInsightDatabaseConnectionUrl(RdbmsTypeEnum rdbmsType, String projectId, String projectName) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		if(!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
-			baseFolder += DIR_SEPARATOR;
-		}
+	private static String getParamedNewInsightDatabaseConnectionUrl(RdbmsTypeEnum rdbmsType, String projectId, String projectName) {
+		String baseFolder = "@" + Constants.BASE_FOLDER + "@" + DIR_SEPARATOR;
 		String connectionUrl = null;
 		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
 			// append .sqlite so it looks nicer - realize it is not required
@@ -491,7 +488,7 @@ public class SmssUtilities {
 				bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
 				bufferedWriter.write(Constants.PASSWORD + tab +  "" + newLine);
 			}
-			String connectionUrl = getNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
+			String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
 		} catch (IOException ex) {
 			ex.printStackTrace();
@@ -582,7 +579,7 @@ public class SmssUtilities {
 				bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
 				bufferedWriter.write(Constants.PASSWORD + tab +  "" + newLine);
 			}
-			String connectionUrl = getNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
+			String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
 		} catch (IOException ex) {
 			ex.printStackTrace();
@@ -665,7 +662,7 @@ public class SmssUtilities {
 		 * This must be either H2 or SQLite
 		 */
 
-		String connectionUrl = getNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
+		String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
 		prop.put(Constants.CONNECTION_URL, connectionUrl);
 		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
 			// sqlite has no username/password
