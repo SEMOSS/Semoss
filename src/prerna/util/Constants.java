@@ -511,7 +511,7 @@ public class Constants {
 	@Deprecated
 	public static final String PIPELINE_SOURCE_FILTER = "PIPELINE_SOURCE_FILTER";
 	@Deprecated
-	public static final String WIDGET_TAB_SHARE_EXPORT = "WIDGET_TAB_SHARE_EXPORT";
+	public static final String WIDGET_TAB_SHARE_EXPORT_LIST = "WIDGET_TAB_SHARE_EXPORT_LIST";
 //	@Deprecated
 //	public static final String WIDGET_TAB_EXPORT_DASHBOARD = "WIDGET_TAB_EXPORT_DASHBOARD";
 	
