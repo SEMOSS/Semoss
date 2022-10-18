@@ -3510,8 +3510,8 @@ public class Utility {
 	 * @return
 	 */
 	@Deprecated
-	public static String[] getApplicationWidgetTabShareExport() {
-		String filterList = DIHelper.getInstance().getProperty(Constants.WIDGET_TAB_SHARE_EXPORT);
+	public static String[] getApplicationWidgetTabShareExportList() {
+		String filterList = DIHelper.getInstance().getProperty(Constants.WIDGET_TAB_SHARE_EXPORT_LIST);
 		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
 			// default null
 			return null;
