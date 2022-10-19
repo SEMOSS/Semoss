@@ -3378,6 +3378,20 @@ public class Utility {
 	}
 	
 	/**
+	 * Determine if for this instance only the admin can add/set insight access
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyInsightAddAccess() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_INSIGHT_ADD_ACCESS);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
 	 * Determine if for this instance only the admin can set a project public
 	 * @return
 	 */
