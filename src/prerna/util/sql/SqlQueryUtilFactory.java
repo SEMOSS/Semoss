@@ -5,6 +5,7 @@ import static prerna.util.sql.RdbmsTypeEnum.ATHENA;
 import static prerna.util.sql.RdbmsTypeEnum.BIG_QUERY;
 import static prerna.util.sql.RdbmsTypeEnum.CASSANDRA;
 import static prerna.util.sql.RdbmsTypeEnum.CLICKHOUSE;
+import static prerna.util.sql.RdbmsTypeEnum.DATABRICKS;
 import static prerna.util.sql.RdbmsTypeEnum.DB2;
 import static prerna.util.sql.RdbmsTypeEnum.DERBY;
 import static prerna.util.sql.RdbmsTypeEnum.ELASTIC_SEARCH;
@@ -60,6 +61,8 @@ public class SqlQueryUtilFactory {
 			queryUtil = new CassandraQueryUtil();
 		} else if(dbType == CLICKHOUSE) {
 			queryUtil = new ClickhouseQueryUtil();
+		} else if(dbType == DATABRICKS) {
+			queryUtil = new DatabricksQueryUtil();
 		} else if(dbType == DB2) {
 			queryUtil = new DB2QueryUtil();
 		} else if(dbType == DERBY) {
@@ -120,10 +123,12 @@ public class SqlQueryUtilFactory {
 			queryUtil = new AthenaQueryUtil(connectionUrl, username, password);
 		} else if(dbType == BIG_QUERY) {
 			queryUtil = new BigQueryQueryUtil(connectionUrl, username, password);
-		}else if(dbType == CASSANDRA) {
+		} else if(dbType == CASSANDRA) {
 			queryUtil = new CassandraQueryUtil(connectionUrl, username, password);
 		} else if(dbType == CLICKHOUSE) {
 			queryUtil = new ClickhouseQueryUtil(connectionUrl, username, password);
+		} else if(dbType == DATABRICKS) {
+			queryUtil = new DatabricksQueryUtil(connectionUrl, username, password);
 		} else if(dbType == DB2) {
 			queryUtil = new DB2QueryUtil(connectionUrl, username, password);
 		} else if(dbType == DERBY) {
