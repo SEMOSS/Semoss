@@ -7,6 +7,7 @@ public enum RdbmsTypeEnum {
 	BIG_QUERY("BIG_QUERY","com.simba.googlebigquery.jdbc42.Driver", "jdbc:bigquery"),
 	CASSANDRA("CASSANDRA", "com.simba.cassandra.jdbc42.Driver", "jdbc:cassandra"),
 	CLICKHOUSE("CLICKHOUSE", "ru.yandex.clickhouse.ClickHouseDriver", "jdbc:clickhouse"),
+	DATABRICKS("DATABRICKS", "com.databricks.client.jdbc.Driver", "jdbc:databricks"),
 	DB2("DB2", "com.ibm.db2.jcc.DB2Driver", "jdbc:db2"),
 	DERBY("DERBY", "org.apache.derby.jdbc.EmbeddedDriver", "jdbc:derby"),
 	ELASTIC_SEARCH("ELASTIC_SEARCH", "org.elasticsearch.xpack.sql.jdbc.EsDriver", "jdbc:es"),
