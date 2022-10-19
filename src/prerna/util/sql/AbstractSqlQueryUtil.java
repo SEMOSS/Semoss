@@ -105,6 +105,9 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String ROLE = "role";
 	// elasticsearch
 	public static final String HTTP_TYPE = "httpType";
+	// databricks
+	public static final String HTTP_PATH = "httpPath";
+	
 	// h2 force file for creating embedded file
 	public static final String FORCE_FILE = "forceFile";
 	
