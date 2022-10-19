@@ -58,6 +58,7 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyDatabaseSetDiscoverable = false;
 
 	static boolean adminOnlyInsightSetPublic = false;
+	static boolean adminOnlyInsightAddAccess = false;
 	
 	static Gson securityGson = new GsonBuilder().disableHtmlEscaping().create();
 	
@@ -126,6 +127,7 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyDatabaseSetDiscoverable = Utility.getApplicationAdminOnlyDbSetDiscoverable();
 		
 		adminOnlyInsightSetPublic = Utility.getApplicationAdminOnlyInsightSetPublic();
+		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
 	}
 
 	public static boolean securityEnabled() {
@@ -187,6 +189,10 @@ public abstract class AbstractSecurityUtils {
 	
 	public static boolean adminOnlyInsightSetPublic() {
 		return securityEnabled && adminOnlyInsightSetPublic;
+	}
+	
+	public static boolean adminOnlyInsightAddAccess() {
+		return securityEnabled && adminOnlyInsightAddAccess;
 	}
 	
 	public static void initialize() throws Exception {
@@ -1018,6 +1024,19 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.tableExists(conn, "PROJECTACCESSREQUEST ", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PROJECTACCESSREQUEST ", colNames, types));
+			}
+		}
+		
+		// INSIGHTACCESSREQUEST 
+		colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "INSIGHTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTACCESSREQUEST ", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "INSIGHTACCESSREQUEST ", database, schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("INSIGHTACCESSREQUEST ", colNames, types));
 			}
 		}
 		
