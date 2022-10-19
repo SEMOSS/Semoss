@@ -505,6 +505,7 @@ public class Constants {
 	public static final String ADMIN_ONLY_DB_SET_PUBLIC = "ADMIN_ONLY_DB_SET_PUBLIC";
 	public static final String ADMIN_ONLY_DB_SET_DISCOVERABLE = "ADMIN_ONLY_DB_SET_DISCOVERABLE";
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
+	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";
 
 	@Deprecated
 	public static final String PIPELINE_LANDING_FILTER = "PIPELINE_LANDING_FILTER";

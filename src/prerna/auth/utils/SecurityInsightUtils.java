@@ -8,11 +8,14 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
@@ -331,7 +335,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @return
 	 */
-	static Integer getUserInsightPermission(String singleUserId, String projectId, String insightId) {
+	public static Integer getUserInsightPermission(String singleUserId, String projectId, String insightId) {
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
 //				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + singleUserId + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -360,6 +364,50 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Get the insight permissions for a specific user
+	 * @param singleUserId
+	 * @param projectId
+	 * @return
+	 */
+	public static Map<String, Integer> getUserInsightPermissions(List<String> userIds, String projectId, String insightId) {
+		Map<String, Integer> retMap = new HashMap<String, Integer>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = getUserInsightPermissionsWrapper(userIds, projectId, insightId);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				String userId = (String) data[0];
+				Integer permission = (Integer) data[1];
+				retMap.put(userId, permission);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		return retMap;
+	}
+	
+	/**
+	 * Get the project permissions for a specific user
+	 * @param singleUserId
+	 * @param projectId
+	 * @return
+	 */
+	public static IRawSelectWrapper getUserInsightPermissionsWrapper(List<String> userIds, String projectId, String insightId) throws Exception {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		return wrapper;
 	}
 	
 	/**
@@ -542,8 +590,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getInsightUsers(User user, String projectId, String insightId) throws IllegalAccessException {
-		return SecurityUserInsightUtils.getInsightUsers(user, projectId, insightId);
+	public static List<Map<String, Object>> getInsightUsers(User user, String projectId, String insightId, String userId, String permission, long limit, long offset) throws IllegalAccessException {
+		return SecurityUserInsightUtils.getInsightUsers(user, projectId, insightId, userId, permission, limit, offset);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1464,6 +1512,84 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured updating the user permissions for this insight");
 		}
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param insightId
+	 * @param requests
+	 * @return
+	 * @throws IllegalAccessException 
+	 */
+	public static void editInsightUserPermissions(User user, String projectId, String insightId, List<Map<String, String>> requests) throws IllegalAccessException {
+		// make sure user can edit the database
+		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify insight permissions.");
+		}
+		// get userid of all requests
+		List<String> existingUserIds = new ArrayList<String>();
+	    for(Map<String,String> i:requests){
+	    	existingUserIds.add(i.get("userid"));
+	    }
+			    
+		// get user permissions to edit
+		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds, projectId, insightId);
+		
+		// make sure all users to edit currently has access to insight
+		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
+		toRemoveUserIds.removeAll(existingUserPermission.keySet());
+		if (!toRemoveUserIds.isEmpty()) {
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the insight: "+String.join(",", toRemoveUserIds));
+		}
+		
+		// if user is not an owner, check to make sure they are not editting owner access
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
+			if(permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
+				throw new IllegalArgumentException("As a non-owner, you cannot edit access of an owner.");
+			}
+		}
+		
+		// update user permissions in bulk
+		String insertQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				//SET
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				//WHERE
+				insertPs.setString(parameterIndex++, requests.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, projectId);
+				insertPs.setString(parameterIndex++, insightId);
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}	
 	}
 	
 	/**
@@ -2681,5 +2807,477 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
         
         return QueryExecutionUtility.flushRsToMap(securityDb, qs);
     }
+    
+    /**
+	 * 
+	 * @param newUserId
+	 * @param projectId
+	 * @param insightId
+	 * @param permission
+	 * @return
+	 */
+	public static void addInsightUserPermissions(User user, String projectId, String insightId, List<Map<String,String>> permission) {
+		// make sure user can edit the insight
+		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
+		}
+		// first, check to make sure these users do not already have permissions to insight
+		// get list of userids from permission list map
+		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
+		// this returns a list of existing permissions
+		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(userIds, projectId, insightId);
+		if (!existingUserPermission.isEmpty()) {
+			throw new IllegalArgumentException("The following users already have access to this insight. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
+		}
+		// if user is not an owner, check to make sure they are not adding owner access
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			List<String> permissionList = permission.stream().map(map -> map.get("permission")).collect(Collectors.toList());
+			if(permissionList.contains("OWNER")) {
+				throw new IllegalArgumentException("As a non-owner, you cannot add owner user access.");
+			}
+		}
+		// insert new user permissions in bulk
+		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<permission.size(); i++) {
+				int parameterIndex = 1;
+				insertPs.setString(parameterIndex++, permission.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, projectId);
+				insertPs.setString(parameterIndex++, insightId);
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param editedUserId
+	 * @param insightId
+	 * @return
+	 */
+	public static void removeInsightUsers(User user, List<String> existingUserIds, String projectId, String insightId) throws IllegalAccessException {
+		// make sure user can edit the insight
+		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
+		}
+		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds, projectId, insightId);
+		// make sure these users all exist and have access
+		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
+		toRemoveUserIds.removeAll(existingUserPermission.keySet());
+		if (!toRemoveUserIds.isEmpty()) {
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the insight: "+String.join(",", toRemoveUserIds));
+		}
+		// if user is not an owner, check to make sure they are not removing owner access
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
+			if(permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
+				throw new IllegalArgumentException("As a non-owner, you cannot remove access of an owner.");
+			}
+		}
+		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(int i=0; i<existingUserIds.size(); i++) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, existingUserIds.get(i));
+				deletePs.setString(parameterIndex++, projectId);
+				deletePs.setString(parameterIndex++, insightId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Approving user access requests and giving user access in permissions
+	 * @param userId
+	 * @param userType
+	 * @param projectId
+	 * @param requests
+	 */
+	public static void approveInsightUserAccessRequests(User user, String projectId, String insightId, List<Map<String, String>> requests) throws IllegalAccessException {
+		
+		// make sure user has right permission level to approve access requests
+		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
+		}
+		
+		// get user permissions of all requests
+		List<String> permissions = new ArrayList<String>();
+	    for(Map<String,String> i:requests){
+	    	permissions.add(i.get("permission"));
+	    }
+
+		// if user is not an owner, check to make sure they cannot grant owner access
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalArgumentException("You cannot grant user access to others.");
+		} else {
+			if(!AccessPermissionEnum.isOwner(userPermissionLvl) && permissions.contains("OWNER")) {
+				throw new IllegalArgumentException("As a non-owner, you cannot grant owner access.");
+			}
+		}
+				
+		// bulk delete
+		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
+				deletePs.setString(parameterIndex++, projectId);
+				deletePs.setString(parameterIndex++, insightId);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		// insert new user permissions in bulk
+		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			for(int i=0; i<requests.size(); i++) {
+				int parameterIndex = 1;
+				insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
+				insertPs.setString(parameterIndex++, projectId);
+				insertPs.setString(parameterIndex++, insightId);
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+
+		// now we do the new bulk update to accessrequest table
+		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
+		PreparedStatement updatePs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+			String userId = token.getId();
+			String userType = token.getProvider().toString();
+			for(int i=0; i<requests.size(); i++) {
+				int index = 1;
+				updatePs.setInt(index++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				updatePs.setString(index++, userId);
+				updatePs.setString(index++, userType);
+				updatePs.setString(index++, "APPROVED");
+				updatePs.setTimestamp(index++, timestamp, cal);
+				
+				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
+				
+				updatePs.addBatch();
+			}
+			updatePs.executeBatch();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Denying user access requests
+	 * @param userId
+	 * @param userType
+	 * @param projectId
+	 * @param insightId
+	 * @param requests
+	 */
+	public static void denyInsightUserAccessRequests(User user, String projectId, String insightId, List<String> requestIdList) throws IllegalAccessException {
+		
+		// make sure user has right permission level to approve access requests
+		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
+		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+			throw new IllegalAccessException("Insufficient privileges to modify insight permissions.");
+		}
+
+		// only project owners can deny user access requests
+		if(!AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			throw new IllegalArgumentException("Insufficient privileges to deny user access requests.");
+		}
+				
+		// bulk update to accessrequest table
+		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
+		PreparedStatement updatePs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+			String userId = token.getId();
+			String userType = token.getProvider().toString();
+			for(int i=0; i<requestIdList.size(); i++) {
+				int index = 1;
+				updatePs.setString(index++, userId);
+				updatePs.setString(index++, userType);
+				updatePs.setString(index++, "DENIED");
+				updatePs.setTimestamp(index++, timestamp, cal);
+				
+				updatePs.setString(index++, requestIdList.get(i));
+				
+				updatePs.addBatch();
+			}
+			updatePs.executeBatch();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Get the request pending database permission for a specific user
+	 * @param singleUserId
+	 * @param projectId
+	 * @param insightId
+	 * @return
+	 */
+	public static Integer getUserAccessRequestInsightPermission(String userId, String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__REQUEST_USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__INSIGHTID", "==", insightId));
+		return QueryExecutionUtility.flushToInteger(securityDb, qs);
+	}
+	
+	/**
+	 * Retrieve the insight owner
+	 * @param user
+	 * @param projectId
+	 * @param insightId
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static List<String> getInsightOwners(String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", AccessPermissionEnum.OWNER.getId()));
+		qs.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "inner.join");
+		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+	
+	/**
+	 * Get the insight alias for a id
+	 * @return
+	 */
+	public static String getInsightAliasForId(String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
+		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
+		if(results.isEmpty()) {
+			return null;
+		}
+		return results.get(0);
+	}
+	
+	/**
+	 * set user access request
+	 * @param userId
+	 * @param userType
+	 * @param projectId
+	 * @param permission
+	 * @return
+	 */
+	public static void setUserAccessRequest(String userId, String userType, String projectId, String insightId, int permission) {
+		// first do a delete
+		String deleteQ = "DELETE FROM INSIGHTACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND INSIGHTID=? AND APPROVER_DECISION IS NULL";
+		PreparedStatement deletePs = null;
+		try {
+			int index = 1;
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			deletePs.setString(index++, userId);
+			deletePs.setString(index++, userType);
+			deletePs.setString(index++, projectId);
+			deletePs.setString(index++, insightId);
+			deletePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while deleting user access request with detailed message = " + e.getMessage());
+		} finally {
+			if(deletePs != null) {
+				try {
+					deletePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						deletePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+
+		// now we do the new insert 
+		String insertQ = "INSERT INTO INSIGHTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, PROJECTID, INSIGHTID, PERMISSION) VALUES (?,?,?,?,?,?,?)";
+		PreparedStatement insertPs = null;
+		try {
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+
+			int index = 1;
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			insertPs.setString(index++, UUID.randomUUID().toString());
+			insertPs.setString(index++, userId);
+			insertPs.setString(index++, userType);
+			insertPs.setTimestamp(index++, timestamp, cal);
+			insertPs.setString(index++, projectId);
+			insertPs.setString(index++, insightId);
+			insertPs.setInt(index++, permission);
+			insertPs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
+		} finally {
+			if(insertPs != null) {
+				try {
+					insertPs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						insertPs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
 
 }
