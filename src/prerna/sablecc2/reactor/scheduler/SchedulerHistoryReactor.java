@@ -95,7 +95,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 			if(message == null || message.isEmpty()) {
 				throw new IllegalArgumentException(message);
 			} else {
-				throw new IllegalArgumentException("An error occurred attemping to get your requests");
+				throw new IllegalArgumentException("An error occurred attempting to get your requests");
 			}
 		}
 		BasicIteratorTask task = new BasicIteratorTask(qs, iterator);

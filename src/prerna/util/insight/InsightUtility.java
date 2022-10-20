@@ -1223,7 +1223,7 @@ public class InsightUtility {
 						} catch (Exception e1) {
 							// at this point - no luck :/
 							InsightUtility.classLogger.error(Constants.STACKTRACE, e);
-							additionalMessages.add(NounMetadata.getErrorNounMessage("Attempingt to refresh panel id " + panelId 
+							additionalMessages.add(NounMetadata.getErrorNounMessage("Attemptingt to refresh panel id " + panelId 
 										+ " but the underlying data creating the visualization no longer exists "
 										+ " or is now incompatible with the view. Displaying a grid of the data "
 										+ " errors with the following message: " + e.getMessage()));

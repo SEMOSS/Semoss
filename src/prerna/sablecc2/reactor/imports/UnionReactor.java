@@ -248,7 +248,7 @@
 //						// as there is no real concept of joins currently
 //						if(frame.isEmpty()) {
 //							noDataError = true;
-//							throw new IllegalArgumentException("Attemping to join new data with an empty frame. End result is still an empty frame.");
+//							throw new IllegalArgumentException("Attempting to join new data with an empty frame. End result is still an empty frame.");
 //						}
 //						
 //						SelectQueryStruct filterQs = new SelectQueryStruct();
