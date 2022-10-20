@@ -878,7 +878,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured setting this user as a publisher");
+			throw new IllegalArgumentException("An error occurred setting this user as a publisher");
 		} finally {
 			if(ps != null) {
 				try {
@@ -918,7 +918,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured setting this user as an exporter");
+			throw new IllegalArgumentException("An error occurred setting this user as an exporter");
 		} finally {
 			if(ps != null) {
 				try {
@@ -970,7 +970,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured setting this user as locked/unlocked");
+			throw new IllegalArgumentException("An error occurred setting this user as locked/unlocked");
 		} finally {
 			if(ps != null) {
 				try {
@@ -1249,7 +1249,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
 		}
 	}
 	
@@ -1438,7 +1438,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		}
 	}
 	
@@ -1517,7 +1517,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.executeBatch();
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+				throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 			} finally {
 				if (ps != null) {
 					try {
@@ -1551,7 +1551,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.execute();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+					throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 				} finally {
 					if (ps != null) {
 						try {
@@ -1591,7 +1591,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.executeBatch();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+					throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 				} finally {
 					if (ps != null) {
 						try {
@@ -1687,7 +1687,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.executeBatch();
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("An error occured granting the user permission for all the databases");
+				throw new IllegalArgumentException("An error occurred granting the user permission for all the databases");
 			} finally {
 				if (ps != null) {
 					try {
@@ -1721,7 +1721,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.execute();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occured granting the user permission for all the databases");
+					throw new IllegalArgumentException("An error occurred granting the user permission for all the databases");
 				} finally {
 					if (ps != null) {
 						try {
@@ -1761,7 +1761,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.executeBatch();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occured granting the user permission for all the databases");
+					throw new IllegalArgumentException("An error occurred granting the user permission for all the databases");
 				} finally {
 					if (ps != null) {
 						try {
@@ -1805,7 +1805,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
 		} finally {
 			if(ps != null) {
 				try {
@@ -1841,7 +1841,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		} finally {
 			if(ps != null) {
 				try {
@@ -1891,7 +1891,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 		} finally {
 			if (ps != null) {
 				try {
@@ -1932,7 +1932,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
 		}
 	}
 	
@@ -2025,7 +2025,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		}
 	}
 	
@@ -2177,7 +2177,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
 		}
 	}
 	
@@ -2351,7 +2351,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		}
 	}
 	
@@ -2467,7 +2467,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		}
 	}
 	
@@ -2499,7 +2499,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding all users for this insight");
+			throw new IllegalArgumentException("An error occurred adding all users for this insight");
 		} finally {
 			if (ps != null) {
 				try {
@@ -2543,7 +2543,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		}
 	}
 	
@@ -2569,7 +2569,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		}
 	}
 	
@@ -2584,7 +2584,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured setting this insight global");
+			throw new IllegalArgumentException("An error occurred setting this insight global");
 		}
 	}
 	
@@ -2678,7 +2678,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
 		}
 		
 	}
@@ -2691,7 +2691,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		}
 		
 	}
@@ -2721,7 +2721,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e1) {
 			logger.error(Constants.STACKTRACE, e1);
-			throw new IllegalArgumentException("An error occured adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
 		} finally {
 			if(ps != null) {
 				try {
@@ -2766,7 +2766,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e1) {
 			logger.error(Constants.STACKTRACE, e1);
-			throw new IllegalArgumentException("An error occured adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		} finally {
 			if(ps != null) {
 				try {
@@ -2794,7 +2794,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			securityDb.insertData(updateQuery);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		}
 	}
 	
@@ -2826,7 +2826,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 		} finally {
 			if (ps != null) {
 				try {
@@ -2869,7 +2869,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 		} finally {
 			if (ps != null) {
 				try {
@@ -3022,7 +3022,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("An error occured granting the user permission for all the projects");
+				throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 			} finally {
 				if (ps != null) {
 					try {

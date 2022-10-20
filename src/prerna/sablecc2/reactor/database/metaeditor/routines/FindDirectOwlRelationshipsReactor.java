@@ -82,7 +82,7 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		try {
 			frame = (AbstractRdbmsFrame) FrameFactory.getFrame(this.insight, "GRID", null);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Error occured trying to create frame of type GRID", e);
+			throw new IllegalArgumentException("Error occurred trying to create frame of type GRID", e);
 		}
 		String tableName = frame.getName();
 		

@@ -46,7 +46,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SemossPixelException(
-						new NounMetadata("Error occured executing query before loading into frame", 
+						new NounMetadata("Error occurred executing query before loading into frame", 
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			try {
@@ -62,7 +62,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 				throw e;
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(getError("Error occured executing query before loading into frame"));
+				throw new SemossPixelException(getError("Error occurred executing query before loading into frame"));
 			}
 		}
 		
@@ -78,7 +78,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 		try {
 			newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+			throw new IllegalArgumentException("Error occurred trying to create frame of type " + frameType, e);
 		}
 		// insert the data for the new frame
 		IImporter importer = ImportFactory.getImporter(newFrame, qs, it);

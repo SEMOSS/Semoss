@@ -157,7 +157,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 			sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.database, tableName, uniqueRowId, headers, types, replace);
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
 		bulkInsertFile(this.database, this.helper, tableName, headers, types, additionalTypes, clean);
@@ -231,7 +231,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 				sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.database, tableToInsertInto, uniqueRowId, headers, types, replace);
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			logger.info("Done create table");
 			bulkInsertFile(this.database, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
@@ -423,9 +423,9 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 			e.printStackTrace();
 			String errorMessage = "";
 			if (nextRow == null) {
-				errorMessage = "Error occured while performing insert on csv row number = " + count;
+				errorMessage = "Error occurred while performing insert on csv row number = " + count;
 			} else {
-				errorMessage = "Error occured while performing insert on csv data row:" + "\n" + Arrays.toString(nextRow);
+				errorMessage = "Error occurred while performing insert on csv data row:" + "\n" + Arrays.toString(nextRow);
 			}
 			throw new IOException(errorMessage);
 		}

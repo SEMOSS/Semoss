@@ -72,7 +72,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add the relationships defined", 
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships defined", 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}

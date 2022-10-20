@@ -85,7 +85,7 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 			}
 		} catch (ParserException | LexerException | IOException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured parsing the pixel expression");
+			throw new IllegalArgumentException("Error occurred parsing the pixel expression");
 		}
 		// set the new pixel recipe
 		this.insight.setPixelRecipe(pixelList);

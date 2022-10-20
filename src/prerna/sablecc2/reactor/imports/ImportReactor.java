@@ -97,7 +97,7 @@ public class ImportReactor extends AbstractReactor {
 				throw e;
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				String message = "Error occured executing query to load into the frame";
+				String message = "Error occurred executing query to load into the frame";
 				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
 					message += ". " + e.getMessage();
 				}
@@ -116,7 +116,7 @@ public class ImportReactor extends AbstractReactor {
 				throw e;
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new SemossPixelException(getError("Error occured executing query before loading into frame"));
+				throw new SemossPixelException(getError("Error occurred executing query before loading into frame"));
 			}
 		}
 		

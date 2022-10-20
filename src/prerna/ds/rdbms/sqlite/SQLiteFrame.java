@@ -117,7 +117,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 			stmt.executeUpdate(saveScript);
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new IOException("Error occured attempting to cache SQL Frame", e);
+			throw new IOException("Error occurred attempting to cache SQL Frame", e);
 		} finally {
 			if(stmt != null) {
 				try {
@@ -157,7 +157,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 			stmt.executeUpdate("restore from '" +  filePath + "'");
 		} catch (SQLException e1) {
 			e1.printStackTrace();
-			throw new IOException("Error occured opening cached SQL Frame");
+			throw new IOException("Error occurred opening cached SQL Frame");
 		} finally {
 			if(stmt != null) {
 				try {

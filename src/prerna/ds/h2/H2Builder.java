@@ -986,7 +986,7 @@
 //				throw new IllegalArgumentException("Attempting to save an empty H2 frame");
 //			}
 //		} catch (Exception e) {
-//			throw new IOException("Error occured attempting to cache SQL Frame");
+//			throw new IOException("Error occurred attempting to cache SQL Frame");
 //		}
 //	}
 //
@@ -1023,7 +1023,7 @@
 //			RunScript.execute(this.conn, r);
 //		} catch (SQLException e) {
 //			e.printStackTrace();
-//			throw new IOException("Error occured opening cached SQL Frame");
+//			throw new IOException("Error occurred opening cached SQL Frame");
 //		} finally {
 //			try {
 //				if(fis != null) {

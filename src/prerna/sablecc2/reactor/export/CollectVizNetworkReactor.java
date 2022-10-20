@@ -81,7 +81,7 @@ public class CollectVizNetworkReactor extends TaskBuilderReactor {
 		filePathF = new File(filePath);
 		// make sure this worked - html file should exist
 		if(!filePathF.exists() || !filePathF.isFile()) {
-			throw new IllegalArgumentException("Error occured generating the network visualization. "
+			throw new IllegalArgumentException("Error occurred generating the network visualization. "
 					+ "Please check your variable input for the igraph being used");
 		}
 		
@@ -104,7 +104,7 @@ public class CollectVizNetworkReactor extends TaskBuilderReactor {
 			outputMap.put("values", new String[]{FileUtils.readFileToString(filePathF, StandardCharsets.UTF_8)});
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("Error occured reading the html file with full message: " + e.getMessage());
+			throw new IllegalArgumentException("Error occurred reading the html file with full message: " + e.getMessage());
 		}
 		outputMap.put("visNetwork", visNetworkCommand);	
 		outputMap.put("format", "html");

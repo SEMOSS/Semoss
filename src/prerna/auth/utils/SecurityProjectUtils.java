@@ -407,7 +407,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this project");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		}
 	}
 
@@ -457,7 +457,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured updating the user permissions for this project");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this project");
 		}
 	}
 	
@@ -579,7 +579,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured removing the user permissions for this project");
+			throw new IllegalArgumentException("An error occurred removing the user permissions for this project");
 		}
 
 		// need to also delete all insight permissions for this app
@@ -590,7 +590,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured removing the user permissions for the insights of this project");
+			throw new IllegalArgumentException("An error occurred removing the user permissions for the insights of this project");
 		}
 	}
 

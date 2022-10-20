@@ -98,7 +98,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					try {
 						return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 					} catch (TimeoutException | InterruptedException e) {
-						throw new IllegalArgumentException("Timout occured when running R script.", e);
+						throw new IllegalArgumentException("Timout occurred when running R script.", e);
 					} catch (ExecutionException e) {
 						throw new IllegalArgumentException("Failed to run R script.", e);
 					}
@@ -116,7 +116,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 				if (retry) {
 					return eval(rScript, healthTimeout, healthTimeoutUnit, false);
 				} else {
-					throw new IllegalArgumentException("A recoverable error occured. Please try re-running your R script.");
+					throw new IllegalArgumentException("A recoverable error occurred. Please try re-running your R script.");
 				}
 			} else {
 				throw e;
@@ -157,7 +157,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					try {
 						future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 					} catch (TimeoutException | InterruptedException e) {
-						throw new IllegalArgumentException("Timout occured when running R script = " + rScript, e);
+						throw new IllegalArgumentException("Timout occurred when running R script = " + rScript, e);
 					} catch (ExecutionException e) {
 						throw new IllegalArgumentException("Failed to run R script = " + rScript, e);
 					}
@@ -174,7 +174,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 				if (retry) {
 					voidEval(rScript, healthTimeout, healthTimeoutUnit, false);
 				} else {
-					throw new IllegalArgumentException("A recoverable error occured. Please try re-running your R script.");
+					throw new IllegalArgumentException("A recoverable error occurred. Please try re-running your R script.");
 				}
 			} else {
 				throw e;
@@ -201,7 +201,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 						try {
 							return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 						} catch (TimeoutException | InterruptedException e) {
-							throw new IllegalArgumentException("Timout occured when detaching R.", e);
+							throw new IllegalArgumentException("Timout occurred when detaching R.", e);
 						} catch (ExecutionException e) {
 							throw new IllegalArgumentException("Failed to detach R.", e);
 						}

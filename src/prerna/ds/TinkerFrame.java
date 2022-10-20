@@ -952,7 +952,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			writer.writeGraph(frameFileName);
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IOException("Error occured attempting to cache graph frame");
+			throw new IOException("Error occurred attempting to cache graph frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
 

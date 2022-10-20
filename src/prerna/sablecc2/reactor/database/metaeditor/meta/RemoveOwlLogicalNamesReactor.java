@@ -48,7 +48,7 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
