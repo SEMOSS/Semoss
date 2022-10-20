@@ -107,7 +107,13 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String HTTP_TYPE = "httpType";
 	// databricks
 	public static final String HTTP_PATH = "httpPath";
-	
+	// semoss
+	public static final String PROTOCOL = "protocol";
+	public static final String ENDPOINT = "endpoint";
+	public static final String SUB_URL = "sub_url";
+	public static final String PROJECT = "project";
+	public static final String INSIGHT = "insight";
+
 	// h2 force file for creating embedded file
 	public static final String FORCE_FILE = "forceFile";
 	
@@ -335,6 +341,14 @@ public abstract class AbstractSqlQueryUtil {
 	
 	public Map<String, String> getTypeConversionMap() {
 		return Collections.unmodifiableMap(typeConversionMap);
+	}
+	
+	public String getDatabaseMetadataCatalogFilter() {
+		return null;
+	}
+	
+	public String getDatabaseMetadataSchemaFilter() {
+		return null;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

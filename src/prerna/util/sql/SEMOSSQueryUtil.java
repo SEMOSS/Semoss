@@ -3,20 +3,23 @@ package prerna.util.sql;
 import java.util.Map;
 import java.util.Properties;
 
-public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
+public class SEMOSSQueryUtil extends AnsiSqlQueryUtil {
 
-	private String httpPath = null;
-	private String UID = null;
-	private String PWD = null;
+	private String protocol = null;
+	private String endpoint = null;
+	private String subURL = null;
 	
-	DatabricksQueryUtil() {
+	private String projectId = null;
+	private String insightId = null;
+	
+	SEMOSSQueryUtil() {
 		super();
-		setDbType(RdbmsTypeEnum.DATABRICKS);
+		setDbType(RdbmsTypeEnum.SEMOSS);
 	}
 	
-	DatabricksQueryUtil(String connectionUrl, String username, String password) {
+	SEMOSSQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
-		setDbType(RdbmsTypeEnum.DATABRICKS);
+		setDbType(RdbmsTypeEnum.SEMOSS);
 	}
 	
 	@Override
@@ -42,18 +45,42 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 			port = "443";
 		}
 		
-		this.httpPath = (String) configMap.get(AbstractSqlQueryUtil.HTTP_PATH);
+		this.projectId = (String) configMap.get(AbstractSqlQueryUtil.PROJECT);
 		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.httpPath == null || this.httpPath.isEmpty())
+				(this.projectId == null || this.projectId.isEmpty())
 				){
-			throw new RuntimeException("Must pass in http path");
+			throw new RuntimeException("Must pass in project id");
+		}
+		
+		this.insightId = (String) configMap.get(AbstractSqlQueryUtil.INSIGHT);
+		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
+				(this.insightId == null || this.insightId.isEmpty())
+				){
+			throw new RuntimeException("Must pass in insight id");
+		}
+		
+		this.protocol = (String) configMap.get(AbstractSqlQueryUtil.PROTOCOL);
+		if (this.protocol == null || this.protocol.isEmpty()) {
+			this.protocol = "https";
+		}
+		
+		this.endpoint = (String) configMap.get(AbstractSqlQueryUtil.ENDPOINT);
+		if (this.endpoint == null || this.endpoint.isEmpty()) {
+			this.endpoint = "Monolith";
+		}
+		
+		this.subURL = (String) configMap.get(AbstractSqlQueryUtil.SUB_URL);
+		if(this.subURL == null) {
+			this.subURL = "";
 		}
 		
 		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
 
 		// do we need to make the connection url?
 		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port+";HttpPath="+this.httpPath;
+			this.connectionUrl = this.dbType.getUrlPrefix()+":"+this.hostname+port
+					+";sub_url="+subURL+";endpoint="+this.endpoint+";protocol="+this.protocol
+					+";project="+projectId+";insight="+insightId;
 			
 			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
 				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
@@ -90,18 +117,42 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 			port = "443";
 		}
 		
-		this.httpPath = (String) prop.get(AbstractSqlQueryUtil.DATABASE);
+		this.projectId = (String) prop.get(AbstractSqlQueryUtil.PROJECT);
 		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.httpPath == null || this.httpPath.isEmpty())
+				(this.projectId == null || this.projectId.isEmpty())
 				){
-			throw new RuntimeException("Must pass in http path");
+			throw new RuntimeException("Must pass in project id");
+		}
+		
+		this.insightId = (String) prop.get(AbstractSqlQueryUtil.INSIGHT);
+		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
+				(this.insightId == null || this.insightId.isEmpty())
+				){
+			throw new RuntimeException("Must pass in insight id");
+		}
+		
+		this.protocol = (String) prop.get(AbstractSqlQueryUtil.PROTOCOL);
+		if (this.protocol == null || this.protocol.isEmpty()) {
+			this.protocol = "https";
+		}
+		
+		this.endpoint = (String) prop.get(AbstractSqlQueryUtil.ENDPOINT);
+		if (this.endpoint == null || this.endpoint.isEmpty()) {
+			this.endpoint = "Monolith";
+		}
+		
+		this.subURL = (String) prop.get(AbstractSqlQueryUtil.SUB_URL);
+		if(this.subURL == null) {
+			this.subURL = "";
 		}
 		
 		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
 
 		// do we need to make the connection url?
 		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port+";HttpPath="+this.httpPath;
+			this.connectionUrl = this.dbType.getUrlPrefix()+":"+this.hostname+port
+					+";sub_url="+subURL+";endpoint="+this.endpoint+";protocol="+this.protocol
+					+";project="+projectId+";insight="+insightId;
 			
 			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
 				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
@@ -132,11 +183,9 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 			port = "443";
 		}
 		
-		if(this.httpPath == null || this.httpPath.isEmpty()) {
-			throw new RuntimeException("Must pass in http path");
-		}
-		
-		this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port+";HttpPath="+this.httpPath;
+		this.connectionUrl = this.dbType.getUrlPrefix()+":"+this.hostname+port
+				+";sub_url="+subURL+";endpoint="+this.endpoint+";protocol="+this.protocol
+				+";project="+projectId+";insight="+insightId;
 		
 		if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
 			if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
@@ -147,5 +196,15 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		return this.connectionUrl;
+	}
+	
+	@Override
+	public String getDatabaseMetadataCatalogFilter() {
+		return this.projectId;
+	}
+	
+	@Override
+	public String getDatabaseMetadataSchemaFilter() {
+		return this.insightId;
 	}
 }

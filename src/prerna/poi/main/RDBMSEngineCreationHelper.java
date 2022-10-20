@@ -12,6 +12,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
@@ -27,14 +30,18 @@ import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.database.upload.rdbms.external.CustomTableAndViewIterator;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RDBMSEngineCreationHelper {
 
+	private static final Logger classLogger = LogManager.getLogger(RDBMSEngineCreationHelper.class);
+	
 	private RDBMSEngineCreationHelper() {
 		
 	}
@@ -220,6 +227,9 @@ public class RDBMSEngineCreationHelper {
 		} else {
 			throw new IllegalArgumentException("Engine must be a valid JDBC engine");
 		}
+		AbstractSqlQueryUtil queryUtil = rdbms.getQueryUtil();
+		RdbmsTypeEnum driverEnum = rdbms.getDbType();
+
 		Connection con = null;
 		try {
 			con = rdbms.makeConnection();
@@ -229,17 +239,19 @@ public class RDBMSEngineCreationHelper {
 		}
 		DatabaseMetaData meta = rdbms.getConnectionMetadata();
 		
-//		String connectionUrl = null;
-		String catalogFilter = null;
-		try {
-			catalogFilter = con.getCatalog();
-//			connectionUrl = meta.getURL();
-		} catch (SQLException e) {
-			e.printStackTrace();
+		String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
+		if(catalogFilter == null) {
+			try {
+				catalogFilter = con.getCatalog();
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
-		RdbmsTypeEnum driverEnum = rdbms.getDbType();
-//		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
-		String schemaFilter = rdbms.getSchema();
+
+		String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
+		if(schemaFilter == null) {
+			schemaFilter = (String) rdbms.getSchema();
+		}
 		
 		// table that will store 
 		// table_name -> {
