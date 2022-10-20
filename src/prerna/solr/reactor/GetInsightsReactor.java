@@ -30,7 +30,8 @@ public class GetInsightsReactor extends AbstractReactor {
 	public GetInsightsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.META_FILTERS.getKey()};
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.META_FILTERS.getKey(), 
+				ReactorKeysEnum.NO_META.getKey() };
 	}
 
 	@Override
@@ -65,6 +66,8 @@ public class GetInsightsReactor extends AbstractReactor {
 		if(sortCol == null) {
 			sortCol = "name";
 		}
+		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
+
 		// we only have 2 options for sorting
 		// based on name and last modified date
 		// these values are based on the projections in the query
@@ -86,7 +89,7 @@ public class GetInsightsReactor extends AbstractReactor {
 		}
 		
 		// this entire block is to add the additional metadata to the insights
-		{
+		if(!noMeta) {
 			// now i will aggregate each project id to its insight ids
 			// and then i will query to get all the tags + descriptions
 			int size = results.size();
