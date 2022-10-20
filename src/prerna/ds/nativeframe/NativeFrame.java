@@ -425,7 +425,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			jWriter.close();
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IOException("Error occured attempting to save native frame");
+			throw new IOException("Error occurred attempting to save native frame");
 		} finally {
 			if(writer != null) {
 				try {

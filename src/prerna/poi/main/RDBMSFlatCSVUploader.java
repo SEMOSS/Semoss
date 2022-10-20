@@ -124,7 +124,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			error = true;
 			String errorMessage = e.getMessage();
 			if(errorMessage == null || errorMessage.trim().isEmpty()) {
-				errorMessage = "Uknown error occured...";
+				errorMessage = "Uknown error occurred...";
 			}
 			throw new IOException(errorMessage);
 		} catch(Exception e) {
@@ -132,7 +132,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			error = true;
 			String errorMessage = e.getMessage();
 			if(errorMessage == null || errorMessage.trim().isEmpty()) {
-				errorMessage = "Uknown error occured...";
+				errorMessage = "Uknown error occurred...";
 			}
 			throw new IOException(errorMessage);
 		} finally {
@@ -217,7 +217,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			error = true;
 			String errorMessage = e.getMessage();
 			if(errorMessage == null || errorMessage.trim().isEmpty()) {
-				errorMessage = "Uknown error occured...";
+				errorMessage = "Uknown error occurred...";
 			}
 			throw new IOException(errorMessage);
 		} finally {
@@ -704,9 +704,9 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			e.printStackTrace();
 			String errorMessage = "";
 			if(nextRow == null) {
-				errorMessage = "Error occured while performing insert on csv on row number = " + count;
+				errorMessage = "Error occurred while performing insert on csv on row number = " + count;
 			} else {
-				errorMessage = "Error occured while performing insert on csv data row:"
+				errorMessage = "Error occurred while performing insert on csv data row:"
 						+ "\n" + Arrays.toString(nextRow);
 			}
 			throw new IOException(errorMessage);

@@ -107,7 +107,7 @@
 ////		
 ////		// my understanding
 ////		// need to get the list of columns that are currently inside the frame
-////		// this is because mergeEdgeHash has already occured and added the headers into the metadata
+////		// this is because mergeEdgeHash has already occurred and added the headers into the metadata
 ////		// thus, columnHeaders has both the old headers and the new ones that we want to add
 ////		// thus, go through and only keep the list of headers that are not in the new ones
 ////		// but also need to add those that are in the joinCols in case 2 headers match

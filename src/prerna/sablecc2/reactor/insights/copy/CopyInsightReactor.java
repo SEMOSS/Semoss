@@ -84,7 +84,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				frames = adapter.getFrames();
 			} catch (IOException e) {
 				e.printStackTrace();
-				throw new IllegalArgumentException("An error occured trying to copy the insight");
+				throw new IllegalArgumentException("An error occurred trying to copy the insight");
 			}
 		}
 		
@@ -198,7 +198,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 			return noun;
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("An error occured trying to read the insight copy");
+			throw new IllegalArgumentException("An error occurred trying to read the insight copy");
 		}
 	}
 

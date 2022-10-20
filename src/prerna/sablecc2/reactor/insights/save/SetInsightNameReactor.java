@@ -125,7 +125,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 				GitRepoUtils.addSpecificFiles(gitFolder, files);
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " insight name"));
 			} catch (Exception e) {
-				logger.info("Error occured trying to write to git folder");
+				logger.info("Error occurred trying to write to git folder");
 				e.printStackTrace();
 			}
 		} else {

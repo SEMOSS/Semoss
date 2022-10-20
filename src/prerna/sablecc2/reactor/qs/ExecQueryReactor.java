@@ -120,7 +120,7 @@ public class ExecQueryReactor extends AbstractReactor {
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				String errorMessage = "An error occured trying to execute the query in the database";
+				String errorMessage = "An error occurred trying to execute the query in the database";
 				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
 				}
@@ -146,7 +146,7 @@ public class ExecQueryReactor extends AbstractReactor {
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				String errorMessage = "An error occured trying to update the frame";
+				String errorMessage = "An error occurred trying to update the frame";
 				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
 				}

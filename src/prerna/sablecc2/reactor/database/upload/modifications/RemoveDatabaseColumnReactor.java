@@ -77,7 +77,7 @@ public class RemoveDatabaseColumnReactor extends AbstractReactor {
 			}
 						
 			// an error occurred here, so we need to delete from the OWL
-			throw new IllegalArgumentException("Error occured to alter the table. Error returned from driver: " + e.getMessage(), e);
+			throw new IllegalArgumentException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
 		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);

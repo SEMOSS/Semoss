@@ -181,7 +181,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			updatePS.executeBatch();
 		} catch (SQLException e) {
 			e.printStackTrace();
-			String errorMsg = "An error occured while retrieving data from the audit database";
+			String errorMsg = "An error occurred while retrieving data from the audit database";
 			NounMetadata noun = new NounMetadata(errorMsg, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);

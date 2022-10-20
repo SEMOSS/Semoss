@@ -59,7 +59,7 @@ public class CreateFrameReactor extends AbstractReactor {
 		try {
 			newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
 		} catch (Exception e) {
-			String message = "Error occured trying to create frame of type " + frameType;
+			String message = "Error occurred trying to create frame of type " + frameType;
 			String cause = e.getMessage();
 			if(cause != null && !cause.isEmpty()) {
 				message += ". Detailed error message = " + cause;

@@ -113,7 +113,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 				newFrame = FrameFactory.getFrame(this.insight, frameType, null);
 				newFrame.setName(frame.getName());
 			} catch (Exception e) {
-				throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+				throw new IllegalArgumentException("Error occurred trying to create frame of type " + frameType, e);
 			}
 			// insert the data for the new frame
 			// go through generic logic

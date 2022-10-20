@@ -223,7 +223,7 @@ public class InsertReactor extends AbstractReactor {
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
-							new NounMetadata("An error occured trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+							new NounMetadata("An error occurred trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 
 				if (engine != null) {
@@ -238,7 +238,7 @@ public class InsertReactor extends AbstractReactor {
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
-							new NounMetadata("An error occured trying to insert new records in the frame", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+							new NounMetadata("An error occurred trying to insert new records in the frame", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 			}
 		}
@@ -324,7 +324,7 @@ public class InsertReactor extends AbstractReactor {
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
-							new NounMetadata("An error occured trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+							new NounMetadata("An error occurred trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 			}
 			// push back to the cluster
