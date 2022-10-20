@@ -130,7 +130,7 @@ public class ProjectHelper {
 			return project;
 		} catch(Exception e) {
 			error = true;
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage("An error occured creating the new project"));
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage("An error occurred creating the new project"));
 		} finally {
 			// if we had an error
 			if(error) {

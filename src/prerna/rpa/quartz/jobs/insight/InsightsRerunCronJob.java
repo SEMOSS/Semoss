@@ -77,7 +77,7 @@
 //						}
 //						*/
 //					}catch(Exception e){
-//						System.out.println("exception Occured ::"+e);
+//						System.out.println("exception occurred ::"+e);
 //						throw new JobExecutionException(e);
 //					}
 //				}

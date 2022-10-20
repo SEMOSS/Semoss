@@ -71,7 +71,7 @@ public class ConditionalJob implements org.quartz.InterruptableJob {
 				BatchedJobInput batchJobInput = new BatchedJobInput(contextualJobConfig.getJobDataMap(), contextualJobConfig.getJobClass());
 				batchInputMap.put(contextualJobConfig.getJobName() + counter, batchJobInput);
 			} catch (Exception e) {
-				String getJobDataMapExceptionMessage = "An exception occured parsing a job data map in the " + jobName + " conditional job.";
+				String getJobDataMapExceptionMessage = "An exception occurred parsing a job data map in the " + jobName + " conditional job.";
 				LOGGER.error(getJobDataMapExceptionMessage);
 				throw new JobExecutionException(getJobDataMapExceptionMessage, e);
 			}

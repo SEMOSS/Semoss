@@ -47,7 +47,7 @@ public class RemoveOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove descriptions : " + description, 
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove descriptions : " + description, 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}

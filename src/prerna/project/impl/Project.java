@@ -449,7 +449,7 @@ public class Project implements IProject {
 								pixelList.addAll(breakdown);
 							} catch (ParserException | LexerException | IOException e) {
 								logger.error(Constants.STACKTRACE, e);
-								throw new IllegalArgumentException("Error occured parsing the pixel expression");
+								throw new IllegalArgumentException("Error occurred parsing the pixel expression");
 							}
 						}
 						in.setPixelRecipe(pixelList);

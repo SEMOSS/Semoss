@@ -52,7 +52,7 @@ public class CopyDatabasePermissionsReactor extends AbstractReactor {
 			SecurityDatabaseUtils.copyDatabasePermissions(sourceDatabaseId, targetDatabaseId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured copying the app permissions.  Detailed error: " + e.getMessage());
+			throw new IllegalArgumentException("An error occurred copying the app permissions.  Detailed error: " + e.getMessage());
 		}
 
 		String sourceDatabase = SecurityDatabaseUtils.getDatabaseAliasForId(sourceDatabaseId);

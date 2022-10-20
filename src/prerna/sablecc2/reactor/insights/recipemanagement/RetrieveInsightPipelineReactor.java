@@ -61,7 +61,7 @@ public class RetrieveInsightPipelineReactor extends AbstractInsightReactor {
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			pipeline = gson.fromJson(reader, new TypeToken<Map<String, Object>>(){}.getType());
 		} catch(Exception e) {
-			throw new IllegalArgumentException("An error occured with reading the saved pipeline", e);
+			throw new IllegalArgumentException("An error occurred with reading the saved pipeline", e);
 		} finally {
 			if(reader != null) {
 				try {

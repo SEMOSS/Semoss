@@ -91,7 +91,7 @@ public class ExecuteSQLJob implements org.quartz.InterruptableJob {
 			
 			// Unless the exception occurred due to an interruption, raise it again
 			if (!interrupted) {
-				String executeSqlExceptionMessage = "A SQL exception occured while executing the SQL. ";
+				String executeSqlExceptionMessage = "A SQL exception occurred while executing the SQL. ";
 				LOGGER.error(jobName + ": " + executeSqlExceptionMessage + terminationMessage);
 				throw new JobExecutionException(executeSqlExceptionMessage, e);
 			}

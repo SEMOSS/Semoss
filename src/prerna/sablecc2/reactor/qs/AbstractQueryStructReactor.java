@@ -132,7 +132,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 	public List<NounMetadata> getOutputs() {
 		// all of the classes return the same thing
 		// which is a QS
-		// this works because even if execute hasn't occured yet
+		// this works because even if execute hasn't occurred yet
 		// because the same preference exists for the qs
 		// and since out is called prior to update the planner
 		// the qs cannot be null

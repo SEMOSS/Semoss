@@ -141,7 +141,7 @@ public class ETLJob implements org.quartz.InterruptableJob {
 			
 			// Unless the exception occurred due to an interruption, raise it again
 			if (!interrupted) {
-				String fromDatabaseExceptionMessage = "A SQL exception occured while querying the from-database. ";
+				String fromDatabaseExceptionMessage = "A SQL exception occurred while querying the from-database. ";
 				LOGGER.error(jobName + ": " + fromDatabaseExceptionMessage + terminationMessage);
 				throw new JobExecutionException(fromDatabaseExceptionMessage, e);
 			}
@@ -232,7 +232,7 @@ public class ETLJob implements org.quartz.InterruptableJob {
 			
 			// Unless the exception occurred due to an interruption, raise it again
 			if (!interrupted) {
-				String toDatabaseExceptionMessage = "A SQL exception occured while refreshing the to-database. ";
+				String toDatabaseExceptionMessage = "A SQL exception occurred while refreshing the to-database. ";
 				LOGGER.error(jobName + ": " + toDatabaseExceptionMessage + terminationMessage);
 				rollback();
 				throw new JobExecutionException(toDatabaseExceptionMessage, e);	

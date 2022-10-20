@@ -160,7 +160,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 			stmt = this.conn.createStatement();
 			stmt.execute(saveScript);
 		} catch (Exception e) {
-			throw new IOException("Error occured attempting to cache SQL Frame", e);
+			throw new IOException("Error occurred attempting to cache SQL Frame", e);
 		} finally {
 			if(stmt != null) {
 				try {
@@ -221,7 +221,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 			RunScript.execute(this.conn, r);
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new IOException("Error occured opening cached SQL Frame");
+			throw new IOException("Error occurred opening cached SQL Frame");
 		} finally {
 			try {
 				if(fis != null) {

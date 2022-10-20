@@ -187,7 +187,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 					recipeToSave = insightPixelList.getPixelRecipe();
 				}
 			} catch(Exception e) {
-				throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
+				throw new IllegalArgumentException("An error occurred trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
 			}
 		}
 		
@@ -198,7 +198,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			try {
 				recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
 			} catch(Exception e) {
-				throw new IllegalArgumentException("An error occured trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
+				throw new IllegalArgumentException("An error occurred trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
 			}
 		}
 		

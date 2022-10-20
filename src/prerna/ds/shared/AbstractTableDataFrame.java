@@ -600,7 +600,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			try {
 				adapter.write(jWriter, this.grf);
 			} catch (IOException e) {
-				throw new IOException("Error occured trying to save filter state on frame");
+				throw new IOException("Error occurred trying to save filter state on frame");
 			} finally {
 				jWriter.close();
 			}

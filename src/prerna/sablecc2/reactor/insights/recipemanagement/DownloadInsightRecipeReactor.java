@@ -73,7 +73,7 @@ public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 			recipeFile.createNewFile();
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured creating new file with message: " + e.getMessage());
+			throw new IllegalArgumentException("Error occurred creating new file with message: " + e.getMessage());
 		}
 		
 		List<String> recipeSteps = newInsight.getPixelList().getPixelRecipe();
@@ -94,7 +94,7 @@ public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured writing the recipe to file with message: " + e.getMessage());
+			throw new IllegalArgumentException("Error occurred writing the recipe to file with message: " + e.getMessage());
 		} finally {
 			if(pw != null) {
 				pw.close();

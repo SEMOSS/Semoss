@@ -176,7 +176,7 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 //		} catch (IOException e) {
 //			e.printStackTrace();
 //			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-//			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add descriptions", 
+//			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add descriptions", 
 //					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 //			return noun;
 //		}

@@ -69,7 +69,7 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 			// Pass the frame type as grid and blank in the alias param so that you get a new frame.
 			newFrame = FrameFactory.getFrame(this.insight, DataFrameTypeEnum.GRID.getTypeAsString(), "");
 		}catch(Exception e) {
-			throw new IllegalArgumentException("Error occured trying to create frame of type " + DataFrameTypeEnum.GRID.getTypeAsString(), e);
+			throw new IllegalArgumentException("Error occurred trying to create frame of type " + DataFrameTypeEnum.GRID.getTypeAsString(), e);
 		}
 		String newFrameAlias = newFrame.getName();
 		

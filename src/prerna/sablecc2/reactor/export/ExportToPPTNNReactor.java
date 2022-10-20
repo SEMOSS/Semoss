@@ -250,7 +250,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			return retNoun;
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("An error occured generating the ppt file");
+			throw new IllegalArgumentException("An error occurred generating the ppt file");
 		} finally {
 			if(fileOut != null) {
 				try {

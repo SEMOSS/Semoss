@@ -79,7 +79,7 @@ public abstract class AbstractThemeUtils {
 						map.put(headers[i], IOUtils.toString(((java.sql.Clob) values[i]).getAsciiStream()));
 					} catch (IOException | SQLException e) {
 						e.printStackTrace();
-						throw new IllegalArgumentException("Error occured trying to read theme map");
+						throw new IllegalArgumentException("Error occurred trying to read theme map");
 					}
 				} else {
 					map.put(headers[i], values[i]);
