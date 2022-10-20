@@ -29,8 +29,10 @@ public enum RdbmsTypeEnum {
 	SQL_SERVER("SQL_SERVER", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
 	TERADATA("TERADATA", "com.teradata.jdbc.TeraDriver", "jdbc:teradata"),
 	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver", "jdbc:compositesw:dbapi"),
-	TRINO("TRINO", "io.trino.jdbc.TrinoDriver", "jdbc:trino");
-	
+	TRINO("TRINO", "io.trino.jdbc.TrinoDriver", "jdbc:trino"),
+	// SEMOSS to your SEMOSS
+	SEMOSS("SEMOSS", "prerna.jdbc.SMSSDriver", "jdbc:smss");
+
 	private String label;
 	private String driver;
 	private String urlPrefix;

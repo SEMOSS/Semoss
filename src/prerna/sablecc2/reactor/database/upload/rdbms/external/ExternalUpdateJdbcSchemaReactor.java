@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
@@ -30,12 +31,14 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = ExternalUpdateJdbcSchemaReactor.class.getName();
-	
+	private static final Logger classLogger = LogManager.getLogger(ExternalUpdateJdbcSchemaReactor.class);
+
 	public static final String TABLES_KEY = "tables";
 	public static final String RELATIONS_KEY = "relationships";
 	
@@ -63,11 +66,13 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		} else {
 			throw new IllegalArgumentException("Database must be a valid JDBC engine");
 		}
+		AbstractSqlQueryUtil queryUtil = nativeDatabase.getQueryUtil();
+		
 		Connection connection = null;
 		try {
 			connection = nativeDatabase.getConnection();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 
@@ -79,24 +84,29 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		try {
 			meta = connection.getMetaData();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 
 		List<String> tableAndViewFilters = getFilters();
 		boolean hasFilters = !tableAndViewFilters.isEmpty();
 
-//		String connectionUrl = null;
-		String catalogFilter = null;
-		try {
-			catalogFilter = connection.getCatalog();
-//			connectionUrl = meta.getURL();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
 		RdbmsTypeEnum driverEnum = nativeDatabase.getDbType();
-		String schemaFilter = nativeDatabase.getSchema();
+
+		String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
+		if(catalogFilter == null) {
+			try {
+				catalogFilter = connection.getCatalog();
+//				connectionUrl = meta.getURL();
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
+		if(schemaFilter == null) {
+			schemaFilter = nativeDatabase.getSchema();
+		}
 
 		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(connection, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
 		
@@ -153,7 +163,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 						primaryKeys.add(keys.getString(COLUMN_NAME_STR));
 					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					closeRs(keys);
 				}
@@ -188,7 +198,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 					tableDetails.put(PRIM_KEY, isPrimKeys);
 
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					closeRs(columnsRs);
 				}
@@ -219,7 +229,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 							databaseJoins.add(joinInfo);
 						}
 					} catch (SQLException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						closeRs(relRs);
 					}
@@ -233,7 +243,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 				try {
 					connection.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -256,7 +266,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 			try {
 				rs.close();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
