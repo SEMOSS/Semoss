@@ -303,8 +303,8 @@ public class AZClient extends CloudClient {
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), appRcloneConfig + ":");			 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractEngine.OWL_POSITION_FILENAME, appRcloneConfig + ":");			 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId);			 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractEngine.OWL_POSITION_FILENAME, appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId);			 
 
 
 		}  finally {
@@ -695,7 +695,7 @@ public class AZClient extends CloudClient {
 			smssCloneConfig = createRcloneConfig(smssContainer);
 			rCloneConfig = createRcloneConfig(appId);
 			// WE HAVE TO PULL FROM THE OLD LOCATION WITHOUT THERE BEING A /db/ IN THE PATH
-			List<String> results = runRcloneProcess(smssCloneConfig, "rclone", "lsf", smssCloneConfig+":");
+			List<String> results = runRcloneProcess(smssCloneConfig, "rclone", "lsf", smssCloneConfig+":" + smssContainer);
 			String smss = null;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
@@ -713,13 +713,13 @@ public class AZClient extends CloudClient {
 			appFolder.mkdir();
 			// Pull the contents of the app folder before the smss
 			logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
-			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+":", appFolder.getPath());
+			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+":"+appId, appFolder.getPath());
 			logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 			// Now pull the smss
 			logger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-			runRcloneTransferProcess(smssCloneConfig, "rclone", "copy", smssCloneConfig+":", dbFolder);
+			runRcloneTransferProcess(smssCloneConfig, "rclone", "copy", smssCloneConfig+":"+smssContainer, dbFolder);
 			logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 			LegacyToProjectRestructurerHelper fixer = new LegacyToProjectRestructurerHelper();
@@ -763,7 +763,7 @@ public class AZClient extends CloudClient {
 			smssCloneConfig = createRcloneConfig(smssContainer);
 			rCloneConfig = createRcloneConfig(appId);			
 			// WE HAVE TO PULL FROM THE OLD LOCATION WITHOUT THERE BEING A /db/ IN THE PATH
-			List<String> results = runRcloneProcess(smssCloneConfig, "rclone", "lsf", smssCloneConfig+":");
+			List<String> results = runRcloneProcess(smssCloneConfig, "rclone", "lsf", smssCloneConfig+":"+smssContainer);
 			String smss = null;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
@@ -781,13 +781,13 @@ public class AZClient extends CloudClient {
 			appFolder.mkdir();
 			// Pull the contents of the app folder before the smss
 			logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
-			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+":", appFolder.getPath());
+			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+":"+appId, appFolder.getPath());
 			logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 			// Now pull the smss
 			logger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-			runRcloneTransferProcess(smssCloneConfig, "rclone", "copy", smssCloneConfig+":", dbFolder);
+			runRcloneTransferProcess(smssCloneConfig, "rclone", "copy", smssCloneConfig+":"+smssContainer, dbFolder);
 			logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 			LegacyToProjectRestructurerHelper fixer = new LegacyToProjectRestructurerHelper();
@@ -822,9 +822,9 @@ public class AZClient extends CloudClient {
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
 			// first pull
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":", imagesFolderPath);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+"semoss-imagecontainer", imagesFolderPath);
 			// now push into the correct folder
-			runRcloneProcess(fixedCloneConfig, "rclone", "sync", imagesFolderPath, fixedCloneConfig+":");
+			runRcloneProcess(fixedCloneConfig, "rclone", "sync", imagesFolderPath, fixedCloneConfig+":"+ClusterUtil.DB_IMAGES_BLOB);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -878,7 +878,7 @@ public class AZClient extends CloudClient {
 
 				// Push the app folder
 				logger.info("Pushing app from source=" + thisProjectFolder + " to remote=" + projectId);
-				runRcloneTransferProcess(projectRcloneConfig, "rclone", "sync", thisProjectFolder, projectRcloneConfig + ":");
+				runRcloneTransferProcess(projectRcloneConfig, "rclone", "sync", thisProjectFolder, projectRcloneConfig + ":"+PROJECT_CONTAINER_PREFIX + projectId);
 				logger.debug("Done pushing from source=" + thisProjectFolder + " to remote=" + projectId);
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
@@ -890,7 +890,7 @@ public class AZClient extends CloudClient {
 
 				// Push the smss
 				logger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
-				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":");
+				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":"+PROJECT_CONTAINER_PREFIX + smssContainer);
 				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
@@ -951,7 +951,7 @@ public class AZClient extends CloudClient {
 			smssRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + smssContainer);
 
 			// List the smss directory to get the alias + app id
-			List<String> results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig + ":");
+			List<String> results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig + ":"+PROJECT_CONTAINER_PREFIX + smssContainer);
 			String smss = null;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
@@ -967,7 +967,7 @@ public class AZClient extends CloudClient {
 				}
 				
 				// try again
-				results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig+":");
+				results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig+":"+PROJECT_CONTAINER_PREFIX + smssContainer);
 				for (String result : results) {
 					if (result.endsWith(".smss")) {
 						smss = result;
@@ -1000,14 +1000,14 @@ public class AZClient extends CloudClient {
 
 				// Pull the contents of the project folder before the smss
 				logger.info("Pulling app from remote=" + projectId + " to target=" + thisProjectFolder.getPath());
-				runRcloneTransferProcess(projectRcloneConfig, "rclone", "sync", projectRcloneConfig + ":", thisProjectFolder.getPath());
+				runRcloneTransferProcess(projectRcloneConfig, "rclone", "sync", projectRcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId, thisProjectFolder.getPath());
 				logger.debug("Done pulling from remote=" + projectId + " to target=" + thisProjectFolder.getPath());
 
 				// Now pull the smss
 				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + projectFolder);
 
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE PROJECT FOLDER
-				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":", projectFolder);
+				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":"+PROJECT_CONTAINER_PREFIX + smssContainer, projectFolder);
 				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + projectFolder);
 
 				// Catalog the project if it is new
@@ -1165,7 +1165,7 @@ public class AZClient extends CloudClient {
 			smssRcloneConfig = createRcloneConfig(USER_CONTAINER_PREFIX + smssContainer);
 
 			// List the smss directory to get the alias + app id
-			List<String> results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig + ":");
+			List<String> results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig + ":" + USER_CONTAINER_PREFIX + smssContainer);
 			String smss = null;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
@@ -1183,7 +1183,7 @@ public class AZClient extends CloudClient {
 				}
 				
 				// try again
-				results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig+":");
+				results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig+":" + USER_CONTAINER_PREFIX + smssContainer);
 				for (String result : results) {
 					if (result.endsWith(".smss")) {
 						smss = result;
@@ -1216,13 +1216,13 @@ public class AZClient extends CloudClient {
 
 				// Pull the contents of the project folder before the smss
 				logger.info("Pulling app from remote=" + projectId + " to target=" + thisUserFolder.getPath());
-				runRcloneTransferProcess(userRcloneConfig, "rclone", "sync", userRcloneConfig + ":", thisUserFolder.getPath());
+				runRcloneTransferProcess(userRcloneConfig, "rclone", "sync", userRcloneConfig + ":" + USER_CONTAINER_PREFIX + projectId, thisUserFolder.getPath());
 				logger.debug("Done pulling from remote=" + projectId + " to target=" + thisUserFolder.getPath());
 
 				// Now pull the smss
 				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + userFolder);
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE USER FOLDER
-				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":", userFolder);
+				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":" + USER_CONTAINER_PREFIX + smssContainer, userFolder);
 				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + userFolder);
 			} finally {
 				// Re-open the project
@@ -1282,7 +1282,7 @@ public class AZClient extends CloudClient {
 
 				// Push the app folder
 				logger.info("Pushing app from source=" + thisUserFolder + " to remote=" + projectId);
-				runRcloneTransferProcess(userRcloneConfig, "rclone", "sync", thisUserFolder, userRcloneConfig + ":");
+				runRcloneTransferProcess(userRcloneConfig, "rclone", "sync", thisUserFolder, userRcloneConfig + ":" + USER_CONTAINER_PREFIX + projectId);
 				logger.debug("Done pushing from source=" + thisUserFolder + " to remote=" + projectId);
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
@@ -1294,7 +1294,7 @@ public class AZClient extends CloudClient {
 
 				// Push the smss
 				logger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
-				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":");
+				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":" + USER_CONTAINER_PREFIX + smssContainer);
 				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
@@ -1399,7 +1399,7 @@ public class AZClient extends CloudClient {
 
 				// Push the app folder
 				logger.info("Pushing app from source=" + appFolder + " to remote=" + appId);
-				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder, appRcloneConfig + ":");
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder, appRcloneConfig + ":"+DB_CONTAINER_PREFIX + appId);
 				logger.debug("Done pushing from source=" + appFolder + " to remote=" + appId);
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
@@ -1411,7 +1411,7 @@ public class AZClient extends CloudClient {
 
 				// Push the smss
 				logger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
-				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":");
+				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":" + DB_CONTAINER_PREFIX + smssContainer);
 				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
@@ -1473,7 +1473,7 @@ public class AZClient extends CloudClient {
 			smssRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + smssContainer);
 
 			// List the smss directory to get the alias + app id
-			List<String> results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig + ":");
+			List<String> results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig + ":" +DB_CONTAINER_PREFIX + smssContainer);
 			String smss = null;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
@@ -1489,7 +1489,7 @@ public class AZClient extends CloudClient {
 				}
 				
 				// try again
-				results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig+":");
+				results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig+":"+DB_CONTAINER_PREFIX + smssContainer);
 				for (String result : results) {
 					if (result.endsWith(".smss")) {
 						smss = result;
@@ -1522,14 +1522,14 @@ public class AZClient extends CloudClient {
 
 				// Pull the contents of the app folder before the smss
 				logger.info("Pulling app from remote=" + appId + " to target=" + appFolder.getPath());
-				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":", appFolder.getPath());
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId, appFolder.getPath());
 				logger.debug("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
 
 				// Now pull the smss
 				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
 
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":", dbFolder);
+				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":" + DB_CONTAINER_PREFIX + smssContainer, dbFolder);
 				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 				// Catalog the db if it is new
@@ -1564,7 +1564,7 @@ public class AZClient extends CloudClient {
 		String rCloneConfig = null;
 		try {
 			rCloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
-			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rCloneConfig+":");
+			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rCloneConfig+":"+ClusterUtil.DB_IMAGES_BLOB);
 			if(results.isEmpty()) {
 				fixLegacyImageStructure();
 				return;
@@ -1574,7 +1574,7 @@ public class AZClient extends CloudClient {
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "databases";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":", imagesFolderPath);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":"+ClusterUtil.DB_IMAGES_BLOB, imagesFolderPath);
 		}finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1591,7 +1591,7 @@ public class AZClient extends CloudClient {
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "databases";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync",imagesFolderPath,  appRcloneConfig + ":");
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync",imagesFolderPath,  appRcloneConfig + ":"+ClusterUtil.DB_IMAGES_BLOB);
 		}finally {
 			if (appRcloneConfig != null) {
 				deleteRcloneConfig(appRcloneConfig);
@@ -1608,7 +1608,7 @@ public class AZClient extends CloudClient {
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "projects";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":", imagesFolderPath);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":"+ClusterUtil.PROJECT_IMAGES_BLOB, imagesFolderPath);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1625,7 +1625,7 @@ public class AZClient extends CloudClient {
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "projects";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig + ":");
+			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig + ":"+ClusterUtil.PROJECT_IMAGES_BLOB);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
