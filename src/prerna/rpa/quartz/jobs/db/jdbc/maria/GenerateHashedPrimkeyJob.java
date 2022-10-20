@@ -194,7 +194,7 @@ public class GenerateHashedPrimkeyJob implements org.quartz.InterruptableJob {
 			
 			// Unless the exception occurred due to an interruption, raise it again
 			if (!interrupted) {
-				String primkeyExceptionMessage = "A SQL exception occured while generating the hashed primary key for the table " + tableName + ". ";
+				String primkeyExceptionMessage = "A SQL exception occurred while generating the hashed primary key for the table " + tableName + ". ";
 				LOGGER.error(jobName + ": " + primkeyExceptionMessage + terminationMessage);
 				throw new JobExecutionException(primkeyExceptionMessage, e);
 			}

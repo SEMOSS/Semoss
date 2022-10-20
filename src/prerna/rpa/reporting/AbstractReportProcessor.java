@@ -128,7 +128,7 @@ public abstract class AbstractReportProcessor implements Runnable {
 				Thread.currentThread().interrupt();
 				break;
 			} catch (ExecutionException e) {
-				LOGGER.error("An unexpected error occured while processing one of the reports. ", e);
+				LOGGER.error("An unexpected error occurred while processing one of the reports. ", e);
 				nFailed++;
 			}
 			nFinished++;

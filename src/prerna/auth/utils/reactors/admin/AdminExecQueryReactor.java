@@ -92,7 +92,7 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			engine.insertData(query);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			String errorMessage = "An error occured trying to execute the query in the database";
+			String errorMessage = "An error occurred trying to execute the query in the database";
 			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
 				errorMessage += ": " + e.getMessage();
 			}

@@ -99,7 +99,7 @@ public class AdminAllUsersReactor extends ToExcelReactor {
 			return retNoun;
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("An error occured retrieving the users. Message is : " + e.getMessage());
+			throw new IllegalArgumentException("An error occurred retrieving the users. Message is : " + e.getMessage());
 		} finally {
 			if(iterator != null) {
 				iterator.cleanUp();

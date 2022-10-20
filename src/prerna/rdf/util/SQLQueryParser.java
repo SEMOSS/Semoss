@@ -101,7 +101,7 @@ public class SQLQueryParser extends AbstractQueryParser {
 				parseAllPropertiesAndVarsFromQuery(statement); //generate the return variables list and properties list as well other part of the joins
 				
 			} else {
-				System.err.println("An error occured, the sql statement you are trying to parse is not parseable " + query);
+				System.err.println("An error occurred, the sql statement you are trying to parse is not parseable " + query);
 			}
 		}  catch (JSQLParserException e1) {
 			e1.printStackTrace();

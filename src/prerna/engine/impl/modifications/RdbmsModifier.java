@@ -31,7 +31,7 @@ public class RdbmsModifier implements IEngineModifier {
 			try {
 				this.engine.insertData(sqlQuery);
 			} catch (SQLException e) {
-				throw new SQLException("Error occured to alter the table. Error returned from driver: " + e.getMessage(), e);
+				throw new SQLException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
 			}
 		} else {
 			// we need to make a new temp table with the new column we are adding
@@ -50,7 +50,7 @@ public class RdbmsModifier implements IEngineModifier {
 			try {
 				this.engine.insertData(sqlQuery);
 			} catch (SQLException e) {
-				throw new SQLException("Error occured to alter the table. Error returned from driver: " + e.getMessage(), e);
+				throw new SQLException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
 			}
 		} else {
 			// we need to make a new temp table with the new column we are adding
@@ -70,7 +70,7 @@ public class RdbmsModifier implements IEngineModifier {
 			try {
 				this.engine.insertData(sqlQuery);
 			} catch (SQLException e) {
-				throw new SQLException("Error occured to alter the table. Error returned from driver: " + e.getMessage(), e);
+				throw new SQLException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
 			}
 		} else {
 			// we need to make a new temp table without the column we are dropping

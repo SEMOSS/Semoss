@@ -42,7 +42,7 @@ public class DownloadCurrentRecipeReactor extends AbstractReactor {
 			recipeFile.createNewFile();
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured creating new file with message: " + e.getMessage());
+			throw new IllegalArgumentException("Error occurred creating new file with message: " + e.getMessage());
 		}
 		
 		String downloadKey = UUID.randomUUID().toString();
@@ -61,7 +61,7 @@ public class DownloadCurrentRecipeReactor extends AbstractReactor {
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured writing the recipe to file with message: " + e.getMessage());
+			throw new IllegalArgumentException("Error occurred writing the recipe to file with message: " + e.getMessage());
 		} finally {
 			if(pw != null) {
 				pw.close();

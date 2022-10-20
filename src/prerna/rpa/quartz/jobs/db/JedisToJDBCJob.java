@@ -170,7 +170,7 @@ public class JedisToJDBCJob implements org.quartz.InterruptableJob {
 			
 			// Unless the exception occurred due to an interruption, raise it again
 			if (!interrupted) {
-				String jdbcExceptionMessage = "A SQL exception occured while loading data from Redis into the given JDBC connection. ";
+				String jdbcExceptionMessage = "A SQL exception occurred while loading data from Redis into the given JDBC connection. ";
 				LOGGER.error(jobName + ": " + jdbcExceptionMessage + terminationMessage);
 				throw new JobExecutionException(jdbcExceptionMessage, e);
 			}

@@ -208,7 +208,7 @@ public class GitCollaboratorUtils {
 				}
 			}		
 		if(error && userList.isEmpty()) {
-			throw new IllegalArgumentException("Error occured retrieving user information");
+			throw new IllegalArgumentException("Error occurred retrieving user information");
 		}
 		}
 		return userList;
@@ -500,7 +500,7 @@ public class GitCollaboratorUtils {
 				}
 			}		
 		if(error && userList.isEmpty()) {
-			throw new IllegalArgumentException("Error occured retrieving user information");
+			throw new IllegalArgumentException("Error occurred retrieving user information");
 		}
 		}
 		return userList;

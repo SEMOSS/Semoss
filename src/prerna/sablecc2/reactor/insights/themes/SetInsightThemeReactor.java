@@ -48,7 +48,7 @@ public class SetInsightThemeReactor extends AbstractInsightReactor {
 			gson.toJson(value, writer);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new SemossPixelException("An error occured trying to save the insight theme");
+			throw new SemossPixelException("An error occurred trying to save the insight theme");
 		}
 		
 		if(this.insight.isSavedInsight()) {

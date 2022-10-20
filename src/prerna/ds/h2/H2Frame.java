@@ -697,7 +697,7 @@
 ////
 ////		// my understanding
 ////		// need to get the list of columns that are currently inside the frame
-////		// this is because mergeEdgeHash has already occured and added the
+////		// this is because mergeEdgeHash has already occurred and added the
 ////		// headers into the metadata
 ////		// thus, columnHeaders has both the old headers and the new ones that we
 ////		// want to add

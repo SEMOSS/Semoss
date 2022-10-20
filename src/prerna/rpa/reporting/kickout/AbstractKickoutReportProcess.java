@@ -102,7 +102,7 @@ public abstract class AbstractKickoutReportProcess extends AbstractReportProcess
 			} catch (FileNotFoundException e) {
 				throw new ReportProcessingException("Failed to find the report " + reportName + ".", e);
 			} catch (IOException e) {
-				throw new ReportProcessingException("An exception occured while reading lines in " + reportName + ".", e);
+				throw new ReportProcessingException("An exception occurred while reading lines in " + reportName + ".", e);
 			}
 						
 	    	// prefix_timestamps {yyyy-MM-dd_HH:mm:ss}

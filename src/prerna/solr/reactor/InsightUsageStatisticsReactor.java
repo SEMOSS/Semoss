@@ -70,7 +70,7 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 		try {
 			newFrame = FrameFactory.getFrame(this.insight, "DEFAULT", null);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Error occured trying to create frame of the default type", e);
+			throw new IllegalArgumentException("Error occurred trying to create frame of the default type", e);
 		}
 		// set as default frame if none available
 		if(this.insight.getDataMaker() == null) {

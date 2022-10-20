@@ -128,7 +128,7 @@ public abstract class AbstractHttpHelper {
 		}
 
 		if(tok != null && tok.getAccess_token() == null) {
-			logger.warn("Error occured grabbing the access token: " + result);
+			logger.warn("Error occurred grabbing the access token: " + result);
 		}
 		
 		// send back the token
@@ -195,7 +195,7 @@ public abstract class AbstractHttpHelper {
 		}
 
 		if(tok != null && tok.getAccess_token() == null) {
-			logger.warn("Error occured grabbing the id token: " + result);
+			logger.warn("Error occurred grabbing the id token: " + result);
 		}
 		
 		// send back the token
