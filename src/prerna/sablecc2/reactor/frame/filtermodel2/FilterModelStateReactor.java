@@ -120,13 +120,13 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new SemossPixelException(
-							new NounMetadata("Error occured executing query before loading into frame", 
+							new NounMetadata("Error occurred executing query before loading into frame", 
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 				try {
 					cache = FrameFactory.getFrame(this.insight, frameType.getTypeAsString(), uKey);
 				} catch (Exception e) {
-					throw new IllegalArgumentException("Error occured trying to create the cached options frame of type " + frameType, e);
+					throw new IllegalArgumentException("Error occurred trying to create the cached options frame of type " + frameType, e);
 				}
 				// insert the data for the new frame
 				IImporter importer = ImportFactory.getImporter(cache, qs, it);

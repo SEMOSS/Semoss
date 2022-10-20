@@ -471,7 +471,7 @@ public class Owler extends AbstractOwler {
 			} catch (Exception e) {
 				e.printStackTrace();
 				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-				noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove the desired concept",
+				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired concept",
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				return noun;
 			}
@@ -595,7 +595,7 @@ public class Owler extends AbstractOwler {
 		} catch (Exception e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove the desired property",
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired property",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}

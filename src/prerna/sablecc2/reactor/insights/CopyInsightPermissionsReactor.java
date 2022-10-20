@@ -64,7 +64,7 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 			SecurityInsightUtils.copyInsightPermissions(sourceProjectId, sourceInsightId, targetProjectId, targetInsightId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured copying the insight permissions.  Detailed error: " + e.getMessage());
+			throw new IllegalArgumentException("An error occurred copying the insight permissions.  Detailed error: " + e.getMessage());
 		}
 
 		String sourceProject = SecurityProjectUtils.getProjectAliasForId(sourceProjectId);

@@ -38,7 +38,7 @@ public class QueryRowCountReactor  extends AbstractReactor {
 			 iterator = WrapperManager.getInstance().getRawWrapper(engine, qs, true);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured retrieving the query with message " + e.getMessage());
+			throw new IllegalArgumentException("Error occurred retrieving the query with message " + e.getMessage());
 		}
 		
 		try {
@@ -50,7 +50,7 @@ public class QueryRowCountReactor  extends AbstractReactor {
 			return new NounMetadata(numRows, PixelDataType.CONST_INT, PixelOperationType.QUERY_ROW_COUNT);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured retrieving the count of the query with message " + e.getMessage());
+			throw new IllegalArgumentException("Error occurred retrieving the count of the query with message " + e.getMessage());
 		}
 	}
 

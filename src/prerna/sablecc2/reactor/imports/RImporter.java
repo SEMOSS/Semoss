@@ -41,7 +41,7 @@ public class RImporter extends AbstractImporter {
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new SemossPixelException(
-					new NounMetadata("Error occured executing query before loading into frame", 
+					new NounMetadata("Error occurred executing query before loading into frame", 
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 	}
@@ -57,7 +57,7 @@ public class RImporter extends AbstractImporter {
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SemossPixelException(
-						new NounMetadata("Error occured executing query before loading into frame", 
+						new NounMetadata("Error occurred executing query before loading into frame", 
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 		}

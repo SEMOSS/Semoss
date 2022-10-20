@@ -185,7 +185,7 @@ public class ImportDataProcessor {
 //			logger.error(Arrays.toString(e.getStackTrace()));
 //			String errorMessage = e.getMessage();
 //			if (e.getMessage() == null) {
-//				errorMessage = "Unknown error occured during data loading. Please check computer configuration.";
+//				errorMessage = "Unknown error occurred during data loading. Please check computer configuration.";
 //			}
 //			throw new IOException(errorMessage);
 //		} finally {
@@ -616,7 +616,7 @@ public class ImportDataProcessor {
 ////			Utility.addToSolrInstanceCore(engine);
 ////		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | ParseException e) {
 ////			e.printStackTrace();
-////			errorMessage = "Loaded data successfully, but error occured updating instances into solr";
+////			errorMessage = "Loaded data successfully, but error occurred updating instances into solr";
 ////			throw new IOException(errorMessage);
 ////		}
 //	}

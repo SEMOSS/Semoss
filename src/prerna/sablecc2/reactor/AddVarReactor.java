@@ -58,7 +58,7 @@ public class AddVarReactor extends AbstractReactor {
 					}
 				}catch(Exception ex)
 				{
-					System.err.println("Exception occured" + ex);
+					System.err.println("Exception occurred" + ex);
 				}
 			} else if(language.equalsIgnoreCase("python")) {
 				var.setLanguage(Variable.LANGUAGE.PYTHON);

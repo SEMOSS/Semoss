@@ -38,7 +38,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		try {
 			newTable = new H2Frame(varName);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Error occured instaniating new grid frame");
+			throw new IllegalArgumentException("Error occurred instaniating new grid frame");
 		}
 
 		//sync R dataframe to H2Frame

@@ -160,7 +160,7 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(database, qs);
 		} catch (Exception e1) {
-			// error occured querying the data
+			// error occurred querying the data
 			e1.printStackTrace();
 			throw new IllegalArgumentException("Unable to query columns: " + e1.getMessage());
 		}

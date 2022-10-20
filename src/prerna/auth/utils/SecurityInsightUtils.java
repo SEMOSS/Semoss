@@ -1458,7 +1458,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		}
 	}
 	
@@ -1510,7 +1510,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured updating the user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight");
 		}
 	}
 	
@@ -1632,7 +1632,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured removing the user permissions for this insight");
+			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
 		}
 	}
 	

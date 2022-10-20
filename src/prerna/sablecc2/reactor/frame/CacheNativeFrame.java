@@ -47,7 +47,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 			NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 			this.insight.getVarStore().put(alias, noun);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+			throw new IllegalArgumentException("Error occurred trying to create frame of type " + frameType, e);
 		}
 		
 		CachingThread cache = new CachingThread();
@@ -125,7 +125,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 				it = frame.query(qs);
 			} catch (Exception e) {
 				e.printStackTrace();
-				this.insight.addDelayedMessage(getError("Error occured while caching live query. " + e.getMessage()));
+				this.insight.addDelayedMessage(getError("Error occurred while caching live query. " + e.getMessage()));
 				return;
 			}
 			long end = System.currentTimeMillis();
@@ -136,7 +136,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 				importer.insertData();
 			} catch (Exception e) {
 				e.printStackTrace();
-				this.insight.addDelayedMessage(getError("Error occured while caching live query. " + e.getMessage()));
+				this.insight.addDelayedMessage(getError("Error occurred while caching live query. " + e.getMessage()));
 				return;
 			}
 			long end2 = System.currentTimeMillis();

@@ -611,7 +611,7 @@ public class InsightUtility {
 			serialization = adapter.toJson(sheet);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("Exeption occured generate the sheet state with error: " + e.getMessage());
+			throw new IllegalArgumentException("Exeption occurred generate the sheet state with error: " + e.getMessage());
 		}
 		
 		// turn the serialization into a Map object
@@ -636,7 +636,7 @@ public class InsightUtility {
 			serialization = adapter.toJson(panel);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("Exeption occured generate the panel state with error: " + e.getMessage());
+			throw new IllegalArgumentException("Exeption occurred generate the panel state with error: " + e.getMessage());
 		}
 		
 		// turn the serialization into a Map object

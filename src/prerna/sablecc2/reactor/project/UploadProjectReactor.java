@@ -131,7 +131,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		} catch (Exception e) {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Error occured while unzipping the files", false);
+			throw new SemossPixelException("Error occurred while unzipping the files", false);
 		} finally {
 			if (error) {
 				cleanUpFolders(null, null, null, null, tempProjectFolder, logger);
@@ -253,7 +253,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
-					"Error occured trying to synchronize the metadata and insights for the zip file", false);
+					"Error occurred trying to synchronize the metadata and insights for the zip file", false);
 		} finally {
 			if (error) {
 				// delete all the resources

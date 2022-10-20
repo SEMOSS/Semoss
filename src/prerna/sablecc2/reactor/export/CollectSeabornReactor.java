@@ -111,7 +111,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 			try {
 				newFrame = FrameFactory.getFrame(this.insight, "R", frame.get);
 			} catch (Exception e) {
-				throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+				throw new IllegalArgumentException("Error occurred trying to create frame of type " + frameType, e);
 			}
 			// insert the data for the new frame
 			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);

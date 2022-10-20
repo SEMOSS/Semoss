@@ -149,7 +149,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 					recipeToSave = insightPixelList.getPixelRecipe();
 				}
 			} catch(Exception e) {
-				throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
+				throw new IllegalArgumentException("An error occurred trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
 			}
 		}
 

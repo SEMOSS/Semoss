@@ -882,7 +882,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 						catch(NumberFormatException e)
 						{
 							this.errorMessage = this.errorMessage + "Error Processing TError! " 
-									+ "Error occured processing: " + pred + " >>>> " + propertyURI + " >>>> " + valueAsObject + " " 	
+									+ "Error occurred processing: " + pred + " >>>> " + propertyURI + " >>>> " + valueAsObject + " " 	
 									+ "Check that value is parsable as a double";	
 							String outputToLog = "Unsure About DB" + " >>>>> " + pred + " >>>>> " + propertyURI + " >>>>> " + valueAsObject.toString() + " >>>>> " + this.errorMessage;
 							fileLogger.info(Utility.cleanLogString(outputToLog));
@@ -1395,7 +1395,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			if(!currentTransactional.toString().toString().equalsIgnoreCase(value.toString()))
 			{
 				this.errorMessage = "Error Processing Transactional!  Conflicting report from systems. " 
-						+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;				
+						+ "Error occurred processing: " + sub + " >>>> " + prop + " >>>> " + value;				
 			}
 		}
 		return new Object[]{sub, prop, value};
@@ -1419,7 +1419,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			if(!currentSysOfSys.toString().toString().equalsIgnoreCase(value.toString()))
 			{
 				this.errorMessage = "Error Processing SystemOfSystems!  Conflicting report from systems. " 
-						+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;				
+						+ "Error occurred processing: " + sub + " >>>> " + prop + " >>>> " + value;				
 			}
 		}
 		return new Object[]{sub, prop, value};
@@ -1507,7 +1507,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			if(currentFreqValue[0] == null || currentFreqValue[1] == null)
 			{
 				this.errorMessage = "Error Processing DFreq!  Check frequency is predefined in list. " 
-						+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
+						+ "Error occurred processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 				return new String[]{""};
 			}
 

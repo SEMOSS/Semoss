@@ -48,7 +48,7 @@ public class SetSheetStateReactor extends AbstractInsightPanelReactor {
 			insightSheet = adapter.fromJson(serialized);
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("Exeption occured reading the panel state with error: " + e.getMessage());
+			throw new IllegalArgumentException("Exeption occurred reading the panel state with error: " + e.getMessage());
 		}
 		
 		this.insight.getInsightSheets().put(insightSheet.getSheetId(), insightSheet);

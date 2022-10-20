@@ -45,12 +45,12 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		try {
 			filesHash = (Map<String, Object>) successfulHash.getValue();
 		} catch(Exception e) {
-			throw new IllegalArgumentException("Error occured trying to generaate hash for xray");
+			throw new IllegalArgumentException("Error occurred trying to generaate hash for xray");
 		}
 		// specify the specific files to use
 		List<String> fileNames = (List<String>) filesHash.get(GenerateXRayHashingReactor.FILES_KEY);
 		if(fileNames == null || fileNames.isEmpty()) {
-			throw new IllegalArgumentException("Error occured trying to generaate hash for xray");
+			throw new IllegalArgumentException("Error occurred trying to generaate hash for xray");
 		}
 		List<String> databaseIds = (List<String>) filesHash.get(GenerateXRayHashingReactor.DATABASE_IDS_KEY);
 		
