@@ -25,8 +25,9 @@ public class MyProjectsReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(MyProjectsReactor.class);
 
 	public MyProjectsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
+				ReactorKeysEnum.NO_META.getKey() };
 	}
 
 	@Override
@@ -35,6 +36,7 @@ public class MyProjectsReactor extends AbstractReactor {
 		String limit = this.keyValue.get(this.keysToGet[0]);
 		String offset = this.keyValue.get(this.keysToGet[1]);
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
+		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 		
 		List<Map<String, Object>> projectInfo = new Vector<>();
 
@@ -49,7 +51,7 @@ public class MyProjectsReactor extends AbstractReactor {
 			projectInfo = SecurityProjectUtils.getAllProjectList(null, limit, offset);
 		}
 
-		if(!projectInfo.isEmpty()) {
+		if(!projectInfo.isEmpty() && !noMeta) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
 			int size = projectInfo.size();
 			// now we want to add most executed insights

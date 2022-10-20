@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
@@ -30,6 +31,7 @@ import prerna.util.sql.SqlQueryUtilFactory;
 public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ExternalJdbcTablesAndViewsReactor.class.getName();
+	private static final Logger classLogger = LogManager.getLogger(ExternalJdbcTablesAndViewsReactor.class);
 
 	public ExternalJdbcTablesAndViewsReactor() {
 		this.keysToGet = new String[]{ ReactorKeysEnum.CONNECTION_DETAILS.getKey() };
@@ -66,7 +68,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		try {
 			con = AbstractSqlQueryUtil.makeConnection(queryUtil, connectionUrl, connectionDetails);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			String driverError = e.getMessage();
 			String errorMessage = "Unable to establish connection given the connection details.\nDriver produced error: \" ";
 			errorMessage += driverError;
@@ -80,7 +82,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			meta = con.getMetaData();
 		} catch (SQLException e) {
 			close = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		} finally {
 			if(close) {
@@ -88,15 +90,20 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			}
 		}
 
-		String catalogFilter = null;
-		try {
-			catalogFilter = con.getCatalog();
-		} catch (SQLException e) {
-			// we can ignore this
-			logger.error(Constants.STACKTRACE, e);
+		String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
+		if(catalogFilter == null) {
+			try {
+				catalogFilter = con.getCatalog();
+			} catch (SQLException e) {
+				// we can ignore this
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 
-		String schemaFilter = (String) connectionDetails.get(AbstractSqlQueryUtil.SCHEMA);
+		String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
+		if(schemaFilter == null) {
+			schemaFilter = (String) connectionDetails.get(AbstractSqlQueryUtil.SCHEMA);
+		}
 		if(schemaFilter == null) {
 			schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
 		}
@@ -106,6 +113,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			tableStmt = con.createStatement();
 			tablesRs = RdbmsConnectionHelper.getTables(con, tableStmt, meta, catalogFilter, schemaFilter, driverEnum);
 		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			close = true;
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		} finally {
@@ -157,7 +165,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 				}
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			closeAutoClosable(tablesRs, logger);
 			closeAutoClosable(tableStmt, logger);

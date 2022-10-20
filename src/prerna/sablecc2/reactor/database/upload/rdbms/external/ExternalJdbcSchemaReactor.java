@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
@@ -32,7 +33,8 @@ import prerna.util.sql.SqlQueryUtilFactory;
 public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = ExternalJdbcSchemaReactor.class.getName();
-	
+	private static final Logger classLogger = LogManager.getLogger(ExternalJdbcSchemaReactor.class);
+
 	public static final String TABLES_KEY = "tables";
 	public static final String RELATIONS_KEY = "relationships";
 	
@@ -75,7 +77,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 			con = AbstractSqlQueryUtil.makeConnection(queryUtil, connectionUrl, connectionDetails);
 			queryUtil.enhanceConnection(con);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			String driverError = e.getMessage();
 			String errorMessage = "Unable to establish connection given the connection details.\nDriver produced error: \" ";
 			errorMessage += driverError;
@@ -91,18 +93,23 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		try {
 			meta = con.getMetaData();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-		String catalogFilter = null;
-		try {
-			catalogFilter = con.getCatalog();
-		} catch (SQLException e) {
-			e.printStackTrace();
+		String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
+		if(catalogFilter == null) {
+			try {
+				catalogFilter = con.getCatalog();
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
-		
-		String schemaFilter = (String) connectionDetails.get(AbstractSqlQueryUtil.SCHEMA);
+
+		String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
+		if(schemaFilter == null) {
+			schemaFilter = (String) connectionDetails.get(AbstractSqlQueryUtil.SCHEMA);
+		}
 		if(schemaFilter == null) {
 			schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
 		}
@@ -158,11 +165,13 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				ResultSet keys = null;
 				try {
 					keys = meta.getPrimaryKeys(catalogFilter, schemaFilter, tableOrView);
-					while(keys.next()) {
-						primaryKeys.add(keys.getString(COLUMN_NAME_STR));
+					if(keys != null) {
+						while(keys.next()) {
+							primaryKeys.add(keys.getString(COLUMN_NAME_STR));
+						}
 					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					closeRs(keys);
 				}
@@ -197,7 +206,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 					tableDetails.put(PRIM_KEY, isPrimKeys);
 
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					closeRs(columnsRs);
 				}
@@ -211,24 +220,26 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 					try {
 						logger.info("....Processing table foreign keys");
 						relRs = meta.getExportedKeys(catalogFilter, schemaFilter, tableOrView);
-						while (relRs.next()) {
-							String otherTableName = relRs.getString("FKTABLE_NAME");
-							
-							// add filter check
-							if(hasFilters && !tableAndViewFilters.contains(otherTableName)) {
-								// we will ignore this table and view!
-								continue;
+						if(relRs != null) {
+							while (relRs.next()) {
+								String otherTableName = relRs.getString("FKTABLE_NAME");
+								
+								// add filter check
+								if(hasFilters && !tableAndViewFilters.contains(otherTableName)) {
+									// we will ignore this table and view!
+									continue;
+								}
+								
+								Map<String, String> joinInfo = new HashMap<String, String>();
+								joinInfo.put(FROM_TABLE_KEY, tableOrView);
+								joinInfo.put(FROM_COL_KEY, relRs.getString("PKCOLUMN_NAME"));
+								joinInfo.put(TO_TABLE_KEY, otherTableName);
+								joinInfo.put(TO_COL_KEY, relRs.getString("FKCOLUMN_NAME"));
+								databaseJoins.add(joinInfo);
 							}
-							
-							Map<String, String> joinInfo = new HashMap<String, String>();
-							joinInfo.put(FROM_TABLE_KEY, tableOrView);
-							joinInfo.put(FROM_COL_KEY, relRs.getString("PKCOLUMN_NAME"));
-							joinInfo.put(TO_TABLE_KEY, otherTableName);
-							joinInfo.put(TO_COL_KEY, relRs.getString("FKCOLUMN_NAME"));
-							databaseJoins.add(joinInfo);
 						}
 					} catch (SQLException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						closeRs(relRs);
 					}
@@ -242,7 +253,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				try {
 					con.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -265,7 +276,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 			try {
 				rs.close();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
