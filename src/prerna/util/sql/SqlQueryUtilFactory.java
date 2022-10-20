@@ -20,6 +20,7 @@ import static prerna.util.sql.RdbmsTypeEnum.PHOENIX;
 import static prerna.util.sql.RdbmsTypeEnum.POSTGRES;
 import static prerna.util.sql.RdbmsTypeEnum.REDSHIFT;
 import static prerna.util.sql.RdbmsTypeEnum.SAP_HANA;
+import static prerna.util.sql.RdbmsTypeEnum.SEMOSS;
 import static prerna.util.sql.RdbmsTypeEnum.SNOWFLAKE;
 import static prerna.util.sql.RdbmsTypeEnum.SPARK;
 import static prerna.util.sql.RdbmsTypeEnum.SQLITE;
@@ -107,6 +108,8 @@ public class SqlQueryUtilFactory {
 			queryUtil = new TibcoQueryUtil();
 		} else if(dbType == TRINO) {
 			queryUtil = new TrinoQueryUtil();
+		} else if(dbType == SEMOSS) {
+			queryUtil = new SEMOSSQueryUtil();
 		} else {
 			throw new IllegalArgumentException("Unknown DB Type. Please define a query util for the DB Type " + dbType);
 		}
@@ -173,6 +176,8 @@ public class SqlQueryUtilFactory {
 			queryUtil = new TibcoQueryUtil(connectionUrl, username, password);
 		} else if(dbType == TRINO) {
 			queryUtil = new TrinoQueryUtil(connectionUrl, username, password);
+		} else if(dbType == SEMOSS) {
+			queryUtil = new SEMOSSQueryUtil(connectionUrl, username, password);
 		} else {
 			throw new IllegalArgumentException("Unknown DB Type. Please define a query util for the DB Type " + dbType);
 		}

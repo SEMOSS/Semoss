@@ -236,7 +236,10 @@ public class RdbmsConnectionHelper {
 		String schema = null;
 		String driverName = null;
 		try {
-			driverName = meta.getDriverName().toLowerCase();
+			driverName = meta.getDriverName();
+			if(driverName != null) {
+				driverName = driverName.toLowerCase();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -491,7 +494,10 @@ public class RdbmsConnectionHelper {
 
 	private static String predictSchemaFromUrl(String url) {
 		String schema = null;
-
+		if(url == null) {
+			return schema;
+		}
+		
 		if(url.contains("?currentSchema=")) {
 			Pattern p = Pattern.compile("currentSchema=[a-zA-Z0-9_]*");
 			Matcher m = p.matcher(url);

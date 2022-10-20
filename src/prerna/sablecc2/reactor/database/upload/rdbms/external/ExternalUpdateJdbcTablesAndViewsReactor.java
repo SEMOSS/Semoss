@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
@@ -27,12 +28,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = ExternalUpdateJdbcTablesAndViewsReactor.class.getName();
-	
+	private static final Logger classLogger = LogManager.getLogger(ExternalUpdateJdbcSchemaReactor.class);
+
 	public ExternalUpdateJdbcTablesAndViewsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
 	}
@@ -57,12 +60,13 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 		} else {
 			throw new IllegalArgumentException("Database must be a valid JDBC engine");
 		}
+		AbstractSqlQueryUtil queryUtil = nativeDatabase.getQueryUtil();
 		
 		Connection connection = null;
 		try {
 			connection = nativeDatabase.getConnection();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		
@@ -74,23 +78,26 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 		try {
 			meta = connection.getMetaData();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-//		String connectionUrl = null;
-		String catalogFilter = null;
-		try {
-			catalogFilter = connection.getCatalog();
-//			connectionUrl = meta.getURL();
-		} catch (SQLException e) {
-			// we can ignore this
-			logger.error(Constants.STACKTRACE, e);
-		}
-		
 		RdbmsTypeEnum driverEnum = nativeDatabase.getDbType();
-//		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, connection, connectionUrl, driverEnum);
-		String schemaFilter = nativeDatabase.getSchema();
+
+		String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
+		if(catalogFilter == null) {
+			try {
+				catalogFilter = connection.getCatalog();
+//				connectionUrl = meta.getURL();
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
+		if(schemaFilter == null) {
+			schemaFilter = nativeDatabase.getSchema();
+		}
 		
 		boolean close = false;
 		Statement tableStmt = null;
@@ -99,6 +106,7 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 			tableStmt = connection.createStatement();
 			tablesRs = RdbmsConnectionHelper.getTables(connection, tableStmt, meta, catalogFilter, schemaFilter, driverEnum);
 		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			close = true;
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		} finally {
@@ -128,7 +136,7 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 				}
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			closeAutoClosable(tablesRs, logger);
 			closeAutoClosable(tableStmt, logger);
@@ -151,7 +159,7 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 			try {
 				closeable.close();
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
