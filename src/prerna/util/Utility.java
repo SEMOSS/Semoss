@@ -3201,8 +3201,8 @@ public class Utility {
 					.replace(")", "\\%29")
 					.replace("~", "\\%7E")
 					;
-		} catch (UnsupportedEncodingException uee) {
-			logger.error(Constants.STACKTRACE, uee);
+		} catch (UnsupportedEncodingException e) {
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return s;
 	}

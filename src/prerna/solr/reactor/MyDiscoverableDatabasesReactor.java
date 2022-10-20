@@ -39,6 +39,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
 		List<String> databaseFilter = getDatabaseFilters();
+		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 
 		List<Map<String, Object>> dbInfo = new Vector<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
@@ -49,7 +50,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
-		if(!dbInfo.isEmpty()) {
+		if(!dbInfo.isEmpty() && !noMeta) {
 			Map<String, Integer> index = new HashMap<>(dbInfo.size());
 			int size = dbInfo.size();
 			// now we want to add most executed insights
