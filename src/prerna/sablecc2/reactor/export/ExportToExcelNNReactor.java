@@ -309,7 +309,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			return retNoun;
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("An error occured generating the excel file");
+			throw new IllegalArgumentException("An error occurred generating the excel file");
 		} finally {
 			if(driver != null && driver instanceof ChromeDriver) {
 				((ChromeDriver)driver).quit();

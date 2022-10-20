@@ -76,7 +76,7 @@ public class CLPModelReactor extends AbstractReactor {
 			// execute any remaining
 			ps.executeBatch();
 		} catch(SQLException e) {
-			throw new IllegalArgumentException("Error occured attempting to insert CLP model into a frame");
+			throw new IllegalArgumentException("Error occurred attempting to insert CLP model into a frame");
 		} finally {
 		    if(ps != null) {
                 try {

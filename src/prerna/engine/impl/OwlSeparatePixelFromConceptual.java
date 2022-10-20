@@ -61,13 +61,13 @@ public class OwlSeparatePixelFromConceptual {
 						deleter.deleteEngineRDBMS(prop.getProperty(Constants.ENGINE));
 					}
 				} catch (Exception e) {
-					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName);
-					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
-					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
-					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
-					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
-					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
-					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName);
+					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName );
 					e.printStackTrace();
 				}
 			}

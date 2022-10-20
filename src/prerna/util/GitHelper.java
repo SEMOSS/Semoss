@@ -2086,7 +2086,7 @@
 //			}
 //			if(p.exitValue() == 1) {
 //				System.out.println("Error on command " + commands);
-//				throw new RuntimeException("Error occured while execution of a git command");
+//				throw new RuntimeException("Error occurred while execution of a git command");
 //			}
 //		} catch (IOException | InterruptedException e) {
 //			// TODO Auto-generated catch block

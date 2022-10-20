@@ -2860,14 +2860,14 @@ public class OwlTemporalEngineMeta {
 				RDFXMLWriter writer = new RDFXMLWriter(fw);
 				rc.export(writer);
 			} catch(Exception e) {
-				throw new IOException("Error occured attempting to save frame metadata");
+				throw new IOException("Error occurred attempting to save frame metadata");
 			}
 		} else {
 			try (OutputStream os = new BufferedOutputStream(new CipherOutputStream(new FileOutputStream(fileName), cipher))){
 				RDFXMLWriter writer = new RDFXMLWriter(os);
 				rc.export(writer);
 			} catch(Exception e) {
-				throw new IOException("Error occured attempting to save frame metadata");
+				throw new IOException("Error occurred attempting to save frame metadata");
 			}
 		}
 	}

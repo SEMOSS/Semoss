@@ -40,7 +40,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 			return new NounMetadata(query, PixelDataType.CONST_STRING);
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured decrypting with message = " + e.getMessage());
+			throw new IllegalArgumentException("Error occurred decrypting with message = " + e.getMessage());
 		}
 	}
 

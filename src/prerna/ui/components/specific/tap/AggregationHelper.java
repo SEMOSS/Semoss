@@ -400,7 +400,7 @@ public class AggregationHelper implements IAggregationHelper {
 		{
 			//e.printStackTrace();
 			this.errorMessage = "Error Processing Sum Double. Please check value of Double. " 
-					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
+					+ "Error occurred processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
 		}
 
@@ -461,7 +461,7 @@ public class AggregationHelper implements IAggregationHelper {
 		{
 			//e.printStackTrace();
 			this.errorMessage = "Error Processing Max/Min Double. Please check value of Double. " 
-					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
+					+ "Error occurred processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
 		}
 
@@ -518,7 +518,7 @@ public class AggregationHelper implements IAggregationHelper {
 		{
 			//e.printStackTrace();
 			this.errorMessage = "Error Processing Max/Min Date. Please check value of Date. " 
-					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
+					+ "Error occurred processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
 		}
 

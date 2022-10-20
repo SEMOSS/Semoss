@@ -77,7 +77,7 @@ public class EditDatabasePropertyDataTypeReactor extends AbstractReactor {
 //				e2.printStackTrace();
 //			}
 			
-			throw new IllegalArgumentException("Error occured to alter the table. Error returned from driver: " + e.getMessage(), e);
+			throw new IllegalArgumentException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);

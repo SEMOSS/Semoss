@@ -92,7 +92,7 @@ public class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 				CityResponse cr = reader.tryCity(inet).orElse(NULL_CR);
 				utd = this.cityResponseToUserTrackingDetails(cr, ip);
 			} catch (IOException | GeoIp2Exception e) {
-				logger.error("Error occured while trying to find ip data.", e);
+				logger.error("Error occurred while trying to find ip data.", e);
 				utd = new UserTrackingDetails(
 					ip,
 					null,

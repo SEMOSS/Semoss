@@ -32,7 +32,7 @@ public class ReadInsightThemeReactor extends AbstractInsightReactor {
 			value = gson.fromJson(reader, Map.class);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new SemossPixelException("An error occured trying to read the insight theme");
+			throw new SemossPixelException("An error occurred trying to read the insight theme");
 		}
 		
 		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.INSIGHT_THEME);

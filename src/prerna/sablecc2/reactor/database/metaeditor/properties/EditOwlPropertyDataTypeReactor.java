@@ -88,7 +88,7 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 		} catch (Exception e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);

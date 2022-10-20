@@ -72,7 +72,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			try {
 				table = FrameFactory.getFrame(this.insight, DataFrameTypeEnum.GRID.getTypeAsString(), "");
 			} catch (Exception e2) {
-				throw new IllegalArgumentException("Error occured trying to create frame of type " + DataFrameTypeEnum.GRID.getTypeAsString(), e2);
+				throw new IllegalArgumentException("Error occurred trying to create frame of type " + DataFrameTypeEnum.GRID.getTypeAsString(), e2);
 			}
 		}
 		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) table;

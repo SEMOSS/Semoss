@@ -171,14 +171,14 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				}
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new SemossPixelException(new NounMetadata("Error occured trying to delete the existing table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(new NounMetadata("Error occurred trying to delete the existing table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			
 			try {
 				targetEngine.insertData(queryUtil.createTable(this.targetTable, headers, sqlTypes));
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new SemossPixelException(new NounMetadata("Error occured trying to create the new table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(new NounMetadata("Error occurred trying to create the new table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			
 			logger.info("Finished deleting existing table data and creating new table");
@@ -190,7 +190,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				targetEngine.insertData(queryUtil.createTable(this.targetTable, headers, sqlTypes));
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new SemossPixelException(new NounMetadata("Error occured trying to create the new table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(new NounMetadata("Error occurred trying to create the new table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			logger.info("Finished creating new table");
 		} else {
@@ -220,7 +220,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		try {
 			ps = ((IRDBMSEngine) targetEngine).bulkInsertPreparedStatement(getPreparedStatementArgs);
 		} catch (SQLException e) {
-			throw new IllegalArgumentException("An error occured creating the prepared statement with message = " + e.getMessage());
+			throw new IllegalArgumentException("An error occurred creating the prepared statement with message = " + e.getMessage());
 		}
 
 		// keep a batch size so we dont get heapspace
@@ -333,7 +333,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			ps.close();
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured persisting data into the database with message = " + e.getMessage());
+			throw new IllegalArgumentException("An error occurred persisting data into the database with message = " + e.getMessage());
 		}
 		
 		

@@ -89,7 +89,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add the desired concept",
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the desired concept",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}

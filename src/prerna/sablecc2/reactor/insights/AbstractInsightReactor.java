@@ -595,7 +595,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			gson.toJson(pipeline, writer);
 		} catch(Exception e) {
-			throw new IllegalArgumentException("An error occured with saving the pipeline", e);
+			throw new IllegalArgumentException("An error occurred with saving the pipeline", e);
 		} finally {
 			if(writer != null) {
 				try {

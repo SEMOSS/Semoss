@@ -521,7 +521,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 			sqlTypes = RdbmsUploadReactorUtility.createNewTable(database, tableName, uniqueRowId, headers, types, replace);
 		} catch (Exception e1) {
 			e1.printStackTrace();
-			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
 
@@ -682,9 +682,9 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 			e.printStackTrace();
 			String errorMessage = "";
 			if (nextRow == null) {
-				errorMessage = "Error occured while performing insert on excel row number = " + count;
+				errorMessage = "Error occurred while performing insert on excel row number = " + count;
 			} else {
-				errorMessage = "Error occured while performing insert on excel data row:" + "\n" + Arrays.toString(nextRow);
+				errorMessage = "Error occurred while performing insert on excel data row:" + "\n" + Arrays.toString(nextRow);
 			}
 			throw new IOException(errorMessage);
 		}

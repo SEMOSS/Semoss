@@ -201,7 +201,7 @@ public class PixelStreamUtility {
 			// THIS IS BECAUSE WE APPEND THE JOB PIXEL
 			// BUT FE DOESN'T RESPOND TO IT AND NEED TO REMOVE IT
 			// HOWEVER, IF THE SIZE IS JUST 1, IT MEANS THAT THERE WAS
-			// AN ERROR THAT OCCURED
+			// AN ERROR THAT occurred
 			// but when we run a saved insight within a pixel
 			// we do not want to shift the index
 			int startIndex = 0;
