@@ -56,6 +56,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -140,7 +141,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			// I need to see if the connection pool has been initiated
 			// if not initiate the connection pool
 			if(this.prop == null) {
-				this.prop = Utility.loadProperties(propFile);
+				this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
 				// if this is not a temp then open the super
 				if(!this.prop.containsKey("TEMP")) { 
 					// not temp, in which case, this engine has a insights rdbms and an owl
@@ -153,9 +154,6 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
 			if(dbTypeString == null) {
 				dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
-				if(dbTypeString == null) {
-					dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME.toUpperCase());
-				}
 			}
 			this.driver = prop.getProperty(Constants.DRIVER);
 			// get the dbType from the input or from the driver itself
@@ -168,16 +166,10 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType);
 
 			// get the database so we have it - can be used for filtering tables/columns
-			this.database = prop.getProperty(AbstractSqlQueryUtil.DATABASE.toUpperCase());
-			if(this.database == null) {
-				this.database = prop.getProperty(AbstractSqlQueryUtil.DATABASE);
-			}
+			this.database = prop.getProperty(AbstractSqlQueryUtil.DATABASE);
 			
 			// get the schema so we have it - can be used for filtering tables/columns
-			this.schema = prop.getProperty(AbstractSqlQueryUtil.SCHEMA.toUpperCase());
-			if(this.schema == null) {
-				this.schema = prop.getProperty(AbstractSqlQueryUtil.SCHEMA);
-			}
+			this.schema = prop.getProperty(AbstractSqlQueryUtil.SCHEMA);
 			
 			// grab the username/password
 			// keys can be username/password

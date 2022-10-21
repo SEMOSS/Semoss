@@ -27,15 +27,11 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -50,8 +46,8 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -203,29 +199,9 @@ public class RemoteJenaEngine extends AbstractEngine implements IEngine {
 	 */
 	@Override
 	public void openDB(String propFile) {
-		FileInputStream fileIn = null;
-		try {
-			prop = new Properties();
-			fileIn = new FileInputStream(Utility.normalizePath(propFile));
-			prop.load(fileIn);
-			this.serviceURI = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
-			this.connected = true;
-		} catch (RuntimeException e) {
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			try{
-				if(fileIn!=null)
-					fileIn.close();
-			} catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
+		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
+		this.serviceURI = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
+		this.connected = true;
 	}
 
 

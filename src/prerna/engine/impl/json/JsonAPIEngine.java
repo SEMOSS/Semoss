@@ -36,8 +36,8 @@ import com.jayway.jsonpath.PathNotFoundException;
 
 import cern.colt.Arrays;
 import net.minidev.json.JSONArray;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
@@ -65,11 +65,8 @@ public class JsonAPIEngine extends AbstractEngine {
 	public static final String DELIM = "delim";
 	public static final String REPEATER = "repeater";
 	
-
-	
 	Object document = null;
 
-	
 	public void openDB(String propFile) {
 		try {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -81,7 +78,7 @@ public class JsonAPIEngine extends AbstractEngine {
 			if(propFile != null) {
 				setPropFile(propFile);
 				logger.info("Opening DB - " + Utility.cleanLogString(engineName));
-				prop = Utility.loadProperties(propFile);
+				prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
 			}
 			if(prop != null) {
 				// load the rdbms insights db
@@ -137,9 +134,9 @@ public class JsonAPIEngine extends AbstractEngine {
 		} 
 	}
 	
-	public void loadProp(String propFile)
-	{
-		this.prop = Utility.loadProperties(baseFolder + "/" + propFile);
+	public void loadProp(String propFile) {
+		this.propFile = Utility.normalizeParam(baseFolder + "/" + propFile);
+		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(this.propFile));
 	}
 
 	protected void loadDocument()
