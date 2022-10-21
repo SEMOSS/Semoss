@@ -1,7 +1,8 @@
 package prerna.util.sql;
 
 import java.util.Map;
-import java.util.Properties;
+
+import prerna.engine.impl.CaseInsensitiveProperties;
 
 public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 
@@ -71,7 +72,7 @@ public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
-	public String setConnectionDetailsFromSMSS(Properties prop) throws RuntimeException {
+	public String setConnectionDetailsFromSMSS(CaseInsensitiveProperties prop) throws RuntimeException {
 		if(prop == null || prop.isEmpty()){
 			throw new RuntimeException("Properties object is null or empty");
 		}

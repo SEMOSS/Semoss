@@ -4,7 +4,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
-import java.util.Properties;
+
+import prerna.engine.impl.CaseInsensitiveProperties;
 
 public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 
@@ -74,7 +75,7 @@ public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public String setConnectionDetailsFromSMSS(Properties prop) throws RuntimeException {
+	public String setConnectionDetailsFromSMSS(CaseInsensitiveProperties prop) throws RuntimeException {
 		if(prop == null || prop.isEmpty()){
 			throw new RuntimeException("Properties object is null or empty");
 		}
