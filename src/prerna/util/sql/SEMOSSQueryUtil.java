@@ -79,8 +79,11 @@ public class SEMOSSQueryUtil extends AnsiSqlQueryUtil {
 		// do we need to make the connection url?
 		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
 			this.connectionUrl = this.dbType.getUrlPrefix()+":"+this.hostname+port
-					+";sub_url="+subURL+";endpoint="+this.endpoint+";protocol="+this.protocol
+					+";endpoint="+this.endpoint+";protocol="+this.protocol
 					+";project="+projectId+";insight="+insightId;
+			if(!subURL.isEmpty()) {
+				this.connectionUrl += ";sub_url="+subURL;
+			}
 			
 			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
 				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
@@ -151,8 +154,11 @@ public class SEMOSSQueryUtil extends AnsiSqlQueryUtil {
 		// do we need to make the connection url?
 		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
 			this.connectionUrl = this.dbType.getUrlPrefix()+":"+this.hostname+port
-					+";sub_url="+subURL+";endpoint="+this.endpoint+";protocol="+this.protocol
+					+";endpoint="+this.endpoint+";protocol="+this.protocol
 					+";project="+projectId+";insight="+insightId;
+			if(!subURL.isEmpty()) {
+				this.connectionUrl += ";sub_url="+subURL;
+			}
 			
 			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
 				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
@@ -184,8 +190,11 @@ public class SEMOSSQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		this.connectionUrl = this.dbType.getUrlPrefix()+":"+this.hostname+port
-				+";sub_url="+subURL+";endpoint="+this.endpoint+";protocol="+this.protocol
+				+";endpoint="+this.endpoint+";protocol="+this.protocol
 				+";project="+projectId+";insight="+insightId;
+		if(!subURL.isEmpty()) {
+			this.connectionUrl += ";sub_url="+subURL;
+		}
 		
 		if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
 			if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
