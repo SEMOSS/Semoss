@@ -2,10 +2,10 @@ package prerna.util.sql;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Properties;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -89,7 +89,7 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
-	public String setConnectionDetailsFromSMSS(Properties prop) throws RuntimeException {
+	public String setConnectionDetailsFromSMSS(CaseInsensitiveProperties prop) throws RuntimeException {
 		if(prop == null || prop.isEmpty()){
 			throw new RuntimeException("Properties object is null or empty");
 		}

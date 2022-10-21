@@ -7,12 +7,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -1793,7 +1793,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	/**
 	 * Default in AnsiSql for using urlPrefix://hostname:port/schema;additionalProps
 	 */
-	public String setConnectionDetailsFromSMSS(Properties prop) throws RuntimeException {
+	public String setConnectionDetailsFromSMSS(CaseInsensitiveProperties prop) throws RuntimeException {
 		if(prop == null || prop.isEmpty()){
 			throw new RuntimeException("Properties object is null or empty");
 		}
