@@ -13,8 +13,8 @@ import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.sablecc2.om.PixelDataType;
@@ -32,7 +32,7 @@ public class DataStaxGraphEngine extends AbstractEngine {
 	@Override
 	public void openDB(String propFile) {
 		super.openDB(propFile);
-		this.prop = Utility.loadProperties(propFile);
+		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
 		String host = this.prop.getProperty("HOST");
 		String port = this.prop.getProperty("PORT");
 		String username = this.prop.getProperty("USERNAME");

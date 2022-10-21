@@ -2,8 +2,8 @@ package prerna.engine.impl.remotesemoss;
 
 import java.util.Vector;
 
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -15,7 +15,7 @@ public class RemoteSemossEngine extends AbstractEngine {
 	
 	public void openDB(String propFile) {
 		this.baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		this.prop = Utility.loadProperties(propFile);
+		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
 		
 		// get id & name
 		this.engineId = this.prop.getProperty(Constants.ENGINE);
