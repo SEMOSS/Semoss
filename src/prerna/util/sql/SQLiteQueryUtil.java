@@ -14,6 +14,7 @@ import org.sqlite.SQLiteConfig;
 import org.sqlite.SQLiteConfig.Pragma;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.sablecc2.om.Join;
 
 public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
@@ -66,7 +67,7 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
-	public String setConnectionDetailsFromSMSS(Properties prop) throws RuntimeException {
+	public String setConnectionDetailsFromSMSS(CaseInsensitiveProperties prop) throws RuntimeException {
 		if(prop == null || prop.isEmpty()){
 			throw new RuntimeException("Properties object is null or empty");
 		}
