@@ -30,6 +30,7 @@ package prerna.engine.api;
 import java.util.Properties;
 import java.util.Vector;
 
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.MetaHelper;
 
 /**
@@ -192,7 +193,7 @@ public interface IEngine extends IExplorable {
 	 * Return the prop file
 	 * @return
 	 */
-	Properties getProp();
+	CaseInsensitiveProperties getProp();
 	
 	/**
 	 * Gets the UDF - user defined functions in this data catalog

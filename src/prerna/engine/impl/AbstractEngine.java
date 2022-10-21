@@ -98,7 +98,7 @@ public abstract class AbstractEngine implements IEngine {
 	
 	protected String baseFolder = null;
 	protected String propFile = null;
-	protected Properties prop = null;
+	protected CaseInsensitiveProperties prop = null;
 	
 	protected String engineId = null;
 	protected String engineName = null;
@@ -148,7 +148,7 @@ public abstract class AbstractEngine implements IEngine {
 			if(propFile != null) {
 				this.propFile = propFile;
 				logger.info("Opening DB - " + Utility.cleanLogString(FilenameUtils.getName(propFile)));
-				this.prop = Utility.loadProperties(propFile);
+				this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
 			}
 			if(this.prop != null) {
 				// grab the main properties
@@ -483,7 +483,7 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public void setPropFile(String propFile) {
 		this.propFile = propFile;
-		this.prop = Utility.loadProperties(propFile);
+		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
 	}
 	
 	@Override
@@ -827,11 +827,15 @@ public abstract class AbstractEngine implements IEngine {
 	// load the prop file
 	@Override
 	public void setProp(Properties prop) {
-		this.prop = prop;
+		if(prop instanceof CaseInsensitiveProperties) {
+			this.prop = (CaseInsensitiveProperties) prop;
+		} else {
+			this.prop = new CaseInsensitiveProperties(prop);
+		}
 	}
 	
 	@Override
-	public Properties getProp() {
+	public CaseInsensitiveProperties getProp() {
 		return this.prop;
 	}
 	
@@ -956,12 +960,12 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 
-	public Properties encryptPropFile(String propFile) {
+	public CaseInsensitiveProperties encryptPropFile(String propFile) {
 		propFile = Utility.normalizePath(propFile);
 		OutputStream os = null;
 		try {
 			File propF = new File(propFile);
-			Properties prop = Utility.loadProperties(propFile);
+			CaseInsensitiveProperties prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
 
 			String passToEncrypt = null;
 			String insightPassToEncrypt = null;

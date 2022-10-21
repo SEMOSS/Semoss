@@ -56,6 +56,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -166,7 +167,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param prop
 	 * @return
 	 */
-	public abstract String setConnectionDetailsFromSMSS(Properties prop) throws RuntimeException;
+	public abstract String setConnectionDetailsFromSMSS(CaseInsensitiveProperties prop) throws RuntimeException;
 	
 	/**
 	 * Build the connection string after the connection details have been set
