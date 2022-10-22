@@ -217,4 +217,8 @@ public class SqlQueryUtilFactory {
 		
 		return keywordsMap.get(type);
 	}
+	
+	private SqlQueryUtilFactory() {
+		
+	}
 }

@@ -84,9 +84,9 @@ public class RSingleton {
 			ProcessBuilder pb;
 
 			if (SystemUtils.IS_OS_WINDOWS) {
-			 pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);Rserve(FALSE," + port + ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)", "--vanilla");
+				pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);Rserve(FALSE," + port + ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)", "--vanilla");
 			} else {
-			 pb = new ProcessBuilder(rHome, "CMD", "Rserve", "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
+				pb = new ProcessBuilder(rHome, "CMD", "Rserve", "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
 			}
 			
 			Process process = pb.start();
