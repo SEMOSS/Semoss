@@ -1,6 +1,7 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -9,30 +10,32 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.Session;
+import prerna.util.ldap.ILdapAuthenticator;
 
 public class SocialPropertiesUtil {
 
-	private static final Logger logger = LogManager.getLogger(SocialPropertiesUtil.class);
+	private static final Logger classLogger = LogManager.getLogger(SocialPropertiesUtil.class);
 
 	private static SocialPropertiesUtil instance = null;
 	private static SocialPropertiesProcessor processor = null;
 	private static String socialPropFile = null;
+	private static ILdapAuthenticator ldapAuthenticator = null;
 	
 	public SocialPropertiesUtil() {
 		SocialPropertiesUtil.socialPropFile = DIHelper.getInstance().getProperty(Constants.SOCIAL);
 		if(SocialPropertiesUtil.socialPropFile != null) {
 			File f = new File(SocialPropertiesUtil.socialPropFile);
 			if (!f.exists()) {
-				logger.warn("No social.properties file found!");
-				logger.warn("No social.properties file found!");
-				logger.warn("No social.properties file found!");
+				classLogger.warn("No social.properties file found!");
+				classLogger.warn("No social.properties file found!");
+				classLogger.warn("No social.properties file found!");
 			} else {
 				SocialPropertiesUtil.processor = new SocialPropertiesProcessor(SocialPropertiesUtil.socialPropFile);
 			}
 		} else {
-			logger.warn("No social.properties defined in RDF_Map.prop!");
-			logger.warn("No social.properties defined in RDF_Map.prop!");
-			logger.warn("No social.properties defined in RDF_Map.prop!");
+			classLogger.warn("No social.properties defined in RDF_Map.prop!");
+			classLogger.warn("No social.properties defined in RDF_Map.prop!");
+			classLogger.warn("No social.properties defined in RDF_Map.prop!");
 		}
 	}
 	
@@ -52,6 +55,13 @@ public class SocialPropertiesUtil {
 	
 	public void updateSocialProperties(String provider, Map<String, String> mods) {
 		SocialPropertiesUtil.processor.updateProviderProperties(provider, mods);
+		if(provider.equals(ILdapAuthenticator.LDAP) && SocialPropertiesUtil.ldapAuthenticator != null) {
+			try {
+				SocialPropertiesUtil.ldapAuthenticator.load();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 	}
 	
 	public Map<String, Boolean> getLoginsAllowed() {
@@ -116,5 +126,12 @@ public class SocialPropertiesUtil {
 	
 	public void reloadProps() {
 		SocialPropertiesUtil.processor.reloadProps();
+		if(SocialPropertiesUtil.ldapAuthenticator != null) {
+			try {
+				SocialPropertiesUtil.ldapAuthenticator.load();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 	}
 }
