@@ -2,7 +2,7 @@ package prerna.util.ldap;
 
 import java.io.IOException;
 
-import javax.naming.directory.DirContext;
+import javax.naming.directory.Attributes;
 
 import prerna.auth.AccessToken;
 
@@ -47,24 +47,24 @@ public interface ILdapAuthenticator {
 	void validate() throws IOException;
 	
 	/**
-	 * Authenticate the user input
-	 * @param username
-	 * @param password
-	 * @return
-	 */
-	boolean authenticate(String username, String password) throws Exception;
-
-	/**
 	 * Close any existing connection
 	 * @return
 	 */
 	boolean close();
 	
 	/**
-	 * Grab the user attributes and construct the AccessToken
-	 * @param con
+	 * Authenticate the user input
+	 * @param username
+	 * @param password
 	 * @return
 	 */
-	AccessToken generateAccessToken(DirContext con) throws Exception;
+	AccessToken authenticate(String username, String password) throws Exception;
+
+	/**
+	 * Grab the user attributes and construct the AccessToken
+	 * @param attributes
+	 * @return
+	 */
+	AccessToken generateAccessToken(Attributes attributes) throws Exception;
 	
 }

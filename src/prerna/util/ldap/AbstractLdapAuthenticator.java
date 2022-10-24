@@ -2,9 +2,10 @@ package prerna.util.ldap;
 
 import java.io.IOException;
 
-import javax.naming.directory.DirContext;
+import javax.naming.directory.Attributes;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.util.SocialPropertiesUtil;
 
 public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
@@ -21,12 +22,15 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	// user is providing the CN to the DN structure
 	// and then providing their password as is
 	String securityPrincipalTemplate = null;
+	final String SECURITY_PRINCIPAL_TEMPLATE_USERNAME = "<username>";
 	
 	// attribute mapping
 	String attributeIdKey = null;
 	String attributeNameKey = null;
 	String attributeEmailKey = null;
 	String attributeUserNameKey = null;
+	
+	String[] requestAttributes = null;
 	
 	public void load() throws IOException {
 		// try to close anything if valid
@@ -45,13 +49,60 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		this.attributeEmailKey = socialData.getProperty(LDAP_EMAIL_KEY);
 		this.attributeUserNameKey = socialData.getProperty(LDAP_USERNAME_KEY);
 		
+		this.requestAttributes = new String[] {this.attributeIdKey, this.attributeNameKey, this.attributeEmailKey, this.attributeUserNameKey};
+		
 		validate();
+	}
+	
+	@Override
+	public void validate() throws IOException {
+		// always need the provider url
+		if(this.providerUrl == null || (this.providerUrl=this.providerUrl.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the AD connection URL");
+		}
+		
+		// need to at least have the ID
+		if(this.attributeIdKey == null || (this.attributeIdKey=this.attributeIdKey.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the attribute for the user id");
+		}
 	}
 	
 
 	@Override
-	public AccessToken generateAccessToken(DirContext con) throws Exception {
-		return null;
+	public AccessToken generateAccessToken(Attributes attributes) throws Exception {
+		Object userId = null;
+		Object name = null;
+		Object email = null;
+		Object username = null;
+		
+		userId = attributes.get(this.attributeIdKey).get();
+		if(userId == null) {
+			throw new IllegalArgumentException("Cannot login user due to not having a proper attribute for the user id");
+		}
+		if(this.attributeNameKey != null) {
+			name = attributes.get(this.attributeNameKey).get();
+		}
+		if(this.attributeEmailKey != null) {
+			email = attributes.get(this.attributeEmailKey).get();
+		}
+		if(this.attributeUserNameKey != null) {
+			username = attributes.get(this.attributeUserNameKey).get();
+		}
+		
+		AccessToken token = new AccessToken();
+		token.setProvider(AuthProvider.ACTIVE_DIRECTORY);
+		token.setId(userId + "");
+		if(name != null) {
+			token.setName(name + "");
+		}
+		if(email != null) {
+			token.setEmail(email + "");
+		}
+		if(username != null) {
+			token.setUsername(username + "");
+		}
+		
+		return token;
 	}
 	
 }
