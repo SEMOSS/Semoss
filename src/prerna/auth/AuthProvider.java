@@ -19,6 +19,9 @@ public enum AuthProvider {
 	FORGEROCK,
 	SAML,
 	ADFS,
+
+	// using ldap
+	ACTIVE_DIRECTORY,
 	
 	// this one is kinda special ...
 	CAC, 
