@@ -27,13 +27,20 @@ public interface ILdapAuthenticator {
 	
 	// specific to single structure
 	String LDAP_SECURITY_PRINCIPAL_TEMPLATE = LDAP_PREFIX + "principal_tempalte";
-	
+	// the key in the template where we will put the user input into the above template
+	String SECURITY_PRINCIPAL_TEMPLATE_USERNAME = "<username>";
+
 	// attribute names
 	String LDAP_ID_KEY = LDAP_PREFIX + "key_id";
 	String LDAP_NAME_KEY = LDAP_PREFIX + "key_name";
 	String LDAP_EMAIL_KEY = LDAP_PREFIX + "key_email";
 	String LDAP_USERNAME_KEY = LDAP_PREFIX + "key_username";
 
+	// searching
+	String LDAP_SEARCH_CONTEXT_NAME = LDAP_PREFIX + "search_context_name";
+	String LDAP_SEARCH_CONTEXT_SCOPE = LDAP_PREFIX + "search_context_scope";
+	String LDAP_SEARCH_MATCHING_ATTRIBUTES = LDAP_PREFIX + "search_matching_attributes";
+	
 	/**
 	 * Reload properties from social.properties
 	 * @throws IOException
