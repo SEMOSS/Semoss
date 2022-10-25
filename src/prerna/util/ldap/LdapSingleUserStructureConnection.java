@@ -53,13 +53,14 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 			
 			// need to search for the user who just logged in
 			// so that i can grab the attributes
-			String searchFilter = "(objectClass=inetOrgPerson)";
+			String searchFilter = this.searchMatchingAttributes;
+			searchFilter = searchFilter.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
 			
 			SearchControls controls = new SearchControls();
-			controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+			controls.setSearchScope(this.searchContextScope);
 			controls.setReturningAttributes(this.requestAttributes);
 			
-			NamingEnumeration<SearchResult> users = con.search("ou=users,ou=system", searchFilter, controls);
+			NamingEnumeration<SearchResult> users = con.search(this.searchContextName, searchFilter, controls);
 			
 			SearchResult result = null;
 			while(users.hasMoreElements()) {

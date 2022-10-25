@@ -22,7 +22,6 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	// user is providing the CN to the DN structure
 	// and then providing their password as is
 	String securityPrincipalTemplate = null;
-	final String SECURITY_PRINCIPAL_TEMPLATE_USERNAME = "<username>";
 	
 	// attribute mapping
 	String attributeIdKey = null;
@@ -31,6 +30,12 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	String attributeUserNameKey = null;
 	
 	String[] requestAttributes = null;
+	
+	// searching for user
+	String searchContextName = null;
+	String searchContextScopeString = null;
+	int searchContextScope = 2;
+	String searchMatchingAttributes = null;
 	
 	public void load() throws IOException {
 		// try to close anything if valid
@@ -51,6 +56,24 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		
 		this.requestAttributes = new String[] {this.attributeIdKey, this.attributeNameKey, this.attributeEmailKey, this.attributeUserNameKey};
 		
+		String LDAP_SEARCH_CONTEXT_NAME = LDAP_PREFIX + "search_context_name";
+		String LDAP_SEARCH_CONTEXT_SCOPE = LDAP_PREFIX + "search_context_scope";
+		String LDAP_SEARCH_MATCHING_ATTRIBUTES = LDAP_PREFIX + "search_matching_attributes";
+		
+		this.searchContextName = socialData.getProperty(LDAP_SEARCH_CONTEXT_NAME);
+		if(this.searchContextName == null || (this.searchContextName=this.searchContextName.trim()).isEmpty()) {
+			this.searchContextName = "ou=users,ou=system";
+		}
+		// should match integer values of
+		// OBJECT_SCOPE, ONELEVEL_SCOPE, SUBTREE_SCOPE
+		this.searchContextScopeString = socialData.getProperty(LDAP_SEARCH_CONTEXT_SCOPE);
+		if(this.searchContextScopeString == null || (this.searchContextScopeString=this.searchContextScopeString.trim()).isEmpty()) {
+			this.searchContextScopeString = "2";
+		}
+		this.searchMatchingAttributes = socialData.getProperty(LDAP_SEARCH_MATCHING_ATTRIBUTES);
+		if(this.searchMatchingAttributes == null || (this.searchMatchingAttributes=this.searchMatchingAttributes.trim()).isEmpty()) {
+			this.searchMatchingAttributes = "(objectClass=inetOrgPerson)";
+		}
 		validate();
 	}
 	
@@ -64,6 +87,12 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		// need to at least have the ID
 		if(this.attributeIdKey == null || (this.attributeIdKey=this.attributeIdKey.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the attribute for the user id");
+		}
+		
+		try {
+			this.searchContextScope = Integer.parseInt(this.searchContextScopeString);
+		} catch(NumberFormatException e) {
+			throw new IllegalArgumentException("Search Context scope must be of value 0, 1, or 2");
 		}
 	}
 	
