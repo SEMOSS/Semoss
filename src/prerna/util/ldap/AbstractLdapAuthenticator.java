@@ -96,9 +96,13 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		}
 	}
 	
-
-	@Override
-	public AccessToken generateAccessToken(Attributes attributes) throws Exception {
+	/**
+	 * Produce the access token from the user attributes
+	 * @param attributes
+	 * @return
+	 * @throws Exception
+	 */
+	protected AccessToken generateAccessToken(Attributes attributes) throws Exception {
 		Object userId = null;
 		Object name = null;
 		Object email = null;

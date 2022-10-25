@@ -69,7 +69,7 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 				// search returns too many people
 				if(result.getNameInNamespace().equals(principalDN)) {
 					Attributes attr = result.getAttributes();
-					return generateAccessToken(attr);
+					return this.generateAccessToken(attr);
 				}
 			}
 			
