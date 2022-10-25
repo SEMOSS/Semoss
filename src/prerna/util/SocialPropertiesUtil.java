@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.Session;
 import prerna.util.ldap.ILdapAuthenticator;
+import prerna.util.ldap.LdapAuthenticationFactory;
 
 public class SocialPropertiesUtil {
 
@@ -133,5 +134,21 @@ public class SocialPropertiesUtil {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+	}
+
+	public ILdapAuthenticator getLdapAuthenticator() throws IOException {
+		if(SocialPropertiesUtil.ldapAuthenticator != null) {
+			return SocialPropertiesUtil.ldapAuthenticator;
+		}
+
+		synchronized(SocialPropertiesUtil.class) {
+			if(SocialPropertiesUtil.ldapAuthenticator == null) {
+				String ldapType = SocialPropertiesUtil.processor.getProperty(ILdapAuthenticator.LDAP_TYPE);
+				SocialPropertiesUtil.ldapAuthenticator = LdapAuthenticationFactory.getAuthenticator(ldapType);
+				SocialPropertiesUtil.ldapAuthenticator.load();
+			}
+		}
+		
+		return SocialPropertiesUtil.ldapAuthenticator;
 	}
 }
