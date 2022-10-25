@@ -83,6 +83,9 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		if(this.providerUrl == null || (this.providerUrl=this.providerUrl.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the AD connection URL");
 		}
+		if(!this.providerUrl.startsWith("ldap://")) {
+			this.providerUrl = "ldap://" + this.providerUrl;
+		}
 		
 		// need to at least have the ID
 		if(this.attributeIdKey == null || (this.attributeIdKey=this.attributeIdKey.trim()).isEmpty()) {
