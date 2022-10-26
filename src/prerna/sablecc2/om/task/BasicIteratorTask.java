@@ -1,12 +1,12 @@
 package prerna.sablecc2.om.task;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -171,7 +171,7 @@ public class BasicIteratorTask extends AbstractTask {
 						.map(p -> p.toString())
 						.map(p -> (p.equals("DOUBLE") || p.equals("INT") ? "NUMBER" : p))
 						.collect(Collectors.toList()).toArray(new String[sTypes.length]);
-				this.headerInfo = new Vector<Map<String, Object>>();
+				this.headerInfo = new ArrayList<Map<String, Object>>();
 				for(int i = 0 ; i < headers.length; i++) {
 					Map<String, Object> headerMap = new HashMap<String, Object>();
 					headerMap.put("alias", headers[i]);
@@ -362,7 +362,7 @@ public class BasicIteratorTask extends AbstractTask {
 		if(qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
 				qs.getQsType() == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			this.grabFromWrapper = true;
-			setSortInfo(new Vector<Map<String, Object>>());
+			setSortInfo(new ArrayList<Map<String, Object>>());
 			setFilterInfo(new GenRowFilters());
 		} else {
 			setHeaderInfo(qs.getHeaderInfo());
@@ -388,7 +388,7 @@ public class BasicIteratorTask extends AbstractTask {
 	
 	@Override
 	public List<Map<String, String>> getSource() {
-		List<Map<String, String>> sources = new Vector<Map<String, String>>();
+		List<Map<String, String>> sources = new ArrayList<Map<String, String>>();
 		if(this.qs != null) {
 			sources.add(qs.getSourceMap());
 		}

@@ -4641,6 +4641,7 @@ public class Utility {
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
+			logger.info("Done compiling Java in Folder " + javaFolder);
 		}
 		
 		return status;
