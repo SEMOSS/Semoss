@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +9,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.export.graph.GraphExporterFactory;
 import prerna.ds.export.graph.IGraphExporter;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -41,7 +43,8 @@ public class CollectGraphReactor extends CollectReactor {
 		collectedData.put("sortInfo", this.task.getSortInfo());
 		collectedData.put("filterInfo", this.task.getFilterInfo());
 		collectedData.put("taskId", this.task.getId());
-
+		collectedData.put("sources", getSources(frame));
+		
 		NounMetadata result = new NounMetadata(collectedData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		return result;
 	}
@@ -55,6 +58,15 @@ public class CollectGraphReactor extends CollectReactor {
 			val.put("alias", val.remove("displayName"));
 		}
 		return x;
+	}
+	
+	private List<Map<String, Object>> getSources(ITableDataFrame frame) {
+		Map<String, Object> sourceMap = new HashMap<>();
+		sourceMap.put("name", frame.getName());
+		sourceMap.put("type", AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
+		List<Map<String, Object>> sources = new ArrayList<>();
+		sources.add(sourceMap);
+		return sources;
 	}
 	
 	private ITableDataFrame getFrame() {
