@@ -125,13 +125,13 @@ public interface IProject {
 	// once published the assets in this app are available as a public_home from the browser
 	// this is useful to access javascript etc. 
 	// to enable this - you need to put the property public_home_enable on the smss file
+
 	/**
 	 * 
 	 * @param location
-	 * @param targetDir
 	 * @return
 	 */
-	boolean publish(String location, String targetDir);
+	boolean publish(String location);
 	
 	/**
 	 * Return if an asset

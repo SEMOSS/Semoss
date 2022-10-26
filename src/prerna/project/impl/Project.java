@@ -306,7 +306,7 @@ public class Project implements IProject {
 				try {
 					FileUtils.forceDelete(insightFile);
 				} catch(IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -329,7 +329,7 @@ public class Project implements IProject {
 		try {
 			FileUtils.forceDelete(smssFile);
 		} catch(IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		//remove from DIHelper
@@ -382,7 +382,7 @@ public class Project implements IProject {
 //						try {
 //							insightMakeupIs = insightMakeup.getAsciiStream();
 //						} catch (SQLException e) {
-//							e.printStackTrace();
+//							logger.error(Constants.STACKTRACE, e);
 //						}
 //					}
 					String layout = values[4] + "";
@@ -410,7 +410,7 @@ public class Project implements IProject {
 //							try {
 //								pixelArrayIs = pixelArray.getAsciiStream();
 //							} catch (SQLException e) {
-//								e.printStackTrace();
+//								logger.error(Constants.STACKTRACE, e);
 //							}
 //						}
 
@@ -484,7 +484,7 @@ public class Project implements IProject {
 				stringBuilder.append(ss.getVar(names[0]) + "").append("%!%");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrap != null) {
 				wrap.cleanUp();
@@ -515,14 +515,14 @@ public class Project implements IProject {
 //				  tableExists = true;
 //			}
 //		} catch (SQLException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		} finally {
 //			try {
 //				if(rs != null) {
 //					rs.close();
 //				}
 //			} catch(SQLException e) {
-//				e.printStackTrace();
+//				logger.error(Constants.STACKTRACE, e);
 //			}
 //		}
 //		
@@ -608,7 +608,7 @@ public class Project implements IProject {
 //					//classesDir.mkdir();
 //				} catch (Exception e) {
 //					// TODO Auto-generated catch block
-//					e.printStackTrace();
+//					logger.error(Constants.STACKTRACE, e);
 //				}
 //			}
 //			int status = Utility.compileJava(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), getCP());
@@ -648,9 +648,9 @@ public class Project implements IProject {
 //				return retReac;
 //			}
 //		} catch (InstantiationException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		} catch (IllegalAccessException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		}
 //			
 //		return retReac;
@@ -702,7 +702,7 @@ public class Project implements IProject {
 						//classesDir.mkdir();
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 				int status = Utility.compileJava(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), getCP());
@@ -734,9 +734,9 @@ public class Project implements IProject {
 					retReac = (IReactor) thisReactorClass.newInstance();
 				}
 			} catch (InstantiationException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -797,8 +797,7 @@ public class Project implements IProject {
 	}
 	
 	// create a symbolic link to the version directory
-	public boolean publish(String public_home, String appId)
-	{
+	public boolean publish(String public_home) {
 		// find what is the final URL
 		// this is the base url plus manipulations
 		// find what the tomcat deploy directory is
@@ -806,37 +805,29 @@ public class Project implements IProject {
 		boolean enableForApp = false;
 		enableForApp = (prop != null && prop.containsKey(Settings.PUBLIC_HOME_ENABLE) && (prop.get(Settings.PUBLIC_HOME_ENABLE)+ "").equalsIgnoreCase("true"));
 		try {
-			if(public_home != null && enableForApp && !publish)
-			{
-				String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + java.nio.file.FileSystems.getDefault().getSeparator();
-				
-				Path sourcePath = Paths.get(AssetUtility.getProjectAssetFolder(this.projectName, appId));
-				Path targetPath = Paths.get(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);
+			if(public_home != null && enableForApp && !publish) {
+				Path sourcePath = Paths.get(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId));
+				Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId);
 	
-				File file = new File(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);
+				File file = new File(public_home + this.projectId + this.projectId);
 
 				boolean copy = DIHelper.getInstance().getProperty(Settings.COPY_APP) != null && DIHelper.getInstance().getProperty(Settings.COPY_APP).equalsIgnoreCase("true");
-				
 				// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
-				if(copy) 
-				{
-					if(!file.exists())
+				if(copy) {
+					if(!file.exists()) {
 						file.mkdir();
-					
+					}
 					FileUtils.copyDirectory(sourcePath.toFile(), file);
-					
 				}
 				// this is where we create symbolic link
-				else if(!file.exists() &&  !Files.isSymbolicLink(targetPath))
-				{
+				else if(!file.exists() &&  !Files.isSymbolicLink(targetPath)) {
 					Files.createSymbolicLink(targetPath, sourcePath);
 				}
 				file.deleteOnExit();
 				publish = true;
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		return enableForApp && publish;
@@ -901,9 +892,9 @@ public class Project implements IProject {
 				return retReac;
 			}
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return retReac;
 	}
@@ -977,9 +968,9 @@ public class Project implements IProject {
 				return wrapper;
 			}
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return retReac;
 	}
@@ -1100,19 +1091,19 @@ public class Project implements IProject {
 			return finalCP;
 			
 		} catch (MavenInvocationException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(br != null) {
-		          try {
-		            br.close();
-		          } catch(IOException e) {
-		        	  logger.error(Constants.STACKTRACE, e);
-		          }
-		        }
+				try {
+					br.close();
+				} catch(IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
         return null;
 	}
@@ -1155,8 +1146,7 @@ public class Project implements IProject {
 	}
 		
 	// get the target folder
-	public String getTargetFolder(String pomFile)
-	{
+	public String getTargetFolder(String pomFile) {
 		String targetFolder = null;
 		try {
 			InputSource is = new InputSource(new FileInputStream(pomFile));
@@ -1165,10 +1155,8 @@ public class Project implements IProject {
 			
 			Document d = builder.parse(is);
 			
-			
 			XPathFactory xpathfactory = XPathFactory.newInstance();
 			XPath xpath = xpathfactory.newXPath();
- 
 
 			XPathExpression expr = xpath.compile("//project/build/directory/text()");
 			Object result = expr.evaluate(d, XPathConstants.NODESET);
@@ -1177,22 +1165,16 @@ public class Project implements IProject {
 			  targetFolder = nodes.item(i).getNodeValue();
 			}
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
       	  logger.error(Constants.STACKTRACE, e);
 		} catch (XPathExpressionException e) {
-			// TODO Auto-generated catch block
       	  logger.error(Constants.STACKTRACE, e);
 		} catch (DOMException e) {
-			// TODO Auto-generated catch block
       	  logger.error(Constants.STACKTRACE, e);
 		} catch (ParserConfigurationException e) {
-			// TODO Auto-generated catch block
       	  logger.error(Constants.STACKTRACE, e);
 		} catch (SAXException e) {
-			// TODO Auto-generated catch block
       	  logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
       	  logger.error(Constants.STACKTRACE, e);
 		}		
 	    return targetFolder;
