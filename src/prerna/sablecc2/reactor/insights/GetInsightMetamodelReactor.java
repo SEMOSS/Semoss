@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.insights;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +50,6 @@ public class GetInsightMetamodelReactor extends AbstractReactor {
 			List<Object[]> objs = groupedByFrame.get(cn);
 			Map<String, Object> frameMetamodel = buildResponsePerFrame(cn, objs);
 			result.put(cn, frameMetamodel);
-		}
-		
-		for (Object[] os: insightFrames) {
-			List<Object> row = Arrays.asList(os);
-			row.forEach(s -> System.out.println(s));
 		}
 		
 		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.INSIGHT_METAMODEL);
