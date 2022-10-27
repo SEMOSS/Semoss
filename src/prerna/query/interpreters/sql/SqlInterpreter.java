@@ -1450,9 +1450,15 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				queryFunctionSelector = (QueryFunctionSelector) groupBySelector;
 				groupByName.append(processFunctionSelector(queryFunctionSelector));
 				continue;
+			} else if (groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.IF_ELSE) {
+				if(i > 0) {
+					groupByName.append(", ");
+				}
+				groupByName.append(processIfElseSelector((QueryIfSelector) groupBySelector, false, false));
+				continue;
 			}
 			else {
-				String errorMessage = "Cannot group by non QueryColumnSelector and QueryFunctionSelector types yet...";
+				String errorMessage = "Cannot group by non QueryColumnSelector and QueryFunctionSelector and QueryIfSelector types yet...";
 				logger.error(errorMessage);
 				throw new IllegalArgumentException(errorMessage);
 			}
