@@ -594,6 +594,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return SecurityUserInsightUtils.getInsightUsers(user, projectId, insightId, userId, permission, limit, offset);
 	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param insightId
+	 * @param userId
+	 * @param permission
+	 * @return
+	 */
+	public static long getInsightUsersCount(User user, String projectId, String insightId, String userId, String permission) throws IllegalAccessException {
+		return SecurityUserInsightUtils.getInsightUsersCount(user, projectId, insightId, userId, permission);
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////

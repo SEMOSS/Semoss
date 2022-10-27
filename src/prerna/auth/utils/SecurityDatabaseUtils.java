@@ -380,7 +380,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__APPROVER_DECISION"));
 		qs.addSelector(new QueryColumnSelector("DATABASEACCESSREQUEST__APPROVER_TIMESTAMP"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__ENGINEID", "==", databaseId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__APPROVER_DECISION", "==", null));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("DATABASEACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
@@ -455,7 +455,6 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		return SecurityUserDatabaseUtils.getMaxUserDatabasePermission(user, databaseId);
 	}
 	
-	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
@@ -463,6 +462,37 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	/*
 	 * Query for database users
 	 */
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getDisplayDatabaseOwnersAndEditors(String databaseId) {
+		return SecurityUserDatabaseUtils.getDisplayDatabaseOwnersAndEditors(databaseId);
+	}
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String databaseId) {
+		return SecurityUserDatabaseUtils.getFullDatabaseOwnersAndEditors(databaseId);
+	}
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @param userId
+	 * @param permission
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String databaseId, String userId, String permission, long limit, long offset) {
+		return SecurityUserDatabaseUtils.getFullDatabaseOwnersAndEditors(databaseId, userId, permission, limit, offset);
+	}
 	
 	/**
 	 * Retrieve the list of users for a given database
@@ -487,7 +517,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", userId));
 		}
 		if (hasPermission) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
@@ -502,6 +532,30 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	public static long getDatabaseUsersCount(User user, String databaseId, String userId, String permission) throws IllegalAccessException {
+		if(!userCanViewDatabase(user, databaseId)) {
+			throw new IllegalArgumentException("The user does not have access to view this database");
+		}
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+        qs.addSelector(fSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 	
 	/**
@@ -1418,29 +1472,29 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static void setUserAccessRequest(String userId, String userType, String databaseId, int permission) {
-		// first do a delete
-		String deleteQ = "DELETE FROM DATABASEACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND ENGINEID=? AND APPROVER_DECISION IS NULL";
-		PreparedStatement deletePs = null;
+		// first mark previously undecided requests as old
+		String updateQ = "UPDATE DATABASEACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND ENGINEID=? AND APPROVER_DECISION='NEW_REQUEST'";
+		PreparedStatement updatePs = null;
 		try {
 			int index = 1;
-			deletePs = securityDb.getPreparedStatement(deleteQ);
-			deletePs.setString(index++, userId);
-			deletePs.setString(index++, userType);
-			deletePs.setString(index++, databaseId);
-			deletePs.execute();
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			updatePs.setString(index++, userId);
+			updatePs.setString(index++, userType);
+			updatePs.setString(index++, databaseId);
+			updatePs.execute();
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while deleting user access request with detailed message = " + e.getMessage());
+			throw new IllegalArgumentException("An error occurred while marking old user access request with detailed message = " + e.getMessage());
 		} finally {
-			if(deletePs != null) {
+			if(updatePs != null) {
 				try {
-					deletePs.close();
+					updatePs.close();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 				if(securityDb.isConnectionPooling()) {
 					try {
-						deletePs.getConnection().close();
+						updatePs.getConnection().close();
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}

@@ -40,7 +40,7 @@ public class DatabaseUsersReactor extends AbstractReactor {
 			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 		}
 		
-		baseInfo = SecurityQueryUtils.getDisplayDatabaseOwnersAndEditors(databaseId);
+		baseInfo = SecurityDatabaseUtils.getDisplayDatabaseOwnersAndEditors(databaseId);
 		return new NounMetadata(baseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_USERS);
 	}
 
