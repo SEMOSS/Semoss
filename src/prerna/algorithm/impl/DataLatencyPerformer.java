@@ -56,7 +56,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 	GraphPlaySheet ps = null;
 //	protected GraphDataModel gdm = new GraphDataModel();
 	public SEMOSSVertex [] pickedVertex = null;
-	static final Logger logger = LogManager.getLogger(DataLatencyPerformer.class.getName());
+	static final Logger logger = LogManager.getLogger(DataLatencyPerformer.class);
 	double value;
 	Vector<SEMOSSEdge> masterEdgeVector = new Vector();//keeps track of everything accounted for in the forest
 	Vector<SEMOSSVertex> masterVertexVector = new Vector();
@@ -420,7 +420,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 	private int translateString(String freqString){
 		int freqInt = 0;
 		if(freqString.equalsIgnoreCase("TBD")) freqInt = 168;
-		if(freqString.equalsIgnoreCase("n/a")) freqInt = 168;
+		else if(freqString.equalsIgnoreCase("n/a")) freqInt = 168;
 		else if(freqString.equalsIgnoreCase("Real-time (user-initiated)")) freqInt = 0;
 		else if(freqString.equalsIgnoreCase("Batch (monthly)")) freqInt = 720;
 		else if(freqString.equalsIgnoreCase("Weekly")) freqInt = 168;
@@ -486,12 +486,10 @@ public class DataLatencyPerformer implements IAlgorithm{
 		else if(freqString.startsWith("SMSS_HOURS")) {
 			try {
 				String[] s = freqString.split("_");
-
 				freqInt = Integer.valueOf(s[s.length]);
 			} catch(NumberFormatException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
-			
 		}
 			
 		return freqInt;
