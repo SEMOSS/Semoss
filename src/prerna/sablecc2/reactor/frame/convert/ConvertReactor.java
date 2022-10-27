@@ -90,7 +90,6 @@ public class ConvertReactor extends AbstractFrameReactor {
 		}
 		
 		// merge existing metadata
-		ImportUtility.mergeFlatTableAdditionalDataTypes(newFrame.getMetaData(), frame.getMetaData().getHeaderToAdtlTypeMap());
 		ImportUtility.mergeFlatTableSources(newFrame.getMetaData(), frame.getMetaData().getHeaderToSources());
 
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
