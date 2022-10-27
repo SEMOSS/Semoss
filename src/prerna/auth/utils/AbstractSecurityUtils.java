@@ -812,8 +812,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// INSIGHTFRAMES
-		colNames = new String[] { "PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", "COLUMNTYPE" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+		colNames = new String[] { "PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", "COLUMNTYPE", "ADDITIONALTYPE" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTFRAMES", colNames, types));
 		} else {
@@ -834,6 +834,14 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.indexExists(securityDb, "INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTMETA", database, schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTFRAMES", "INSIGHTID"));
 			}
+		}
+		
+		// Altering table to store additional types for frames. 
+		// added on 10-26-2022
+		List<String> insightFramesCols = queryUtil.getTableColumns(conn, "INSIGHTFRAMES", database, schema);
+		if(!insightFramesCols.contains("ADDITIONALTYPE") && !insightFramesCols.contains("additionaltype")) {
+			String addColumnSql = queryUtil.alterTableAddColumn("INSIGHTFRAMES", "ADDITIONALTYPE", "VARCHAR(255)");
+			securityDb.insertData(addColumnSql);
 		}
 		
 		// SMSS_USER
@@ -967,6 +975,7 @@ public abstract class AbstractSecurityUtils {
 		
 		// GROUP INSIGHT PERMISSION
 		colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION" };
+		
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
