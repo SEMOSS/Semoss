@@ -312,6 +312,7 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTFRAMES", "TABLETYPE", "VARCHAR(255)");
 		owler.addProp("INSIGHTFRAMES", "COLUMNNAME", "VARCHAR(255)");
 		owler.addProp("INSIGHTFRAMES", "COLUMNTYPE", "VARCHAR(255)");
+		owler.addProp("INSIGHTFRAMES", "ADDITIONALTYPE", "VARCHAR(255)");
 		
 		// USER
 		owler.addConcept("SMSS_USER", null, null);

@@ -1339,7 +1339,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		// now we do the new insert with the order of the tags
 		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTFRAMES", 
-				new String[]{"PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", "COLUMNTYPE"});
+				new String[]{"PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", 
+						"COLUMNTYPE", "ADDITIONALTYPE"});
 		ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -1348,12 +1349,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				String tableName = frame.getName();
 				String tableType = frame.getFrameType().getTypeAsString();
 				Map<String, SemossDataType> colToTypeMap = frame.getMetaData().getHeaderToTypeMap();
+				Map<String, String> adtlType = frame.getMetaData().getHeaderToAdtlTypeMap();
 				
 				for(String colName : colToTypeMap.keySet()) {
 					String colType = colToTypeMap.get(colName).toString().toUpperCase();
+					String adtName = adtlType.get(colName);
+					if (adtName != null) {
+						adtName = adtName.toString().toUpperCase();
+					}
 					if(colName.contains("__")) {
 						colName = colName.split("__")[1];
 					}
+					
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, projectId);
 					ps.setString(parameterIndex++, insightId);
@@ -1361,6 +1368,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, tableType);
 					ps.setString(parameterIndex++, colName);
 					ps.setString(parameterIndex++, colType);
+					if(adtName == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, adtName);
+					}
 					ps.addBatch();
 				}
 			}
@@ -2502,6 +2514,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__TABLETYPE"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__COLUMNNAME"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__COLUMNTYPE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__ADDITIONALTYPE"));
 		// filters
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__PROJECTID", "==", projectId));
