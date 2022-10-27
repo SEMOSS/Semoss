@@ -90,12 +90,14 @@ public class SocketServer implements Runnable {
 			fis = new FileInputStream(Utility.normalizePath(log4JPropFile));
 			new ConfigurationSource(fis);
 		} catch (IOException e) {
+			e.printStackTrace();
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(fis != null) {
 				try {
 					fis.close();
 				} catch (IOException e) {
+					e.printStackTrace();
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -132,6 +134,7 @@ public class SocketServer implements Runnable {
         try {
             serverSocket = new ServerSocket(PORT);
         } catch (IOException e) {
+			e.printStackTrace();
 			classLogger.error(Constants.STACKTRACE, e);
             System.err.println("Could not listen on port: " + PORT);
             System.exit(1);
@@ -151,6 +154,7 @@ public class SocketServer implements Runnable {
 		        try {
 		            clientSocket = serverSocket.accept();
 		        } catch (IOException e) {
+					e.printStackTrace();
 					classLogger.error(Constants.STACKTRACE, e);
 		            System.err.println("Accept failed.");
 		            System.exit(1);
@@ -163,6 +167,7 @@ public class SocketServer implements Runnable {
 					ssh.setOutputStream(clientSocket.getOutputStream());
 					is = clientSocket.getInputStream();
 				} catch (IOException e) {
+					e.printStackTrace();
 					classLogger.error(Constants.STACKTRACE, e);
 				}   
 		        
@@ -185,6 +190,7 @@ public class SocketServer implements Runnable {
 						crash.wait();
 						clientSocket = null;
 					} catch (InterruptedException e) {
+						e.printStackTrace();
 						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
