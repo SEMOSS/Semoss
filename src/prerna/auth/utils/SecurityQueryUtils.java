@@ -8,7 +8,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
@@ -85,155 +84,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		return results.get(0);
 	}
-	
 		
-	//////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * Get all the users for a database
-	 */
-	
-	public static List<Map<String, Object>> getDisplayDatabaseOwnersAndEditors(String databaseId) {
-		List<Map<String, Object>> users = null;
-		if(SecurityDatabaseUtils.getGlobalDatabaseIds().contains(databaseId)) {
-//			String query = "SELECT DISTINCT "
-//					+ "SMSS_USER.NAME AS \"name\", "
-//					+ "PERMISSION.NAME as \"permission\" "
-//					+ "FROM SMSS_USER "
-//					+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
-//					+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
-//					+ "WHERE PERMISSION.ID IN (1,2) AND ENGINEPERMISSION.ENGINEID='" + engineId + "'";
-//			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-						
-			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-			qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-			List<Integer> permissionValues = new Vector<Integer>(2);
-			permissionValues.add(new Integer(1));
-			permissionValues.add(new Integer(2));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", permissionValues, PixelDataType.CONST_INT));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
-			qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
-			qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
-			
-			users = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-			
-			Map<String, Object> globalMap = new HashMap<String, Object>();
-			globalMap.put("name", "PUBLIC DATABASE");
-			globalMap.put("permission", "READ_ONLY");
-			users.add(globalMap);
-		} else {
-//			String query = "SELECT DISTINCT "
-//					+ "SMSS_USER.NAME AS \"name\", "
-//					+ "PERMISSION.NAME as \"permission\" "
-//					+ "FROM SMSS_USER "
-//					+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
-//					+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
-//					+ "WHERE ENGINEPERMISSION.ENGINEID='" + engineId + "'";
-//			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			
-			users = getFullDatabaseOwnersAndEditors(databaseId);
-		}
-		return users;
-	}
-	
-	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String databaseId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
-		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
-		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-	
-	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditorsParams(String databaseId, String userId, String permission, long limit, long offset) {
-		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
-		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
-		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
-		}
-		if (hasPermission) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
-		}
-		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
-		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
-		if(limit > 0) {
-			qs.setLimit(limit);
-		}
-		if(offset > 0) {
-			qs.setOffSet(offset);
-		}
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-	
-	public static List<Map<String, Object>> getFullProjectOwnersAndEditors(String projectId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
-		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
-
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-	
-	public static List<Map<String, Object>> getFullProjectOwnersAndEditorsParams(String projectId, String userId, String permission, long limit, long offset) {
-		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
-		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
-		}
-		if (hasPermission) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
-		}
-		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
-		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
-		if(limit > 0) {
-			qs.setLimit(limit);
-		}
-		if(offset > 0) {
-			qs.setOffSet(offset);
-		}
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-	
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	
-//	@Deprecated
-//	public static Boolean userIsAdmin(String userId) {
-//		String query = "SELECT ADMIN FROM USER WHERE ID ='" + userId + "';";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-//		List<String[]> ret = flushRsToListOfStrArray(wrapper);
-//		if(!ret.isEmpty()) {
-//			return Boolean.parseBoolean(ret.get(0)[0]);
-//		}
-//		return false;
-//	}
 	
 	public static SemossDate getLastModifiedDateForInsightInProject(String projectId) {
 //		String query = "SELECT DISTINCT INSIGHT.LASTMODIFIEDON "
