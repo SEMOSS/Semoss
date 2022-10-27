@@ -347,13 +347,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "?like", userId));
 		}
 		if (hasPermission) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
 		}
 		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
 		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("PERMISSION__ID"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		if(limit > 0) {
 			qs.setLimit(limit);
@@ -362,6 +363,52 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	public static long getProjectUsersCount(User user, String projectId, String userId, String permission) throws IllegalAccessException {
+		if(!userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException("The user does not have access to view this project");
+		}
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+        qs.addSelector(fSelector);
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "?like", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
+		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
+		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getFullProjectOwnersAndEditors(String projectId) {
+		return SecurityUserProjectUtils.getFullProjectOwnersAndEditors(projectId);
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @param permission
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static List<Map<String, Object>> getFullProjectOwnersAndEditors(String projectId, String userId, String permission, long limit, long offset) {
+		return SecurityUserProjectUtils.getFullProjectOwnersAndEditors(projectId, userId, permission, limit, offset);
 	}
 
 	/**
@@ -1915,29 +1962,29 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static void setUserAccessRequest(String userId, String userType, String projectId, int permission) {
-		// first do a delete
-		String deleteQ = "DELETE FROM PROJECTACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND APPROVER_DECISION IS NULL";
-		PreparedStatement deletePs = null;
+		// first mark previously undecided requests as old
+		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND APPROVER_DECISION='NEW_REQUEST'";
+		PreparedStatement updatePs = null;
 		try {
 			int index = 1;
-			deletePs = securityDb.getPreparedStatement(deleteQ);
-			deletePs.setString(index++, userId);
-			deletePs.setString(index++, userType);
-			deletePs.setString(index++, projectId);
-			deletePs.execute();
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			updatePs.setString(index++, userId);
+			updatePs.setString(index++, userType);
+			updatePs.setString(index++, projectId);
+			updatePs.execute();
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while deleting user access request with detailed message = " + e.getMessage());
+			throw new IllegalArgumentException("An error occurred while updating user access request with detailed message = " + e.getMessage());
 		} finally {
-			if(deletePs != null) {
+			if(updatePs != null) {
 				try {
-					deletePs.close();
+					updatePs.close();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 				if(securityDb.isConnectionPooling()) {
 					try {
-						deletePs.getConnection().close();
+						updatePs.getConnection().close();
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
@@ -1946,7 +1993,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		// now we do the new insert 
-		String insertQ = "INSERT INTO PROJECTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, PROJECTID, PERMISSION) VALUES (?, ?,?,?,?,?)";
+		String insertQ = "INSERT INTO PROJECTACCESSREQUEST (ID, REQUEST_USERID, REQUEST_TYPE, REQUEST_TIMESTAMP, PROJECTID, PERMISSION, APPROVER_DECISION) VALUES (?, ?,?,?,?,?,'NEW_REQUEST')";
 		PreparedStatement insertPs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -2001,7 +2048,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__APPROVER_DECISION"));
 		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__APPROVER_TIMESTAMP"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__APPROVER_DECISION", "==", null));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
