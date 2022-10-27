@@ -1199,7 +1199,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	@Deprecated
 	public List<Map<String, Object>> getAppUsers(String databaseId) {
-		return SecurityQueryUtils.getFullDatabaseOwnersAndEditors(databaseId);
+		return SecurityDatabaseUtils.getFullDatabaseOwnersAndEditors(databaseId);
 	}
 
 	/**
@@ -1212,7 +1212,28 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getDatabaseUsers(String databaseId, String userId, String permission, long limit, long offset) {
-		return SecurityQueryUtils.getFullDatabaseOwnersAndEditorsParams(databaseId, userId, permission, limit, offset);
+		return SecurityDatabaseUtils.getFullDatabaseOwnersAndEditors(databaseId, userId, permission, limit, offset);
+	}
+	
+	public static long getDatabaseUsersCount(String databaseId, String userId, String permission) {
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+        qs.addSelector(fSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 	
 	
@@ -1222,7 +1243,28 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getProjectUsers(String projectId, String userId, String permission, long limit, long offset) {
-		return SecurityQueryUtils.getFullProjectOwnersAndEditorsParams(projectId, userId, permission, limit, offset);
+		return SecurityProjectUtils.getFullProjectOwnersAndEditors(projectId, userId, permission, limit, offset);
+	}
+	
+	public static long getProjectUsersCount(String projectId, String userId, String permission) {
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+        qs.addSelector(fSelector);
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "?like", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
+		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
+		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 	
 	/**
@@ -2413,18 +2455,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public List<Map<String, Object>> getInsightUsers(String projectId, String insightId, String userId, String permission, long limit, long offset) throws IllegalAccessException {
+	public List<Map<String, Object>> getInsightUsers(String projectId, String insightId, String userId, String permission, long limit, long offset) {
 		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("PERMISSION__ID", "pvalue"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__ID", "permission"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", userId));
 		}
 		if (hasPermission) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
@@ -2440,6 +2482,36 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @param insightId
+	 * @param userId
+	 * @param permission
+	 * @return
+	 */
+	public static long getInsightUsersCount(String projectId, String insightId, String userId, String permission) {
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+        qs.addSelector(fSelector);
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
+		qs.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "inner.join");
+		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 	
 	/**
@@ -2670,6 +2742,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
+	/**
+	 * 
+	 * @param databaseId
+	 * @param newPermission
+	 */
 	public void updateDatabaseUserPermissions(String databaseId, String newPermission) {
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=" + newPermissionLvl 
@@ -2683,6 +2760,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 	}
 	
+	/**
+	 * 
+	 * @param projectId
+	 * @param newPermission
+	 */
 	public void updateProjectUserPermissions(String projectId, String newPermission) {
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		String query = "UPDATE PROJECTPERMISSION SET PERMISSION=" + newPermissionLvl 
@@ -2785,6 +2867,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param projectId
+	 * @param insightId
+	 * @param newPermission
+	 */
 	public void updateInsightUserPermissions(String projectId, String insightId, String newPermission) {
 		String updateQuery = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = '"
 				+ AccessPermissionEnum.getIdByPermission(newPermission) + "' WHERE PROJECTID ='"
@@ -2798,6 +2886,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
 	private List<String>  getAllProjectInsights(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
@@ -2805,6 +2898,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 * @param insightId
+	 * @param permission
+	 */
 	public void grantNewUsersInsightAccess(String projectId, String insightId, String permission) {
 		List<Map<String, Object>> users = getInsightUsersNoCredentials(projectId, insightId);
 		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?, '"
