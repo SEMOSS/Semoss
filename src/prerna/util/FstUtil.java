@@ -23,7 +23,9 @@ public class FstUtil {
 			// FST
 			fo = new FSTObjectOutput(baos);
 			fo.writeObject(input);
-			return baos.toByteArray();
+			fo.close();
+			byte[] retArr = baos.toByteArray();
+			return retArr;
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
