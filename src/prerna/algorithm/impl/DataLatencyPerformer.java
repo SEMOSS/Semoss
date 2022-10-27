@@ -486,7 +486,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 		else if(freqString.startsWith("SMSS_HOURS")) {
 			try {
 				String[] s = freqString.split("_");
-				freqInt = Integer.valueOf(s[s.length]);
+				freqInt = Integer.valueOf(s[s.length-1]);
 			} catch(NumberFormatException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
