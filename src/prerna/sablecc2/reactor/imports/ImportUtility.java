@@ -294,6 +294,7 @@ public class ImportUtility {
 			String alias = selector.getAlias();
 			String qsName = selector.getQueryStructName();
 			String dataType = selector.getDataType();
+			String adtlType = null;
 			
 			if(dataType == null) {
 				// cannot assume the iterator that created this qs
@@ -301,15 +302,23 @@ public class ImportUtility {
 				if(qs.getFrame() != null) {
 					OwlTemporalEngineMeta meta = qs.getFrame().getMetaData();
 					dataType = meta.getHeaderTypeAsString(selector.getQueryStructName());
+					String uniqueName = meta.getUniqueNameFromAlias(selector.getQueryStructName());
 					if(dataType == null) {
-						String uniqueName = meta.getUniqueNameFromAlias(selector.getQueryStructName());
 						dataType = meta.getHeaderTypeAsString(uniqueName);
+					}
+					
+					adtlType = meta.getHeaderAdtlType(selector.getQueryStructName());
+					if (adtlType == null && uniqueName != null) {
+						adtlType = meta.getHeaderAdtlType(uniqueName);
 					}
 				}
 				if(dataType == null) {
 					// if still null
 					// try the current frame
 					dataType = metaData.getHeaderTypeAsString(selector.getQueryStructName());
+				}
+				if (adtlType == null) {
+					adtlType = metaData.getHeaderAdtlType(selector.getQueryStructName());
 				}
 			}
 			
@@ -318,6 +327,9 @@ public class ImportUtility {
 			metaData.setQueryStructNameToProperty(uniqueHeader, source, qsName);
 			metaData.setAliasToProperty(uniqueHeader, alias);
 			metaData.setDataTypeToProperty(uniqueHeader, dataType);
+			if (adtlType != null) {
+				metaData.setAddtlDataTypeToProperty(uniqueHeader, adtlType);
+			}
 			
 			// all values from a frame are considered derived
 			metaData.setDerivedToProperty(uniqueHeader, true);
@@ -585,10 +597,11 @@ public class ImportUtility {
 			return;
 		}
 		List<String> uNames = metaData.getUniqueNames();
+		
 		for(String name : uNames) {
 			if(adtlDataTypes.containsKey(name)) {
 				String adtlDataType = adtlDataTypes.get(name);
-				if(name.contains("__")) {
+				if (name.contains("__")) {
 					metaData.setAddtlDataTypeToProperty(name, adtlDataType);
 				} else {
 					metaData.setAddtlDataTypeToVertex(name, adtlDataType);
@@ -1207,7 +1220,7 @@ public class ImportUtility {
 						String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineId, column, table);
 						metaData.setDataTypeToProperty(uniqueName, type);
 						if (adtlType != null) {
-							metaData.setDataTypeToProperty(uniqueName, adtlType);
+							metaData.setAddtlDataTypeToProperty(uniqueName, adtlType);
 						}
 					}
 					metaData.setAliasToProperty(uniqueName, alias);
@@ -1274,6 +1287,8 @@ public class ImportUtility {
 				classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
 			}
 		}
+		
+		
 		
 //		Map<String, Map<String, List>> relationships = qs.getRelations();
 //		for(String upVertex : relationships.keySet()) {
