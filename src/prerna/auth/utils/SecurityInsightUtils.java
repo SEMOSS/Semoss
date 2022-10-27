@@ -3180,6 +3180,31 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+     * Get the request pending database permission for a specific user
+     * @param singleUserId
+     * @param databaseId
+     * @return
+     */
+    public static List<Map<String, Object>> getUserAccessRequestsByInsight(String projectId, String insightId) {
+        SelectQueryStruct qs = new SelectQueryStruct();
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__ID"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__REQUEST_USERID"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__REQUEST_TYPE"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__REQUEST_TIMESTAMP"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__PROJECTID"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__INSIGHTID"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__PERMISSION"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__APPROVER_USERID"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__APPROVER_TYPE"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__APPROVER_DECISION"));
+        qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__APPROVER_TIMESTAMP"));
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__PROJECTID", "==", projectId));
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__INSIGHTID", "==", insightId));
+        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
+        return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+    }
+	
+	/**
 	 * Retrieve the insight owner
 	 * @param user
 	 * @param projectId
