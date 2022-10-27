@@ -483,6 +483,17 @@ public class DataLatencyPerformer implements IAlgorithm{
 		else if(freqString.equalsIgnoreCase("Batch(Quarterly)")) freqInt = 2184;
 		else if(freqString.equalsIgnoreCase("Batch (yearly)")) freqInt = 8760;
 		else if(freqString.equalsIgnoreCase("Each user login instance")) freqInt = 0;
+		else if(freqString.startsWith("SMSS_HOURS")) {
+			try {
+				String[] s = freqString.split("_");
+
+				freqInt = Integer.valueOf(s[s.length]);
+			} catch(NumberFormatException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+			
+		}
+			
 		return freqInt;
 	}
 
