@@ -1,10 +1,10 @@
 package prerna.auth.utils;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 
 class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 
@@ -335,4 +336,109 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return wrapper;
 	}
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getDisplayDatabaseOwnersAndEditors(String databaseId) {
+		List<Map<String, Object>> users = null;
+		if(SecurityDatabaseUtils.getGlobalDatabaseIds().contains(databaseId)) {
+//			String query = "SELECT DISTINCT "
+//					+ "SMSS_USER.NAME AS \"name\", "
+//					+ "PERMISSION.NAME as \"permission\" "
+//					+ "FROM SMSS_USER "
+//					+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
+//					+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
+//					+ "WHERE PERMISSION.ID IN (1,2) AND ENGINEPERMISSION.ENGINEID='" + engineId + "'";
+//			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+						
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+			qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+			List<Integer> permissionValues = new Vector<Integer>(2);
+			permissionValues.add(new Integer(1));
+			permissionValues.add(new Integer(2));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", permissionValues, PixelDataType.CONST_INT));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+			qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+			qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+			
+			users = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+			
+			Map<String, Object> globalMap = new HashMap<String, Object>();
+			globalMap.put("name", "PUBLIC DATABASE");
+			globalMap.put("permission", "READ_ONLY");
+			users.add(globalMap);
+		} else {
+//			String query = "SELECT DISTINCT "
+//					+ "SMSS_USER.NAME AS \"name\", "
+//					+ "PERMISSION.NAME as \"permission\" "
+//					+ "FROM SMSS_USER "
+//					+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
+//					+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
+//					+ "WHERE ENGINEPERMISSION.ENGINEID='" + engineId + "'";
+//			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			
+			users = getFullDatabaseOwnersAndEditors(databaseId);
+		}
+		return users;
+	}
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String databaseId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @param userId
+	 * @param permission
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String databaseId, String userId, String permission, long limit, long offset) {
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("PERMISSION__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+		if(limit > 0) {
+			qs.setLimit(limit);
+		}
+		if(offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
 }

@@ -19,6 +19,8 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -378,7 +380,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		if (hasUserId) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", userId));
 		}
 		if (hasPermission) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
@@ -387,6 +389,8 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addOrderBy(new QueryColumnOrderBySelector("PERMISSION__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		if(limit > 0) {
 			qs.setLimit(limit);
 		}
@@ -394,6 +398,41 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param insightId
+	 * @param userId
+	 * @param permission
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static long getInsightUsersCount(User user, String projectId, String insightId, String userId, String permission) throws IllegalAccessException {
+		if(!SecurityInsightUtils.userCanViewInsight(user, projectId, insightId)) {
+			throw new IllegalAccessException("The user does not have access to view this insight");
+		}
+		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
+		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+        fSelector.setAlias("count");
+        fSelector.setFunction(QueryFunctionHelper.COUNT);
+        fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+        qs.addSelector(fSelector);
+        if (hasUserId) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "?like", userId));
+		}
+		if (hasPermission) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", AccessPermissionEnum.getIdByPermission(permission)));
+		}
+		qs.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "inner.join");
+		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 	
 	/**
