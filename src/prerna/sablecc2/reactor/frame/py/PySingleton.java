@@ -108,19 +108,19 @@ public class PySingleton {
 																			// started it for debug
 			if (port == null) // port has not been forced
 			{
-					port = Utility.findOpenPort();
+				port = Utility.findOpenPort();
 				if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
 					pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
 				} else {
-				pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+					pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				}
 				pyTupleSpace = PyUtils.getInstance().startTCPServe(nouser, pyTupleSpace, port);
 			}
 
 			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
-			if(pyClient == null)
+			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
 				pyClient = "prerna.tcp.client.Client";
-			
+			}
 			try {
 					Client nc = (Client)Class.forName(pyClient).newInstance();
 					tcpServer = nc;
