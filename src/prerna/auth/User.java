@@ -955,7 +955,7 @@ public class User implements Serializable {
 			
 			// instrumenting the client class also now
 			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
-			if(pyClient == null) {
+			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
 				pyClient = "prerna.tcp.client.SocketClient";
 			}
 			try
