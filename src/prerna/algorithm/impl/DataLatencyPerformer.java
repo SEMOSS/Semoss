@@ -419,7 +419,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 	 * @return int					Number associated with the frequency string. */
 	private int translateString(String freqString){
 		int freqInt = 0;
-		if(freqString == null) freqInt = 168;
+		if(freqString == null) freqInt = 0;
 		else if(freqString.equalsIgnoreCase("TBD")) freqInt = 168;
 		else if(freqString.equalsIgnoreCase("n/a")) freqInt = 168;
 		else if(freqString.equalsIgnoreCase("Real-time (user-initiated)")) freqInt = 0;
