@@ -1369,27 +1369,33 @@ public class GitRepoUtils {
 	
 	public static void addGitIgnore(String folder)
 	{
+		FileWriter fw = null;
 		BufferedWriter bw  = null;
-		try
-		{
+		try {
 			File f = new File(folder + "/.gitignore");
-			bw = new BufferedWriter(new FileWriter(f));
+			fw = new FileWriter(f);
+			bw = new BufferedWriter(fw);
 			bw.write("*.cache");
 			bw.newLine();
 			bw.write("*/Temp/*");
 			bw.newLine();
-		
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		} finally {
 			if(bw != null) {
-		          try {
-		            bw.close();
-		          } catch(IOException e) {
-		            logger.error(Constants.STACKTRACE, e);
-		          }
-		        }
+				try {
+					bw.close();
+				} catch(IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(fw != null) {
+				try {
+					fw.close();
+				} catch(IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
