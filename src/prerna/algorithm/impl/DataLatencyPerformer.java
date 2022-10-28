@@ -419,7 +419,8 @@ public class DataLatencyPerformer implements IAlgorithm{
 	 * @return int					Number associated with the frequency string. */
 	private int translateString(String freqString){
 		int freqInt = 0;
-		if(freqString.equalsIgnoreCase("TBD")) freqInt = 168;
+		if(freqString == null) freqInt = 168;
+		else if(freqString.equalsIgnoreCase("TBD")) freqInt = 168;
 		else if(freqString.equalsIgnoreCase("n/a")) freqInt = 168;
 		else if(freqString.equalsIgnoreCase("Real-time (user-initiated)")) freqInt = 0;
 		else if(freqString.equalsIgnoreCase("Batch (monthly)")) freqInt = 720;
@@ -483,12 +484,20 @@ public class DataLatencyPerformer implements IAlgorithm{
 		else if(freqString.equalsIgnoreCase("Batch(Quarterly)")) freqInt = 2184;
 		else if(freqString.equalsIgnoreCase("Batch (yearly)")) freqInt = 8760;
 		else if(freqString.equalsIgnoreCase("Each user login instance")) freqInt = 0;
-		else if(freqString.startsWith("SMSS_HOURS")) {
+		else if(freqString.toUpperCase().startsWith("SMSS_HOURS")) {
 			try {
 				String[] s = freqString.split("_");
-				freqInt = Integer.valueOf(s[s.length-1]);
+				freqInt = ((Number) Double.parseDouble(s[s.length-1])).intValue();
 			} catch(NumberFormatException e) {
 				logger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			// last ditch effort
+			// see if it is a string but really a number
+			try {
+				freqInt = ((Number) Double.parseDouble(freqString)).intValue();
+			} catch(NumberFormatException e) {
+				//ignore
 			}
 		}
 			
