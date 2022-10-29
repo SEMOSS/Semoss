@@ -7,6 +7,7 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.util.Constants;
 
 public class UserActivityReactor extends AbstractQueryStructReactor {
 
@@ -19,7 +20,7 @@ public class UserActivityReactor extends AbstractQueryStructReactor {
 	
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
-		this.qs.setEngineId("UserTrackingDatabase");
+		this.qs.setEngineId(Constants.USER_TRACKING_DB);
 		this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 
 		SelectQueryStruct sQs = new SelectQueryStruct();
@@ -34,14 +35,14 @@ public class UserActivityReactor extends AbstractQueryStructReactor {
 		fSelector.setAlias("CREATED_ON");
 		fSelector.setFunction(QueryFunctionHelper.DATE_FORMAT);
 		fSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING" + "__" + "CREATED_ON"));
-		fSelector.addInnerSelector(new QueryConstantSelector("YYYY-MM-dd"));
+		fSelector.addInnerSelector(new QueryConstantSelector("yyyy-MM-dd"));
 		sQs.addSelector(fSelector);
 		// group by
 		fSelector = new QueryFunctionSelector();
 		fSelector.setAlias("CREATED_ON");
 		fSelector.setFunction(QueryFunctionHelper.DATE_FORMAT);
 		fSelector.addInnerSelector(new QueryColumnSelector("USER_TRACKING" + "__" + "CREATED_ON"));
-		fSelector.addInnerSelector(new QueryConstantSelector("YYYY-MM-dd"));
+		fSelector.addInnerSelector(new QueryConstantSelector("yyyy-MM-dd"));
 		sQs.addGroupBy(fSelector);
 		this.qs.merge(sQs);
 		return this.qs;
