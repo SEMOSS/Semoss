@@ -69,7 +69,7 @@ public class DateManipulationReactor extends AbstractReactor {
 		}
 
 		// based on the type of operation we will do the specific date manipulations here
-		if (type.equalsIgnoreCase("add")) {
+		if (type.equalsIgnoreCase("add") || type.equalsIgnoreCase("addition")) {
 			// integer check
 			if (isInteger(recurrence)) {
 				recurranceInt = Integer.parseInt(recurrence);
@@ -84,7 +84,8 @@ public class DateManipulationReactor extends AbstractReactor {
 			dateToSendBack = new SemossDate(c.getTime(), DEFAULT_FORMAT);
 			return new NounMetadata(dateToSendBack, PixelDataType.CONST_DATE);
 
-		} else if (type.equalsIgnoreCase("subtract") || type.equalsIgnoreCase("sub")) {
+		} else if (type.equalsIgnoreCase("subtract") || type.equalsIgnoreCase("sub")
+				|| type.equalsIgnoreCase("subtraction")) {
 			// integer check
 			if (isInteger(recurrence)) {
 				recurranceInt = Integer.parseInt(recurrence);
