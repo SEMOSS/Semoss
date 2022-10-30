@@ -482,4 +482,13 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 		return "SELECT * INTO " + newTableName + " FROM " + oldTableName;
 	}
 	
+	@Override
+	public String getDatabaseMetadataCatalogFilter() {
+		return this.database;
+	}
+	
+	@Override
+	public String getDatabaseMetadataSchemaFilter() {
+		return this.schema;
+	}
 }

@@ -255,7 +255,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		Map<String, Object> connectionDetails = getConDetails();
 		if(connectionDetails != null) {
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
-			if(host != null) {
+			if(host != null && !(host=host.trim()).isEmpty()) {
 				String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
 				File f = new File(testUpdatedHost);
 				if (f.exists()) {
