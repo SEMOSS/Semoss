@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,7 +44,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 
 	private static final Logger logger = LogManager.getLogger(DatasourceTranslation.class.getName());
 
-	private List<Map<String, Object>> datasourcePixels = new Vector<Map<String, Object>>();
+	private List<Map<String, Object>> datasourcePixels = new ArrayList<Map<String, Object>>();
 	private Map<String, Object> currentSourceStatement = null;
 	
 	public DatasourceTranslation(Insight insight) {
@@ -153,7 +152,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 					// we have the list of columns that we would want to find equiv.
 					// for that are used in the import
 					// wrap in list to hold structure
-					List<Object> obj = new Vector<Object>();
+					List<Object> obj = new ArrayList<Object>();
 					obj.addAll(uniqueCols);
 					processedParams.put("qsColumns", obj);
 					keysToRemove.add(key);
