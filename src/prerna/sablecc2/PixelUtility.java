@@ -530,10 +530,21 @@ public class PixelUtility {
 		List<Map<String, Object>> datasourcePixels = translation.getDatasourcePixels();
 		for(Map<String, Object> datasourceMetaMap : datasourcePixels) {
 			Map<String, Object> paramMap = (Map<String, Object>) datasourceMetaMap.get("params");
-			SelectQueryStruct qs = (SelectQueryStruct) paramMap.get("qs");
-			if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE
-					|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-				databaseIds.add(qs.getEngineId());
+			List<SelectQueryStruct> qsList = null;
+			Object obj = paramMap.get("qs");
+			if(obj instanceof List) {
+				qsList = (List<SelectQueryStruct>) obj;
+			} else {
+				qsList = new ArrayList<>();
+				qsList.add((SelectQueryStruct) obj);
+			}
+			if(qsList != null && !qsList.isEmpty()) {
+				for(SelectQueryStruct qs : qsList) {
+					if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE
+							|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+						databaseIds.add(qs.getEngineId());
+					}
+				}
 			}
 		}
 		
