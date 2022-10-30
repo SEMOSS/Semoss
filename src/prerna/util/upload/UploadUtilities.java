@@ -64,7 +64,6 @@ import prerna.util.gson.GsonUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactory;
 
 public class UploadUtilities {
 
@@ -999,8 +998,6 @@ public class UploadUtilities {
 		
 		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 
-		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(dbType);
-		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
 		// and they should be deleted after loading
@@ -1019,45 +1016,28 @@ public class UploadUtilities {
 			writer = new FileWriter(dbTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
 			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
-			// seperate for connection details
+			// separate for connection details
 			bufferedWriter.write(newLine);
 			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
 
-			String customUrl = (String) connectionDetails.get(AbstractSqlQueryUtil.CONNECTION_URL);
-			if(customUrl != null && !customUrl.isEmpty()) {
-				// keys can be username/password
-				// but some will have it as accessKey/secretKey
-				// so accounting for that here
-				String usernameKey = queryUtil.getConnectionUserKey();
-				String passwordKey = queryUtil.getConnectionPasswordKey();
-				if(connectionDetails.containsKey(usernameKey)) {
-					bufferedWriter.write(usernameKey + tab + connectionDetails.get(usernameKey) + newLine);
-				} else {
-					bufferedWriter.write(usernameKey + tab + newLine);
+			// just write everything to the smss file
+			// but ignore the connection url until the end
+			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
+			if(host != null && !host.isEmpty()) {
+				File f = new File(host);
+				if(f.exists()) {
+					String fileBasePath = f.getParent();
+					connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
 				}
-				if(connectionDetails.containsKey(passwordKey)) {
-					bufferedWriter.write(passwordKey + tab + connectionDetails.get(passwordKey) + newLine);
-				} else {
-					bufferedWriter.write(passwordKey + tab + newLine);
+			}
+			// connection details
+			for(String key : connectionDetails.keySet()) {
+				if(key.equals(AbstractSqlQueryUtil.CONNECTION_URL) 
+						|| connectionDetails.get(key) == null 
+						|| connectionDetails.get(key).toString().isEmpty()) {
+					continue;
 				}
-			} else {
-				String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
-				if(host != null && !host.isEmpty()) {
-					File f = new File(host);
-					if(f.exists()) {
-						String fileBasePath = f.getParent();
-						connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
-					}
-				}
-				// connection details
-				for(String key : connectionDetails.keySet()) {
-					if(key.equals(Constants.CONNECTION_URL) 
-							|| connectionDetails.get(key) == null 
-							|| connectionDetails.get(key).toString().isEmpty()) {
-						continue;
-					}
-					bufferedWriter.write(key.toUpperCase() + tab + connectionDetails.get(key) + newLine);
-				}
+				bufferedWriter.write(key.toUpperCase() + tab + connectionDetails.get(key) + newLine);
 			}
 			
 			// connection url
