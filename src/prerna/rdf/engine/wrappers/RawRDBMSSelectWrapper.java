@@ -394,7 +394,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if(((IRDBMSEngine) this.engine).getDbType() == RdbmsTypeEnum.SQL_SERVER) {
 					query = this.query;
 				} else {
-				query = parser.processQuery(this.query);
+					query = parser.processQuery(this.query);
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
