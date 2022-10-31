@@ -1341,14 +1341,15 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
 					origPrim = true;
 					columnConceptualName = getPrimKey4Table(tableConceptualName);
-				} else {
+				} else if(this.customFromAliasName==null || this.customFromAliasName.isEmpty()){
 					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
 				}
 				
 				StringBuilder thisOrderBy = new StringBuilder();
 				
+				
 				// might want to order by a derived column being returned
-				if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
+			 if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
 					// either instantiate the string builder or add a comma for multi sort
 					if(queryUtil.isSelectorKeyword(tableConceptualName)) {
 						thisOrderBy.append(queryUtil.getEscapeKeyword(tableConceptualName));

@@ -78,7 +78,7 @@ public class NativeImporter extends AbstractImporter {
 			if(this.it == null) {
 				try {
 					StringBuilder newQueryB = new StringBuilder(" select * from (" + query + ") as customQuery ");
-					((IRDBMSEngine) app).getQueryUtil().addLimitOffsetToQuery(newQueryB, 1, 0);
+					newQueryB = ((IRDBMSEngine) app).getQueryUtil().getFirstRow(newQueryB);
 					this.it = WrapperManager.getInstance().getRawWrapper(app, newQueryB.toString());
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
