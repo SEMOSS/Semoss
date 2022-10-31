@@ -31,6 +31,7 @@ import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.sql.RDBMSUtility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
@@ -390,7 +391,11 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			PraseSqlQueryForCount parser = new PraseSqlQueryForCount();
 			String query;
 			try {
+				if(((IRDBMSEngine) this.engine).getDbType() == RdbmsTypeEnum.SQL_SERVER) {
+					query = this.query;
+				} else {
 				query = parser.processQuery(this.query);
+				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				query = this.query;
