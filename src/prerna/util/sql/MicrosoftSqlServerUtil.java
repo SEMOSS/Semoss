@@ -170,6 +170,15 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 		return this.connectionUrl;
 	}
 	
+	
+	@Override
+	public StringBuilder getFirstRow(StringBuilder query) {
+			String strquery = query.toString();
+			strquery=strquery.replaceFirst("(?i)SELECT", "SELECT TOP 1");
+			query = new StringBuilder();
+			query.append(strquery);
+			return query;
+	}
 
 	@Override
 	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {

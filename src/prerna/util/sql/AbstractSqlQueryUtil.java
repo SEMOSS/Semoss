@@ -580,6 +580,17 @@ public abstract class AbstractSqlQueryUtil {
 	 * This section is intended for modifications to select queries to pull data
 	 */
 
+	
+	/**
+	 * Retrieve the first row of a query
+	 * 
+	 * @param query
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public abstract StringBuilder getFirstRow(StringBuilder query);
+	
 	/**
 	 * Add the limit and offset to a query
 	 * 
