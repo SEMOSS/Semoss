@@ -270,6 +270,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	 */
 	
 	@Override
+	public StringBuilder getFirstRow(StringBuilder query) {
+		return addLimitOffsetToQuery(query, 1, 0);
+	}
+	
+	@Override
 	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {
 		if(limit > 0) {
 			query = query.append(" LIMIT "+limit);
