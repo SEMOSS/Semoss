@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -24,6 +25,11 @@ public class GetDatabaseUserAccessRequestReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		if(databaseId == null) {
 			throw new IllegalArgumentException("Please define the database id.");
+		}
+		// check user permission for the database
+		User user = this.insight.getUser();
+		if(!SecurityDatabaseUtils.userCanEditDatabase(user, databaseId)) {
+			throw new IllegalArgumentException("User does not have permission to view access requests for this database");
 		}
 		List<Map<String, Object>> requests = null;
 		if(AbstractSecurityUtils.securityEnabled()) {

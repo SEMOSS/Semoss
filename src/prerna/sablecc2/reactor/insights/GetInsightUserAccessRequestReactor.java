@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.insights;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -27,6 +28,11 @@ public class GetInsightUserAccessRequestReactor extends AbstractReactor {
 		}
 		if(insightId == null) {
 			throw new IllegalArgumentException("Please define the insight id.");
+		}
+		// check user permission for the database
+		User user = this.insight.getUser();
+		if(!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
+			throw new IllegalArgumentException("User does not have permission to view access requests for this insight");
 		}
 		List<Map<String, Object>> requests = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
