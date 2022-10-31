@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.project;
 
 import java.util.List;
 import java.util.Map;
+
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,6 +23,11 @@ public class GetProjectUserAccessRequestReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if(projectId == null) {
 			throw new IllegalArgumentException("Please define the project id.");
+		}
+		// check user permission for the database
+		User user = this.insight.getUser();
+		if(!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException("User does not have permission to view access requests for this project");
 		}
 		List<Map<String, Object>> requests;
 		if(AbstractSecurityUtils.securityEnabled()) {
