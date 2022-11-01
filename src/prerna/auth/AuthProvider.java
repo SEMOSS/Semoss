@@ -22,6 +22,9 @@ public enum AuthProvider {
 
 	// using ldap
 	ACTIVE_DIRECTORY,
+
+	// linOTP
+	LINOTP,
 	
 	// this one is kinda special ...
 	CAC, 
