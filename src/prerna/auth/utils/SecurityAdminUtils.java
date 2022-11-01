@@ -231,12 +231,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get all user insights
-	 * @param userId
+	 * @param user
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUserInsights(User user, String searchTerm, long limit, long offset) throws IllegalArgumentException{
+	public List<Map<String, Object>> getAllUserInsights(User user, List<String> projectFilter, String searchTerm, long limit, long offset) throws IllegalArgumentException{
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+		boolean hasProjectFilters = projectFilter != null && !projectFilter.isEmpty();
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		String insightPrefix = "INSIGHT__";
