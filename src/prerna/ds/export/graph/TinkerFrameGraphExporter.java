@@ -105,7 +105,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 		
 		// need to add in color
 		Color color = TypeColorShapeTable.getInstance().getColor(type, value.toString());
-		vertexMap.put("VERTEX_COLOR_PROPERTY", IGraphExporter.getRgb(color));
+		vertexMap.put(Constants.VERTEX_COLOR, IGraphExporter.getRgb(color));
 		
 		// add to the meta count
 		addVertCount(type);
