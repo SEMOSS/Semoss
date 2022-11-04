@@ -896,6 +896,13 @@ public class User implements Serializable {
 	 * @param context
 	 */
 	public void setContext(String context) {
+		
+		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
+				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
+		if(!useNettyPy) {
+			//TODO this breaks the git terminal, but right now that is using payload struct only
+			return;
+		}
 		// sets the context space for the user
 		String mountDir = this.varMap.get(context) + "";
 		// remove the last assets
