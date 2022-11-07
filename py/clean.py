@@ -865,3 +865,29 @@ class PyFrame:
 				return "True"
         #same = set(o for o in shared_keys if d1[o] == d2[o])
 		return "False"
+
+	def get_categorical_values(this):
+		import numpy as np
+		frame = this.cache['data']
+		cols = frame.columns
+		num_cols = frame._get_numeric_data().columns
+		col_indices = list(set(cols) - set(num_cols))
+		output = {}
+		for value in col_indices:
+			col_name=value
+			col_items = np.unique(frame[value].astype(str))
+			col_values = '('
+			count = 0
+			# add a check for number of items
+			for item in col_items:
+				if(item != 'nan'):
+					if(count != 0):
+						col_values = col_values + ", '" + item + "'"
+					else:
+						col_values = col_values + "'" +  item + "'"
+					count = count + 1
+					if(count > 20):
+						break
+			col_values = col_values + ')'
+			output.update({col_name: col_values})
+		return output
