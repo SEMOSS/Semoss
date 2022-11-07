@@ -158,3 +158,11 @@ def install_py(packageName):
 	from pip._internal import main as pipmain
 	pipmain(['install', packageName])
 
+def load_hugging_face_model(modelName, typeOfModel, cacheFolder):
+	from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+	tokenizer = AutoTokenizer.from_pretrained(modelName)
+	model = AutoModelForSeq2SeqLM.from_pretrained(modelName, cache_dir=cacheFolder)
+	from transformers import pipeline
+	# need to check for kuda
+	pipe = pipeline(typeOfModel, model=model, tokenizer=tokenizer)
+	return pipe
