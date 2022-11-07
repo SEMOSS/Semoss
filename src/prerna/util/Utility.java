@@ -4145,7 +4145,17 @@ public class Utility {
 			} else {
 				commands[1] = "-Djava.library.path=" + jep;
 			}
-			commands[2] = "-cp";
+			// compose for memory
+			String xms = DIHelper.getInstance().getProperty("Xms");
+			String xmx = DIHelper.getInstance().getProperty("Xmx");
+			
+			String memory = "";
+			if(xms != null && xmx != null)
+				memory = "-Xms" + xms + " -Xmx" + xmx;
+			
+			commands[2] = memory + " -cp";
+
+			//commands[2] = "-cp";
 			commands[3] = specificPath;
 			commands[4] = pyWorker;
 			commands[5] = finalDir;
@@ -4278,7 +4288,16 @@ public class Utility {
 			} else {
 				commands[1] = "-Djava.library.path=" + jep;
 			}
-			commands[2] = "-cp";
+			// compose for memory
+			String xms = DIHelper.getInstance().getProperty("Xms");
+			String xmx = DIHelper.getInstance().getProperty("Xmx");
+			
+			String memory = "";
+			if(xms != null && xmx != null)
+				memory = "-Xms" + xms + " -Xmx" + xmx;
+			
+			commands[2] = memory + " -cp";
+
 			commands[3] = specificPath;
 			commands[4] = pyWorker;
 			commands[5] = finalDir;
@@ -4408,7 +4427,15 @@ public class Utility {
 			} else {
 				commands[1] = "-Djava.library.path=" + jep;
 			}
-			commands[2] = "-cp";
+			// compose for memory
+			String xms = DIHelper.getInstance().getProperty("Xms");
+			String xmx = DIHelper.getInstance().getProperty("Xmx");
+			
+			String memory = "";
+			if(xms != null && xmx != null)
+				memory = "-Xms" + xms + " -Xmx" + xmx;
+			
+			commands[2] = memory + " -cp";
 			commands[3] = specificPath;
 			commands[4] = pyWorker;
 			commands[5] = finalDir;

@@ -16,7 +16,7 @@ public class Settings {
 	public static final String REPO_HOME = "REPO_HOME";
 	public static final String BLOCKING = "BLOCKING";
 	public static final String TCP_CLIENT = "TCP_CLIENT";
-	
+	public static final String HF_CACHE_DIR = "HF_CACHE_DIR"; // hugging face cache folder	
 	
 	
 }
