@@ -391,7 +391,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			PraseSqlQueryForCount parser = new PraseSqlQueryForCount();
 			String query;
 			try {
-				if(((IRDBMSEngine) this.engine).getDbType() == RdbmsTypeEnum.SQL_SERVER) {
+				if(this.engine != null && ((IRDBMSEngine) this.engine).getDbType() == RdbmsTypeEnum.SQL_SERVER) {
 					query = this.query;
 				} else {
 					query = parser.processQuery(this.query);
