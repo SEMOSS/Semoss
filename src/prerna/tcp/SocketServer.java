@@ -69,7 +69,7 @@ public class SocketServer implements Runnable {
 		
 		if(args == null || args.length == 0) {
 			args = new String[5];
-			args[0] = "C:\\users\\pkapaleeswaran\\workspacej3\\SemossDev\\config";
+			args[0] = "C:\\users\\pkapaleeswaran\\workspacej3\\SemossDev\\py\\log-config";
 			args[1] = "C:\\users\\pkapaleeswaran\\workspacej3\\SemossDev\\RDF_Map.prop";;
 			args[2] = "9999";
 			args[3] = "py";
