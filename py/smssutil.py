@@ -160,9 +160,20 @@ def install_py(packageName):
 
 def load_hugging_face_model(modelName, typeOfModel, cacheFolder):
 	from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+	import torch
 	tokenizer = AutoTokenizer.from_pretrained(modelName)
 	model = AutoModelForSeq2SeqLM.from_pretrained(modelName, cache_dir=cacheFolder)
-	from transformers import pipeline
-	# need to check for kuda
-	pipe = pipeline(typeOfModel, model=model, tokenizer=tokenizer)
+	cuda = torch.cuda.is_available()
+	if cuda:
+		print("loading on cuda")
+		from transformers import pipeline
+		device = torch.device("cuda")
+		model = model.to(device)
+		pipe = pipeline("text2text-generation", model = model, tokenizer=tokenizer, device=0)
+		return pipe
+	else:
+		# need to check for kuda
+		print("loading on non cuda")
+		from transformers import pipeline
+		pipe = pipeline(typeOfModel, model=model, tokenizer=tokenizer)
 	return pipe
