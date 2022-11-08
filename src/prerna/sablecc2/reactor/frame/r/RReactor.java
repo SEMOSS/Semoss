@@ -85,6 +85,10 @@ public final class RReactor extends AbstractRFrameReactor {
 		}
 		
 		String output = null;
+		//capture.output(tryCatch({
+		//+ print("monkeshwaran")}, error = function(e){"error"; e$message}),
+		//+ file="c:/users/pkapaleeswaran/workspacej3/r.out")
+
 		if(AbstractSecurityUtils.securityEnabled()) {
 			output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getVarMap());
 		} else {
@@ -161,8 +165,14 @@ public final class RReactor extends AbstractRFrameReactor {
 		// now save it
 		// file name
 		String ggsaveFile = Utility.getRandomString(6);
+		
+		String ROOT = insight.getInsightFolder();
 
-		ggplotter.append(ggsaveFile + " <- " + "paste(ROOT,\"/" + ggsaveFile + "." +format +"\", sep=\"\"); ");
+		ROOT = ROOT.replace("\\","/");	
+		
+		ggplotter.append("ROOT <- \"" + ROOT + "\";");
+		
+		ggplotter.append(ggsaveFile + " <- " + "paste(\"" + ROOT + "\",\"/" + ggsaveFile + "." +format +"\", sep=\"\"); ");
 
 		if(!animate)
 			ggplotter.append("ggsave(" + ggsaveFile + ");");
