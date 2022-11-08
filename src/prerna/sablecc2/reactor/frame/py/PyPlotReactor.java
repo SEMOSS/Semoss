@@ -154,6 +154,9 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 			command = command.replace("data=" + thisFrame.getName() + "", "data=plotterframe");
 		}
 		
+		String ROOT = insight.getInsightFolder();
+		ROOT = ROOT.replace("\\", "/");
+
 
 		String importPyPlot = "import matplotlib.pyplot as plt";
 		String importSeaborn = "import seaborn as sns";
@@ -162,7 +165,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		String runPlot = command;
 		String seabornFile = Utility.getRandomString(6);
 		String printFile = "print(saveFile)";
-		String saveFileName = "saveFile = ROOT + '/" + seabornFile + "." + format + "'";
+		String saveFileName = "saveFile = '" + ROOT + "/" + seabornFile + "." + format + "'";
 		String savePlot = "plt.savefig(saveFile)";
 		String removeSeaborn = "del(sns)";
 		String removeSaveFile = "del(saveFile)";
