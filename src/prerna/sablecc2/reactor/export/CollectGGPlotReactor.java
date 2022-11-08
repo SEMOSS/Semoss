@@ -146,7 +146,11 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		// file name
 		String ggsaveFile = Utility.getRandomString(6);
 
-		ggplotter.append(ggsaveFile + " <- " + "paste(ROOT,\"/" + ggsaveFile + "." +format +"\", sep=\"\"); ");
+		String ROOT = insight.getInsightFolder();
+		ROOT = ROOT.replace("\\", "/");
+		ggplotter.append("ROOT <- \"" + ROOT + "\";");
+		
+		ggplotter.append(ggsaveFile + " <- " + "paste(\"" + ROOT + "\",\"/" + ggsaveFile + "." +format +"\", sep=\"\"); ");
 
 		if(!animate) {
 			ggplotter.append("ggsave(" + ggsaveFile + ");");
