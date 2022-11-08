@@ -84,7 +84,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		// obviously the issue of synchronization comes but for now
 
 		
-		if(!type.equalsIgnoreCase("py") && !insight.getVarStore().containsKey("PY_SYNCHRONIZED"))
+		if(!type.equalsIgnoreCase("py")) // && !insight.getVarStore().containsKey("PY_SYNCHRONIZED"))
 		{
 			// move this to R
 			ConvertReactor cr = new ConvertReactor();
@@ -162,6 +162,9 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		{
 			command = command.replace("data=" + thisFrame.getName() + "", "data=plotterframe");
 		}
+		
+		String ROOT = insight.getInsightFolder();
+		ROOT = ROOT.replace("\\", "/");
 
 		String importSeaborn = "import seaborn as sns";
 		String importMatPlot = "import matplotlib.pyplot as plt";
@@ -172,7 +175,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		String runPlot =  command ;
 		String seabornFile = Utility.getRandomString(6);
 		String printFile = "print(saveFile)";
-		String saveFileName = "saveFile = ROOT + '/" + seabornFile + "." + format + "'";
+		String saveFileName = "saveFile = '" + ROOT + "/" + seabornFile + "." + format + "'";
 		String savePlot = "plt.savefig(saveFile)";
 		String removeFrame = ""; //"del(" + fileName + ")";
 		String removeSeaborn = "del(sns)"; 
