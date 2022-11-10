@@ -3420,6 +3420,35 @@ public class Utility {
 	}
 	
 	/**
+	 * Determine if for this instance only the admin can share insight
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyInsightShare() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	/**
+	 * Determine if for this instance only the admin can share insight session
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyInsightShareSession() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE_SESSION);
+		if(boolString == null) {
+			// default false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
+	
+	
+	/**
 	 * Determine if for this instance only the admin can delete a database
 	 * @return
 	 */
