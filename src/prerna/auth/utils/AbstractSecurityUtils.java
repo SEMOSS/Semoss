@@ -60,6 +60,9 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyInsightSetPublic = false;
 	static boolean adminOnlyInsightAddAccess = false;
 	
+	static boolean adminOnlyInsightShare = false;
+	static boolean adminOnlyInsightShareSession = false;
+	
 	static Gson securityGson = new GsonBuilder().disableHtmlEscaping().create();
 	
 	/**
@@ -128,6 +131,9 @@ public abstract class AbstractSecurityUtils {
 		
 		adminOnlyInsightSetPublic = Utility.getApplicationAdminOnlyInsightSetPublic();
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
+		
+		adminOnlyInsightShare = Utility.getApplicationAdminOnlyInsightShare();
+		adminOnlyInsightShareSession = Utility.getApplicationAdminOnlyInsightShareSession();
 	}
 
 	public static boolean securityEnabled() {
@@ -193,6 +199,14 @@ public abstract class AbstractSecurityUtils {
 	
 	public static boolean adminOnlyInsightAddAccess() {
 		return securityEnabled && adminOnlyInsightAddAccess;
+	}
+	
+	public static boolean adminOnlyInsightShare() {
+		return securityEnabled && adminOnlyInsightShare;
+	}
+	
+	public static boolean adminOnlyInsightShareSession() {
+		return securityEnabled && adminOnlyInsightShareSession;
 	}
 	
 	public static void initialize() throws Exception {
