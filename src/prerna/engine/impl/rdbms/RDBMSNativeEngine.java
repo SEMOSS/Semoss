@@ -622,6 +622,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 				}
 			}
 		} catch(SQLTimeoutException e) {
+			logger.error(Constants.STACKTRACE, e);
 			hasError = true;
 			if(this.queryTimeout > 0) {
 				throw new SQLTimeoutException("Query execution cancelled - processing time took longer than set limit of " 
@@ -641,6 +642,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			}
 			throw e;
 		} catch(SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
 			hasError = true;
 			throw e;
 		} finally {
