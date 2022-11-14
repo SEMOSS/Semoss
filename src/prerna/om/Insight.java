@@ -1283,6 +1283,11 @@ public class Insight implements Serializable {
 			retReac = project.getReactor(className, null);				
 		}
 		
+		// set the insight into the reactor
+		if(retReac != null) {
+			retReac.setInsight(this);
+		}
+		
 		return retReac;
 	}
 
