@@ -1,5 +1,6 @@
 package prerna.date;
 
+import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -17,7 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.util.Utility;
 
-public class SemossDate implements Comparable<SemossDate> {
+public class SemossDate implements Comparable<SemossDate>, Serializable {
 
 	private static final Logger LOGGER = LogManager.getLogger(SemossDate.class);
 
