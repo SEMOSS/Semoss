@@ -290,6 +290,7 @@ public class SocketServerHandler implements Runnable
 						LOGGER.info("Set the nounstore on reactor");
 						
 						// execute
+						reactor.In();
 						NounMetadata nmd = reactor.execute();
 						LOGGER.info("Execution of reactor complete");
 						// return the response
