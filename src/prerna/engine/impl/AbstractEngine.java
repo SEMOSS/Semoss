@@ -433,11 +433,11 @@ public abstract class AbstractEngine implements IEngine {
 		// String owlFileName =
 		// (String)DIHelper.getInstance().getCoreProp().get(engine.getEngineName()
 		// + "_" + Constants.OWL);
-		if (owlFileLocation == null) {
+		if (this.owlFileLocation == null) {
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			owlFileLocation = baseFolder + "/db/" + getEngineId() + "/" + getEngineId()	+ "_OWL.OWL";
 		}
-		baseRelEngine.setFileName(owlFileLocation);
+		baseRelEngine.setFileName(this.owlFileLocation);
 		baseRelEngine.openDB(null);
 		if(prop != null) {
 			addProperty(Constants.OWL, owlFileLocation);
