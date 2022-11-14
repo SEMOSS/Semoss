@@ -9,6 +9,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -18,6 +21,8 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class QueryExecutionUtility {
 
+	private static final Logger classLogger = LogManager.getLogger(QueryExecutionUtility.class);
+	
 	private QueryExecutionUtility() {
 		
 	}
@@ -40,7 +45,7 @@ public class QueryExecutionUtility {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -64,7 +69,7 @@ public class QueryExecutionUtility {
 				return (Integer) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -82,7 +87,7 @@ public class QueryExecutionUtility {
 				return (Long) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -107,7 +112,7 @@ public class QueryExecutionUtility {
 				values.add(wrapper.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -137,7 +142,7 @@ public class QueryExecutionUtility {
 				values.add(wrapper.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -167,7 +172,7 @@ public class QueryExecutionUtility {
 				values.add(wrapper.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -194,7 +199,7 @@ public class QueryExecutionUtility {
 				ret.add(strVals);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -214,7 +219,7 @@ public class QueryExecutionUtility {
 				ret.add(wrapper.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -235,7 +240,7 @@ public class QueryExecutionUtility {
 				ret.add(wrapper.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -267,7 +272,7 @@ public class QueryExecutionUtility {
 				result.add(map);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
