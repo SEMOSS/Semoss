@@ -36,8 +36,9 @@ import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 import prerna.util.TCPChromeDriverUtility;
 
-public class SocketServerHandler implements Runnable
-{
+public class SocketServerHandler implements Runnable {
+	
+	public static Logger classLogger = null;
 	
 	int offset = 4;
 	int totalBytes = 0;
@@ -80,13 +81,10 @@ public class SocketServerHandler implements Runnable
 	
 	String pyBase = "py";
 	
-	public  Logger LOGGER = null;	
-	
 	int curEpoc = 1;
 		
-	public void setLogger(Logger LOGGER)
-	{
-		this.LOGGER = LOGGER;
+	public void setLogger(Logger classLogger) {
+		SocketServerHandler.classLogger = classLogger;
 	}
 	
 	public void setPyExecutorThread(PyExecutorThread pt)
@@ -105,7 +103,7 @@ public class SocketServerHandler implements Runnable
 			try
 			{				
 				//System.err.println("Received For Processing " + ps.methodName +  "  bytes : " + totalBytes + " Epoc " + ps.epoc);
-				//LOGGER.info("Received For Processing " + ps.methodName +  "  bytes : " + totalBytes + " Epoc " + ps.epoc);
+				//classLogger.info("Received For Processing " + ps.methodName +  "  bytes : " + totalBytes + " Epoc " + ps.epoc);
 				//unprocessed.put(ps.epoc, ps);
 				//attemptCount.put(ps.epoc, 1);
 
@@ -115,38 +113,37 @@ public class SocketServerHandler implements Runnable
 
 				
 				////System.err.println("Payload set to " + ps);
-				if(ps.methodName.equalsIgnoreCase("EMPTYEMPTYEMPTY")) // trigger message ignore
+				if(ps.methodName.equalsIgnoreCase("EMPTYEMPTYEMPTY")) { // trigger message ignore
 					return ps;
-				if(ps.methodName.equalsIgnoreCase("CLOSE_ALL_LOGOUT<o>")) // we are done kill everything
+				}
+				if(ps.methodName.equalsIgnoreCase("CLOSE_ALL_LOGOUT<o>")) { // we are done kill everything
 					cleanUp();
-				if(ps.methodName.equalsIgnoreCase("RELEASE_ALL")) // we are done kill everything
-				{
+				}
+				if(ps.methodName.equalsIgnoreCase("RELEASE_ALL")) { // we are done kill everything
 					releaseAll();
 					return ps;
 				}
 				
 				if(ps.operation == PayloadStruct.OPERATION.R)
 				{
-					try
-					{
+					try {
 						Method method = findRMethod(getTranslator(ps.env), ps.methodName, ps.payloadClasses);
 						Object output = runMethodR(getTranslator(ps.env), method, ps.payload);
-						if(output != null)
-							LOGGER.info("Output is not null - R");
+						if(output != null) {
+							classLogger.info("Output is not null - R");
+						}
 						Object [] retObject = new Object[1];
 						retObject[0] = output;
 						ps.payload = retObject;
 						ps.processed = true;
 						ps.response = true;
-					}catch(InvocationTargetException ex)
-					{
-						LOGGER.info(ex + ps.methodName);
+					} catch(InvocationTargetException ex) {
+						classLogger.info(ex + ps.methodName);
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
-					}catch(Exception ex )
-					{
-						LOGGER.info(ex + ps.methodName);
+					} catch(Exception ex ) {
+						classLogger.info(ex + ps.methodName);
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
@@ -157,83 +154,68 @@ public class SocketServerHandler implements Runnable
 				{
 					// get the py translator for the first time
 					getPyTranslator();
-					try
-					{
+					try {
 						Method method = findPyMethod(ps.methodName, ps.payloadClasses);
 						Object output = runMethodPy(method, ps.payload);
 						//if(output != null)
-						//	LOGGER.info("Output is not null - PY");
+						//	classLogger.info("Output is not null - PY");
 						Object [] retObject = new Object[1];
 						retObject[0] = output;
 						ps.payload = retObject;
 						ps.processed = true;
-					}catch(Exception ex)
-					{
-						//LOGGER.debug(ex);
+					} catch(Exception ex) {
+						//classLogger.debug(ex);
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
-					}finally
-					{
-						return ps;
 					}
+					return ps;
 				}
 				else if(ps.operation == PayloadStruct.OPERATION.CHROME)
 				{
-					try
-					{
+					try {
 						Method method = findChromeMethod(ps.methodName, ps.payloadClasses);
 						Object output = runMethodChrome(method, ps.payload);
 						if(output != null)
-							LOGGER.info("Output is not null - CHROME");
+							classLogger.info("Output is not null - CHROME");
 						if(output instanceof ChromeDriver)
 							output = new Object();
 						if(output instanceof String)
-							LOGGER.info("Output is >>>>>>>>>>>>>>>  " + output);
+							classLogger.info("Output is >>>>>>>>>>>>>>>  " + output);
 						Object [] retObject = new Object[1];
 						retObject[0] = output;
 						ps.payload = retObject;
 						ps.processed = true;
-					}catch(Exception ex)
-					{
-						LOGGER.debug(ex);
+					} catch(Exception ex) {
+						classLogger.debug(ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
-					}finally
-					{
-						return ps;
 					}
-					
+					return ps;
 				}
-				
 				else if(ps.operation == PayloadStruct.OPERATION.ECHO)
 				{
-					try
-					{
+					try {
 						Method method = findChromeMethod(ps.methodName, ps.payloadClasses);
 						Object output = ps.payload[0];
 						Object [] retObject = new Object[1];
 						retObject[0] = output;
 						ps.payload = retObject;
 						ps.processed = true;
-					}catch(Exception ex)
-					{
-						LOGGER.debug(ex);
+					} catch(Exception ex) {
+						classLogger.debug(ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
-					}finally
-					{
-						return ps;
 					}
+					return ps;
 				}
 				else if(ps.operation == PayloadStruct.OPERATION.INSIGHT)
 				{
-					try
-					{
+					try {
 						Insight output = (Insight)ps.payload[0];
 						output.setPyTranslator(pyt);
 						if(output.getREnv() != null)
@@ -243,22 +225,18 @@ public class SocketServerHandler implements Runnable
 						ps.processed = true;
 						ps.response = true;
 						insightMap.put(output.getInsightId(), output);
-					}catch(Exception ex)
-					{
-						LOGGER.debug(ex);
+					} catch(Exception ex) {
+						classLogger.debug(ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
-					}finally
-					{
-						return ps;
 					}
+					return ps;
 				}
 				else if(ps.operation == PayloadStruct.OPERATION.REACTOR)
 				{
-					try
-					{
+					try {
 						Insight insight = insightMap.get(ps.insightId);
 						// no need for another thread
 						// you are already in a thread
@@ -267,52 +245,51 @@ public class SocketServerHandler implements Runnable
 						
 						// get the project
 						// Project serves no purpose other than just giving me the reactor
-						Project project = null;
-						if(projectMap.containsKey(insight.getProjectId()))
-						{
-							project = (Project)projectMap.get(insight.getProjectId());
+						
+						//TODO: on tomcat side, when context changes needs to be told
+						//TODO: on tomcat side, when context changes needs to be told
+						//TODO: on tomcat side, when context changes needs to be told
+						//TODO: on tomcat side, when context changes needs to be told
+
+						// 1) we need to check insight context project
+						// 2) then we need to check the project the insight is saved in
+						// note for 2 - this can be null
+						
+						IReactor reactor = null;
+						String contextProjectId = insight.getContextProjectId();
+						if(contextProjectId != null) {
+							reactor = getProjectReactor(contextProjectId, insight.getContextProjectName(), reactorName);
 						}
-						else
-						{
-							project = new Project();
-							project.setProjectId(insight.getProjectId());
-							project.setProjectName(insight.getProjectName());
-							// dont give me a wrapper.. give me the real reactor
-							projectMap.put(insight.getProjectId(), project);
-							String projectSock = insight.getProjectId() + "__SOCKET";
-							
-							DIHelper.getInstance().setProjectProperty(projectSock, project);
-						}						
-						// I dont know if I can do this or I have to use that jar class loader
-						IReactor reactor = project.getReactor(reactorName, null);
+						if(reactor == null && insight.getProjectId() != null) {
+							reactor = getProjectReactor(insight.getProjectId(), insight.getProjectName(), reactorName);
+						}
+						if(reactor == null) {
+							throw new NullPointerException("Could not find reactor with name " + reactorName);
+						}
 						reactor.setInsight(insight);
 						reactor.setNounStore((NounStore)ps.payload[0]);
-						LOGGER.info("Set the nounstore on reactor");
+						classLogger.info("Set the nounstore on reactor");
 						
 						// execute
 						reactor.In();
 						NounMetadata nmd = reactor.execute();
-						LOGGER.info("Execution of reactor complete");
+						classLogger.info("Execution of reactor complete");
 						// return the response
 						ps.payload = new Object[] {nmd};
 						ps.payloadClasses = new Class[] {NounMetadata.class};
-					}catch(Exception ex)
-					{
-						LOGGER.debug(ex);
+					} catch(Exception ex) {
+						classLogger.debug(ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
-					}finally
-					{
-						return ps;
 					}
+					return ps;
 				}
 				else if(ps.operation == PayloadStruct.OPERATION.PROJECT)
 				{
 					// make a method call
-					try
-					{
+					try {
 						Project project = projectMap.get(ps.projectId);
 						if(project != null)
 						{
@@ -324,24 +301,19 @@ public class SocketServerHandler implements Runnable
 						}
 						ps.payload = new Object [] {"method "+ ps.methodName + " execution complete"};
 						ps.payloadClasses = new Class [] {String.class};
-					}catch(Exception ex)
-					{
-						LOGGER.debug(ex);
+					} catch(Exception ex) {
+						classLogger.debug(ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
-					}finally
-					{
-						return ps;
 					}
+					return ps;
 				}else if(ps.operation == PayloadStruct.OPERATION.CMD)
 				{
 					// make a method call
-					try
-					{
-						if(ps.methodName.equalsIgnoreCase("constructor"))
-						{
+					try {
+						if(ps.methodName.equalsIgnoreCase("constructor")) {
 							String mountName = ""+ ps.payload[0];
 							String dir = "" + ps.payload[1];
 							if(!cmdMap.containsKey(mountName + "__" + dir))
@@ -351,10 +323,7 @@ public class SocketServerHandler implements Runnable
 							}
 							ps.payload = new Object [] {"constructor execution complete"};
 							ps.payloadClasses = new Class [] {String.class};
-						}
-						
-						else
-						{
+						} else {
 							CmdExecUtil thisCmd = cmdMap.get(ps.insightId);
 							if(thisCmd != null)
 							{
@@ -364,32 +333,48 @@ public class SocketServerHandler implements Runnable
 								ps.payload = new Object[] {output};
 							}
 						}
-					}catch(Exception ex)
-					{
-						LOGGER.debug(ex);
+					} catch(Exception ex) {
+						classLogger.debug(ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
-					}finally
-					{
-						return ps;
 					}
-				}
 
-				
-			}catch(Exception ex)
-			{
+					return ps;
+				}
+			} catch(Exception ex) {
 				ex.printStackTrace();
 				ps.ex = ex.getMessage();
-			}finally
-			{
 			}
-			// set it as the response
 			return null;
 		}
-	}	
+	}
 
+	/**
+	 * 
+	 * @param projectId
+	 * @param projectName
+	 * @param reactorName
+	 * @return
+	 */
+	private IReactor getProjectReactor(String projectId, String projectName, String reactorName) {
+		Project project = null;
+		if(projectMap.containsKey(projectId)) {
+			project = (Project) projectMap.get(projectId);
+		} else {
+			project = new Project();
+			project.setProjectId(projectId);
+			project.setProjectName(projectName);
+			// dont give me a wrapper.. give me the real reactor
+			projectMap.put(projectId, project);
+			String projectSock = projectId + "__SOCKET";
+			DIHelper.getInstance().setProjectProperty(projectSock, project);
+		}						
+		// I dont know if I can do this or I have to use that jar class loader
+		IReactor reactor = project.getReactor(reactorName, null);
+		return reactor;
+	}
 	
 	public PayloadStruct writeResponse(PayloadStruct ps)
 	{
@@ -420,7 +405,7 @@ public class SocketServerHandler implements Runnable
 		
 		// send it
 		//System.out.println("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> ");
-		LOGGER.info("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> " );
+		classLogger.info("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> " );
 		try
 		{
 			os.write(psBytes);
@@ -458,7 +443,7 @@ public class SocketServerHandler implements Runnable
 					try 
 					{
 						// wait to see if there is response
-						LOGGER.info("Going into wait for epoc " + ps.epoc);
+						classLogger.info("Going into wait for epoc " + ps.epoc);
 						ps.wait(averageMillis); 
 						// once response remove this from the outgoing queue
 						// the main input is available on incoming
@@ -469,7 +454,7 @@ public class SocketServerHandler implements Runnable
 					}
 				}
 			}
-			LOGGER.info("Got re sponse for " + ps.epoc);
+			classLogger.info("Got re sponse for " + ps.epoc);
 			// assumes we already got the response 
 			outgoing.remove(ps.epoc);
 			ps = incoming.remove(ps.epoc);
@@ -505,7 +490,7 @@ public class SocketServerHandler implements Runnable
     {
     	if(!test)
     	{
-    		LOGGER.info("Starting shutdown " );
+    		classLogger.info("Starting shutdown " );
             Iterator <String> envKeys = rtMap.keySet().iterator();
             while(envKeys.hasNext())
             {
@@ -521,7 +506,7 @@ public class SocketServerHandler implements Runnable
 			}
 
           }
-        // stop the logger
+        // stop the classLogger
 		//LogManager.shutdown();
 		
 		
@@ -544,7 +529,7 @@ public class SocketServerHandler implements Runnable
     public Object processCommand(String command)
     {
     	// this should be basically be just straight up runscript
-    	LOGGER.info("Running the new version");
+    	classLogger.info("Running the new version");
 		this.pt.command = new String[] {command};
 		Object monitor = this.pt.getMonitor();
 		Object response = null;
@@ -554,7 +539,7 @@ public class SocketServerHandler implements Runnable
 				monitor.wait(4000); // need a better way.. what happens if it takes more than 4000 seconds ?
 				response = this.pt.response.get(command);
 			} catch (Exception ex) {
-				LOGGER.debug(ex);
+				classLogger.debug(ex);
 				response = ex.getMessage();
 			}
 		}
@@ -598,7 +583,7 @@ public class SocketServerHandler implements Runnable
 				if(retMethod == null)
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
 			}
-			LOGGER.info("Found the method " + retMethod);
+			classLogger.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -641,7 +626,7 @@ public class SocketServerHandler implements Runnable
 				if(retMethod == null)
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
 			}
-			LOGGER.info("Found the method " + retMethod);
+			classLogger.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -683,7 +668,7 @@ public class SocketServerHandler implements Runnable
 				if(retMethod == null)
 					retMethod = pyt.getClass().getDeclaredMethod(methodName);
 			}
-			//LOGGER.info("Found the method " + retMethod);
+			//classLogger.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -719,7 +704,7 @@ public class SocketServerHandler implements Runnable
 					
 				}
 			}
-			LOGGER.info("Found the method " + retMethod);
+			classLogger.info("Found the method " + retMethod);
 		} catch (SecurityException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -766,7 +751,7 @@ public class SocketServerHandler implements Runnable
     		if(JRI)
     		{
 	    		arjt = new RJavaJriTranslator();
-	    		arjt.setLogger(LOGGER);
+	    		arjt.setLogger(classLogger);
 	    		arjt.startR();
 	    		arjt.initREnv(env);	
     		}
@@ -775,13 +760,13 @@ public class SocketServerHandler implements Runnable
     			arjt = new RJavaRserveTranslator();
     			if(retCon == null)
     			{
-    				arjt.setLogger(LOGGER);
+    				arjt.setLogger(classLogger);
     				arjt.startR();
     				this.retCon = ((RJavaRserveTranslator)arjt).getConnection();    				
     			}
     			else
     			{
-					arjt.setLogger(LOGGER);
+					arjt.setLogger(classLogger);
 					arjt.setConnection(retCon);
 					arjt.initREnv(env);    				
     			}
@@ -810,7 +795,7 @@ public class SocketServerHandler implements Runnable
 				}
 			}
 			
-			LOGGER.info("PyThread Started");
+			classLogger.info("PyThread Started");
 			setPyExecutorThread(this.pt);
 			System.err.println("Got the py thread");
 		}
@@ -890,9 +875,9 @@ public class SocketServerHandler implements Runnable
 							// this is a response to the request that just came in
 							// synchronize on the ps and then notify
 							PayloadStruct responseStruct = (PayloadStruct)retObject;
-							LOGGER.info("Received payload with epoc "+ responseStruct.epoc);
+							classLogger.info("Received payload with epoc "+ responseStruct.epoc);
 							PayloadStruct requestStruct = outgoing.get(responseStruct.epoc);
-							LOGGER.info("Have response with epoc " + outgoing.containsKey(responseStruct.epoc));
+							classLogger.info("Have response with epoc " + outgoing.containsKey(responseStruct.epoc));
 							incoming.put(responseStruct.epoc, responseStruct);
 							if(requestStruct != null)
 							{
