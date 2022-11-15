@@ -220,6 +220,7 @@ public class Insight implements Serializable {
 	// cmd util proxy
 	private CmdExecUtil cmdUtil = null;
 	private String contextProjectId = null;
+	private String contextProjectName = null;
 	
 	// chrome proxy
 	private transient ChromeDriverUtility chromeUtil = null;
@@ -624,7 +625,7 @@ public class Insight implements Serializable {
 	public void setProjectId(String projectId) {
 		this.projectId = projectId;
 	}
-	
+
 	public String getProjectName() {
 		return projectName;
 	}
@@ -633,6 +634,22 @@ public class Insight implements Serializable {
 		this.projectName = projectName;
 	}
 
+	public String getContextProjectId() {
+		return contextProjectId;
+	}
+	
+	public void setContextProjectId(String contextProjectId) {
+		this.contextProjectId = contextProjectId;
+	}
+	
+	public String getContextProjectName() {
+		return contextProjectName;
+	}
+	
+	public void setContextProjectName(String contextProjectName) {
+		this.contextProjectName = contextProjectName;
+	}
+	
 	public String getInsightName() {
 		return insightName;
 	}
@@ -1468,9 +1485,13 @@ public class Insight implements Serializable {
 	 * @param context
 	 * @return
 	 */
+	//TODO: on tomcat side, when context changes needs to be told
+	//TODO: on tomcat side, when context changes needs to be told
+	//TODO: on tomcat side, when context changes needs to be told
+	//TODO: on tomcat side, when context changes needs to be told
 	public boolean setContext(String projectId) {
 		// sets the context space for the user
-		// also set rhe cmd context right here
+		// also set the cmd context right here
 		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
 //			throw new IllegalArgumentException("Already in the context");
 			return true;
@@ -1487,6 +1508,7 @@ public class Insight implements Serializable {
 			if(varMap.containsKey(context)) {
 				this.user.setContext(context);
 				this.contextProjectId = projectId;
+				this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 				return true;
 			}
 			return false;
