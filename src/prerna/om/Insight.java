@@ -76,7 +76,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.ReactorFactory;
+import prerna.sablecc2.reactor.InsightCustomReactorCompilator;
 import prerna.sablecc2.reactor.export.IFormatter;
 import prerna.sablecc2.reactor.frame.py.PySingleton;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
@@ -205,7 +205,7 @@ public class Insight implements Serializable {
 	
 	// insight specific reactors
 	private transient Map<String, Class> insightSpecificHash = new HashMap<>();
-		
+
 	// last panel id touched
 	private String lastPanelId = null;
 	
@@ -1244,30 +1244,12 @@ public class Insight implements Serializable {
 		// no need to recreate if it does
 		IReactor retReac = null;
 		
-		File insightDirectory = new File(getInsightFolder());
-		// replace the version name to start with
-		String insightId = insightDirectory.getName();
-
-		String key = insightId ;
-		int randomNum = 0;
+		String key = InsightCustomReactorCompilator.getKey(this);
 		// see if I need to compile this again
-		if(!ReactorFactory.compileCache.containsKey(insightId)) {
+		if(!InsightCustomReactorCompilator.isCompiled(key)) {
 			int status = Utility.compileJava(insightFolder, getCP());
 			if(status == 0) {
-				ReactorFactory.compileCache.put(insightId, Boolean.TRUE);
-				if(ReactorFactory.randomNumberAdder.containsKey(insightId)) {
-					randomNum = ReactorFactory.randomNumberAdder.get(insightId);
-				}
-				randomNum++;
-				ReactorFactory.randomNumberAdder.put(insightId, randomNum);
-				
-				// add it to the key so we can reload
-				key = key + randomNum;
-				
-				// reset the insight specific hash ?
-				insightSpecificHash.clear();
-			} else {
-				ReactorFactory.compileCache.put(insightId, Boolean.FALSE);
+				InsightCustomReactorCompilator.setCompiled(key);
 			}
 		}
 		
@@ -1307,9 +1289,13 @@ public class Insight implements Serializable {
 		
 		return retReac;
 	}
+	
+	public void resetClassCache() {
+		String key = InsightCustomReactorCompilator.getKey(this);
+		InsightCustomReactorCompilator.reset(key);
+	}
 
-	public String getCP()
-	{
+	public String getCP() {
 		String envClassPath = null;
 		
 		StringBuilder retClassPath = new StringBuilder("");
@@ -1318,18 +1304,18 @@ public class Insight implements Serializable {
         URL[] urls = ((URLClassLoader)cl).getURLs();
 
         if(System.getProperty("os.name").toLowerCase().contains("win")) {
-        for(URL url: urls){
-        	String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-        	if(thisURL.endsWith("/"))
-        		thisURL = thisURL.substring(0, thisURL.length()-1);
-
-        	retClassPath
-        		//.append("\"")
-        		.append(thisURL)
-        		//.append("\"")
-        		.append(";");
-        	
-        }
+	        for(URL url: urls){
+	        	String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+	        	if(thisURL.endsWith("/"))
+	        		thisURL = thisURL.substring(0, thisURL.length()-1);
+	
+	        	retClassPath
+	        		//.append("\"")
+	        		.append(thisURL)
+	        		//.append("\"")
+	        		.append(";");
+	        	
+	        }
         } else {
             for(URL url: urls){
             	String thisURL = URLDecoder.decode((url.getFile()));
