@@ -3840,12 +3840,12 @@ public class Utility {
 		return thisMap;
 	}
 
-	public static Map<String, Class> loadReactors(String folder, String key, SemossClassloader customClassLoader) {
-		return loadReactors(folder, key, customClassLoader, "classes");
+	public static Map<String, Class> loadReactors(String folder, SemossClassloader customClassLoader) {
+		return loadReactors(folder, customClassLoader, "classes");
 	}
 
 	// loads classes through this specific class loader for the insight
-	public static Map<String, Class> loadReactors(String folder, String key, SemossClassloader customClassLoader, String outputFolder) {
+	public static Map<String, Class> loadReactors(String folder, SemossClassloader customClassLoader, String outputFolder) {
 		Map<String, Class> reactorMap = new HashMap<>();
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
@@ -3923,7 +3923,7 @@ public class Utility {
 	}
 
 	// loads classes through this specific class loader for the insight
-	public static Map loadReactorsMvn(String folder, String key, JarClassLoader cl, String outputFolder) {
+	public static Map loadReactorsMvn(String folder, JarClassLoader cl, String outputFolder) {
 		HashMap thisMap = new HashMap<String, Class>();
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {

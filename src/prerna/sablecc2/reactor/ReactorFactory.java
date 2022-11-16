@@ -468,12 +468,6 @@ public class ReactorFactory {
 	public static List <Class> classList = new ArrayList<Class>();
 	public static boolean write = true;
 	
-	public static Map<String, Boolean> compileCache = new HashMap<String, Boolean>();
-	public static Map<String, Integer> randomNumberAdder = new HashMap<String, Integer>();
-	// caches the classpath
-	public static String envClassPath = null;
-	
-	
 	static {
 		reactorHash = new HashMap<String, Class>();
 		createReactorHash(reactorHash);
@@ -1585,20 +1579,6 @@ public class ReactorFactory {
 			return tinkerFrameHash;
 		}
 		return null;
-	}
-	
-	public static void recompile(String name) {
-		
-		// need to delete the maven dep-output file so that it can redo again
-		// need a way to inform socket to rebuild the maven
-		
-		if(name != null) {
-			compileCache.remove(name);
-		}
-	}
-	
-	public static void setCompile(String name) {
-		compileCache.put(name, Boolean.TRUE);
 	}
 	
 }
