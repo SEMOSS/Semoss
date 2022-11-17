@@ -3864,7 +3864,7 @@ public class Utility {
 
 			File file = new File(classesFolder);
 			if (file.exists()) {
-				logger.error("Loading reactors from >> " + classesFolder);
+				logger.info("Loading reactors from >> " + classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
