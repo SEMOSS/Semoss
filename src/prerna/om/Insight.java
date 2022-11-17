@@ -116,7 +116,7 @@ public class Insight implements Serializable {
 	protected String insightId;
 	
 	// new user object
-	protected transient User user;
+	protected User user;
 	protected String insightName;
 
 	// if this is a saved insight
