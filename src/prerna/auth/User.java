@@ -880,17 +880,7 @@ public class User implements Serializable {
 		return this.engineIdMap.containsKey(databaseId) && 
 				this.engineIdMap.get(databaseId).equalsIgnoreCase(databaseName);	
 	}
-	
-	/**
-	 * Check if the user has access
-	 * @param projectName
-	 * @param projectId
-	 * @return
-	 */
-	public boolean checkProjectAccess(String projectName, String projectId) {
-		return SecurityProjectUtils.userCanViewProject(this, projectId);
-	}
-	
+
 	/**
 	 * Set the context for the user based on the path defined in the varMap
 	 * @param context
