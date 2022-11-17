@@ -186,5 +186,13 @@ public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 				}
 			}
 		}
-	}	
+	}
+	
+	public String getDatabaseMetadataCatalogFilter() {
+		return this.database;
+	}
+	
+	public String getDatabaseMetadataSchemaFilter() {
+		return this.schema;
+	}
 }
