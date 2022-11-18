@@ -28,58 +28,16 @@ public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
 		this.region = (String) configMap.get(AbstractSqlQueryUtil.REGION);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.region == null || this.region.isEmpty()) 
-				){
-			throw new RuntimeException("Must pass in a region");
-		}
-		
 		this.accessKey = (String) configMap.get(AbstractSqlQueryUtil.ACCESS_KEY);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.accessKey == null || this.accessKey.isEmpty()) 
-				){
-			throw new RuntimeException("Must pass in an access key");
-		}
-		
 		this.secretKey = (String) configMap.get(AbstractSqlQueryUtil.SECRET_KEY);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.secretKey == null || this.secretKey.isEmpty()) 
-				){
-			throw new RuntimeException("Must pass in a secret key");
-		}
-		
 		this.output = (String) configMap.get(AbstractSqlQueryUtil.OUTPUT);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.output == null || this.output.isEmpty()) 
-				){
-			throw new RuntimeException("Must pass in an S3 bucket location for query outputs to be stored");
-		}
-		
 		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
 		if(this.schema == null || this.schema.isEmpty()) {
 			this.schema = "default";
 		}
-
 		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
-
-		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://AwsRegion="+this.region
-					+";User="+this.accessKey+";Password="+this.secretKey
-					+";S3OutputLocation="+this.output+";Schema="+this.schema;
-			
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
-		}
-		
-		return this.connectionUrl;
+		return buildConnectionString();
 	}
 
 	@Override
@@ -89,64 +47,38 @@ public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
 		this.region = (String) prop.get(AbstractSqlQueryUtil.REGION);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.region == null || this.region.isEmpty()) 
-				){
-			throw new RuntimeException("Must pass in a region");
-		}
-		
 		this.accessKey = (String) prop.get(AbstractSqlQueryUtil.ACCESS_KEY);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.accessKey == null || this.accessKey.isEmpty()) 
-				){
-			throw new RuntimeException("Must pass in an access key");
-		}
-		
 		this.secretKey = (String) prop.get(AbstractSqlQueryUtil.SECRET_KEY);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.secretKey == null || this.secretKey.isEmpty()) 
-				){
-			throw new RuntimeException("Must pass in a secret key");
-		}
-		
 		this.output = (String) prop.get(AbstractSqlQueryUtil.OUTPUT);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.output == null || this.output.isEmpty()) 
-				){
-			throw new RuntimeException("Must pass in an S3 bucket location for query outputs to be stored");
-		}
-		
 		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
 		if(this.schema == null || this.schema.isEmpty()) {
 			this.schema = "default";
 		}
-		
 		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
-
-		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://AwsRegion="+this.region
-					+";User="+this.accessKey+";Password="+this.secretKey
-					+";S3OutputLocation="+this.output+";Schema="+this.schema;
-			
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
-		}
-		
-		return this.connectionUrl;
+		return buildConnectionString();
 	}
 	
 	@Override
 	public String buildConnectionString() {
 		if(this.connectionUrl != null && !this.connectionUrl.isEmpty()) {
 			return this.connectionUrl;
+		}
+		
+		if(this.region == null || this.region.isEmpty()){
+			throw new RuntimeException("Must pass in a region");
+		}
+		
+		if(this.accessKey == null || this.accessKey.isEmpty()){
+			throw new RuntimeException("Must pass in an access key");
+		}
+		
+		if(this.secretKey == null || this.secretKey.isEmpty()){
+			throw new RuntimeException("Must pass in a secret key");
+		}
+		
+		if(this.output == null || this.output.isEmpty()){
+			throw new RuntimeException("Must pass in an S3 bucket location for query outputs to be stored");
 		}
 		
 		if(this.schema == null || this.schema.isEmpty()) {
