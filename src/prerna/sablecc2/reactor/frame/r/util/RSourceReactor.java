@@ -1,8 +1,7 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
-import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -105,7 +104,7 @@ public class RSourceReactor extends AbstractRFrameReactor {
 		rScript = "with(" + rJavaTranslator.env + ", { rm(" + removePathVariables + ") });"; 
 		rJavaTranslator.executeEmptyRDirect(rScript);
 		
-		List<NounMetadata> outputs = new Vector<>(1);
+		List<NounMetadata> outputs = new ArrayList<>(1);
 		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));
 
 		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
