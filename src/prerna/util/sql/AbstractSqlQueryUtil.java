@@ -108,6 +108,8 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String HTTP_TYPE = "httpType";
 	// databricks
 	public static final String HTTP_PATH = "httpPath";
+	public static final String UID = "UID";
+	public static final String PWD = "PWD";
 	// semoss
 	public static final String PROTOCOL = "protocol";
 	public static final String ENDPOINT = "endpoint";

@@ -1753,14 +1753,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		}
 		
 		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
 		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.hostname == null || this.hostname.isEmpty())
-			) {
-			throw new RuntimeException("Must pass in a hostname");
-		}
-		
 		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
@@ -1768,30 +1761,9 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		} else {
 			port = "";
 		}
-		
 		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.schema == null || this.schema.isEmpty())
-				){
-			throw new RuntimeException("Must pass in schema name");
-		}
-		
 		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
-
-		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port+"/"+this.schema;
-			
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
-		}
-		
-		return this.connectionUrl;
+		return buildConnectionString();
 	}
 
 	@Override
@@ -1804,14 +1776,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		}
 		
 		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
 		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.hostname == null || this.hostname.isEmpty())
-			) {
-			throw new RuntimeException("Must pass in a hostname");
-		}
-		
 		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
@@ -1819,30 +1784,9 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		} else {
 			port = "";
 		}
-		
 		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.schema == null || this.schema.isEmpty())
-				){
-			throw new RuntimeException("Must pass in schema name");
-		}
-		
 		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
-
-		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port+"/"+this.schema;
-		
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
-		}
-		
-		return this.connectionUrl;
+		return buildConnectionString();
 	}
 
 	@Override
