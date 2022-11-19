@@ -5,7 +5,6 @@ import prerna.engine.api.IEngine;
 import prerna.query.querystruct.selectors.IQuerySelector;
 
 public class BigQuerySqlInterpreter extends SqlInterpreter {
-	
 
 	public BigQuerySqlInterpreter() {
 
@@ -18,7 +17,6 @@ public class BigQuerySqlInterpreter extends SqlInterpreter {
 	public BigQuerySqlInterpreter(ITableDataFrame frame) {
 		super(frame);
 	}
-	
 	
 	@Override
 	public void addSelector(IQuerySelector selector) {

@@ -39,10 +39,10 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
-import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
@@ -1336,7 +1336,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				String tableConceptualName = orderBySelector.getTable();
 				String columnConceptualName = orderBySelector.getColumn();
 				ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
-				
+
 				boolean origPrim = false;
 				if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
 					origPrim = true;
@@ -1344,12 +1344,12 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				} else if(this.customFromAliasName==null || this.customFromAliasName.isEmpty()){
 					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
 				}
-				
+
 				StringBuilder thisOrderBy = new StringBuilder();
-				
-				
+
+
 				// might want to order by a derived column being returned
-			 if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
+				if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
 					// either instantiate the string builder or add a comma for multi sort
 					if(queryUtil.isSelectorKeyword(tableConceptualName)) {
 						thisOrderBy.append(queryUtil.getEscapeKeyword(tableConceptualName));
@@ -1369,35 +1369,32 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					}
 				}
 				// account for sort being on table/column being returned
-				else if(this.retTableToCols.containsKey(tableConceptualName)){
-					if(this.retTableToCols.get(tableConceptualName).contains(columnConceptualName)) {
-						// these are the physical names
-						
-						String orderByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
-						String orderByColumn = null;
+				else if(this.retTableToCols.containsKey(tableConceptualName) && 
+						this.retTableToCols.get(tableConceptualName).contains(columnConceptualName)) 
+				{
+					// these are the physical names
+					String orderByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
+					String orderByColumn = null;
 
-						if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-							orderByColumn = getPrimKey4Table(tableConceptualName);
-						} else {
-							orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-						}
-						
-						if(queryUtil.isSelectorKeyword(orderByTable)) {
-							orderByTable = queryUtil.getEscapeKeyword(orderByTable);
-						}
-						if(queryUtil.isSelectorKeyword(orderByColumn)) {
-							orderByColumn = queryUtil.getEscapeKeyword(orderByColumn);
-						}
-						thisOrderBy.append(orderByTable).append(".").append(orderByColumn);
+					if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+						orderByColumn = getPrimKey4Table(tableConceptualName);
 					} else {
-						continue;
+						orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
 					}
+
+					if(queryUtil.isSelectorKeyword(orderByTable)) {
+						orderByTable = queryUtil.getEscapeKeyword(orderByTable);
+					}
+					if(queryUtil.isSelectorKeyword(orderByColumn)) {
+						orderByColumn = queryUtil.getEscapeKeyword(orderByColumn);
+					}
+					thisOrderBy.append(orderByTable).append(".").append(orderByColumn);
 				}
 				// well, this is not a valid order by to add
 				else {
 					continue;
 				}
-				
+
 				if(orderByDir == ORDER_BY_DIRECTION.ASC) {
 					thisOrderBy.append(" ASC ");
 				} else {
@@ -1406,7 +1403,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				validOrderBys.add(thisOrderBy);
 			}
 		}
-		
+
 		int size = validOrderBys.size();
 		for(int i = 0; i < size; i++) {
 			if(i == 0) {
