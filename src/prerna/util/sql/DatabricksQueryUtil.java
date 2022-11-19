@@ -5,7 +5,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.DatabricksSqlInterpreter;
 
 public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 
@@ -156,5 +160,15 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getDatabaseMetadataSchemaFilter() {
 		return this.schema;
+	}
+	
+	@Override
+	public IQueryInterpreter getInterpreter(IEngine engine) {
+		return new DatabricksSqlInterpreter(engine);
+	}
+
+	@Override
+	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
+		return new DatabricksSqlInterpreter(frame);
 	}
 }
