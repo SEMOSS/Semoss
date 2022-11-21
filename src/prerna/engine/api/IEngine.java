@@ -207,6 +207,8 @@ public interface IEngine extends IExplorable {
 	 */
 	MetaHelper getMetaHelper();
 	
+	// get the owl file
+	String getOwl();
 }
 
 

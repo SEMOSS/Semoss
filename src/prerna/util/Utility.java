@@ -35,6 +35,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -150,6 +151,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -159,6 +161,7 @@ import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
+import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
 import prerna.tcp.workers.EngineSocketWrapper;
 import prerna.ui.components.api.IPlaySheet;
@@ -2338,7 +2341,8 @@ public class Utility {
 			}
 
 			// we store the smss location in DIHelper
-			DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.STORE, smssFilePath);
+			if(smssFilePath != null)
+				DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.STORE, smssFilePath);
 			// we also store the OWL location
 			if (prop.containsKey(Constants.OWL)) {
 				DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
@@ -2347,6 +2351,8 @@ public class Utility {
 			// create and open the class
 			engine = (IEngine) Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
+			if(smssFilePath == null)
+				engine.setProp(prop);
 			engine.openDB(smssFilePath);
 
 			// set the engine in DIHelper
@@ -2365,9 +2371,12 @@ public class Utility {
 			boolean isThemes = engineId.equals(Constants.THEMING_DB);
 			boolean isUserTracking = engineId.equals(Constants.USER_TRACKING_DB);
 			if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking) {
+				
 				// sync up the engine metadata now
 				synchronizeEngineMetadata(engineId);
-				SecurityUpdateUtils.addDatabase(engineId);
+				// need to do a check to see if this is socket side here
+				if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
+					SecurityUpdateUtils.addDatabase(engineId);
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);
@@ -2728,11 +2737,47 @@ public class Utility {
 	 */
 	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = null;
-
+		
+		// Now that the app has been pulled, grab the smss file
+		String smssFile = null;
+		boolean reloadDB = false;
+		Properties prop = null;
+		
 		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
 		{
-
+			// not sure why we need this after the first time but hey
+			smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
 			
+		}
+		
+		else // this is happening on the socket side
+		{
+			// on the socket side
+			// it will pull the smss
+			// and reload the engine
+			// once reloaded it will be present in the DI Helper
+			// check DI Helper to see if this is needed
+			// if not try to figure if reload is required
+			if(DIHelper.getInstance().getDbProperty(engineId) == null) // if already loaded.. no need to load again
+			{
+				prop = getEngineDetails(engineId);
+				if(prop != null)
+				{
+					reloadDB = true; 
+				}
+			}
+			else
+			{
+				// this is already a loaded engine
+				// engine socket wrapper is not persisted in the cache so we are all set here
+				reloadDB = true;
+			}
+		}
+		
+		logger.info("Reload DB is set to " + reloadDB);
+
+		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) || reloadDB)
+		{
 			// If the engine has already been loaded, then return it
 			// Don't acquire the lock here, because that would slow things down
 			if (DIHelper.getInstance().getDbProperty(engineId) != null) {
@@ -2765,14 +2810,16 @@ public class Utility {
 							return null;
 						}
 					}
-	
-					// Now that the app has been pulled, grab the smss file
-					String smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
-	
+		
 					// Start up the engine using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
-						engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
+							engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
+					}
+					else if(prop != null)
+					{
+							engine = Utility.loadEngine(null, prop);
+							
 					} else {
 						logger.debug("There is no SMSS File for the database " + engineId + "...");
 					}
@@ -2814,12 +2861,89 @@ public class Utility {
 					logger.info("Database "+ engineId + " is unlocked");
 				}
 			}
+			// send the information of engine to the smssfile to the socket
 		}
 		else // this is happening on the socket side
 		{
 			engine = new EngineSocketWrapper(engineId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
 		}
 		return engine;
+	}
+	
+	public static Properties getEngineDetails(String engineId)
+	{
+		// get the engine properties file
+		// get the engine owl file
+		// set the owl file location and start up
+		
+		CaseInsensitiveProperties  prop = null;
+		try
+		{
+			SocketServerHandler ssh = (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH");
+			PayloadStruct ps = new PayloadStruct();
+			ps.epoc = "t1";
+			ps.operation = ps.operation.ENGINE;
+			ps.objId = engineId;
+			ps.methodName = "getProp";
+			ps.longRunning = true;
+			ps.response = false;
+			ps.payloadClasses = new Class[] {};
+			
+			PayloadStruct response = ssh.writeResponse(ps);
+			prop =  (CaseInsensitiveProperties)response.payload[0];
+			
+			// get the owl file and replace into properties
+			ps = new PayloadStruct();
+			ps.epoc = "t2";
+			ps.operation = ps.operation.ENGINE;
+			ps.objId = engineId;
+			ps.methodName = "getOwl";
+			ps.longRunning = true;
+			ps.response = false;
+			ps.payloadClasses = new Class[] {};
+			
+			response = ssh.writeResponse(ps);
+			String owl = response.payload[0] + "";
+			
+			// find if the properties has a reload db on it
+			boolean reload = false;
+			if(prop.containsKey(Settings.LOAD_DB_ON_SOCKET))
+				reload = prop.getProperty(Settings.LOAD_DB_ON_SOCKET).equalsIgnoreCase("True");
+			if(reload)
+			{
+				// write the owl file
+				// replace it in the properties
+				// write the properties file or not
+				// return the properties
+				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+				File engineDir = new File(baseFolder + File.separator + "engines" + File.separator + engineId);
+				if(!engineDir.exists())
+					engineDir.mkdirs();
+				
+				File owlFile = new File(engineDir.getAbsolutePath() + File.separator + engineId + ".owl");
+				
+				// engine owlFileName
+				
+				FileUtils.writeStringToFile(owlFile, owl);
+				
+				prop.replace(Constants.OWL, owlFile.getAbsolutePath());
+								
+				// give the properties back
+				// write the properties file as well
+				//File propFile = new File(engineDir.getAbsolutePath() + File.separator + engineId + ".smss");
+				// write the propfile also into it
+				//prop.put("PROP_FILE_LOCATION", propFile.getAbsolutePath());
+				//FileWriter fw = new FileWriter(propFile);
+//				prop.list(new PrintWriter(fw));
+//				fw.flush();
+//				fw.close();
+			}
+		}catch(Exception ex)
+		{
+			logger.debug(ex);
+		}
+		
+		return prop;
 	}
 
 	public static String findOpenPort() {

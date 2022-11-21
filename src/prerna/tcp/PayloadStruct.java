@@ -41,6 +41,9 @@ public class PayloadStruct implements Serializable{
 	// specify the project id for reactor loads
 	public String projectId = null;
 	
+	// set the project name
+	public String projectName = null;
+	
 	// specify the portal id for reactor loads
 	public String portalId = null;
 	
