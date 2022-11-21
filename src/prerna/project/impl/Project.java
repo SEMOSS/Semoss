@@ -1094,7 +1094,6 @@ public class Project implements IProject {
 		
 		// set the classloader to null
 		mvnClassLoader = null;
-		ReactorFactory.recompile(projectId);
 	}
 	
 	private boolean evalMvnReload() {
