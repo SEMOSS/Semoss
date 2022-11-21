@@ -2774,7 +2774,7 @@ public class Utility {
 			}
 		}
 		
-		logger.info("Reload DB is set to " + reloadDB);
+		//logger.info("Reload DB is set to " + reloadDB);
 
 		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) || reloadDB)
 		{
