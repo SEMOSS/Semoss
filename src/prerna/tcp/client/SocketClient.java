@@ -15,6 +15,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.DIHelper;
@@ -29,6 +30,7 @@ public class SocketClient extends Client implements Runnable {
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
+	User user = null; // the main user for this socket client
 	
 	boolean killall = false; // use this if the server is dead or it has crashed
     
@@ -322,6 +324,16 @@ public class SocketClient extends Client implements Runnable {
     	averageMillis = totalMillis / 10;
     	
     	System.err.println("Average rountrip takes .. " + averageMillis);
+    }
+    
+    public void setUser(User user)
+    {
+    	this.user = user;
+    }
+
+    public User getUser()
+    {
+    	return this.user;
     }
     
 }
