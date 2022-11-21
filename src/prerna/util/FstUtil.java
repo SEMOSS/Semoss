@@ -53,9 +53,10 @@ public class FstUtil {
 		try {
 			bais = new ByteArrayInputStream(data);
 			fi = new FSTObjectInput(bais);
-			return fi.readObject();
-		} catch(Exception ex) {
-			ex.printStackTrace();
+			Object object = fi.readObject();
+			return object;
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(fi != null) {
 				try {
