@@ -1054,6 +1054,21 @@ public abstract class AbstractEngine implements IEngine {
 		return null;
 	}
 	
+	public String getOwl()
+	{
+		String retOwl = null;
+		if(owlFileLocation != null)
+		{
+			try {
+				retOwl = FileUtils.readFileToString(new File(owlFileLocation));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return retOwl;
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*

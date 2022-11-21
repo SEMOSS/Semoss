@@ -31,7 +31,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.CopyObject;
 import prerna.project.api.IProject;
 import prerna.sablecc2.reactor.mgmt.MgmtUtil;
-import prerna.tcp.client.Client;
+import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
@@ -54,7 +54,7 @@ public class User implements Serializable {
 	private transient RRemoteRserve rconRemote;
 
 	// python related stuff
-	private transient Client tcpServer;
+	private transient SocketClient tcpServer;
 	private transient PyTranslator pyt = null;
 	private String port = "undefined";
 	public String pyTupleSpace = null;
@@ -580,16 +580,17 @@ public class User implements Serializable {
 	
 	/////////////////////////////////////////////////////
 	
-	public void setTCPServer(Client nc) {
+	public void setTCPServer(SocketClient nc) {
 		this.tcpServer = nc;
 	}
 	
-	public Client getTCPServer(boolean create) {
+	public SocketClient getTCPServer(boolean create) {
 		if((this.tcpServer == null && create) || (this.tcpServer != null && !this.tcpServer.isConnected() && create)) {
 			PyUtils.getInstance().userTupleMap.remove(this); // remove it from user tuple map so it will restart
 			startTCPServer();
 			this.pyt = new TCPPyTranslator();
 			((TCPPyTranslator) pyt).nc = this.tcpServer; // starts it
+			tcpServer.setUser(this);
 		}
 		return this.tcpServer;
 	}
@@ -957,7 +958,7 @@ public class User implements Serializable {
 			}
 			try
 			{
-				Client nc = (Client)Class.forName(pyClient).newInstance();
+				SocketClient nc = (SocketClient)Class.forName(pyClient).newInstance();
 				this.setTCPServer(nc);
 	
 				nc.connect("127.0.0.1", Integer.parseInt(port), false);

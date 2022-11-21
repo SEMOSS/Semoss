@@ -79,6 +79,8 @@ public class SocketServerHandler implements Runnable {
 	public Map <String, PayloadStruct> incoming = new HashMap<String, PayloadStruct>();
 	public Map <String, PayloadStruct> outgoing = new HashMap<String, PayloadStruct>();
 	
+	public Map<String, String> engineFileMap = new HashMap<String, String>();
+	
 	String pyBase = "py";
 	
 	int curEpoc = 1;
@@ -291,6 +293,9 @@ public class SocketServerHandler implements Runnable {
 					// make a method call
 					try {
 						Project project = projectMap.get(ps.projectId);
+						if(project == null)
+							project = makeProject(ps.projectId, ps.projectName);
+						
 						if(project != null)
 						{
 							Method method = findProjectMethod(project, ps.methodName, ps.payloadClasses);
@@ -363,17 +368,24 @@ public class SocketServerHandler implements Runnable {
 		if(projectMap.containsKey(projectId)) {
 			project = (Project) projectMap.get(projectId);
 		} else {
-			project = new Project();
-			project.setProjectId(projectId);
-			project.setProjectName(projectName);
-			// dont give me a wrapper.. give me the real reactor
-			projectMap.put(projectId, project);
-			String projectSock = projectId + "__SOCKET";
-			DIHelper.getInstance().setProjectProperty(projectSock, project);
+			project = makeProject(projectId, projectName);
 		}						
 		// I dont know if I can do this or I have to use that jar class loader
 		IReactor reactor = project.getReactor(reactorName, null);
 		return reactor;
+	}
+	
+	private Project makeProject(String projectId, String projectName)
+	{
+		Project project = new Project();
+		project.setProjectId(projectId);
+		project.setProjectName(projectName);
+		// dont give me a wrapper.. give me the real reactor
+		projectMap.put(projectId, project);
+		String projectSock = projectId + "__SOCKET";
+		DIHelper.getInstance().setProjectProperty(projectSock, project);
+		
+		return project;
 	}
 	
 	public PayloadStruct writeResponse(PayloadStruct ps)

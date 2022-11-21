@@ -793,7 +793,7 @@ public class Project implements IProject {
 	
 				File targetDirectory = targetPath.toFile(); //new File(public_home + DIR_SEPARATOR + this.projectId);
 
-				boolean copy = DIHelper.getInstance().getProperty(Settings.COPY_APP) != null && DIHelper.getInstance().getProperty(Settings.COPY_APP).equalsIgnoreCase("true");
+				boolean copy = DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) != null && DIHelper.getInstance().getProperty(Settings.COPY_PROJECT).equalsIgnoreCase("true");
 				// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
 				if(copy) {
 					if(!targetDirectory.exists()) {
@@ -1094,6 +1094,7 @@ public class Project implements IProject {
 		
 		// set the classloader to null
 		mvnClassLoader = null;
+		ReactorFactory.recompile(projectId);
 	}
 	
 	private boolean evalMvnReload() {

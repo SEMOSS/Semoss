@@ -10,7 +10,10 @@ import java.util.Map;
 
 import com.sun.rowset.CachedRowSetImpl;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Utility;
@@ -39,23 +42,36 @@ public class EngineWorker implements Runnable {
 		{
 			// TODO Auto-generated method stub
 			String engineId = ps.objId;
+			
 			// TODO: *****************need to do a security check *************
-			IEngine engine = Utility.getEngine(engineId);
-			Method method = findEngineMethod(engine, ps.methodName, ps.payloadClasses);
-			Object retObject = method.invoke(engine, ps.payload);
-
-			// the map that comes may not be fully serializable
-			if(retObject instanceof Map)
+			User user = sc.getUser();
+			boolean canAccess = SecurityDatabaseUtils.userIsOwner(user, engineId) 
+								|| SecurityDatabaseUtils.userCanEditDatabase(user, engineId)
+								|| SecurityDatabaseUtils.userCanViewDatabase(user, engineId); 
+			
+			if(canAccess)
 			{
-				Map <String, Object> outputMap = normalizeMap((Map <String, Object>)retObject);
-				ps.payload = new Object[] {outputMap};
+				IEngine engine = Utility.getEngine(engineId);
+				Method method = findEngineMethod(engine, ps.methodName, ps.payloadClasses);
+				Object retObject = method.invoke(engine, ps.payload);
+	
+				// the map that comes may not be fully serializable
+				if(retObject instanceof Map && !(retObject instanceof CaseInsensitiveProperties))
+				{
+					Map <String, Object> outputMap = normalizeMap((Map <String, Object>)retObject);
+					ps.payload = new Object[] {outputMap};
+				}
+				else
+				{
+					// need to check for serialization
+					ps.payload = new Object[] {retObject};
+				}
 			}
 			else
 			{
-				// need to check for serialization
-				ps.payload = new Object[] {retObject};
+				ps.payload = new Object[] {"User does not have permission"};
+				ps.payloadClasses = new Class[] {java.lang.String.class};
 			}
-			
 			// got the response
 			ps.response = true;
 			
