@@ -1,8 +1,9 @@
 package prerna.engine.impl;
 
+import java.io.Serializable;
 import java.util.Properties;
 
-public class CaseInsensitiveProperties extends Properties {
+public class CaseInsensitiveProperties extends Properties implements Serializable {
 
 	/*
 	 * Just upper case all the keys

@@ -27,7 +27,8 @@ public class CustomReactorWrapper extends AbstractReactor {
 		sc = (SocketClient)this.insight.getUser().getTCPServer(true);
 
 		
-		pushInsight();
+		InsightSerializer is = new InsightSerializer(this.insight);
+		is.serializeInsight(false);
 		
 		// TODO Auto-generated method stub
 		PayloadStruct ps = new PayloadStruct();
@@ -46,32 +47,4 @@ public class CustomReactorWrapper extends AbstractReactor {
 		
 		return (NounMetadata)retStruct.payload[0];
 	}
-	
-	private void pushInsight()
-	{
-		// see if the insight has been serialized
-		// meh may be even synchronize on insight
-		//synchronized(insight) - this will un-necessarily block. will deal when we get to it
-		{
-			if(!this.insight.serialized)
-			{
-				PayloadStruct ps = new PayloadStruct();
-				ps.operation = ps.operation.INSIGHT;
-				
-				// set the sc
-				
-				// set everything from the noun store
-				// hopefully this serializes well
-				ps.payload = new Object [] {this.insight};
-				ps.payloadClasses = new Class[] {this.insight.getClass()};
-				ps.objId = realReactor.getName();
-				ps.hasReturn = false;
-				
-				PayloadStruct retStruct = (PayloadStruct)sc.executeCommand(ps);
-				
-				this.insight.serialized = true;
-			}
-		}
-	}
-
 }

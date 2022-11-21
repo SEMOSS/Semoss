@@ -13,6 +13,7 @@ import org.apache.commons.exec.PumpStreamHandler;
 
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.Client;
+import prerna.tcp.client.SocketClient;
 
 public class CmdExecUtil {
 
@@ -23,11 +24,11 @@ public class CmdExecUtil {
 	String workingDir = mountDir;
 	String commandAppender = "cmd";
 	String pwdCommand = "pwd";
-	Client tcpClient = null;
+	SocketClient tcpClient = null;
 	String insightId = null;
 
 	
-	public CmdExecUtil(String mountName, String mountDir, Client tcpClient)
+	public CmdExecUtil(String mountName, String mountDir, SocketClient tcpClient)
 	{
 		getCommandAppender();
 		mountDir = mountDir.replace("\\", "/");

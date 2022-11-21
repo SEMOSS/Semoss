@@ -9,6 +9,7 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.tcp.client.Client;
+import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
@@ -18,7 +19,6 @@ public class PySingleton {
 	
 	// singleton to give you a py reactor when no user is there
 	public static PyTranslator pyt = null;
-	public static Client nc = null;
 	private static Logger logger = LogManager.getLogger(PySingleton.class);
 	public static User nouser = new User();
 	static {
@@ -26,7 +26,7 @@ public class PySingleton {
 		nouser.setAnonymousId("nouser");
 	}
 	public static String pyTupleSpace = null;
-	public static Client tcpServer;
+	public static SocketClient tcpServer;
 
 	
 	private PySingleton()
@@ -94,13 +94,13 @@ public class PySingleton {
 				PyUtils.getInstance().killPyThread(pyt.getPy());
 			if (pyt instanceof TCPPyTranslator) {
 				String dir = pyTupleSpace;
-				nc.stopPyServe(dir);
+				tcpServer.stopPyServe(dir);
 			}
 		}
 
 	}
 	
-	public static  Client getTCPServer()
+	public static  SocketClient getTCPServer()
 	{
 		if (tcpServer == null)  // start only if it not already in progress
 		{
@@ -122,7 +122,7 @@ public class PySingleton {
 				pyClient = "prerna.tcp.client.Client";
 			}
 			try {
-					Client nc = (Client)Class.forName(pyClient).newInstance();
+					SocketClient nc = (SocketClient)Class.forName(pyClient).newInstance();
 					tcpServer = nc;
 	
 					nc.connect("127.0.0.1", Integer.parseInt(port), false);
