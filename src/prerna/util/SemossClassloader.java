@@ -10,8 +10,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.amazon.support.CustomClassLoader;
-
 public class SemossClassloader extends ClassLoader {
 
 	private static final Logger classLogger = LogManager.getLogger(SemossClassloader.class);
