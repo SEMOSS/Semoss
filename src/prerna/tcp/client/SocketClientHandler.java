@@ -106,7 +106,7 @@ public class SocketClientHandler implements Runnable {
 						curBytes = new byte[bytesToRead]; // initialize only if it is not null
 
 					readBytes = in.read(curBytes, bytesReadSoFar, (curBytes.length - bytesReadSoFar)); // block
-					logger.info("  Need bytes " + curBytes.length  + " <> Got bytes " + readBytes);
+					//logger.info("  Need bytes " + curBytes.length  + " <> Got bytes " + readBytes);
 					bytesReadSoFar = bytesReadSoFar + readBytes;
 					
 					if(bytesReadSoFar == curBytes.length && readBytes != -1)
@@ -115,6 +115,7 @@ public class SocketClientHandler implements Runnable {
 						{
 							Object retObject = FstUtil.deserialize(curBytes);
 							PayloadStruct ps = (PayloadStruct)retObject;
+							logger.info("  Received payload  " + ps.epoc  + " <> bytes " + curBytes.length);
 							if(retObject != null)
 							{
 								if(ps.response)
@@ -141,14 +142,27 @@ public class SocketClientHandler implements Runnable {
 										lenBytesReadSoFar = 0;
 										curBytes = null;
 									}
-								}
+								} 
 							}
 							else
 							{
-								logger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);								
+								logger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);	
+								lenBytes = null;
+								bytesReadSoFar = 0;
+								lenBytesReadSoFar = 0;
+								curBytes = null;
 							}
-						} catch(Exception ex) {
+						} catch(Exception ex) 
+						{
 							logger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);
+							// I need somehting to get rid of this, we have a bad packet
+							// dont know why we have a bad packet in the first place
+							// the problem here is the thread will hang
+							// we need some way to catch the next one and invalidate the previous ones ?
+							lenBytes = null;
+							bytesReadSoFar = 0;
+							lenBytesReadSoFar = 0;
+							curBytes = null;							
 							logger.error(Constants.STACKTRACE, ex);
 						}
 					}
