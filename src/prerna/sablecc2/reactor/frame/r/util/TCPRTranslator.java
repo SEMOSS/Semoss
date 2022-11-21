@@ -10,18 +10,18 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.tcp.PayloadStruct;
-import prerna.tcp.client.Client;
+import prerna.tcp.client.SocketClient;
 
 public class TCPRTranslator extends AbstractRJavaTranslator {
 
-	private Client nc = null;
+	private SocketClient nc = null;
 	Logger logger = null;
 	String port = null;
 	Insight insight = null;
 	boolean started = false;
 	boolean insightSet = false;
 	
-	public void setClient(Client nc) {
+	public void setClient(SocketClient nc) {
 		this.nc = nc;
 	}
 	
