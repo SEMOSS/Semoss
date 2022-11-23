@@ -134,6 +134,12 @@ public interface IProject {
 	boolean publish(String location);
 	
 	/**
+	 * 
+	 * @param republish
+	 */
+	void setRepublish(boolean republish);
+	
+	/**
 	 * Return if an asset
 	 * @return
 	 */

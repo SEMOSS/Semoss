@@ -116,8 +116,9 @@ public class Project implements IProject {
 	private SemossClassloader engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
 	private JarClassLoader mvnClassLoader = null;
 	
-	// publish cache
+	// publish portals
 	private boolean publish = false;
+	private boolean republish = false;
 	
 	// maven not set
 	private boolean mvnNotSet = false;
@@ -779,40 +780,54 @@ public class Project implements IProject {
 	}
 	
 	// create a symbolic link to the version directory
+	@Override
 	public boolean publish(String public_home) {
 		// find what is the final URL
 		// this is the base url plus manipulations
 		// find what the tomcat deploy directory is
 		// no easy way to find other than may be find the classpath ? - will instrument this through RDF Map
-		boolean enableForApp = false;
-		enableForApp = (prop != null && prop.containsKey(Settings.PUBLIC_HOME_ENABLE) && (prop.get(Settings.PUBLIC_HOME_ENABLE)+ "").equalsIgnoreCase("true"));
-		try {
-			if(public_home != null && enableForApp && !publish) {
-				Path sourcePath = Paths.get(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId));
-				Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId);
-	
-				File targetDirectory = targetPath.toFile(); //new File(public_home + DIR_SEPARATOR + this.projectId);
-
-				boolean copy = DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) != null && DIHelper.getInstance().getProperty(Settings.COPY_PROJECT).equalsIgnoreCase("true");
-				// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
-				if(copy) {
-					if(!targetDirectory.exists()) {
-						targetDirectory.mkdir();
+		if(public_home != null) {
+			boolean enableForApp = (prop != null && Boolean.parseBoolean(prop.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
+			try {
+				if(this.republish || (enableForApp && !this.publish)) {
+					Path sourcePath = Paths.get(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId));
+					Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId);
+		
+					File targetDirectory = targetPath.toFile();
+					// if the target directory exists
+					// we have to delete it before 
+					if(targetDirectory.exists() && targetDirectory.isDirectory()) {
+						FileUtils.deleteDirectory(targetDirectory);
 					}
-					FileUtils.copyDirectory(sourcePath.toFile(), targetDirectory);
+	
+					boolean copy = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) + "");
+					// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
+					if(copy) {
+						if(!targetDirectory.exists()) {
+							targetDirectory.mkdir();
+						}
+						FileUtils.copyDirectory(sourcePath.toFile(), targetDirectory);
+					}
+					// this is where we create symbolic link
+					else if(!targetDirectory.exists() && !Files.isSymbolicLink(targetPath)) {
+						Files.createSymbolicLink(targetPath, sourcePath);
+					}
+					targetDirectory.deleteOnExit();
+					this.publish = true;
+					this.republish = false;
 				}
-				// this is where we create symbolic link
-				else if(!targetDirectory.exists() &&  !Files.isSymbolicLink(targetPath)) {
-					Files.createSymbolicLink(targetPath, sourcePath);
-				}
-				targetDirectory.deleteOnExit();
-				publish = true;
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				this.publish = false;
 			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
 		}
 		
-		return enableForApp && publish;
+		return this.publish;
+	}
+	
+	@Override
+	public void setRepublish(boolean republish) {
+		this.republish = republish;
 	}
 	
 	// new reactor method that uses maven
