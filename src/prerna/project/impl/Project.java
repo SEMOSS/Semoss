@@ -683,7 +683,7 @@ public class Project implements IProject {
 			}
 			cl.setFolder(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes");
 			
-			if(!ProjectCustomReactorCompilator.isCompiled(this.projectId)) {
+			if(!ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
 				engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
 				cl = engineClassLoader;
 				cl.uncommitEngine(this.projectId);
@@ -704,6 +704,8 @@ public class Project implements IProject {
 				int status = Utility.compileJava(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), getCP());
 				if(status == 0) {
 					ProjectCustomReactorCompilator.setCompiled(this.projectId);
+				} else {
+					ProjectCustomReactorCompilator.setFailed(this.projectId);
 				}
 			}
 			
