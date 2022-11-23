@@ -31,7 +31,7 @@ public class PublishProjectReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
 			}
 		}
-				
+		
 		IProject project = Utility.getProject(projectId);
 		project.setRepublish(true);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
