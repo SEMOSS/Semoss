@@ -728,7 +728,15 @@ public class Project implements IProject {
 			}
 		}
 		
+		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
+				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
+
+		if (!useNettyPy) {
+			return retReac;
+		}
+		
 		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) && retReac != null) {
+		
 			// need to convert this to reactor wrapper before I give it to be executed			
 			CustomReactorWrapper wrapper = new CustomReactorWrapper();
 			wrapper.realReactor = retReac;
