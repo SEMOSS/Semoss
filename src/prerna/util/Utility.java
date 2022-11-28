@@ -4403,7 +4403,7 @@ public class Utility {
 
 			String pyWorker = DIHelper.getInstance().getProperty(Constants.TCP_WORKER);
 			if(pyWorker == null) {
-				pyWorker = "prerna.tcp.Server";
+				pyWorker = "prerna.tcp.SocketServer";
 			}
 			String[] commands = null;
 			if (port == null) {
