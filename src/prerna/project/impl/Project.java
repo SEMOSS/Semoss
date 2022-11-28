@@ -810,7 +810,16 @@ public class Project implements IProject {
 						FileUtils.deleteDirectory(targetDirectory);
 					}
 	
-					boolean copy = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) + "");
+					// do we physically copy of link?
+					// first smss file
+					// second rdf map
+					boolean copy = true;
+					if(prop != null && prop.getProperty(Settings.COPY_PROJECT) != null) {
+						copy = Boolean.parseBoolean(prop.getProperty(Settings.COPY_PROJECT) + "");
+					} else if(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) != null) {
+						copy = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) + "");	
+					}
+					
 					// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
 					if(copy) {
 						if(!targetDirectory.exists()) {
