@@ -379,7 +379,7 @@ public class RdbmsConnectionHelper {
 					+ " UNION SELECT VIEW_NAME AS \"table_name\", 'VIEW' AS \"table_type\", '" + meta.getUserName() +"' AS \"table_schem\" FROM ALL_VIEWS WHERE"
 					+ " OWNER NOT IN ('SYS', 'SYSTEM', 'WMSYS', 'XDB', 'CTXSYS', 'LBASYS', 'MDSYS', 'OLAPSYS','ORDSYS','LBACSYS', 'GSMADMIN_INTERNAL', 'ORDDATA')";
 			tablesRs = stmt.executeQuery(query);
-		} else if (driver == RdbmsTypeEnum.ATHENA){
+		} else if (driver == RdbmsTypeEnum.ATHENA || driver == RdbmsTypeEnum.REDSHIFT){
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL_TABLE", "VIEW" });
 		} 
 //		else if (driver == RdbmsTypeEnum.SQL_SERVER) {
