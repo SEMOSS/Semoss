@@ -98,6 +98,7 @@ public abstract class AbstractEngine implements IEngine {
 	
 	protected String baseFolder = null;
 	protected String propFile = null;
+	protected CaseInsensitiveProperties origProp = null;
 	protected CaseInsensitiveProperties prop = null;
 	
 	protected String engineId = null;
@@ -146,9 +147,8 @@ public abstract class AbstractEngine implements IEngine {
 		try {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			if(propFile != null) {
-				this.propFile = propFile;
 				logger.info("Opening DB - " + Utility.cleanLogString(FilenameUtils.getName(propFile)));
-				this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
+				setPropFile(propFile);
 			}
 			if(this.prop != null) {
 				// grab the main properties
@@ -483,7 +483,8 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public void setPropFile(String propFile) {
 		this.propFile = propFile;
-		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
+		this.origProp = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
+		this.prop = new CaseInsensitiveProperties(this.origProp);
 	}
 	
 	@Override
@@ -828,8 +829,10 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public void setProp(Properties prop) {
 		if(prop instanceof CaseInsensitiveProperties) {
-			this.prop = (CaseInsensitiveProperties) prop;
+			this.origProp = (CaseInsensitiveProperties) prop;
+			this.prop = new CaseInsensitiveProperties(prop);
 		} else {
+			this.origProp = new CaseInsensitiveProperties(prop);
 			this.prop = new CaseInsensitiveProperties(prop);
 		}
 	}
@@ -837,6 +840,11 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public CaseInsensitiveProperties getProp() {
 		return this.prop;
+	}
+	
+	@Override
+	public CaseInsensitiveProperties getOrigProp() {
+		return this.origProp;
 	}
 	
 	/**

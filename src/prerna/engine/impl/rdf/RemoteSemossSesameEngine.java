@@ -54,7 +54,6 @@ import com.google.gson.Gson;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.rdf.engine.wrappers.RemoteSesameSelectWrapper;
 import prerna.rdf.engine.wrappers.SesameConstructWrapper;
 import prerna.rdf.engine.wrappers.SesameSelectWrapper;
@@ -96,10 +95,11 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 					String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 					String normalizedBaseFolder = Utility.normalizePath(baseFolder);
 
-					if(!propFile.contains(normalizedBaseFolder))
-						propFile = normalizedBaseFolder + "/db/" + propFile;
+					if(!propFile.contains(normalizedBaseFolder)) {
+						propFile = normalizedBaseFolder + DIR_SEPARATOR + Constants.DB_FOLDER + DIR_SEPARATOR + propFile;
+					}
 					
-					prop =  new CaseInsensitiveProperties(Utility.loadProperties(propFile));
+					setPropFile(propFile);
 					// need some way to indicate that this is a new database. this will happen later
 					api = prop.getProperty(Constants.URI);
 					database = prop.getProperty("DATABASE");
