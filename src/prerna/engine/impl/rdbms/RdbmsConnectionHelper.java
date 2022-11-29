@@ -380,7 +380,7 @@ public class RdbmsConnectionHelper {
 					+ " OWNER NOT IN ('SYS', 'SYSTEM', 'WMSYS', 'XDB', 'CTXSYS', 'LBASYS', 'MDSYS', 'OLAPSYS','ORDSYS','LBACSYS', 'GSMADMIN_INTERNAL', 'ORDDATA')";
 			tablesRs = stmt.executeQuery(query);
 		} else if (driver == RdbmsTypeEnum.ATHENA || driver == RdbmsTypeEnum.REDSHIFT){
-			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL_TABLE", "VIEW" });
+			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL TABLE", "EXTERNAL_TABLE", "VIEW" });
 		} 
 //		else if (driver == RdbmsTypeEnum.SQL_SERVER) {
 //			// do not pass in the schema...
