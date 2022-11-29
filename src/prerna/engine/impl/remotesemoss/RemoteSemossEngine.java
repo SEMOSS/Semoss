@@ -3,10 +3,8 @@ package prerna.engine.impl.remotesemoss;
 import java.util.Vector;
 
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 // TODO >>>timb: REST - either replace with rest remote or remove this
 public class RemoteSemossEngine extends AbstractEngine {
@@ -15,7 +13,7 @@ public class RemoteSemossEngine extends AbstractEngine {
 	
 	public void openDB(String propFile) {
 		this.baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
+		setPropFile(propFile);
 		
 		// get id & name
 		this.engineId = this.prop.getProperty(Constants.ENGINE);

@@ -78,7 +78,7 @@ public class JsonAPIEngine extends AbstractEngine {
 			if(propFile != null) {
 				setPropFile(propFile);
 				logger.info("Opening DB - " + Utility.cleanLogString(engineName));
-				prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
+				setPropFile(propFile);
 			}
 			if(prop != null) {
 				// load the rdbms insights db
@@ -134,11 +134,6 @@ public class JsonAPIEngine extends AbstractEngine {
 		} 
 	}
 	
-	public void loadProp(String propFile) {
-		this.propFile = Utility.normalizeParam(baseFolder + "/" + propFile);
-		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(this.propFile));
-	}
-
 	protected void loadDocument()
 	{
 		try {
