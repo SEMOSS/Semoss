@@ -56,7 +56,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -125,7 +124,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	public void openDB(String propFile)
 	{
 		if(propFile == null && this.prop == null){
-			if(dataSource!= null){
+			if(dataSource != null){
 				try{
 					this.engineConn = getConnection();
 					this.engineConnected = true;
@@ -141,13 +140,15 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			// I need to see if the connection pool has been initiated
 			// if not initiate the connection pool
 			if(this.prop == null) {
-				this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
-				// if this is not a temp then open the super
-				if(!this.prop.containsKey("TEMP")) { 
-					// not temp, in which case, this engine has a insights rdbms and an owl
-					// so call super to open them and set them in the engine
-					super.openDB(propFile);
-				}
+				setPropFile(propFile);
+			} else {
+				setProp(this.prop);
+			}
+			// if this is not a temp then open the super
+			if(!this.prop.containsKey("TEMP")) { 
+				// not temp, in which case, this engine has a insights rdbms and an owl
+				// so call super to open them and set them in the engine
+				super.openDB(propFile);
 			}
 
 			// grab the values from the prop file 
