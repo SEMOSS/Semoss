@@ -21,8 +21,7 @@ public class AppEngine extends AbstractEngine {
 	 */
 	public void openDB(String propFile) {
 		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		this.propFile = propFile;
-		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
+		setPropFile(propFile);
 		
 		// get id & name
 		this.engineId = this.prop.getProperty(Constants.ENGINE);

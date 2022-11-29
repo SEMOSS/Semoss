@@ -199,7 +199,7 @@ public class RemoteJenaEngine extends AbstractEngine implements IEngine {
 	 */
 	@Override
 	public void openDB(String propFile) {
-		this.prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
+		setPropFile(propFile);
 		this.serviceURI = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
 		this.connected = true;
 	}
