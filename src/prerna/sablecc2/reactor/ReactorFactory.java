@@ -594,7 +594,11 @@ public class ReactorFactory {
 						packageName = packagePaths[packagePaths.length - 2];
 						frame = packagePaths[packagePaths.length - 3].equalsIgnoreCase("frame");
 					}
-					String reactorName = name.replaceAll("Reactor", "");
+					String reactorName = name;
+					final String REACTOR_KEY = "Reactor";
+					if(reactorName.endsWith(REACTOR_KEY)) {
+						reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+					}
 					
 					if(frame) {
 						if(packageName.equalsIgnoreCase("rdbms")) {
