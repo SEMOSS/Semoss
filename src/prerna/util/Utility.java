@@ -2351,8 +2351,9 @@ public class Utility {
 			// create and open the class
 			engine = (IEngine) Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
-			if(smssFilePath == null)
+			if(smssFilePath == null) {
 				engine.setProp(prop);
+			}
 			engine.openDB(smssFilePath);
 
 			// set the engine in DIHelper
@@ -2747,9 +2748,7 @@ public class Utility {
 		{
 			// not sure why we need this after the first time but hey
 			smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
-			
 		}
-		
 		else // this is happening on the socket side
 		{
 			// on the socket side
@@ -2814,12 +2813,11 @@ public class Utility {
 					// Start up the engine using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
-							engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
+						engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
 					}
 					else if(prop != null)
 					{
-							engine = Utility.loadEngine(null, prop);
-							
+						engine = Utility.loadEngine(null, prop);	
 					} else {
 						logger.debug("There is no SMSS File for the database " + engineId + "...");
 					}
@@ -2884,7 +2882,7 @@ public class Utility {
 			ps.epoc = "t1";
 			ps.operation = ps.operation.ENGINE;
 			ps.objId = engineId;
-			ps.methodName = "getProp";
+			ps.methodName = "getOrigProp";
 			ps.longRunning = true;
 			ps.response = false;
 			ps.payloadClasses = new Class[] {};
@@ -2907,25 +2905,23 @@ public class Utility {
 			
 			// find if the properties has a reload db on it
 			boolean reload = false;
-			if(prop.containsKey(Settings.LOAD_DB_ON_SOCKET))
+			if(prop.containsKey(Settings.LOAD_DB_ON_SOCKET)) {
 				reload = prop.getProperty(Settings.LOAD_DB_ON_SOCKET).equalsIgnoreCase("True");
-			if(reload)
-			{
+			}
+			if(reload) {
 				// write the owl file
 				// replace it in the properties
 				// write the properties file or not
 				// return the properties
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 				File engineDir = new File(baseFolder + File.separator + "engines" + File.separator + engineId);
-				if(!engineDir.exists())
+				if(!engineDir.exists()) {
 					engineDir.mkdirs();
+				}
 				
 				File owlFile = new File(engineDir.getAbsolutePath() + File.separator + engineId + ".owl");
-				
 				// engine owlFileName
-				
 				FileUtils.writeStringToFile(owlFile, owl);
-				
 				prop.replace(Constants.OWL, owlFile.getAbsolutePath());
 								
 				// give the properties back
@@ -2938,9 +2934,8 @@ public class Utility {
 //				fw.flush();
 //				fw.close();
 			}
-		}catch(Exception ex)
-		{
-			logger.debug(ex);
+		} catch(Exception ex) {
+			logger.error(Constants.STACKTRACE, ex);
 		}
 		
 		return prop;

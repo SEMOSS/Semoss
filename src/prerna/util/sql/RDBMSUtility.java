@@ -240,7 +240,12 @@ public class RDBMSUtility {
 			baseURL = getH2BaseConnectionURL();
 		}
 		
-		return baseURL.replace("@" + Constants.BASE_FOLDER + "@", DIHelper.getInstance().getProperty(Constants.BASE_FOLDER))
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
+			baseFolder = baseFolder.substring(0, baseFolder.length()-1);
+		}
+		
+		return baseURL.replace("@" + Constants.BASE_FOLDER + "@", baseFolder)
 				.replace("@" + Constants.ENGINE + "@", SmssUtilities.getUniqueName(engineName, engineId));
 	}
 }

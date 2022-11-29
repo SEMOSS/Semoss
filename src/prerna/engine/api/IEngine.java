@@ -194,6 +194,13 @@ public interface IEngine extends IExplorable {
 	 * @return
 	 */
 	CaseInsensitiveProperties getProp();
+
+	/**
+	 * Get the original prop file content - w/o additional alterations during opening db
+	 * @return
+	 */
+	CaseInsensitiveProperties getOrigProp();
+
 	
 	/**
 	 * Gets the UDF - user defined functions in this data catalog
@@ -209,6 +216,7 @@ public interface IEngine extends IExplorable {
 	
 	// get the owl file
 	String getOwl();
+
 }
 
 

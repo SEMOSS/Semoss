@@ -228,7 +228,8 @@ public class ProjectHelper {
 		}
 		logger.info("Insight rdbms database url is " + Utility.cleanLogString(connURL));
 		prop.put(Constants.CONNECTION_URL, connURL);
-
+		prop.put("TEMP", true);
+		
 		insightsRdbms.setProp(prop);
 		insightsRdbms.openDB(null);
 		insightsRdbms.setEngineId(projectId + "_INSIGHTS_RDBMS");
