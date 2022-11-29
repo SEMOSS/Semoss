@@ -683,7 +683,7 @@ public class Project implements IProject {
 			}
 			cl.setFolder(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes");
 			
-			if(!ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
+			if(ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
 				engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
 				cl = engineClassLoader;
 				cl.uncommitEngine(this.projectId);
