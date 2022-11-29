@@ -1114,7 +1114,9 @@ public class Project implements IProject {
 	
 	public void clearClassCache() {
 		// clear the local hash
-		this.projectSpecificHash.clear();
+		if(projectSpecificHash != null) {
+			this.projectSpecificHash.clear();
+		}
 		// recompile within reactor factory
 		ProjectCustomReactorCompilator.reset(this.projectId);
 
