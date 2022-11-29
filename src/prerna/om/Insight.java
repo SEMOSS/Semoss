@@ -1253,7 +1253,7 @@ public class Insight implements Serializable {
 			}
 		}
 		
-		if(insightSpecificHash.size() == 0) {
+		if(insightSpecificHash == null || insightSpecificHash.isEmpty()) {
 			insightSpecificHash = Utility.loadReactors(insightFolder, key);
 		}
 		// creates the insight specific map
