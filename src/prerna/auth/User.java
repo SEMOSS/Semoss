@@ -56,7 +56,7 @@ public class User implements Serializable {
 	// python related stuff
 	private transient SocketClient tcpServer;
 	private transient PyTranslator pyt = null;
-	private String port = "undefined";
+	private String port = null;
 	public String pyTupleSpace = null;
 	public String tupleSpace = null;
 	private MountHelper mountHelper = null;
@@ -95,6 +95,8 @@ public class User implements Serializable {
 	
 	private int rPort = -1;
 	private int pyPort = -1;
+	
+	private int forcePort = -1;
 	
 	
 	public User() {
@@ -594,7 +596,21 @@ public class User implements Serializable {
 		}
 		return this.tcpServer;
 	}
-	
+
+	public SocketClient getTCPServer(boolean create, int port) {
+		// set the port
+		forcePort = port;
+		// then restart it
+		if((this.tcpServer == null && create) || (this.tcpServer != null && !this.tcpServer.isConnected() && create)) {
+			PyUtils.getInstance().userTupleMap.remove(this); // remove it from user tuple map so it will restart
+			startTCPServer();
+			this.pyt = new TCPPyTranslator();
+			((TCPPyTranslator) pyt).nc = this.tcpServer; // starts it
+			tcpServer.setUser(this);
+		}
+		return this.tcpServer;
+	}
+
 	/**
 	 * Storing the engine id to engine name
 	 * @param allEngines
@@ -927,7 +943,13 @@ public class User implements Serializable {
 		if (tcpServer == null || !tcpServer.isConnected())  // start only if it not already in progress
 		{
 			logger.info("Starting the TCP Server !! ");
-			port = DIHelper.getInstance().getProperty("FORCE_PORT"); // this means someone has
+			
+			// first preference given to user
+			if(forcePort > 0)
+				port = forcePort +"";
+			
+			if(port == null)
+				port = DIHelper.getInstance().getProperty(Settings.FORCE_PORT); // this means someone has
 																			// started it for debug
 			if (port == null) // port has not been forced
 			{
