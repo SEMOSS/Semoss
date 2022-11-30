@@ -1,6 +1,10 @@
 package prerna.util.gson;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static prerna.util.gson.IHeadersDataRowAdapter.deserializeValues;
+import static prerna.util.gson.IHeadersDataRowAdapter.serializeValues;
+import static prerna.util.gson.IHeadersDataRowAdapter.toPrettyFormat;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -9,13 +13,9 @@ import java.util.Date;
 import org.junit.Test;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.junit.JUnit;
+import prerna.junit.pixel.JUnit;
 import prerna.om.HeadersDataRow;
 import prerna.util.gson.IHeadersDataRowAdapter.SerializedValuesAndTypes;
-
-import static prerna.util.gson.IHeadersDataRowAdapter.serializeValues;
-import static prerna.util.gson.IHeadersDataRowAdapter.deserializeValues;
-import static prerna.util.gson.IHeadersDataRowAdapter.toPrettyFormat;
 
 public class IHeadersDataRowAdapterTest extends JUnit {
 	
