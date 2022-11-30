@@ -113,6 +113,8 @@ public class SocketServerHandler implements Runnable {
 				ps.response = true;
 				outgoing.put(ps.epoc, ps);
 
+				System.out.println("Getting final output for " + ps.methodName);
+				classLogger.info("Getting final output for " + ps.methodName);
 				
 				////System.err.println("Payload set to " + ps);
 				if(ps.methodName.equalsIgnoreCase("EMPTYEMPTYEMPTY")) { // trigger message ignore
@@ -132,6 +134,7 @@ public class SocketServerHandler implements Runnable {
 						Method method = findRMethod(getTranslator(ps.env), ps.methodName, ps.payloadClasses);
 						Object output = runMethodR(getTranslator(ps.env), method, ps.payload);
 						if(output != null) {
+							System.out.println("Output is not null - R");
 							classLogger.info("Output is not null - R");
 						}
 						Object [] retObject = new Object[1];
