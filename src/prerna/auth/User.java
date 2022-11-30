@@ -98,7 +98,6 @@ public class User implements Serializable {
 	
 	private int forcePort = -1;
 	
-	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
@@ -945,13 +944,18 @@ public class User implements Serializable {
 			logger.info("Starting the TCP Server !! ");
 			
 			// first preference given to user
-			if(forcePort > 0)
+			if(forcePort > 0) {
 				port = forcePort +"";
+			}
 			
-			if(port == null)
-				port = DIHelper.getInstance().getProperty(Settings.FORCE_PORT); // this means someone has
-																			// started it for debug
-			if (port == null) // port has not been forced
+			if(port == null) {
+				// this means someone has
+				// started it for debug
+				port = DIHelper.getInstance().getProperty(Settings.FORCE_PORT); 
+			}
+			
+			// port has not been forced
+			if (port == null) 
 			{
 				port = Utility.findOpenPort();
 				if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
@@ -1004,9 +1008,10 @@ public class User implements Serializable {
 				}
 				
 				setPyPort(Integer.parseInt(port));
-			}catch(Exception ex)
+			}
+			catch(Exception e)
 			{
-				ex.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
