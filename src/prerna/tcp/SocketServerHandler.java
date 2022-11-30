@@ -140,11 +140,13 @@ public class SocketServerHandler implements Runnable {
 						ps.processed = true;
 						ps.response = true;
 					} catch(InvocationTargetException ex) {
+						classLogger.error(Constants.STACKTRACE, ex);
 						classLogger.info(ex + ps.methodName);
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 					} catch(Exception ex ) {
+						classLogger.error(Constants.STACKTRACE, ex);
 						classLogger.info(ex + ps.methodName);
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
@@ -166,8 +168,8 @@ public class SocketServerHandler implements Runnable {
 						ps.payload = retObject;
 						ps.processed = true;
 					} catch(Exception ex) {
-						//classLogger.debug(ex);
 						ex.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, ex);
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 					}
@@ -189,8 +191,7 @@ public class SocketServerHandler implements Runnable {
 						ps.payload = retObject;
 						ps.processed = true;
 					} catch(Exception ex) {
-						classLogger.debug(ex);
-						//ex.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, ex);
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
@@ -207,7 +208,7 @@ public class SocketServerHandler implements Runnable {
 						ps.payload = retObject;
 						ps.processed = true;
 					} catch(Exception ex) {
-						classLogger.debug(ex);
+						classLogger.error(Constants.STACKTRACE, ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
@@ -228,7 +229,7 @@ public class SocketServerHandler implements Runnable {
 						ps.response = true;
 						insightMap.put(output.getInsightId(), output);
 					} catch(Exception ex) {
-						classLogger.debug(ex);
+						classLogger.error(Constants.STACKTRACE, ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
@@ -280,7 +281,7 @@ public class SocketServerHandler implements Runnable {
 						ps.payload = new Object[] {nmd};
 						ps.payloadClasses = new Class[] {NounMetadata.class};
 					} catch(Exception ex) {
-						classLogger.debug(ex);
+						classLogger.error(Constants.STACKTRACE, ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
@@ -307,7 +308,7 @@ public class SocketServerHandler implements Runnable {
 						ps.payload = new Object [] {"method "+ ps.methodName + " execution complete"};
 						ps.payloadClasses = new Class [] {String.class};
 					} catch(Exception ex) {
-						classLogger.debug(ex);
+						classLogger.error(Constants.STACKTRACE, ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
@@ -339,7 +340,7 @@ public class SocketServerHandler implements Runnable {
 							}
 						}
 					} catch(Exception ex) {
-						classLogger.debug(ex);
+						classLogger.error(Constants.STACKTRACE, ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
@@ -350,6 +351,7 @@ public class SocketServerHandler implements Runnable {
 				}
 			} catch(Exception ex) {
 				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 				ps.ex = ex.getMessage();
 			}
 			return null;
@@ -404,8 +406,11 @@ public class SocketServerHandler implements Runnable {
 		try 
 		{
 			psBytes = FstUtil.packBytes(ps);
-		}catch(Exception ex)
-		{ // dont choke this thread
+		}
+		catch(Exception ex)
+		{ 
+			// dont choke this thread
+			classLogger.error(Constants.STACKTRACE, ex);
 			if(psBytes == null)
 			{
 				// hmm we are in the non serializable land
@@ -421,9 +426,10 @@ public class SocketServerHandler implements Runnable {
 		try
 		{
 			os.write(psBytes);
-		}catch(Exception ex)
+		}
+		catch(Exception ex)
 		{
-			
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 
 		// if this is what socket is sending 
@@ -461,8 +467,8 @@ public class SocketServerHandler implements Runnable {
 						// the main input is available on incoming
 					} catch (InterruptedException e) 
 					{
-						// TODO Auto-generated catch block
 						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -575,33 +581,36 @@ public class SocketServerHandler implements Runnable {
 				try
 				{
 					retMethod = rt.getClass().getDeclaredMethod(methodName, arguments);
-				}catch(Exception ex)
-				{
-					
 				}
-				if(retMethod == null)
+				catch(Exception ex)
+				{
+					//classLogger.error(Constants.STACKTRACE, ex);
+				}
+				if(retMethod == null) {
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
-				
+				}
 			}
 			else
 			{
 				try
 				{
 					retMethod = rt.getClass().getDeclaredMethod(methodName);				
-				}catch(Exception ex)
-				{
-					
 				}
-				if(retMethod == null)
+				catch(Exception ex)
+				{
+					//classLogger.error(Constants.STACKTRACE, ex);	
+				}
+				if(retMethod == null) {
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
+				}
 			}
 			classLogger.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
     	return retMethod;
     }
@@ -618,12 +627,14 @@ public class SocketServerHandler implements Runnable {
 				try
 				{
 					retMethod = rt.getClass().getDeclaredMethod(methodName, arguments);
-				}catch(Exception ex)
-				{
-					
 				}
-				if(retMethod == null)
+				catch(Exception ex)
+				{
+					//classLogger.error(Constants.STACKTRACE, ex);	
+				}
+				if(retMethod == null) {
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
+				}
 				
 			}
 			else
@@ -631,20 +642,22 @@ public class SocketServerHandler implements Runnable {
 				try
 				{
 					retMethod = rt.getClass().getDeclaredMethod(methodName);				
-				}catch(Exception ex)
-				{
-					
 				}
-				if(retMethod == null)
+				catch(Exception ex)
+				{
+					//classLogger.error(Constants.STACKTRACE, ex);	
+				}
+				if(retMethod == null) {
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
+				}
 			}
 			classLogger.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
     	return retMethod;
     }
@@ -660,33 +673,36 @@ public class SocketServerHandler implements Runnable {
 				try
 				{
 					retMethod = pyt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
-				}catch(Exception ex)
-				{
-					
 				}
-				if(retMethod == null)
+				catch(Exception ex)
+				{
+					//classLogger.error(Constants.STACKTRACE, ex);
+				}
+				if(retMethod == null) {
 					retMethod = pyt.getClass().getDeclaredMethod(methodName, arguments);
-				
+				}
 			}
 			else
 			{
 				try
 				{
 					retMethod = pyt.getClass().getSuperclass().getDeclaredMethod(methodName);				
-				}catch(Exception ex)
-				{
-					
 				}
-				if(retMethod == null)
+				catch(Exception ex)
+				{
+					//classLogger.error(Constants.STACKTRACE, ex);
+				}
+				if(retMethod == null) {
 					retMethod = pyt.getClass().getDeclaredMethod(methodName);
+				}
 			}
 			//classLogger.info("Found the method " + retMethod);
 		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
     	return retMethod;
     }
@@ -701,9 +717,10 @@ public class SocketServerHandler implements Runnable {
 				try
 				{
 					retMethod = TCPChromeDriverUtility.class.getDeclaredMethod(methodName, arguments);
-				}catch(Exception ex)
+				}
+				catch(Exception ex)
 				{
-					
+					//classLogger.error(Constants.STACKTRACE, ex);
 				}
 			}
 			else
@@ -711,15 +728,16 @@ public class SocketServerHandler implements Runnable {
 				try
 				{
 					retMethod = TCPChromeDriverUtility.class.getDeclaredMethod(methodName);				
-				}catch(Exception ex)
+				}
+				catch(Exception ex)
 				{
-					
+					//classLogger.error(Constants.STACKTRACE, ex);	
 				}
 			}
 			classLogger.info("Found the method " + retMethod);
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
     	return retMethod;
     }
@@ -802,7 +820,6 @@ public class SocketServerHandler implements Runnable {
 					// sleep until we get the py
 					Thread.sleep(200);
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -913,26 +930,26 @@ public class SocketServerHandler implements Runnable {
 					lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
 				}				
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				// something abruptly disconnected
+				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				System.err.println("Client socket has been closed !");
 				synchronized(server.crash)
 				{
-	
 					try {
 						// ask it to listen again
 						this.done = true;
 						server.crash.notify();
 					} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						//e1.printStackTrace();
+						e1.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e1);
 					}
 				}
 				// dont quit.. work hard
-				if(!this.server.multi)
+				if(!this.server.multi) {
 					System.exit(1);
+				}
 			}
 		}
 	}
 
-	}
+}
