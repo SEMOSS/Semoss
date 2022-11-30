@@ -13,7 +13,7 @@ public class ReconnectServer extends AbstractReactor
 	
 	public ReconnectServer()
 	{
-		this.keysToGet = new String[] {"force"};
+		this.keysToGet = new String[] {"force", "port"};
 	}
 	// reconnects the server
 	// execute method - GREEDY translation
@@ -22,6 +22,10 @@ public class ReconnectServer extends AbstractReactor
 		organizeKeys();
 		String force = keyValue.get(keysToGet[0]);
 		
+		int forcePort = -1;
+		
+		if(keyValue.containsKey(keysToGet[1]))
+			forcePort = Integer.parseInt(keyValue.get(keysToGet[1]));
 		
 		User user = this.insight.getUser();
 		
@@ -46,7 +50,7 @@ public class ReconnectServer extends AbstractReactor
 		}
 		//|| (force != null && force.equalsIgnoreCase("true")) - this should already work
 		if( ( (user.getTCPServer(false) != null && !user.getTCPServer(false).isConnected()) ) || user.getTCPServer(false) == null ) // it was there previously
-			user.getTCPServer(true);
+			user.getTCPServer(true, forcePort);
 		
 		if(user.getTCPServer(false) != null && user.getTCPServer(false).isConnected())
 			return new NounMetadata("TCP Server available and connected", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);

@@ -18,6 +18,7 @@ public class Settings {
 	public static final String TCP_CLIENT = "TCP_CLIENT";
 	public static final String HF_CACHE_DIR = "HF_CACHE_DIR"; // hugging face cache folder	
 	public static final String LOAD_DB_ON_SOCKET = "LOAD_DB_ON_SOCKET"; // load the db again on the socket side or give it as engine wrapper	
+	public static final String FORCE_PORT = "FORCE_PORT"; // the port to force the connection on
 	
 	
 }
