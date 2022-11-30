@@ -23,14 +23,11 @@ public class CustomReactorWrapper extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		
 		sc = (SocketClient)this.insight.getUser().getTCPServer(true);
-
 		
 		InsightSerializer is = new InsightSerializer(this.insight);
 		is.serializeInsight(false);
 		
-		// TODO Auto-generated method stub
 		PayloadStruct ps = new PayloadStruct();
 		ps.operation = ps.operation.REACTOR;
 		
@@ -42,9 +39,12 @@ public class CustomReactorWrapper extends AbstractReactor {
 		ps.insightId = this.insight.getInsightId();
 		
 		PayloadStruct retStruct = (PayloadStruct)sc.executeCommand(ps);
-		
 		logger.info("Got the response for reactor " + ps.payload[0]);
 		
+		// did we have an error?
+		if(retStruct.ex != null) {
+			return NounMetadata.getErrorNounMessage(retStruct.ex);
+		}
 		return (NounMetadata)retStruct.payload[0];
 	}
 }
