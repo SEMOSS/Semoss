@@ -16,6 +16,7 @@ import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.rosuda.REngine.Rserve.RConnection;
@@ -505,47 +506,46 @@ public class SocketServerHandler implements Runnable {
 		}
 	}
 	
-	
-    
-    public void cleanUp()
-    {
-    	if(!test)
-    	{
-    		classLogger.info("Starting shutdown " );
-            Iterator <String> envKeys = rtMap.keySet().iterator();
-            while(envKeys.hasNext())
-            {
-            	String env = envKeys.next();
-            	AbstractRJavaTranslator rt = rtMap.get(env);            	
-				if(rt != null)
-					rt.endR();
-            }
-			if(this.pt != null)
+	/**
+	 * Delete the entire folder from insight cache and stop processes
+	 */
+	public void cleanUp() {
+		if(!test) {
+			classLogger.info("Starting shutdown " );
+			Iterator <String> envKeys = rtMap.keySet().iterator();
+			while(envKeys.hasNext())
 			{
+				String env = envKeys.next();
+				AbstractRJavaTranslator rt = rtMap.get(env);            	
+				if(rt != null) {
+					rt.endR();
+				}
+			}
+			if(this.pt != null) {
 				this.pt.killThread();
 				processCommand("'logout now'"); // this should trigger it and kill it
 			}
 
-          }
-        // stop the classLogger
-		//LogManager.shutdown();
-		
-		
-		// dont delete output log
+		}
+		// stop the classLogger
+		LogManager.shutdown();
+
+		// don't delete output log
 		// do it later
-		File file = new File(mainFolder + "/output.log");
-		file.deleteOnExit();
-		
+		File outFile = new File(mainFolder + "/output.log");
+		if(outFile.exists() && outFile.isFile()) {
+			outFile.deleteOnExit();
+		}
+
 		try {
 			FileUtils.deleteDirectory(new File(mainFolder));
 		} catch (IOException ignore) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-		}			
+			
+		}
 		// exit out
 		System.exit(1);
-    }	
-    
+	}
+	
     // process the command
     public Object processCommand(String command)
     {
