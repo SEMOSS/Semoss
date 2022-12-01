@@ -101,7 +101,7 @@ public class MyProjectsReactor extends AbstractReactor {
 			}
 		}
 		
-		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
 	}
 	
 	private Map<String, Object> getMetaMap() {
