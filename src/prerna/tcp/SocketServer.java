@@ -31,7 +31,6 @@ public class SocketServer implements Runnable {
 	public Jep jep = null;
 	boolean SSL = false;
 	
-	
 	public volatile boolean keepAlive = true;
 	public volatile boolean ready = false;
 	public Object driverMonitor = null;
@@ -69,13 +68,11 @@ public class SocketServer implements Runnable {
 		
 		if(args == null || args.length == 0) {
 			args = new String[5];
-			args[0] = "C:\\users\\pkapaleeswaran\\workspacej3\\SemossDev\\py\\log-config";
-			args[1] = "C:\\users\\pkapaleeswaran\\workspacej3\\SemossDev\\RDF_Map.prop";;
-			args[2] = "9999";
-			args[3] = "py";
-			
-			//args[3] = "r";
-			args[4] = "c:/users/pkapaleeswaran/workspacej3/semossdev/py";
+			args[0] = "/Users/mahkhalil/workspace/Semoss_Dev/InsightCache/a1048966239358036599";
+			args[1] = "/Users/mahkhalil/workspace/Semoss_Dev/RDF_Map.prop";;
+			args[2] = "7777";
+			args[3] = "r";
+			args[4] = "mixed";
 			test = true;
 			multi = true;
 		}
@@ -189,6 +186,7 @@ public class SocketServer implements Runnable {
 					try {
 						crash.wait();
 						clientSocket = null;
+						ssh.cleanUp();
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 						classLogger.error(Constants.STACKTRACE, e);
