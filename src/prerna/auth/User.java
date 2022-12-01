@@ -587,6 +587,9 @@ public class User implements Serializable {
 	
 	public SocketClient getTCPServer(boolean create) {
 		if((this.tcpServer == null && create) || (this.tcpServer != null && !this.tcpServer.isConnected() && create)) {
+			
+			this.forcePort = -1;
+			this.port = null;
 			PyUtils.getInstance().userTupleMap.remove(this); // remove it from user tuple map so it will restart
 			startTCPServer();
 			this.pyt = new TCPPyTranslator();
@@ -597,10 +600,11 @@ public class User implements Serializable {
 	}
 
 	public SocketClient getTCPServer(boolean create, int port) {
-		// set the port
-		forcePort = port;
 		// then restart it
 		if((this.tcpServer == null && create) || (this.tcpServer != null && !this.tcpServer.isConnected() && create)) {
+			// set the port
+			forcePort = port;
+			this.port = null;
 			PyUtils.getInstance().userTupleMap.remove(this); // remove it from user tuple map so it will restart
 			startTCPServer();
 			this.pyt = new TCPPyTranslator();
