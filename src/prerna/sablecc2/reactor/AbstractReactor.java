@@ -677,7 +677,7 @@ public abstract class AbstractReactor implements IReactor {
 		
 		// fill in order based on whatever is left
 		int counter = 0;
-		if(!this.curRow.isEmpty()) {
+		if(this.curRow != null && !this.curRow.isEmpty()) {
 			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 				if(!keyValue.containsKey(keysToGet[keyIndex])) {
 					keyValue.put(keysToGet[keyIndex], this.curRow.get(counter) + "");
