@@ -42,6 +42,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.RawSesameSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 
@@ -140,7 +141,17 @@ public class ImportUtility {
 		else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY 
 				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY
 				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY) {
-			parseRawQsToFlatTable(dataframe, qs, frameTableName, (IRawSelectWrapper) it, qs.getEngineId());
+			if(it instanceof IRawSelectWrapper) {
+				parseRawQsToFlatTable(dataframe, qs, frameTableName, (IRawSelectWrapper) it, qs.getEngineId());
+			} else if(it instanceof BasicIteratorTask) {
+				try {
+					parseRawQsToFlatTable(dataframe, qs, frameTableName, ((BasicIteratorTask) it).getIterator(), qs.getEngineId());
+				} catch (Exception e) {
+					throw new IllegalArgumentException(e.getMessage(), e);
+				}
+			} else {
+				throw new IllegalArgumentException("Unable to process iterator of type " + it.getClass().getSimpleName() + " to generate the frame metadata");
+			}
 		}
 		// frame
 		else if(qsType == QUERY_STRUCT_TYPE.FRAME) {

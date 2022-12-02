@@ -26,6 +26,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -55,6 +56,16 @@ public class ImportReactor extends AbstractReactor {
 		}
 		// set the logger into the frame
 		frame.setLogger(logger);
+		
+		QUERY_STRUCT_TYPE thisImportQsType = qs.getQsType();
+		boolean limitRawQuery = false;
+		long limitRawQueryVal = -1;
+		if(thisImportQsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || thisImportQsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
+				|| thisImportQsType == QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY || thisImportQsType == QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY) {
+			if( (limitRawQueryVal=qs.getLimit()) > 0) {
+				limitRawQuery = true;
+			}
+		}
 		
 		// if we are loading from a native frame 
 		// that is backed by a RDBMSNativeEngine
@@ -89,6 +100,7 @@ public class ImportReactor extends AbstractReactor {
 		}
 		
 		// we are not having the special native frame case
+		BasicIteratorTask task = null;
 		IRawSelectWrapper it = null;
 		if(!(frame instanceof NativeFrame)) {
 			try {
@@ -103,8 +115,10 @@ public class ImportReactor extends AbstractReactor {
 				}
 				throw new SemossPixelException(getError(message));
 			}
-			try {
-				if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
+			
+			// is there an additional limit on a raw query?
+			if(limitRawQuery) {
+				if(!FrameSizeRetrictions.sizeWithinLimit(limitRawQueryVal)) {
 					SemossPixelException exception = new SemossPixelException(
 							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 									PixelDataType.CONST_STRING, 
@@ -112,16 +126,35 @@ public class ImportReactor extends AbstractReactor {
 					exception.setContinueThreadOfExecution(false);
 					throw exception;
 				}
-			} catch (SemossPixelException e) {
-				throw e;
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new SemossPixelException(getError("Error occurred executing query before loading into frame"));
+				// set the limit into the flushed iterator
+				task = new BasicIteratorTask(qs, it);
+				task.setCollectLimit(limitRawQueryVal);
+			} else {
+				try {
+					if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
+						SemossPixelException exception = new SemossPixelException(
+								new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+										PixelDataType.CONST_STRING, 
+										PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+						exception.setContinueThreadOfExecution(false);
+						throw exception;
+					}
+				} catch (SemossPixelException e) {
+					throw e;
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new SemossPixelException(getError("Error occurred executing query before loading into frame"));
+				}
 			}
 		}
 		
 		// insert the data
-		IImporter importer = ImportFactory.getImporter(frame, qs, it);
+		IImporter importer = null;
+		if(task != null) {
+			importer = ImportFactory.getImporter(frame, qs, task);
+		} else {
+			importer = ImportFactory.getImporter(frame, qs, it);
+		}
 		try {
 			importer.insertData();
 		} catch (Exception e) {
