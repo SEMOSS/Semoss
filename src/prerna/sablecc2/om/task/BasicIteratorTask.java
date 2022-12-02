@@ -48,6 +48,10 @@ public class BasicIteratorTask extends AbstractTask {
 	private boolean grabFromWrapper = false;
 	private boolean grabTypesFromWrapper = false;
 	
+	private long collectLimit = -1;
+	private long collectCounter = 0;
+	
+	
 	public BasicIteratorTask(SelectQueryStruct qs) {
 		this.qs = qs;
 		// this is important so we dont override
@@ -113,6 +117,12 @@ public class BasicIteratorTask extends AbstractTask {
 		if(this.iterator == null) {
 			return false;
 		}
+		
+		// are we adding a collect limit on the task?
+		if(collectLimit > -1 && collectCounter >= collectLimit) {
+			return false;
+		}
+		
 		return iterator.hasNext();
 	}
 	
@@ -122,6 +132,9 @@ public class BasicIteratorTask extends AbstractTask {
 			throw new NoSuchElementException("Could not find additional elements for iterator");
 		}
 		this.internalOffset++;
+		if(this.collectLimit > -1) {
+			collectCounter++;
+		}
 		return iterator.next();
 	}
 	
@@ -433,6 +446,10 @@ public class BasicIteratorTask extends AbstractTask {
 	
 	public SelectQueryStruct getQueryStruct() {
 		return this.qs;
+	}
+	
+	public void setCollectLimit(long collectLimit) {
+		this.collectLimit = collectLimit;
 	}
 	
 	public IRawSelectWrapper getIterator() throws Exception {
