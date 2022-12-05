@@ -98,6 +98,10 @@ public class User implements Serializable {
 	
 	private int forcePort = -1;
 	
+	// need to move everything here
+	// since on reconnect we need to redo serialization. 
+	private Map<String, Boolean> insightSerializedMap = new HashMap<String, Boolean>();
+	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
@@ -595,6 +599,9 @@ public class User implements Serializable {
 			this.pyt = new TCPPyTranslator();
 			((TCPPyTranslator) pyt).nc = this.tcpServer; // starts it
 			tcpServer.setUser(this);
+			
+			// invalidate the serialization map
+			insightSerializedMap.clear();
 		}
 		return this.tcpServer;
 	}
@@ -610,6 +617,10 @@ public class User implements Serializable {
 			this.pyt = new TCPPyTranslator();
 			((TCPPyTranslator) pyt).nc = this.tcpServer; // starts it
 			tcpServer.setUser(this);
+
+			// invalidate the serialization map
+			insightSerializedMap.clear();
+
 		}
 		return this.tcpServer;
 	}
@@ -1105,6 +1116,16 @@ public class User implements Serializable {
 		}
 		
 		return new String[] {"anonymous", "anonymous@not_logged_in.com"};
+	}
+	
+	public void setInsightSerialization(String insightId, Boolean serialize)
+	{
+		insightSerializedMap.put(insightId, serialize);
+	}
+	
+	public Boolean getInsightSerialization(String insightId)
+	{
+		return insightSerializedMap.containsKey(insightId) && insightSerializedMap.get(insightId);
 	}
 	
 	private String[] getUserEmail(AccessToken token) {

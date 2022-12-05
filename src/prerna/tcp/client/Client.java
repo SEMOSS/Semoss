@@ -26,6 +26,7 @@ import io.netty.channel.socket.oio.OioSocketChannel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.DIHelper;
@@ -57,6 +58,7 @@ public class Client implements Runnable {
 	
 	
 	boolean killall = false; // use this if the server is dead or it has crashed
+	private User user;
 	
     
     public void connect(String HOST, int PORT, boolean SSL)
@@ -403,4 +405,8 @@ public class Client implements Runnable {
     	System.err.println("Average rountrip takes .. " + averageMillis);
     }
     
+    public void setUser(User user)
+    {
+    	this.user = user;
+    }
 }

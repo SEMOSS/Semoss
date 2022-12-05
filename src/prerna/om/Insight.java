@@ -85,6 +85,7 @@ import prerna.sablecc2.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.tcp.client.Client;
+import prerna.tcp.client.InsightSerializer;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.AssetUtility;
 import prerna.util.ChromeDriverUtility;
@@ -226,10 +227,7 @@ public class Insight implements Serializable {
 	private transient ChromeDriverUtility chromeUtil = null;
 	
 	private String rEnvName = null;
-	
-	// specifies if this insight has been serialized
-	public boolean serialized = false;
-	
+		
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////// START CONSTRUCTORS //////////////////////////////////
@@ -1475,7 +1473,8 @@ public class Insight implements Serializable {
 	//TODO: on tomcat side, when context changes needs to be told
 	//TODO: on tomcat side, when context changes needs to be told
 	//TODO: on tomcat side, when context changes needs to be told
-	public boolean setContext(String projectId) {
+	public boolean setContext(String projectId) 
+	{
 		// sets the context space for the user
 		// also set the cmd context right here
 		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
@@ -1495,6 +1494,12 @@ public class Insight implements Serializable {
 				this.user.setContext(context);
 				this.contextProjectId = projectId;
 				this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+				
+				// we need to find a way to serialize the insight here
+				InsightSerializer is = new InsightSerializer(this);
+				is.serializeInsight(true); // force it. the context may have changed
+
+				
 				return true;
 			}
 			return false;
@@ -1508,6 +1513,7 @@ public class Insight implements Serializable {
 			this.contextProjectId = projectId;
 			return true;
 		}
+		
 	}
 	
 	public CmdExecUtil getCmdUtil() {
@@ -1737,4 +1743,13 @@ public class Insight implements Serializable {
 		return this.rEnvName;
 	}
 	
+	public void setSerialized(boolean serialized)
+	{
+		this.user.setInsightSerialization(insightId, serialized);
+	}
+	
+	public boolean getSerialized()
+	{
+		return 	this.user.getInsightSerialization(insightId);
+	}
 }
