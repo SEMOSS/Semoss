@@ -104,6 +104,8 @@ public class Project implements IProject {
 	
 	private RDBMSNativeEngine insightRdbms;
 	private String insightDatabaseLoc;
+	
+	private Boolean execReactorOnSocket = null;
 
 	/**
 	 * Hash for the specific engine reactors
@@ -735,7 +737,16 @@ public class Project implements IProject {
 			return retReac;
 		}
 		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")) && retReac != null) {
+		// secondary check to execute reactor here
+		
+		if(executeReactorOnSocket() && ( 
+				(
+				DIHelper.getInstance().getLocalProp("core") == null || 
+				DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")
+				) 
+				&& retReac != null)
+				) 
+		{
 		
 			// need to convert this to reactor wrapper before I give it to be executed			
 			CustomReactorWrapper wrapper = new CustomReactorWrapper();
@@ -745,6 +756,16 @@ public class Project implements IProject {
 		} else {
 			return retReac;
 		}
+	}
+	
+	private boolean executeReactorOnSocket()
+	{
+		if(this.execReactorOnSocket == null)
+		{
+			this.execReactorOnSocket= (DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null)
+					&& (DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION).toString().equalsIgnoreCase("SOCKET"));
+		}
+		return execReactorOnSocket;
 	}
 	
 

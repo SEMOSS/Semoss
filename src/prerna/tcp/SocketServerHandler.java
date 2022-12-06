@@ -23,6 +23,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
+import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.project.impl.Project;
 import prerna.sablecc2.om.NounStore;
@@ -36,6 +37,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 import prerna.util.TCPChromeDriverUtility;
+import prerna.util.Utility;
 
 public class SocketServerHandler implements Runnable {
 	
@@ -510,7 +512,8 @@ public class SocketServerHandler implements Runnable {
 	 * Delete the entire folder from insight cache and stop processes
 	 */
 	public void cleanUp() {
-		if(!test) {
+		if(!test) 
+		{
 			classLogger.info("Starting shutdown " );
 			Iterator <String> envKeys = rtMap.keySet().iterator();
 			while(envKeys.hasNext())
@@ -526,6 +529,18 @@ public class SocketServerHandler implements Runnable {
 				processCommand("'logout now'"); // this should trigger it and kill it
 			}
 
+			// we should also close all the dbs that were opened
+			String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
+			if(engines != null)
+			{
+				String [] engineList = engines.split(";");
+				for(int engineIndex = 0;engineIndex < engineList.length;engineIndex++)
+				{
+					IEngine engine = Utility.getEngine(engineList[engineIndex]);
+					if(engine != null)
+						engine.closeDB();
+				}
+			}
 		}
 		// stop the classLogger
 		LogManager.shutdown();
