@@ -2809,7 +2809,11 @@ public class Utility {
 							return null;
 						}
 					}
-		
+					
+					// Now that the app has been pulled, grab the smss file
+
+					smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
+					
 					// Start up the engine using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
