@@ -35,7 +35,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -3995,9 +3994,15 @@ public class Utility {
 				for(int classIndex = 0;classIndex < classes.size();classIndex++) {
 					ClassInfo classObject = classes.get(classIndex);
 					if(isValidReactor(classObject)) {
-						String name = classes.get(classIndex).getSimpleName();
 						Class actualClass = customClassLoader.loadClass(classes.get(classIndex).getName());
-						reactorMap.put(name.toUpperCase().replaceAll("REACTOR", ""), actualClass);
+						
+						String reactorName = classes.get(classIndex).getSimpleName();
+						final String REACTOR_KEY = "REACTOR";
+						if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
+							reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+						}
+						
+						reactorMap.put(reactorName.toUpperCase(), actualClass);
 					}
 				}
 			}
@@ -4032,12 +4037,12 @@ public class Utility {
 
 	// loads classes through this specific class loader for the insight
 	public static Map loadReactorsMvn(String folder, JarClassLoader cl, String outputFolder) {
-		HashMap thisMap = new HashMap<String, Class>();
+		Map<String, Class> reactors = new HashMap<>();
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
 				 logger.debug("App specific reactors are disabled");
-				 return thisMap;
+				 return reactors;
 			 };
 		}
 		try {
@@ -4087,28 +4092,30 @@ public class Utility {
 				// sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
 				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
 
-				Map<String, Class> reactors = new HashMap<>();
 				// add the path to the insight classes so only this guy can load it
 				pool.insertClassPath(classesFolder);
 
 				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-					
 					// this will load the reactor with everything
 					JclObjectFactory factory = JclObjectFactory.getInstance();
 
 					  //Create object of loaded class
 					Object loadedObject = factory.create(cl, classes.get(classIndex).getName());
 
-					String name = classes.get(classIndex).getSimpleName();
+					String reactorName = classes.get(classIndex).getSimpleName();
+					final String REACTOR_KEY = "REACTOR";
+					if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
+						reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+					}
 
-					thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), loadedObject.getClass());
+					reactors.put(reactorName.toUpperCase(), loadedObject.getClass());
 				}
 			}
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 		}
 
-		return thisMap;
+		return reactors;
 	}
 
 	public static String getCP() {
