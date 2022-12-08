@@ -6,7 +6,10 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,17 +26,35 @@ import prerna.util.FstUtil;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-public class SocketClient extends Client implements Runnable {
-
-	private static final Logger logger = LogManager.getLogger(SocketClient.class);
+public class SocketClient implements Runnable {
+	
+	private static final String CLASS_NAME = SocketClient.class.getName();
+	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
+	
+    static final int SIZE = Integer.parseInt(System.getProperty("size", "256"));
+    Object lock = new Object();
+    Object response = null;
+    String HOST = null;
+    int PORT = -1;
+    boolean ssl = false;
+    Map requestMap = new HashMap();
+    Map responseMap = new HashMap();
+    boolean ready = false;
+    boolean connected = false;
+	AtomicInteger count = new AtomicInteger(0);
+	long averageMillis = 200;
+	boolean warmup;
+	String status = "not_started";
+	
+	
+	boolean killall = false; // use this if the server is dead or it has crashed
+	private User user;
+	
 	boolean done = false;
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
-	User user = null; // the main user for this socket client
 	
-	boolean killall = false; // use this if the server is dead or it has crashed
-    
     public void connect(String HOST, int PORT, boolean SSL)
     {
     	this.HOST = HOST;
@@ -189,11 +210,9 @@ public class SocketClient extends Client implements Runnable {
     private void writePayload(PayloadStruct ps)
     {
     	byte [] psBytes = FstUtil.packBytes(ps);
-    	try
-    	{
+    	try {
     		os.write(psBytes);
-    	}catch(IOException ex)
-    	{
+    	} catch(IOException ex) {
     		ex.printStackTrace();
     		crash();
     	}
@@ -224,20 +243,9 @@ public class SocketClient extends Client implements Runnable {
 	    	ps.methodName = "CLOSE_ALL_LOGOUT<o>";
 	    	writePayload(ps);
     	}
-    	// close the output stream
-    	if(os != null) {
-    		try {
-    			os.close();
-    		} catch(Exception e) {
-    			e.printStackTrace();
-    		}
-    	}
     	
 		CleanerThread t = new CleanerThread(dir);
 		t.start();
-    	//ctx.channel().close();
-    	// Then close the parent channel (the one attached to the bind)
-    	//ctx.channel().parent().close();
     }
 
     

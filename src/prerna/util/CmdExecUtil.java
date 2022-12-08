@@ -12,7 +12,6 @@ import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
 
 import prerna.tcp.PayloadStruct;
-import prerna.tcp.client.Client;
 import prerna.tcp.client.SocketClient;
 
 public class CmdExecUtil {
