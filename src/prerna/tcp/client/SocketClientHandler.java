@@ -33,12 +33,12 @@ public class SocketClientHandler implements Runnable {
 	byte[] curBytes = null;
 	int bytesReadSoFar = 0;
 	
-    Client nc = null;
+    SocketClient nc = null;
 //	public  Logger LOGGER = null;
 
     // I think we should move this also into stream reader or move stream reader here
 
-    public void setClient(Client nc) {
+    public void setClient(SocketClient nc) {
     	this.nc = nc;
     }
     
@@ -179,13 +179,13 @@ public class SocketClientHandler implements Runnable {
 				{
 					done = true;
 					this.nc.connected = false;
-					this.nc.crash(false);
+					this.nc.crash();
 				}
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 				done = true;
 				this.nc.connected = false;
-				this.nc.crash(true);
+				this.nc.crash();
 				// at some point we can relisten if we want.. 
 			}
 		}
