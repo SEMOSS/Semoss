@@ -595,8 +595,8 @@ public class ReactorFactory {
 						frame = packagePaths[packagePaths.length - 3].equalsIgnoreCase("frame");
 					}
 					String reactorName = name;
-					final String REACTOR_KEY = "Reactor";
-					if(reactorName.endsWith(REACTOR_KEY)) {
+					final String REACTOR_KEY = "REACTOR";
+					if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
 						reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
 					}
 					
