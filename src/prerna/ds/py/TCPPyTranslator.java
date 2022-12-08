@@ -4,12 +4,12 @@ import java.util.Hashtable;
 
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
-import prerna.tcp.client.Client;
+import prerna.tcp.client.SocketClient;
 
 public class TCPPyTranslator extends PyTranslator {
 
 	public static final String METHOD_DELIMITER = "$$##";
-	public Client nc = null;
+	public SocketClient nc = null;
 	String method = null;
 	
 	@Override
