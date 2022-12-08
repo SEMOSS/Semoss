@@ -512,51 +512,56 @@ public class SocketServerHandler implements Runnable {
 	 * Delete the entire folder from insight cache and stop processes
 	 */
 	public void cleanUp() {
-		if(!test) 
-		{
-			classLogger.info("Starting shutdown " );
-			Iterator <String> envKeys = rtMap.keySet().iterator();
-			while(envKeys.hasNext())
-			{
-				String env = envKeys.next();
-				AbstractRJavaTranslator rt = rtMap.get(env);            	
-				if(rt != null) {
-					rt.endR();
-				}
-			}
-			if(this.pt != null) {
-				this.pt.killThread();
-				processCommand("'logout now'"); // this should trigger it and kill it
-			}
-
-			// we should also close all the dbs that were opened
-			String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
-			if(engines != null)
-			{
-				String [] engineList = engines.split(";");
-				for(int engineIndex = 0;engineIndex < engineList.length;engineIndex++)
-				{
-					IEngine engine = Utility.getEngine(engineList[engineIndex]);
-					if(engine != null)
-						engine.closeDB();
-				}
-			}
-		}
-		// stop the classLogger
-		LogManager.shutdown();
-
-		// don't delete output log
-		// do it later
-		File outFile = new File(mainFolder + "/output.log");
-		if(outFile.exists() && outFile.isFile()) {
-			outFile.deleteOnExit();
-		}
-
 		try {
-			FileUtils.deleteDirectory(new File(mainFolder));
-		} catch (IOException ignore) {
-			
+			if(!test) 
+			{
+				classLogger.info("Starting shutdown " );
+				Iterator <String> envKeys = rtMap.keySet().iterator();
+				while(envKeys.hasNext())
+				{
+					String env = envKeys.next();
+					AbstractRJavaTranslator rt = rtMap.get(env);            	
+					if(rt != null) {
+						rt.endR();
+					}
+				}
+				if(this.pt != null) {
+					this.pt.killThread();
+					processCommand("'logout now'"); // this should trigger it and kill it
+				}
+	
+				// we should also close all the dbs that were opened
+				String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
+				if(engines != null)
+				{
+					String [] engineList = engines.split(";");
+					for(int engineIndex = 0;engineIndex < engineList.length;engineIndex++)
+					{
+						IEngine engine = Utility.getEngine(engineList[engineIndex]);
+						if(engine != null)
+							engine.closeDB();
+					}
+				}
+			}
+			// stop the classLogger
+			LogManager.shutdown();
+	
+			// don't delete output log
+			// do it later
+			File outFile = new File(mainFolder + "/output.log");
+			if(outFile.exists() && outFile.isFile()) {
+				outFile.deleteOnExit();
+			}
+	
+			try {
+				FileUtils.deleteDirectory(new File(mainFolder));
+			} catch (IOException ignore) {
+				
+			}
+		} catch(Exception | Error e) {
+			//ignore
 		}
+		
 		// exit out
 		System.exit(1);
 	}
