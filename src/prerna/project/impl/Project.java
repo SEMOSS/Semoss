@@ -123,7 +123,7 @@ public class Project implements IProject {
 	private boolean republish = false;
 	
 	// maven not set
-	private boolean mvnNotSet = false;
+	private boolean mvnDefined = false;
 		
 	@Override
 	public void openProject(String projectSmssFilePath) {
@@ -157,6 +157,9 @@ public class Project implements IProject {
 		}
 		
 		this.projectProperties = new ProjectProperties(this.projectName, this.projectId);
+		
+		// load any assets that are already compiled
+		loadCompiledProjectReactors();
 	}
 	
 	@Override
@@ -669,7 +672,7 @@ public class Project implements IProject {
 		String pomFile = projectBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER + DIR_SEPARATOR + "assets" + DIR_SEPARATOR + "java" + DIR_SEPARATOR + "pom.xml";
 		if(new File(pomFile).exists()) {
 			// this is maven
-			if(!mvnNotSet) {
+			if(!mvnDefined) {
 				retReac =  getReactorMvn(className, null);
 			} else {
 				retReac = null;
@@ -677,32 +680,29 @@ public class Project implements IProject {
 		}
 		else // keep the old processing
 		{
-			// try to get to see if this class already exists
-			// no need to recreate if it does
+			String classesFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes";
+			File classesDir = new File(classesFolder);
+			if(classesDir.exists() && classesDir.isDirectory()) {
+				try {
+					//FileUtils.cleanDirectory(classesDir);
+					//classesDir.mkdir();
+				} catch (Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			
 			SemossClassloader cl = engineClassLoader;
 			if(customLoader != null) {
 				cl = customLoader;
 			}
-			cl.setFolder(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes");
+			cl.setFolder(classesFolder);
 			
+			// have the classes been loaded already?
 			if(ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
 				engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
 				cl = engineClassLoader;
 				cl.uncommitEngine(this.projectId);
-				
-				String classesFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes";
-				
-				File classesDir = new File(classesFolder);
-				if(classesDir.exists() && classesDir.isDirectory())
-				{
-					try {
-						//FileUtils.cleanDirectory(classesDir);
-						//classesDir.mkdir();
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
+
 				int status = Utility.compileJava(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), getCP());
 				if(status == 0) {
 					ProjectCustomReactorCompilator.setCompiled(this.projectId);
@@ -880,15 +880,16 @@ public class Project implements IProject {
 		
 		// if there is no java.. dont even bother with this
 		// no need to spend time on any of this
-		if(! (new File(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + DIR_SEPARATOR + "java").exists()))
+		if( !(new File(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + DIR_SEPARATOR + "java").exists()) ) {
 			return retReac;
+		}
 			
 		// try to get to see if this class already exists
 		// no need to recreate if it does
 		JarClassLoader cl = mvnClassLoader;
 		if(customLoader != null) {
 			cl = customLoader;
-		}		
+		}
 		
 		//ReactorFactory.compileCache.remove(this.projectId);
 		// this is the routine to compile the java classes
@@ -904,8 +905,10 @@ public class Project implements IProject {
 		{
 			mvnClassLoader = null;
 			makeMvnClassloader();
-			if(mvnNotSet) // no point none of the stuff is set anyways
-				return null; 
+			if(!mvnDefined) {
+				// no point none of the stuff is set anyways
+				return null;
+			}
 			cl = mvnClassLoader;
 			// try to load it directly from assets
 			String targetFolder = getTargetFolder(pomFile);
@@ -922,7 +925,6 @@ public class Project implements IProject {
 			{
 				Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 				retReac = (IReactor) thisReactorClass.newInstance();
-				
 				return retReac;
 			}
 		} catch (InstantiationException e) {
@@ -1016,11 +1018,11 @@ public class Project implements IProject {
 			String assetsFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
 			
 			String mvnHome = System.getProperty(Settings.MVN_HOME);
-			if(mvnHome == null)
+			if(mvnHome == null) {
 				mvnHome = DIHelper.getInstance().getProperty(Settings.MVN_HOME);
-			if(mvnHome == null)
-			{
-				mvnNotSet = true;
+			}
+			if(mvnHome == null) {
+				mvnDefined = true;
 				return;
 			}
 			
@@ -1086,11 +1088,11 @@ public class Project implements IProject {
 			// and then delete it
 			// otherwise we have the list
 			String repoHome = System.getProperty(Settings.REPO_HOME);
-			if(repoHome == null)
+			if(repoHome == null) {
 				repoHome = DIHelper.getInstance().getProperty(Settings.REPO_HOME);
-			if(repoHome == null)
-			{
-				mvnNotSet = true;
+			}
+			if(repoHome == null) {
+				mvnDefined = true;
 				return null;
 			}
 			
@@ -1208,6 +1210,37 @@ public class Project implements IProject {
       	  logger.error(Constants.STACKTRACE, e);
 		}		
 	    return targetFolder;
+	}
+	
+	/**
+	 * load any existing reactor class files as is
+	 */
+	private void loadCompiledProjectReactors() {
+		String projectBaseFolder = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
+		String pomFile = projectBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER + DIR_SEPARATOR + "assets" + DIR_SEPARATOR + "java" + DIR_SEPARATOR + "pom.xml";
+		
+		if(new File(pomFile).exists()) {
+			// this is maven
+
+			//TODO: need to figure out how we see if maven is already compiled and exists
+			//TODO: need to figure out how we see if maven is already compiled and exists
+			//TODO: need to figure out how we see if maven is already compiled and exists
+			//TODO: need to figure out how we see if maven is already compiled and exists
+
+		}
+		else // load from existing classes folder - might be outdated but only doing this when the project is first loaded
+		{
+			String classesFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes";
+			File classesDir = new File(classesFolder);
+			if(classesDir.exists() && classesDir.isDirectory()) {
+				SemossClassloader cl = this.engineClassLoader;
+				cl.setFolder(classesFolder);
+				this.projectSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), cl);
+				if(this.projectSpecificHash != null && !this.projectSpecificHash.isEmpty()) {
+					ProjectCustomReactorCompilator.setCompiled(this.projectId);
+				}
+			}
+		}
 	}
 	
 }
