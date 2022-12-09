@@ -226,6 +226,8 @@ public class Insight implements Serializable {
 	private transient ChromeDriverUtility chromeUtil = null;
 	
 	private String rEnvName = null;
+	
+	private boolean contextReinitialized = false;
 		
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -1494,9 +1496,10 @@ public class Insight implements Serializable {
 				this.contextProjectId = projectId;
 				this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 				
+				contextReinitialized = true;
 				// we need to find a way to serialize the insight here
-				InsightSerializer is = new InsightSerializer(this);
-				is.serializeInsight(true); // force it. the context may have changed
+				//InsightSerializer is = new InsightSerializer(this);
+				//is.serializeInsight(true); // force it. the context may have changed
 
 				
 				return true;
@@ -1735,5 +1738,15 @@ public class Insight implements Serializable {
 	public boolean getSerialized()
 	{
 		return 	this.user.getInsightSerialization(insightId);
+	}
+	
+	public void setContextReinitialized(boolean contextReinitialized)
+	{
+		this.contextReinitialized = contextReinitialized;
+	}
+	
+	public boolean getContextReinitialized()
+	{
+		return this.contextReinitialized;
 	}
 }
