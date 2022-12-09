@@ -930,10 +930,12 @@ public class User implements Serializable {
 		mountDir = mountDir.replace("/assets", "");
 		
 		// also set the cmd context right here
-		this.cmdUtil = new CmdExecUtil(context, mountDir, getTCPServer(true));
+		this.cmdUtil = new CmdExecUtil(context, mountDir, null);
 	}
 	
 	public CmdExecUtil getCmdUtil() {
+		if(tcpServer != null && tcpServer.isConnected())
+			cmdUtil.setTcpClient(tcpServer);
 		return this.cmdUtil;
 	}
 	
