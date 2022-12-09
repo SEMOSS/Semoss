@@ -59,7 +59,7 @@ public class User implements Serializable {
 	private String port = null;
 	public String pyTupleSpace = null;
 	public String tupleSpace = null;
-	private MountHelper mountHelper = null;
+	private transient MountHelper mountHelper = null;
 	private String mountTuple = null;
 
 	// keeping this for a later time when personal experimental stuff
