@@ -36,6 +36,14 @@ public class CmdExecUtil {
 		this.workingDir = mountDir;
 		this.tcpClient = tcpClient;
 		System.err.println("Working Dir is set to ..  " + workingDir);
+		
+		
+		if(tcpClient != null)
+			pushMountToSocket();
+	}
+	
+	public void pushMountToSocket()
+	{
 		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
 		{
 			PayloadStruct ps = new PayloadStruct();
@@ -45,14 +53,21 @@ public class CmdExecUtil {
 			ps.hasReturn = false;
 			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);			
 		}
+		
 	}
-	
 	
 	public String executeCommand(String command)
 	{
 		String output = null;
+		
+		// may be do the check to see if tcp server is there
 		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
 		{
+			if(tcpClient == null)
+			{
+				return "Client is not connected on socket";
+			}
+
 			PayloadStruct ps = new PayloadStruct();
 			ps.operation = ps.operation.CMD;
 			ps.payload = new Object[] {command};
@@ -341,6 +356,12 @@ public class CmdExecUtil {
 	public String getMountName()
 	{
 		return this.mountName;
+	}
+	
+	public void setTcpClient(SocketClient tcpClient)
+	{
+		this.tcpClient = tcpClient;
+		pushMountToSocket();
 	}
 	
 	public static void main(String[] args) throws Exception{
