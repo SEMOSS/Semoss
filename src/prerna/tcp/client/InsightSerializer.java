@@ -20,7 +20,7 @@ public class InsightSerializer
 		//synchronized(insight) - this will un-necessarily block. will deal when we get to it
 		{
 			SocketClient sc = (SocketClient)this.insight.getUser().getTCPServer(true);
-			if(!this.insight.getSerialized() || force)
+			if(!this.insight.getSerialized() || this.insight.getContextReinitialized() || force)
 			{
 				PayloadStruct ps = new PayloadStruct();
 				ps.operation = ps.operation.INSIGHT;
@@ -34,6 +34,7 @@ public class InsightSerializer
 				PayloadStruct retStruct = (PayloadStruct)sc.executeCommand(ps);
 				
 				this.insight.setSerialized(true);
+				this.insight.setContextReinitialized(false);
 			}
 		}
 	}
