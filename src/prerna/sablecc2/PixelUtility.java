@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -149,14 +150,11 @@ public class PixelUtility {
 	public static String generatePixelString(String assignment, Object value) {
 		return generatePixelString(assignment, value.toString());	
 	}
-	
-	
+
 	/**
-	 * 
-	 * @param planner
-	 * @param pixelString
-	 * 
 	 * Adds a pkslString to the planner via lazy translation
+	 * @param translation
+	 * @param pixelString
 	 */
 	public static void addPixelToTranslation(DepthFirstAdapter translation, String pixelString) {
 		try {
@@ -164,7 +162,7 @@ public class PixelUtility {
 					new Lexer(
 							new PushbackReader(
 									new InputStreamReader(
-											new ByteArrayInputStream(pixelString.getBytes("UTF-8")), "UTF-8"))));
+											new ByteArrayInputStream(pixelString.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8))));
 			Start tree = p.parse();
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException ioe) {
@@ -590,11 +588,12 @@ public class PixelUtility {
 		}
 		return false;
 	}
-	
+
 	/**
-	 * 
-	 * @param user
+	 *
+	 * @param currentInsight
 	 * @param recipe
+	 * @param recipeIds
 	 * @param params
 	 * @param insightName
 	 * @return
@@ -664,7 +663,7 @@ public class PixelUtility {
 	
 	/**
 	 * Append the position insight recipe step to the recipe list
-	 * @param in
+	 * @param pixelList
 	 * @param additionalSteps
 	 */
 	public static void appendPositionInsightRecipeStep(PixelList pixelList, List<String> additionalSteps) {
@@ -1163,7 +1162,6 @@ public class PixelUtility {
 	/**
 	 * Get the pipeline operations for a given pixel
 	 * @param in
-	 * @param pixel
 	 * @return
 	 */
 	public static Map<String, Object> generatePipeline(Insight in) {
@@ -1237,8 +1235,10 @@ public class PixelUtility {
 	
 	/**
 	 * Add parameters into an existing recipe
+	 * @param user
 	 * @param recipe
-	 * @param params
+	 * @param paramsMap
+	 * @param insightName
 	 * @return
 	 */
 	@Deprecated
