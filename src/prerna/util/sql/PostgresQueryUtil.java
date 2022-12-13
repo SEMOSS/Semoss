@@ -247,6 +247,11 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getImageDataTypeName() {
+		return "BYTEA";
+	}
+	
+	@Override
 	public boolean allowClobJavaObject() {
 		return false;
 	}

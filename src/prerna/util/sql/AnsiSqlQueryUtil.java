@@ -818,6 +818,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
+	public String getImageDataTypeName() {
+		return "IMAGE";
+	}
+	
+	@Override
 	public boolean allowClobJavaObject() {
 		return true;
 	}

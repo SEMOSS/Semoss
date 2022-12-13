@@ -104,6 +104,8 @@ public final class SchedulerConstants {
 	public static final String BIT = "BIT";
 	public static final String BIGINT = "BIGINT";
 	public static final String SMALLINT = "SMALLINT";
+	// need to do this based on the sql type
+	@Deprecated
 	public static final String IMAGE = "IMAGE";
 	public static final String NUMERIC_13_4 = "NUMERIC(13,4)";
 	public static final String TIMESTAMP = "TIMESTAMP";
