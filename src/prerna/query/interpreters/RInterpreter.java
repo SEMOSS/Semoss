@@ -37,6 +37,7 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.qs.SubQueryExpression;
 import prerna.util.Utility;
 
@@ -694,6 +695,11 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
 			return addSelectorToQueryFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias, captureColumns);
+		} else if(fType == FILTER_TYPE.COL_TO_LAMBDA) {
+			return addSelectorToLambda(leftComp, rightComp, thisComparator, tableName, useAlias, captureColumns);
+		} else if(fType == FILTER_TYPE.LAMBDA_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			return addSelectorToLambda(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias, captureColumns);
 		}
 		else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
@@ -701,6 +707,25 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 * @return
+	 */
+	private StringBuilder addSelectorToLambda(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean captureColumns) {
+		// need to evaluate the lambda on the right
+		IReactor reactor = (IReactor) rightComp.getValue();
+		NounMetadata nounEvaluated = reactor.execute();
+
+		Map<String, Object> mergeMetadata = reactor.mergeIntoQsMetadata();
+		if(mergeMetadata.get(IReactor.MERGE_INTO_QS_FORMAT).equals(IReactor.MERGE_INTO_QS_FORMAT_SCALAR)) {
+			return addSelectorToValuesFilter(leftComp, nounEvaluated, thisComparator, tableName, useAlias, captureColumns);
+		}
+		
+		throw new IllegalArgumentException("Unknown qs format to merge");
+	}
 	
 	/**
 	 * Add filter for column to column
@@ -755,7 +780,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		return filterBuilder;
 	}
 	
-	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean captureColumns) {
+	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, 
+			String tableName, boolean useAlias, boolean captureColumns) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias);

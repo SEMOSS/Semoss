@@ -263,7 +263,13 @@ public class GreedyTranslation extends LazyTranslation {
 	    		return;
 	    	}
 	    	
-	    	NounMetadata output = curReactor.execute();
+	    	NounMetadata output = null;
+	    	// do we want to merge this into the parent QS reactor for lazy execution?
+	    	if(curReactor.canMergeIntoQs() && parent instanceof AbstractQueryStructReactor) {
+	    		output = new NounMetadata(curReactor, PixelDataType.LAMBDA);
+	    	} else {
+		    	output = curReactor.execute();
+	    	}
 	    	this.planner = curReactor.getPixelPlanner();
 
 	    	// this now becomes the prev reactor
