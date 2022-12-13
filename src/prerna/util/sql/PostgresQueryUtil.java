@@ -231,6 +231,10 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		return "\"" + alias + "\"";
 	}
 	
+	public String escapeSubqueryColumnName(String columnReturnedFromSubquery) {
+		return "\"" + columnReturnedFromSubquery + "\"";
+	}
+	
 	@Override
 	public String getRegexLikeFunctionSyntax() {
 		return "REGEXP_MATCHES";
