@@ -262,6 +262,11 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public boolean allowIfExistsAddConstraint() {
+		return false;
+	}
+	
+	@Override
 	public void appendSearchRegexFilter(AbstractQueryStruct qs, String columnQs, String searchTerm) {
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
