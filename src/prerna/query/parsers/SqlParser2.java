@@ -153,16 +153,17 @@ public class SqlParser2 {
 	
 	
 	
-	public void printOutput(SelectQueryStruct qs) throws Exception
+	public String generateQuery(SelectQueryStruct qs) throws Exception
 	{
 		String finalQuery = ((GenExpression)qs).printQS(((GenExpression)qs), new StringBuffer()).toString(); 
 		
 		System.err.println(finalQuery);
 		
 		// the real test is can I parse it back :)
-		Statement stmt = CCJSqlParserUtil.parse(finalQuery);
+		//Statement stmt = CCJSqlParserUtil.parse(finalQuery);
 		
 		System.err.println("Success ");
+		return finalQuery;
 	}
 	
 	
@@ -171,6 +172,8 @@ public class SqlParser2 {
 	{
 		//if(sb.toString().contains("UNION"))
 		//	System.err.println("Found it.. " + sb);
+		wrapper.numSubSelects++; // if it is the first time this will equal to zero
+		
 		GenExpression thisQs = null;
 		//System.err.println("Select " + sb);
 		if(qs == null)
@@ -853,6 +856,8 @@ public class SqlParser2 {
 			
 						if(columnName != null && parameterize)
 						{
+							// replace the parameter value so at a later point some one can change it
+							// the value is now replaced with table_column_left or right of the and expression followed by operation
 							((GenExpression)sqs2).setLeftExpresion("<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">");
 						}
 						exprToTrack = sqs2;
@@ -4383,17 +4388,40 @@ public class SqlParser2 {
 				"or (dtp.CSTM_STRT_PRIOR_MNTH_NBR = 201903 and dtp.CSTM_END_PRIOR_MNTH_NBR = 202002)\r\n" + 
 				"or (dtp.CSTM_STRT_PRIOR_2_MNTH_NBR = 201803 and dtp.CSTM_END_PRIOR_2_MNTH_NBR = 201902) ) ) TM_PRD_FNCTN ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH and TM_PRD_FNCTN.END_YEAR_MNTH INNER JOIN DIM_MBR_CVRG_TYPE ON CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_CD INNER JOIN DIM_RPTG_MBR_RLTNSHP ON CII_FACT_MBRSHP.RPTG_MBR_RLTNSHP_CD = DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_CD INNER JOIN DIM_MNTH ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR = DIM_MNTH.YEAR_MNTH_NBR INNER JOIN DIM_CNTRCT_TYPE ON CII_FACT_MBRSHP.CNTRCT_TYPE_CD = DIM_CNTRCT_TYPE.CNTRCT_TYPE_CD INNER JOIN CII_ACCT_PRFL ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0003618') and SRC_FLTR_ID in ('195d1b33-4e3c-4ebc-b51f-acfb59d288a1'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_MBRSHP.ACCT_ID in ('W0003618')   GROUP BY CII_ACCT_PRFL.ACCT_ID,CII_ACCT_PRFL.ACCT_NM,TM_PRD_FNCTN.TM_PRD_NM,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC,DIM_MNTH.CLNDR_MNTH_YEAR_NM,DIM_CNTRCT_TYPE.CNTRCT_TYPE_DESC ) AS MBRSHP  GROUP BY MBRSHP.ACCT_ID,MBRSHP.ACCT_NM,MBRSHP.TM_PRD_NM,MBRSHP.MBR_CVRG_TYPE_DESC,MBRSHP.ELGBLTY_CY_MNTH_END_NBR,MBRSHP.RPTG_MBR_RLTNSHP_DESC,MBRSHP.CLNDR_MNTH_YEAR_NM,MBRSHP.CNTRCT_TYPE_DESC ) AS FNL    ) t";
 		
+		String query34 = "SELECT actor_name, title, gender " + 
+				" FROM actor" + 
+				" WHERE gender > 'm' and title in (SELECT title" + 
+				"                FROM mv" + 
+				"                WHERE director = 'Steven Spielberg' AND revenue_domestic > budget)"
+				+ "and actor_name in ('brad', 'chad', 'mad')" ;
 		
-		test.parameterize = false;
+		test.parameterize = true;
 		//test.processCase = true;
-		Map<String, List<GenExpression>> tableColumns = test.getTableColumns(query4);
-		test.printRealColumns(tableColumns);
+		//Map<String, List<GenExpression>> tableColumns = test.getTableColumns(query4);
+		//test.printRealColumns(tableColumns);
 		//test.printOutput(wrapper.root);
 
 		
-		GenExpressionWrapper wrapper = test.processQuery(query33);
-		test.printOutput(wrapper.root);
+		GenExpressionWrapper wrapper = test.processQuery(query34);
+		test.generateQuery(wrapper.root);
 		GenExpression root = wrapper.root;
+		
+		// now that the sql is parameterized
+		// every <> block can then be used to understand what are the values inside of it
+		// the main index is primarily paramStringToParamStruct
+		// which then tags into gen expression
+		// you can set any of this and then invoke fill parameters which will fill the query and send result back as a query
+		String paramName = "actor_genderand0_left>";
+		Object paramValue = wrapper.getCurrentValueOfParam(paramName);
+
+		String defaultQuery = wrapper.getQueryForParam(paramName);		
+		System.err.println(paramName + "<>" + paramValue);
+		System.err.println("Query for param " + defaultQuery);
+		wrapper.setCurrentValueOfParam(paramName, "'monkeshwaran'");
+		wrapper.fillParameters();
+		test.generateQuery(wrapper.root);
+		
+		
 		List <ParamStructDetails> plist = new Vector<ParamStructDetails>();
 		ParamStructDetails pStruct = new ParamStructDetails();
 		pStruct.setColumnName("MovieBudget");
@@ -4408,11 +4436,11 @@ public class SqlParser2 {
 		System.err.println(" transformed query ..  " + finalQuery);
 		
 		// YEAR_ID
-		wrapper.replaceColumn("YEAR_ID", "123");
+		wrapper.replaceColumn("gender", "'fractor'");
 		//wrapper.replaceColumn("YER_ID", "123456");
 
 		wrapper.fillParameters();
-		test.printOutput(wrapper.root);
+		test.generateQuery(wrapper.root);
 
 		// works with Query 2
 		//Object [] output = root.printLineage(root, "Member Engagement Tier", null ,null, null, 0);
@@ -4432,24 +4460,24 @@ public class SqlParser2 {
 		
 		wrapper.neutralizeSelector(root, "A3", true);
 		System.err.println("After removing it");
-		test.printOutput(wrapper.root);
+		test.generateQuery(wrapper.root);
 		
 		wrapper.neutralizeSelector(root, "A3", false);
 		System.err.println("After adding it");
-		test.printOutput(wrapper.root);
+		test.generateQuery(wrapper.root);
 		
 
 		wrapper.neutralizeFunction(root, "detok", true);
 		System.err.println("After removing Function");
-		test.printOutput(wrapper.root);
+		test.generateQuery(wrapper.root);
 
 		wrapper.neutralizeFunction(root, "detok", false);
 		System.err.println("After Adding Function");
-		test.printOutput(wrapper.root);
+		test.generateQuery(wrapper.root);
 		
 		System.out.println("Adding detok to existing function");
 		wrapper.addFunctionToSelector(root, "A2", "detok");
-		test.printOutput(wrapper.root);
+		test.generateQuery(wrapper.root);
 
 		// get the param map and modify the value
 		// =CII_FACT_MBRSHP.ACCT_ID
@@ -4466,7 +4494,7 @@ public class SqlParser2 {
 		//wrapper.replaceColumn("YER_ID", "123456");
 
 		wrapper.fillParameters();
-		test.printOutput(wrapper.root);
+		test.generateQuery(wrapper.root);
 
 //		String mkquery = "select abc from table xyz";
 //		GenExpressionWrapper wrapper = test.processQuery(mkquery);
