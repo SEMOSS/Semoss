@@ -388,8 +388,22 @@ public abstract class AbstractSqlQueryUtil {
 		return "\"" + selector + "\"";
 	}
 
+	/**
+	 * Get any modification required to an alias
+	 * @param alias
+	 * @return
+	 */
 	public String escapeReferencedAlias(String alias) {
 		return alias;
+	}
+	
+	/**
+	 * Determine if the subquery column name needs to be aliased to be recognized
+	 * @param columnReturnedFromSubquery
+	 * @return
+	 */
+	public String escapeSubqueryColumnName(String columnReturnedFromSubquery) {
+		return columnReturnedFromSubquery;
 	}
 
 	/**
