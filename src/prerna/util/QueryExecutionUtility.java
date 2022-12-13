@@ -251,7 +251,7 @@ public class QueryExecutionUtility {
 	}
 	
 	public static List<Map<String, Object>> flushRsToMap(IEngine engine, SelectQueryStruct qs) {
-		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
+		List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
 		
 		IRawSelectWrapper wrapper = null;
 		try {
