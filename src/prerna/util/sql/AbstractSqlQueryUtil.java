@@ -757,13 +757,18 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getDoubleDataTypeName();
 	
 	/**
+	 * Get the RDBMS type equivalent for image data type
+	 * @return
+	 */
+	public abstract String getImageDataTypeName();
+	
+	/**
 	 * Does the RDBMS type support clob java object storage
 	 * i.e. - connection.createClob();
 	 * @return
 	 */
 	public abstract boolean allowClobJavaObject();
 
-	
 	/**
 	 * Does the engine allow you to add a column to an existing table
 	 * 
