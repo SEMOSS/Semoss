@@ -1205,9 +1205,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
-			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "PROJECTPERMISSION__FAVORITE", "FAVORITE"));
+			
+			QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST, "PROJECTPERMISSION__FAVORITE", "castFavorite");
+	        castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
+			
+			QueryFunctionSelector castVisibility = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST, "PROJECTPERMISSION__VISIBILITY", "castVisibility");
+			castVisibility.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castVisibility, "VISIBILITY"));
+			
 			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "PROJECTPERMISSION__PERMISSION", "PERMISSION"));
-			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "PROJECTPERMISSION__VISIBILITY", "VISIBILITY"));
 			qs2.addGroupBy(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
 			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join", new String[] {"USER_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "="});
@@ -1257,7 +1264,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs1.addExplicitFilter(orFilter);
 		}
 		// only show those that are visible
-		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==", Arrays.asList(new Object[] {true, null}), PixelDataType.BOOLEAN));
+		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==", Arrays.asList(new Object[] {1, null}), PixelDataType.CONST_INT));
 		// favorites only
 		if(favoritesOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", true, PixelDataType.BOOLEAN));
@@ -1587,9 +1594,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
 
-				List<IQuerySelector> selectors = new Vector<>();
+				List<IQuerySelector> selectors = new ArrayList<>();
 				selectors.add(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE"));
-				List<Object> values = new Vector<>();
+				List<Object> values = new ArrayList<>();
 				values.add(isFavorite);
 				uqs.setSelectors(selectors);
 				uqs.setValues(values);
