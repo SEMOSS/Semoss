@@ -379,6 +379,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// this is a column selector from a projection off a subquery
 			tableAlias = table;
 			physicalColName = colName;
+			if(this.queryUtil != null) {
+				physicalColName = this.queryUtil.escapeSubqueryColumnName(physicalColName);
+			}
 		} else {
 			if(tableAlias == null) {
 				if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
@@ -539,6 +542,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	 * Adds the joins for the query
 	 */
 	public void addJoins() {
+		if(this.queryUtil != null) {
+			this.joinStructList.setQueryUtil(this.queryUtil);
+		}
 		for(IRelation relationship : qs.getRelations()) {
 			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
 				BasicRelationship rel = (BasicRelationship) relationship;
