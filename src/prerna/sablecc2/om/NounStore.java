@@ -4,7 +4,10 @@ import java.io.Serializable;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 
 public class NounStore implements Serializable{
@@ -167,5 +170,20 @@ public class NounStore implements Serializable{
 		}
 		
 		return retHash;
+	}
+	
+	public static NounStore generateNounFromMap(Map<String, List<Map<String, Object>>> inputMap) {
+		NounStore store = new NounStore("all");
+		for(String key : inputMap.keySet()) {
+			GenRowStruct grs = store.makeNoun(key);
+			
+			List<Map<String, Object>> inputMapVals = inputMap.get(key);
+			for(Map<String, Object> nounInput : inputMapVals) {
+				NounMetadata noun = new NounMetadata(nounInput.get("value"), PixelDataType.valueOf(nounInput.get("type")+""));
+				grs.add(noun);
+			}
+		}
+		
+		return store;
 	}
 }

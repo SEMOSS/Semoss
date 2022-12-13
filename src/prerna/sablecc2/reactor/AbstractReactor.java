@@ -854,6 +854,16 @@ public abstract class AbstractReactor implements IReactor {
 		return null;
 	}
 	
+	@Override
+	public boolean canMergeIntoQs() {
+		return false;
+	}
+	
+	@Override
+	public Map<String, Object> mergeIntoQsMetadata() {
+		return null;
+	}
+	
 	// gets the success message
 	public static NounMetadata getSuccess(String message) {
 		return NounMetadata.getSuccessNounMessage(message);

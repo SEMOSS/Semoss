@@ -5,10 +5,13 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.ibm.icu.util.Calendar;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -33,13 +36,11 @@ public class DateManipulationReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		NounMetadata retNoun = null;
-		// get manipulation type
-		if (this.keyValue.containsKey(this.keysToGet[0])) {
-			String type = this.keyValue.get(this.keysToGet[0]);
-			retNoun = performManip(type);
+		String type = this.keyValue.get(this.keysToGet[0]);
+		if(type == null) {
+			return NounMetadata.getErrorNounMessage("Must provide the 'type' of date manipulation");
 		}
-		return retNoun;
+		return performManip(type);
 	}
 
 	private NounMetadata performManip(String type) {
@@ -106,7 +107,9 @@ public class DateManipulationReactor extends AbstractReactor {
 			long l = totalTimeUnitsBetween(c.getTime(),cLater.getTime(),timeunit);
 			return new NounMetadata((int)l, PixelDataType.CONST_INT);
 		}
-		return null;
+
+		
+		return NounMetadata.getErrorNounMessage("Unknown type = '" + type + "' for the date manipulation");
 	}
 
 	private boolean isInteger(String recurrence) {
@@ -134,4 +137,36 @@ public class DateManipulationReactor extends AbstractReactor {
 			return TimeUnit.valueOf(timeUnit.toUpperCase()).convert(diffInMillies, TimeUnit.MILLISECONDS);
 		}
 	}
+	
+	private SemossDataType determineReturnOutput() {
+		organizeKeys();
+		String type = this.keyValue.get(this.keysToGet[0]);
+		if(type == null) {
+			throw new IllegalArgumentException("Must provide the 'type' of date manipulation");
+		}
+		
+		if (type.equalsIgnoreCase("add") || type.equalsIgnoreCase("addition")
+				|| type.equalsIgnoreCase("subtract") || type.equalsIgnoreCase("sub")
+						|| type.equalsIgnoreCase("subtraction")) {
+			return SemossDataType.DATE;
+		} else if (type.equalsIgnoreCase("diff") || type.equalsIgnoreCase("difference")) {
+			return SemossDataType.INT;
+		}
+		
+		throw new IllegalArgumentException("Unknown type = '" + type + "' for the date manipulation");
+	}
+	
+	@Override
+	public boolean canMergeIntoQs() {
+		return true;
+	}
+	
+	@Override
+	public Map<String, Object> mergeIntoQsMetadata() {
+		Map<String, Object> qsMergeMetadata = new HashMap<>();
+		qsMergeMetadata.put(MERGE_INTO_QS_FORMAT, MERGE_INTO_QS_FORMAT_SCALAR);
+		qsMergeMetadata.put(MERGE_INTO_QS_DATATYPE, determineReturnOutput() );
+		return qsMergeMetadata;
+	}
+	
 }
