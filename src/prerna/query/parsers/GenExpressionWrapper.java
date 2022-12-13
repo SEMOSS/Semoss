@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.Statement;
 import prerna.query.parsers.ParamStructDetails.LEVEL;
 import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.querystruct.FunctionExpression;
@@ -43,15 +45,22 @@ public class GenExpressionWrapper {
 	
 	public GenExpression root = null;
 	
-	// this is the highest level - acctid
+	// this is the highest level - acctid - when I replace this it will replace this across all of the databases and operators
+	// key is column, value is column tables i.e. key to the next level
 	public Map<String, List <String>> columnTableIndex = new HashMap<>(); 
-	// this is the next highest level - clms.acctid, mbrshp.acctid
+	// this is the next highest level - clms.acctid, mbrshp.acctid - this will replace it only for the specified operators not all of it
+	// key is column table and value is column table operator i.e. key to the next level
 	public Map<String, List <String>> columnTableOperatorIndex = new HashMap<>(); 
 	// this is the next level - clms.acctid=, clms.acctid < - this now also includes the unique count
+	// key is column table operator and valus is the actual parameter i.e. gen expression
 	public Map <String, ParamStructDetails> operatorTableColumnParamIndex = new HashMap<>(); 
+	
 	 // final level
 	public Map <ParamStructDetails, List <GenExpression>> paramToExpressionMap = new HashMap<>();
 
+	public Map <String, ParamStructDetails> paramStringToParamMap = new HashMap<>();
+
+	
 	// keeping track of the current operator
 	public Stack <String> currentOperator = new Stack<String>();
 	public Stack <String> contextExpression = new Stack<String>();
@@ -60,6 +69,8 @@ public class GenExpressionWrapper {
 	int orCount = 0;
 	int uniqueCounter = 0;
 	
+	// how many subselects are there
+	public int numSubSelects = -1;
 	
 	// keeps function to expression list
 	public Map<String, List<GenExpression>> functionExpressionMapper = new HashMap<String, List<GenExpression>>();
@@ -526,7 +537,7 @@ public class GenExpressionWrapper {
 			daStruct.setTableName(tableName);
 			daStruct.setCurrentValue(constantValue);
 			daStruct.setOperator(actualOperationName);
-			daStruct.setuOperator(operationName);
+			daStruct.setuOperator(operationName); // this is the unique operator so that it can be pegged
 			daStruct.setContext(context);
 			daStruct.setContextPart(contextPart);
 			daStruct.setDefQuery(defQuery);
@@ -564,6 +575,8 @@ public class GenExpressionWrapper {
 		}
 		allExpressions.add(exprToTrack);
 		paramToExpressionMap.put(daStruct, allExpressions);
+		paramStringToParamMap.put(tableColumnOperatorComposite, daStruct);
+		
 		uniqueCounter++;
 		
 		//System.err.println("Parameterizing " + columnName + " with <><> " + defQuery);
@@ -1112,5 +1125,90 @@ public class GenExpressionWrapper {
 		return retQuery;
 	}
 	
+	public Map <String, Object>  getAllParamNames()
+	{
+		// gets all of the param names in a query like this
+		/*
+		 * SELECT  actor_name, title, gender
+		  	FROM actor
+		  WHERE gender  > <actor_genderand0_left>>   AND title  IN  (
+		SELECT  title
+		  FROM mv
+		  WHERE director  = <mv_directorand1_left=>   AND revenue_domestic  > budget  )   AND actor_name  IN  (<actor_actor_namein2>) 
+
+		 */
+		
+		// here the param names would be <actor_genderand0_left>> or  <mv_directorand1_left=> etc. 
+		// may be also give default values
+		Map <String, Object> retList = new HashMap<String, Object>();
+		
+		// pass through param hash and add it
+		Iterator <String> paramKeys = paramStringToParamMap.keySet().iterator();
+		
+		while(paramKeys.hasNext())
+		{
+			String param1 = paramKeys.next();
+			ParamStructDetails daStruct = paramStringToParamMap.get(param1);			
+			//String key = 
+			Object value = daStruct.getCurrentValue();
+			retList.put(param1, value);
+		}
+		
+		return retList;
+	}
+	
+	public Object getCurrentValueOfParam(String paramName)
+	{
+		// gets the current value fo the set param name
+		// like <actor_genderand0_left>>
+		// the front end should be able to directly substitute this value
+		// this is fairly straight forward
+		ParamStructDetails daStruct = paramStringToParamMap.get(paramName);
+		if(daStruct !=null)
+		//String key = 
+			return daStruct.getCurrentValue();
+		return null;
+	}
+
+	public boolean setCurrentValueOfParam(String paramName, Object value)
+	{
+		// sets the current value fo the set param name
+		// like <actor_genderand0_left>>
+		// the front end should be able to directly substitute this value
+		ParamStructDetails daStruct = paramStringToParamMap.get(paramName);
+		if(daStruct !=null)
+		{
+			daStruct.setCurrentValue(value);
+			return true;
+		}
+		return false;
+	}
+	
+	public String getQueryForParam(String paramName)
+	{
+		// somehow need to construct the query struct that can be used to query the possible values
+		// sets the current value fo the set param name
+		// like <actor_genderand0_left>>
+		// the front end should be able to directly substitute this value
+		ParamStructDetails daStruct = paramStringToParamMap.get(paramName);
+		if(daStruct !=null)
+			return daStruct.getDefQuery();
+		return null;
+	}
+	
+	public String generateQuery(boolean validate) throws Exception
+	{
+		String finalQuery = ((GenExpression)root).printQS(((GenExpression)root), new StringBuffer()).toString(); 
+		
+		System.err.println(finalQuery);
+		
+		// the real test is can I parse it back :)
+		if(validate)
+		{
+			Statement stmt = CCJSqlParserUtil.parse(finalQuery);
+		}
+		System.err.println("Success ");
+		return finalQuery;
+	}
 
 }
