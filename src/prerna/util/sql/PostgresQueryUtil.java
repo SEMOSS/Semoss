@@ -288,6 +288,22 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getIndexList(String database, String schema) {
+		return "select indexname, tablename from pg_indexes where schema = '" + schema.toLowerCase() + "'";
+	}
+	
+//	@Override
+//	public String getIndexDetails(String indexName, String tableName, String database, String schema) {
+//		return "select tablename from pg_indexes where indexname = '" + indexName.toLowerCase() + " and schema = '" + schema.toLowerCase() 
+//			+ "' and tablename = '" + tableName.toLowerCase() + "'";
+//	}
+//	
+//	@Override
+//	public String allIndexForTableQuery(String tableName, String database, String schema) {
+//		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='" + tableName.toUpperCase() + "';";
+//	}
+	
+	@Override
 	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
 		// should escape keywords
 		if(isSelectorKeyword(tableName)) {

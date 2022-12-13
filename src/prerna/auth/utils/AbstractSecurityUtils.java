@@ -232,11 +232,15 @@ public abstract class AbstractSecurityUtils {
 
 			// these are right name - but were added to wrong table
 			// so will do an exists check anyway
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", database, schema)) {
-				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT"));
-			}
-			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
-				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT"));
+			try {
+				if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", database, schema)) {
+					securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT"));
+				}
+				if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
+					securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT"));
+				}
+			} catch(UnsupportedOperationException ignore) {
+				// ignore
 			}
 		} else {
 			// see if index exists
