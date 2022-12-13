@@ -20,7 +20,8 @@ public class SimpleQueryFilter implements IQueryFilter {
 	/**
 	 * Right now, tracking for these types of filters within querying
 	 */
-	public static enum FILTER_TYPE {COL_TO_QUERY, QUERY_TO_COL, COL_TO_COL, COL_TO_VALUES, VALUES_TO_COL, VALUE_TO_VALUE};
+	public static enum FILTER_TYPE {COL_TO_QUERY, QUERY_TO_COL, COL_TO_COL, COL_TO_VALUES, VALUES_TO_COL, VALUE_TO_VALUE,
+		COL_TO_LAMBDA, LAMBDA_TO_COL};
 		
 	private String comparator = null; //'=', '!=', '<', '<=', '>', '>=', '<>', '?like', '?nlike'
 	private NounMetadata lComparison = null; //the column we want to filter
@@ -1032,6 +1033,16 @@ public class SimpleQueryFilter implements IQueryFilter {
 		else if( isValues(lCompType) && isValues(rCompType) ) 
 		{
 			return FILTER_TYPE.VALUE_TO_VALUE;
+		}
+		
+		// value to lambda
+		else if( lCompType == PixelDataType.COLUMN && rCompType == PixelDataType.LAMBDA ) 
+		{
+			return FILTER_TYPE.COL_TO_LAMBDA;
+		}
+		else if( lCompType == PixelDataType.LAMBDA && rCompType == PixelDataType.COLUMN )
+		{
+			return FILTER_TYPE.LAMBDA_TO_COL;
 		}
 
 		return null;

@@ -46,6 +46,7 @@ import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.qs.SubQueryExpression;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -856,13 +857,38 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			return addSelectorToQueryFilter(leftComp, rightComp, thisComparator);
 		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
 			return addSelectorToQueryFilter(leftComp, rightComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+		} else if(fType == FILTER_TYPE.COL_TO_LAMBDA) {
+			return addSelectorToLambda(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.LAMBDA_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			return addSelectorToLambda(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 			return addValueToValueFilter(rightComp, leftComp, thisComparator);
-		}
+		} 
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 * @return
+	 */
+	private StringBuilder addSelectorToLambda(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		// need to evaluate the lambda on the right
+		IReactor reactor = (IReactor) rightComp.getValue();
+		NounMetadata nounEvaluated = reactor.execute();
+
+		Map<String, Object> mergeMetadata = reactor.mergeIntoQsMetadata();
+		if(mergeMetadata.get(IReactor.MERGE_INTO_QS_FORMAT).equals(IReactor.MERGE_INTO_QS_FORMAT_SCALAR)) {
+			return addSelectorToValuesFilter(leftComp, nounEvaluated, thisComparator);
+		}
+		
+		throw new IllegalArgumentException("Unknown qs format to merge");
+	}
+
 	protected StringBuilder addSelectorToQueryFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
