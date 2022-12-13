@@ -1,5 +1,6 @@
 package prerna.query.interpreters.sql;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -8,18 +9,25 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import prerna.util.sql.AbstractSqlQueryUtil;
+
 public class SqlJoinStructList {
 
-	private List<SqlJoinStruct> joins = new Vector<SqlJoinStruct>();
+	private List<SqlJoinStruct> joins = new ArrayList<SqlJoinStruct>();
+	private AbstractSqlQueryUtil queryUtil;
 	
 	public SqlJoinStructList() {
-		
+
 	}
 	
 	public void addJoin(SqlJoinStruct join) {
 		if(!joins.contains(join)) {
 			joins.add(join);
 		}
+	}
+	
+	public void setQueryUtil(AbstractSqlQueryUtil queryUtil) {
+		this.queryUtil = queryUtil;
 	}
 	
 	/**
@@ -169,6 +177,9 @@ public class SqlJoinStructList {
 					}
 					String fromTable = joinOn[0];
 					String fromColumn = joinOn[1];
+					if(this.queryUtil != null) {
+						fromColumn = this.queryUtil.escapeSubqueryColumnName(fromColumn);
+					}
 					String toTable = joinOn[2];
 					String toColumn = joinOn[3];
 					String comparator = joinOn[4];
