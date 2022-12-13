@@ -14,6 +14,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -105,7 +106,20 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 		
 		if(isNull) {
 			return new NounMetadata(null, type, ops);
-		} else if(isArray) {
+		} else if(type == PixelDataType.LAMBDA) {
+			Map<String, Object> reactorMap = (Map<String, Object>) objList.get(0);
+			String className = (String) reactorMap.get("reactorType");
+			Map<String, List<Map<String, Object>>> nounStoreMap = (Map<String, List<Map<String, Object>>>) reactorMap.get("value");
+			
+			try {
+				IReactor thisClass = (IReactor) Class.forName(className).newInstance();
+				thisClass.setNounStore(NounStore.generateNounFromMap(nounStoreMap));
+				
+				return new NounMetadata(thisClass, PixelDataType.LAMBDA);
+			} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+				throw new IllegalArgumentException("Unable to create lambda " + className);
+			}
+		} if(isArray) {
 			return new NounMetadata(objList, type, ops);
 		} else {
 			return new NounMetadata(objList.get(0), type, ops);
@@ -219,5 +233,18 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 		adapter.write(out, mapValue);
 	}
 	
+//	public static void main(String[] args) {
+//		
+//		DateManipulationReactor reactor = new DateManipulationReactor();
+//		reactor.In();
+//		GenRowStruct grs = new GenRowStruct();
+//        grs.add(new NounMetadata("subtraction", PixelDataType.CONST_STRING));
+//        reactor.getNounStore().addNoun("type", grs);
+//
+//		NounMetadata noun = new NounMetadata(reactor, PixelDataType.LAMBDA);
+//		Gson gson = GsonUtility.getDefaultGson();
+//		String jsonString = gson.toJson(noun);
+//		gson.fromJson(jsonString, NounMetadata.class);
+//	}
 
 }
