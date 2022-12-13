@@ -20,11 +20,15 @@ public interface IReactor {
 	enum TYPE{MAP, FLATMAP, REDUCE};
 	
 	
-	public static final String SIBLING = "SIBLING";
-	public static final String PARENT = "PARENT";
-	public static final String CHILD = "CHILD";
-	public static final String LAST_KEY = "LAST_KEY";
+	String SIBLING = "SIBLING";
+	String PARENT = "PARENT";
+	String CHILD = "CHILD";
+	String LAST_KEY = "LAST_KEY";
 
+	String MERGE_INTO_QS_FORMAT = "qsMergeFormat";
+	String MERGE_INTO_QS_FORMAT_SCALAR = "scalar";
+	String MERGE_INTO_QS_DATATYPE = "qsMergeDataType";
+	
 	/**********************************
 	 * To Be implemented by each reactor
 	 * ******************************/
@@ -153,6 +157,14 @@ public interface IReactor {
 	String getHelp();
 	
 	String getReactorDescription();
+	
+	/**
+	 * Determine if this reactor should be merged up to be put into a QS as is vs. executed directly
+	 * @return
+	 */
+	boolean canMergeIntoQs();
+	
+	Map<String, Object> mergeIntoQsMetadata();
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor
