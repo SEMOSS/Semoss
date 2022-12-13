@@ -18,7 +18,6 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXECUTION_END
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXECUTION_START;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXEC_ID;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.FIRED_TIME;
-import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IMAGE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INSTANCE_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INTEGER;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INT_PROP_1;
@@ -944,9 +943,10 @@ public class SchedulerDatabaseUtility {
 	private static void createQuartzTables(Connection connection, String database, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
+		
 		String[] colNames = null;
 		String[] types = null;
 		Object[] constraints = null;
@@ -954,7 +954,7 @@ public class SchedulerDatabaseUtility {
 		try {
 			// QRTZ_CALENDARS
 			colNames = new String[] { SCHED_NAME, CALENDAR_NAME, CALENDAR };
-			types = new String[] { VARCHAR_120, VARCHAR_200, IMAGE };
+			types = new String[] { VARCHAR_120, VARCHAR_200, IMAGE_DATATYPE };
  			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL };
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(QRTZ_CALENDARS, colNames,
@@ -1060,7 +1060,7 @@ public class SchedulerDatabaseUtility {
 			colNames = new String[] { SCHED_NAME, JOB_NAME, JOB_GROUP, DESCRIPTION, JOB_CLASS_NAME, IS_DURABLE,
 					IS_NONCONCURRENT, IS_UPDATE_DATA, REQUESTS_RECOVERY, JOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_250, VARCHAR_250, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE,
-					BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, IMAGE };
+					BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, IMAGE_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL,
 					NOT_NULL, null };
 	
@@ -1116,7 +1116,7 @@ public class SchedulerDatabaseUtility {
 	
 			// QRTZ_BLOB_TRIGGERS
 			colNames = new String[] { SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP, BLOB_DATA };
-			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, IMAGE };
+			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, IMAGE_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null };
 	
 			if (allowIfExistsTable) {
@@ -1136,7 +1136,7 @@ public class SchedulerDatabaseUtility {
 					NEXT_FIRE_TIME, PREV_FIRE_TIME, PRIORITY, TRIGGER_STATE, TRIGGER_TYPE, START_TIME, END_TIME,
 					CALENDAR_NAME, MISFIRE_INSTR, JOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, BIGINT,
-					BIGINT, INTEGER, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT, IMAGE };
+					BIGINT, INTEGER, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT, IMAGE_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, NOT_NULL,
 					NOT_NULL, NOT_NULL, null, null, null, null };
 	
