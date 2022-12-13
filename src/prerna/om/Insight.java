@@ -66,6 +66,7 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.project.api.IProject;
+import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
@@ -84,7 +85,6 @@ import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
-import prerna.tcp.client.InsightSerializer;
 import prerna.tcp.client.SocketClient;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.AssetUtility;
@@ -228,7 +228,10 @@ public class Insight implements Serializable {
 	private String rEnvName = null;
 	
 	private boolean contextReinitialized = false;
-		
+	
+	Map <String, GenExpressionWrapper> sqlWrapperMap = new HashMap<String, GenExpressionWrapper>();
+	Map <String, String> id2SQLMapper = new HashMap<String, String>();
+	int idCount = 0;
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////// START CONSTRUCTORS //////////////////////////////////
@@ -1748,5 +1751,35 @@ public class Insight implements Serializable {
 	public boolean getContextReinitialized()
 	{
 		return this.contextReinitialized;
+	}
+	
+	public String setSQLWrapper(String sql, GenExpressionWrapper wrapper)
+	{
+		String id = "id" + idCount;
+		idCount++;
+		this.sqlWrapperMap.put(sql, wrapper);
+		this.id2SQLMapper.put(id, sql);
+		return id; 
+	}
+	
+	public GenExpressionWrapper getSQLWrapper(String id)
+	{
+		String sql = this.id2SQLMapper.get(id);
+		return this.sqlWrapperMap.get(sql);
+	}
+
+	public void removeSQLWrapper(String id)
+	{
+		String sql = this.id2SQLMapper.get(id);
+		id2SQLMapper.remove(id);
+		this.sqlWrapperMap.remove(sql);
+	}
+	public void replaceWrapper(String id, String sql, GenExpressionWrapper wrapper)
+	{
+		String origSql = this.id2SQLMapper.get(id);
+		id2SQLMapper.put(id, sql);
+		this.sqlWrapperMap.put(sql, wrapper);
+		this.sqlWrapperMap.remove(origSql);
+		
 	}
 }
