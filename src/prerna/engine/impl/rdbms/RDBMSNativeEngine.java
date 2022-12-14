@@ -188,6 +188,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			this.connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
 				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
+				prop.put(Constants.CONNECTION_URL, this.connectionURL);
 			}
 			
 			// make a check to see if it is asking to use file
