@@ -37,12 +37,6 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 		
 		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
 		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
-		String port = this.port;
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "443";
-		}
 		this.httpPath = (String) configMap.get(AbstractSqlQueryUtil.HTTP_PATH);
 		this.uid = (String) configMap.get(AbstractSqlQueryUtil.UID);
 		this.pwd = (String) configMap.get(AbstractSqlQueryUtil.PWD);
@@ -69,12 +63,6 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 		
 		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
 		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
-		String port = this.port;
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "443";
-		}
 		this.httpPath = (String) prop.get(AbstractSqlQueryUtil.HTTP_PATH);
 		this.uid = (String) prop.get(AbstractSqlQueryUtil.UID);
 		this.pwd = (String) prop.get(AbstractSqlQueryUtil.PWD);
