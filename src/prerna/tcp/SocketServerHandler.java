@@ -10,9 +10,7 @@ import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -43,50 +41,37 @@ public class SocketServerHandler implements Runnable {
 	
 	public static Logger classLogger = null;
 	
-	int offset = 4;
-	int totalBytes = 0;
-	List<ByteBuffer> inputs = new Vector<ByteBuffer>();
-	byte[] lenBytes = null;
-	byte[] curBytes = null;
-	int bytesReadSoFar = 0;
-	int lenBytesReadSoFar = 0;
-	boolean done = false;
-	boolean blocking = false; // processes one payload and moves to the next one. This is how it currently behaves
-	long averageMillis = 200;
+	boolean test = false;
+	
+	private int offset = 4;
+	private byte[] lenBytes = null;
+	private byte[] curBytes = null;
+	private int bytesReadSoFar = 0;
+	private int lenBytesReadSoFar = 0;
+	private boolean done = false;
+	private boolean blocking = false; // processes one payload and moves to the next one. This is how it currently behaves
+	private long averageMillis = 200;
 
-	
+	ServerSocket socket = null;
 	SocketServer server = null;
-	
-	
-	Object processLock = new Object();
-	
 	OutputStream os = null;
 	InputStream is = null;
-	ServerSocket socket = null;
-		
-	public static final int NUM_ATTEMPTS = 3;
-	
-	PyExecutorThread pt = null;
-	PyTranslator pyt = null;
 	String mainFolder = null;
-	boolean test = false;
-			
-	RConnection retCon = null;
 
-	Map <String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
-	Map <String, Insight> insightMap = new HashMap<String, Insight>();
-	Map <String, Project> projectMap = new HashMap<String, Project>();
-	Map <String, CmdExecUtil> cmdMap = new HashMap<String, CmdExecUtil>();
+	private PyExecutorThread pt = null;
+	private PyTranslator pyt = null;
+	
+	private RConnection retCon = null;
 
+	private Map <String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
+	private Map <String, Insight> insightMap = new HashMap<String, Insight>();
+	private Map <String, Project> projectMap = new HashMap<String, Project>();
+	private Map <String, CmdExecUtil> cmdMap = new HashMap<String, CmdExecUtil>();
 	
-	public Map <String, PayloadStruct> incoming = new HashMap<String, PayloadStruct>();
-	public Map <String, PayloadStruct> outgoing = new HashMap<String, PayloadStruct>();
+	private Map <String, PayloadStruct> incoming = new HashMap<String, PayloadStruct>();
+	private Map <String, PayloadStruct> outgoing = new HashMap<String, PayloadStruct>();
 	
-	public Map<String, String> engineFileMap = new HashMap<String, String>();
-	
-	String pyBase = "py";
-	
-	int curEpoc = 1;
+	private int curEpoc = 1;
 		
 	public void setLogger(Logger classLogger) {
 		SocketServerHandler.classLogger = classLogger;
@@ -97,9 +82,7 @@ public class SocketServerHandler implements Runnable {
 		this.pt = pt;
 		this.pyt = new PyTranslator();
 		pyt.setPy(pt);;
-		
 	}
-
 	
 	// this is where the processing happens
 	public PayloadStruct getFinalOutput(PayloadStruct ps)
@@ -587,11 +570,6 @@ public class SocketServerHandler implements Runnable {
 		return response;
     }
     
-    public void setTest(boolean test)
-    {
-    	this.test = test;
-    }
-    
     public Method findRMethod(AbstractRJavaTranslator rt, String methodName, Class [] arguments)
     {
     	Method retMethod = null;
@@ -868,12 +846,6 @@ public class SocketServerHandler implements Runnable {
 		this.socket = socket;
 	}
 	
-	public void setPyBase(String pyBase)
-	{
-		this.pyBase = pyBase;
-	}
-	
-	
 	@Override
 	public void run()
 	{
@@ -968,7 +940,7 @@ public class SocketServerHandler implements Runnable {
 					}
 				}
 				// dont quit.. work hard
-				if(!this.server.multi) {
+				if(!SocketServer.isMulti()) {
 					System.exit(1);
 				}
 			}
