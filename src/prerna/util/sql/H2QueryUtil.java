@@ -74,57 +74,15 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		this.forceFile = Boolean.parseBoolean( configMap.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
-		
 		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
 		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.hostname == null || this.hostname.isEmpty())
-			) {
-			throw new RuntimeException("Must pass in a hostname");
-		}
-		
 		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
-		String port = this.port;
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "";
-		}
-		
 		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
-		
 		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
-
-		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix();
-			
-			File f = new File(Utility.normalizePath(hostname));
-			if(this.forceFile || f.exists()) {
-				hostname = hostname.replace(".mv.db", "");
-				this.connectionUrl += ":nio:" + hostname;
-			} else {
-				if(port.isEmpty()) {
-					throw new RuntimeException("Must define a port for a tcp/ip h2 db");
-				}
-				this.connectionUrl += ":tcp://"+hostname+":"+port;
-			}
-			
-			if(this.schema != null && !this.schema.isEmpty()) {
-				this.connectionUrl += "/"+schema;
-			}
-			
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
-		}
+		this.username = (String) configMap.get(AbstractSqlQueryUtil.USERNAME);
+		this.password = (String) configMap.get(AbstractSqlQueryUtil.PASSWORD);
 		
-		return this.connectionUrl;
+		return buildConnectionString();
 	}
 	
 	@Override
@@ -134,57 +92,15 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		this.forceFile = Boolean.parseBoolean( prop.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
-
 		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
 		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.hostname == null || this.hostname.isEmpty())
-			) {
-			throw new RuntimeException("Must pass in a hostname");
-		}
-		
 		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
-		String port = this.port;
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "";
-		}
-		
 		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
-		
 		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.username = (String) prop.get(AbstractSqlQueryUtil.USERNAME);
+		this.password = (String) prop.get(AbstractSqlQueryUtil.PASSWORD);
 
-		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix();
-			
-			File f = new File(Utility.normalizePath(hostname));
-			if(this.forceFile || f.exists()) {
-				hostname = hostname.replace(".mv.db", "");
-				this.connectionUrl += ":nio:" + hostname;
-			} else {
-				if(port.isEmpty()) {
-					throw new RuntimeException("Must define a port for a tcp/ip h2 db");
-				}
-				this.connectionUrl += ":tcp://"+hostname+":"+port;
-			}
-			
-			if(this.schema != null && !this.schema.isEmpty()) {
-				this.connectionUrl += "/"+schema;
-			}
-			
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
-		}
-		
-		return this.connectionUrl;
+		return buildConnectionString();
 	}
 	
 	@Override

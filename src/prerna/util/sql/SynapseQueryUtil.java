@@ -1,6 +1,6 @@
 package prerna.util.sql;
 
-public class SynapseQueryUtil extends MicrosoftSqlServerUtil {
+public class SynapseQueryUtil extends MicrosoftSqlServerQueryUtil {
 
 	SynapseQueryUtil() {
 		super();
