@@ -39,12 +39,22 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
+		boolean anyUserGroups = false;
 		for(AuthProvider login : logins) {
+			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+				continue;
+			}
+			
 			AndQueryFilter andFilter = new AndQueryFilter();
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
 			orFilter.addFilter(andFilter);
 		}
+		
+		if(!anyUserGroups) {
+			return false;
+		}
+		
 		qs.addExplicitFilter(orFilter);
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
@@ -81,12 +91,22 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", databaseId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
+		boolean anyUserGroups = false;
 		for(AuthProvider login : logins) {
+			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+				continue;
+			}
+			
 			AndQueryFilter andFilter = new AndQueryFilter();
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
 			orFilter.addFilter(andFilter);
 		}
+		
+		if(!anyUserGroups) {
+			return false;
+		}
+		
 		qs.addExplicitFilter(orFilter);
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
@@ -127,12 +147,22 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", databaseId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
+		boolean anyUserGroups = false;
 		for(AuthProvider login : logins) {
+			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+				continue;
+			}
+			
 			AndQueryFilter andFilter = new AndQueryFilter();
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
 			orFilter.addFilter(andFilter);
 		}
+		
+		if(!anyUserGroups) {
+			return false;
+		}
+		
 		qs.addExplicitFilter(orFilter);
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
