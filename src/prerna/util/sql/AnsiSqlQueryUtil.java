@@ -1760,14 +1760,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
 		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
 		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
-		String port = this.port;
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "";
-		}
 		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
 		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.username = (String) configMap.get(AbstractSqlQueryUtil.USERNAME);
+		this.password = (String) configMap.get(AbstractSqlQueryUtil.PASSWORD);
+
 		return buildConnectionString();
 	}
 
@@ -1783,14 +1780,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
 		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
 		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
-		String port = this.port;
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "";
-		}
 		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
 		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.username = (String) prop.get(AbstractSqlQueryUtil.USERNAME);
+		this.password = (String) prop.get(AbstractSqlQueryUtil.PASSWORD);
+
 		return buildConnectionString();
 	}
 
