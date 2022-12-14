@@ -24,28 +24,32 @@ public class DatabaseUpdateMetadata {
 	public Owler getOwler() {
 		return owler;
 	}
+	
 	public void setOwler(Owler owler) {
 		this.owler = owler;
 	}
+	
 	public String getCombinedErrors() {
 		return combinedErrors;
 	}
+	
 	public void setCombinedErrors(String combinedErrors) {
 		this.combinedErrors = combinedErrors;
 	}
+	
 	public List<String> getSuccessfulUpdates() {
 		return successfulUpdates;
 	}
+	
 	public void setSuccessfulUpdates(List<String> successfulUpdates) {
 		this.successfulUpdates = successfulUpdates;
 	}
+	
 	public List<String> getFailedUpdates() {
 		return failedUpdates;
 	}
+	
 	public void setFailedUpdates(List<String> failedUpdates) {
 		this.failedUpdates = failedUpdates;
 	}
-	
-	
-	
 }
