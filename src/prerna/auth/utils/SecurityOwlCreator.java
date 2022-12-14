@@ -331,6 +331,12 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "LASTPASSWORDRESET", "TIMESTAMP");
 		owler.addProp("SMSS_USER", "LOCKED", "BOOLEAN");
 
+		// TOKENS
+		owler.addConcept("TOKENS", null, null);
+		owler.addProp("TOKENS", "IPADDR", "VARCHAR(255)");
+		owler.addProp("TOKENS", "VAL", "VARCHAR(255)");
+		owler.addProp("TOKENS", "DATEADDED", "TIMESTAMP");
+
 		// PERMISSION
 		owler.addConcept("PERMISSION", null, null);
 		owler.addProp("PERMISSION", "ID", "INT");
