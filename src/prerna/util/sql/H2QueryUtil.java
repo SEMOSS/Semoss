@@ -109,6 +109,8 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 			return this.connectionUrl;
 		}
 		
+		this.connectionUrl = this.dbType.getUrlPrefix();
+		
 		if(this.hostname == null || this.hostname.isEmpty()) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
@@ -121,7 +123,7 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		File f = new File(Utility.normalizePath(hostname));
-		if(f.exists()) {
+		if(this.forceFile || f.exists()) {
 			hostname = hostname.replace(".mv.db", "");
 			this.connectionUrl += ":nio:" + hostname;
 		} else {
