@@ -33,7 +33,7 @@ public class ReconnectServer extends AbstractReactor
 			return NounMetadata.getErrorNounMessage("Cannot restart server. User not valid");
 		
 		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
-		&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
+				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 
 		if(!useNettyPy)
 			return NounMetadata.getErrorNounMessage("TCP Server is not available on this server");
