@@ -39,12 +39,22 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
+		boolean anyUserGroups = false;
 		for(AuthProvider login : logins) {
+			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+				continue;
+			}
+			
 			AndQueryFilter andFilter = new AndQueryFilter();
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
 			orFilter.addFilter(andFilter);
 		}
+		
+		if(!anyUserGroups) {
+			return false;
+		}
+		
 		qs.addExplicitFilter(orFilter);
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
@@ -81,12 +91,22 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
+		boolean anyUserGroups = false;
 		for(AuthProvider login : logins) {
+			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+				continue;
+			}
+			
 			AndQueryFilter andFilter = new AndQueryFilter();
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
 			orFilter.addFilter(andFilter);
 		}
+		
+		if(!anyUserGroups) {
+			return false;
+		}
+		
 		qs.addExplicitFilter(orFilter);
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
@@ -127,12 +147,22 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
+		boolean anyUserGroups = false;
 		for(AuthProvider login : logins) {
+			if(user.getAccessToken(login).getUserGroups().isEmpty()) {
+				continue;
+			}
+			
 			AndQueryFilter andFilter = new AndQueryFilter();
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", user.getAccessToken(login).getUserGroupType()));
 			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", user.getAccessToken(login).getUserGroups()));
 			orFilter.addFilter(andFilter);
 		}
+		
+		if(!anyUserGroups) {
+			return false;
+		}
+		
 		qs.addExplicitFilter(orFilter);
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;

@@ -3,8 +3,6 @@ package prerna.tcp.client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,29 +16,27 @@ public class SocketClientHandler implements Runnable {
 
 	private static final Logger logger = LogManager.getLogger(SocketClientHandler.class);
 
-    String inputSoFar = "";
-    String endChar = "<o>";
-    
-	int offset = 4;
-	int totalBytes = 0;
-	List<ByteBuffer> inputs = new Vector<ByteBuffer>();
+    private int offset = 4;
 	
-	boolean done = false;    
-	InputStream in = null;
+    private boolean done = false;    
 
-	byte[] lenBytes = null;
-	int lenBytesReadSoFar = 0;
-	byte[] curBytes = null;
-	int bytesReadSoFar = 0;
+    private byte[] lenBytes = null;
+    private int lenBytesReadSoFar = 0;
+    private byte[] curBytes = null;
+	private int bytesReadSoFar = 0;
 	
-    SocketClient nc = null;
-//	public  Logger LOGGER = null;
+	private SocketClient socketClient = null;
+    private InputStream in = null;
 
     // I think we should move this also into stream reader or move stream reader here
 
-    public void setClient(SocketClient nc) {
-    	this.nc = nc;
+    public void setClient(SocketClient socketClient) {
+    	this.socketClient = socketClient;
     }
+    
+	public void setInputStream(InputStream in) {
+		this.in = in;
+	}
     
 	public void printObject(Object obj) {
 		// we know this is a payload struct
@@ -65,10 +61,10 @@ public class SocketClientHandler implements Runnable {
 				}
 				String id = ps.epoc;
 				
-				PayloadStruct lock = (PayloadStruct)nc.requestMap.remove(id);
+				PayloadStruct lock = (PayloadStruct)socketClient.requestMap.remove(id);
 				
 				// put it in response
-				nc.responseMap.put(id, ps);
+				socketClient.responseMap.put(id, ps);
 				
 				
 				if(lock != null)
@@ -83,14 +79,6 @@ public class SocketClientHandler implements Runnable {
 			ex.printStackTrace();
 		}		
 	}
-	
-	public void setInputStream(InputStream in) {
-		this.in = in;
-	}
-	
-//	public void setLogger(Logger LOGGER) {
-//		this.LOGGER = LOGGER;
-//	}
 	
 	@Override
 	public void run() {
@@ -135,7 +123,7 @@ public class SocketClientHandler implements Runnable {
 
 									if(ps.operation == PayloadStruct.OPERATION.ENGINE)
 									{
-										Thread ew = new Thread(new EngineWorker((SocketClient)nc, ps));
+										Thread ew = new Thread(new EngineWorker((SocketClient)socketClient, ps));
 										ew.start();
 										lenBytes = null;
 										bytesReadSoFar = 0;
@@ -178,19 +166,16 @@ public class SocketClientHandler implements Runnable {
 				if(readBytes < 0) // stream is closed kill this thread
 				{
 					done = true;
-					this.nc.connected = false;
-					this.nc.crash();
+					this.socketClient.setConnected(false);
+					this.socketClient.crash();
 				}
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 				done = true;
-				this.nc.connected = false;
-				this.nc.crash();
+				this.socketClient.setConnected(false);
+				this.socketClient.crash();
 				// at some point we can relisten if we want.. 
 			}
 		}
 	}
-
-
-
 }
