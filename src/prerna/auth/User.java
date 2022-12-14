@@ -585,27 +585,29 @@ public class User implements Serializable {
 	
 	/////////////////////////////////////////////////////
 	
-	public void setTCPServer(SocketClient nc) {
-		this.tcpServer = nc;
+	/**
+	 * 
+	 * @param nc
+	 */
+	public void setTCPServer(SocketClient sc) {
+		this.tcpServer = sc;
 	}
 	
+	/**
+	 * 
+	 * @param create
+	 * @return
+	 */
 	public SocketClient getTCPServer(boolean create) {
-		if((this.tcpServer == null && create) || (this.tcpServer != null && !this.tcpServer.isConnected() && create)) {
-			
-			this.forcePort = -1;
-			this.port = null;
-			PyUtils.getInstance().userTupleMap.remove(this); // remove it from user tuple map so it will restart
-			startTCPServer();
-			this.pyt = new TCPPyTranslator();
-			((TCPPyTranslator) pyt).nc = this.tcpServer; // starts it
-			tcpServer.setUser(this);
-			
-			// invalidate the serialization map
-			insightSerializedMap.clear();
-		}
-		return this.tcpServer;
+		return getTCPServer(create, -1);
 	}
 
+	/**
+	 * 
+	 * @param create
+	 * @param port
+	 * @return
+	 */
 	public SocketClient getTCPServer(boolean create, int port) {
 		// then restart it
 		if((this.tcpServer == null && create) || (this.tcpServer != null && !this.tcpServer.isConnected() && create)) {
@@ -917,7 +919,6 @@ public class User implements Serializable {
 	 * @param context
 	 */
 	public void setContext(String context) {
-		
 		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
 				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 		if(!useNettyPy) {
@@ -928,7 +929,7 @@ public class User implements Serializable {
 		String mountDir = this.varMap.get(context) + "";
 		// remove the last assets
 		mountDir = mountDir.replace("/assets", "");
-		
+
 		// also set the cmd context right here
 		this.cmdUtil = new CmdExecUtil(context, mountDir, null);
 	}
@@ -938,7 +939,6 @@ public class User implements Serializable {
 			cmdUtil.setTcpClient(tcpServer);
 		return this.cmdUtil;
 	}
-	
 	
 	public MountHelper getUserMountHelper() {
 		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
