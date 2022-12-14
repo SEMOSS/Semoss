@@ -1,13 +1,11 @@
 package prerna.tcp.client;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,6 +19,7 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 import prerna.util.Settings;
@@ -31,26 +30,19 @@ public class SocketClient implements Runnable {
 	private static final String CLASS_NAME = SocketClient.class.getName();
 	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
 	
-    static final int SIZE = Integer.parseInt(System.getProperty("size", "256"));
-    Object lock = new Object();
-    Object response = null;
-    String HOST = null;
-    int PORT = -1;
-    boolean ssl = false;
+    private String HOST = null;
+    private int PORT = -1;
+    private boolean ssl = false;
     Map requestMap = new HashMap();
     Map responseMap = new HashMap();
-    boolean ready = false;
-    boolean connected = false;
-	AtomicInteger count = new AtomicInteger(0);
-	long averageMillis = 200;
-	boolean warmup;
-	String status = "not_started";
+    private boolean ready = false;
+    private boolean connected = false;
+    private AtomicInteger count = new AtomicInteger(0);
+    private long averageMillis = 200;
+    private boolean killall = false; // use this if the server is dead or it has crashed
+    private User user;
 	
-	
-	boolean killall = false; // use this if the server is dead or it has crashed
-	private User user;
-	
-	boolean done = false;
+    private Socket clientSocket = null;
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
@@ -64,7 +56,6 @@ public class SocketClient implements Runnable {
     
     public ChannelFuture disconnect()
     {
-    	done = true;
     	return null;
     }
 
@@ -73,8 +64,9 @@ public class SocketClient implements Runnable {
         // Configure SSL.git
     	int attempt = 1;
     	int SLEEP_TIME = 800;
-    	if(DIHelper.getInstance().getProperty("SLEEP_TIME") != null)
+    	if(DIHelper.getInstance().getProperty("SLEEP_TIME") != null) {
     		SLEEP_TIME = Integer.parseInt(DIHelper.getInstance().getProperty("SLEEP_TIME"));
+    	}
     	
     	logger.info("Trying with the sleep time of " + SLEEP_TIME);
     	while(!connected && attempt < 6) // I do an attempt here too hmm.. 
@@ -92,13 +84,13 @@ public class SocketClient implements Runnable {
 		        // Configure the client.
 				boolean blocking = DIHelper.getInstance().getProperty(Settings.BLOCKING) != null && DIHelper.getInstance().getProperty(Settings.BLOCKING).equalsIgnoreCase("true");
 		        	
-	    		Socket clientSocket =  new Socket(this.HOST, this.PORT);
+	    		clientSocket =  new Socket(this.HOST, this.PORT);
 	    		
 	    		// pick input and output stream and start the threads
 	    		this.is = clientSocket.getInputStream();
 	    		this.os = clientSocket.getOutputStream();
 	    		sch.setClient(this);
-	    		sch.setInputStream(is);
+	    		sch.setInputStream(this.is);
 	    		
 	    		// start this thread
 	    		Thread readerThread = new Thread(sch);
@@ -129,24 +121,21 @@ public class SocketClient implements Runnable {
 	    	}
     	}
     	
-    	if(attempt > 6)
+    	if(attempt > 6) {
             logger.info("CLIENT Connection Failed !!!!!!!");
+    	}
     }	
     
-    public boolean isReady() {
-    	return this.ready;
-    }
- 
     public Object executeCommand(PayloadStruct ps)
     {
-    	if(killall)
+    	if(killall) {
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+    	}
     	
-    	if(!connected)
+    	if(!connected) {
         	throw new SemossPixelException("Your micro-process is not available. Please logout and try again. !");
-
+    	}
     	
-    	int attempt = 0;
     	String id = ps.epoc;
     	if(!ps.response || id == null)
     	{
@@ -159,9 +148,10 @@ public class SocketClient implements Runnable {
     	{	
     		//if(ps.hasReturn)
     		// put it into request map
-    		if(!ps.response)
+    		if(!ps.response) {
     			requestMap.put(id, ps);
-
+    		}
+    		
     		writePayload(ps);
 	    	// send the message
 			
@@ -175,10 +165,11 @@ public class SocketClient implements Runnable {
 					//logger.info("Checking to see if there was a response");
 					try
 					{
-						if(pollNum < 10)
+						if(pollNum < 10) {
 							ps.wait(averageMillis);
-						else //if(ps.longRunning) // this is to make sure the kill all is being checked
+						} else { //if(ps.longRunning) // this is to make sure the kill all is being checked
 							ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
+						}
 						pollNum++;
 					}catch (InterruptedException e) 
 					{
@@ -248,100 +239,76 @@ public class SocketClient implements Runnable {
 		t.start();
     }
 
-    
-    public void setResponse(String command, Object output)
-    {
-    	responseMap.put(command, output);
-    }
-    
-    
-    private void printUnprocessed()
-    {
-    	Iterator keys = requestMap.keySet().iterator();
-    	logger.info("Unprocessed so far.. ");
-    	while(keys.hasNext())
-    	{
-    		String thisKey = (String)keys.next();
-    		System.err.print("<" + thisKey + ">" + "<" + ((PayloadStruct)requestMap.get(thisKey)).methodName);
-    	}    	
-    }
-    
-    public boolean isConnected()
-    {
-    	return this.connected;
-    }
-    
     public void crash()
     {
     	// this happens when the client has completely crashed
     	// make the connected to be false
     	// take everything that is waiting on it
     	// go through request map and start pushing
-    	for(Object k : requestMap.keySet()) {
-    		PayloadStruct ps = (PayloadStruct)requestMap.get(k);
+    	for(Object k : this.requestMap.keySet()) {
+    		PayloadStruct ps = (PayloadStruct) this.requestMap.get(k);
+    		logger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
     		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
-    		
     		synchronized(ps) {
     			ps.notifyAll();
     		}
     	}
-    	requestMap.clear();
     	
+    	this.requestMap.clear();
+    	closeStream(this.os);
+    	closeStream(this.is);
+    	closeStream(this.clientSocket);
     	this.connected = false;
-    	killall = true;
-    	status = "crashed";
-    	
+    	this.killall = true;
     	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
     }
     
-    public void warmup()
-    {
-    	long totalMillis = 0;
-    	for(int psCount = 0;psCount < 10;psCount++)
-    	{
-    		System.err.println("Warming " + psCount);
-	    	PayloadStruct ps = new PayloadStruct();
-	    	ps.methodName = "echo";
-	    	ps.epoc = "echo" + psCount;
-	    	Object [] time = new Object[1];
-	    	time[0] =  LocalDateTime.now();  
-	    	requestMap.put(ps.epoc, ps);
-	    	
-	    	synchronized(ps)
-	    	{
-	    		writePayload(ps);
-	    		try 
-	    		{
-	    			lock.wait();
-	    		}catch(Exception ex)
-	    		{
-	    			
-	    		}
-	    		
-	    		// compare the time now
-	    		PayloadStruct response = (PayloadStruct)responseMap.remove(ps.epoc);
-	    		
-	    		LocalDateTime sentTime = (LocalDateTime)response.payload[0];
-	    		LocalDateTime receivedTime = LocalDateTime.now();
-	    		
-	    		totalMillis += Duration.between(sentTime, receivedTime).toMillis();	    		
-	    		
-	    	}
-    	}    	
-    	
-    	averageMillis = totalMillis / 10;
-    	
-    	System.err.println("Average rountrip takes .. " + averageMillis);
+    private void closeStream(Closeable closeThis) {
+    	try {
+			closeThis.close();
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
     }
     
-    public void setUser(User user)
-    {
+    /**
+     * 
+     * @param user
+     */
+    public void setUser(User user) {
     	this.user = user;
     }
 
-    public User getUser()
-    {
+    /**
+     * 
+     * @return
+     */
+    public User getUser() {
     	return this.user;
+    }
+    
+    /**
+     * 
+     * @param connected
+     */
+    public void setConnected(boolean connected) {
+		this.connected = connected;
+	}
+    
+    /**
+     * 
+     * @return
+     */
+    public boolean isConnected() {
+    	return this.connected;
+    }
+    
+    /**
+     * 
+     * @return
+     */
+    public boolean isReady() {
+    	return this.ready;
     }
     
 }
