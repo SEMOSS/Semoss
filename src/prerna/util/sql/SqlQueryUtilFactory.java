@@ -101,7 +101,7 @@ public class SqlQueryUtilFactory {
 		} else if(dbType == SYNAPSE) {
 			queryUtil = new SynapseQueryUtil();
 		}  else if(dbType == SQL_SERVER) {
-			queryUtil = new MicrosoftSqlServerUtil();
+			queryUtil = new MicrosoftSqlServerQueryUtil();
 		} else if(dbType == TERADATA) {
 			queryUtil = new TeradataQueryUtil();
 		} else if(dbType == TIBCO) {
@@ -169,7 +169,7 @@ public class SqlQueryUtilFactory {
 		} else if(dbType == SYNAPSE) {
 			queryUtil = new SynapseQueryUtil(connectionUrl, username, password);
 		} else if(dbType == SQL_SERVER) {
-			queryUtil = new MicrosoftSqlServerUtil(connectionUrl, username, password);
+			queryUtil = new MicrosoftSqlServerQueryUtil(connectionUrl, username, password);
 		} else if(dbType == TERADATA) {
 			queryUtil = new TeradataQueryUtil(connectionUrl, username, password);
 		} else if(dbType == TIBCO) {

@@ -77,52 +77,15 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
 		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(hostname == null || hostname.isEmpty())
-			) {
-			throw new RuntimeException("Must pass in a hostname");
-		}
-		
 		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
-		String port = this.port;
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "";
-		}
-		
 		this.database = (String) configMap.get(AbstractSqlQueryUtil.DATABASE);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.database == null || this.database.isEmpty())
-				){
-			throw new RuntimeException("Must pass in database name");
-		}
-		
 		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.schema == null || this.schema.isEmpty())
-				){
-			throw new RuntimeException("Must pass in schema name");
-		}
-		
 		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
-
-		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port+"/"+this.database+"?currentSchema="+this.schema;
-			
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
-		}
+		this.username = (String) configMap.get(AbstractSqlQueryUtil.USERNAME);
+		this.password = (String) configMap.get(AbstractSqlQueryUtil.PASSWORD);
 		
-		return this.connectionUrl;
+		return buildConnectionString();
 	}
 
 	@Override
@@ -132,52 +95,15 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
 		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(hostname == null || hostname.isEmpty())
-			) {
-			throw new RuntimeException("Must pass in a hostname");
-		}
-		
 		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
-		String port = this.port;
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "";
-		}
-		
 		this.database = (String) prop.get(AbstractSqlQueryUtil.DATABASE);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.database == null || this.database.isEmpty())
-				){
-			throw new RuntimeException("Must pass in database name");
-		}
-		
 		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.schema == null || this.schema.isEmpty())
-				){
-			throw new RuntimeException("Must pass in schema name");
-		}
-		
 		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.username = (String) prop.get(AbstractSqlQueryUtil.USERNAME);
+		this.password = (String) prop.get(AbstractSqlQueryUtil.PASSWORD);
 
-		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port+"/"+this.database+"?currentSchema="+this.schema;
-			
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
-		}
-		
-		return this.connectionUrl;
+		return buildConnectionString();	
 	}
 
 	@Override

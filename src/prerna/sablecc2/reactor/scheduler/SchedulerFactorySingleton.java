@@ -17,6 +17,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SchedulerFactorySingleton {
 
@@ -46,12 +47,18 @@ public class SchedulerFactorySingleton {
 	private void init() {
 		Properties quartzProperties = null;
 		RDBMSNativeEngine schedulerDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SCHEDULER_DB);
+		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+		String username = queryUtil.getUsername();
+		String password = queryUtil.getPassword();
+		String driver = queryUtil.getDriver();
 		factory = new StdSchedulerFactory();
 
 		if (schedulerDb instanceof H2EmbeddedServerEngine) {
-			quartzProperties = setUpQuartzProperties(((H2EmbeddedServerEngine) schedulerDb).getServerUrl());
+			quartzProperties = setUpQuartzProperties(((H2EmbeddedServerEngine) schedulerDb).getServerUrl(), 
+					username, password, driver);
 		} else { // instanceof RDBMSNativeEngine
-			quartzProperties = setUpQuartzProperties(schedulerDb.getConnectionUrl());
+			quartzProperties = setUpQuartzProperties(schedulerDb.getConnectionUrl(),
+					username, password, driver);
 		}
 
 		try {
@@ -61,12 +68,15 @@ public class SchedulerFactorySingleton {
 		}
 	}
 
-	public static Properties setUpQuartzProperties(String serverUrl) {
+	public static Properties setUpQuartzProperties(String serverUrl, String username, String password, String driver) {
 		Properties quartzProperties = new Properties();
 		try (InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ DIR_SEPARATOR + QUARTZ_CONFIGURATION_FILE)) {
 			quartzProperties.load(input);
 			quartzProperties.setProperty("org.quartz.dataSource.myDS.URL", serverUrl);
+			quartzProperties.setProperty("org.quartz.dataSource.myDS.driver", driver);
+			quartzProperties.setProperty("org.quartz.dataSource.myDS.user", username);
+			quartzProperties.setProperty("org.quartz.dataSource.myDS.password", password);
 			if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
 				quartzProperties.setProperty("org.quartz.scheduler.instanceId", "AUTO");
 				quartzProperties.setProperty("org.quartz.jobStore.isClustered", "true");
