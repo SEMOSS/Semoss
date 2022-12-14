@@ -1001,23 +1001,20 @@ public class User implements Serializable {
 			}
 			try
 			{
-				SocketClient nc = (SocketClient)Class.forName(pyClient).newInstance();
-				this.setTCPServer(nc);
-	
-				nc.connect("127.0.0.1", Integer.parseInt(port), false);
-				
+				SocketClient socketClient = (SocketClient)Class.forName(pyClient).newInstance();
+				this.setTCPServer(socketClient);
+				socketClient.connect("127.0.0.1", Integer.parseInt(port), false);
 				//nc.run(); - you cannot do this because then the client goes into listener mode
-				Thread t = new Thread(nc);
+				Thread t = new Thread(socketClient);
 				t.start();
-	
-				while(!nc.isReady())
+				while(!socketClient.isReady())
 				{
-					synchronized(nc)
+					synchronized(socketClient)
 					{
 						try 
 						{
-							nc.wait();
-							logger.info("Setting the netty client ");
+							socketClient.wait();
+							logger.info("Setting the socket client ");
 						} catch (InterruptedException e) {
 							logger.error(Constants.STACKTRACE, e);
 						}								
