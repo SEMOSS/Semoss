@@ -1,21 +1,18 @@
 package prerna.tcp;
 
+import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 
-import jep.Jep;
-import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -25,34 +22,23 @@ public class SocketServer implements Runnable {
 	// basically a process which works by looking for commands in TCP space
 	private static final String CLASS_NAME = SocketServer.class.getName();
 
-	List <String> commandList = new ArrayList<String>(); // this is giving the file name and that too relative
-	public static Logger classLogger = null;
+	private static Logger classLogger = null;
 
-	public Jep jep = null;
-	boolean SSL = false;
-	
-	public volatile boolean keepAlive = true;
-	public volatile boolean ready = false;
-	public Object driverMonitor = null;
-	
-	Properties prop = null; // this is basically reference to the RDF Map
-	public String mainFolder = null;
-	//PyExecutorThread pt = null;
-	RJavaJriTranslator rt = null;
+	private Properties prop = null; // this is basically reference to the RDF Map
+	private  String mainFolder = null;
 
-	static boolean test = false;
-	boolean done = false;
+	private boolean done = false;
 	
-	Socket clientSocket = null;
-	ServerSocket serverSocket = null;
+	private Socket clientSocket = null;
+	private ServerSocket serverSocket = null;
 	
-	InputStream is = null;
+	private InputStream is = null;
 	Object crash = new Object();
 	
-	SocketServerHandler ssh = new SocketServerHandler();
-	String baseFolder = null;
+	private SocketServerHandler ssh = new SocketServerHandler();
+	private String baseFolder = null;
 		
-	static boolean multi = false; // allow multiple threads at the same time
+	private static boolean multi = false; // allow multiple threads at the same time
 	
 	public static void main(String [] args) {
 		// arg1 - the directory where commands would be thrown
@@ -73,7 +59,6 @@ public class SocketServer implements Runnable {
 			args[2] = "7777";
 			args[3] = "r";
 			args[4] = "mixed";
-			test = true;
 			multi = true;
 		}
 		
@@ -121,7 +106,7 @@ public class SocketServer implements Runnable {
 		}
 		
 		if(args.length >= 5) {
-			worker.multi = args[4].equalsIgnoreCase("multi");
+			SocketServer.multi = args[4].equalsIgnoreCase("multi");
 		}
 		
 		worker.bootServer(Integer.parseInt(args[2]), engine);
@@ -159,7 +144,6 @@ public class SocketServer implements Runnable {
 		        try {
 			        ssh = new SocketServerHandler();
 			        DIHelper.getInstance().setLocalProperty("SSH", ssh);
-			        ssh.setPyBase(baseFolder + "/" + Constants.PY_BASE_FOLDER); 
 		        	ssh.setLogger(classLogger);
 					ssh.setOutputStream(clientSocket.getOutputStream());
 					is = clientSocket.getInputStream();
@@ -186,6 +170,9 @@ public class SocketServer implements Runnable {
 					try {
 						crash.wait();
 						clientSocket = null;
+						closeStream(clientSocket);
+						closeStream(serverSocket);
+						closeStream(is);
 						ssh.cleanUp();
 					} catch (InterruptedException e) {
 						e.printStackTrace();
@@ -194,5 +181,18 @@ public class SocketServer implements Runnable {
 				}
 			}
 		}
+	}
+	
+    private void closeStream(Closeable closeThis) {
+    	try {
+			closeThis.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+    }
+	
+	public static boolean isMulti() {
+		return multi;
 	}
 }
