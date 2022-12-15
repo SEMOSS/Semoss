@@ -27,6 +27,12 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
 
@@ -172,6 +178,15 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index) throws SQLException, UnsupportedEncodingException {
+		if(object == null) {
+			statement.setNull(index, java.sql.Types.BLOB);
+		} else {
+			statement.setBytes(index, object.getBytes("UTF-8"));
+		}
+	}
+	
+	@Override
 	public String getBlobDataTypeName() {
 		return "BYTEA";
 	}
@@ -179,6 +194,30 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getImageDataTypeName() {
 		return "BYTEA";
+	}
+	
+	@Override
+	public String getGroupConcatFunctionSyntax() {
+		return "STRING_AGG";
+	}
+	
+	@Override
+	public String processGroupByFunction(String selectExpression, String separator, boolean distinct) {
+		if(distinct) {
+			return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(DISTINCT " + selectExpression + ", '" + separator + "')";
+		} else {
+			return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(" + selectExpression + ", '" + separator + "')";
+		}
+	}
+	
+	@Override
+	public String handleBlobRetrieval(ResultSet result, String key) throws SQLException, IOException {
+		return new String(result.getBytes(key));
+	}
+	
+	@Override
+	public String handleBlobRetrieval(ResultSet result, int index) throws SQLException, IOException {
+		return new String(result.getBytes(index));
 	}
 	
 	@Override
