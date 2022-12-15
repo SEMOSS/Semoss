@@ -27,10 +27,15 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -431,6 +436,75 @@ public abstract class AbstractSqlQueryUtil {
 		s = s.replace(")", "\\)");
 		return s;
 	}
+	
+	/**
+	 * 
+	 * @param connection
+	 * @param blobInput
+	 * @return
+	 */
+	public static Blob stringToBlob(Connection connection, String blobInput) {
+		Blob blob = null;
+
+		try {
+			blob = connection.createBlob();
+			blob.setBytes(1, blobInput.getBytes());
+		} catch (SQLException se) {
+			classLogger.error("Failed to convert string to blob...");
+			classLogger.error(Constants.STACKTRACE, se);
+		}
+
+		return blob;
+	}
+	
+	/**
+	 * 
+	 * @param blob
+	 * @return
+	 */
+	public static String flushBlobToString(Blob blob) throws SQLException, IOException {
+		if(blob == null) {
+			return null;
+		}
+		StringBuffer strOut = new StringBuffer();
+		String aux;
+
+		InputStream is = null;
+		InputStreamReader isr = null;
+		BufferedReader br = null;
+
+		try {
+			is = blob.getBinaryStream();
+			isr = new InputStreamReader(is);
+			br = new BufferedReader(isr);
+			while ((aux=br.readLine())!=null) {
+				strOut.append(aux);
+			}
+		} finally {
+			if(is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(isr != null) {
+				try {
+					isr.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(br != null) {
+				try {
+					br.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return strOut.toString();
+	}
 
 	/**
 	 * Flush clob to string
@@ -733,6 +807,37 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract boolean allowBlobJavaObject();
+	
+	/**
+	 * 
+	 * @param conn
+	 * @param statement
+	 * @param object
+	 * @param index
+	 * @throws SQLException
+	 * @throws UnsupportedEncodingException 
+	 */
+	public abstract void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index) throws SQLException, UnsupportedEncodingException;
+	
+	/**
+	 * 
+	 * @param result
+	 * @param key
+	 * @return
+	 * @throws IOException 
+	 * @throws SQLException 
+	 */
+	public abstract String handleBlobRetrieval(ResultSet result, String key) throws SQLException, IOException;
+	
+	/**
+	 * 
+	 * @param result
+	 * @param index
+	 * @return
+	 * @throws IOException 
+	 * @throws SQLException 
+	 */
+	public abstract String handleBlobRetrieval(ResultSet result, int index) throws SQLException, IOException;
 	
 	/**
 	 * Get the RDBMS type name for blob type (BLOB is ANSI)

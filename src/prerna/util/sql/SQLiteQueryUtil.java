@@ -1,6 +1,9 @@
 package prerna.util.sql;
 
+import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
@@ -394,6 +397,25 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public boolean allowBlobJavaObject() {
 		return false;
+	}
+	
+	@Override
+	public void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index) throws SQLException {
+		if(object == null) {
+			statement.setNull(index, java.sql.Types.BLOB);
+		} else {
+			statement.setString(index, object);
+		}
+	}
+	
+	@Override
+	public String handleBlobRetrieval(ResultSet result, String key) throws SQLException, IOException {
+		return result.getString(key);
+	}
+	
+	@Override
+	public String handleBlobRetrieval(ResultSet result, int index) throws SQLException, IOException {
+		return result.getString(index);
 	}
 	
 	@Override

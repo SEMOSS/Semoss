@@ -25,7 +25,7 @@ public class SocketServer implements Runnable {
 	private static Logger classLogger = null;
 
 	private Properties prop = null; // this is basically reference to the RDF Map
-	private  String mainFolder = null;
+	private String socketDir = null;
 
 	private boolean done = false;
 	
@@ -40,7 +40,7 @@ public class SocketServer implements Runnable {
 		
 	private static boolean multi = false; // allow multiple threads at the same time
 	
-	public static void main(String [] args) {
+	public static void main(String [] args) throws Exception {
 		// arg1 - the directory where commands would be thrown
 		// arg2 - access to the rdf map to load
 		// arg3 - port to start
@@ -62,7 +62,16 @@ public class SocketServer implements Runnable {
 			multi = true;
 		}
 		
-		String log4JPropFile = Paths.get(Utility.normalizePath(args[0]), "log4j2.properties").toAbsolutePath().toString();
+		if(args.length < 3) {
+			throw new IllegalArgumentException("Must pass in at least 3 inputs - the log4j file, the rdf file map, and the port to run the socket on");
+		}
+		
+		// this socket dir should have the log4j file contianer inside it
+		String socketDir = args[0];
+		String rdfMapInput = args[1];
+		String portInput = args[2];
+		
+		String log4JPropFile = Paths.get(Utility.normalizePath(socketDir), "log4j2.properties").toAbsolutePath().toString();
 
 		// set to say this is not core
 		DIHelper.getInstance().setLocalProperty("core", "false");
@@ -86,7 +95,16 @@ public class SocketServer implements Runnable {
 		}
 		classLogger = LogManager.getLogger(CLASS_NAME);
 
-		String rdfMapLocation = Utility.normalizePath(args[1]);
+		int port = -1;
+		try {
+			port = Integer.parseInt(portInput);
+		} catch(NumberFormatException e) {
+			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Input integer input for port='" + portInput+"'");
+		}
+		
+		String rdfMapLocation = Utility.normalizePath(rdfMapInput);
 		Properties rdfMap = Utility.loadProperties(rdfMapLocation);
         System.out.println("loaded rdf map");
         classLogger.info("loaded rdf map");
@@ -99,20 +117,19 @@ public class SocketServer implements Runnable {
 		
 		worker.prop = rdfMap;
 
-		worker.mainFolder = args[0];
+		worker.socketDir = socketDir;
 		String engine = "r";
 		if(args.length >= 4) {
 			engine = args[3];
 		}
-		
 		if(args.length >= 5) {
 			SocketServer.multi = args[4].equalsIgnoreCase("multi");
 		}
 		
-		worker.bootServer(Integer.parseInt(args[2]), engine);
+		worker.bootServer(port, engine);
 	}
 	
-	public void bootServer(int PORT, String engine) {
+	public void bootServer(final int PORT, String engine) {
         try {
             serverSocket = new ServerSocket(PORT);
         } catch (IOException e) {
@@ -160,7 +177,7 @@ public class SocketServer implements Runnable {
 		        ssh.is = is;
 		        ssh.socket = serverSocket;
 		        ssh.server = this;
-		        ssh.mainFolder = mainFolder;
+		        ssh.mainFolder = socketDir;
 		        Thread readerThread = new Thread(ssh);
 		        readerThread.start();
 			} else {
