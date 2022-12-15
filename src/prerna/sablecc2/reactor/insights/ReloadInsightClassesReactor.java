@@ -8,6 +8,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.tcp.PayloadStruct;
+import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class ReloadInsightClassesReactor extends AbstractReactor {
@@ -55,7 +57,13 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 	 */
 	private void clearProjectAssets(IProject project) {
 		project.clearClassCache();
-		if(this.insight.getUser() != null && this.insight.getUser().getTCPServer(false) != null) {
+		
+		boolean executeOnSocket = false;
+		if(DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
+			executeOnSocket = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION)+"");
+		}
+		
+		if(executeOnSocket && this.insight.getUser() != null && this.insight.getUser().getTCPServer(false) != null) {
 			PayloadStruct ps = new PayloadStruct();
 			ps.operation = PayloadStruct.OPERATION.PROJECT;
 			ps.projectId = insight.getContextProjectId();
