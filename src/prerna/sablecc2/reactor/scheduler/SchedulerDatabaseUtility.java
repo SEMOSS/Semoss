@@ -95,9 +95,9 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_95;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -126,7 +126,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RDBMSUtility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class SchedulerDatabaseUtility {
 	
@@ -384,30 +384,14 @@ public class SchedulerDatabaseUtility {
 			statement.setString(3, jobName);
 			statement.setString(4, jobGroup);
 			statement.setString(5, cronExpression);
+			queryUtil.handleInsertionOfBlob(conn, statement, recipe, 6);
+			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, 7);
 			statement.setString(8, jobCategory);
 			statement.setBoolean(9, triggerOnLoad);
-
-			if(queryUtil.allowBlobJavaObject()) {
-				statement.setBlob(6, stringToBlob(conn, recipe));
-				if(recipeParameters == null || recipeParameters.isEmpty()) {
-					statement.setNull(7, java.sql.Types.BLOB);
-				} else {
-					statement.setBlob(7, stringToBlob(conn, recipeParameters));
-				}
-				statement.setBlob(10, stringToBlob(conn, uiState));
-			} else {
-				statement.setString(6, recipe);
-				if(recipeParameters == null || recipeParameters.isEmpty()) {
-					statement.setNull(7, java.sql.Types.BLOB);
-				} else {
-					statement.setString(7, recipeParameters);
-				}
-				statement.setString(10, uiState);
-			}
-
-
+			queryUtil.handleInsertionOfBlob(conn, statement, uiState, 10);
+			
 			statement.executeUpdate();
-		} catch (SQLException e) {
+		} catch (SQLException | UnsupportedEncodingException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
 		} finally {
@@ -483,33 +467,18 @@ public class SchedulerDatabaseUtility {
 			statement.setString(2, jobName);
 			statement.setString(3, jobGroup);
 			statement.setString(4, cronExpression);
+			queryUtil.handleInsertionOfBlob(conn, statement, recipe, 5);
+			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, 6);
 			statement.setString(7, jobCategory);
 			statement.setBoolean(8, triggerOnLoad);
+			queryUtil.handleInsertionOfBlob(conn, statement, uiState, 9);
 
-			if(queryUtil.allowBlobJavaObject()) {
-				statement.setBlob(5, stringToBlob(conn, recipe));
-				if(recipeParameters == null || recipeParameters.isEmpty()) {
-					statement.setNull(6, java.sql.Types.BLOB);
-				} else {
-					statement.setBlob(6, stringToBlob(conn, recipeParameters));
-				}
-				statement.setBlob(9, stringToBlob(conn, uiState));
-			} else {
-				statement.setString(5, recipe);
-				if(recipeParameters == null || recipeParameters.isEmpty()) {
-					statement.setNull(6, java.sql.Types.BLOB);
-				} else {
-					statement.setString(6, recipeParameters);
-				}
-				statement.setString(9, uiState);
-			}
-			
 			// where clause filters
 			statement.setString(10, jobId);
 			statement.setString(11, existingJobGroup);
 			
 			statement.executeUpdate();
-		} catch (SQLException e) {
+		} catch (SQLException | UnsupportedEncodingException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
 		} finally {
@@ -782,26 +751,23 @@ public class SchedulerDatabaseUtility {
 		if(nExecTimeD != null) {
 			nextExecTime = nExecTimeD.toBigInteger();
 		}
-		if(queryUtil.allowBlobJavaObject()) {
-			try {
-				recipe = RDBMSUtility.flushBlobToString(result.getBlob(PIXEL_RECIPE));
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-			try {
-				recipeParameters = RDBMSUtility.flushBlobToString(result.getBlob(PIXEL_RECIPE_PARAMETERS));
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-			try {
-				uiState = RDBMSUtility.flushBlobToString(result.getBlob(UI_STATE));
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			recipe = result.getString(PIXEL_RECIPE);
-			recipeParameters = result.getString(PIXEL_RECIPE_PARAMETERS);
-			uiState = result.getString(UI_STATE);
+		
+		try {
+			recipe = queryUtil.handleBlobRetrieval(result, PIXEL_RECIPE);
+		} catch (SQLException | IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		try {
+			recipeParameters = queryUtil.handleBlobRetrieval(result, PIXEL_RECIPE_PARAMETERS);
+		} catch (SQLException | IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+
+		try {
+			uiState = queryUtil.handleBlobRetrieval(result, UI_STATE);
+		} catch (SQLException | IOException e) {
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		jobDetailsMap.put(USER_ID, userId);
@@ -881,20 +847,6 @@ public class SchedulerDatabaseUtility {
 				}
 			}
 		}
-	}
-
-	private static Blob stringToBlob(Connection connection, String blobInput) {
-		Blob blob = null;
-
-		try {
-			blob = connection.createBlob();
-			blob.setBytes(1, blobInput.getBytes());
-		} catch (SQLException se) {
-			logger.error("Failed to convert string to blob...");
-			logger.error(Constants.STACKTRACE, se);
-		}
-
-		return blob;
 	}
 
 	public static void startScheduler(Scheduler scheduler) {
@@ -1497,6 +1449,30 @@ public class SchedulerDatabaseUtility {
 			} catch (SQLException se) {
 				logger.error(Constants.STACKTRACE, se);
 			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public static String getQuartzDelegateForRdbms(RdbmsTypeEnum type) {
+		if(type == RdbmsTypeEnum.SQL_SERVER) 
+		{
+			return "org.quartz.impl.jdbcjobstore.MSSQLDelegate";
+		}
+		else if(type == RdbmsTypeEnum.POSTGRES) 
+		{
+			return "org.quartz.impl.jdbcjobstore.MSSQLDelegate";
+		}
+		else if(type == RdbmsTypeEnum.ORACLE) 
+		{
+			return "org.quartz.impl.jdbcjobstore.oracle.OracleDelegate";
+		}
+		else 
+		{
+			return "org.quartz.impl.jdbcjobstore.StdJDBCDelegate";
 		}
 	}
 }

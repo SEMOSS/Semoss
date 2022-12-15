@@ -1,6 +1,11 @@
 package prerna.util.sql;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -785,6 +790,25 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public boolean allowBlobJavaObject() {
 		return true;
+	}
+	
+	@Override
+	public void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index) throws SQLException, UnsupportedEncodingException {
+		if(object == null) {
+			statement.setNull(index, java.sql.Types.BLOB);
+		} else {
+			statement.setBlob(index, AbstractSqlQueryUtil.stringToBlob(conn, object));
+		}
+	}
+	
+	@Override
+	public String handleBlobRetrieval(ResultSet result, String key) throws SQLException, IOException {
+		return AbstractSqlQueryUtil.flushBlobToString(result.getBlob(key));
+	}
+	
+	@Override
+	public String handleBlobRetrieval(ResultSet result, int index) throws SQLException, IOException {
+		return AbstractSqlQueryUtil.flushBlobToString(result.getBlob(index));
 	}
 	
 	@Override
