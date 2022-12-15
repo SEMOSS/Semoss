@@ -119,7 +119,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		DIHelper.getInstance().setProjectProperty(projectId, project);
 		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		projects = projects + ";" + projectId;
-		DIHelper.getInstance().setLocalProperty(Constants.PROJECTS, projects);
+		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
 		
 		// Rename .temp to .smss
 		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
