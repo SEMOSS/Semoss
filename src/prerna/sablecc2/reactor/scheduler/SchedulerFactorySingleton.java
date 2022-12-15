@@ -18,6 +18,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class SchedulerFactorySingleton {
 
@@ -50,15 +51,15 @@ public class SchedulerFactorySingleton {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		String username = queryUtil.getUsername();
 		String password = queryUtil.getPassword();
-		String driver = queryUtil.getDriver();
+		RdbmsTypeEnum rdbmsType = queryUtil.getDbType();
 		factory = new StdSchedulerFactory();
 
 		if (schedulerDb instanceof H2EmbeddedServerEngine) {
 			quartzProperties = setUpQuartzProperties(((H2EmbeddedServerEngine) schedulerDb).getServerUrl(), 
-					username, password, driver);
+					username, password, rdbmsType);
 		} else { // instanceof RDBMSNativeEngine
 			quartzProperties = setUpQuartzProperties(schedulerDb.getConnectionUrl(),
-					username, password, driver);
+					username, password, rdbmsType);
 		}
 
 		try {
@@ -68,15 +69,16 @@ public class SchedulerFactorySingleton {
 		}
 	}
 
-	public static Properties setUpQuartzProperties(String serverUrl, String username, String password, String driver) {
+	public static Properties setUpQuartzProperties(String serverUrl, String username, String password, RdbmsTypeEnum rdbmsType) {
 		Properties quartzProperties = new Properties();
 		try (InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ DIR_SEPARATOR + QUARTZ_CONFIGURATION_FILE)) {
 			quartzProperties.load(input);
 			quartzProperties.setProperty("org.quartz.dataSource.myDS.URL", serverUrl);
-			quartzProperties.setProperty("org.quartz.dataSource.myDS.driver", driver);
+			quartzProperties.setProperty("org.quartz.dataSource.myDS.driver", rdbmsType.getDriver());
 			quartzProperties.setProperty("org.quartz.dataSource.myDS.user", username);
 			quartzProperties.setProperty("org.quartz.dataSource.myDS.password", password);
+			quartzProperties.setProperty("org.quartz.jobStore.driverDelegateClass", SchedulerDatabaseUtility.getQuartzDelegateForRdbms(rdbmsType));
 			if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
 				quartzProperties.setProperty("org.quartz.scheduler.instanceId", "AUTO");
 				quartzProperties.setProperty("org.quartz.jobStore.isClustered", "true");

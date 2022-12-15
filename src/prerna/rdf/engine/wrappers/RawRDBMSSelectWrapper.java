@@ -30,6 +30,7 @@ import prerna.om.HeadersDataRow;
 import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -200,7 +201,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				else if(type == Types.BLOB) {
 					val = rs.getClob(colNum);
 					try {
-						val = RDBMSUtility.flushBlobToString((java.sql.Blob) val);
+						val = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) val);
 					} catch (IOException e) {
 						logger.error(Constants.STACKTRACE, e);
 					} catch (NullPointerException e) {

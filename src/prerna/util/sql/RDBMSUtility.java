@@ -28,13 +28,10 @@
 
 package prerna.util.sql;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -54,6 +51,13 @@ public class RDBMSUtility {
 		
 	}
 	
+	// TODO: move insertion of clob to query utils
+	// TODO: move insertion of clob to query utils
+	// TODO: move insertion of clob to query utils
+	// TODO: move insertion of clob to query utils
+	// TODO: move insertion of clob to query utils
+	// TODO: move insertion of clob to query utils
+
 	/**
 	 * Determine how to handle a clob into a prepared statement based on if the input is already a clob
 	 * and if the database allows clobs or not
@@ -169,55 +173,6 @@ public class RDBMSUtility {
 		InputStream inputStream =  clob.getAsciiStream();
 		// flush input stream to string
 		return IOUtils.readInputStreamToString(inputStream, StandardCharsets.UTF_8);
-	}
-	
-	/**
-	 * 
-	 * @param blob
-	 * @return
-	 */
-	public static String flushBlobToString(Blob blob) throws SQLException, IOException {
-		if(blob == null) {
-			return null;
-		}
-		StringBuffer strOut = new StringBuffer();
-		String aux;
-
-		InputStream is = null;
-		InputStreamReader isr = null;
-		BufferedReader br = null;
-
-		try {
-			is = blob.getBinaryStream();
-			isr = new InputStreamReader(is);
-			br = new BufferedReader(isr);
-			while ((aux=br.readLine())!=null) {
-				strOut.append(aux);
-			}
-		} finally {
-			if(is != null) {
-				try {
-					is.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			if(isr != null) {
-				try {
-					isr.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			if(br != null) {
-				try {
-					br.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		return strOut.toString();
 	}
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
