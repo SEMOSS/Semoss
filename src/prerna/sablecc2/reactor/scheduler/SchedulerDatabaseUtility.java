@@ -1464,7 +1464,7 @@ public class SchedulerDatabaseUtility {
 		}
 		else if(type == RdbmsTypeEnum.POSTGRES) 
 		{
-			return "org.quartz.impl.jdbcjobstore.MSSQLDelegate";
+			return "org.quartz.impl.jdbcjobstore.PostgreSQLDelegate";
 		}
 		else if(type == RdbmsTypeEnum.ORACLE) 
 		{
