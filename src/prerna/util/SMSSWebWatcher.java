@@ -28,7 +28,6 @@
 package prerna.util;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -90,12 +89,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	public static String loadNewDB(String newFile, String folderToWatch) {
 		String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
-		FileInputStream fileIn = null;
 		String engineId = null;
 		try{
-			Properties prop = new Properties();
-			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
-			prop.load(fileIn);
+			Properties prop = Utility.loadProperties(Utility.normalizePath(folderToWatch) + "/"  + Utility.normalizePath(newFile));
+			if(prop == null) {
+				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
+			}
 			
 			// TODO: TO FIX ERRORS WITH PRETTY PRINT METHOD
 			OwlPrettyPrintFixer.fixOwl(prop);
@@ -109,16 +108,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				String fileName = folderToWatch + "/" + newFile;
 				Utility.loadEngine(fileName, prop);
 			}
-		} catch(IOException e) {
+		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			try {
-				if(fileIn != null) {
-					fileIn.close();
-				}
-			} catch(IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
 		}
 		
 		return engineId;
@@ -132,18 +123,16 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */	
 	public static String catalogDB(String newFile, String folderToWatch) {
 		String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
-		FileInputStream fileIn = null;
 		String engineId = null;
 		try{
-			Properties prop = new Properties();
-			fileIn = new FileInputStream(Utility.normalizePath(folderToWatch) + "/"  +  Utility.normalizePath(newFile));
-			prop.load(fileIn);
-			
+			Properties prop = Utility.loadProperties(Utility.normalizePath(folderToWatch) + "/"  + Utility.normalizePath(newFile));
+			if(prop == null) {
+				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
+			}
 			// TODO: TO FIX ERRORS WITH PRETTY PRINT METHOD
 			OwlPrettyPrintFixer.fixOwl(prop);
 			// Update OWL
 			OwlSeparatePixelFromConceptual.fixOwl(prop);
-
 			
 			engineId = prop.getProperty(Constants.ENGINE);
 			
@@ -208,14 +197,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		} catch(Exception e){
 			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			try{
-				if(fileIn != null) {
-					fileIn.close();
-				}
-			} catch(IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
 		}
 		
 		return engineId;
