@@ -2738,7 +2738,7 @@ public class Utility {
 	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = null;
 		
-		// Now that the app has been pulled, grab the smss file
+		// Now that the database has been pulled, grab the smss file
 		String smssFile = null;
 		boolean reloadDB = false;
 		Properties prop = null;
@@ -2809,8 +2809,7 @@ public class Utility {
 						}
 					}
 					
-					// Now that the app has been pulled, grab the smss file
-
+					// Now that the database has been pulled, grab the smss file
 					smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
 					
 					// Start up the engine using the details in the smss
@@ -2822,7 +2821,10 @@ public class Utility {
 					{
 						engine = Utility.loadEngine(null, prop);	
 					} else {
-						logger.debug("There is no SMSS File for the database " + engineId + "...");
+						logger.info("There is no SMSS File for the database " + engineId + "...");
+						logger.info("There is no SMSS File for the database " + engineId + "...");
+						logger.info("There is no SMSS File for the database " + engineId + "...");
+						logger.info("There is no SMSS File for the database " + engineId + "...");
 					}
 	
 					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
