@@ -109,37 +109,46 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		// this is for the OWL positions for the new layout
 		if(options.contains("positions")) {
 			logger.info("Pulling database positions for database " + databaseId);
-			IEngine app = Utility.getEngine(databaseId);
-			// if the file is present, pull it and load
-			File owlF = SmssUtilities.getOwlFile(app.getProp());
-			if(owlF == null) {
+			IEngine database = Utility.getEngine(databaseId);
+			if(database == null) {
+				logger.error("Could not load database '"+databaseId+"'");
+				logger.error("Could not load database '"+databaseId+"'");
+				logger.error("Could not load database '"+databaseId+"'");
+				logger.error("Could not load database '"+databaseId+"'");
+				logger.error("Could not load database '"+databaseId+"'");
 				metamodelObject.put("positions", new HashMap<String, Object>());
 			} else {
-				File positionFile = app.getOwlPositionFile();
-				// try to make the file
-				if(!positionFile.exists()) {
-					try {
-						logger.info("Generating metamodel layout for database " + databaseId);
-						logger.info("This process may take some time");
-						GenerateMetamodelLayout.generateLayout(databaseId);
-						logger.info("Metamodel layout has been generated");
-					} catch(Exception e) {
-						classLogger.info("Error in creating database metamodel layout");
-						classLogger.error(Constants.STACKTRACE, e);
-					} catch(NoClassDefFoundError e) {
-						classLogger.info("Error in creating database metamodel layout");
-						classLogger.error(Constants.STACKTRACE, e);
+				// if the file is present, pull it and load
+				File owlF = SmssUtilities.getOwlFile(database.getProp());
+				if(owlF == null || !owlF.isFile()) {
+					metamodelObject.put("positions", new HashMap<String, Object>());
+				} else {
+					File positionFile = database.getOwlPositionFile();
+					// try to make the file
+					if(!positionFile.exists() && !positionFile.isFile()) {
+						try {
+							logger.info("Generating metamodel layout for database " + databaseId);
+							logger.info("This process may take some time");
+							GenerateMetamodelLayout.generateLayout(databaseId);
+							logger.info("Metamodel layout has been generated");
+						} catch(Exception e) {
+							classLogger.info("Exception in creating database metamodel layout");
+							classLogger.error(Constants.STACKTRACE, e);
+						} catch(NoClassDefFoundError e) {
+							classLogger.info("Error in creating database metamodel layout");
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
-				}
-				
-				if(positionFile.exists()) {
-					// load the file
-					Path path = positionFile.toPath();
-					try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-						Map<String, Object> positionMap = gson.fromJson(reader, Map.class);
-						metamodelObject.put("positions", positionMap);
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+					
+					if(positionFile.exists() && positionFile.isFile()) {
+						// load the file
+						Path path = positionFile.toPath();
+						try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+							Map<String, Object> positionMap = gson.fromJson(reader, Map.class);
+							metamodelObject.put("positions", positionMap);
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
