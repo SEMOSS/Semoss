@@ -1,8 +1,12 @@
 package prerna.engine.api;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.google.gson.TypeAdapter;
 
 import prerna.util.gson.HeadersDataRowAdapter;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public interface IHeadersDataRow{
 
@@ -88,6 +92,12 @@ public interface IHeadersDataRow{
 	// gets a particular field
 	Object getField(String fieldName);
 
+	String getQuery();
+	
+	void setQuery(String query);
+	
+	Map<String, Object> flushRowToMap();
+	
 	/*
 	 * 
 	 * Methods around serialization
@@ -113,8 +123,4 @@ public interface IHeadersDataRow{
 		}
 		return null;
 	}
-	
-	public String getQuery();
-	
-	public void setQuery(String query);
 }
