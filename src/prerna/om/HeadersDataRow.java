@@ -1,12 +1,15 @@
 package prerna.om;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import com.google.gson.Gson;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.util.gson.GsonUtility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class HeadersDataRow implements IHeadersDataRow{
 
@@ -164,10 +167,19 @@ public class HeadersDataRow implements IHeadersDataRow{
 		return new HeadersDataRow(cHeaders, cRawHeaders, cValues, cRawValues);
 	}
 	
-	
-	
-	
-	
+	@Override
+	public Map<String, Object> flushRowToMap() {
+		Map<String, Object> map = new HashMap<String, Object>();
+		for(int i = 0; i < headers.length; i++) {
+			if(values[i] instanceof java.sql.Clob) {
+				String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
+				map.put(headers[i], value);
+			} else {
+				map.put(headers[i], values[i]);
+			}
+		}
+		return map;
+	}
 	
 	/////////////////////////////////////////////
 
