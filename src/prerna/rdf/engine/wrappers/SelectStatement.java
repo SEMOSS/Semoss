@@ -201,6 +201,19 @@ public class SelectStatement  implements ISelectStatement {
 	public String getQuery(){
 		return "";
 	}
+
+	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public Map<String, Object> flushRowToMap() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 //	@Override
 //	public boolean equals(ISelectStatement other){
 //		boolean equal = false;
@@ -220,11 +233,4 @@ public class SelectStatement  implements ISelectStatement {
 //	public int hashCode(){
 //		return 0;
 //	}
-
-	@Override
-	public void setQuery(String query) {
-		// TODO Auto-generated method stub
-		
-	}
-
 }
