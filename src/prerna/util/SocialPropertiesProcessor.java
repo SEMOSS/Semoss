@@ -85,7 +85,7 @@ public class SocialPropertiesProcessor {
 		}
 
 		// get if registration is allowed
-		boolean registration = Boolean.parseBoolean(socialData.getProperty("native_registration"));
+		boolean registration = Boolean.parseBoolean(socialData.getProperty("native_registration")+"");
 		this.loginsAllowedMap.put("registration", registration);
 	}
 	
