@@ -195,7 +195,7 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 			
 			LocalDateTime pwdChange = LocalDateTime.ofInstant(Instant.ofEpochMilli(dateAsLong), TimeZone.getTimeZone("UTC").toZoneId()); 			
 			LocalDateTime now = LocalDateTime.now();
-			if(pwdChange.plusDays(requirePwdChangeAfterDays).isAfter(now)) {
+			if(pwdChange.plusDays(requirePwdChangeAfterDays).isBefore(now)) {
 				return true;
 			}
 		}
