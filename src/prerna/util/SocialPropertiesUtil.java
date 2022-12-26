@@ -20,7 +20,6 @@ public class SocialPropertiesUtil {
 	private static SocialPropertiesUtil instance = null;
 	private static SocialPropertiesProcessor processor = null;
 	private static String socialPropFile = null;
-	private static ILdapAuthenticator ldapAuthenticator = null;
 	
 	public SocialPropertiesUtil() {
 		SocialPropertiesUtil.socialPropFile = DIHelper.getInstance().getProperty(Constants.SOCIAL);
@@ -56,13 +55,6 @@ public class SocialPropertiesUtil {
 	
 	public void updateSocialProperties(String provider, Map<String, String> mods) {
 		SocialPropertiesUtil.processor.updateProviderProperties(provider, mods);
-		if(provider.equals(ILdapAuthenticator.LDAP) && SocialPropertiesUtil.ldapAuthenticator != null) {
-			try {
-				SocialPropertiesUtil.ldapAuthenticator.load();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
 	}
 	
 	public Map<String, Boolean> getLoginsAllowed() {
@@ -127,28 +119,12 @@ public class SocialPropertiesUtil {
 	
 	public void reloadProps() {
 		SocialPropertiesUtil.processor.reloadProps();
-		if(SocialPropertiesUtil.ldapAuthenticator != null) {
-			try {
-				SocialPropertiesUtil.ldapAuthenticator.load();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
 	}
 
 	public ILdapAuthenticator getLdapAuthenticator() throws IOException {
-		if(SocialPropertiesUtil.ldapAuthenticator != null) {
-			return SocialPropertiesUtil.ldapAuthenticator;
-		}
-
-		synchronized(SocialPropertiesUtil.class) {
-			if(SocialPropertiesUtil.ldapAuthenticator == null) {
-				String ldapType = SocialPropertiesUtil.processor.getProperty(ILdapAuthenticator.LDAP_TYPE);
-				SocialPropertiesUtil.ldapAuthenticator = LdapAuthenticationFactory.getAuthenticator(ldapType);
-				SocialPropertiesUtil.ldapAuthenticator.load();
-			}
-		}
-		
-		return SocialPropertiesUtil.ldapAuthenticator;
+		String ldapType = SocialPropertiesUtil.processor.getProperty(ILdapAuthenticator.LDAP_TYPE);
+		ILdapAuthenticator ldapAuthenticator = LdapAuthenticationFactory.getAuthenticator(ldapType);
+		ldapAuthenticator.load();
+		return ldapAuthenticator;
 	}
 }
