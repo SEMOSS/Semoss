@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 
 import org.apache.logging.log4j.LogManager;
@@ -128,23 +131,16 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 
 	@Override
 	public AccessToken generateAccessToken(Attributes attributes) throws Exception {
-		Object userId = null;
-		Object name = null;
-		Object email = null;
-		Object username = null;
+		// for debugging
+		printAllAttributes(attributes);
+		
+		Object userId = getAttributeValue(attributes, this.attributeIdKey);
+		Object name = getAttributeValue(attributes, this.attributeNameKey);
+		Object email = getAttributeValue(attributes, this.attributeEmailKey);
+		Object username = getAttributeValue(attributes, this.attributeUserNameKey);
 
-		userId = attributes.get(this.attributeIdKey).get();
-		if(userId == null) {
+		if(userId == null || userId.toString().isEmpty()) {
 			throw new IllegalArgumentException("Cannot login user due to not having a proper attribute for the user id");
-		}
-		if(this.attributeNameKey != null) {
-			name = attributes.get(this.attributeNameKey).get();
-		}
-		if(this.attributeEmailKey != null) {
-			email = attributes.get(this.attributeEmailKey).get();
-		}
-		if(this.attributeUserNameKey != null) {
-			username = attributes.get(this.attributeUserNameKey).get();
 		}
 
 		if(requirePasswordChange(attributes)) {
@@ -168,14 +164,48 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	}
 	
 	@Override
-	public boolean requirePasswordChange(Attributes attributes) {
+	public boolean requirePasswordChange(Attributes attributes) throws NamingException {
 		Object lastPwdChange = null;
 		if(this.attributeLastPwdChangeKey != null) {
-			lastPwdChange = attributes.get(this.attributeLastPwdChangeKey);
+			// assuming if you define this, that the value must exist
+			lastPwdChange = getAttributeValue(attributes, this.attributeLastPwdChangeKey);
 			System.out.println(lastPwdChange + " ::: " + lastPwdChange.getClass().getName());
 		}
 		
 		return false;
+	}
+	
+	/**
+	 * Grab the value of an attribute and perform necessary null checks
+	 * @param attributes
+	 * @param name
+	 * @return
+	 * @throws NamingException
+	 */
+	private Object getAttributeValue(Attributes attributes, String name) throws NamingException {
+		if(name == null) {
+			return null;
+		}
+		Attribute attr = attributes.get(name);
+		if(attr == null) {
+			return null;
+		}
+		return attr.get();
+	}
+	
+	/**
+	 * This is for testing - printing all attributes of the logged in user
+	 * @param attributes
+	 * @throws NamingException
+	 */
+	private void printAllAttributes(Attributes attributes) throws NamingException {
+		NamingEnumeration<? extends Attribute> allAttributes = attributes.getAll();
+		while(allAttributes.hasMore()) {
+			Attribute nextAttr = allAttributes.next();
+			if(nextAttr != null) {
+				classLogger.info(nextAttr.getID() + " ::: " + nextAttr.get());
+			}
+		}
 	}
 
 }
