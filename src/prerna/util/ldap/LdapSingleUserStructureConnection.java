@@ -5,10 +5,11 @@ import java.util.Properties;
 
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
-import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
+import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
+import javax.naming.directory.ModificationItem;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
@@ -38,10 +39,7 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 	}
 	
 	@Override
-	public AccessToken authenticate(String username, String password) throws Exception {
-		DirContext con = null;
-		String principalTemplate = this.securityPrincipalTemplate;
-		String principalDN = principalTemplate.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+	public DirContext createLdapContext(String principalDN, String password) throws Exception {
 		try {
 			Properties env = new Properties();
 			env.put(Context.INITIAL_CONTEXT_FACTORY, LDAP_FACTORY);
@@ -49,7 +47,20 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 			env.put(Context.SECURITY_PRINCIPAL, principalDN); // cn=<username>,ou=users,ou=system
 			env.put(Context.SECURITY_CREDENTIALS, password); // password
 			
-			con = new InitialDirContext(env);
+			return new InitialDirContext(env);
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
+	}
+	
+	@Override
+	public AccessToken authenticate(String username, String password) throws Exception {
+		String principalTemplate = this.securityPrincipalTemplate;
+		String principalDN = principalTemplate.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+		DirContext ldapContext = null;
+		try {
+			ldapContext = createLdapContext(principalDN, password);
 			
 			// need to search for the user who just logged in
 			// so that i can grab the attributes
@@ -60,7 +71,7 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 			controls.setSearchScope(this.searchContextScope);
 			controls.setReturningAttributes(this.requestAttributes);
 			
-			NamingEnumeration<SearchResult> users = con.search(this.searchContextName, searchFilter, controls);
+			NamingEnumeration<SearchResult> users = ldapContext.search(this.searchContextName, searchFilter, controls);
 			
 			SearchResult result = null;
 			while(users.hasMoreElements()) {
@@ -78,18 +89,47 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if(con != null) {
-				try {
-					con.close();
-				} catch (NamingException e) {
-					e.printStackTrace();
-				}
+			if(ldapContext != null) {
+				ldapContext.close();
 			}
 		}
 	}
 
 	@Override
-	public boolean close() {
-		return true;
+	public void close() {
+		// do nothing
+	}
+	
+	@Override
+	public void updateUserPassword(String username, String curPassword, String newPassword) throws Exception { 
+		String principalTemplate = this.securityPrincipalTemplate;
+		String principalDN = principalTemplate.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+		DirContext ldapContext = null;
+		try {
+			ldapContext = createLdapContext(principalTemplate, curPassword);
+			String quotedPassword = "\"" + newPassword + "\"";
+			char unicodePwd[] = quotedPassword.toCharArray();
+			byte pwdArray[] = new byte[unicodePwd.length * 2];
+			for (int i = 0; i < unicodePwd.length; i++)
+			{
+				pwdArray[i * 2 + 1] = (byte) (unicodePwd[i] >>> 8);
+				pwdArray[i * 2 + 0] = (byte) (unicodePwd[i] & 0xff);
+			}
+			
+			ModificationItem[] mods = new ModificationItem[1];
+			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwdArray));
+			
+			classLogger.info(principalDN + " is attemping to change password");
+			ldapContext.modifyAttributes(principalDN, mods);
+			classLogger.info(principalDN + " successfully changed password");
+		} catch (Exception e) {
+			classLogger.info(principalDN + " failed to change password");
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to chagne password. Error message: " + e.getMessage());
+		} finally {
+			if(ldapContext != null) {
+				ldapContext.close();
+			}
+		}
 	}
 }
