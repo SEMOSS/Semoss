@@ -3,6 +3,7 @@ package prerna.util.ldap;
 import java.io.Closeable;
 import java.io.IOException;
 
+import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 
@@ -93,7 +94,8 @@ public interface ILdapAuthenticator extends Closeable {
 	/**
 	 * Does this user require a password change
 	 * @return
+	 * @throws NamingException 
 	 */
-	boolean requirePasswordChange(Attributes attributes);
+	boolean requirePasswordChange(Attributes attributes) throws NamingException;
 
 }
