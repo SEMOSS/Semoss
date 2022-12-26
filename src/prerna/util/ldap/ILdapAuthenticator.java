@@ -1,10 +1,14 @@
 package prerna.util.ldap;
 
+import java.io.Closeable;
 import java.io.IOException;
+
+import javax.naming.directory.Attributes;
+import javax.naming.directory.DirContext;
 
 import prerna.auth.AccessToken;
 
-public interface ILdapAuthenticator {
+public interface ILdapAuthenticator extends Closeable {
 
 	String LDAP_FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
 	
@@ -33,6 +37,9 @@ public interface ILdapAuthenticator {
 	String LDAP_NAME_KEY = LDAP_PREFIX + "key_name";
 	String LDAP_EMAIL_KEY = LDAP_PREFIX + "key_email";
 	String LDAP_USERNAME_KEY = LDAP_PREFIX + "key_username";
+	
+	String LDAP_LAST_PWD_CHANGE_KEY = LDAP_PREFIX + "key_last_pwd_change";
+	String LDAP_FORCE_PWD_CHANGE_KEY = LDAP_PREFIX + "require_pwd_change_days";
 
 	// searching
 	String LDAP_SEARCH_CONTEXT_NAME = LDAP_PREFIX + "search_context_name";
@@ -52,10 +59,13 @@ public interface ILdapAuthenticator {
 	void validate() throws IOException;
 	
 	/**
-	 * Close any existing connection
+	 * Create the DirContext for the username/password
+	 * @param username
+	 * @param password
 	 * @return
+	 * @throws Exception
 	 */
-	boolean close();
+	DirContext createLdapContext(String principalDN, String password) throws Exception;
 	
 	/**
 	 * Authenticate the user input
@@ -65,4 +75,25 @@ public interface ILdapAuthenticator {
 	 */
 	AccessToken authenticate(String username, String password) throws Exception;
 	
+	/**
+	 * Produce the access token from the user attributes
+	 * @param attributes
+	 * @return
+	 * @throws Exception
+	 */
+	AccessToken generateAccessToken(Attributes attributes) throws Exception;
+	
+	/**
+	 * Update User Password in Microsoft Active Directory
+	 * @param username
+	 * @param password
+	 */
+	void updateUserPassword(String username, String currPassword, String newPassword) throws Exception;
+	
+	/**
+	 * Does this user require a password change
+	 * @return
+	 */
+	boolean requirePasswordChange(Attributes attributes);
+
 }
