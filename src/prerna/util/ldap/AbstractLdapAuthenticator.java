@@ -4,12 +4,14 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
+import javax.naming.directory.DirContext;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,8 +34,8 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 
 	// if single structure searching
 	// user is providing the CN to the DN structure
-	// and then providing their password as is
-	String securityPrincipalTemplate = null;
+	// and then providing their password
+	List<String> securityPrincipalTemplate = null;
 
 	// attribute mapping
 	String attributeIdKey = null;
@@ -63,8 +65,16 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		this.providerUrl = socialData.getProperty(LDAP_PROVIDER_URL);
 		this.applicationSecurityPrincipal = socialData.getProperty(LDAP_APPLICATION_SECURITY_PRINCIPAL);
 		this.applicationSecurityCredentials = socialData.getProperty(LDAP_APPLICATION_SECURITY_CREDENTIALS);
-		this.securityPrincipalTemplate = socialData.getProperty(LDAP_SECURITY_PRINCIPAL_TEMPLATE);
-
+		String securityPrincipalTemplateStr = socialData.getProperty(LDAP_SECURITY_PRINCIPAL_TEMPLATE);
+		if(securityPrincipalTemplateStr != null && 
+				securityPrincipalTemplateStr.contains("***")) {
+			String[] possibleValues = securityPrincipalTemplateStr.split("\\*\\*\\*");
+			securityPrincipalTemplate = Arrays.asList(possibleValues);
+		} else {
+			securityPrincipalTemplate = new ArrayList<>(1);
+			securityPrincipalTemplate.add(securityPrincipalTemplateStr);
+		}
+		
 		this.attributeIdKey = socialData.getProperty(LDAP_ID_KEY);
 		this.attributeNameKey = socialData.getProperty(LDAP_NAME_KEY);
 		this.attributeEmailKey = socialData.getProperty(LDAP_EMAIL_KEY);
@@ -138,6 +148,11 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		} catch(NumberFormatException e) {
 			throw new IllegalArgumentException("Search Context scope must be of value 0, 1, or 2");
 		}
+	}
+	
+	@Override
+	public DirContext createLdapContext(String principalDN, String password) throws Exception {
+		return LDAPLoginHelper.createLdapContext(this.providerUrl, principalDN, password);
 	}
 
 	@Override
