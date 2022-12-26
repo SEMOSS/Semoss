@@ -1,10 +1,12 @@
 package prerna.util.ldap;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 
-import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
@@ -41,6 +43,7 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 
 	// if we require password changes
 	String attributeLastPwdChangeKey = null;
+	int requirePwdChangeAfterDays = 80;
 	
 	String[] requestAttributes = null;
 
@@ -68,6 +71,14 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		this.attributeUserNameKey = socialData.getProperty(LDAP_USERNAME_KEY);
 
 		this.attributeLastPwdChangeKey = socialData.getProperty(LDAP_LAST_PWD_CHANGE_KEY);
+		String requirePwdChangeDays = socialData.getProperty(LDAP_FORCE_PWD_CHANGE_KEY);
+		if(requirePwdChangeDays != null && !requirePwdChangeDays.isEmpty()) {
+			try {
+				requirePwdChangeAfterDays = Integer.parseInt(requirePwdChangeDays);
+			} catch(NumberFormatException e) {
+				throw new IllegalArgumentException("Invalid value for " + LDAP_FORCE_PWD_CHANGE_KEY + ". " + e.getMessage());
+			}
+		}
 		
 		String LDAP_SEARCH_CONTEXT_NAME = LDAP_PREFIX + "search_context_name";
 		String LDAP_SEARCH_CONTEXT_SCOPE = LDAP_PREFIX + "search_context_scope";
@@ -132,7 +143,7 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	@Override
 	public AccessToken generateAccessToken(Attributes attributes) throws Exception {
 		// for debugging
-		printAllAttributes(attributes);
+//		printAllAttributes(attributes);
 		
 		Object userId = getAttributeValue(attributes, this.attributeIdKey);
 		Object name = getAttributeValue(attributes, this.attributeNameKey);
@@ -165,11 +176,28 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	
 	@Override
 	public boolean requirePasswordChange(Attributes attributes) throws NamingException {
-		Object lastPwdChange = null;
 		if(this.attributeLastPwdChangeKey != null) {
 			// assuming if you define this, that the value must exist
-			lastPwdChange = getAttributeValue(attributes, this.attributeLastPwdChangeKey);
-			System.out.println(lastPwdChange + " ::: " + lastPwdChange.getClass().getName());
+			Object lastPwdChange = getAttributeValue(attributes, this.attributeLastPwdChangeKey);
+			if(lastPwdChange == null) {
+				throw new IllegalArgumentException("Unable to pull last password change attribute");
+			}
+			long dateAsLong = 0;
+			if(lastPwdChange instanceof Long) {
+				dateAsLong = (long) lastPwdChange;
+			} else if(lastPwdChange instanceof String) {
+				try {
+					dateAsLong = Long.parseLong(lastPwdChange+"");
+				} catch(NumberFormatException e) {
+					throw new IllegalArgumentException("Unable to parse last password change value = '" + lastPwdChange + "'");
+				}
+			}
+			
+			LocalDateTime pwdChange = LocalDateTime.ofInstant(Instant.ofEpochMilli(dateAsLong), TimeZone.getTimeZone("UTC").toZoneId()); 			
+			LocalDateTime now = LocalDateTime.now();
+			if(pwdChange.plusDays(requirePwdChangeAfterDays).isAfter(now)) {
+				return true;
+			}
 		}
 		
 		return false;
@@ -193,19 +221,19 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		return attr.get();
 	}
 	
-	/**
-	 * This is for testing - printing all attributes of the logged in user
-	 * @param attributes
-	 * @throws NamingException
-	 */
-	private void printAllAttributes(Attributes attributes) throws NamingException {
-		NamingEnumeration<? extends Attribute> allAttributes = attributes.getAll();
-		while(allAttributes.hasMore()) {
-			Attribute nextAttr = allAttributes.next();
-			if(nextAttr != null) {
-				classLogger.info(nextAttr.getID() + " ::: " + nextAttr.get());
-			}
-		}
-	}
+//	/**
+//	 * This is for testing - printing all attributes of the logged in user
+//	 * @param attributes
+//	 * @throws NamingException
+//	 */
+//	private void printAllAttributes(Attributes attributes) throws NamingException {
+//		NamingEnumeration<? extends Attribute> allAttributes = attributes.getAll();
+//		while(allAttributes.hasMore()) {
+//			Attribute nextAttr = allAttributes.next();
+//			if(nextAttr != null) {
+//				classLogger.info(nextAttr.getID() + " ::: " + nextAttr.get());
+//			}
+//		}
+//	}
 
 }
