@@ -87,9 +87,11 @@ public interface ILdapAuthenticator extends Closeable {
 	/**
 	 * Update User Password in Microsoft Active Directory
 	 * @param username
-	 * @param password
+	 * @param curPassword
+	 * @param newPassword
+	 * @throws Exception
 	 */
-	void updateUserPassword(String username, String currPassword, String newPassword) throws Exception;
+	void updateUserPassword(String username, String curPassword, String newPassword) throws Exception;
 	
 	/**
 	 * Does this user require a password change
