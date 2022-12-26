@@ -30,8 +30,10 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 		if(this.securityPrincipalTemplate == null || this.securityPrincipalTemplate.isEmpty()) {
 			throw new IllegalArgumentException("Must provide the DN template");
 		}
-		if(!this.securityPrincipalTemplate.contains(SECURITY_PRINCIPAL_TEMPLATE_USERNAME)) {
-			throw new IllegalArgumentException("Must provide the a location to fill the username passed from the user using " + SECURITY_PRINCIPAL_TEMPLATE_USERNAME);
+		for(String template : this.securityPrincipalTemplate) {
+			if(!template.contains(SECURITY_PRINCIPAL_TEMPLATE_USERNAME)) {
+				throw new IllegalArgumentException("Must provide the a location to fill the username passed from the user using " + SECURITY_PRINCIPAL_TEMPLATE_USERNAME);
+			}
 		}
 	}
 
