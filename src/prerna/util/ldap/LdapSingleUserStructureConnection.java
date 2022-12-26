@@ -1,14 +1,11 @@
 package prerna.util.ldap;
 
 import java.io.IOException;
-import java.util.Properties;
 
-import javax.naming.Context;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.ModificationItem;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
@@ -26,53 +23,38 @@ import prerna.util.Constants;
 public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator {
 
 	private static final Logger classLogger = LogManager.getLogger(LdapSingleUserStructureConnection.class);
-	
+
 	@Override
 	public void validate() throws IOException {
 		super.validate();
-		if(this.securityPrincipalTemplate == null || (this.securityPrincipalTemplate=this.securityPrincipalTemplate.trim()).isEmpty()) {
+		if(this.securityPrincipalTemplate == null || this.securityPrincipalTemplate.isEmpty()) {
 			throw new IllegalArgumentException("Must provide the DN template");
 		}
 		if(!this.securityPrincipalTemplate.contains(SECURITY_PRINCIPAL_TEMPLATE_USERNAME)) {
 			throw new IllegalArgumentException("Must provide the a location to fill the username passed from the user using " + SECURITY_PRINCIPAL_TEMPLATE_USERNAME);
 		}
 	}
-	
-	@Override
-	public DirContext createLdapContext(String principalDN, String password) throws Exception {
-		try {
-			Properties env = new Properties();
-			env.put(Context.INITIAL_CONTEXT_FACTORY, LDAP_FACTORY);
-			env.put(Context.PROVIDER_URL, this.providerUrl); // "ldap://localhost:10389";
-			env.put(Context.SECURITY_PRINCIPAL, principalDN); // cn=<username>,ou=users,ou=system
-			env.put(Context.SECURITY_CREDENTIALS, password); // password
-			
-			return new InitialDirContext(env);
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		}
-	}
-	
+
 	@Override
 	public AccessToken authenticate(String username, String password) throws Exception {
-		String principalTemplate = this.securityPrincipalTemplate;
-		String principalDN = principalTemplate.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
 		DirContext ldapContext = null;
 		try {
-			ldapContext = createLdapContext(principalDN, password);
-			
+			LDAPLoginHelper loginObj = LDAPLoginHelper.tryLogins(this.providerUrl, this.securityPrincipalTemplate, username, password);
+			String principalTemplate = loginObj.getPrincipalTemplate();
+			String principalDN = loginObj.getPrincipalDN();
+			ldapContext = loginObj.getLdapContext();
+
 			// need to search for the user who just logged in
 			// so that i can grab the attributes
 			String searchFilter = this.searchMatchingAttributes;
 			searchFilter = searchFilter.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
-			
+
 			SearchControls controls = new SearchControls();
 			controls.setSearchScope(this.searchContextScope);
 			controls.setReturningAttributes(this.requestAttributes);
-			
+
 			NamingEnumeration<SearchResult> users = ldapContext.search(this.searchContextName, searchFilter, controls);
-			
+
 			SearchResult result = null;
 			while(users.hasMoreElements()) {
 				result = users.next();
@@ -83,7 +65,7 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 					return this.generateAccessToken(attr);
 				}
 			}
-			
+
 			return null;
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -99,14 +81,17 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 	public void close() {
 		// do nothing
 	}
-	
+
 	@Override
 	public void updateUserPassword(String username, String curPassword, String newPassword) throws Exception { 
-		String principalTemplate = this.securityPrincipalTemplate;
-		String principalDN = principalTemplate.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
 		DirContext ldapContext = null;
+		String principalDN = null;
 		try {
-			ldapContext = createLdapContext(principalTemplate, curPassword);
+			LDAPLoginHelper loginObj = LDAPLoginHelper.tryLogins(this.providerUrl, this.securityPrincipalTemplate, username, curPassword);
+			String principalTemplate = loginObj.getPrincipalTemplate();
+			principalDN = loginObj.getPrincipalDN();
+			ldapContext = loginObj.getLdapContext();
+
 			String quotedPassword = "\"" + newPassword + "\"";
 			char unicodePwd[] = quotedPassword.toCharArray();
 			byte pwdArray[] = new byte[unicodePwd.length * 2];
@@ -115,10 +100,10 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 				pwdArray[i * 2 + 1] = (byte) (unicodePwd[i] >>> 8);
 				pwdArray[i * 2 + 0] = (byte) (unicodePwd[i] & 0xff);
 			}
-			
+
 			ModificationItem[] mods = new ModificationItem[1];
 			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwdArray));
-			
+
 			classLogger.info(principalDN + " is attemping to change password");
 			ldapContext.modifyAttributes(principalDN, mods);
 			classLogger.info(principalDN + " successfully changed password");
