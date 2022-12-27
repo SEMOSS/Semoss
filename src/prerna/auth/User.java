@@ -730,9 +730,11 @@ public class User implements Serializable {
 		String varValue = AssetUtility.getProjectBaseFolder(projectName, projectId) + subFolder;
 		varValue = varValue.replace("\\", "/");
 
-		// load in the project and pull the latest folder value
+		// only pull the project
 		IProject project = Utility.getProject(projectId);
-		ClusterUtil.reactorPullProjectFolder(project, varValue);
+		// do not pull the latest from cloud - just leads to issues 
+		// on portals when trying to git pull and sync  across pods
+//		ClusterUtil.reactorPullProjectFolder(project, varValue);
 		
 		StringBuffer oldValue = varMap.get(varName);
 		if(oldValue != null) {
