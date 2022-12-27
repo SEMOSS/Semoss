@@ -46,14 +46,14 @@ public class OpenProjectReactor extends AbstractReactor {
 			}
 		}
 		
-		IProject engine = Utility.getProject(projectId);
-		if(engine == null) {
+		IProject project = Utility.getProject(projectId);
+		if(project == null) {
 			throw new IllegalArgumentException("Could not find or load project = " + projectId);
 		}
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-		returnMap.put("project_name", engine.getProjectName());
-		returnMap.put("project_id", engine.getProjectId());
+		returnMap.put("project_name", project.getProjectName());
+		returnMap.put("project_id", project.getProjectId());
 		returnMap.put("project_type", "");	
 		returnMap.put("project_cost", "");	
 		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_DATABASE);
