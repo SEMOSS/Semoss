@@ -1,12 +1,10 @@
 package prerna.util.ldap;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.TimeZone;
 
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -152,7 +150,7 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	
 	@Override
 	public DirContext createLdapContext(String principalDN, String password) throws Exception {
-		return LDAPLoginHelper.createLdapContext(this.providerUrl, principalDN, password);
+		return LDAPConnectionHelper.createLdapContext(this.providerUrl, principalDN, password);
 	}
 
 	@Override
@@ -197,18 +195,15 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 			if(lastPwdChange == null) {
 				throw new IllegalArgumentException("Unable to pull last password change attribute");
 			}
-			long dateAsLong = 0;
+			LocalDateTime pwdChange = null;
 			if(lastPwdChange instanceof Long) {
-				dateAsLong = (long) lastPwdChange;
+				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((long) lastPwdChange);
 			} else if(lastPwdChange instanceof String) {
-				try {
-					dateAsLong = Long.parseLong(lastPwdChange+"");
-				} catch(NumberFormatException e) {
-					throw new IllegalArgumentException("Unable to parse last password change value = '" + lastPwdChange + "'");
-				}
+				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((String) lastPwdChange);
+			} else {
+				throw new IllegalArgumentException("Unhandled data type for password change: " + lastPwdChange.getClass().getName());
 			}
 			
-			LocalDateTime pwdChange = LocalDateTime.ofInstant(Instant.ofEpochMilli(dateAsLong), TimeZone.getTimeZone("UTC").toZoneId()); 			
 			LocalDateTime now = LocalDateTime.now();
 			if(pwdChange.plusDays(requirePwdChangeAfterDays).isBefore(now)) {
 				return true;
