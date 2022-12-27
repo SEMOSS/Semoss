@@ -41,7 +41,7 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 	public AccessToken authenticate(String username, String password) throws Exception {
 		DirContext ldapContext = null;
 		try {
-			LDAPLoginHelper loginObj = LDAPLoginHelper.tryLogins(this.providerUrl, this.securityPrincipalTemplate, username, password);
+			LDAPConnectionHelper loginObj = LDAPConnectionHelper.tryLogins(this.providerUrl, this.securityPrincipalTemplate, username, password);
 			String principalTemplate = loginObj.getPrincipalTemplate();
 			String principalDN = loginObj.getPrincipalDN();
 			ldapContext = loginObj.getLdapContext();
@@ -89,7 +89,7 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 		DirContext ldapContext = null;
 		String principalDN = null;
 		try {
-			LDAPLoginHelper loginObj = LDAPLoginHelper.tryLogins(this.providerUrl, this.securityPrincipalTemplate, username, curPassword);
+			LDAPConnectionHelper loginObj = LDAPConnectionHelper.tryLogins(this.providerUrl, this.securityPrincipalTemplate, username, curPassword);
 			String principalTemplate = loginObj.getPrincipalTemplate();
 			principalDN = loginObj.getPrincipalDN();
 			ldapContext = loginObj.getLdapContext();
