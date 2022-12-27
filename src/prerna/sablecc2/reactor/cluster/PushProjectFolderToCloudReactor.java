@@ -11,9 +11,9 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-public class PushProjectFolderFromCloudReactor extends AbstractReactor {
+public class PushProjectFolderToCloudReactor extends AbstractReactor {
 	
-	public PushProjectFolderFromCloudReactor() {
+	public PushProjectFolderToCloudReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
 	}
 
