@@ -80,7 +80,11 @@ public class LDAPConnectionHelper {
 			env.put(Context.PROVIDER_URL, providerUrl); // "ldap://localhost:10389";
 			env.put(Context.SECURITY_PRINCIPAL, principalDN); // cn=<username>,ou=users,ou=system
 			env.put(Context.SECURITY_CREDENTIALS, password); // password
-
+			// specify SSL
+			if(providerUrl.startsWith("ldaps")) {
+				env.put(Context.SECURITY_PROTOCOL, "ssl");
+			}
+			
 			return new InitialDirContext(env);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
