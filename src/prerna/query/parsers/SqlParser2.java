@@ -1473,7 +1473,7 @@ public class SqlParser2 {
 				if(columnName != null && paramIn) {
 					// removing the quotes for now
 					String defQuery = "Select q1." + columnName + " from (" + qs + ") q1";
-					this.wrapper.makeParameters(columnName, constantValue, modifier + "in", "in", constantType, ge, tableName, defQuery);
+					this.wrapper.makeParameters(columnName, constantValue, modifier, "in", constantType, ge, tableName, defQuery);
 					if(parameterize) {
 						ge.setLeftExpr("(<" + tableName + "_" + columnName + modifier + ">)");
 					}
