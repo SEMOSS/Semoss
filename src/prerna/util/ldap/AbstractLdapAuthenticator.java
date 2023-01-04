@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
+import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
 
 public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
@@ -44,6 +45,10 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	// if we require password changes
 	String attributeLastPwdChangeKey = null;
 	int requirePwdChangeAfterDays = 80;
+	
+	// do we use a different user/pass for changing pwds
+	boolean useCustomContextForPwdChange = false;
+	transient DirContext customPwdChangeLdapContext = null;	
 	
 	String[] requestAttributes = null;
 
@@ -87,7 +92,6 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 				throw new IllegalArgumentException("Invalid value for " + LDAP_FORCE_PWD_CHANGE_KEY + ". " + e.getMessage());
 			}
 		}
-		
 		String LDAP_SEARCH_CONTEXT_NAME = LDAP_PREFIX + "search_context_name";
 		String LDAP_SEARCH_CONTEXT_SCOPE = LDAP_PREFIX + "search_context_scope";
 		String LDAP_SEARCH_MATCHING_ATTRIBUTES = LDAP_PREFIX + "search_matching_attributes";
@@ -107,6 +111,19 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 			this.searchMatchingAttributes = "(objectClass=inetOrgPerson)";
 		}
 		validate();
+		
+		// once we validated, do we have anything for custom context to change pwds if users are unable to change
+		this.useCustomContextForPwdChange = Boolean.parseBoolean(socialData.getProperty(LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_CHANGE_KEY)+"");
+		if(this.useCustomContextForPwdChange) {
+			String customUsername = socialData.getProperty(LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_USERNAME_KEY);
+			String customPwd = socialData.getProperty(LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_PASSWORD_KEY);
+			try {
+				this.customPwdChangeLdapContext = LDAPConnectionHelper.createLdapContext(this.providerUrl, customUsername, customPwd);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE + "Unable to login for processing password changes");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 		
 		List<String> requestAttributesList = new ArrayList<>();
 		requestAttributesList.add(this.attributeIdKey);
