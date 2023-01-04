@@ -41,7 +41,10 @@ public interface ILdapAuthenticator extends Closeable {
 	
 	String LDAP_LAST_PWD_CHANGE_KEY = LDAP_PREFIX + "key_last_pwd_change";
 	String LDAP_FORCE_PWD_CHANGE_KEY = LDAP_PREFIX + "require_pwd_change_days";
-
+	String LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_CHANGE_KEY = LDAP_PREFIX + "use_custom_context_for_pwd_change";
+	String LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_USERNAME_KEY = LDAP_PREFIX + "use_custom_context_for_pwd_username";
+	String LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_PASSWORD_KEY = LDAP_PREFIX + "use_custom_context_for_pwd_password";
+	
 	// searching
 	String LDAP_SEARCH_CONTEXT_NAME = LDAP_PREFIX + "search_context_name";
 	String LDAP_SEARCH_CONTEXT_SCOPE = LDAP_PREFIX + "search_context_scope";
