@@ -107,7 +107,14 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwdArray));
 
 			classLogger.info(principalDN + " is attemping to change password");
-			ldapContext.modifyAttributes(principalDN, mods);
+			if(this.useCustomContextForPwdChange) {
+				if(this.customPwdChangeLdapContext == null) {
+					throw new IllegalArgumentException("Invalid configuration for changing user passwords - please contact your administrator");
+				}
+				this.customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
+			} else {
+				ldapContext.modifyAttributes(principalDN, mods);
+			}
 			classLogger.info(principalDN + " successfully changed password");
 		} catch (Exception e) {
 			classLogger.info(principalDN + " failed to change password");
