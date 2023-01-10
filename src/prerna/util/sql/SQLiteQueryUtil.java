@@ -16,8 +16,12 @@ import org.sqlite.Function;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.SQLiteConfig.Pragma;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.SQLiteSqlInterpreter;
 import prerna.sablecc2.om.Join;
 
 public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
@@ -30,6 +34,16 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	SQLiteQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.SQLITE);
+	}
+	
+	@Override
+	public IQueryInterpreter getInterpreter(IEngine engine) {
+		return new SQLiteSqlInterpreter(engine);
+	}
+
+	@Override
+	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
+		return new SQLiteSqlInterpreter(frame);
 	}
 
 	@Override
