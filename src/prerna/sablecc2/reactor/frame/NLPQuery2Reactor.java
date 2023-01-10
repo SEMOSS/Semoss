@@ -333,15 +333,13 @@ public class NLPQuery2Reactor extends AbstractReactor {
 				
 				// make the evaluation here to say what you want to do
 				// if it is = then do those
-				if(leftItem instanceof NounMetadata && rightItem instanceof NounMetadata && parentFilter instanceof SimpleQueryFilter)
-				{
-					// this is the simple case
-					SimpleQueryFilter sq = (SimpleQueryFilter)parentFilter;
-					sq.reconstruct((NounMetadata)leftItem, filter.operation, (NounMetadata)rightItem);
-					return sq;
-				}	
-				else 
-					return parentFilter;
+				/*
+				 * if(leftItem instanceof NounMetadata && rightItem instanceof NounMetadata &&
+				 * parentFilter instanceof SimpleQueryFilter) { // this is the simple case
+				 * SimpleQueryFilter sq = (SimpleQueryFilter)parentFilter;
+				 * sq.reconstruct((NounMetadata)leftItem, filter.operation,
+				 * (NounMetadata)rightItem); return sq; } else
+				 */					return parentFilter;
 			}
 			
 			// if it is a column print column
