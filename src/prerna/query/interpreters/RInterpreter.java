@@ -17,6 +17,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.BetweenQueryFilter;
@@ -92,6 +93,19 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		StringBuilder query = new StringBuilder();
 		this.tempVarName = "temp" + Utility.getRandomString(10);
 		query.append(tempVarName + " <- ");
+		
+		if(this.qs instanceof HardSelectQueryStruct) {
+			String customQuery = ((HardSelectQueryStruct) this.qs).getQuery().trim();
+			if(customQuery.substring(0,"select".length()).toUpperCase().startsWith("SELECT")) {
+				// wrap as R
+				query.append("as.data.table(sqldf(\"").append(customQuery.replace("\"", "\\\"")).append("\"));");
+				return "library(sqldf);"+query.toString();
+			} else {
+				// must be some valid r 
+				query.append("{").append(customQuery).append("}");
+				return query.toString();
+			}
+		}
 		
 		if(this.colDataTypes == null) {
 			this.colDataTypes = new Hashtable<String, SemossDataType>();
