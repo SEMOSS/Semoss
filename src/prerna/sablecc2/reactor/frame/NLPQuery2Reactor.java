@@ -169,13 +169,14 @@ public class NLPQuery2Reactor extends AbstractReactor {
 			// check to see if the variable was created
 			// if not this is a bad query
 			boolean frameCreated = (Boolean)insight.getPyTranslator().runScript("'" + frameName + "' in globals()");
+			StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
 
 			if(frameCreated)
 			{
 				// now we just need to tell the user here is the frame
+				outputString.append("\nData : " + frameName);
 				outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), "python");
 				String frameType = "Py";
-				StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery + "\nData : " + frameName);
 				outputMap.put("Query", sqlDFQuery);
 				outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
 				outputString.append("\n");
@@ -186,13 +187,24 @@ public class NLPQuery2Reactor extends AbstractReactor {
 				outputMap.put("COMMAND", "GenerateFrameFromPyVariable('" + frameName + "')");
 				outputString.append("To start working with this frame  GenerateFrameFrom" + frameType + "Variable('" + frameName + "')");
 				
-				if(!json)
-					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
-				else
+				if(json)
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
+				else
+					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
 				
-				return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 			}
+			else
+			{
+				outputMap.put("Query", sqlDFQuery);
+				outputMap.put("SAMPLE", "Could not compute data, query is not correct.");
+				outputString.append("\n");
+				outputString.append("Query did not yield any results... ");
+				if(json)
+					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
+				else
+					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));					
+			}
+			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}		
 		else if (this.insight.getCurFrame() instanceof RDataTable)
 		{
@@ -203,13 +215,14 @@ public class NLPQuery2Reactor extends AbstractReactor {
 			rt.runR(frameMaker); // load the sql df			
 
 			boolean frameCreated = rt.runRAndReturnOutput("exists('" + frameName + "')").toUpperCase().contains("TRUE");
+			StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
 
 			if(frameCreated)
 			{
 				// now we just need to tell the user here is the frame
+				outputString.append("\nData : " + frameName);
 				outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), "python");
 				String frameType = "R";
-				StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery + "\nData : " + frameName);
 				outputMap.put("Query", sqlDFQuery);
 				outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
 				outputString.append("\n");
@@ -220,13 +233,24 @@ public class NLPQuery2Reactor extends AbstractReactor {
 				outputString.append("To start working with this frame  GenerateFrameFrom" + frameType + "Variable('" + frameName + "')");
 				outputMap.put("COMMAND", "GenerateFrameFromRVariable('" + frameName + "')");
 				
-				if(!json)
-					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
-				else
+				if(json)
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
-				
-				return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+				else
+					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
 			}
+			else
+			{
+				outputMap.put("Query", sqlDFQuery);
+				outputMap.put("SAMPLE", "Could not compute data, query is not correct.");
+				outputString.append("\n");
+				outputString.append("Query did not yield any results... ");
+				if(json)
+					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
+				else
+					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
+					
+			}
+			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}
 		
 		// otherwise
