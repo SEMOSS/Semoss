@@ -96,7 +96,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		
 		if(this.qs instanceof HardSelectQueryStruct) {
 			String customQuery = ((HardSelectQueryStruct) this.qs).getQuery().trim();
-			if(customQuery.substring(0,"select".length()).toUpperCase().startsWith("SELECT")) {
+			if(customQuery.length() > "select".length() && 
+					customQuery.substring(0,"select".length()).toUpperCase().startsWith("SELECT")) {
 				// wrap as R
 				query.append("as.data.table(sqldf(\"").append(customQuery.replace("\"", "\\\"")).append("\"));");
 				return "library(sqldf);"+query.toString();
