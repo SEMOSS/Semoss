@@ -32,7 +32,7 @@ public class AutoTaskOptionsReactor extends TaskBuilderReactor {
 		if (this.task instanceof BasicIteratorTask) {
 			SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
 			Map<String, Object> optMap = this.task.getFormatter().getOptionsMap();
-			TaskOptions tOptions = AutoTaskOptionsHelper.getAutoOptions(qs, panelId, layout, optMap);
+			TaskOptions tOptions = AutoTaskOptionsHelper.getAutoOptions((BasicIteratorTask) this.task, qs, panelId, layout, optMap);
 			if(tOptions != null) {
 				this.task.setTaskOptions(tOptions);
 				// if we use task options on a panel
