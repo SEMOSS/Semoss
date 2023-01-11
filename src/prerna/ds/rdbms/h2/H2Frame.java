@@ -34,8 +34,6 @@ import prerna.ds.QueryStruct;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
 import prerna.om.ThreadStore;
-import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.interpreters.sql.H2SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -377,11 +375,6 @@ public class H2Frame extends AbstractRdbmsFrame {
 		server.stop();
 		server = null;
 		serverURL = null;
-	}
-
-	@Override
-	public IQueryInterpreter getQueryInterpreter() {
-		return new H2SqlInterpreter(this);
 	}
 
 	////////////////////////////////////////////////////////////////
