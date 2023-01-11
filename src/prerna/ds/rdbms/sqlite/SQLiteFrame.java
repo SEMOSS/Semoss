@@ -14,8 +14,6 @@ import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
 import prerna.om.ThreadStore;
-import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.interpreters.sql.H2SqlInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -170,10 +168,5 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		
 		// open the meta details
 		this.openCacheMeta(cf, cipher);
-	}
-	
-	@Override
-	public IQueryInterpreter getQueryInterpreter() {
-		return new H2SqlInterpreter(this);
 	}
 }
