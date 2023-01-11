@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.Utility;
 
@@ -107,7 +108,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 				logger.info("TIME TO EXECUTE MAIN R SCRIPT = " + (end-start) + "ms");
 				
 				//obtain headers from the qs
-				if(this.qs != null) {
+				if(this.qs != null && !(this.qs instanceof HardSelectQueryStruct)) {
 					List<Map<String, Object>> headerInfo = qs.getHeaderInfo();
 					int numCols = headerInfo.size();
 					this.headers = new String[numCols];
