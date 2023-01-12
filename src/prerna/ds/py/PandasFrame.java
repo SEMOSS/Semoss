@@ -34,6 +34,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.reactor.imports.ImportUtility;
@@ -386,9 +387,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	// get the types of headers
-	public Object [] getHeaderAndTypes() {
-		String colScript = PandasSyntaxHelper.getColumns(this.frameName + ".cache['data']");
-		String typeScript = PandasSyntaxHelper.getTypes(this.frameName + ".cache['data']");
+	public Object [] getHeaderAndTypes(String targetFrame) {
+		String colScript = PandasSyntaxHelper.getColumns(targetFrame);
+		String typeScript = PandasSyntaxHelper.getTypes(targetFrame);
 		
 		/*
 		Hashtable response = (Hashtable)pyt.runScript(colScript, typeScript);
@@ -397,8 +398,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 		SemossDataType [] stypes = new SemossDataType[headers.length];
 		*/
 		
-		String [] headers = (String [])((ArrayList)pyt.runScript(colScript)).toArray();
-		SemossDataType [] stypes = new SemossDataType[headers.length];
+		ArrayList headerList = (ArrayList)pyt.runScript(colScript);
+		String [] headers = new String[headerList.size()];
+		headerList.toArray(headers);
+		
+		SemossDataType [] stypes = new SemossDataType[headerList.size()];
 
 		ArrayList <String> types = (ArrayList)pyt.runScript(typeScript);
 
@@ -410,7 +414,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 			SemossDataType pysColType = (SemossDataType)pyS.get(colType);
 			stypes[colIndex] = pysColType;
 		}
+		
 		Object [] retObject = new Object[2];
+		retObject[0] = stypes;
 		retObject[1] = headers;
 		
 		return retObject;
@@ -520,10 +526,24 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
-		String query = interp.composeQuery();
 		
+		String query = null;
 		// make it into a full frame
-		String frameName = Utility.getRandomString(6);
+		String targetFrame = Utility.getRandomString(6);
+		
+		if(qs instanceof HardSelectQueryStruct) // this is a hard select query struct
+		{
+			String loadsqlDF = "from pandasql import sqldf";
+			this.pyt.runEmptyPy(loadsqlDF);
+			query = targetFrame + "= sqldf('" + ((HardSelectQueryStruct)qs).getQuery() + "')";
+			this.pyt.runEmptyPy(query);
+			query = targetFrame + ".to_dict('split')";
+		}
+		else
+		{
+			query = interp.composeQuery();
+		}
+		
 		// assign query to frame
 		// the command that is coming in has the sort values and other things attached to it
 		// need to get rid of it before I can get the frame
@@ -558,23 +578,41 @@ public class PandasFrame extends AbstractTableDataFrame {
 				
 				boolean sync = true;	
 				// get the types for headers also
-				if(interp.isScalar()) {
+				if(interp.isScalar())  // not much to do here
+				{
 					List<Object> val = new ArrayList<Object>();
 					val.add(output);
 					response = new ArrayList<Object>();
 					response.add(val);
 					
-				} else if(output instanceof HashMap) {
+				} 
+				else if(output instanceof HashMap) // this is our main map
+				{
+					
 					HashMap map = (HashMap) output;
 					response = (List<Object>)map.get("data");
 					
 					// get the columns
 					List<Object> columns = (List<Object>)map.get("columns");
 					actHeaders = mapColumns(interp, columns);
-					sync = sync(headers, actHeaders);
+					
+					if(headers != null) // regular compose query
+						sync = sync(headers, actHeaders);
+					
+					else if(qs instanceof HardSelectQueryStruct)
+					{
+						Object [] typesAndHeaders = getHeaderAndTypes(targetFrame);
+						
+						// types and headers
+						types = (SemossDataType []) typesAndHeaders[0];
+						headers = (String []) typesAndHeaders[1];
+						
+						sync = true;
+					}
 				}
 				
-				else if(output instanceof List) {
+				else if(output instanceof List) 
+				{
 					response = (List) output;
 					actHeaders = null;
 					sync = true;
@@ -618,6 +656,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private List<String> mapColumns(PandasInterpreter interp, List<Object> columns) {
 		List<String> newHeaders = new ArrayList<String>();
 		Map<String, String> funcMap = interp.functionMap();
+
 		for(int colIndex = 0;colIndex < columns.size();colIndex++) {
 			// every element here is List
 			Object item = columns.get(colIndex);
