@@ -602,16 +602,24 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	public String[] getHeaders()
 	{
-		String [] headerArray = new String[this.headers.size()];
-		this.headers.toArray(headerArray);
-		return headerArray;
+		if(headers != null)
+		{
+			String [] headerArray = new String[this.headers.size()];
+			this.headers.toArray(headerArray);
+			return headerArray;
+		}
+		return null;
 	}
 
 	public SemossDataType[] getTypes()
 	{
-		SemossDataType [] typeArray = new SemossDataType[this.headers.size()];
-		this.types.toArray(typeArray);
-		return typeArray;
+		if(headers !=null)
+		{
+			SemossDataType [] typeArray = new SemossDataType[this.headers.size()];
+			this.types.toArray(typeArray);
+			return typeArray;
+		}
+		return null;
 	}
 
 	/*
