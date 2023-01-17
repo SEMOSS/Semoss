@@ -161,7 +161,7 @@ public class NLPQuery2Reactor extends AbstractReactor {
 		
 		boolean sameColumns = isSameColumns(sqlDFQuery);
 		
-		outputMap.put("NO_COLUMN_CHANGE", sameColumns + "");
+		outputMap.put("COLUMN_CHANGE", sameColumns + "");
 		
 		
 		if(this.insight.getCurFrame() instanceof PandasFrame)
