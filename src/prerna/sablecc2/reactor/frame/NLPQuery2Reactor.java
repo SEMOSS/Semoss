@@ -20,6 +20,7 @@ import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -158,6 +159,11 @@ public class NLPQuery2Reactor extends AbstractReactor {
 		
 		Map <String, String> outputMap = new HashMap<String, String>();
 		
+		boolean sameColumns = isSameColumns(sqlDFQuery);
+		
+		outputMap.put("NO_COLUMN_CHANGE", sameColumns + "");
+		
+		
 		if(this.insight.getCurFrame() instanceof PandasFrame)
 		{
 			String frameMaker = frameName + "= pd.DataFrame(sqldf(\"" + sqlDFQuery + "\"))";
@@ -258,6 +264,51 @@ public class NLPQuery2Reactor extends AbstractReactor {
 			outputs.add(new NounMetadata("Could not compute the result / query invalid -- \n" + sqlDFQuery, PixelDataType.CONST_STRING));
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}
+	}
+	
+	private boolean isSameColumns(String sqlDFQuery)
+	{
+		boolean sameColumns = true;
+		try 
+		{
+			SqlParser2 p2 = new SqlParser2();
+			GenExpressionWrapper wrapper = p2.processQuery(sqlDFQuery);
+			
+			String [] columnHeaders = this.insight.getCurFrame().getColumnHeaders();
+			boolean allColumns = false;
+			
+			List <GenExpression> selects = wrapper.root.nselectors;
+			if(selects.size() == 1)
+			{
+				// possibly select *
+				GenExpression allSelect = selects.get(0);
+				allColumns = allSelect.getLeftExpr().equalsIgnoreCase("*");
+				// we are good
+			}
+			if(!allColumns)
+			{
+				for(int selectorIndex = 0;selectorIndex < columnHeaders.length && sameColumns;selectorIndex++) // going to run a dual for loop here
+				{
+					String thisColumn = columnHeaders[selectorIndex];
+					boolean foundThisColumn = false;
+					for(int newColumnIndex = 0;newColumnIndex < selects.size();newColumnIndex++)
+					{
+						GenExpression thisSelector = selects.get(newColumnIndex);
+						String alias = thisSelector.getLeftAlias();
+						if(alias == null)
+							alias = thisSelector.getLeftExpr();
+						if(thisColumn.equalsIgnoreCase(alias))
+							foundThisColumn = true;
+					}
+					sameColumns = sameColumns & foundThisColumn;
+				}
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			logger.info(e.getMessage());;
+			sameColumns = false;
+		}
+		return sameColumns;
 	}
 	
 	private void processSQL(String sql)
