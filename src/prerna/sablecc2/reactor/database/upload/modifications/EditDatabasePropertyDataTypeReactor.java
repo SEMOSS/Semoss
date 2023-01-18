@@ -65,7 +65,7 @@ public class EditDatabasePropertyDataTypeReactor extends AbstractReactor {
 			throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");
 		}
 		try {
-			modifier.addProperty(table, newColumn, newColType);
+			modifier.editProperty(table, newColumn, newColType);
 		} catch (Exception e) {
 			// an error occurred here, so we need to revert our change from the OWL
 //			try {
