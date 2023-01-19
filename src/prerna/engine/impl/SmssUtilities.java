@@ -38,8 +38,17 @@ public class SmssUtilities {
 		if(prop.getProperty(Constants.OWL) == null) {
 			return null;
 		}
+		String owl = Utility.normalizePath(prop.getProperty(Constants.OWL));
+		{
+			// if we have the full file path already
+			File owlF = new File(owl);
+			if(owlF.exists() && owlF.isFile()) {
+				return owlF;
+			}
+		}
+		// if we dont have a full filepath
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String owlFile = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.OWL);
+		String owlFile = baseFolder + DIR_SEPARATOR + owl;
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 
