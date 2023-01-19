@@ -72,6 +72,7 @@ public class User implements Serializable {
 	private transient Object assetSyncObject = null;
 	private transient Object workspaceSyncObject = null;
 
+
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
 	List<AuthProvider> loggedInProfiles = new Vector<>();
 	// keeps the secret for every insight
@@ -482,13 +483,13 @@ public class User implements Serializable {
 		return retMap;
 	}
 	
-	public static Map<String, Map<String, String>> getLoginDetails(User semossUser) {
-		Map<String, Map<String, String>> retMap = new HashMap<>();
+	public static Map<String, Map<String, Object>> getLoginDetails(User semossUser) {
+		Map<String, Map<String, Object>> retMap = new HashMap<>();
 		if(semossUser == null) {
 			return retMap;
 		}
 		if(semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
-			Map<String, String> innerMap = new HashMap<>();
+			Map<String, Object> innerMap = new HashMap<>();
 			innerMap.put("id", semossUser.getAnonymousId());
 			innerMap.put("name", "Sign In");
 			retMap.put("ANONYMOUS", innerMap);
@@ -502,9 +503,15 @@ public class User implements Serializable {
 					name = "";
 				}
 				
-				Map<String, String> innerMap = new HashMap<>();
+				
+		
+				Map<String, Object> innerMap = new HashMap<>();
 				innerMap.put("id", id);
 				innerMap.put("name", name);
+				Hashtable<String, String> sans = token.getSAN();
+				if(sans!=null && sans.size()>0) {
+					innerMap.put("san", sans);
+				}
 				retMap.put(p.toString(), innerMap);
 			}
 		}
