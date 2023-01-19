@@ -2,6 +2,7 @@ package prerna.auth;
 
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Set;
 
 import prerna.date.SemossDate;
@@ -28,7 +29,8 @@ public class AccessToken implements Serializable {
 	private String profile = null;
 	private String gender = null;
 	private String locale = null;
-	
+	private Hashtable<String, String> sans = new Hashtable<>();
+
 	private boolean locked = false;
 	private SemossDate lastLogin = null;
 	private SemossDate lastPasswordReset = null;
@@ -157,6 +159,14 @@ public class AccessToken implements Serializable {
 
 	public void setUsername(String username) {
 		this.username = username;
+	}
+
+	public Hashtable<String, String> getSAN() {
+		return this.sans;
+	}
+
+	public void setSAN(String sanName, String sanValue) {
+		this.sans.put(sanName, sanValue);
 	}
 
 	public boolean isLocked() {
