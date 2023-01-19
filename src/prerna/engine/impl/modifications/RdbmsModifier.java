@@ -110,6 +110,27 @@ public class RdbmsModifier implements IEngineModifier {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 	}
+
+	@Override
+	public void renameProperty(String existingConcept, String existingColumn, String newColumn) throws Exception {
+		String query = queryUtil.modColumnName(existingConcept, existingColumn, newColumn);
+		try {
+			this.engine.insertData(query);
+		} catch (SQLException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}		
+		
+	}
+
+	@Override
+	public void renameConcept(String existingConcept, String newConcept) throws Exception {
+		String query = queryUtil.alterTableName(existingConcept, newConcept);
+		try {
+			this.engine.insertData(query);
+		} catch (SQLException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
+	}
 	
 	
 }
