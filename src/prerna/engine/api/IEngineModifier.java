@@ -23,6 +23,16 @@ public interface IEngineModifier {
 	 * @throws Exception
 	 */
 	void removeProperty(String existingConcept, String existingColumn) throws Exception;
+	
+	/**
+	 * Renames a property for an existing concept
+	 * @param existingConcept
+	 * @param existingColumn
+	 * @param newColumn
+	 * @throws Exception
+	 */
+	void renameProperty(String existingConcept, String existingColumn, String newColumn) throws Exception;
+
 
 	/**
 	 * Edit the data type of an existing property
@@ -42,5 +52,13 @@ public interface IEngineModifier {
 	 * @throws Exception
 	 */
 	void addIndex(String existingConcept, String existingColumn, String indexName, boolean addIfExists) throws Exception;
+	
+	/**
+	 * Renames an existing concept
+	 * @param existingConcept
+	 * @param newConcept
+	 * @throws Exception
+	 */
+	void renameConcept(String existingConcept, String newConcept) throws Exception;
 	
 }
