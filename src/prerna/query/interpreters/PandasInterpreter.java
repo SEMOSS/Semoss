@@ -138,6 +138,22 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap) {
 		this.colDataTypes = dataTypeMap;
+		updateTypes();
+	}
+	
+	private void updateTypes() {
+		Map<String, SemossDataType> newTypesMap = new HashMap<>();
+		for(String k : this.colDataTypes.keySet()) {
+			String newK = null;
+			if(k.contains("__")) {
+				newK = k.split("__")[1];
+			} else {
+				newK = k;
+			}
+
+			newTypesMap.put(newK, this.colDataTypes.get(k));
+		}
+		this.colDataTypes = newTypesMap;
 	}
 	
 	public void setKeyCache(List keyCache) {
@@ -590,7 +606,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				actHeaders.add(newHeader);
 			}		
 			if (selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-				SemossDataType curType = colDataTypes.get(this.frameName + "__" + ((QueryColumnSelector) selector).getColumn());
+				SemossDataType curType = this.colDataTypes.get(((QueryColumnSelector) selector).getColumn());
 				typesHash.put(newHeader, curType);
 			}
 		}
@@ -791,10 +807,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			return "'" + alias + "'";
 	}
 	
+	/**
+	 * 
+	 * @param frameName
+	 * @param wrapperFrameName
+	 * @param originalFrameName
+	 */
 	public void setDataTableName(String frameName, String wrapperFrameName) {
 		this.frameName = frameName;
 		this.wrapperFrameName = wrapperFrameName;
 	}
+	
 	/**
 	 * Process a constance selector. Different output is returned base off of passed in boolean inputs. 
 	 * @param selector
@@ -979,7 +1002,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		// I can avoid all of this by creating a dataframe and imputing.. but let us see how far we can inline this
 		// I am going to assume that this is the same type as header for most operations
-		SemossDataType curType = colDataTypes.get(this.frameName + "__" +columnName);
+		SemossDataType curType = this.colDataTypes.get(columnName);
 		
 		if(curType == SemossDataType.STRING || curType == SemossDataType.BOOLEAN) {
 			//types.add(SemossDataType.INT);
@@ -1041,10 +1064,19 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
 		if (leftDataType == null) {
-			leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
+			if(leftSelector.getQueryStructName().contains("__")) {
+				leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName().split("__")[1]);
+			} else {
+				leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
+			}
 		}
 		SemossDataType rightDataType = SemossDataType.convertStringToDataType(rightSelector.getDataType());
 		if (rightDataType == null) {
+			if(rightSelector.getQueryStructName().contains("__")) {
+				rightDataType = this.colDataTypes.get(rightSelector.getQueryStructName().split("__")[1]);
+			} else {
+				rightDataType = this.colDataTypes.get(rightSelector.getQueryStructName());
+			}
 			rightDataType = this.colDataTypes.get(rightSelector.getQueryStructName());
 		}
 		if (!(leftDataType == SemossDataType.INT || leftDataType == SemossDataType.DOUBLE) || 
@@ -1169,15 +1201,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		String leftSelectorExpression = processSelector(leftSelector, tableName, true, false, false);
 		
 		if (leftDataType == null) {
-			leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
-		}
-		if (leftDataType == null) {
-			String qsName = leftSelector.getQueryStructName();
-			if (!qsName.contains("__")) {
-				qsName = "__" + qsName;
+			if(leftSelector.getQueryStructName().contains("__")) {
+				leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName().split("__")[1]);
+			} else {
+				leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
 			}
-			String colDataTypesKey = this.frameName + qsName;
-			leftDataType = this.colDataTypes.get(colDataTypesKey);
 		}
 		
 		List<Object> objects = new ArrayList<>();
@@ -1433,7 +1461,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			SemossDataType selectorDataType = SemossDataType.convertStringToDataType(selector.getDataType());
 			if (selectorDataType == null) {
-				selectorDataType = this.colDataTypes.get(selector.getQueryStructName());
+				if(selector.getQueryStructName().contains("__")) {
+					selectorDataType = this.colDataTypes.get(selector.getQueryStructName().split("__")[1]);
+				} else {
+					selectorDataType = this.colDataTypes.get(selector.getQueryStructName());
+				}
 			}
 			
 			String columnName = processSelector(selector, tableName, true, useAlias, true);
@@ -1603,15 +1635,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias, useTable);
 		
 		if (leftDataType == null) {
-			leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
-		}
-		if (leftDataType == null) {
-			String qsName = leftSelector.getQueryStructName();
-			if (!qsName.contains("__")) {
-				qsName = "__" + qsName;
+			if(leftSelector.getQueryStructName().contains("__")) {
+				leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName().split("__")[1]);
+			} else {
+				leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
 			}
-			String colDataTypesKey = this.frameName + qsName;
-			leftDataType = this.colDataTypes.get(colDataTypesKey);
 		}
 		
 		List<Object> objects = new ArrayList<>();
