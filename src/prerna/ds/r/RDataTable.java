@@ -53,17 +53,20 @@ public class RDataTable extends AbstractTableDataFrame {
 	// THIS CONSTRUCTOR IS USED FOR TESTING
 //	public RDataTable(String name) {
 //		this.frameName = name;
+//		this.originalName = name;
 //	}
 	
 	public RDataTable() {
 		AbstractRJavaTranslator rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(new Insight(), this.logger);
 		this.builder = new RFrameBuilder(rJavaTranslator);
 		this.frameName = getName();
+		this.originalName = this.frameName;
 	}
 	
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator) {
 		this.builder = new RFrameBuilder(rJavaTranslator);
 		this.frameName = getName();
+		this.originalName = this.frameName;
 	}
 	
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator, String rTableVarName) {
@@ -73,6 +76,7 @@ public class RDataTable extends AbstractTableDataFrame {
 			this.builder = new RFrameBuilder(rJavaTranslator);
 		}
 		this.frameName = getName();
+		this.originalName = this.frameName;
 	}
 	
 	public RFrameBuilder getBuilder() {
@@ -407,6 +411,10 @@ public class RDataTable extends AbstractTableDataFrame {
 	public void close() {
 		super.close();
 		this.builder.dropTable();
+		if(!this.originalName.equals(this.frameName)) {
+			this.builder.setTableName(this.originalName);
+			this.builder.dropTable();
+		}
 		closeConnection();
 	}
 	
