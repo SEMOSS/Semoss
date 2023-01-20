@@ -94,6 +94,17 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		g.createIndex(TINKER_ID, Edge.class);
 		g.createIndex(T.label.toString(), Edge.class);
 		setDefaultName();
+		this.originalName = this.frameName;
+	}
+	
+	public TinkerFrame(String alias) {
+		g = TinkerGraph.open();
+		g.createIndex(TINKER_TYPE, Vertex.class);
+		g.createIndex(TINKER_ID, Vertex.class);
+		g.createIndex(TINKER_ID, Edge.class);
+		g.createIndex(T.label.toString(), Edge.class);
+		this.frameName = alias;
+		this.originalName = this.frameName;
 	}
 	
 	public TinkerFrame(String[] headerNames) {
