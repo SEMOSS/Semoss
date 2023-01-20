@@ -385,7 +385,7 @@ public class PipelineTranslation extends LazyTranslation {
     	Map<String, Object> frameMap = new HashMap<>();
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), frame.getFrameType().getTypeAsString());
-		String name = frame.getName();
+		String name = frame.getOriginalName();
 		if(name != null) {
 			frameMap.put(PixelDataType.ALIAS.getKey(), name);
 		}
