@@ -44,6 +44,16 @@ public class PandasSyntaxHelper {
 	public static String makeWrapper(String wrapper, String tableName) {
 		return wrapper + " = PyFrame.makefm(" + tableName + ")";
 	}
+	
+	/**
+	 * Get the name of the wrapper variable to be used
+	 * 
+	 * @param frameName
+	 * @return
+	 */
+	public static String createFrameWrapperName(String frameName) {
+		return frameName + "w";
+	}
 
 	/**
 	 * Execute a .py file
