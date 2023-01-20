@@ -109,7 +109,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			tableName = "PYFRAME_" + UUID.randomUUID().toString().replace("-", "_");
 		}
 		this.frameName = tableName;
-		this.wrapperFrameName = createFrameWrapperName(tableName);
+		this.wrapperFrameName = PandasSyntaxHelper.createFrameWrapperName(tableName);
 		this.originalName = this.frameName;
 		this.originalWrapperFrameName = wrapperFrameName;
 	}
@@ -118,7 +118,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public void setName(String name) {
 		if(name != null && !name.isEmpty()) {
 			this.frameName = name;
-			this.wrapperFrameName = createFrameWrapperName(name);
+			this.wrapperFrameName = PandasSyntaxHelper.createFrameWrapperName(name);
 		}
 	}
 	
@@ -136,10 +136,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	public PyExecutorThread getJep() {
 		return this.py ;
-	}
-	
-	private String createFrameWrapperName(String frameName) {
-		return frameName + "w";
 	}
 	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
@@ -205,7 +201,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String fileLocation = newFile.getAbsolutePath();
 			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
 					fileLocation, tableName, ",", pyt.getCurEncoding(), dataTypeMap);
-			String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
+			String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
 			// execute the script
 			//pyt.runScript(importS, loadS);
 			//pyt.runScript(makeWrapper);
@@ -246,7 +242,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
 		//pyt.runScript(importS, loadS, headerS);
-		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
+		String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
 		pyt.runEmptyPy(importPandasS, importNumpyS, loadS, headerS, makeWrapper);
 		// need to set up the name here as well as make the frame
 		//pyt.runScript(makeWrapper);
@@ -270,7 +266,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
 		// need to set up the name here as well as make the frame
-		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
+		String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
 		//pyt.runScript(importS, loadS, headerS);
 		
 		//pyt.runScript(makeWrapper);
@@ -319,7 +315,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 * @param dataTypeMap
 	 */
 	private void adjustDataTypes(String tableName, Map<String, SemossDataType> dataTypeMap) {
-		String wrapperTableName = createFrameWrapperName(tableName);
+		String wrapperTableName = PandasSyntaxHelper.createFrameWrapperName(tableName);
 		String colScript = PandasSyntaxHelper.getColumns(wrapperTableName + ".cache['data']");
 		String typeScript = PandasSyntaxHelper.getTypes(wrapperTableName + ".cache['data']");
 		
@@ -801,7 +797,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	public boolean isEmpty(String tableName) {
-		String command = "('" + createFrameWrapperName(tableName) + "' in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) >= 0)";
+		String command = "('" + PandasSyntaxHelper.createFrameWrapperName(tableName) + "' in vars() and len(" + PandasSyntaxHelper.createFrameWrapperName(tableName) + ".cache['data']) >= 0)";
 		
 		Boolean notEmpty = (Boolean) pyt.runScript(command);
 		return !notEmpty;
