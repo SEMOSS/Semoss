@@ -27,7 +27,7 @@ public class GetFramesReactor extends AbstractReactor {
 		}
 		
 		for(ITableDataFrame f : uniqueFrames) {
-			frameNames.add(f.getName());
+			frameNames.add(f.getOriginalName());
 		}
 		
 		return new NounMetadata(frameNames, PixelDataType.CONST_STRING);
