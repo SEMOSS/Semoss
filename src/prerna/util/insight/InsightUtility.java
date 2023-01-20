@@ -342,7 +342,7 @@ public class InsightUtility {
 			for(ITableDataFrame dm : allCreatedFrames) {
 				if(!dm.isClosed()) {
 					try {
-						classLogger.info("There are untracked frames in this insight. Frame with name = " + dm.getName() );
+						classLogger.info("There are untracked frames in this insight. Frame with name = " + dm.getOriginalName() );
 						dm.close();
 					} catch(Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
@@ -660,7 +660,7 @@ public class InsightUtility {
 			NounMetadata noun = varStore.get(frameName);
 			if(noun.getValue() instanceof ITableDataFrame) {
 				ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-				if(!retMap.containsKey(frame.getName())) {
+				if(!retMap.containsKey(frame.getOriginalName())) {
 					Map<String, Object> headers = frame.getFrameHeadersObject();
 					retMap.put(frame.getName(), headers);
 				}

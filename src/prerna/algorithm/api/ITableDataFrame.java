@@ -171,6 +171,17 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	void setName(String name);
 	
+	/**
+	 * Get the original name of the frame
+	 */
+	String getOriginalName();
+	
+	/**
+	 * Set the original name of the frame
+	 * @param name
+	 */
+	void setOriginalName(String name);
+	
 	OwlTemporalEngineMeta getMetaData();
 
 	void setMetaData(OwlTemporalEngineMeta metaData);
