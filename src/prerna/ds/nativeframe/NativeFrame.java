@@ -80,6 +80,17 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// by default set to engine
 		this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 		setDefaultName();
+		this.originalName = this.frameName;
+	}
+	
+	public NativeFrame(String alias) {
+		super();
+		this.qs = new SelectQueryStruct();
+		this.qs.setFrame(this);
+		// by default set to engine
+		this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+		this.frameName = alias;
+		this.originalName = this.frameName;
 	}
 
 	private void setDefaultName() {

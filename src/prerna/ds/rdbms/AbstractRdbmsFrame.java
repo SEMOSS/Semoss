@@ -46,6 +46,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Error generating new sql frame", e);
 		}
+		this.originalName = this.frameName;
 	}
 	
 	public AbstractRdbmsFrame(String tableName) {
@@ -60,6 +61,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error generating new sql frame", e);
 		}
+		this.originalName = this.frameName;
 	}
 	
 	public AbstractRdbmsFrame(String[] headers) {
@@ -75,6 +77,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		ImportUtility.parseHeadersAndTypeIntoMeta(this, headers, types, this.frameName);
 		this.builder.alterTableNewColumns(this.frameName, headers, types);
 		syncHeaders();
+		this.originalName = this.frameName;
 	}
 	
 	public AbstractRdbmsFrame(String[] headers, String[] types) {
@@ -82,6 +85,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		ImportUtility.parseHeadersAndTypeIntoMeta(this, headers, types, this.frameName);
 		this.builder.alterTableNewColumns(this.frameName, headers, types);
 		syncHeaders();
+		this.originalName = this.frameName;
 	}
 	
 	/**

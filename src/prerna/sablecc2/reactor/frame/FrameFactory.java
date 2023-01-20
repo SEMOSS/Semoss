@@ -48,15 +48,13 @@ public class FrameFactory {
 			}
 			
 			case "GRAPH": { 
-				TinkerFrame frame = new TinkerFrame();
-				frame.setName(alias);
+				TinkerFrame frame = new TinkerFrame(alias);
 				return frame;
 			} 
 			case "TINKER": { 
-				TinkerFrame frame = new TinkerFrame();
-				frame.setName(alias);
+				TinkerFrame frame = new TinkerFrame(alias);
 				return frame;
-			} 
+			}
 			
 			case "R": { 
 				logger = LogManager.getLogger(CLASS_NAME);
@@ -106,13 +104,11 @@ public class FrameFactory {
 			}
 			
 			case "NATIVE": { 
-				NativeFrame frame = new NativeFrame();
-				frame.setName(alias);
+				NativeFrame frame = new NativeFrame(alias);
 				return frame;
 			}
 			case "ENGINE": { 
-				NativeFrame frame = new NativeFrame();
-				frame.setName(alias);
+				NativeFrame frame = new NativeFrame(alias);
 				return frame;
 			}
 			
