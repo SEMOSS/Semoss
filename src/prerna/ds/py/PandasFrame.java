@@ -62,6 +62,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	private PyExecutorThread py = null;
 	private String wrapperFrameName = null;
+	private String originalWrapperFrameName = null;
 	private PyTranslator pyt = null;
 	public boolean cache = true;
 	
@@ -109,6 +110,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		}
 		this.frameName = tableName;
 		this.wrapperFrameName = createFrameWrapperName(tableName);
+		this.originalName = this.frameName;
+		this.originalWrapperFrameName = wrapperFrameName;
 	}
 	
 	@Override
@@ -736,6 +739,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 		logger.info("Removing variable " + this.frameName);
 		pyt.runScript("del " + this.frameName);
 		pyt.runScript("del " + this.wrapperFrameName);
+		if(!this.originalName.equals(this.frameName)) {
+			pyt.runScript("del " + this.originalName);
+			pyt.runScript("del " + this.originalWrapperFrameName);
+		}
 		pyt.runScript("gc.collect()");
 	}
 	

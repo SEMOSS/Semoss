@@ -362,7 +362,7 @@ public abstract class AbstractQueryStruct {
 	public void setFrame(ITableDataFrame frame) {
 		if(frame != null) {
 			this.frame = frame;
-			this.frameName = frame.getName();
+			this.frameName = frame.getOriginalName();
 			this.frameType = frame.getFrameType().getTypeAsString();
 		}
 	}
