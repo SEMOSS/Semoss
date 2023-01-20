@@ -1346,7 +1346,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps = securityDb.getPreparedStatement(query);
 			// loop through an add all the frames
 			for(ITableDataFrame frame : insightFrames) {
-				String tableName = frame.getName();
+				String tableName = frame.getOriginalName();
 				String tableType = frame.getFrameType().getTypeAsString();
 				Map<String, SemossDataType> colToTypeMap = frame.getMetaData().getHeaderToTypeMap();
 				Map<String, String> adtlType = frame.getMetaData().getHeaderToAdtlTypeMap();

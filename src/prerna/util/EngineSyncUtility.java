@@ -13,7 +13,7 @@ public class EngineSyncUtility {
 
 	private static ConcurrentMap<String, ReentrantLock> engineLocks = new ConcurrentHashMap<>();
 
-	// store some app metadata as well
+	// store some database metadata as well
 	public static ConcurrentMap<String, List<Object[]>> databaseStructureCache = new ConcurrentHashMap<>();
 	public static ConcurrentMap<String, Map<String, Object>> metamodelCache = new ConcurrentHashMap<>();
 	public static ConcurrentMap<String, Map<String, List<String>>> metamodelLogicalNamesCache = new ConcurrentHashMap<>();

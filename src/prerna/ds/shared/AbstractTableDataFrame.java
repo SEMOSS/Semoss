@@ -62,7 +62,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// the meta data for the frame
 	protected OwlTemporalEngineMeta metaData;
 
+	// the name of the frame
+	// note, in r/py this is also the variable name being used
 	protected String frameName;
+	// also store an original 
+	// in case for anything like r/py we swapped the variable name out
+	protected String originalName;
+	
 	// the header names persisted on the frame
 	// this is taken from the frame
 	// but it doesn't include prim keys
@@ -510,6 +516,18 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public void setName(String name) {
 		if(name != null && !name.isEmpty()) {
 			this.frameName = name;
+		}
+	}
+	
+	@Override
+	public String getOriginalName() {
+		return this.originalName;
+	}
+	
+	@Override
+	public void setOriginalName(String name) {
+		if(name != null && !name.isEmpty()) {
+			this.originalName = name;
 		}
 	}
 

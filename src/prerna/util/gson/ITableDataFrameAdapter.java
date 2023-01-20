@@ -14,10 +14,15 @@ public class ITableDataFrameAdapter extends AbstractSemossTypeAdapter<ITableData
 		out.beginObject();
 		out.name("type");
 		out.value(value.getFrameType().getTypeAsString());
-		String name = value.getName();
-		if(name != null) {
+		String originalName = value.getOriginalName();
+		if(originalName != null) {
 			out.name("name");
-			out.value(name);
+			out.value(originalName);
+		}
+		String queryName = value.getName();
+		if(queryName != null) {
+			out.name("queryName");
+			out.value(queryName);
 		}
 		out.endObject();
 	}
