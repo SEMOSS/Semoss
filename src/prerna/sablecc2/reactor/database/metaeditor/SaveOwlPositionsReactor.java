@@ -16,6 +16,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 import prerna.util.upload.UploadInputUtility;
 
@@ -62,7 +63,9 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 			}
 		}
 		ClusterUtil.reactorPushOwl(databaseId);
-
+		// update the positions cache
+		EngineSyncUtility.setMetamodelPositions(databaseId, positions);
+		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
