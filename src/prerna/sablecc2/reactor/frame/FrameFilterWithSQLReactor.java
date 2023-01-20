@@ -4,6 +4,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -37,7 +38,10 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 			String frameMaker = newFrameName + "= pd.DataFrame(sqldf(\"" + query.replace("\"", "\\\"") + "\"))";
 			logger.info("Creating frame with query..  " + query + " <<>> " + frameMaker);
 			insight.getPyTranslator().runEmptyPy("from pandasql import sqldf");
-			insight.getPyTranslator().runScript(frameMaker); // load the sql df
+			insight.getPyTranslator().runScript(frameMaker); 
+			// need to make the wrapper in this instance
+			insight.getPyTranslator().runScript(PandasSyntaxHelper.makeWrapper(
+					PandasSyntaxHelper.createFrameWrapperName(newFrameName), newFrameName));
 		} else if(frame instanceof RDataTable){
 			AbstractRJavaTranslator rt = insight.getRJavaTranslator(this.getClass().getName());
 			String frameMaker = newFrameName + " <- as.data.table(sqldf(\"" + query.replace("\"", "\\\"") + "\"))";
