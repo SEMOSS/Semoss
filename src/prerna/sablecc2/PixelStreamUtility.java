@@ -319,9 +319,12 @@ public class PixelStreamUtility {
 			Map<String, String> frameData = new HashMap<>();
 			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 			frameData.put("type", frame.getFrameType().getTypeAsString());
-			String name = frame.getName();
+			String name = frame.getOriginalName();
 			if(name != null) {
 				frameData.put("name", name);
+				if(!name.equals(frame.getName())) {
+					frameData.put("queryName", frame.getName());
+				}
 			}
 
 			ps.print("\"output\":");
