@@ -9,7 +9,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -142,7 +141,7 @@ public class ExecQueryReactor extends AbstractReactor {
 		} else {
 			try {
 				if (frame != null) {
-					((H2Frame) frame).getBuilder().runQuery(query);
+					((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
