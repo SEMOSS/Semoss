@@ -44,7 +44,7 @@ public class UnfilterFrameReactor extends AbstractFilterReactor {
 		InsightUtility.clearPanelTempFilterModel(this.insight, frame);
 
 		BooleanValMetadata fFilterVal = BooleanValMetadata.getFrameVal();
-		fFilterVal.setName(frame.getName());
+		fFilterVal.setName(frame.getOriginalName());
 		fFilterVal.setFilterVal(foundFilter);
 		NounMetadata noun = new NounMetadata(fFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.FRAME_FILTER_CHANGE);
 		if(foundFilter && isRefreshTasks()) {
