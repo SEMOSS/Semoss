@@ -224,9 +224,12 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 	private void writeFrame(ITableDataFrame frame, JsonWriter out) throws IOException {
 		Map<String, String> mapValue = new HashMap<String, String>();
 		mapValue.put("type", frame.getFrameType().getTypeAsString());
-		String name = frame.getName();
+		String name = frame.getOriginalName();
 		if(name != null) {
 			mapValue.put("name", name);
+			if(!name.equals(frame.getName())) {
+				mapValue.put("queryName", frame.getName());
+			}
 		}
 		
 		TypeAdapter adapter = GSON.getAdapter(mapValue.getClass());
