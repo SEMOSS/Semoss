@@ -94,6 +94,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				EngineSyncUtility.setMetamodelLogicalNames(databaseId, logicalNames);
 			}
 			metamodelObject.put("logicalNames", logicalNames);
+			logger.info("Done pulling database logical names for database " + databaseId);
 		}
 		// add descriptions
 		if(options.contains("descriptions")) {
@@ -104,54 +105,60 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				EngineSyncUtility.setMetamodelDescriptions(databaseId, descriptions);
 			}
 			metamodelObject.put("descriptions", descriptions);
+			logger.info("Done pulling database descriptions for database " + databaseId);
 		}
 
 		// this is for the OWL positions for the new layout
 		if(options.contains("positions")) {
 			logger.info("Pulling database positions for database " + databaseId);
-			IEngine database = Utility.getEngine(databaseId);
-			if(database == null) {
-				logger.error("Could not load database '"+databaseId+"'");
-				logger.error("Could not load database '"+databaseId+"'");
-				logger.error("Could not load database '"+databaseId+"'");
-				logger.error("Could not load database '"+databaseId+"'");
-				logger.error("Could not load database '"+databaseId+"'");
-				metamodelObject.put("positions", new HashMap<String, Object>());
-			} else {
-				// if the file is present, pull it and load
-				File owlF = SmssUtilities.getOwlFile(database.getProp());
-				if(owlF == null || !owlF.isFile()) {
+			Map<String, Object> positions = EngineSyncUtility.getMetamodelPositions(databaseId);
+			if(positions == null) {
+				IEngine database = Utility.getEngine(databaseId);
+				if(database == null) {
+					logger.error("Could not load database '"+databaseId+"'");
+					logger.error("Could not load database '"+databaseId+"'");
+					logger.error("Could not load database '"+databaseId+"'");
+					logger.error("Could not load database '"+databaseId+"'");
+					logger.error("Could not load database '"+databaseId+"'");
 					metamodelObject.put("positions", new HashMap<String, Object>());
 				} else {
-					File positionFile = database.getOwlPositionFile();
-					// try to make the file
-					if(!positionFile.exists() && !positionFile.isFile()) {
-						try {
-							logger.info("Generating metamodel layout for database " + databaseId);
-							logger.info("This process may take some time");
-							GenerateMetamodelLayout.generateLayout(databaseId);
-							logger.info("Metamodel layout has been generated");
-						} catch(Exception e) {
-							classLogger.info("Exception in creating database metamodel layout");
-							classLogger.error(Constants.STACKTRACE, e);
-						} catch(NoClassDefFoundError e) {
-							classLogger.info("Error in creating database metamodel layout");
-							classLogger.error(Constants.STACKTRACE, e);
+					// if the file is present, pull it and load
+					File owlF = SmssUtilities.getOwlFile(database.getProp());
+					if(owlF == null || !owlF.isFile()) {
+						metamodelObject.put("positions", new HashMap<String, Object>());
+					} else {
+						File positionFile = database.getOwlPositionFile();
+						// try to make the file
+						if(!positionFile.exists() && !positionFile.isFile()) {
+							try {
+								logger.info("Generating metamodel layout for database " + databaseId);
+								logger.info("This process may take some time");
+								GenerateMetamodelLayout.generateLayout(databaseId);
+								logger.info("Metamodel layout has been generated");
+							} catch(Exception e) {
+								classLogger.info("Exception in creating database metamodel layout");
+								classLogger.error(Constants.STACKTRACE, e);
+							} catch(NoClassDefFoundError e) {
+								classLogger.info("Error in creating database metamodel layout");
+								classLogger.error(Constants.STACKTRACE, e);
+							}
 						}
-					}
-					
-					if(positionFile.exists() && positionFile.isFile()) {
-						// load the file
-						Path path = positionFile.toPath();
-						try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-							Map<String, Object> positionMap = gson.fromJson(reader, Map.class);
-							metamodelObject.put("positions", positionMap);
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+						
+						if(positionFile.exists() && positionFile.isFile()) {
+							// load the file
+							Path path = positionFile.toPath();
+							try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+								positions = gson.fromJson(reader, Map.class);
+								EngineSyncUtility.setMetamodelPositions(databaseId, positions);
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
 						}
 					}
 				}
 			}
+			metamodelObject.put("positions", positions);
+			logger.info("Done pulling database positions for database " + databaseId);
 		}
 		
 		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_METAMODEL);

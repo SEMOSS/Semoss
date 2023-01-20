@@ -18,7 +18,7 @@ public class EngineSyncUtility {
 	public static ConcurrentMap<String, Map<String, Object>> metamodelCache = new ConcurrentHashMap<>();
 	public static ConcurrentMap<String, Map<String, List<String>>> metamodelLogicalNamesCache = new ConcurrentHashMap<>();
 	public static ConcurrentMap<String, Map<String, String>> metamodelDescriptionsCache = new ConcurrentHashMap<>();
-	public static ConcurrentMap<String, Object> metamodelPositionsCache = new ConcurrentHashMap<>();
+	public static ConcurrentMap<String, Map<String, Object>> metamodelPositionsCache = new ConcurrentHashMap<>();
 
 	public static ReentrantLock getEngineLock(String engineId) {
 		engineLocks.putIfAbsent(engineId, new ReentrantLock());
@@ -102,6 +102,24 @@ public class EngineSyncUtility {
 	 */
 	public static void setMetamodelDescriptions(String engineId, Map<String, String> cacheObj) {
 		metamodelDescriptionsCache.put(engineId, cacheObj);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static Map<String, Object> getMetamodelPositions(String engineId) {
+		return metamodelPositionsCache.get(engineId);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param cacheObj
+	 */
+	public static void setMetamodelPositions(String engineId, Map<String, Object> cacheObj) {
+		metamodelPositionsCache.put(engineId, cacheObj);
 	}
 	
 	/**
