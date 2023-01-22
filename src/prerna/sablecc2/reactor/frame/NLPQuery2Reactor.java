@@ -43,7 +43,7 @@ public class NLPQuery2Reactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(NLPQueryReactor.class);
 
 	public NLPQuery2Reactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COMMAND.getKey(), "json", ReactorKeysEnum.TOKEN_COUNT.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.COMMAND.getKey(), "json", ReactorKeysEnum.TOKEN_COUNT.getKey(), ReactorKeysEnum.FRAME.getKey()};
 	}
 
 	
@@ -71,7 +71,9 @@ public class NLPQuery2Reactor extends AbstractReactor {
 			maxTokens = Integer.parseInt(keyValue.get(keysToGet[2]));
 		}
 
-	
+		ITableDataFrame thisFrame = this.insight.getCurFrame();
+		if(keyValue.containsKey(keysToGet[3]))
+			thisFrame = this.insight.getFrame(keyValue.get(keysToGet[3]));
 		
 		// create the prompt
 		// format
@@ -91,30 +93,19 @@ public class NLPQuery2Reactor extends AbstractReactor {
 		// make the call to the open ai and get the response back
 		
 		// may be we should get all the frames here
-		Set <ITableDataFrame> allFrames = this.insight.getVarStore().getFrames();
+		//Set <ITableDataFrame> allFrames = this.insight.getVarStore().getFrames();
+		//Iterator <ITableDataFrame> frameIterator = allFrames.iterator();
 				
 		StringBuffer finalDbString = new StringBuffer("### SQL Tables, with their properties:");
 		finalDbString.append("\\n#\\n");
 		
-		Iterator <ITableDataFrame> frameIterator = allFrames.iterator();
-		while(frameIterator.hasNext())
+		
+		if(thisFrame != null)
 		{
-			ITableDataFrame thisFrame = frameIterator.next();
+			//ITableDataFrame thisFrame = frameIterator.next();
 			logger.info("Processing frame " + thisFrame.getName());
 			finalDbString.append("#").append(thisFrame.getName()).append("(");
 			
-			// Getting the column values routine. not doing this for now
-			/*
-			HashMap columnValues = new HashMap();
-			if(thisFrame instanceof PandasFrame)
-			{
-				Object output = this.insight.getPyTranslator().runScript(thisFrame.getName() + "w.get_categorical_values()");
-				if(output instanceof HashMap)
-					columnValues = (HashMap)this.insight.getPyTranslator().runScript(thisFrame.getName() + "w.get_categorical_values()");
-			}
-		
-			finalDbString.append(" | ").append(thisFrame.getName()).append(" : ");
-			*/
 			String [] columns = thisFrame.getColumnHeaders();
 			
 			// if the frame is pandas frame get the data
@@ -125,11 +116,11 @@ public class NLPQuery2Reactor extends AbstractReactor {
 					finalDbString.append(columns[columnIndex]);
 				else
 					finalDbString.append(" , ").append(columns[columnIndex]);
-				//if(columnValues.containsKey(columns[columnIndex]))
-				//	finalDbString.append(columnValues.get(columns[columnIndex]));
 			}
 			finalDbString.append(")\\n");
 		}
+		else
+			return NounMetadata.getErrorNounMessage("No Data Available for Frame " + keyValue.get(keysToGet[3]));
 
 		finalDbString.append("#\\n").append("### A query to list ").append(query).append("\\n").append("SELECT");
 		
@@ -159,12 +150,12 @@ public class NLPQuery2Reactor extends AbstractReactor {
 		
 		Map <String, String> outputMap = new HashMap<String, String>();
 		
-		boolean sameColumns = isSameColumns(sqlDFQuery);
+		boolean sameColumns = isSameColumns(sqlDFQuery, thisFrame);
 		
 		outputMap.put("COLUMN_CHANGE", sameColumns + "");
 		
 		
-		if(this.insight.getCurFrame() instanceof PandasFrame)
+		if(thisFrame instanceof PandasFrame)
 		{
 			String frameMaker = frameName + "= pd.DataFrame(sqldf(\"" + sqlDFQuery + "\"))";
 			logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
@@ -212,7 +203,7 @@ public class NLPQuery2Reactor extends AbstractReactor {
 			}
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}		
-		else if (this.insight.getCurFrame() instanceof RDataTable)
+		else if (thisFrame instanceof RDataTable)
 		{
 			AbstractRJavaTranslator rt = insight.getRJavaTranslator(this.getClass().getName());
 			String frameMaker = frameName + " <- sqldf('" + sqlDFQuery + "')";
@@ -258,15 +249,14 @@ public class NLPQuery2Reactor extends AbstractReactor {
 			}
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}
-		
-		// otherwise
+		else
 		{
 			outputs.add(new NounMetadata("Could not compute the result / query invalid -- \n" + sqlDFQuery, PixelDataType.CONST_STRING));
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}
 	}
 	
-	private boolean isSameColumns(String sqlDFQuery)
+	private boolean isSameColumns(String sqlDFQuery, ITableDataFrame thisFrame)
 	{
 		boolean sameColumns = true;
 		try 
@@ -274,7 +264,7 @@ public class NLPQuery2Reactor extends AbstractReactor {
 			SqlParser2 p2 = new SqlParser2();
 			GenExpressionWrapper wrapper = p2.processQuery(sqlDFQuery);
 			
-			String [] columnHeaders = this.insight.getCurFrame().getColumnHeaders();
+			String [] columnHeaders = thisFrame.getColumnHeaders();
 			boolean allColumns = false;
 			
 			List <GenExpression> selects = wrapper.root.nselectors;
