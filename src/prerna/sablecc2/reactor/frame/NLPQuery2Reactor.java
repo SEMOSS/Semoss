@@ -14,7 +14,6 @@ import prerna.ds.r.RDataTable;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
 import prerna.query.querystruct.GenExpression;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -23,14 +22,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Utility;
 
-
-
-
-public class NLPQuery2Reactor extends AbstractReactor {
+public class NLPQuery2Reactor extends AbstractFrameReactor {
 
 	// get a NLP Text
 	// starts the environment / sets the model
@@ -41,17 +36,14 @@ public class NLPQuery2Reactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(NLPQueryReactor.class);
 
 	public NLPQuery2Reactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COMMAND.getKey(), "json", ReactorKeysEnum.TOKEN_COUNT.getKey(), ReactorKeysEnum.FRAME.getKey()};
+		this.keysToGet = new String[]{ ReactorKeysEnum.COMMAND.getKey(), "json", 
+				ReactorKeysEnum.TOKEN_COUNT.getKey(), 
+				ReactorKeysEnum.FRAME.getKey()
+			};
 	}
-
 	
 	@Override
 	public NounMetadata execute() {
-		
-		if(!(this.insight.getCurFrame() instanceof PandasFrame) && !(this.insight.getCurFrame() instanceof RDataTable))
-			return NounMetadata.getErrorNounMessage("NLP Query 2 has only been implemented for python, r at this point, please convert your frames to python,r and try again");
-
-		
 		organizeKeys();
 		String query = keyValue.get(keysToGet[0]);
 		
@@ -69,15 +61,11 @@ public class NLPQuery2Reactor extends AbstractReactor {
 			maxTokens = Integer.parseInt(keyValue.get(keysToGet[2]));
 		}
 
-		ITableDataFrame thisFrame = this.insight.getCurFrame();
+		ITableDataFrame thisFrame = getFrameDefaultLast();
 
-		// get the last frame
-		SelectQueryStruct qs = this.insight.getLastQS(this.insight.getLastPanelId());
-		if(qs != null)
-			thisFrame = qs.getFrame();
-		
-		if(keyValue.containsKey(keysToGet[3]))
-			thisFrame = this.insight.getFrame(keyValue.get(keysToGet[3]));
+		if(!(thisFrame instanceof PandasFrame) && !(thisFrame instanceof RDataTable)) {
+			return NounMetadata.getErrorNounMessage("NLP Query 2 has only been implemented for python, r at this point, please convert your frames to python,r and try again");
+		}
 		
 		// create the prompt
 		// format
