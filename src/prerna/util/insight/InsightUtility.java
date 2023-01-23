@@ -658,7 +658,7 @@ public class InsightUtility {
 		while(frameKeys.hasNext()) {
 			String frameName = frameKeys.next();
 			NounMetadata noun = varStore.get(frameName);
-			if(noun.getValue() instanceof ITableDataFrame) {
+			if(noun != null && noun.getValue() instanceof ITableDataFrame) {
 				ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 				if(!retMap.containsKey(frame.getOriginalName())) {
 					Map<String, Object> headers = frame.getFrameHeadersObject();
