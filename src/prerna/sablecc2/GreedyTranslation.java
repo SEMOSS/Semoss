@@ -88,7 +88,7 @@ public class GreedyTranslation extends LazyTranslation {
     				curReactor.getCurRow().add(varValue);
     				// store the frame as an input
     				if(this.pixelObj != null) {
-    					this.pixelObj.addFrameInput(((ITableDataFrame) varValue.getValue()).getName());
+    					this.pixelObj.addFrameInput(((ITableDataFrame) varValue.getValue()).getOriginalName());
     				}
     			} else if(curReactor instanceof AbstractQueryStructReactor) {
     				// if it is a join or an as 
@@ -102,7 +102,7 @@ public class GreedyTranslation extends LazyTranslation {
         				if(varType == PixelDataType.FRAME) {
             				// store the frame as an input
         					if(this.pixelObj != null) {
-        						this.pixelObj.addFrameInput(((ITableDataFrame) varValue.getValue()).getName());
+        						this.pixelObj.addFrameInput(((ITableDataFrame) varValue.getValue()).getOriginalName());
         					}
             			}
     				}
@@ -112,7 +112,7 @@ public class GreedyTranslation extends LazyTranslation {
     				this.currentFrame = (ITableDataFrame) varValue.getValue();
     				// store the frame as an input
     				if(this.pixelObj != null) {
-    					this.pixelObj.addFrameInput(this.currentFrame.getName());
+    					this.pixelObj.addFrameInput(this.currentFrame.getOriginalName());
     				}
     			}
     			this.planner.addVariable(this.resultKey, varValue);
@@ -304,7 +304,7 @@ public class GreedyTranslation extends LazyTranslation {
 		    				throw exception;
 	    			}
 	    			// store the frame output in the pixel
-	    			this.pixelObj.addFrameOutput(frame.getName());
+	    			this.pixelObj.addFrameOutput(frame.getOriginalName());
 	    		}
 	    		
 	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
