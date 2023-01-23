@@ -25,7 +25,7 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
-		ITableDataFrame frame = getFrame();
+		ITableDataFrame frame = getFrameDefaultLast();
 		
 		if(!(frame instanceof PandasFrame) && !(frame instanceof RDataTable)) {
 			return NounMetadata.getErrorNounMessage("This mehtod has only been implemneted for python and r. Please convert your frame type and try again");
