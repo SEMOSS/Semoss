@@ -309,9 +309,12 @@ public abstract class AbstractReactor implements IReactor {
     	Map<String, Object> frameMap = new HashMap<>();
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), frame.getFrameType().getTypeAsString());
-		String name = frame.getName();
+		String name = frame.getOriginalName();
 		if(name != null) {
 			frameMap.put(PixelDataType.ALIAS.getKey(), name);
+			if(!name.equals(frame.getName())) {
+				frameMap.put("queryName", frame.getName());
+			}
 		}
 		
 		Map<String, Object> nounStructure = new HashMap<>();
