@@ -473,34 +473,27 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	
 	@Override
-	public Object querySQL(String sql)
-	{
+	public Object querySQL(String sql) {
 		// columns
 		// types
 		// data
-		if(sql.toUpperCase().startsWith("SELECT"))
-		{
+		if(sql.trim().toUpperCase().startsWith("SELECT")) {
 			Map retMap = new HashMap();
 			
-			String loadsqlDF = "library(sqldf);";
-			String frameName = Utility.getRandomString(5);
-			String newFrame = frameName + "<- sqldf('" + sql + "')";
+			String tempFrameName = Utility.getRandomString(5);
+			String makeNewFrame = tempFrameName + " <- as.data.table(sqldf(\"" + sql.replace("\"", "\\\"") + "\"));";
+			String deleteAll = "rm(" + tempFrameName + ")";
 			
-			String deleteAll = "rm(" + frameName + ")";
+			this.builder.getRJavaTranslator().executeEmptyR("library(sqldf);");
+			this.builder.getRJavaTranslator().executeEmptyR(makeNewFrame);
 			
-			this.builder.getRJavaTranslator().executeEmptyR(loadsqlDF);
-			this.builder.getRJavaTranslator().executeEmptyR(newFrame);
+			String [] columns = getColumnNames(tempFrameName);
+			String [] types = getColumnTypes(tempFrameName);
 			
-			String [] columns = getColumnNames(newFrame);
-			String [] types = getColumnTypes(newFrame);
-			
-			List <Object[]> retObject = getBulkDataRow(newFrame, columns); //(frameName + "_dict"); // get the dictionary back
-			
+			List <Object[]> retObject = getBulkDataRow(tempFrameName, columns); //(frameName + "_dict"); // get the dictionary back
 			// will delete later
 			this.builder.getRJavaTranslator().executeEmptyR(deleteAll);
-			
 			Object [] convertedTypeArray = new Object[columns.length];
-			
 			//https://www.tutorialspoint.com/r/r_data_types.htm
 			getRJMap();
 			for(int columnIndex = 0;columnIndex < columns.length;columnIndex++)
@@ -511,11 +504,11 @@ public class RDataTable extends AbstractTableDataFrame {
 				// convert this to type array
 				// for now will just move this all to string
 				Object javaType = rJMap.get(thisType);
-				if(javaType != null)
+				if(javaType != null) {
 					convertedTypeArray[columnIndex] = javaType;
-				else
+				} else {
 					convertedTypeArray[columnIndex] = java.lang.String.class;
-				
+				}
 			}
 			
 			retMap.put("columns", columns);
@@ -523,10 +516,7 @@ public class RDataTable extends AbstractTableDataFrame {
 			retMap.put("dataArray", retObject);
 			
 			return retMap;
-		}
-		else
-		{
-
+		} else {
 			Map retMap = new HashMap();
 
 			String [] commands = sql.split("\\R");
@@ -536,8 +526,7 @@ public class RDataTable extends AbstractTableDataFrame {
 			
 			List <List<Object>> data = new ArrayList<List<Object>>();
 			
-			for(int commandIndex = 0;commandIndex < commands.length;commandIndex++)
-			{
+			for(int commandIndex = 0;commandIndex < commands.length;commandIndex++) {
 				List <Object> row = new ArrayList <Object>();
 				String thisCommand = commands[commandIndex];
 				Object output = this.builder.getRJavaTranslator().runRAndReturnOutput(thisCommand);
@@ -554,7 +543,6 @@ public class RDataTable extends AbstractTableDataFrame {
 			
 			return retMap;
 		}
-		
 	}
 	
 	@Override
