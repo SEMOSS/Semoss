@@ -390,6 +390,9 @@ public class PipelineTranslation extends LazyTranslation {
 		String name = frame.getOriginalName();
 		if(name != null) {
 			frameMap.put(PixelDataType.ALIAS.getKey(), name);
+			if(!name.equals(frame.getName())) {
+				frameMap.put("queryName", frame.getName());
+			}
 		}
 		
 		Map<String, Object> nounStructure = new HashMap<>();
