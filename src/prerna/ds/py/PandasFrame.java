@@ -895,43 +895,41 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// columns
 		// types
 		// data
-		if(sql.toUpperCase().startsWith("SELECT"))
-		{
+		if(sql.trim().toUpperCase().startsWith("SELECT")) {
 			Map retMap = new HashMap();
 			
 			String loadsqlDF = "from pandasql import sqldf";
-			String frameName = Utility.getRandomString(5);
-			String newFrame = frameName + "= sqldf('" + sql + "')";
-			String addColumnTypes = frameName + "_types = " + frameName + ".dtypes.to_dict()";
-			String dict = frameName + "_dict = " + frameName + ".to_dict('split')";
-			String dictColumns = frameName + "_dict['types'] = " + frameName + "_types";
+			String tempFrameName = Utility.getRandomString(5);
+			String makeNewFrame = tempFrameName + "= sqldf(\"" + sql.replace("\"", "\\\"") + "\")";
+			String addColumnTypes = tempFrameName + "_types = " + tempFrameName + ".dtypes.to_dict()";
+			String dict = tempFrameName + "_dict = " + tempFrameName + ".to_dict('split')";
+			String dictColumns = tempFrameName + "_dict['types'] = " + tempFrameName + "_types";
 			
-			String deleteAll = "delete " + frameName + ", " + frameName + "_types, " + frameName + "_dict";
+			String deleteAll = "delete " + tempFrameName + ", " + tempFrameName + "_types, " + frameName + "_dict";
 			
-			pyt.runEmptyPy(loadsqlDF, newFrame, addColumnTypes, dict, dictColumns);
+			pyt.runEmptyPy(loadsqlDF, makeNewFrame, addColumnTypes, dict, dictColumns);
 			
-			Object retObject = pyt.runScript(frameName + "_dict"); // get the dictionary back
+			Object retObject = pyt.runScript(tempFrameName + "_dict"); // get the dictionary back
 			
 			// will delete later
 			pyt.runEmptyPy(deleteAll);
 			
-			if(retObject instanceof Map)
-			{
+			if(retObject instanceof Map) {
 				System.err.println("Valid Output");
 				retMap = (Map)retObject;
 			}
 			// convert types to java object
 			Map typeMap = (Map)retMap.get("types");
 			Iterator keys = typeMap.keySet().iterator();
-			while(keys.hasNext())
-			{
+			while(keys.hasNext()) {
 				String column = (String)keys.next();
 				String value = (String)typeMap.get(column);
 				
-				if(pyJ.containsKey(value))
+				if(pyJ.containsKey(value)) {
 					typeMap.put(column, pyJ.get(value));
-				else
+				} else {
 					typeMap.put(column, java.lang.String.class);
+				}
 			}
 			
 			List <String> columns = null;
@@ -950,10 +948,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			retMap.put("columns", colArray);
 			retMap.put("types", typesArray);
 			return retMap;
-		}
-		else
-		{
-
+		} else {
 			Map retMap = new HashMap();
 
 			String [] commands = sql.split("\\R");
@@ -980,7 +975,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 			
 			return retMap;
 		}
-		
 	}
 	
 	public Object queryCSV(String sql)
