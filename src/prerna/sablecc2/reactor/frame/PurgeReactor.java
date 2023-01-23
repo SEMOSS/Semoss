@@ -1,10 +1,10 @@
 package prerna.sablecc2.reactor.frame;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
@@ -169,7 +169,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 	public Map<String, List<Map>> getStoreMap() {
 		Map<String, List<Map>> inputMap = super.getStoreMap();
 		List<Map> list = inputMap.get(ReactorKeysEnum.FILTERS.getKey());
-		List<Map> newList = new Vector<>();
+		List<Map> newList = new ArrayList<>();
 		for(Map basicInput : list) {
 			Object qsObj = basicInput.get("value");
 			if(qsObj instanceof SelectQueryStruct) {

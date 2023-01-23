@@ -184,7 +184,7 @@ public abstract class AbstractReactor implements IReactor {
 			// figuring out the right logic for this
 //			this.planner.addInputs(this.signature, inputs);
 			
-			List<String> strInputs = new Vector<String>();
+			List<String> strInputs = new ArrayList<String>();
 			for(int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
 				
 				NounMetadata noun = inputs.get(inputIndex);
