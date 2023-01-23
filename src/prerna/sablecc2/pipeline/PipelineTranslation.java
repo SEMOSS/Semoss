@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -46,9 +45,9 @@ public class PipelineTranslation extends LazyTranslation {
 	private static Map<String, String> reactorToId = null;
 	
 	private static Map<AbstractQueryStruct.QUERY_STRUCT_TYPE, String> qsToWidget = new HashMap<>();
-	private static List<String> qsReactors = new Vector<>();
-	private static List<String> fileReactors = new Vector<>();
-	private static List<String> codeBlocks = new Vector<>();
+	private static List<String> qsReactors = new ArrayList<>();
+	private static List<String> fileReactors = new ArrayList<>();
+	private static List<String> codeBlocks = new ArrayList<>();
 	static {
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE, "pipeline-file");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, "pipeline-app");
@@ -76,9 +75,9 @@ public class PipelineTranslation extends LazyTranslation {
 		codeBlocks.add("Java");
 	}
 	
-	private List<List<PipelineOperation>> allRoutines = new Vector<>();
+	private List<List<PipelineOperation>> allRoutines = new ArrayList<>();
 	private List<PipelineOperation> curRoutine;
-	private List<Map<String, Object>> pixelIdToOperation = new Vector<>();
+	private List<Map<String, Object>> pixelIdToOperation = new ArrayList<>();
 	
 	public PipelineTranslation(Insight insight) {
 		super();
@@ -100,12 +99,13 @@ public class PipelineTranslation extends LazyTranslation {
         int size = copy.size();
         for(int pixelstep = 0; pixelstep < size; pixelstep++)
         {
+    		long start = System.currentTimeMillis();
         	PRoutine e = copy.get(pixelstep);
         	try {
         		this.resultKey = "$RESULT_" + e.hashCode();
         		this.pixelObj = new Pixel("tempStorage", e.toString());
 
-            	this.curRoutine = new Vector<>();
+            	this.curRoutine = new ArrayList<>();
         		// add the routine
             	this.allRoutines.add(this.curRoutine);
             	
@@ -135,6 +135,8 @@ public class PipelineTranslation extends LazyTranslation {
         		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
         	}
+        	long end = System.currentTimeMillis();
+            System.out.println("Time to process = " + (end-start) + " for " + e.toString());
         }
 	}
 	
