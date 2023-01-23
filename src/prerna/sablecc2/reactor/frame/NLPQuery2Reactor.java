@@ -1,10 +1,8 @@
 package prerna.sablecc2.reactor.frame;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,11 +14,11 @@ import prerna.ds.r.RDataTable;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
 import prerna.query.querystruct.GenExpression;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -72,6 +70,12 @@ public class NLPQuery2Reactor extends AbstractReactor {
 		}
 
 		ITableDataFrame thisFrame = this.insight.getCurFrame();
+
+		// get the last frame
+		SelectQueryStruct qs = this.insight.getLastQS(this.insight.getLastPanelId());
+		if(qs != null)
+			thisFrame = qs.getFrame();
+		
 		if(keyValue.containsKey(keysToGet[3]))
 			thisFrame = this.insight.getFrame(keyValue.get(keysToGet[3]));
 		
