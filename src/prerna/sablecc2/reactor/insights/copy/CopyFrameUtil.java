@@ -41,6 +41,7 @@ public class CopyFrameUtil {
 	 */
 	public static ITableDataFrame copyFrame(Insight insightContext, ITableDataFrame frameToCopy, int limit) throws Exception {
 		String oldName = frameToCopy.getName();
+		String newName = oldName + "_COPY";
 
 		// one thing that is consistent across all frames
 		OwlTemporalEngineMeta newMetadata = frameToCopy.getMetaData().copy();
@@ -51,14 +52,13 @@ public class CopyFrameUtil {
 			// we will also account for names to be new
 
 			if(frameToCopy instanceof PandasFrame) {
-				newFrame = new PandasFrame();
+				newFrame = new PandasFrame(newName);
 				// set the metadata
 				newFrame.setMetaData(newMetadata);
 				PandasFrame dt = (PandasFrame) newFrame;
 
 				dt.setJep( insightContext.getPy() );
 				dt.setTranslator( insightContext.getPyTranslator() );
-				String newName = oldName + "_COPY";
 				if(limit > 0) {
 					dt.runScript(newName + " = " + oldName + "[:" + limit + "].copy(deep=True)");
 				} else {
@@ -72,12 +72,11 @@ public class CopyFrameUtil {
 				dt.getMetaData().modifyVertexName(oldName, newName);
 
 			} else if (frameToCopy instanceof RDataTable) {
-				newFrame = new RDataTable( insightContext.getRJavaTranslator(CLASS_NAME) );
+				newFrame = new RDataTable( insightContext.getRJavaTranslator(CLASS_NAME), newName );
 				// set the metadata
 				newFrame.setMetaData(newMetadata);
 				RDataTable dt = (RDataTable) newFrame;
 
-				String newName = oldName + "_COPY";
 				if(limit > 0) {
 					dt.executeRScript(newName + "<- " + oldName + "[1:" + limit + ", ]");
 				} else {
