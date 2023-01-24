@@ -66,6 +66,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private PyTranslator pyt = null;
 	public boolean cache = true;
 	
+	public String sqliteConnectionName = null;
+	
 	// list of caches
 	public List keyCache = new ArrayList();
 	
@@ -739,6 +741,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 			pyt.runScript("del " + this.originalName);
 			pyt.runScript("del " + this.originalWrapperFrameName);
 		}
+		// clear all the other frames added through sqlite
+		if(sqliteConnectionName != null)
+			pyt.runScript("del " + sqliteConnectionName);
+		
+		
 		pyt.runScript("gc.collect()");
 	}
 	
@@ -1141,6 +1148,24 @@ public class PandasFrame extends AbstractTableDataFrame {
 		}
 		
 	}
+	
+	public String getSQLite()
+	{
+		// create a full sqlite instance
+		// so that we can start querying it without connection issues
+		if(sqliteConnectionName == null)
+		{
+			sqliteConnectionName = "conn_" + frameName;
+			String [] commands = new String[3];
+			commands[0] = "import sqlite3";
+			commands[1] = sqliteConnectionName + " = sqlite3.connect(':memory:')";
+			commands[2] = frameName + ".to_sql('" + frameName + "', " + sqliteConnectionName + ", if_exists='replace', index=False)";
+			
+			this.pyt.runEmptyPy(commands);
+		}
+		return sqliteConnectionName;
+	}
+	
 	
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
