@@ -149,18 +149,23 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		
 		if(thisFrame instanceof PandasFrame)
 		{
-			String frameMaker = frameName + "= pd.DataFrame(sqldf(\"" + sqlDFQuery + "\"))";
-			logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
-			insight.getPyTranslator().runEmptyPy("from pandasql import sqldf");
-			insight.getPyTranslator().runScript(frameMaker); // load the sql df
+			PandasFrame pFrame = (PandasFrame)thisFrame;
+			String sqliteName = pFrame.getSQLite();
 			
+			// pd.read_sql("select * from diab1 where age > 60", conn)
+			String frameMaker = "pd.read_sql('" + sqlDFQuery + "', " + sqliteName + ").head(20)";
+
+			logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
+
+			String sampleOut = insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameMaker); // load the sql df
+			
+			System.err.println(sampleOut);
 			// send information
 			// check to see if the variable was created
 			// if not this is a bad query
-			boolean frameCreated = (Boolean)insight.getPyTranslator().runScript("'" + frameName + "' in globals()");
 			StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
 
-			if(frameCreated)
+			if(sampleOut != null && sampleOut.length() > 0)
 			{
 				// now we just need to tell the user here is the frame
 				outputString.append("\nData : " + frameName);
@@ -169,18 +174,19 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				outputMap.put("Query", sqlDFQuery);
 				outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
 				outputString.append("\n");
-				String sampleOut = this.insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameName + ".head(20)");
+				//String sampleOut = this.insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameName + ".head(20)");
 				outputString.append(sampleOut);
 				outputMap.put("SAMPLE", sampleOut);
 				outputString.append("\n");
 				outputMap.put("COMMAND", "GenerateFrameFromPyVariable('" + frameName + "')");
-				outputString.append("To start working with this frame  GenerateFrameFrom" + frameType + "Variable('" + frameName + "')");
+				//outputString.append("To start working with this frame  GenerateFrameFrom" + frameType + "Variable('" + frameName + "')");
 				
 				if(json)
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
 				else
 					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
 				
+				this.insight.getPyTranslator().runScript("del " + frameName);
 			}
 			else
 			{
@@ -191,7 +197,10 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				if(json)
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
 				else
-					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));					
+					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));	
+				
+				this.insight.getPyTranslator().runScript("del " + frameName + " , sqldf");
+
 			}
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}		
