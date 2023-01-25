@@ -534,15 +534,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		if(qs instanceof HardSelectQueryStruct) // this is a hard select query struct
 		{
-			String loadsqlDF = "from pandasql import sqldf";
-			this.pyt.runEmptyPy(loadsqlDF);
-			query = targetFrame + "= sqldf('" + ((HardSelectQueryStruct)qs).getQuery() + "')";
-			this.pyt.runEmptyPy(query);
+			
+			String frameMaker = targetFrame + " = pd.read_sql('" + ((HardSelectQueryStruct)qs).getQuery() + "', " + getSQLite() + ")";
+//			String loadsqlDF = "from pandasql import sqldf";
+//			this.pyt.runEmptyPy(loadsqlDF);
+//			query = targetFrame + "= sqldf('" + ((HardSelectQueryStruct)qs).getQuery() + "')";
+			this.pyt.runEmptyPy(frameMaker);
 			query = targetFrame + ".to_dict('split')";
 		}
 		else
 		{
-			query = interp.composeQuery();
+			query = interp.composeQuery();	
 		}
 		
 		// assign query to frame
@@ -565,7 +567,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			Object output = pyt.runScript(query);
 			
 			// need to see if this is a parquet format as well
-			String format = "grid";
+			String format = "grid"; 
 			if(qs.getPragmap() != null && qs.getPragmap().containsKey("format"))
 				format = (String)qs.getPragmap().get("format");
 
