@@ -2535,7 +2535,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__PROJECTID", "==", projectId));
 		// if frame pattern passed
 		if(frameNamePattern != null && !(frameNamePattern=frameNamePattern.trim()).isEmpty() ) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__TABLENAME", "==", frameNamePattern));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__TABLENAME", "?like", frameNamePattern));
 		}
 		
 		return QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
