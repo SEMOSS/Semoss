@@ -15,7 +15,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class GetInsightFramesReactor extends AbstractReactor {
 
 	public GetInsightFramesReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.FRAME.getKey()};
 	}
 
 	@Override
@@ -23,7 +23,8 @@ public class GetInsightFramesReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
-
+		String frameNamePattern = this.keyValue.get(this.keysToGet[2]);
+		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
@@ -34,7 +35,7 @@ public class GetInsightFramesReactor extends AbstractReactor {
 			}
 		}
 		
-		List<Object[]> retList = SecurityInsightUtils.getInsightFrames(projectId, rdbmsId);
+		List<Object[]> retList = SecurityInsightUtils.getInsightFrames(projectId, rdbmsId, frameNamePattern);
 		NounMetadata retNoun = new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		return retNoun;
 	}
