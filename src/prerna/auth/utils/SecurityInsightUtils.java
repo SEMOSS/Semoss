@@ -2504,12 +2504,23 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the insight frames
+	 * Get the insight frames - no table name filter
 	 * @param projectId
 	 * @param insightId
 	 * @return
 	 */
 	public static List<Object[]> getInsightFrames(String projectId, String insightId) {
+		return getInsightFrames(projectId, insightId, null);
+	}
+	
+	/**
+	 * Get the insight frames
+	 * @param projectId
+	 * @param insightId
+	 * @param frameNamePattern
+	 * @return
+	 */
+	public static List<Object[]> getInsightFrames(String projectId, String insightId, String frameNamePattern) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__INSIGHTID"));
@@ -2522,6 +2533,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// filters
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__PROJECTID", "==", projectId));
+		// if frame pattern passed
+		if(frameNamePattern != null && !(frameNamePattern=frameNamePattern.trim()).isEmpty() ) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTFRAMES__TABLENAME", "==", frameNamePattern));
+		}
+		
 		return QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
 	}
 	
