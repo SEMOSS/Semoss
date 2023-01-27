@@ -89,10 +89,12 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 		DirContext ldapContext = null;
 		String principalDN = null;
 		try {
+			classLogger.info("Attempting login for user " + username + " to confirm has proper current password");
 			LDAPConnectionHelper loginObj = LDAPConnectionHelper.tryLogins(this.providerUrl, this.securityPrincipalTemplate, username, curPassword);
 			String principalTemplate = loginObj.getPrincipalTemplate();
 			principalDN = loginObj.getPrincipalDN();
 			ldapContext = loginObj.getLdapContext();
+			classLogger.info("Successful confirmation of current password for user " + principalDN);
 
 			String quotedPassword = "\"" + newPassword + "\"";
 			char unicodePwd[] = quotedPassword.toCharArray();
