@@ -1406,13 +1406,13 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				{
 					// these are the physical names
 					String orderByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
-					String orderByColumn = null;
+					String orderByColumn = columnConceptualName;
 
-					if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-						orderByColumn = getPrimKey4Table(tableConceptualName);
-					} else {
-						orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-					}
+//					if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+//						orderByColumn = getPrimKey4Table(tableConceptualName);
+//					} else {
+//						orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+//					}
 
 					if(queryUtil.isSelectorKeyword(orderByTable)) {
 						orderByTable = queryUtil.getEscapeKeyword(orderByTable);
