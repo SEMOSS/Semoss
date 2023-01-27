@@ -11,6 +11,8 @@ import prerna.auth.AccessToken;
 
 public interface ILdapAuthenticator extends Closeable {
 
+	String LDAP_PASSWORD_CHANGE_RETURN_KEY = "requirePwdChange";
+	
 	String LDAP_FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
 	
 	String LDAP = "ldap";
