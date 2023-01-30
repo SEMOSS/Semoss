@@ -1,5 +1,8 @@
 package prerna.util.sql;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Map;
 
 import prerna.engine.impl.CaseInsensitiveProperties;
@@ -14,6 +17,25 @@ public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 	TrinoQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.TRINO);
+	}
+	
+	@Override
+	public void enhanceConnection(Connection con) {
+		Statement stmt = null;
+		try {
+			stmt = con.createStatement();
+			stmt.execute("set path \""+this.schema+"\"");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 	
 	@Override
