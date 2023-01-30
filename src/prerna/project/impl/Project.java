@@ -13,6 +13,7 @@ import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +122,7 @@ public class Project implements IProject {
 	// publish portals
 	private boolean publish = false;
 	private boolean republish = false;
+	private LocalDateTime lastPublishDate = null;
 	
 	// maven not set
 	private boolean mvnDefined = false;
@@ -818,9 +820,9 @@ public class Project implements IProject {
 		// find what the tomcat deploy directory is
 		// no easy way to find other than may be find the classpath ? - will instrument this through RDF Map
 		if(public_home != null) {
-			boolean enableForApp = (prop != null && Boolean.parseBoolean(prop.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
+			boolean enableForProject = (prop != null && Boolean.parseBoolean(prop.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
 			try {
-				if(this.republish || (enableForApp && !this.publish)) {
+				if(this.republish || (enableForProject && !this.publish)) {
 					Path sourcePath = Paths.get(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId));
 					Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId);
 		
@@ -855,10 +857,12 @@ public class Project implements IProject {
 					targetDirectory.deleteOnExit();
 					this.publish = true;
 					this.republish = false;
+					this.lastPublishDate = LocalDateTime.now();
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				this.publish = false;
+				this.lastPublishDate = null;
 			}
 		}
 		
@@ -868,6 +872,11 @@ public class Project implements IProject {
 	@Override
 	public void setRepublish(boolean republish) {
 		this.republish = republish;
+	}
+	
+	@Override
+	public LocalDateTime getLastPublishDate() {
+		return this.lastPublishDate;
 	}
 	
 	// new reactor method that uses maven
