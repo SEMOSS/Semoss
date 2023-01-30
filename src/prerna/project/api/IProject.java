@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.project.api;
 
+import java.time.LocalDateTime;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -138,6 +139,12 @@ public interface IProject {
 	 * @param republish
 	 */
 	void setRepublish(boolean republish);
+	
+	/**
+	 * 
+	 * @return
+	 */
+	LocalDateTime getLastPublishDate();
 	
 	/**
 	 * Return if an asset
