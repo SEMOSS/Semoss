@@ -904,17 +904,35 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// columns
 		// types
 		// data
+		if(sql.startsWith("NLP:") || sql.startsWith("nlp:"))
+		{
+			// convert this to sql
+			sql = getSQLFromNLP(sql);
+		}
+		
+		
 		if(sql.trim().toUpperCase().startsWith("SELECT")) {
+						
 			Map retMap = new HashMap();
-			
-			String loadsqlDF = "from pandasql import sqldf";
 			String tempFrameName = Utility.getRandomString(5);
-			String makeNewFrame = tempFrameName + "= sqldf(\"" + sql.replace("\"", "\\\"") + "\")";
+			String loadsqlDF = "";
+			String makeNewFrame = "";
+			sql = sql.replace("\"", "\\\"");
+			/* alternate to use sqlite directly */
+			
+			String connName = getSQLite();
+			makeNewFrame = tempFrameName + " = pd.read_sql('" + sql + "', " + connName +")";
+			
+			/********/			
+			// dont load sql df everytime
+			//loadsqlDF = "from pandasql import sqldf";
+			//makeNewFrame = tempFrameName + "= sqldf(\"" + sql.replace("\"", "\\\"") + "\")";
+			
 			String addColumnTypes = tempFrameName + "_types = " + tempFrameName + ".dtypes.to_dict()";
 			String dict = tempFrameName + "_dict = " + tempFrameName + ".to_dict('split')";
 			String dictColumns = tempFrameName + "_dict['types'] = " + tempFrameName + "_types";
 			
-			String deleteAll = "delete " + tempFrameName + ", " + tempFrameName + "_types, " + frameName + "_dict";
+			String deleteAll = "delete " + tempFrameName + ", " + tempFrameName + "_types, " + tempFrameName + "_dict";
 			
 			pyt.runEmptyPy(loadsqlDF, makeNewFrame, addColumnTypes, dict, dictColumns);
 			
@@ -991,23 +1009,37 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// columns
 		// types
 		// data
+		if(sql.startsWith("NLP:") || sql.startsWith("nlp:"))
+		{
+			// convert this to sql
+			sql = getSQLFromNLP(sql);
+		}
+
+		
 		if(sql.toUpperCase().startsWith("SELECT"))
 		{
 			Map retMap = new HashMap();
 			
-			String loadsqlDF = "from pandasql import sqldf";
+
 			try
 			{
 				String frameName = Utility.getRandomString(5);
 				File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
 				
 				String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
+
+				// old way
+				String loadsqlDF = "";
+				//String loadsqlDF = "from pandasql import sqldf";
+				//String newFrame = "sqldf('" + sql + "').to_csv('" + fileNameStr + "', index=False)";
+
+				// new way
+				String connName = getSQLite();				
+				String newFrame = "pd.read_sql('" + sql + "', " + connName +").to_csv('"+ fileNameStr + "', index=False)";
 				
-				String newFrame = "sqldf('" + sql + "').to_csv('" + fileNameStr + "', index=False)";
-				
-				String deleteAll = "delete " + frameName;
-			
+				// nothing to delete			
 				pyt.runEmptyPy(loadsqlDF, newFrame);
+				
 				Object retObject = "no data";
 				
 				if(fileName.exists())
@@ -1016,18 +1048,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 					//fileName.delete(); // delete the generated file
 					return fileName;
 				}
-				pyt.runEmptyPy(deleteAll);
 				//return retObject;
 			}catch(Exception ex)
 			{
 				
-			}
-			// will delete later
-			
+			}			
 		}
 		else
 		{
-
 			String frameName = Utility.getRandomString(5);
 			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".csv");
 
@@ -1061,8 +1089,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
-			
 			return fileName;
 		}
 
@@ -1076,28 +1102,36 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// columns
 		// types
 		// data
+		if(sql.startsWith("NLP:") || sql.startsWith("nlp:"))
+		{
+			// convert this to sql
+			sql = getSQLFromNLP(sql);
+		}
+
+		
 		if(sql.toUpperCase().startsWith("SELECT"))
 		{
 			Map retMap = new HashMap();
-			
-			String loadsqlDF = "from pandasql import sqldf";
-			String frameName = Utility.getRandomString(5);
-			String newFrame = frameName + "= sqldf('" + sql + "')";
-			
-			String deleteAll = "delete " + frameName;
-			
-
 			File fileName = new File(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR),   frameName + ".json");
 			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
 
-			String dict = frameName + ".to_json('" + fileNameStr + "', orient='records')";
-
-			pyt.runEmptyPy(loadsqlDF, newFrame, dict);
+			
+			//String loadsqlDF = "from pandasql import sqldf";
+			//String frameName = Utility.getRandomString(5);
+			//String newFrame = frameName + "= sqldf('" + sql + "')";
+			//String deleteAll = "delete " + frameName;
+			//pyt.runEmptyPy(loadsqlDF, newFrame, dict);
+			//String dict = frameName + ".to_json('" + fileNameStr + "', orient='records')";
+			//pyt.runEmptyPy(deleteAll);
+			
+			// new way
+			String connName = getSQLite();				
+			String newFrame = "pd.read_sql('" + sql + "', " + connName +").to_json('"+ fileNameStr + "', orient='records')";
+			pyt.runEmptyPy(newFrame);
 			
 			if(fileName.exists())
 				return fileName;
 			
-			pyt.runEmptyPy(deleteAll);
 		}
 		else
 		{
@@ -1168,6 +1202,44 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return sqliteConnectionName;
 	}
 	
+	private String getSQLFromNLP(String query)
+	{
+		//ITableDataFrame thisFrame = frameIterator.next();
+		query = query.substring(query.indexOf(":") + 1);
+		
+		StringBuffer finalDbString = new StringBuffer();
+		logger.info("Processing frame " + this.getName());
+		finalDbString.append("#").append(this.getName()).append("(");
+		
+		String [] columns = this.getColumnHeaders();
+		
+		// if the frame is pandas frame get the data
+		// we will get to this shortly
+		for(int columnIndex = 0;columnIndex < columns.length;columnIndex++)
+		{
+			if(columnIndex == 0)
+				finalDbString.append(columns[columnIndex]);
+			else
+				finalDbString.append(" , ").append(columns[columnIndex]);
+		}
+		finalDbString.append(")\\n");
+		finalDbString.append("#\\n").append("### A query to list ").append(query).append("\\n").append("SELECT");
+		
+		logger.info("executing query " + finalDbString);
+
+		Object output = this.pyt.runScript("smssutil.run_gpt_3(\"" + finalDbString + "\", " + 150 + ")");
+		// get the string
+		// make a frame
+		// load the frame into insight
+		logger.info("SQL query is " + output);
+		
+		//Create a new SQL Data Frame 
+		String sqlDFQuery = output.toString().trim();
+		// remove the new line
+		sqlDFQuery = sqlDFQuery.replace("\n", " ");
+		
+		return sqlDFQuery;
+	}
 	
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
