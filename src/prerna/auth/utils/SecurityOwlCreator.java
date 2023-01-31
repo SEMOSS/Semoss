@@ -134,6 +134,15 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/LOCKED/SMSS_USER")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PHONE/SMSS_USER")) {
+				return true;
+			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PHONEEXTENSION/SMSS_USER")) {
+				return true;
+			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/COUNTRYCODE/SMSS_USER")) {
+				return true;
+			}
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PASSWORD_RULES");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DAYS_TO_LOCK/PASSWORD_RULES")) {
@@ -330,7 +339,10 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "LASTLOGIN", "TIMESTAMP");
 		owler.addProp("SMSS_USER", "LASTPASSWORDRESET", "TIMESTAMP");
 		owler.addProp("SMSS_USER", "LOCKED", "BOOLEAN");
-
+		owler.addProp("SMSS_USER", "PHONE", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "PHONEEXTENSION", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "COUNTRYCODE", "VARCHAR(255)");
+		
 		// TOKENS
 		owler.addConcept("TOKENS", null, null);
 		owler.addProp("TOKENS", "IPADDR", "VARCHAR(255)");

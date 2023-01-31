@@ -45,7 +45,10 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	private static final String PASSWORD_COL = SMSS_USER_TABLE_NAME + "__PASSWORD";
 	private static final String SALT_COL = SMSS_USER_TABLE_NAME + "__SALT";
 	private static final String LASTLOGIN_COL = SMSS_USER_TABLE_NAME + "__LASTLOGIN";
-
+	private static final String PHONE_COL = SMSS_USER_TABLE_NAME + "__PHONE";
+	private static final String PHONE_EXTENSION_COL = SMSS_USER_TABLE_NAME + "__PHONEEXTENSION";
+	private static final String COUNTRY_CODE_COL = SMSS_USER_TABLE_NAME + "__COUNTRYCODE";
+	
 	private SecurityNativeUserUtils() {
 
 	}
@@ -102,7 +105,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
 				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
-						+ "PASSWORD=?, SALT=?, LASTLOGIN=? WHERE ID=?";
+						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=? WHERE ID=?";
 				PreparedStatement ps = null;
 				try {
 					int parameterIndex = 1;
@@ -127,6 +130,22 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, hashedPassword);
 					ps.setString(parameterIndex++, salt);
 					ps.setTimestamp(parameterIndex++, timestamp, cal);
+					if(newUser.getPhone() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getPhone());
+					}
+					if(newUser.getPhoneExtension() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getPhoneExtension());
+					}
+					if(newUser.getCountryCode() == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, newUser.getCountryCode());
+					}
+					// where 
 					ps.setString(parameterIndex++, oldId);
 					ps.execute();
 					if(!ps.getConnection().getAutoCommit()) {
@@ -186,8 +205,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 					
-					String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, LOCKED) "
-							+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
+					String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
+							+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE) "
+							+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 					
 					PreparedStatement ps = null;
 					try {
@@ -217,6 +237,21 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.setTimestamp(parameterIndex++, timestamp, cal);
 						// not locked ...
 						ps.setBoolean(parameterIndex++, false);
+						if(newUser.getPhone() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getPhone());
+						}
+						if(newUser.getPhoneExtension() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getPhoneExtension());
+						}
+						if(newUser.getCountryCode() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getCountryCode());
+						}
 						ps.execute();
 						if(!ps.getConnection().getAutoCommit()) {
 							ps.getConnection().commit();
@@ -365,6 +400,12 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		}
 		try {
 			validPassword(newUser.getId(), newUser.getProvider(), password);
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			error += e.getMessage();
+		}
+		try {
+			newUser.setPhone(formatPhone(newUser.getPhone()));
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			error += e.getMessage();
@@ -584,6 +625,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(ADMIN_COL));
 		qs.addSelector(new QueryColumnSelector(PASSWORD_COL));
 		qs.addSelector(new QueryColumnSelector(SALT_COL));
+		qs.addSelector(new QueryColumnSelector(PHONE_COL));
+		qs.addSelector(new QueryColumnSelector(PHONE_EXTENSION_COL));
+		qs.addSelector(new QueryColumnSelector(COUNTRY_CODE_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
 
@@ -601,6 +645,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				user.put(names[5], values[5] + "");
 				user.put(names[6], (String) values[6]);
 				user.put(names[7], (String) values[7]);
+				user.put(names[8], (String) values[8]);
+				user.put(names[9], (String) values[9]);
+				user.put(names[10], (String) values[10]);
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
