@@ -14,7 +14,7 @@ public class ResetFrameToOriginalNameReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		ITableDataFrame frame = getFrame();
+		ITableDataFrame frame = getFrameDefaultLast();
 		// reset the name back to the original name
 		if(frame.getName().equals(frame.getOriginalName())) {
 			return new NounMetadata(true, PixelDataType.BOOLEAN);

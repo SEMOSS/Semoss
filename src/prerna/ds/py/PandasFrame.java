@@ -545,8 +545,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		if(qs instanceof HardSelectQueryStruct) // this is a hard select query struct
 		{
+			// escape the quotes
 			
-			String frameMaker = targetFrame + " = pd.read_sql('" + ((HardSelectQueryStruct)qs).getQuery() + "', " + getSQLite() + ")";
+			String sql  = ((HardSelectQueryStruct)qs).getQuery();
+			sql = sql.replace("\"", "\\\"");
+
+			String frameMaker = targetFrame + " = pd.read_sql(\"" + sql + "\", " + getSQLite() + ")";
 //			String loadsqlDF = "from pandasql import sqldf";
 //			this.pyt.runEmptyPy(loadsqlDF);
 //			query = targetFrame + "= sqldf('" + ((HardSelectQueryStruct)qs).getQuery() + "')";
@@ -932,7 +936,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			/* alternate to use sqlite directly */
 			
 			String connName = getSQLite();
-			makeNewFrame = tempFrameName + " = pd.read_sql('" + sql + "', " + connName +")";
+			makeNewFrame = tempFrameName + " = pd.read_sql(\"" + sql + "\", " + connName +")";
 			
 			/********/			
 			// dont load sql df everytime
@@ -1044,9 +1048,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 				//String loadsqlDF = "from pandasql import sqldf";
 				//String newFrame = "sqldf('" + sql + "').to_csv('" + fileNameStr + "', index=False)";
 
+				/* alternate to use sqlite directly */
+				
+
 				// new way
+				sql = sql.replace("\"", "\\\"");
 				String connName = getSQLite();				
-				String newFrame = "pd.read_sql('" + sql + "', " + connName +").to_csv('"+ fileNameStr + "', index=False)";
+				String newFrame = "pd.read_sql(\"" + sql + "\", " + connName +").to_csv('"+ fileNameStr + "', index=False)";
 				
 				// nothing to delete			
 				pyt.runEmptyPy(loadsqlDF, newFrame);
@@ -1136,8 +1144,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 			//pyt.runEmptyPy(deleteAll);
 			
 			// new way
+			sql = sql.replace("\"", "\\\"");
 			String connName = getSQLite();				
-			String newFrame = "pd.read_sql('" + sql + "', " + connName +").to_json('"+ fileNameStr + "', orient='records')";
+			String newFrame = "pd.read_sql(\"" + sql + "\", " + connName +").to_json('"+ fileNameStr + "', orient='records')";
 			pyt.runEmptyPy(newFrame);
 			
 			if(fileName.exists())
