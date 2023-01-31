@@ -1150,6 +1150,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
+		qs1.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "project_favorite"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
@@ -1463,6 +1464,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
