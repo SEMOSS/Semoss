@@ -1326,18 +1326,18 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TRIGGER_ON_LOAD</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PARAMETERS/SMSS_JOB_RECIPES">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/UI_STATE/SMSS_JOB_RECIPES">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PARAMETERS/SMSS_JOB_RECIPES"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/UI_STATE/SMSS_JOB_RECIPES"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PARAMETERS/SMSS_JOB_RECIPES">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/UI_STATE/SMSS_JOB_RECIPES">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BLOB"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PARAMETERS/SMSS_JOB_RECIPES"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PARAMETERS</Conceptual>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/UI_STATE/SMSS_JOB_RECIPES"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">UI_STATE</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_AUDIT_TRAIL">
@@ -1640,7 +1640,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2021:02:11 12:55:19</TIME>
+	<TIME xmlns="ENGINE:">2021:07:26 15:46:18</TIME>
 </rdf:Description>
 
 </rdf:RDF>
