@@ -166,8 +166,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public List<Map<String, Object>> getAllUsers(long limit, long offset) throws IllegalArgumentException{
-//		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER FROM SMSS_USER ORDER BY NAME, TYPE";
-		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
@@ -177,6 +175,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
 		if(limit > 0) {
@@ -605,6 +606,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
 		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
 		String type = userInfo.get("type") != null ? userInfo.get("type").toString() : "";
+		String phone = userInfo.get("phone") != null ?  userInfo.get("phone").toString() : ""; 
+		String phoneExtension = userInfo.get("phoneextension") != null ?  userInfo.get("phoneextension").toString() : ""; 
+		String countryCode = userInfo.get("countrycode") != null ?  userInfo.get("countrycode").toString() : ""; 
 		// modified fields
 		String newUserId = (String) userInfo.get("newId");
 		if(newUserId != null && newUserId.trim().isEmpty()) {
@@ -743,7 +747,25 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			selectors.add(new QueryColumnSelector("SMSS_USER__EXPORTER"));
 			values.add(exporterChange);
 		}
-		
+		if(phone != null && !phone.isEmpty()) {
+			try {
+				phone = formatPhone(phone);
+			} catch(Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				error += e.getMessage();
+			}
+			selectors.add(new QueryColumnSelector("SMSS_USER__PHONE"));
+			values.add(phone);
+		}
+		if(phoneExtension != null && !phoneExtension.isEmpty()) {
+			selectors.add(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
+			values.add(phoneExtension);
+		}
+		if(countryCode != null && !countryCode.isEmpty()) {
+			selectors.add(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
+			values.add(countryCode);
+		}
+
 		if(error != null && !error.isEmpty()) {
 			throw new IllegalArgumentException(error);
 		}

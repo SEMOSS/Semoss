@@ -1399,7 +1399,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static boolean registerUser(String id, String name, String email, String password, String type, boolean admin, boolean publisher, boolean exporter) throws IllegalArgumentException {
+	public static boolean registerUser(String id, String name, String email, String password, String type, String phone, String phoneextension, String countrycode, boolean admin, boolean publisher, boolean exporter) throws IllegalArgumentException {
 		boolean isExistingUser = SecurityQueryUtils.checkUserExist(id);
 		if(isExistingUser) {
 			return false;
@@ -1445,11 +1445,16 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(hashedPassword == null) hashedPassword = "";
 		if(salt == null) salt = "";
 		if(type == null) type = "";
-
+		if(phone == null) phone = "";
+		if(phoneextension == null) phoneextension = "";
+		if(countrycode == null) countrycode = "";
+		 
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 		
-		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, "
+				+ "PHONE, PHONEEXTENSION, COUNTRYCODE, ADMIN, PUBLISHER, EXPORTER, DATECREATED) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -1461,6 +1466,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, hashedPassword);
 			ps.setString(parameterIndex++, salt);
 			ps.setString(parameterIndex++, type);
+			ps.setString(parameterIndex++, phone);
+			ps.setString(parameterIndex++, phoneextension);
+			ps.setString(parameterIndex++, countrycode);
 			ps.setBoolean(parameterIndex++, admin);
 			ps.setBoolean(parameterIndex++, publisher);
 			ps.setBoolean(parameterIndex++, exporter);
