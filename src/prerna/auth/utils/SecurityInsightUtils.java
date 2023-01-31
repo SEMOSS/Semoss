@@ -1712,6 +1712,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "project_insight_id"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
@@ -1724,6 +1725,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEDON", "cachedOn"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT", "cacheEncrypt"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME", "insight_schema_name"));
 		// lower name for sorting
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, insightPrefix + "INSIGHTNAME", "low_name"));
 		// add the USER PERMISSIONS subquery returns
@@ -2083,7 +2085,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEDON", "cachedOn"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT", "cacheEncrypt"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
-		
+		qs.addSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME", "insight_schema_name"));
+
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
