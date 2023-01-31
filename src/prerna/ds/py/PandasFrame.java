@@ -309,6 +309,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 			pyt.runScript(mergeString);
 			pyt.runScript(filterSyntax);
 		}
+		
+		syncHeaders();
+	}
+	
+	@Override
+	public void syncHeaders() {
+		super.syncHeaders();
+		if(sqliteConnectionName != null) {
+			pyt.runScript("del " + sqliteConnectionName);
+			sqliteConnectionName = null;
+		}
 	}
 	
 	/**
