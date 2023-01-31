@@ -124,6 +124,9 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHEDON/INSIGHT")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SCHEMANAME/INSIGHT")) {
+				return true;
+			}
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_GROUP");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/SMSS_GROUP")) {
@@ -158,6 +161,11 @@ public class SecurityOwlCreator {
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ID/DATABASEACCESSREQUEST")) {
+				return true;
+			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PROJECT");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CATALOGNAME/PROJECT")) {
 				return true;
 			}
 		}
@@ -252,7 +260,8 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECT", "DISCOVERABLE", "BOOLEAN");
 		owler.addProp("PROJECT", "TYPE", "VARCHAR(255)");
 		owler.addProp("PROJECT", "COST", "VARCHAR(255)");
-		
+		owler.addProp("PROJECT", "CATALOGNAME", "VARCHAR(255)");
+
 		//PROJECTPERMISSION
 		owler.addConcept("PROJECTPERMISSION", null, null);
 		owler.addProp("PROJECTPERMISSION", "PROJECTID", "VARCHAR(255)");
@@ -296,6 +305,7 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHT", "CACHECRON", "VARCHAR(25)");
 		owler.addProp("INSIGHT", "CACHEDON", "TIMESTAMP");
 		owler.addProp("INSIGHT", "CACHEENCRYPT", "BOOLEAN");
+		owler.addProp("INSIGHT", "SCHEMANAME", "VARCHAR(255)");
 
 		// USERINSIGHTPERMISSION
 		owler.addConcept("USERINSIGHTPERMISSION", null, null);
