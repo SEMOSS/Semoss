@@ -662,7 +662,7 @@ public class InsightUtility {
 				ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 				if(!retMap.containsKey(frame.getOriginalName())) {
 					Map<String, Object> headers = frame.getFrameHeadersObject();
-					retMap.put(frame.getName(), headers);
+					retMap.put(frame.getOriginalName(), headers);
 				}
 			} else {
 				classLogger.info("You are grabbing frame headers but the noun doesn't refer to a frame... very vey weird....");
