@@ -29,6 +29,10 @@ public class AccessToken implements Serializable {
 	private String profile = null;
 	private String gender = null;
 	private String locale = null;
+	private String phone = null;
+	private String phoneExtension = null;
+	private String countryCode = null;
+	
 	private Hashtable<String, String> sans = new Hashtable<>();
 
 	private boolean locked = false;
@@ -159,6 +163,30 @@ public class AccessToken implements Serializable {
 
 	public void setUsername(String username) {
 		this.username = username;
+	}
+	
+	public String getPhone() {
+		return phone;
+	}
+
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+
+	public String getPhoneExtension() {
+		return phoneExtension;
+	}
+
+	public void setPhoneExtension(String phoneExtension) {
+		this.phoneExtension = phoneExtension;
+	}
+
+	public String getCountryCode() {
+		return countryCode;
+	}
+
+	public void setCountryCode(String countryCode) {
+		this.countryCode = countryCode;
 	}
 
 	public Hashtable<String, String> getSAN() {
