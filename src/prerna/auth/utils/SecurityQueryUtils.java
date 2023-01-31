@@ -158,6 +158,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));		
+		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
 
 		Map<String, Map<String, Object>> userMap = new HashMap<>();
@@ -175,6 +179,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				userInfo.put(names[3], values[3].toString());
 				userInfo.put(names[4], values[4].toString());
 				userInfo.put(names[5], values[5].toString());
+				userInfo.put(names[6], values[6].toString());
+				userInfo.put(names[7], values[7].toString());
+				userInfo.put(names[8], values[8].toString());
+				userInfo.put(names[9], values[9].toString());
+				userInfo.put(names[10], values[10].toString());
 				userMap.put(userId, userInfo);
 			}
 		} catch (Exception e) {

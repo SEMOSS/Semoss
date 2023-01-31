@@ -859,10 +859,10 @@ public abstract class AbstractSecurityUtils {
 		// SMSS_USER
 		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", 
 				"ADMIN", "PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET", 
-				"LOCKED" };
+				"LOCKED", "PHONE", "PHONEEXTENSION", "COUNTRYCODE" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
 				BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-				BOOLEAN_DATATYPE_NAME };
+				BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 		// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 		// but some rdbms types (postgres) does not allow it
 		// so i am going ahead and moving over user to smss_user
@@ -879,37 +879,15 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 		}
+		// 2023-01-31
+		// HAVE A LOT OF COLUMN CHECKS SO NOW JUST LOOPING THROUGH ALL OF THEM
 		List<String> smssUserCols = queryUtil.getTableColumns(conn, "SMSS_USER", database, schema);
-		// 2022-01-11 altering table need to check if a column exists, if not add it in
-		// this should return in all upper case
-		// ... but sometimes it is not -_- i.e. postgres always lowercases
-		if(!smssUserCols.contains("EXPORTER") && !smssUserCols.contains("exporter")) {
-			String addColumnSql = queryUtil.alterTableAddColumnWithDefault("SMSS_USER", "EXPORTER", BOOLEAN_DATATYPE_NAME, true);
-			securityDb.insertData(addColumnSql);
-		}
-		// 2022-02-04 altering table need to check if a column exists, if not add it in
-		{
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(!smssUserCols.contains("DATECREATED") && !smssUserCols.contains("datecreated")) {
-				String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", "DATECREATED", TIMESTAMP_DATATYPE_NAME);
+		for (int i = 0; i < colNames.length; i++) {
+			String col = colNames[i];
+			if(!smssUserCols.contains(col) && !smssUserCols.contains(col.toLowerCase())) {
+				String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", col, types[i]);
 				securityDb.insertData(addColumnSql);
 			}
-			if(!smssUserCols.contains("LASTLOGIN") && !smssUserCols.contains("lastlogin")) {
-				String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", "LASTLOGIN", TIMESTAMP_DATATYPE_NAME);
-				securityDb.insertData(addColumnSql);
-			}
-			if(!smssUserCols.contains("LASTPASSWORDRESET") && !smssUserCols.contains("lastpasswordreset")) {
-				String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", "LASTPASSWORDRESET", TIMESTAMP_DATATYPE_NAME);
-				securityDb.insertData(addColumnSql);
-			}
-		}
-		// 2022-02-16
-		// this should return in all upper case
-		// ... but sometimes it is not -_- i.e. postgres always lowercases
-		if(!smssUserCols.contains("LOCKED") && !smssUserCols.contains("locked")) {
-			String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", "LOCKED", BOOLEAN_DATATYPE_NAME);
-			securityDb.insertData(addColumnSql);
 		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
@@ -1939,11 +1917,11 @@ public abstract class AbstractSecurityUtils {
 				Object[] values = row.getValues();
 				Map<String, Object> rowData = new HashMap<String, Object>();
 				for(int idx = 0; idx < headers.length; idx++){
-					if(values[idx] == null) {
-						rowData.put(headers[idx].toLowerCase(), "null");
-					} else {
+//					if(values[idx] == null) {
+//						rowData.put(headers[idx].toLowerCase(), "null");
+//					} else {
 						rowData.put(headers[idx].toLowerCase(), values[idx]);
-					}
+//					}
 				}
 				ret.add(rowData);
 			}
@@ -1982,6 +1960,20 @@ public abstract class AbstractSecurityUtils {
 		if(SecurityNativeUserUtils.isPreviousPassword(userId, type, password)) {
 			throw new IllegalArgumentException("Cannot reuse old password. ");
 		}
+	}
+	
+	public static String formatPhone(String phone) throws Exception {
+		if (phone != null && !phone.isEmpty()) {
+			if (!phone.matches("[\\d\\s.()-]+")) {
+				throw new IllegalArgumentException("Phone number " + phone + " contains invalid characters. ");
+			}
+			phone = phone.replaceAll("[^\\d]", "");
+			// phone numbers can have at max 12 digits 
+			if (phone.length() < 8 || phone.length() > 12) {
+				throw new IllegalArgumentException(phone + " is not a valid phone number. "); 
+			}
+		}
+		return phone;
 	}
 	
 	/**
