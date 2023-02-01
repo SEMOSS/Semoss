@@ -25,6 +25,7 @@ import prerna.ds.shared.RawCachedWrapper;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.IStringExportProcessor;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
@@ -188,7 +189,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 				newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".csv";
 			}
 			
-			File newFile = Utility.writeResultToFile(newFileLoc, it, dataTypeMap);
+			File newFile = Utility.writeResultToFile(newFileLoc, it, dataTypeMap, ",", new IStringExportProcessor() {
+				// we need to replace all inner quotes with ""
+				@Override
+				public String processString(String input) {
+					return input.replace("\"", "\"\"");
+				}
+			});
+			
 			
 			String importPandasS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
 			String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
