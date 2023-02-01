@@ -14,8 +14,6 @@ import java.util.UUID;
 
 import javax.crypto.Cipher;
 
-import org.eclipse.jgit.util.FileUtils;
-
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -183,16 +181,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
 				Insight in = this.pyt.insight;
 				String insightFolder = in.getInsightFolder();
-				try {
-					FileUtils.mkdirs(new File(insightFolder), true);
-					if(in.getUser() != null) {
-						in.getUser().getUserMountHelper().mountFolder(insightFolder,insightFolder, false);
-					}
-					newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".csv";
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				new File(insightFolder).mkdirs();
+				if(in.getUser() != null) {
+					in.getUser().getUserMountHelper().mountFolder(insightFolder,insightFolder, false);
 				}
+				newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".csv";
 			}
 			
 			File newFile = Utility.writeResultToFile(newFileLoc, it, dataTypeMap);
@@ -925,9 +918,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			sql = getSQLFromNLP(sql);
 		}
 		
-		
 		if(sql.trim().toUpperCase().startsWith("SELECT")) {
-						
 			Map retMap = new HashMap();
 			String tempFrameName = Utility.getRandomString(5);
 			String loadsqlDF = "";
