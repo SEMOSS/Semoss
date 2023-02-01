@@ -33,12 +33,11 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 	// plug the pipeline into insight
 	
 	//
-	private static final Logger logger = LogManager.getLogger(NLPQueryReactor.class);
+	private static final Logger logger = LogManager.getLogger(NLPQuery2Reactor.class);
 
 	public NLPQuery2Reactor() {
 		this.keysToGet = new String[]{ ReactorKeysEnum.COMMAND.getKey(), "json", 
-				ReactorKeysEnum.TOKEN_COUNT.getKey(), 
-				ReactorKeysEnum.FRAME.getKey()
+				ReactorKeysEnum.TOKEN_COUNT.getKey(), ReactorKeysEnum.FRAME.getKey()
 			};
 	}
 	
@@ -62,7 +61,9 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		}
 
 		ITableDataFrame thisFrame = getFrameDefaultLast();
-
+		if(thisFrame == null) {
+			return NounMetadata.getErrorNounMessage("No Data Available for frame " + keyValue.get(keysToGet[3]));
+		}
 		if(!(thisFrame instanceof PandasFrame) && !(thisFrame instanceof RDataTable)) {
 			return NounMetadata.getErrorNounMessage("NLP Query 2 has only been implemented for python, r at this point, please convert your frames to python,r and try again");
 		}
@@ -88,32 +89,26 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		//Set <ITableDataFrame> allFrames = this.insight.getVarStore().getFrames();
 		//Iterator <ITableDataFrame> frameIterator = allFrames.iterator();
 				
-		StringBuffer finalDbString = new StringBuffer("### SQL Tables, with their properties:");
+		StringBuffer finalDbString = new StringBuffer("### SQLite3 SQL Tables, with their properties:");
 		finalDbString.append("\\n#\\n");
 		
+		//ITableDataFrame thisFrame = frameIterator.next();
+		logger.info("Processing frame " + thisFrame.getName());
+		finalDbString.append("#").append(thisFrame.getName()).append("(");
 		
-		if(thisFrame != null)
+		String [] columns = thisFrame.getColumnHeaders();
+		
+		// if the frame is pandas frame get the data
+		// we will get to this shortly
+		for(int columnIndex = 0;columnIndex < columns.length;columnIndex++)
 		{
-			//ITableDataFrame thisFrame = frameIterator.next();
-			logger.info("Processing frame " + thisFrame.getName());
-			finalDbString.append("#").append(thisFrame.getName()).append("(");
-			
-			String [] columns = thisFrame.getColumnHeaders();
-			
-			// if the frame is pandas frame get the data
-			// we will get to this shortly
-			for(int columnIndex = 0;columnIndex < columns.length;columnIndex++)
-			{
-				if(columnIndex == 0)
-					finalDbString.append(columns[columnIndex]);
-				else
-					finalDbString.append(" , ").append(columns[columnIndex]);
-			}
-			finalDbString.append(")\\n");
+			if(columnIndex == 0)
+				finalDbString.append(columns[columnIndex]);
+			else
+				finalDbString.append(" , ").append(columns[columnIndex]);
 		}
-		else
-			return NounMetadata.getErrorNounMessage("No Data Available for Frame " + keyValue.get(keysToGet[3]));
-
+		finalDbString.append(")\\n");
+		
 		finalDbString.append("#\\n").append("### A query to list ").append(query).append("\\n").append("SELECT");
 		
 		logger.info("executing query " + finalDbString);
@@ -128,7 +123,8 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		String sqlDFQuery = output.toString().trim();
 		// remove the new line
 		sqlDFQuery = sqlDFQuery.replace("\n", " ");
-
+		sqlDFQuery = sqlDFQuery.replace("\"", "\\\"");
+		
 		// execute sqlDF to create a frame
 		// need to check if the query is right and then feed this into sqldf
 		
@@ -153,10 +149,8 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 			String sqliteName = pFrame.getSQLite();
 			
 			// pd.read_sql("select * from diab1 where age > 60", conn)
-			String frameMaker = "pd.read_sql('" + sqlDFQuery + "', " + sqliteName + ").head(20)";
-
+			String frameMaker = "pd.read_sql(\"" + sqlDFQuery + "\", " + sqliteName + ").head(20)";
 			logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
-
 			String sampleOut = insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameMaker); // load the sql df
 			
 			System.err.println(sampleOut);
@@ -207,7 +201,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		else if (thisFrame instanceof RDataTable)
 		{
 			AbstractRJavaTranslator rt = insight.getRJavaTranslator(this.getClass().getName());
-			String frameMaker = frameName + " <- sqldf('" + sqlDFQuery + "')";
+			String frameMaker = frameName + " <- sqldf(\"" + sqlDFQuery + "\")";
 			logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 			rt.runRAndReturnOutput("library(sqldf)");
 			rt.runR(frameMaker); // load the sql df			
