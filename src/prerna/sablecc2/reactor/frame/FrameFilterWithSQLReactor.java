@@ -6,7 +6,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.r.RDataTable;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -37,13 +36,11 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 		String oldFrameName = frame.getName();
 		
 		if(frame instanceof PandasFrame) {
-			
 			// drop the old frame and old table
 			// check to see if this is a new frame
 			// if so construct a DataFrame and see
 			PandasFrame pFrame = (PandasFrame)frame;
 			String sqlite = pFrame.getSQLite();
-
 			//pd.read_sql("select * from diab1 where age > 60", conn)
 			
 			query = query.replace("\"", "\\\"");
