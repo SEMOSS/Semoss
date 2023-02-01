@@ -64,6 +64,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
@@ -3205,7 +3206,12 @@ public class Utility {
 						if(dataRow[i] == null) {
 							builder.append("\"\"");
 						} else {
-							String thisStringVal = dataRow[i] + "";
+							String thisStringVal = null;
+							if(dataRow[i] instanceof Object[]) {
+								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
+							} else {
+								thisStringVal = dataRow[i] + "";
+							}
 							if(exportProcessors != null) {
 								for(IStringExportProcessor process : exportProcessors) {
 									thisStringVal = process.processString(thisStringVal);
@@ -3259,7 +3265,12 @@ public class Utility {
 						if(dataRow[i] == null) {
 							builder.append("\"\"");
 						} else {
-							String thisStringVal = dataRow[i] + "";
+							String thisStringVal = null;
+							if(dataRow[i] instanceof Object[]) {
+								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
+							} else {
+								thisStringVal = dataRow[i] + "";
+							}
 							if(exportProcessors != null) {
 								for(IStringExportProcessor process : exportProcessors) {
 									thisStringVal = process.processString(thisStringVal);
