@@ -190,7 +190,7 @@ public class RFrameBuilder {
 				}
 			}
 			
-				File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t", new IStringExportProcessor() {
+			File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t", new IStringExportProcessor() {
 				// for fread - we need to replace all inner quotes with ""
 				@Override
 				public String processString(String input) {
