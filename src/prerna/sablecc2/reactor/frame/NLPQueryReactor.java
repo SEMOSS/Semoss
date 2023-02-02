@@ -9,7 +9,6 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
@@ -21,9 +20,6 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
-
-
-
 
 public class NLPQueryReactor extends AbstractReactor {
 

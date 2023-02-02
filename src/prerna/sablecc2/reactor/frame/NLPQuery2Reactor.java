@@ -36,8 +36,8 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 	private static final Logger logger = LogManager.getLogger(NLPQuery2Reactor.class);
 
 	public NLPQuery2Reactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.COMMAND.getKey(), "json", 
-				ReactorKeysEnum.TOKEN_COUNT.getKey(), ReactorKeysEnum.FRAME.getKey()
+		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey(), "json", 
+				ReactorKeysEnum.TOKEN_COUNT.getKey(), ReactorKeysEnum.FRAME.getKey(), "dialect"
 			};
 	}
 	
@@ -67,6 +67,10 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		if(!(thisFrame instanceof PandasFrame) && !(thisFrame instanceof RDataTable)) {
 			return NounMetadata.getErrorNounMessage("NLP Query 2 has only been implemented for python, r at this point, please convert your frames to python,r and try again");
 		}
+		String dialect = this.keyValue.get(this.keysToGet[4]);
+		if(dialect == null || (dialect=dialect.trim()).isEmpty()) {
+			dialect = "SQLite3";
+		}
 		
 		// create the prompt
 		// format
@@ -89,7 +93,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		//Set <ITableDataFrame> allFrames = this.insight.getVarStore().getFrames();
 		//Iterator <ITableDataFrame> frameIterator = allFrames.iterator();
 				
-		StringBuffer finalDbString = new StringBuffer("### SQLite3 SQL Tables, with their properties:");
+		StringBuffer finalDbString = new StringBuffer("### "+dialect+" SQL Tables, with their properties:");
 		finalDbString.append("\\n#\\n");
 		
 		//ITableDataFrame thisFrame = frameIterator.next();
