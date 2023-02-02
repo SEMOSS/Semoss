@@ -205,12 +205,9 @@ import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
 import prerna.sablecc2.reactor.frame.graph.r.ChangeGraphLayoutReactor;
 import prerna.sablecc2.reactor.frame.graph.r.ClusterGraphReactor;
 import prerna.sablecc2.reactor.frame.graph.r.NodeDetailsReactor;
-import prerna.sablecc2.reactor.frame.py.CatalogDescriptionGeneratorReactor;
-import prerna.sablecc2.reactor.frame.py.CatalogSearchReactor;
 import prerna.sablecc2.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.reactor.frame.py.PyReactor;
 import prerna.sablecc2.reactor.frame.py.PySourceReactor;
-import prerna.sablecc2.reactor.frame.py.SimilarCatalogReactor;
 import prerna.sablecc2.reactor.frame.r.CancelRReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
@@ -720,9 +717,9 @@ public class ReactorFactory {
 		reactorHash.put("RdfCsvUpload", RdfCsvUploadReactor.class);
 		reactorHash.put("RdfLoaderSheetUpload", RdfLoaderSheetUploadReactor.class);
 		reactorHash.put("TinkerCsvUpload", TinkerCsvUploadReactor.class);
-		reactorHash.put("CatalogDescriptionGenerator", CatalogDescriptionGeneratorReactor.class);
-		reactorHash.put("SimilarCatalog", SimilarCatalogReactor.class);
-		reactorHash.put("CatalogSearch", CatalogSearchReactor.class);
+//		reactorHash.put("CatalogDescriptionGenerator", CatalogDescriptionGeneratorReactor.class);
+//		reactorHash.put("SimilarCatalog", SimilarCatalogReactor.class);
+//		reactorHash.put("CatalogSearch", CatalogSearchReactor.class);
 			
 		// external graph engine
 		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
