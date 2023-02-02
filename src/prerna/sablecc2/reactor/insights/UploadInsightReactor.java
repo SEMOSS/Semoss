@@ -141,8 +141,10 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		String cacheCron = mosfet.getCacheCron();
 		LocalDateTime cachedOn = mosfet.getCachedOn();
 		boolean cacheEncrypt = mosfet.isCacheEncrypt();
+		String schemaName = mosfet.getSchemaName();
 		
-		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden, 
+				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 		logger.info(step + ") Done...");
 		step++;
 
@@ -159,7 +161,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		logger.info(step + ") Regsiter insight...");
 		SecurityInsightUtils.addInsight(projectId, newInsightId, insightName, true, 
 				layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-				pixelRecipeToSave);
+				pixelRecipeToSave, schemaName);
 		if (this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, newInsightId);
 		}

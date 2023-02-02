@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.couch.CouchException;
@@ -54,6 +55,8 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String ENCODED_KEY = "encoded";
 	protected static final String PIPELINE_FILE = "pipeline.json";
 	protected static final String USE_EXISTING_OPEN = "useExistingIfOpen";
+	// used for jdbc
+	protected static final String SCHEMA_NAME = "schemaName";
 	
 	public static String USER_SPACE_KEY = "USER";
 	public static final String SPACE = ReactorKeysEnum.SPACE.getKey();
@@ -607,6 +610,50 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 		
 		return f;
+	}
+	
+	/**
+	 * Get user input schema name or use default name provided
+	 * @param projectId
+	 * @param defaultName
+	 * @return
+	 */
+	protected String getUserSchemaNameOrDefaultAndValidate(String projectId, String defaultName) {
+		if(projectId == null) {
+			return null;
+		}
+		String potentialName = defaultName;
+		GenRowStruct genericEngineGrs = this.store.getNoun(SCHEMA_NAME);
+		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
+			potentialName = (String) genericEngineGrs.get(0);
+		}
+		
+		if(potentialName == null || (potentialName=potentialName.trim()).isEmpty() ) {
+			return null;
+		}
+		
+		return SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, potentialName);
+	}
+	
+	/**
+	 * Get user input schema name or use existing insights schema name
+	 * @param projectId
+	 * @param existingInsightId
+	 * @return
+	 */
+	protected String getUserSchemaNameOrExistingSchemaName(String projectId, String existingInsightId) {
+		if(projectId == null) {
+			return null;
+		}
+		GenRowStruct genericEngineGrs = this.store.getNoun(SCHEMA_NAME);
+		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
+			String potentialName = (String) genericEngineGrs.get(0);
+			if(potentialName != null && !(potentialName=potentialName.trim()).isEmpty() ) {
+				return SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, potentialName);
+			}
+		}
+		
+		return SecurityInsightUtils.getInsightSchemaName(projectId, existingInsightId);
 	}
 	
 }
