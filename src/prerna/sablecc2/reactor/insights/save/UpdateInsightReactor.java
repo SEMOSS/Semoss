@@ -92,6 +92,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		}
 		
 		String schemaName = getUserSchemaNameOrExistingSchemaName(projectId, existingId);
+		if(schemaName == null) {
+			// if null, use the insight name
+			schemaName = getUserSchemaNameOrDefaultAndValidate(projectId, insightName);
+		}
 		
 		PixelList insightPixelList = null;
 		List<String> recipeToSave = getRecipe();
