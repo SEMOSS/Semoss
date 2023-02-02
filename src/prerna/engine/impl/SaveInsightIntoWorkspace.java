@@ -135,9 +135,9 @@ class InsightCacher implements Runnable {
 					// update the existing insight
 					String inName = insightName + " " + formatter.format(new Date());
 					insightAdmin.updateInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, 
-							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, null);
 					SecurityInsightUtils.updateInsight(this.workspaceAppId, this.workspaceSavedInsightId, inName, true, 
-							"default", cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, lastPixel);
+							"default", cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, lastPixel, null);
 					// delete the cache if it is there
 					InsightCacheUtility.deleteCache(this.workspaceAppId, this.workspaceAppName, this.workspaceSavedInsightId, parameterValues, true);
 
@@ -145,9 +145,9 @@ class InsightCacher implements Runnable {
 					// create new
 					String inName = insightName + " " + formatter.format(new Date());
 					insightAdmin.addInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, 
-							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, null);
 					SecurityInsightUtils.addInsight(this.workspaceAppId, this.workspaceSavedInsightId, 
-							inName, true, "default", cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, lastPixel);
+							inName, true, "default", cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, lastPixel, null);
 
 					created = true;
 				}
