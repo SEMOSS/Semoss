@@ -86,6 +86,85 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * 
+	 * @param projectId
+	 * @param insightId
+	 * @return
+	 */
+	public static String getInsightSchemaName(String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
+
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return (String) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @param schemaName
+	 * @return
+	 */
+	public static String makeInsightSchemaNameUnique(String projectId, String schemaName) {
+		// first clean up
+		if(schemaName == null) {
+			return null;
+		}
+		// replace all spaces to underscore
+		schemaName = schemaName.replaceAll("\\s+", "_");
+		// replace all nonalphanumeric
+		schemaName = schemaName.replaceAll("[^a-zA-Z0-9_]", "");
+		
+		String testSchemaName = schemaName;
+		int counter = 1;
+		do {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
+			QueryFunctionSelector fun = new QueryFunctionSelector();
+			fun.setFunction(QueryFunctionHelper.LOWER);
+			fun.addInnerSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME"));
+			fun.setAlias("low_name");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(fun, "==", schemaName.toLowerCase(), PixelDataType.CONST_STRING));
+			
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+				if(!wrapper.hasNext()) {
+					return testSchemaName;
+				} else {
+					// this schema name already exists and we want it to be unique within a project
+					// so lets try to edit it
+					testSchemaName = schemaName + "_"+ (counter++);
+				}
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
+			}
+			
+		} while(true);
+	}
+	
+	/**
 	 * See if the insight name exists within the project
 	 * @param projectId
 	 * @param insightName
@@ -630,10 +709,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static void addInsight(String projectId, String insightId, String insightName, boolean global, 
 			String layout, boolean cacheable, int cacheMinutes, 
 			String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
-			List<String> recipe) {
+			List<String> recipe, String schemaName) {
 		String insertQuery = "INSERT INTO INSIGHT (PROJECTID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
-				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, CACHECRON, CACHEDON, CACHEENCRYPT, RECIPE) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, CACHECRON, CACHEDON, CACHEENCRYPT, RECIPE, SCHEMANAME) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
@@ -669,6 +748,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setClob(parameterIndex++, clob);
 			} else {
 				ps.setString(parameterIndex++, securityGson.toJson(recipe));
+			}
+			if(schemaName == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, schemaName);
 			}
 			ps.execute();
 			securityDb.commit();
@@ -752,10 +836,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateInsight(String projectId, String insightId, String insightName, boolean global, 
 			String layout, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, 
-			boolean cacheEncrypt, List<String> recipe) {
+			boolean cacheEncrypt, List<String> recipe, String schemaName) {
 		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
 				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?,"
-				+ "RECIPE=? WHERE INSIGHTID = ? AND PROJECTID=?";
+				+ "RECIPE=?, SCHEMANAME=? WHERE INSIGHTID = ? AND PROJECTID=?";
 
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
@@ -787,6 +871,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setClob(parameterIndex++, clob);
 			} else {
 				ps.setString(parameterIndex++, securityGson.toJson(recipe));
+			}
+			if(schemaName == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, schemaName);
 			}
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);

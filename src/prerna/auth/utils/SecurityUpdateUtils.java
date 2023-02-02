@@ -30,9 +30,9 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
-import prerna.engine.impl.ProjectHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.project.impl.ProjectHelper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -216,7 +216,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							"PROJECTID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON",
 							"LASTMODIFIEDON","LAYOUT",
 							"CACHEABLE","CACHEMINUTES","CACHECRON","CACHEDON","CACHEENCRYPT",
-							"RECIPE"});
+							"RECIPE", 
+							"SCHEMANAME"});
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -242,6 +243,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHED_ON_COL));
 		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHE_ENCRYPT_COL));
 		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_PKQL_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.SCHEMA_NAME_COL));
 //		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -273,6 +275,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						cacheEncrypt = false;
 					}
 					Object pixelObject = row[index++];
+					String schemaName = (String) row[index++];
 
 					// insert prepared statement into security db
 					int parameterIndex = 1;
@@ -305,6 +308,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// use the utility method generated
 					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, pixelObject, securityGson);
 
+					if(schemaName == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, schemaName);
+					}
+					
 					// add to ps
 					ps.addBatch();
 					// batch commit based on size
