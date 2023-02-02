@@ -58,7 +58,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				ReactorKeysEnum.LAYOUT_KEY.getKey(), GLOBAL_KEY, ReactorKeysEnum.RECIPE.getKey(), 
 				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.IMAGE.getKey(), 
-				ENCODED_KEY, CACHEABLE, CACHE_MINUTES, CACHE_ENCRYPT};
+				ENCODED_KEY, CACHEABLE, CACHE_MINUTES, CACHE_ENCRYPT, SCHEMA_NAME};
 	}
 
 	@Override
@@ -98,6 +98,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(SecurityInsightUtils.insightNameExists(projectId, insightName) != null) {
 			throw new IllegalArgumentException("Insight name already exists");
 		}
+		
+		String schemaName = getUserSchemaNameOrDefaultAndValidate(projectId, insightName);
 		
 		PixelList insightPixelList = null;
 		List<String> recipeToSave = getRecipe();
@@ -209,7 +211,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		logger.info(stepCounter + ") Add insight " + insightName + " to rdbms store...");
-		admin.addInsight(newInsightId, insightName, layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+		admin.addInsight(newInsightId, insightName, layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 		logger.info(stepCounter +") Done...");
 		stepCounter++;
 
@@ -219,7 +221,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		logger.info(stepCounter + ") Regsiter insight...");
 		registerInsightAndMetadata(project, newInsightId, insightName, layout, global, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-				recipeToSave, description, tags, this.insight.getVarStore().getFrames(), queriedDatabaseIds);
+				recipeToSave, description, tags, this.insight.getVarStore().getFrames(), 
+				queriedDatabaseIds, schemaName);
 		logger.info(stepCounter + ") Done...");
 		stepCounter++;
 		
@@ -249,7 +252,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
 					newInsightId, insightName, layout, recipeToSave, global, 
 					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-					description, tags, true);
+					description, tags, schemaName, true);
 		} catch (IOException e) {
 			SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to save recipe file...");
@@ -356,13 +359,14 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param tags
 	 * @param insightFrames
 	 * @param queriedDatabaseIds
+	 * @param schemaName
 	 */
 	private void registerInsightAndMetadata(IProject project, String insightIdToSave, String insightName, String layout, boolean global,
 			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
-			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds) {
+			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds, String schemaName) {
 		String projectId = project.getProjectId();
 		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, global, layout, 
-				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
+				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 		if(this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
 		}

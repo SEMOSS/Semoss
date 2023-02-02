@@ -1165,8 +1165,9 @@ public class PixelUtility {
 	 * @return
 	 */
 	public static Map<String, Object> generatePipeline(Insight in) {
+		long start = System.currentTimeMillis();
 		PipelineTranslation translation = new PipelineTranslation(in);
-		List<String> encodingList = new Vector<>();
+		List<String> encodingList = new ArrayList<>();
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
 		
 		PixelList pixelList = in.getPixelList();
@@ -1203,7 +1204,9 @@ public class PixelUtility {
 				throw new IllegalArgumentException(eMessage, e);
 			}
 		}
-
+		long end = System.currentTimeMillis();
+        System.out.println("Total time to process = " + (end-start));
+        
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("idMapping", pixelList);
 		retMap.put("pixelParsing", translation.getAllRoutines());

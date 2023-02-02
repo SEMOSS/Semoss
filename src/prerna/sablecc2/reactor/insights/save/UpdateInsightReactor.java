@@ -51,7 +51,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), GLOBAL_KEY, 
 				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), 
-				ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY, CACHEABLE, CACHE_MINUTES};
+				ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY, CACHEABLE, CACHE_MINUTES, SCHEMA_NAME};
 	}
 
 	@Override
@@ -90,6 +90,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(SecurityInsightUtils.insightNameExistsMinusId(projectId, insightName, existingId)) {
 			throw new IllegalArgumentException("Insight name already exists");
 		}
+		
+		String schemaName = getUserSchemaNameOrExistingSchemaName(projectId, existingId);
 		
 		PixelList insightPixelList = null;
 		List<String> recipeToSave = getRecipe();
@@ -206,7 +208,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		// update insight db
 		int stepCounter = 1;
 		logger.info(stepCounter + ") Updating insight in rdbms");
-		admin.updateInsight(existingId, insightName, layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+		admin.updateInsight(existingId, insightName, layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 		logger.info(stepCounter + ") Done");
 		stepCounter++;
 		
@@ -216,7 +218,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		logger.info(stepCounter + ") Updated registered insight...");
 		editRegisteredInsightAndMetadata(project, existingId, insightName, layout, 
 				global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
-				recipeToSave, description, tags, this.insight.getVarStore().getFrames(), queriedDatabaseIds);
+				recipeToSave, description, tags, this.insight.getVarStore().getFrames(), 
+				queriedDatabaseIds, schemaName);
 		logger.info(stepCounter + ") Done...");
 		stepCounter++;
 		
@@ -226,7 +229,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			MosfetSyncHelper.makeMosfitFile(projectId, project.getProjectName(), 
 					existingId, insightName, layout, recipeToSave, global, 
 					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-					description, tags, true);
+					description, tags, schemaName, true);
 		} catch (IOException e) {
 			UpdateInsightReactor.logger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to save recipe file...");
@@ -314,10 +317,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 */
 	private void editRegisteredInsightAndMetadata(IProject project, String existingRdbmsId, String insightName, String layout, 
 			boolean global, boolean cacheable, int cacheableMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
-			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds) {
+			List<String> recipe, String description, List<String> tags, Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds, String schemaName) {
 		String projectId = project.getProjectId();
 		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, global, 
-				layout, cacheable, cacheableMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
+				layout, cacheable, cacheableMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if(description != null) {
 			admin.updateInsightDescription(existingRdbmsId, description);
