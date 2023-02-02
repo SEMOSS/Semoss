@@ -163,11 +163,12 @@ public class MosfetSyncHelper {
 		String cacheCron = mosfet.getCacheCron();
 		LocalDateTime cachedOn = mosfet.getCachedOn();
 		boolean cacheEncrypt = mosfet.isCacheEncrypt();
-		
+		String schemaName = mosfet.getSchemaName();
+
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
-		admin.addInsight(id, insightName, layout, recipe, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
-		SecurityInsightUtils.addInsight(projectId, id, insightName, global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
+		admin.addInsight(id, insightName, layout, recipe, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+		SecurityInsightUtils.addInsight(projectId, id, insightName, global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
@@ -194,13 +195,14 @@ public class MosfetSyncHelper {
 		String cacheCron = mosfet.getCacheCron();
 		LocalDateTime cachedOn = mosfet.getCachedOn();
 		boolean cacheEncrypt = mosfet.isCacheEncrypt();
+		String schemaName = mosfet.getSchemaName();
 		
 		IProject project = Utility.getProject(projectId);
 
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
-		admin.updateInsight(id, insightName, layout, recipe, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
-		SecurityInsightUtils.updateInsight(projectId, id, insightName, global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe);
+		admin.updateInsight(id, insightName, layout, recipe, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+		SecurityInsightUtils.updateInsight(projectId, id, insightName, global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
@@ -272,10 +274,10 @@ public class MosfetSyncHelper {
 	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
 			String layout, List<String> recipe, boolean hidden, 
 			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt,
-			String description, List<String> tags) throws IOException {
+			String description, List<String> tags, String schemaName) throws IOException {
 		return makeMosfitFile(projectId, projectName, rdbmsId, insightName, layout, recipe, hidden, 
 				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-				description, tags, false);
+				description, tags, schemaName, false);
 	}
 	
 	/**
@@ -296,7 +298,7 @@ public class MosfetSyncHelper {
 	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
 			String layout, List<String> recipe, boolean hidden, 
 			boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt,
-			String description, List<String> tags, boolean forceDelete) throws IOException {
+			String description, List<String> tags, String schemaName, boolean forceDelete) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
 		mosfet.setProjectId(projectId);
 		mosfet.setRdbmsId(rdbmsId);
@@ -315,6 +317,7 @@ public class MosfetSyncHelper {
 		if(tags != null && !tags.isEmpty()) {
 			mosfet.setTags(tags.toArray(new String[tags.size()]));
 		}
+		mosfet.setSchemaName(schemaName);
 
 		String mosfetPath = getMosfetFileLocation(projectId, projectName, rdbmsId);
 

@@ -30,6 +30,9 @@ public class MosfetFile {
 	private LocalDateTime cachedOn;
 	private boolean cacheEncrypt = false;
 	
+	// schema name
+	private String schemaName;
+	
 	// actual recipe
 	private List<String> recipe;
 	
@@ -217,4 +220,12 @@ public class MosfetFile {
 		this.description = description;
 	}
 
+	public String getSchemaName() {
+		return schemaName;
+	}
+
+	public void setSchemaName(String schemaName) {
+		this.schemaName = schemaName;
+	}
+	
 }

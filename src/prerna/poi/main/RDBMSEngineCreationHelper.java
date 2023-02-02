@@ -94,9 +94,10 @@ public class RDBMSEngineCreationHelper {
 				tags.add("default");
 				tags.add("preview");
 				String description = "Preview of the table " + newTable + " and all of its columns";
-
+				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(project.getProjectId(), insightName);
+				
 				String insightId = admin.addInsight(insightName, layout, recipeArray, global, 
-						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt);
+						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
 				
@@ -105,7 +106,7 @@ public class RDBMSEngineCreationHelper {
 					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
 							insightId, insightName, layout, recipeArray, global, 
 							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-							description, tags);
+							description, tags, schemaName);
 					// add the insight to git
 					String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
 					List<String> files = new Vector<>();
@@ -118,7 +119,7 @@ public class RDBMSEngineCreationHelper {
 				
 				// insight security
 				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, 
-						global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipeArray);
+						global, layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipeArray, schemaName);
 				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}

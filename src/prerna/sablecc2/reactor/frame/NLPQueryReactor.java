@@ -35,7 +35,6 @@ public class NLPQueryReactor extends AbstractReactor {
 		this.keysToGet = new String[]{ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.MODEL.getKey()};
 	}
 
-	
 	@Override
 	public NounMetadata execute() {
 		
