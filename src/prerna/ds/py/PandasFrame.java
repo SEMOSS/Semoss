@@ -377,16 +377,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 					//pyt.runScript(typeChanger);
 				}
 			}
-			
-			// execute all at once
-			if(allTypes.length() > 0) {
-				pyt.runEmptyPy(allTypes.toString());
-			}
-			//if(colType.equalsIgnoreType)
-			
-			// reduce memory size
-			// convert int32 vs float 32 vs. category
-			
+		}
+		
+		// execute all at once
+		if(allTypes.length() > 0) {
+			pyt.runEmptyPy(allTypes.toString());
 		}
 	}
 	
