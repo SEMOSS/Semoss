@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -44,9 +45,12 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class MergeReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(MergeReactor.class);
 	
 	public MergeReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.QUERY_STRUCT.getKey(), ReactorKeysEnum.JOINS.getKey()};
@@ -84,8 +88,8 @@ public class MergeReactor extends AbstractReactor {
 			try {
 				mergeFrame = mergeNative(curFrame, frame, qs, joins);
 			} catch (Exception e) {
-				e.printStackTrace();
-				throw new SemossPixelException(e.getMessage());
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException(e.getMessage(), e);
 			}
 		} 
 		// did the merge go through on native ? if not
@@ -95,8 +99,8 @@ public class MergeReactor extends AbstractReactor {
 				try {
 					mergeFrame = mergeFromQs(frame, qs, joins);
 				} catch (Exception e) {
-					e.printStackTrace();
-					throw new SemossPixelException(e.getMessage());
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new SemossPixelException(e.getMessage(), e);
 				}
 			} else {
 				ITask task = getTask();
@@ -104,8 +108,8 @@ public class MergeReactor extends AbstractReactor {
 					try {
 						mergeFrame = mergeFromTask(frame, task, joins);
 					} catch (Exception e) {
-						e.printStackTrace();
-						throw new SemossPixelException(e.getMessage());
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new SemossPixelException(e.getMessage(), e);
 					}
 				} else {
 					throw new IllegalArgumentException("Could not find any data input to merge into the frame");
@@ -192,8 +196,8 @@ public class MergeReactor extends AbstractReactor {
 					throw new SemossPixelException("Joining to a native frame from a materialized frame not possible, please consider swapping the join order");
 
 				}
-			} catch (SQLException e1) {
-				e1.printStackTrace();
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
