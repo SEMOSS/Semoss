@@ -476,6 +476,68 @@ public class AZClient extends CloudClient {
 	}
 
 	@Override
+	public void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException {
+		// We need to push the file alias__appId.smss
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
+		String smss = alias + "__" + databaseId + ".smss";
+		String smssFile = Utility.normalizePath(dbFolder + FILE_SEPARATOR + smss);
+		
+		// Start with the sas token
+		String smssRCloneConfig = null;
+
+		// synchronize on the app id
+		logger.info("Applying lock for " + databaseId + " to push app");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
+		lock.lock();
+		logger.info("App "+ databaseId + " is locked");
+		try {
+			String smssContainer = databaseId + SMSS_POSTFIX;
+			smssRCloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + smssContainer);
+
+			// Some temp files needed for the transfer
+			File temp = null;
+			File copy = null;
+
+			// Close the database, so that we can push without file locks (also ensures that the db doesn't change mid push)
+			try {
+
+				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
+				String tempFolder = Utility.getRandomString(10);
+				temp = new File(dbFolder + FILE_SEPARATOR + tempFolder);
+				temp.mkdir();
+				copy = new File(temp.getPath() + FILE_SEPARATOR + Utility.normalizePath(smss));
+				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
+
+				// Push the smss
+				logger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
+				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":" + DB_CONTAINER_PREFIX + smssContainer);
+				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
+			} finally {
+				if (copy != null) {
+					copy.delete();
+				}
+				if (temp != null) {
+					temp.delete();
+				}
+
+				// Re-open the database
+				Utility.getEngine(databaseId, false);
+			}
+		} finally {
+			try {
+				if (smssRCloneConfig != null) {
+					deleteRcloneConfig(smssRCloneConfig);
+				}
+			}
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ databaseId + " is unlocked");
+			}
+		}
+	}
+	
+	@Override
 	public void pullDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
 		IEngine engine = Utility.getEngine(appId, false);
 		if (engine == null) {

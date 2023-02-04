@@ -2874,6 +2874,10 @@ public class Utility {
 		return engine;
 	}
 	
+	public static boolean isEngineLoaded(String engineId) {
+		return DIHelper.getInstance().getDbProperty(engineId) != null;
+	}
+	
 	public static Properties getEngineDetails(String engineId)
 	{
 		// get the engine properties file
