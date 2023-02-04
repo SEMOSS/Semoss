@@ -224,6 +224,21 @@ public class ClusterUtil {
 			}
 		}
 	}
+	
+	public static void reactorPushDatabaseSmss(String appId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pushDatabaseSmss(appId);
+			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata("Failed to push app smss to cloud storage", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
 
 	public static void reactorPullInsightsDB(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
