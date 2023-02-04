@@ -149,6 +149,8 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		
 		if(thisFrame instanceof PandasFrame)
 		{
+			// do we need a way to check the library is installed?
+			
 			PandasFrame pFrame = (PandasFrame)thisFrame;
 			String sqliteName = pFrame.getSQLite();
 			
@@ -205,6 +207,8 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		else if (thisFrame instanceof RDataTable)
 		{
 			AbstractRJavaTranslator rt = insight.getRJavaTranslator(this.getClass().getName());
+			rt.checkPackages(new String[] { "sqldf" });
+			
 			String frameMaker = frameName + " <- sqldf(\"" + sqlDFQuery + "\")";
 			logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 			rt.runRAndReturnOutput("library(sqldf)");
