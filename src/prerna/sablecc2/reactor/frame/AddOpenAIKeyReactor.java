@@ -5,7 +5,6 @@ import java.util.Map;
 
 import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -22,11 +21,10 @@ public class AddOpenAIKeyReactor extends AbstractReactor {
 		this.keyRequired = new int[] {0};
 	}
 
-	
-	
 	@Override
 	public NounMetadata execute() {
-		
+		// do we need a way to check the library is installed?
+
 		organizeKeys();
 		PyTranslator pt = this.insight.getPyTranslator();
 		if(keyValue.containsKey(keysToGet[0]))
@@ -38,7 +36,7 @@ public class AddOpenAIKeyReactor extends AbstractReactor {
 
 		boolean output = (Boolean)pt.runScript("'" + OPENAI_DEFINED + "' in globals()");
 	
-		Map outMap = new HashMap();
+		Map<String, Object> outMap = new HashMap<>();
 		outMap.put(OPENAI_DEFINED, output);
 		return new NounMetadata(outMap, PixelDataType.MAP);
 	}
