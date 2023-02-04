@@ -68,6 +68,14 @@ public abstract class CloudClient {
 
 	public abstract void deleteApp(String appId) throws IOException, InterruptedException;
 
+	/**
+	 * Push only the smss file for an engine
+	 * @param databaseId
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public abstract void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException;
+	
 	@Deprecated
 	// TODO: need to make sep for db and project
 	public abstract List<String> listAllBlobContainers() throws IOException, InterruptedException; 
