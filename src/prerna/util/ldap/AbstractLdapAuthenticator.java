@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
+import prerna.date.SemossDate;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
 
@@ -184,8 +185,11 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 			throw new IllegalArgumentException("Cannot login user due to not having a proper attribute for the user id");
 		}
 
-		if(requirePasswordChange(attributes)) {
-			throw new LDAPPasswordChangeRequiredException("User must change their password before login");
+		LocalDateTime lastPwdChange = getLastPwdChange(attributes);
+		if(lastPwdChange != null) {
+			if(requirePasswordChange(lastPwdChange)) {
+				throw new LDAPPasswordChangeRequiredException("User must change their password before login");
+			}
 		}
 		
 		AccessToken token = new AccessToken();
@@ -200,8 +204,43 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 		if(username != null) {
 			token.setUsername(username + "");
 		}
+		if(lastPwdChange != null) {
+			token.setLastPasswordReset(new SemossDate(lastPwdChange));
+		}
 
 		return token;
+	}
+	
+	@Override 
+	public LocalDateTime getLastPwdChange(Attributes attributes) throws NamingException {
+		if(this.attributeLastPwdChangeKey != null) {
+			// assuming if you define this, that the value must exist
+			Object lastPwdChange = getAttributeValue(attributes, this.attributeLastPwdChangeKey);
+			if(lastPwdChange == null) {
+				throw new IllegalArgumentException("Unable to pull last password change attribute");
+			}
+			LocalDateTime pwdChange = null;
+			if(lastPwdChange instanceof Long) {
+				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((long) lastPwdChange);
+			} else if(lastPwdChange instanceof String) {
+				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((String) lastPwdChange);
+			} else {
+				throw new IllegalArgumentException("Unhandled data type for password change: " + lastPwdChange.getClass().getName());
+			}
+			
+			return pwdChange;
+		}
+		
+		return null;
+	}
+	
+	@Override
+	public boolean requirePasswordChange(LocalDateTime lastPwdChange) throws NamingException {
+		LocalDateTime now = LocalDateTime.now();
+		if(lastPwdChange.plusDays(requirePwdChangeAfterDays).isBefore(now)) {
+			return true;
+		}
+		return false;
 	}
 	
 	@Override
