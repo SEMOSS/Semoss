@@ -169,6 +169,11 @@ public class Project implements IProject {
 	}
 	
 	@Override
+	public String getProjectSmssFilePath() {
+		return this.projectSmssFilePath;
+	}
+	
+	@Override
 	public boolean isAsset() {
 		return this.isAsset;
 	}
