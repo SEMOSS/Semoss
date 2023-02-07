@@ -102,6 +102,8 @@ public abstract class CloudClient {
 	
 	public abstract void pushProject(String projectId) throws IOException, InterruptedException;
 	
+	public abstract void pushProjectSmss(String projectId) throws IOException, InterruptedException;
+	
 	public abstract void pullProject(String projectId) throws IOException, InterruptedException;
 
 	protected abstract void pullProject(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException; 
