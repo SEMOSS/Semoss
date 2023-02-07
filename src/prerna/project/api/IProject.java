@@ -52,6 +52,8 @@ public interface IProject {
 	 */
 	Properties getProp();
 	
+	String getProjectSmssFilePath();
+	
 	// gets the perspectives for this engine
 	// REFAC: Not sure we need this anymore
 	Vector<String> getPerspectives();

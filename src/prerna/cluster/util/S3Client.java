@@ -609,11 +609,8 @@ public class S3Client extends CloudClient {
 			File temp = null;
 			File copy = null;
 
-			// Close the database, so that we can push without file locks (also ensures that
-			// the db doesn't change mid push)
 			try {
-				// Move the smss to an empty temp directory (otherwise will push all items in
-				// the db folder)
+				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
 				String tempFolder = Utility.getRandomString(10);
 				temp = new File(dbFolder + FILE_SEPARATOR + tempFolder);
 				temp.mkdir();
@@ -948,6 +945,62 @@ public class S3Client extends CloudClient {
 
 				// Re-open the database
 				Utility.getProject(projectId, false);
+			}
+		} finally {
+			try {
+				if (rCloneConfig != null) {
+					deleteRcloneConfig(rCloneConfig);
+				}
+			}
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("Project "+ projectId + " is unlocked");
+			}
+		}
+	}
+	
+	@Override
+	public void pushProjectSmss(String projectId) throws IOException, InterruptedException {
+		// We need to push the file alias__appId.smss
+		String alias = SecurityProjectUtils.getProjectAliasForId(projectId);
+		String smss = alias + "__" + projectId + ".smss";
+		String smssFile = Utility.normalizePath(projectFolder + FILE_SEPARATOR + smss);
+
+		String rCloneConfig = null;
+
+		// synchronize on the app id
+		logger.info("Applying lock for " + projectId + " to push project");
+		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+		lock.lock();
+		logger.info("Project "+ projectId + " is locked");
+		try {
+			rCloneConfig = createRcloneConfig(projectId);
+			String smssContainer = projectId + SMSS_POSTFIX;
+
+			// Some temp files needed for the transfer
+			File temp = null;
+			File copy = null;
+
+			try {
+				// Move the smss to an empty temp directory (otherwise will push all items in the project folder)
+				String tempFolder = Utility.getRandomString(10);
+				temp = new File(projectFolder + FILE_SEPARATOR + tempFolder);
+				temp.mkdir();
+				copy = new File(temp.getPath() + FILE_SEPARATOR + Utility.normalizePath(smss));
+				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
+
+				// Push the smss
+				logger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", temp.getPath(), rCloneConfig+RCLONE_PROJECT_PATH+smssContainer);
+				logger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+			} finally {
+				if (copy != null) {
+					copy.delete();
+				}
+				if (temp != null) {
+					temp.delete();
+				}
 			}
 		} finally {
 			try {
