@@ -336,7 +336,7 @@ public class ClusterUtil {
 		}
 	}
 
-	public static void  reactorPushDatabaseFolder(IEngine engine, String absolutePath) {
+	public static void reactorPushDatabaseFolder(IEngine engine, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
 			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
@@ -399,6 +399,21 @@ public class ClusterUtil {
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push project to cloud storage", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	public static void reactorPushProjectSmss(String projectId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pushProjectSmss(projectId);
+			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata("Failed to push project smss to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
