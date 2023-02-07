@@ -393,23 +393,6 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		});
 
 		if (!metamodelsEqual) {
-			this.logger.info("Checking differences in metamodel to add");
-			// loop through new tables and column names and add them in to existing metamodel
-			newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
-				this.logger.info("Adding table to OWL: " + newTableName);
-				if (!existingMetamodel.containsKey(newTableName)) {
-					owler.addConcept(newTableName, null, null);
-				}
-
-				this.logger.info("Adding columns to OWL");
-				columnsFromNew.forEach((newColumnName, newDataType) -> {
-					owler.addProp(newTableName, newColumnName, newDataType, null, null);
-				});
-
-				this.logger.info("Parsing relationships and writing to OWL");
-				parseRelationships(owler, relationships, newRDBMSStructure, nodesAndPrimKeys);
-			});
-
 			this.logger.info("Checking differences in metamodel to remove");
 			Map<String, String> removedProperties = new HashMap<>();
 			RDFFileSesameEngine owlEngine = this.database.getBaseDataEngine();
@@ -425,7 +408,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				if (!tableRemoved) {
 					Map<String, String> newColumnNames = newRDBMSStructure.get(existingTableName);
 					columnsFromOld.forEach((existingColumnName, existingDataType) -> {
-						if (!newColumnNames.containsKey(existingColumnName)) {
+						if (!newColumnNames.containsKey(existingColumnName) || 
+								SemossDataType.convertStringToDataType(newColumnNames.get(existingColumnName)) != existingDataType) {
 							// track removed properties
 							removedProperties.put(existingTableName, existingColumnName);
 							this.logger.info("removing relationships from owl");
@@ -435,6 +419,23 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 						}
 					});
 				}
+			});
+			
+			this.logger.info("Checking differences in metamodel to add");
+			// loop through new tables and column names and add them in to existing metamodel
+			newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
+				this.logger.info("Adding table to OWL: " + newTableName);
+				if (!existingMetamodel.containsKey(newTableName)) {
+					owler.addConcept(newTableName, null, null);
+				}
+
+				this.logger.info("Adding columns to OWL");
+				columnsFromNew.forEach((newColumnName, newDataType) -> {
+					owler.addProp(newTableName, newColumnName, newDataType, null, null);
+				});
+
+				this.logger.info("Parsing relationships and writing to OWL");
+				parseRelationships(owler, relationships, newRDBMSStructure, nodesAndPrimKeys);
 			});
 
 			this.logger.info("committing and saving OWL");
