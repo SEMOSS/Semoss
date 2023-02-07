@@ -23,10 +23,11 @@ public class GetUserInfoReactor extends AbstractReactor {
 			for (AuthProvider provider : user.getLogins()) {
 				String providerName = provider.name();
 				AccessToken token = user.getAccessToken(provider);
-				Map<String, Object> providerMap = new HashMap<String, Object>();
+				Map<String, Object> providerMap = new HashMap<>();
 				providerMap.put("id", token.getId() == null ? "null" : token.getId());
 				providerMap.put("name", token.getName() == null ? "null" : token.getName());
 				providerMap.put("email", token.getEmail() == null ? "null" : token.getEmail());
+				providerMap.put("lastPwdReset", token.getLastPasswordReset() == null ? "null" : token.getLastPasswordReset());
 				Hashtable<String, String> san = token.getSAN();
 				providerMap.put("san", san);
 				String groupType = token.getUserGroupType();
