@@ -638,7 +638,9 @@ public class PixelStreamUtility {
 				ps.flush();
 				
 				// done with the task data
-				task.cleanUp();
+				if(!task.hasNext()) {
+					task.cleanUp();
+				}
 			}
 			// if we do not have a task
 			// we just have data to send
