@@ -1,19 +1,25 @@
 package prerna.sablecc2.reactor.frame;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
 import prerna.query.querystruct.GenExpression;
+import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -47,16 +53,15 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		String query = keyValue.get(keysToGet[0]);
 		
 		boolean json = true;
-		if(keyValue.containsKey(keysToGet[1]))
-		{
-			if(keyValue.get(keysToGet[1]).equalsIgnoreCase("true"))
+		if(keyValue.containsKey(keysToGet[1])) {
+			if(keyValue.get(keysToGet[1]).equalsIgnoreCase("true")) {
 				json = true;
-			else
+			} else {
 				json = false;
+			}
 		}
 		int maxTokens = 150;
-		if(keyValue.containsKey(keysToGet[2]))
-		{
+		if(keyValue.containsKey(keysToGet[2])) {
 			maxTokens = Integer.parseInt(keyValue.get(keysToGet[2]));
 		}
 
@@ -64,8 +69,8 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		if(thisFrame == null) {
 			return NounMetadata.getErrorNounMessage("No Data Available for frame " + keyValue.get(keysToGet[3]));
 		}
-		if(!(thisFrame instanceof PandasFrame) && !(thisFrame instanceof RDataTable)) {
-			return NounMetadata.getErrorNounMessage("NLP Query 2 has only been implemented for python, r at this point, please convert your frames to python,r and try again");
+		if(!(thisFrame instanceof PandasFrame) && !(thisFrame instanceof RDataTable) && !(thisFrame instanceof NativeFrame)) {
+			return NounMetadata.getErrorNounMessage("NLP Query 2 has only been implemented for python, r, and native frame at this point, please convert your frames to python,r and try again");
 		}
 		String dialect = this.keyValue.get(this.keysToGet[4]);
 		if(dialect == null || (dialect=dialect.trim()).isEmpty()) {
@@ -104,15 +109,14 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		
 		// if the frame is pandas frame get the data
 		// we will get to this shortly
-		for(int columnIndex = 0;columnIndex < columns.length;columnIndex++)
-		{
-			if(columnIndex == 0)
+		for(int columnIndex = 0;columnIndex < columns.length;columnIndex++) {
+			if(columnIndex == 0) {
 				finalDbString.append(columns[columnIndex]);
-			else
+			} else { 
 				finalDbString.append(" , ").append(columns[columnIndex]);
+			}
 		}
 		finalDbString.append(")\\n");
-		
 		finalDbString.append("#\\n").append("### A query to list ").append(query).append("\\n").append("SELECT");
 		
 		logger.info("executing query " + finalDbString);
@@ -127,7 +131,6 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		String sqlDFQuery = output.toString().trim();
 		// remove the new line
 		sqlDFQuery = sqlDFQuery.replace("\n", " ");
-		sqlDFQuery = sqlDFQuery.replace("\"", "\\\"");
 		
 		// execute sqlDF to create a frame
 		// need to check if the query is right and then feed this into sqldf
@@ -136,21 +139,19 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		//a.  see if the table names match with the frame names if not change it 
 		//b. See the constants and change the value based on the appropriate value the column has - you can circumvent this by giving value in quotes
 		
-
 		String frameName = Utility.getRandomString(5);
-		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
-		
-		Map <String, String> outputMap = new HashMap<String, String>();
+
+		List<NounMetadata> outputs = new ArrayList<>(1);
+		Map<String, String> outputMap = new HashMap<>();
 		
 		boolean sameColumns = isSameColumns(sqlDFQuery, thisFrame);
-		
 		outputMap.put("COLUMN_CHANGE", sameColumns + "");
 		
-		
-		if(thisFrame instanceof PandasFrame)
-		{
+		if(thisFrame instanceof PandasFrame) {
+			sqlDFQuery = sqlDFQuery.replace("\"", "\\\"");
+
 			// do we need a way to check the library is installed?
-			
+
 			PandasFrame pFrame = (PandasFrame)thisFrame;
 			String sqliteName = pFrame.getSQLite();
 			
@@ -163,42 +164,38 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 			// send information
 			// check to see if the variable was created
 			// if not this is a bad query
-			StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
 
 			if(sampleOut != null && sampleOut.length() > 0)
 			{
-				// now we just need to tell the user here is the frame
-				outputString.append("\nData : " + frameName);
-				outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), "python");
-				String frameType = "Py";
-				outputMap.put("Query", sqlDFQuery);
-				outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
-				outputString.append("\n");
-				//String sampleOut = this.insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameName + ".head(20)");
-				outputString.append(sampleOut);
-				outputMap.put("SAMPLE", sampleOut);
-				outputString.append("\n");
-				outputMap.put("COMMAND", "GenerateFrameFromPyVariable('" + frameName + "')");
-				//outputString.append("To start working with this frame  GenerateFrameFrom" + frameType + "Variable('" + frameName + "')");
-				
-				if(json)
+				if(json) {
+					outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), DataFrameTypeEnum.PYTHON.getTypeAsString());
+					outputMap.put("Query", sqlDFQuery);
+					outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
+					outputMap.put("SAMPLE", sampleOut);
+					outputMap.put("COMMAND", "GenerateFrameFromPyVariable('" + frameName + "')");
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
-				else
+				} else {
+					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					outputString.append("\nData : " + frameName);
+					outputString.append("\n");
+					outputString.append(sampleOut);
+					outputString.append("\n");
 					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
-				
+				}
 				this.insight.getPyTranslator().runScript("del " + frameName);
 			}
 			else
 			{
-				outputMap.put("Query", sqlDFQuery);
-				outputMap.put("SAMPLE", "Could not compute data, query is not correct.");
-				outputString.append("\n");
-				outputString.append("Query did not yield any results... ");
-				if(json)
+				if(json) {
+					outputMap.put("Query", sqlDFQuery);
+					outputMap.put("SAMPLE", "Could not compute data, query is not correct.");
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
-				else
+				} else {
+					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					outputString.append("\n");
+					outputString.append("Query did not yield any results... ");
 					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));	
-				
+				}
 				this.insight.getPyTranslator().runScript("del " + frameName + " , sqldf");
 
 			}
@@ -206,6 +203,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		}		
 		else if (thisFrame instanceof RDataTable)
 		{
+			sqlDFQuery = sqlDFQuery.replace("\"", "\\\"");
 			AbstractRJavaTranslator rt = insight.getRJavaTranslator(this.getClass().getName());
 			rt.checkPackages(new String[] { "sqldf" });
 			
@@ -215,41 +213,88 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 			rt.runR(frameMaker); // load the sql df			
 
 			boolean frameCreated = rt.runRAndReturnOutput("exists('" + frameName + "')").toUpperCase().contains("TRUE");
-			StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
 
 			if(frameCreated)
 			{
-				// now we just need to tell the user here is the frame
-				outputString.append("\nData : " + frameName);
-				outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), "python");
-				String frameType = "R";
-				outputMap.put("Query", sqlDFQuery);
-				outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
-				outputString.append("\n");
 				String sampleOut = rt.runRAndReturnOutput("head(" + frameName + ", 20)");
-				outputString.append(sampleOut);
-				outputMap.put("SAMPLE", sampleOut);
-				outputString.append("\n");
-				outputString.append("To start working with this frame  GenerateFrameFrom" + frameType + "Variable('" + frameName + "')");
-				outputMap.put("COMMAND", "GenerateFrameFromRVariable('" + frameName + "')");
-				
-				if(json)
+				if(json) {
+					outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), DataFrameTypeEnum.R.getTypeAsString());
+					outputMap.put("Query", sqlDFQuery);
+					outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
+					outputMap.put("SAMPLE", sampleOut);
+					outputMap.put("COMMAND", "GenerateFrameFromRVariable('" + frameName + "')");
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
-				else
+				} else {
+					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					// now we just need to tell the user here is the frame
+					outputString.append("\nData : " + frameName);
+					outputString.append("\n");
+					outputString.append(sampleOut);
+					outputString.append("\n");
+					outputString.append("To start working with this frame  GenerateFrameFromRVariable('" + frameName + "')");
 					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
+				}
 			}
 			else
 			{
+				if(json) {
+					outputMap.put("Query", sqlDFQuery);
+					outputMap.put("SAMPLE", "Could not compute data, query is not correct.");
+					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
+				} else {
+					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					outputString.append("\n");
+					outputString.append("Query did not yield any results... ");
+					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
+				}
+			}
+			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+		}
+		else if (thisFrame instanceof NativeFrame)
+		{
+			// we do a query from a subquery
+			SelectQueryStruct allDataQs = thisFrame.getMetaData().getFlatTableQs(true);
+			String baseQuery = ((NativeFrame) thisFrame).getEngineQuery(allDataQs);
+			String newQuery = sqlDFQuery.replace(thisFrame.getName(), "(" + baseQuery+") as " + thisFrame.getName());
+
+			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
+			hqs.setQuery(newQuery);
+			int counter = 0;
+			List<List<Object>> sampleOut = new ArrayList<>();
+			try {
+				IRawSelectWrapper it = thisFrame.query(hqs);
+				while(it.hasNext() && counter < 10) {
+					sampleOut.add(Arrays.asList(it.next().getValues()));
+					counter++;
+				}
+				
+				if(json) {
+					outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), DataFrameTypeEnum.NATIVE.getTypeAsString());
+					outputMap.put("Query", newQuery);
+					outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
+					outputMap.put("SAMPLE", sampleOut.toString());
+
+					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
+				} else {
+					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					outputString.append("\nData : " + frameName);
+					outputString.append("\n");
+					outputString.append(sampleOut);
+					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
+				}
+			} catch(Exception e) {
 				outputMap.put("Query", sqlDFQuery);
 				outputMap.put("SAMPLE", "Could not compute data, query is not correct.");
-				outputString.append("\n");
-				outputString.append("Query did not yield any results... ");
-				if(json)
+				if(json) {
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
-				else
+				} else {
+					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					outputString.append("\n");
+					outputString.append("Query did not yield any results... ");
 					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
-					
+				}
 			}
+
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}
 		else
