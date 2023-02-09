@@ -9,6 +9,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public class ParseSQL2Wrapper extends AbstractReactor {
 
@@ -24,8 +25,7 @@ public class ParseSQL2Wrapper extends AbstractReactor {
 	// get param default values
 	// generate query
 	
-	public ParseSQL2Wrapper()
-	{
+	public ParseSQL2Wrapper() {
 		this.keysToGet = new String[] {ReactorKeysEnum.SQL.getKey()};
 		this.keyRequired = new int[] {1};
 	}
@@ -33,11 +33,11 @@ public class ParseSQL2Wrapper extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
 		organizeKeys();
 		
 		try {
-			String sql = keyValue.get(keysToGet[0]);
+			String sql = Utility.decodeURIComponent(keyValue.get(keysToGet[0]));
+			
 			SqlParser2 sqlParser = new SqlParser2();
 			sqlParser.parameterize = true;
 			GenExpressionWrapper wrapper = sqlParser.processQuery(sql);
@@ -59,7 +59,6 @@ public class ParseSQL2Wrapper extends AbstractReactor {
 			
 			return new NounMetadata(returnMap, PixelDataType.MAP);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			return NounMetadata.getErrorNounMessage(e.getLocalizedMessage());
 		}
 	}
