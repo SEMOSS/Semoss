@@ -14,6 +14,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
@@ -69,8 +70,9 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		if(thisFrame == null) {
 			return NounMetadata.getErrorNounMessage("No Data Available for frame " + keyValue.get(keysToGet[3]));
 		}
-		if(!(thisFrame instanceof PandasFrame) && !(thisFrame instanceof RDataTable) && !(thisFrame instanceof NativeFrame)) {
-			return NounMetadata.getErrorNounMessage("NLP Query 2 has only been implemented for python, r, and native frame at this point, please convert your frames to python,r and try again");
+		if(!(thisFrame instanceof PandasFrame) && !(thisFrame instanceof RDataTable) 
+				&& !(thisFrame instanceof NativeFrame) && !(thisFrame instanceof AbstractRdbmsFrame)) {
+			return NounMetadata.getErrorNounMessage("NLP Query 2 has only been implemented for python, r, grid, and native frame at this point, please convert your frames to python,r and try again");
 		}
 		String dialect = this.keyValue.get(this.keysToGet[4]);
 		if(dialect == null || (dialect=dialect.trim()).isEmpty()) {
@@ -271,6 +273,48 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				if(json) {
 					outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), DataFrameTypeEnum.NATIVE.getTypeAsString());
 					outputMap.put("Query", newQuery);
+					outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
+					outputMap.put("SAMPLE", sampleOut.toString());
+
+					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
+				} else {
+					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					outputString.append("\nData : " + frameName);
+					outputString.append("\n");
+					outputString.append(sampleOut);
+					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
+				}
+			} catch(Exception e) {
+				outputMap.put("Query", sqlDFQuery);
+				outputMap.put("SAMPLE", "Could not compute data, query is not correct.");
+				if(json) {
+					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
+				} else {
+					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					outputString.append("\n");
+					outputString.append("Query did not yield any results... ");
+					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
+				}
+			}
+
+			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+		}
+		else if (thisFrame instanceof AbstractRdbmsFrame)
+		{
+			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
+			hqs.setQuery(sqlDFQuery);
+			int counter = 0;
+			List<List<Object>> sampleOut = new ArrayList<>();
+			try {
+				IRawSelectWrapper it = thisFrame.query(hqs);
+				while(it.hasNext() && counter < 10) {
+					sampleOut.add(Arrays.asList(it.next().getValues()));
+					counter++;
+				}
+				
+				if(json) {
+					outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), DataFrameTypeEnum.GRID.getTypeAsString());
+					outputMap.put("Query", sqlDFQuery);
 					outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
 					outputMap.put("SAMPLE", sampleOut.toString());
 

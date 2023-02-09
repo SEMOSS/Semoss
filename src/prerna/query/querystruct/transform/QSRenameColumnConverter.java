@@ -1,9 +1,9 @@
 package prerna.query.querystruct.transform;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,7 +49,7 @@ public class QSRenameColumnConverter {
 		// grab all the selectors
 		// and need to recursively modify the column ones
 		List<IQuerySelector> origSelectors = qs.getSelectors();
-		List<IQuerySelector> convertedSelectors = new Vector<>();
+		List<IQuerySelector> convertedSelectors = new ArrayList<>();
 		for(int i = 0; i < origSelectors.size(); i++) {
 			IQuerySelector origS = origSelectors.get(i);
 			IQuerySelector convertedS = convertSelector(origS, transformationMap, keepOrigAlias);
@@ -73,7 +73,7 @@ public class QSRenameColumnConverter {
 		List<IQuerySelector> origGroups = qs.getGroupBy();
 		
 		if(origGroups != null && !origGroups.isEmpty()) {
-			List<IQuerySelector> convertedGroups =  new Vector<>();
+			List<IQuerySelector> convertedGroups =  new ArrayList<>();
 			
 			for(int i = 0; i < origGroups.size(); i++) {
 				IQuerySelector origGroupS = origGroups.get(i);
@@ -86,7 +86,7 @@ public class QSRenameColumnConverter {
 		// now go through the order by
 		List<IQuerySort> origOrders = qs.getOrderBy();
 		if(origOrders != null && !origOrders.isEmpty()) {
-			List<IQuerySort> convertedOrderBys =  new Vector<IQuerySort>();
+			List<IQuerySort> convertedOrderBys =  new ArrayList<>();
 			for(int i = 0; i < origOrders.size(); i++) {
 				IQuerySort origOrderS = origOrders.get(i);
 				IQuerySort convertedOrderByS = convertOrderByOperation(origOrderS, transformationMap);
@@ -98,7 +98,7 @@ public class QSRenameColumnConverter {
 		// do the same for the panel order bys
 		List<IQuerySort> origPanelOrders = qs.getPanelOrderBy();
 		if(origPanelOrders != null && !origPanelOrders.isEmpty()) {
-			List<IQuerySort> convertedOrderBys =  new Vector<IQuerySort>();
+			List<IQuerySort> convertedOrderBys =  new ArrayList<>();
 			for(int i = 0; i < origPanelOrders.size(); i++) {
 				IQuerySort origOrderS = origPanelOrders.get(i);
 				IQuerySort convertedOrderByS = convertOrderByOperation(origOrderS, transformationMap);
