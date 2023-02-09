@@ -23,6 +23,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.query.querystruct.transform.QSRenameTableConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -215,6 +216,11 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		logger.info("Generating SQL query...");
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+		if(!this.frameName.equals(this.originalName)) {
+			Map<String, String> transformation = new HashMap<>();
+			transformation.put(originalName, frameName);
+			qs = QSRenameTableConverter.convertQs(qs, transformation, true);
+		}
 		IQueryInterpreter interp = getQueryInterpreter();
 		interp.setQueryStruct(qs);
 		interp.setLogger(this.logger);
