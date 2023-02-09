@@ -3,14 +3,17 @@ package prerna.sablecc2.reactor.frame;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
@@ -27,8 +30,9 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 		organizeKeys();
 		ITableDataFrame frame = getFrameDefaultLast();
 		
-		if(!(frame instanceof PandasFrame) && !(frame instanceof RDataTable)) {
-			return NounMetadata.getErrorNounMessage("This mehtod has only been implemneted for python and r. Please convert your frame type and try again");
+		if(!(frame instanceof PandasFrame) && !(frame instanceof RDataTable) 
+				&& !(frame instanceof NativeFrame) && !(frame instanceof AbstractRdbmsFrame)) {
+			return NounMetadata.getErrorNounMessage("This mehtod has only been implemneted for python, r, grid, and native frame at this point. Please convert your frame and try again");
 		}
 		
 		String query = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
@@ -65,7 +69,8 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 				insight.getPyTranslator().runScript(dropTable);
 				insight.getPyTranslator().runScript(delete);				
 			}			
-		} else if(frame instanceof RDataTable){
+		} 
+		else if(frame instanceof RDataTable){
 			AbstractRJavaTranslator rt = insight.getRJavaTranslator(this.getClass().getName());
 			String frameMaker = newFrameName + " <- as.data.table(sqldf(\"" + query.replace("\"", "\\\"") + "\"))";
 			logger.info("Creating frame with query..  " + query + " <<>> " + frameMaker);
@@ -75,6 +80,23 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 			{
 				String delete = "rm(" + oldFrameName+ ")";
 				rt.runR(delete);				
+			}
+		}
+		else if(frame instanceof AbstractRdbmsFrame){
+			String sql = "CREATE TABLE " + newFrameName + " AS " + query;
+			try {
+				((AbstractRdbmsFrame) frame).getBuilder().runQuery(sql);
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to generate new frame from sql", e);
+			}
+			if(!oldFrameName.equalsIgnoreCase(frame.getOriginalName()))
+			{
+				try {
+					((AbstractRdbmsFrame) frame).getBuilder().runQuery("DROP TABLE " + oldFrameName);
+				} catch (Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
