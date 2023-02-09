@@ -504,6 +504,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 		return DataFrameTypeEnum.NATIVE;
 	}
 	
+	public String getEngineQuery(SelectQueryStruct qs) {
+		qs = prepQsForExecution(qs);
+		IEngine engine = this.qs.retrieveQueryStructEngine();
+		IQueryInterpreter interpreter = engine.getQueryInterpreter();
+		interpreter.setQueryStruct(qs);
+		return interpreter.composeQuery();
+	}
+	
 	@Override
 	public Object querySQL(String query) {
 		Map<String, Object> retMap = new HashMap<>();
