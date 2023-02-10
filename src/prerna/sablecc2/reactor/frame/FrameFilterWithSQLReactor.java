@@ -105,7 +105,6 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 			qs.setCustomFrom(query);
 			qs.setCustomFromAliasName(newFrameName);
 			qs.setEngine( ((NativeFrame)frame).getOriginalQueryStruct().retrieveQueryStructEngine() );
-			qs.setRelations( ((NativeFrame)frame).getOriginalQueryStruct().getRelations() );
 			frame.setName(newFrameName);
 			((NativeFrame)frame).setQueryStruct(qs);
 		}
