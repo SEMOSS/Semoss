@@ -8,6 +8,7 @@ import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -98,6 +99,15 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
+		}
+		else if(frame instanceof NativeFrame) {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.setCustomFrom(query);
+			qs.setCustomFromAliasName(newFrameName);
+			qs.setEngine( ((NativeFrame)frame).getOriginalQueryStruct().retrieveQueryStructEngine() );
+			qs.setRelations( ((NativeFrame)frame).getOriginalQueryStruct().getRelations() );
+			frame.setName(newFrameName);
+			((NativeFrame)frame).setQueryStruct(qs);
 		}
 		
 		// reset the name back to the original name
