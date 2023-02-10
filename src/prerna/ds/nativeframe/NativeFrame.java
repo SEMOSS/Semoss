@@ -70,27 +70,29 @@ public class NativeFrame extends AbstractTableDataFrame {
 		cacheEngines.add(IEngine.ENGINE_TYPE.NEO4J);
 	}
 
-	private SelectQueryStruct qs;
-
-
+	private SelectQueryStruct originalQs;
+	private SelectQueryStruct queryQs;
+	
 	public NativeFrame() {
 		super();
-		this.qs = new SelectQueryStruct();
-		this.qs.setFrame(this);
+		this.originalQs = new SelectQueryStruct();
+		this.originalQs.setFrame(this);
 		// by default set to engine
-		this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+		this.originalQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 		setDefaultName();
 		this.originalName = this.frameName;
+		this.queryQs = originalQs;
 	}
 	
 	public NativeFrame(String alias) {
 		super();
-		this.qs = new SelectQueryStruct();
-		this.qs.setFrame(this);
+		this.originalQs = new SelectQueryStruct();
+		this.originalQs.setFrame(this);
 		// by default set to engine
-		this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+		this.originalQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 		this.frameName = alias;
 		this.originalName = this.frameName;
+		this.queryQs = originalQs;
 	}
 
 	private void setDefaultName() {
@@ -98,9 +100,21 @@ public class NativeFrame extends AbstractTableDataFrame {
 		uuid = uuid.replaceAll("-", "_");
 		setName("NATIVE_" + uuid);
 	}
+	
+	@Override
+	public void setName(String name) {
+		if(name != null && !name.isEmpty()) {
+			this.frameName = name;
+			if(this.frameName.equals(this.originalName)) {
+				// set back to the original qs
+				this.queryQs = originalQs;
+			}
+		}
+	}
 
-	public void setConnection(String engineName) {
-		qs.setEngineId(engineName);
+	public void setConnection(String engineId) {
+		originalQs.setEngineId(engineId);
+		queryQs.setEngineId(engineId);
 	}
 
 	@Override
@@ -115,11 +129,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 			SelectQueryStruct mQs = new SelectQueryStruct();
 			mQs.addSelector(selector);
 			// merge the base filters
-			mQs.mergeExplicitFilters(qs.getExplicitFilters());
+			mQs.mergeExplicitFilters(queryQs.getExplicitFilters());
 			// merge the additional filters added to frame
 			mQs.mergeImplicitFilters(this.grf);
 			// merge the joins
-			mQs.mergeRelations(qs.getRelations());
+			mQs.mergeRelations(queryQs.getRelations());
 
 			IRawSelectWrapper it = null;
 			try {
@@ -148,11 +162,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 			SelectQueryStruct mQs = new SelectQueryStruct();
 			mQs.addSelector(selector);
 			// merge the base filters
-			mQs.mergeExplicitFilters(qs.getExplicitFilters());
+			mQs.mergeExplicitFilters(queryQs.getExplicitFilters());
 			// merge the additional filters added to frame
 			mQs.mergeImplicitFilters(this.grf);
 			// merge the joins
-			mQs.mergeRelations(qs.getRelations());
+			mQs.mergeRelations(queryQs.getRelations());
 
 			IRawSelectWrapper it = null;
 			try {
@@ -178,11 +192,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		selector.setColumn(split[1]);
 		newQs.addSelector(selector);
 		// merge the base filters
-		newQs.mergeExplicitFilters(qs.getExplicitFilters());
+		newQs.mergeExplicitFilters(queryQs.getExplicitFilters());
 		// merge the additional filters added to frame
 		newQs.mergeImplicitFilters(this.grf);
 		// merge the joins
-		newQs.mergeRelations(qs.getRelations());
+		newQs.mergeRelations(queryQs.getRelations());
 
 		List<Object> values = new Vector<Object>();
 
@@ -211,11 +225,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		selector.setColumn(split[1]);
 		newQs.addSelector(selector);
 		// merge the base filters
-		newQs.mergeExplicitFilters(qs.getExplicitFilters());
+		newQs.mergeExplicitFilters(queryQs.getExplicitFilters());
 		// merge the additional filters added to frame
 		newQs.mergeImplicitFilters(this.grf);
 		// merge the joins
-		newQs.mergeRelations(qs.getRelations());
+		newQs.mergeRelations(queryQs.getRelations());
 
 		List<Object> values = new Vector<>();
 
@@ -242,15 +256,23 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	public void mergeQueryStruct(SelectQueryStruct qs) {
-		this.qs.merge(qs);
+		this.queryQs.merge(qs);
 	}
 
 	public String getEngineId() {
-		return qs.getEngineId();
+		return queryQs.getEngineId();
 	}
 
 	public SelectQueryStruct getQueryStruct() {
-		return this.qs;
+		return this.queryQs;
+	}
+	
+	public SelectQueryStruct getOriginalQueryStruct() {
+		return this.originalQs;
+	}
+	
+	public void setQueryStruct(SelectQueryStruct qs) {
+		this.queryQs = qs;
 	}
 
 	@Override
@@ -261,7 +283,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public boolean isEmpty() {
-		IEngine engine = this.qs.retrieveQueryStructEngine();
+		IEngine engine = this.queryQs.retrieveQueryStructEngine();
 		if(engine == null) {
 			return true;
 		}
@@ -269,7 +291,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		boolean empty = false;
 		IRawSelectWrapper it = null;
 		try {
-			it = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
+			it = WrapperManager.getInstance().getRawWrapper(engine, this.queryQs);
 			empty = !(it.hasNext());
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -285,9 +307,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	public IRawSelectWrapper query(String query) throws Exception {
 		long start = System.currentTimeMillis();
-		IEngine engine = this.qs.retrieveQueryStructEngine();
+		IEngine engine = this.queryQs.retrieveQueryStructEngine();
 		logger.info("Executing query on engine " + engine.getEngineId());
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), query);
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.queryQs.retrieveQueryStructEngine(), query);
 		long end = System.currentTimeMillis();
 		logger.info("Engine execution time = " + (end-start) + "ms");
 		return it;
@@ -307,9 +329,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 		IRawSelectWrapper it = null;
 		if(cache) {
-			if(NativeFrame.cacheEngines.contains(this.qs.retrieveQueryStructEngine().getEngineType())) {
+			if(NativeFrame.cacheEngines.contains(this.queryQs.retrieveQueryStructEngine().getEngineType())) {
 				// this is an engine whose results can be cached
-				IQueryInterpreter interpreter = this.qs.retrieveQueryStructEngine().getQueryInterpreter();
+				IQueryInterpreter interpreter = this.queryQs.retrieveQueryStructEngine().getQueryInterpreter();
 				interpreter.setQueryStruct(qs);
 				String query = interpreter.composeQuery();
 
@@ -325,7 +347,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// if we still dont have an iterator
 		// create it
 		if(it == null) {
-			IEngine engine = this.qs.retrieveQueryStructEngine();
+			IEngine engine = this.queryQs.retrieveQueryStructEngine();
 			logger.info("Executing query on engine " + Utility.cleanLogString(engine.getEngineId()));
 			it = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			long end = System.currentTimeMillis();
@@ -337,19 +359,19 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 	
 	public SelectQueryStruct prepQsForExecution(SelectQueryStruct qs) {
-		IEngine engine = this.qs.retrieveQueryStructEngine();
+		IEngine engine = this.queryQs.retrieveQueryStructEngine();
 		// account for potential double aggregations
 		// TODO: account for double aggregation on other DB types...
 		boolean doubleAggregation = false;
 		if(engine instanceof IRDBMSEngine) {
-			if(this.qs.getGroupBy() != null && !this.qs.getGroupBy().isEmpty()) {
+			if(this.queryQs.getGroupBy() != null && !this.queryQs.getGroupBy().isEmpty()) {
 				// we have a double aggregation
 				// need to properly account for this
 				// get the current this.QS and flush it to a query
 				// and use that as a custom from
 				
 				IQueryInterpreter interpreter = engine.getQueryInterpreter();
-				interpreter.setQueryStruct(this.qs);
+				interpreter.setQueryStruct(this.queryQs);
 				String newFromQuery = interpreter.composeQuery();
 				// update the QS being executed
 				qs.setCustomFrom(newFromQuery);
@@ -363,19 +385,19 @@ public class NativeFrame extends AbstractTableDataFrame {
 			// only convert at the beginning
 			// since this.qs already has
 			// everything as the physical
-			qs.setCustomFrom(this.qs.getCustomFrom());
-			qs.setCustomFromAliasName(this.qs.getCustomFromAliasName());
+			qs.setCustomFrom(this.queryQs.getCustomFrom());
+			qs.setCustomFromAliasName(this.queryQs.getCustomFromAliasName());
 			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 
 			// we need to merge everything with the current qs
-			qs.mergeGroupBy(this.qs.getGroupBy());
-			qs.mergeOrderBy(this.qs.getOrderBy());
+			qs.mergeGroupBy(this.queryQs.getGroupBy());
+			qs.mergeOrderBy(this.queryQs.getOrderBy());
 			// filters are a bit tricky
 			// if a user is filtering in more on a specific column
 			// we do not want to merge
 			// but want to override
 			Set<String> qsFilterCols = qs.getExplicitFilters().getAllFilteredColumns();
-			List<IQueryFilter> importFilters = this.qs.getExplicitFilters().getFilters();
+			List<IQueryFilter> importFilters = this.queryQs.getExplicitFilters().getFilters();
 			// if the qsFilterCols doesn't have the base import filter
 			// add the filter
 			// otherwise, do nothing
@@ -397,20 +419,20 @@ public class NativeFrame extends AbstractTableDataFrame {
 			}
 		}
 		// setters
-		qs.setEngine(this.qs.getEngine());
-		qs.setRelations(this.qs.getRelations());
-		qs.setBigDataEngine(this.qs.getBigDataEngine());
+		qs.setEngine(this.queryQs.getEngine());
+		qs.setRelations(this.queryQs.getRelations());
+		qs.setBigDataEngine(this.queryQs.getBigDataEngine());
 		
 		return qs;
 	}
 	
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
-		return this.qs.retrieveQueryStructEngine().getQueryInterpreter();
+		return this.queryQs.retrieveQueryStructEngine().getQueryInterpreter();
 	}
 
 	public boolean engineQueryCacheable() {
-		return NativeFrame.cacheEngines.contains(this.qs.retrieveQueryStructEngine().getEngineType());
+		return NativeFrame.cacheEngines.contains(this.queryQs.retrieveQueryStructEngine().getEngineType());
 	}
 
 	@Override
@@ -431,7 +453,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			}
 			jWriter = new JsonWriter(writer);
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
-			adapter.write(jWriter, this.qs);
+			adapter.write(jWriter, this.queryQs);
 			jWriter.flush();
 			jWriter.close();
 		} catch (IOException e) {
@@ -475,7 +497,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			}
 			jReader = new JsonReader(reader);
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
-			this.qs = adapter.read(jReader);
+			this.queryQs = adapter.read(jReader);
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -506,7 +528,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	
 	public String getEngineQuery(SelectQueryStruct qs) {
 		qs = prepQsForExecution(qs);
-		IEngine engine = this.qs.retrieveQueryStructEngine();
+		IEngine engine = this.queryQs.retrieveQueryStructEngine();
 		IQueryInterpreter interpreter = engine.getQueryInterpreter();
 		interpreter.setQueryStruct(qs);
 		return interpreter.composeQuery();
