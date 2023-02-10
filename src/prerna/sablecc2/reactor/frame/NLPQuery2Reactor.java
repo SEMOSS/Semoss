@@ -278,19 +278,19 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
 				} else {
-					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					StringBuffer outputString = new StringBuffer("Query Generated : " + newQuery);
 					outputString.append("\nData : " + frameName);
 					outputString.append("\n");
 					outputString.append(sampleOut);
 					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
 				}
 			} catch(Exception e) {
-				outputMap.put("Query", sqlDFQuery);
+				outputMap.put("Query", newQuery);
 				outputMap.put("SAMPLE", "Could not compute data, query is not correct.");
 				if(json) {
 					outputs.add(new NounMetadata(outputMap, PixelDataType.MAP));
 				} else {
-					StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
+					StringBuffer outputString = new StringBuffer("Query Generated : " + newQuery);
 					outputString.append("\n");
 					outputString.append("Query did not yield any results... ");
 					outputs.add(new NounMetadata(outputString.toString(), PixelDataType.CONST_STRING));
