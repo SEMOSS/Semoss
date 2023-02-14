@@ -17,10 +17,21 @@ public class QueryQAModelReactor extends AbstractReactor {
 	// creates a qa model
 	final String modelType = "gaas";
 	final String modelSubType = "qa";
-		
+	
+	// the model string to send is "siamese / haystack /  somehting else" Right now only siamese is implemented	
 	public QueryQAModelReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.THRESHOLD.getKey(), ReactorKeysEnum.SEARCH.getKey()};
-		this.keyRequired = new int[] {1,1, 0};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), 
+				ReactorKeysEnum.MODEL.getKey(), 
+				ReactorKeysEnum.THRESHOLD.getKey(), 
+				ReactorKeysEnum.SEARCH.getKey(), 
+				ReactorKeysEnum.ROW_COUNT.getKey(), 
+				ReactorKeysEnum.SOURCE.getKey()};
+		this.keyRequired = new int[] {1,
+									  1, 
+									  0,
+									  1,
+									  0,
+									  0};
 	}
 
 	
@@ -30,11 +41,16 @@ public class QueryQAModelReactor extends AbstractReactor {
 		
 		organizeKeys();
 		
-		String query = null;
-		if(!keyValue.containsKey(keysToGet[3]))
-			return NounMetadata.getErrorNounMessage("Missing query");
-		else
-			query = keyValue.get(keysToGet[3]);
+		String query = keyValue.get(keysToGet[3]);
+		int numRows = 3;
+		String source = "False";
+		
+		if(keyValue.containsKey(keysToGet[4])) // row count
+			numRows = Integer.parseInt(keyValue.get(keysToGet[4]));
+
+		if(keyValue.containsKey(keysToGet[5])) // include source
+			source = keyValue.get(keysToGet[5]).equalsIgnoreCase("True") ? "True" : "False";
+
 		
 		double threshold = 0.2;
 		if(keyValue.containsKey(keysToGet[2]))
@@ -79,7 +95,10 @@ public class QueryQAModelReactor extends AbstractReactor {
 												+ "folder_name='" + folderName + "', "
 												+ "model=" + modelVariable +", "
 												+ "threshold=" + threshold + ", "
-												+ "query='" + query + "')"
+												+ "query='" + query + "'" + ","
+												+ "result_count = " + numRows + ", "
+												+ "source=" + source 
+												+ ")"
 												);
 		
 		//pt.runScript(modelVariable + " = " +semossModelName + ".create_model(folder_name='" + folderName + "')");

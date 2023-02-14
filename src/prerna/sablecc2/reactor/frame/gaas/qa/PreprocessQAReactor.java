@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.HashMap;
 
 import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.pdfbox.cos.COSDocument;
@@ -43,10 +44,13 @@ public class PreprocessQAReactor extends AbstractReactor {
 		// create a text directory
 		// pick all the pdf files
 		// convert them to text file
-		String basePath = AssetUtility.getProjectAssetFolder(this.insight.getProjectId());
-		folderName = basePath + "/" + folderName;
-		String txtFolderName = folderName + "/processed";
-
+		String txtFolderName = folderName;
+		if(this.insight != null)
+		{
+			String basePath = AssetUtility.getProjectAssetFolder(this.insight.getProjectId());
+			folderName = basePath + "/" + folderName;
+		}
+		txtFolderName = folderName + "/processed";
 		File inputFolder = new File(folderName);
 		if(!inputFolder.exists())
 			return NounMetadata.getErrorNounMessage("No such folder ");
@@ -73,10 +77,61 @@ public class PreprocessQAReactor extends AbstractReactor {
 				String documentName = FileNameUtils.getBaseName(inputFileName);
 				processedFiles.append(documentName);
 				String txtOutputFileName = txtFolder + "/" + documentName + ".txt" ;
-				convertPDFFile2Text(inputFileName, txtOutputFileName, documentName, separator);
+				//convertPDFFile2Text(inputFileName, txtOutputFileName, documentName, separator);
+				String csvOutputFileName = txtFolder + "/" + documentName + ".csv" ;
+				convertPDFFile2CSV(inputFileName, csvOutputFileName, documentName, separator);
 			}
 		}
 		return new NounMetadata(processedFiles + "", PixelDataType.CONST_STRING);
+	}
+	
+	public void convertPDFFile2CSV(String pdfFile, String outputFile, String documentName, String separator)
+	{	
+		try {
+			File f = new File(pdfFile);
+			String parsedText;
+			PDFParser parser = new PDFParser(new RandomAccessFile(f, "r"));
+			parser.parse();
+			
+			COSDocument cosDoc = parser.getDocument();
+			
+			PDFTextStripper pdfStripper = new PDFTextStripper();
+			PrintWriter pw = new PrintWriter(outputFile);
+			StringBuffer row = new StringBuffer();
+			row.append("Source").append(",").append("Page").append(",").append("Content").append("\n");
+			pw.print(row + "");
+			// get total number of pages
+			PDDocument pdDoc = new PDDocument(cosDoc);
+			int totalPages = pdDoc.getNumberOfPages();
+			for(int pageIndex = 0;pageIndex < totalPages;pageIndex++)
+			{
+				row = new StringBuffer();
+				pdfStripper.setStartPage(pageIndex);
+				pdfStripper.setEndPage(pageIndex);
+				parsedText = pdfStripper.getText(pdDoc);
+				parsedText = parsedText.replace("\n", " ");
+				parsedText = parsedText.replace("\r", " ");
+				parsedText = parsedText.replace("\\", "\\\\");
+				parsedText = parsedText.replace("\"", "'");
+				//parsedText = parsedText.replace("\'", "\\'");
+				
+				row.append("\"").append(documentName).append("\", ").append(pageIndex).append(",\"").append(parsedText).append("\"\n");
+				//parsedText =  documentName + "::::Page <" + pageIndex + ">::::" + parsedText;
+				//System.err.println(parsedText);
+				pw.print(row+"");
+				//System.out.println(row);
+				//pw.print(separator);
+				pw.flush();
+			}
+			// finished writing
+			pw.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public void convertPDFFile2Text(String pdfFile, String outputFile, String documentName, String separator)
@@ -115,8 +170,18 @@ public class PreprocessQAReactor extends AbstractReactor {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+	}
+
+	
+	public static void main(String [] args)
+	{
+		PreprocessQAReactor reac = new PreprocessQAReactor();
+		reac.keyValue = new HashMap();
+		reac.keyValue.put(reac.keysToGet[0], "C:\\Users\\pkapaleeswaran\\workspacej3\\SemossDev\\project\\FrameTester__9f78e44f-64cc-456a-925f-b5062783315f\\app_root\\version\\assets\\qa_models");
+		reac.execute();
 		
 	}
+	
+	
 
 }
