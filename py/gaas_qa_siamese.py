@@ -22,8 +22,9 @@ def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', e
 	# picks all of the text files here
 	# converts it to model
 	import glob
-	file_list = glob.glob(f"{folder_name}/processed/*.txt")
+	file_list = glob.glob(f"{folder_name}/processed/*.csv")
 	import numpy as np
+	import pandas as pd
 	master_document = []
 	all_files = ""
 	for i, file in enumerate(file_list):
@@ -35,10 +36,10 @@ def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', e
 			all_files = f"{input_file.stem}"
 		else:
 			all_files = f"{all_files}, {input_file.stem}"
-		text = open(file, "r", encoding=encoding).read()
+		csv_file = pd.read_csv(file, encoding=encoding)
 		#print(text)
 		# separate it by some separator, the default is 
-		documents = np.array(list(filter(lambda x : len(x) > 10, text.split(separator))))
+		documents = np.array(list(csv_file["Content"]))
 		master_document.extend(documents)
 		
 	# index all of them	
@@ -65,6 +66,7 @@ def hydrate_model(folder_name = None):
 
 def delete_model(folder_name=None):
 	import os
+	# should I just delete the siamese model
 	folder_name = folder_name.replace(os.sep, '/')
 	os.rmdir(f"{folder_name}/model")
 
@@ -74,7 +76,7 @@ def delete_processed(folder_name=None):
 	os.rmdir(f"{folder_name}/processed")
 
 
-def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="deepset/roberta-base-squad2", encoding='windows-1252', separator="=x=x=x=", model=None, query=None, threshold=0.2):
+def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="deepset/roberta-base-squad2", encoding='windows-1252', separator="=x=x=x=", model=None, query=None, threshold=0.2, result_count=3, source=False):
 	import os
 	folder_name = folder_name.replace(os.sep, '/')
 	from sentence_transformers import SentenceTransformer, util
@@ -87,8 +89,9 @@ def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="de
 	# picks all of the text files here
 	# converts it to model
 	import glob
-	file_list = glob.glob(f"{folder_name}/processed/*.txt")
+	file_list = glob.glob(f"{folder_name}/processed/*.csv")
 	import numpy as np
+	import pandas as pd
 	master_document = []
 	all_files = ""
 	import pathlib
@@ -100,20 +103,22 @@ def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="de
 			all_files = f"{input_file.stem}"
 		else:
 			all_files = f"{all_files}, {input_file.stem}"
-		text = open(file, "r", encoding=encoding).read()
+		csv_file = pd.read_csv(file, encoding=encoding)
+		#print(text)
 		# separate it by some separator, the default is 
-		documents = np.array(list(filter(lambda x : len(x) > 10, text.split(separator))))
+		documents = np.array(list(csv_file["Content"]))
 		master_document.extend(documents)
 		
 	# index all of them	
 	# write it to the folder
 	nlp = pipeline("question-answering", model=qa_ckpt , tokenizer=qa_ckpt, max_length=10)
 	question_embedding = bi_encoder.encode(query, convert_to_tensor=True)
-	hits = util.semantic_search(question_embedding, model, top_k=3)[0]	
+	hits = util.semantic_search(question_embedding, model, top_k=result_count)[0]	
 
 	return_data = []
 	
 	print(hits)
+	print(type(hits))
 	print(len(master_document))
 
 	for i,hit in enumerate(hits):
@@ -123,7 +128,9 @@ def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="de
 		if(hit["score"] > threshold):
 			nlp_output = nlp(query, str(master_document[hit['corpus_id']]))
 			print(nlp_output)
-			#item.update({"full_document" : master_document[hit['corpus_id']]})
+			if source:
+				item.update({"full_document" : master_document[hit['corpus_id']]})
+			item.update({"source_document_id" : hit['corpus_id']})
 			item.update({"start" : nlp_output["start"]})
 			item.update({"end" : nlp_output["end"]})
 			item.update({"answer" : nlp_output["answer"]})
