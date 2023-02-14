@@ -65,15 +65,17 @@ def hydrate_model(folder_name = None):
 		return None
 
 def delete_model(folder_name=None):
+	import shutil
 	import os
 	# should I just delete the siamese model
 	folder_name = folder_name.replace(os.sep, '/')
-	os.rmdir(f"{folder_name}/model")
+	shutil.rmtree(f"{folder_name}/model")
 
 def delete_processed(folder_name=None):
+	import shutil
 	import os
 	folder_name = folder_name.replace(os.sep, '/')
-	os.rmdir(f"{folder_name}/processed")
+	shutil.rmtree(f"{folder_name}/processed")
 
 
 def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="deepset/roberta-base-squad2", encoding='windows-1252', separator="=x=x=x=", model=None, query=None, threshold=0.2, result_count=3, source=False):
