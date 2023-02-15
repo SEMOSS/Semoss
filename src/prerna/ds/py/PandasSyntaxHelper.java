@@ -75,7 +75,7 @@ public class PandasSyntaxHelper {
 	 * @return
 	 */
 	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName) {
-		return getCsvFileRead(pandasImportVar, numpyImportVar, fileLocation, tableName, null);
+		return getCsvFileRead(pandasImportVar, numpyImportVar, fileLocation, tableName, null, null, null);
 	}
 
 	/**
@@ -86,14 +86,24 @@ public class PandasSyntaxHelper {
 	 * @param fileLocation
 	 * @param tableName
 	 * @param sep
+	 * @param quoteChar
+	 * @param escapeChar
 	 * @return
 	 */
 	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, 
-			String tableName, String sep) {
+			String tableName, String sep, String quoteChar, String escapeChar) {
 		if (sep == null || sep.isEmpty()) {
 			sep = ",";
 		}
-		return getCsvFileRead(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, null);
+		// default to double quote
+		if(quoteChar == null) {
+			quoteChar = "\"";
+		}
+		// default to \\ in python
+		if(escapeChar == null) {
+			escapeChar = "\\\\";
+		}
+		return getCsvFileRead(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, quoteChar, escapeChar, null);
 	}
 
 	/**
@@ -104,16 +114,18 @@ public class PandasSyntaxHelper {
 	 * @param fileLocation
 	 * @param tableName
 	 * @param sep
+	 * @param quoteChar
+	 * @param escapeChar
 	 * @param encoding
 	 * @return
 	 */
 	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, 
-			String tableName, String sep, String encoding) {
+			String tableName, String sep, String quoteChar, String escapeChar, String encoding) {
 		if (encoding == null || encoding.isEmpty()) {
 			encoding = "utf-8";
 		}
 		
-		StringBuffer readCsv = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, encoding);
+		StringBuffer readCsv = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, quoteChar, escapeChar, encoding);
 		return readCsv.toString();
 	}
 	
@@ -126,11 +138,13 @@ public class PandasSyntaxHelper {
 	 * @param fileLocation
 	 * @param tableName
 	 * @param sep
+	 * @param quoteChar
+	 * @param escapeChar
 	 * @param encoding
 	 * @return
 	 */
 	public static StringBuffer buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation, 
-			String tableName, String sep, String encoding) {
+			String tableName, String sep, String quoteChar, String escapeChar, String encoding) {
 		StringBuffer script = new StringBuffer();
 		StringBuffer replace = new StringBuffer(".replace(");
 		StringBuffer converter = new StringBuffer("converters={i: lambda x: x.strip() if (isinstance(");
@@ -143,7 +157,8 @@ public class PandasSyntaxHelper {
 		
 		
 		script.append(tableName).append(" =").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
-			  .append("',sep='" + sep + "',encoding='" + encoding + "',").append(converter + ")").append(replace)
+			  .append("',sep='" + sep + "',encoding='" + encoding + "',")
+			  .append(converter + ")").append(replace)
 			  .append(".apply(lambda x: x.astype(str) if (any(x.map(type) == str)) else x)").append(replace);
 		
 		return script;
@@ -173,33 +188,36 @@ public class PandasSyntaxHelper {
 	 * @return
 	 */
 	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep,
-			String encoding, Map<String, ?> dataTypeMaps) {
+			String quoteChar, String escapeChar, String encoding, Map<String, ?> dataTypeMaps) {
 		StringBuffer script = new StringBuffer();
 		if (encoding == null || encoding.isEmpty()) {
 			encoding = "utf-8";
 		}
 		if (dataTypeMaps == null || dataTypeMaps.isEmpty()) {
 			script.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
-			  .append("',sep='" + sep + "',encoding='" + encoding + "')");
+			  .append("',sep='"+sep+"',quotechar='"+quoteChar+"',escapechar='"+escapeChar+"',encoding='"+encoding+"')");
 		} else {
-			script = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, encoding, dataTypeMaps);
+			script = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, quoteChar, escapeChar, encoding, dataTypeMaps);
 		}
 		return script.toString();
 	}
 	
 	/**
 	 * Builds the pandas CSV read method. Less greedy approach that accounts for date parsing. 
+	 * https://pandas.pydata.org/pandas-docs/version/0.15.1/generated/pandas.read_csv.html
 	 * @param pandasImportVar
 	 * @param numpyImportVar
 	 * @param fileLocation
 	 * @param tableName
 	 * @param sep
+	 * @param quoteChar		
+	 * @param escapeChar
 	 * @param encoding
 	 * @param dataTypeMaps
 	 * @return
 	 */
 	public static StringBuffer buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation, 
-			String tableName, String sep, String encoding, Map<String, ?> dataTypeMaps) {
+			String tableName, String sep, String quoteChar, String escapeChar, String encoding, Map<String, ?> dataTypeMaps) {
 		StringBuffer sb = new StringBuffer();
 		StringBuffer dataMap = new StringBuffer();
 		StringBuffer dateList = new StringBuffer();
@@ -232,7 +250,8 @@ public class PandasSyntaxHelper {
 		dateList = new StringBuffer("[").append(dateList).append("]");
 		
 		sb.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
-		  .append("',sep='" + sep + "',encoding='" + encoding + "',dtype="+ dataMap.toString()).append(",parse_dates=").append(dateList)
+		  .append("',sep='"+sep+"',quotechar='"+quoteChar+"',escapechar='"+escapeChar+"',encoding='"+encoding+
+				  "',dtype="+ dataMap.toString()).append(",parse_dates=").append(dateList)
 		  .append(", infer_datetime_format=True)");
 		
 		return sb;
