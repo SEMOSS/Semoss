@@ -234,7 +234,12 @@ public class RdbmsFrameBuilder {
 						if(nextRow[colIndex] == null) {
 							ps.setNull(colIndex + 1, java.sql.Types.VARCHAR);
 						} else {
-							String value = nextRow[colIndex] + "";
+							String value = null;
+							if(nextRow[colIndex] instanceof Object[]) {
+								value = Arrays.toString((Object[]) nextRow[colIndex]);
+							} else {
+								value = nextRow[colIndex] + "";
+							}
 							if(value.length() > 800) {
 								value = value.substring(0, 796) + "...";
 							}
