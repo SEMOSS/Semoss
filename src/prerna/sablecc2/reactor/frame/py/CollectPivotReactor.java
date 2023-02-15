@@ -18,6 +18,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
+import prerna.om.IStringExportProcessor;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -124,7 +125,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				tempDir.mkdirs();
 			}
 			outputFile = dir + "/" + fileName + ".csv";
-			Utility.writeResultToFile(outputFile, this.task, typesMap, ",");
+			Utility.writeResultToFile(outputFile, this.task, typesMap, ",", new IStringExportProcessor() {
+				// we need to replace all inner quotes with ""
+				@Override
+				public String processString(String input) {
+					return input.replace("\"", "\"\"");
+				}
+			});
 			
 			String importPandasS = new StringBuilder(PandasFrame.PANDAS_IMPORT_STRING).toString();
 			String importNumpyS = new StringBuilder(PandasFrame.NUMPY_IMPORT_STRING).toString();
@@ -132,7 +139,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 
 			// generate the script
 			makePivotFrame = PandasSyntaxHelper.getCsvFileRead(PandasFrame.PANDAS_IMPORT_VAR, PandasFrame.NUMPY_IMPORT_VAR, 
-					outputFile, pivotFrameName, ",", pyt.getCurEncoding(), typesMap);
+					outputFile, pivotFrameName, ",", "\"", "\\\\", pyt.getCurEncoding(), typesMap);
 		}
 		
 		// so this is going to come in as vectors
