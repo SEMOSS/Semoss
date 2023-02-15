@@ -24,7 +24,7 @@ def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', e
     model_dir = pathlib.Path(model_file.parent)
     #print(model_dir)
     if not model_dir.exists():
-    os.mkdir(f"{folder_name}/model")
+      os.mkdir(f"{folder_name}/model")
 
   #create the document store
   document_store = SQLDocumentStore(f"sqlite:///{model_file_name}")
@@ -83,12 +83,12 @@ def delete_processed(folder_name=None):
   
 def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="deepset/roberta-base-squad2", encoding='windows-1252', separator="=x=x=x=", model=None, query=None, threshold=3, result_count=3, source=False):
   if model is None:
-    model_file_name = f"{folder_name}/haystack.db"
+    model_file_name = f"{folder_name}/model/haystack.db"
     import pathlib
-    model_file = pathlib.Path(file)
+    model_file = pathlib.Path(model_file_name)
     if model_file.exists():
       from haystack.document_stores import SQLDocumentStore
-      document_store = SQLDocumentStore(model_file_name)
+      document_store = SQLDocumentStore(f"sqlite:///{model_file_name}")
       model=hydrate_model(document_store=document_store)
     else:
       return [] # giving you an empty set
@@ -119,6 +119,3 @@ def convert_pd_to_list(incoming_dict, content_column_name):
     new_data.update({'meta' : incoming_dict[i]})
     doc_list.append(new_data)
   return doc_list
-
-
-
