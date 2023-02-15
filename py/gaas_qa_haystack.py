@@ -19,6 +19,13 @@ def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', e
     # load and return it
     document_store = SQLDocumentStore(f"sqlite:///{model_file_name}")
     return hydrate_model(document_store=document_store)
+  else:
+    import os
+    model_dir = pathlib.Path(model_file.parent)
+    #print(model_dir)
+    if not model_dir.exists():
+    os.mkdir(f"{folder_name}/model")
+
   #create the document store
   document_store = SQLDocumentStore(f"sqlite:///{model_file_name}")
   # if not do the indexing and such
