@@ -114,7 +114,7 @@ def convert_pd_to_list(incoming_dict, content_column_name):
   doc_list = []
   for i in range(0,len(incoming_dict)-1):
     new_data = {}
-    content = incoming_dict[i].pop('Content')
+    content = incoming_dict[i].pop(content_column_name)
     new_data.update({'content' : content})
     new_data.update({'meta' : incoming_dict[i]})
     doc_list.append(new_data)
