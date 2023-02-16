@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame;
 
 import java.util.List;
+import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.poi.main.HeadersException;
@@ -79,6 +80,14 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 		}
 
 		throw new NullPointerException("No frame found");
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	protected Set<ITableDataFrame> getAllFrames() {
+		return this.insight.getVarStore().getAllCreatedFrames();
 	}
 	
 	/**
