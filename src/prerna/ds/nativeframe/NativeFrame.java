@@ -453,7 +453,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			}
 			jWriter = new JsonWriter(writer);
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
-			adapter.write(jWriter, this.queryQs);
+			adapter.write(jWriter, this.originalQs);
 			jWriter.flush();
 			jWriter.close();
 		} catch (IOException e) {
@@ -497,7 +497,8 @@ public class NativeFrame extends AbstractTableDataFrame {
 			}
 			jReader = new JsonReader(reader);
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
-			this.queryQs = adapter.read(jReader);
+			this.originalQs = adapter.read(jReader);
+			this.queryQs = this.originalQs;
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
