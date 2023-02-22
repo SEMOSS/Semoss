@@ -19,9 +19,13 @@ public class LastUsedFrameReactor extends AbstractReactor {
 			defaultFrame = qs.getFrame();
 		}
 		if(defaultFrame == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("No frame currently exists", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(true);
-			throw exception;
+			// default to the current frame
+			defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+			if(defaultFrame == null) {
+				SemossPixelException exception = new SemossPixelException(new NounMetadata("No frame currently exists", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(true);
+				throw exception;
+			}
 		}
 		
 		NounMetadata noun = new NounMetadata(defaultFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
