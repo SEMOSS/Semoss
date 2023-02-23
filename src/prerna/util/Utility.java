@@ -2180,7 +2180,7 @@ public class Utility {
 		dataType = dataType.toUpperCase().trim();
 		if (dataType.startsWith("IDENTITY") || dataType.startsWith("LONG") || dataType.startsWith("INT")
 				|| dataType.startsWith("INTEGER") || dataType.startsWith("MEDIUMINT") || dataType.startsWith("INT4")
-				|| dataType.startsWith("SIGNED")
+				|| dataType.startsWith("SIGNED") || dataType.startsWith("SERIAL")
 
 				// TINYINT TYPE
 				|| dataType.startsWith("TINYINT")
