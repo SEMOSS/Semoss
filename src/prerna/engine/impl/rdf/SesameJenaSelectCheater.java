@@ -117,15 +117,15 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			count=0;
 			
 		}
-		else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
-		{
-			// get the actual SesameJenaConstructWrapper from the engine
-			// this is json output
-			logger.info("Trying to get the wrapper remotely now");
-			processSelectVar();
-			count = 0;
-			proxy = (SesameJenaSelectCheater)((RemoteSemossSesameEngine)(engine)).execCheaterQuery(query);
-		}
+//		else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+//		{
+//			// get the actual SesameJenaConstructWrapper from the engine
+//			// this is json output
+//			logger.info("Trying to get the wrapper remotely now");
+//			processSelectVar();
+//			count = 0;
+//			proxy = (SesameJenaSelectCheater)((RemoteSemossSesameEngine)(engine)).execCheaterQuery(query);
+//		}
 	}
 	
 	/**
