@@ -315,33 +315,33 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 		this.engineType = engineType;
 	}
 
-	public static void main(String [] args) throws Exception
-	{
-		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
-		engine.setAPI("http://localhost:9080/Monolith/api/engine");
-		engine.setDatabase("Movie_DB");
-		engine.setEngineId("Movie_DB");
-		
-		engine.openDB(null);
-		
-//		System.out.println("Perspectives is .... " + engine.getPerspectives());
-		
-		System.out.println("Trying.. ");
-		SesameJenaConstructWrapper sjcw = new SesameJenaConstructWrapper(); //(SesameJenaSelectWrapper) engine.execSelectQuery("SELECT ?S ?P ?O WHERE {{?S ?P ?O}.} LIMIT 1");
-		sjcw.setEngine(engine);
-		sjcw.setEngineType(engine.getEngineType());
-		sjcw.setQuery("CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}");
-		
-		sjcw.execute();
-		
-		System.out.println(" has next " + sjcw.hasNext());
-		SesameJenaConstructStatement st = sjcw.next();
-		
-		System.out.println(st.getSubject());
-		
-		//System.out.println(" var " + sjcw.getVariables());
-		
-	}
+//	public static void main(String [] args) throws Exception
+//	{
+//		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
+//		engine.setAPI("http://localhost:9080/Monolith/api/engine");
+//		engine.setDatabase("Movie_DB");
+//		engine.setEngineId("Movie_DB");
+//		
+//		engine.openDB(null);
+//		
+////		System.out.println("Perspectives is .... " + engine.getPerspectives());
+//		
+//		System.out.println("Trying.. ");
+//		SesameJenaConstructWrapper sjcw = new SesameJenaConstructWrapper(); //(SesameJenaSelectWrapper) engine.execSelectQuery("SELECT ?S ?P ?O WHERE {{?S ?P ?O}.} LIMIT 1");
+//		sjcw.setEngine(engine);
+//		sjcw.setEngineType(engine.getEngineType());
+//		sjcw.setQuery("CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}");
+//		
+//		sjcw.execute();
+//		
+//		System.out.println(" has next " + sjcw.hasNext());
+//		SesameJenaConstructStatement st = sjcw.next();
+//		
+//		System.out.println(st.getSubject());
+//		
+//		//System.out.println(" var " + sjcw.getVariables());
+//		
+//	}
 
 	@Override
 	public void cleanUp() {

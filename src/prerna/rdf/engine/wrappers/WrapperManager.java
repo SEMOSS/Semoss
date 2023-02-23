@@ -419,10 +419,10 @@ public class WrapperManager {
 				returnWrapper = new JenaSelectCheater();
 				break;
 			}
-			case SEMOSS_SESAME_REMOTE : {
-				returnWrapper = new RemoteSesameSelectCheater();
-				break;
-			}
+//			case SEMOSS_SESAME_REMOTE : {
+//				returnWrapper = new RemoteSesameSelectCheater();
+//				break;
+//			}
 			case RDBMS : {
 				returnWrapper = new RDBMSSelectCheater();
 				break;
