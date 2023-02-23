@@ -63,8 +63,11 @@ public class QueryQAModelReactor extends AbstractReactor {
 		String modelName = keyValue.get(keysToGet[1]);
 		
 		
-		
-		String basePath = AssetUtility.getProjectAssetFolder(this.insight.getProjectId());
+		String projectId = this.insight.getProjectId();
+		if(projectId == null)
+			projectId = this.insight.getContextProjectId();
+		String basePath = AssetUtility.getProjectAssetFolder(projectId);
+
 		folderName = basePath + "/" + folderName;
 		folderName = folderName.replace("\\", "/");
 		
