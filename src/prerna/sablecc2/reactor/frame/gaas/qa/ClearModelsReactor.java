@@ -37,18 +37,30 @@ public class ClearModelsReactor extends AbstractReactor {
 		String folderName = keyValue.get(keysToGet[0]);
 		String modelName = keyValue.get(keysToGet[1]);
 		
-		String basePath = AssetUtility.getProjectAssetFolder(this.insight.getProjectId());
+		String projectId = this.insight.getProjectId();
+		if(projectId == null)
+			projectId = this.insight.getContextProjectId();
+		String basePath = AssetUtility.getProjectAssetFolder(projectId);
+
 		folderName = basePath + "/" + folderName;
 		folderName = folderName.replace("\\", "/");
 		
 
 		String semossModelName = modelType + "_" + modelSubType + "_" + modelName;
 
+		String modelVariable = insight.getProjectId();
+		modelVariable = Utility.cleanString(modelVariable, true);
+		modelVariable = modelVariable.replace("-", "_");
+		modelVariable = semossModelName + "_" + modelVariable;
+
 		PyTranslator pt = this.insight.getPyTranslator();
+		
 		pt.runScript("import " + semossModelName);
+		pt.runScript("del " + modelVariable);
+		
 		//  gaas.search_siamese(folder_name="c:/users/pkapaleeswaran/workspacej3/datasets/text/far"
 		//, model=model, query="what is subcontract", 
-		// separator="FAR::::")
+		// separator="FAR::::")	
 		pt.runScript(semossModelName + ".delete_model(folder_name='" + folderName + "')");
 		pt.runScript(semossModelName + ".delete_processed(folder_name='" + folderName + "')");
 				
