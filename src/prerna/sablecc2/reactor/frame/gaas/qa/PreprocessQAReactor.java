@@ -47,7 +47,10 @@ public class PreprocessQAReactor extends AbstractReactor {
 		String txtFolderName = folderName;
 		if(this.insight != null)
 		{
-			String basePath = AssetUtility.getProjectAssetFolder(this.insight.getProjectId());
+			String projectId = this.insight.getProjectId();
+			if(projectId == null)
+				projectId = this.insight.getContextProjectId();
+			String basePath = AssetUtility.getProjectAssetFolder(projectId);
 			folderName = basePath + "/" + folderName;
 		}
 		txtFolderName = folderName + "/processed";
@@ -98,7 +101,7 @@ public class PreprocessQAReactor extends AbstractReactor {
 			PDFTextStripper pdfStripper = new PDFTextStripper();
 			PrintWriter pw = new PrintWriter(outputFile);
 			StringBuffer row = new StringBuffer();
-			row.append("Source").append(",").append("Page").append(",").append("Content").append("\n");
+			row.append("Source").append(",").append("Page").append(",").append("Content").append("\r\n");
 			pw.print(row + "");
 			// get total number of pages
 			PDDocument pdDoc = new PDDocument(cosDoc);
@@ -113,9 +116,11 @@ public class PreprocessQAReactor extends AbstractReactor {
 				parsedText = parsedText.replace("\r", " ");
 				parsedText = parsedText.replace("\\", "\\\\");
 				parsedText = parsedText.replace("\"", "'");
+				if(parsedText.length() == 0)
+					parsedText = " ";
 				//parsedText = parsedText.replace("\'", "\\'");
 				
-				row.append("\"").append(documentName).append("\", ").append(pageIndex).append(",\"").append(parsedText).append("\"\n");
+				row.append("\"").append(documentName).append("\", ").append(pageIndex).append(",\"").append(parsedText).append("\"\r\n");
 				//parsedText =  documentName + "::::Page <" + pageIndex + ">::::" + parsedText;
 				//System.err.println(parsedText);
 				pw.print(row+"");
