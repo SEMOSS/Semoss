@@ -82,7 +82,7 @@ public class QueryQAModelReactor extends AbstractReactor {
 		//, model=model, query="what is subcontract", 
 		// separator="FAR::::")
 		
-		String modelVariable = insight.getProjectId();
+		String modelVariable = projectId;
 		modelVariable = Utility.cleanString(modelVariable, true);
 		modelVariable = modelVariable.replace("-", "_");
 		modelVariable = semossModelName + "_" + modelVariable;
