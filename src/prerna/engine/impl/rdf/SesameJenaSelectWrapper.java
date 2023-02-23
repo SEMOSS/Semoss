@@ -440,34 +440,34 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	}
 	
 	
-	public static void main(String [] args) throws Exception
-	{
-		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
-		engine.setAPI("http://localhost:9080/Monolith/api/engine");
-		engine.setDatabase("Movie_DB");
-		engine.setEngineId("Movie_DB");
-		
-		engine.openDB(null);
-		
-//		System.out.println("Perspectives is .... " + engine.getPerspectives());
-		
-		System.out.println("Trying.. ");
-		SesameJenaSelectWrapper sjcw = new SesameJenaSelectWrapper(); //(SesameJenaSelectWrapper) engine.execSelectQuery("SELECT ?S ?P ?O WHERE {{?S ?P ?O}.} LIMIT 1");
-		sjcw.setEngine(engine);
-		sjcw.setEngineType(engine.getEngineType());
-		sjcw.setQuery("SELECT ?subject WHERE {{?subject ?predicate ?object.}}");
-		
-		sjcw.executeQuery();
-		
-		System.out.println(" has next " + sjcw.hasNext());
-		SesameJenaSelectStatement st = sjcw.next();
-		System.out.println("Variables is "+ sjcw.getVariables());
-		
-		System.out.println(st.propHash);
-		
-		//System.out.println(" var " + sjcw.getVariables());
-		
-	}
+//	public static void main(String [] args) throws Exception
+//	{
+//		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
+//		engine.setAPI("http://localhost:9080/Monolith/api/engine");
+//		engine.setDatabase("Movie_DB");
+//		engine.setEngineId("Movie_DB");
+//		
+//		engine.openDB(null);
+//		
+////		System.out.println("Perspectives is .... " + engine.getPerspectives());
+//		
+//		System.out.println("Trying.. ");
+//		SesameJenaSelectWrapper sjcw = new SesameJenaSelectWrapper(); //(SesameJenaSelectWrapper) engine.execSelectQuery("SELECT ?S ?P ?O WHERE {{?S ?P ?O}.} LIMIT 1");
+//		sjcw.setEngine(engine);
+//		sjcw.setEngineType(engine.getEngineType());
+//		sjcw.setQuery("SELECT ?subject WHERE {{?subject ?predicate ?object.}}");
+//		
+//		sjcw.executeQuery();
+//		
+//		System.out.println(" has next " + sjcw.hasNext());
+//		SesameJenaSelectStatement st = sjcw.next();
+//		System.out.println("Variables is "+ sjcw.getVariables());
+//		
+//		System.out.println(st.propHash);
+//		
+//		//System.out.println(" var " + sjcw.getVariables());
+//		
+//	}
 
 	@Override
 	public void execute() {
