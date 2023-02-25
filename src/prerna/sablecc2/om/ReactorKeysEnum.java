@@ -63,6 +63,7 @@ public enum ReactorKeysEnum {
 	EXPORT_AUDIT("exportAudit",	                             	"Boolean to include an audit sheet for parameters to excel exports"),
 	EXPORT_TEMPLATE("export_template",					    	"Template file to use for the export of this data"),
 	EXPRESSION("expression",                                	"R / Python expression that needs to be dynamically calculated for this variable"),
+	FIELDS("form_fields", 											"Fields required for the form filler"),	
 	FILE_NAME("fileName", 										"Name of the file"),
 	FILE_PATH("filePath", 										"Absolute file path location"),
 	FILTERS("filters", 											"Filters automatically persisted on queries affecting this frame or panel"),
