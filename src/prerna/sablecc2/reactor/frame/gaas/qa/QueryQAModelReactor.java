@@ -23,7 +23,7 @@ public class QueryQAModelReactor extends AbstractReactor {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), 
 				ReactorKeysEnum.MODEL.getKey(), 
 				ReactorKeysEnum.THRESHOLD.getKey(), 
-				ReactorKeysEnum.SEARCH.getKey(), 
+				ReactorKeysEnum.COMMAND.getKey(), 
 				ReactorKeysEnum.ROW_COUNT.getKey(), 
 				ReactorKeysEnum.SOURCE.getKey()};
 		this.keyRequired = new int[] {1,
@@ -93,6 +93,13 @@ public class QueryQAModelReactor extends AbstractReactor {
 			pt.runScript(modelVariable + " = " + semossModelName + ".hydrate_model(folder_name='" + folderName + "')");
 		}
 		
+		String masterDocument = modelVariable + "_master_document"; // also load it once
+		boolean hasDocument = (Boolean)pt.runScript("'" + masterDocument + "' in locals()");
+		if(!hasDocument)
+		{
+			pt.runScript(masterDocument + " = " + semossModelName + ".get_master_document(folder_name='" + folderName + "')");
+		}
+		
 			// the model to call it
 		List results	= (List)pt.runScript(semossModelName + ".search("
 												+ "folder_name='" + folderName + "', "
@@ -100,7 +107,8 @@ public class QueryQAModelReactor extends AbstractReactor {
 												+ "threshold=" + threshold + ", "
 												+ "query='" + query + "'" + ","
 												+ "result_count = " + numRows + ", "
-												+ "source=" + source 
+												+ "source=" + source + ","
+												+ "master_document=" + masterDocument
 												+ ")"
 												);
 		
