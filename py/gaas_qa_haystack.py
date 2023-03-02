@@ -101,8 +101,10 @@ def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="de
     item = {}
     if source:
       item.update({"full_document": ans.context})
-    corpus = f"{ans.meta['Source']}->{ans.meta['Page']}"
-    item.update({"source_document_id": corpus})
+    #print(ans.meta)
+    #corpus = f"{ans.meta['Source']}->{ans.meta['Page']}"
+    #item.update({"source_document_id": corpus})
+    item.update({"meta": ans.meta})
     item.update({"answer": ans.answer})
     item.update({"start": ans.offsets_in_document[0].start})
     item.update({"end": ans.offsets_in_document[0].end})
