@@ -16,10 +16,10 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.gaas.GaasBaseReactor;
 import prerna.util.AssetUtility;
 
-public class PreprocessQAReactor extends AbstractReactor {
+public class PreprocessQAReactor extends GaasBaseReactor {
 
 	// preprocesses documents in a given folder
 	// essentially turns it into a text file and drops it into the folder / text directory
@@ -47,9 +47,7 @@ public class PreprocessQAReactor extends AbstractReactor {
 		String txtFolderName = folderName;
 		if(this.insight != null)
 		{
-			String projectId = this.insight.getProjectId();
-			if(projectId == null)
-				projectId = this.insight.getContextProjectId();
+			String projectId = getProjectId();
 			String basePath = AssetUtility.getProjectAssetFolder(projectId);
 			folderName = basePath + "/" + folderName;
 		}
