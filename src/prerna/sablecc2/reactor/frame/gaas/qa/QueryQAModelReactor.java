@@ -8,11 +8,11 @@ import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.gaas.GaasBaseReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-public class QueryQAModelReactor extends AbstractReactor {
+public class QueryQAModelReactor extends GaasBaseReactor {
 
 	// creates a qa model
 	final String modelType = "gaas";
@@ -63,9 +63,7 @@ public class QueryQAModelReactor extends AbstractReactor {
 		String modelName = keyValue.get(keysToGet[1]);
 		
 		
-		String projectId = this.insight.getProjectId();
-		if(projectId == null)
-			projectId = this.insight.getContextProjectId();
+		String projectId = getProjectId();
 		String basePath = AssetUtility.getProjectAssetFolder(projectId);
 
 		folderName = basePath + "/" + folderName;
