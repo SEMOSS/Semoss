@@ -1,19 +1,14 @@
 package prerna.sablecc2.reactor.frame.gaas.ner;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.AssetUtility;
+import prerna.sablecc2.reactor.frame.gaas.GaasBaseReactor;
 import prerna.util.Utility;
 
-public class FillFormReactor extends AbstractReactor {
+public class FillFormReactor extends GaasBaseReactor {
 
 	// creates a qa model
 	final String modelType = "gaas";
@@ -21,7 +16,7 @@ public class FillFormReactor extends AbstractReactor {
 	
 	// the model string to send is "siamese / haystack /  somehting else" Right now only siamese is implemented	
 	public FillFormReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.FIELDS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.FIELDS.getKey(), ReactorKeysEnum.PROJECT.getKey()};
 		this.keyRequired = new int[] {1, 1, 0};
 	}
 
@@ -31,7 +26,12 @@ public class FillFormReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		
 		//organizeKeys();
-	
+		
+		String projectId = getProjectId();
+
+		if(projectId == null) // project is not important
+			projectId = "UNKNOWN";
+		
 		// get the folder name
 		// see if the processed folder is already there
 		// if so pass the processed folder with the model to invoke		
@@ -60,10 +60,7 @@ public class FillFormReactor extends AbstractReactor {
 		// import
 		pt.runScript("import " + semossModelName);
 		
-		String projectId = this.insight.getProjectId();
-		if(projectId == null)
-			projectId = this.insight.getContextProjectId();
-
+		
 		String modelVariable = projectId;
 		modelVariable = Utility.cleanString(modelVariable, true);
 		modelVariable = modelVariable.replace("-", "_");
