@@ -17,8 +17,8 @@ public class CreateQAModelReactor extends GaasBaseReactor {
 	// the model string to send is "siamese / haystack /  somehting else" Right now only siamese is implemented	
 
 	public CreateQAModelReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.MODEL.getKey()};
-		this.keyRequired = new int[] {1,1};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.COLUMN.getKey()};
+		this.keyRequired = new int[] {1,1,0};
 	}
 
 	
@@ -34,6 +34,11 @@ public class CreateQAModelReactor extends GaasBaseReactor {
 		
 		String folderName = keyValue.get(keysToGet[0]);
 		String modelName = keyValue.get(keysToGet[1]);
+		
+		String columnName = "Content";
+		if(keyValue.containsKey(keysToGet[2]))
+			columnName = keyValue.get(keysToGet[2]);
+
 		
 		String projectId = getProjectId();
 		String basePath = AssetUtility.getProjectAssetFolder(projectId);
@@ -58,7 +63,7 @@ public class CreateQAModelReactor extends GaasBaseReactor {
 		modelVariable = modelVariable.replace("-", "_");
 		modelVariable = semossModelName + "_" + modelVariable;
 		
-		pt.runScript(modelVariable + " = " +semossModelName + ".create_model(folder_name='" + folderName + "')");
+		pt.runScript(modelVariable + " = " +semossModelName + ".create_model(folder_name='" + folderName + "', content_column= '" + columnName + "')");
 		boolean hasModel = (Boolean)pt.runScript("'" + modelVariable + "' in locals()");
 		
 		return new NounMetadata("Model Created : " + hasModel, PixelDataType.CONST_STRING);
