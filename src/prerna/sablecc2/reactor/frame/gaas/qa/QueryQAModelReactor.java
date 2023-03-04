@@ -25,11 +25,14 @@ public class QueryQAModelReactor extends GaasBaseReactor {
 				ReactorKeysEnum.THRESHOLD.getKey(), 
 				ReactorKeysEnum.COMMAND.getKey(), 
 				ReactorKeysEnum.ROW_COUNT.getKey(), 
-				ReactorKeysEnum.SOURCE.getKey()};
+				ReactorKeysEnum.SOURCE.getKey(),
+				ReactorKeysEnum.COLUMN.getKey()
+				};
 		this.keyRequired = new int[] {1,
 									  1, 
 									  0,
 									  1,
+									  0,
 									  0,
 									  0};
 	}
@@ -71,6 +74,10 @@ public class QueryQAModelReactor extends GaasBaseReactor {
 		
 		System.err.println("Folder.. " + folderName);
 
+		String columnName = "Content";
+		if(keyValue.containsKey(keysToGet[6]))
+			columnName = keyValue.get(keysToGet[6]);
+			
 
 		String semossModelName = modelType + "_" + modelSubType + "_" + modelName;
 
@@ -93,6 +100,7 @@ public class QueryQAModelReactor extends GaasBaseReactor {
 		
 		String masterDocument = modelVariable + "_master_document"; // also load it once
 		boolean hasDocument = (Boolean)pt.runScript("'" + masterDocument + "' in locals()");
+		
 		if(!hasDocument)
 		{
 			pt.runScript(masterDocument + " = " + semossModelName + ".get_master_document(folder_name='" + folderName + "')");
