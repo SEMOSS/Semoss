@@ -1,4 +1,4 @@
-def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', encoding='windows-1252', separator="=x=x=x="):
+def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', encoding='iso-8859-1', separator="=x=x=x=", content_column="Content"):
   import os
   folder_name = folder_name.replace(os.sep, '/')
   model_file_name = f"{folder_name}/model/siamese.pt"
