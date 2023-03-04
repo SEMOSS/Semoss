@@ -17,8 +17,8 @@ def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', e
   
   if model_file.exists():
     # load and return it
-    document_store = SQLDocumentStore(f"sqlite:///{model_file_name}")
-    return hydrate_model(document_store=document_store)
+    #document_store = SQLDocumentStore(f"sqlite:///{model_file_name}")
+    return hydrate_model(folder_name=folder_name)
   else:
     import os
     model_dir = pathlib.Path(model_file.parent)
@@ -56,16 +56,25 @@ def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', e
   document_store.write_documents(master_document)
   from haystack.pipelines.standard_pipelines import TextIndexingPipeline
   ip = TextIndexingPipeline(document_store)
-  return hydrate_model(document_store=document_store)
+  return hydrate_model(folder_name=folder_name)
   
-def hydrate_model(document_store=None,qa_model_ckpt="deepset/roberta-base-squad2"):
-  from haystack.nodes import BM25Retriever, EmbeddingRetriever, TfidfRetriever
-  retriever = TfidfRetriever(document_store=document_store)
-  from haystack.nodes import FARMReader
-  reader = FARMReader(model_name_or_path=qa_model_ckpt, use_gpu=True)
-  from haystack.pipelines import ExtractiveQAPipeline, Pipeline
-  pipe = ExtractiveQAPipeline(reader, retriever)
-  return pipe
+def hydrate_model(folder_name=None,qa_model_ckpt="deepset/roberta-base-squad2"):
+  model_file_name = f"{folder_name}/model/haystack.db"
+  import pathlib
+  model_file = pathlib.Path(model_file_name)
+  if model_file.exists():
+    from haystack.document_stores import SQLDocumentStore
+    document_store = SQLDocumentStore(f"sqlite:///{model_file_name}")
+    #model=hydrate_model(document_store=document_store)
+    from haystack.nodes import BM25Retriever, EmbeddingRetriever, TfidfRetriever
+    retriever = TfidfRetriever(document_store=document_store)
+    from haystack.nodes import FARMReader
+    reader = FARMReader(model_name_or_path=qa_model_ckpt, use_gpu=True)
+    from haystack.pipelines import ExtractiveQAPipeline, Pipeline
+    pipe = ExtractiveQAPipeline(reader, retriever)
+    return pipe
+  else:
+    return None
   
 def delete_model(folder_name=None):
   import shutil
@@ -80,17 +89,11 @@ def delete_processed(folder_name=None):
   folder_name = folder_name.replace(os.sep, '/')
   shutil.rmtree(f"{folder_name}/processed")
   
-  
-def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="deepset/roberta-base-squad2", encoding='windows-1252', separator="=x=x=x=", model=None, query=None, threshold=3, result_count=3, source=False):
+def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="deepset/roberta-base-squad2", encoding='windows-1252', separator="=x=x=x=", model=None, query=None, threshold=0.2, result_count=3, source=False, master_document=None):  
   if model is None:
-    model_file_name = f"{folder_name}/model/haystack.db"
-    import pathlib
-    model_file = pathlib.Path(model_file_name)
-    if model_file.exists():
-      from haystack.document_stores import SQLDocumentStore
-      document_store = SQLDocumentStore(f"sqlite:///{model_file_name}")
-      model=hydrate_model(document_store=document_store)
-    else:
+    # try to hydrate the model
+    model = hydrate_model(folder_name)
+    if model is None:
       return [] # giving you an empty set
   
   # all set do the work of predicting
@@ -121,3 +124,6 @@ def convert_pd_to_list(incoming_dict, content_column_name):
     new_data.update({'meta' : incoming_dict[i]})
     doc_list.append(new_data)
   return doc_list
+
+def get_master_document(folder_name=None, encoding="iso-8859-1"): # dummy call 
+  return 1
