@@ -27,12 +27,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 
-public class TinkerFrameGraphExporter extends AbstractGraphExporter{
+public class TinkerFrameGraphExporter extends AbstractGraphExporter {
 
 	// the tinker frame we are operating on
 	private TinkerFrame tf;
 	private TinkerGraph g;
 	private OwlTemporalEngineMeta meta;
+	private Map<String, String> nodeColorMap;
 	// the edge iterator
 	private GraphTraversal<Edge, Edge> edgesIt;
 	// the vert iterator
@@ -45,7 +46,16 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 		this.tf = tf;
 		this.g = tf.g;
 		this.meta = tf.getMetaData();
-		
+
+		// because i can't get the edge traversal properly :(
+		this.vertSet = new HashSet<String>();
+	}
+	
+	public TinkerFrameGraphExporter(TinkerFrame tf, Map<String, String> colorMap) {
+		this.tf = tf;
+		this.g = tf.g;
+		this.meta = tf.getMetaData();
+		this.nodeColorMap = colorMap;
 		// because i can't get the edge traversal properly :(
 		this.vertSet = new HashSet<String>();
 	}
@@ -104,7 +114,8 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 		vertexMap.put("propHash", propMap);
 		
 		// need to add in color
-		Color color = TypeColorShapeTable.getInstance().getColor(type, value.toString());
+		//Color color = TypeColorShapeTable.getInstance().getColor(type, value.toString());
+		Color color = TypeColorShapeTable.getInstance().getColor(type, value.toString(), this.nodeColorMap);
 		vertexMap.put(Constants.VERTEX_COLOR, IGraphExporter.getRgb(color));
 		
 		// add to the meta count

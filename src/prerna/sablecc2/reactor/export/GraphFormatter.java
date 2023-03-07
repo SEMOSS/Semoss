@@ -16,6 +16,7 @@ import org.apache.commons.lang.ArrayUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
 
 public class GraphFormatter extends AbstractFormatter {
 
@@ -44,6 +45,7 @@ public class GraphFormatter extends AbstractFormatter {
 	private Map<String, List<String>> connectionsMap;
 	private Map<String, List<String>> nodePropertiesMap;
 	private Map<String, List<String>> edgePropertiesMap;
+	private Map<String, String> colorsMap;
 	private List<String> nodeList;
 	private Map<String, String> aliasMap;
 
@@ -82,7 +84,7 @@ public class GraphFormatter extends AbstractFormatter {
 		if (this.indexConnections == null) {
 			determineConnectionsIndex(headers, rawHeaders);
 		}
-
+		
 		// process the nodes
 		processNodes(headers, values);
 		// process the relationships
@@ -127,10 +129,10 @@ public class GraphFormatter extends AbstractFormatter {
 			}
 
 			GraphFormatterMap nodeMap = new GraphFormatterMap();
-			Color color = TypeColorShapeTable.getInstance().getColor(vertexType, vertexLabel.toString());
-			nodeMap.put(VERTEX_COLOR_PROPERTY, getRgb(color));
-			nodeMap.put(VERTEX_TYPE_PROPERTY, vertexType);
-			nodeMap.put(VERTEX_LABEL_PROPERTY, vertexLabel);
+			Color color = TypeColorShapeTable.getInstance().getColor(vertexType, vertexLabel.toString(), colorsMap);
+			nodeMap.put(Constants.VERTEX_COLOR, getRgb(color));
+			nodeMap.put(Constants.VERTEX_TYPE, vertexType);
+			nodeMap.put(Constants.VERTEX_NAME, vertexLabel);
 			nodeMap.put(URI, uri);
 
 			Map<String, Object> propHash = new HashMap<String, Object>();
@@ -293,6 +295,7 @@ public class GraphFormatter extends AbstractFormatter {
 		return "GRAPH";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void setOptionsMap(Map<String, Object> optionsMap) {
 		super.setOptionsMap(optionsMap);
@@ -315,6 +318,10 @@ public class GraphFormatter extends AbstractFormatter {
 		String nodes = (String) this.optionsMap.get("nodes");
 		if (nodes != null && !nodes.isEmpty()) {
 			this.nodeList = generateNodeListFromStr(nodes);
+		}
+		Object colors = this.optionsMap.get("colors");
+		if (colors != null) {
+			this.colorsMap = (Map<String, String>) colors;
 		}
 	}
 	

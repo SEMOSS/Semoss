@@ -30,7 +30,16 @@ public class CollectGraphReactor extends CollectReactor {
 		this.task = getTask();
 
 		ITableDataFrame frame = getFrame();
-		IGraphExporter exporter = GraphExporterFactory.getExporter(frame);
+		IGraphExporter exporter;
+		
+		// check if the user has defined their own color scheme in the insight
+		NounMetadata graphMetadata = this.insight.getVarStore().get("GRAPH_COLORS");
+		if (graphMetadata != null) {
+			Map<String, String> colorsMap  = (Map<String, String>) graphMetadata.getValue();
+			exporter = GraphExporterFactory.getExporter(frame, colorsMap);
+		} else {
+			exporter = GraphExporterFactory.getExporter(frame);
+		}
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
 		collectedData.put("data", exporter.getData());
 		
