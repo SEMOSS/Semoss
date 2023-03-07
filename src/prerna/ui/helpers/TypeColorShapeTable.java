@@ -29,8 +29,12 @@ package prerna.ui.helpers;
 
 import java.awt.Color;
 import java.awt.Shape;
+import java.lang.reflect.Field;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -277,27 +281,68 @@ public class TypeColorShapeTable {
 	 * @param vertName String - vertex name
 	
 	 * @return Color - the color based on the type and vertex name*/
-	public Color getColor(String type, String vertName)
+	public Color getColor(String type, String vertName, Map<String, String> userDefinedColors)
 	{
 		Color retColor = null;
-		// first check the vertex name
-		if(colorHash.containsKey(vertName))
-			retColor = colorHash.get(vertName);
-		else if(colorHash.containsKey(type))
-			retColor = colorHash.get(type);
-		else if(DIHelper.getInstance().getProperty(type+"_COLOR") != null)
-			// try to search the properties file for the first time
-			retColor = (Color)DIHelper.getInstance().getLocalProp(DIHelper.getInstance().getProperty(type+"_COLOR"));
-		if(retColor == null && !colorStringHash.containsKey(vertName)){
-			//instead of returning default color, going to return random color that hasn't been used yet
-			for(String color : colors){
-				if(!colorStringHash.containsValue(color)){
-					//got a unique color, set node that color
-					retColor = (Color) DIHelper.getInstance().getLocalProp(color);
-					addColor(type, color);
-					break;
+		// first we check if the user has defined the color
+		// this has to go first so that if the user wants same node to be different color in a separate insights, it will catch it
+		if (userDefinedColors != null && userDefinedColors.get(type) != null) {
+			String nodeColor = userDefinedColors.get(type).toUpperCase();
+			// check if it is a predefined color
+			retColor = (Color) DIHelper.getInstance().getLocalProp(nodeColor.toUpperCase());
+			
+			// if reColor is not null, then we have a match. Otherwise, need try other options
+			if (retColor == null ) {
+				// check if its an hex code 
+				if (nodeColor.contains("#")) {
+					retColor = Color.decode(nodeColor);
+				} 
+				// check if its an rgb
+				else if (nodeColor.contains("RGB")) {
+					retColor = parseRgb(nodeColor);
+				}
+ 				// if its a word then try reflection to get it
+				else {
+					try {
+					    Field field = Class.forName("java.awt.Color").getField(nodeColor.toLowerCase());
+					    retColor = (Color) field.get(null);
+					} catch (Exception e) {
+						retColor = null; // Not defined
+					}
 				}
 			}
+		}
+		// otherwise, we will use the hash to standardize
+		else if(colorHash.containsKey(vertName)) {
+			retColor = colorHash.get(vertName);
+		} else if(colorHash.containsKey(type)) {
+			retColor = colorHash.get(type);
+		} else if(DIHelper.getInstance().getProperty(type+"_COLOR") != null) {
+			// try to search the properties file for the first time
+			retColor = (Color)DIHelper.getInstance().getLocalProp(DIHelper.getInstance().getProperty(type+"_COLOR"));
+		}
+		if(retColor == null && !colorStringHash.containsKey(vertName)){
+			//instead of returning default color, going to return random color that hasn't been used yet
+			if (userDefinedColors == null) {
+				for(String color : colors){
+					if(!colorStringHash.containsValue(color)){
+						//got a unique color, set node that color
+						retColor = (Color) DIHelper.getInstance().getLocalProp(color);
+						addColor(type, color);
+						break;
+					}
+				}
+			} else {
+				for(String color : colors){
+					if(!colorStringHash.containsValue(color) && !userDefinedColors.containsValue(color)){
+						//got a unique color, set node that color
+						retColor = (Color) DIHelper.getInstance().getLocalProp(color);
+						addColor(type, color);
+						break;
+					}
+				}
+			}
+			
 			if (retColor == null){
 				//if all of the colors have already been used
 				// just create a random color
@@ -309,9 +354,27 @@ public class TypeColorShapeTable {
 		if(colorStringHash.containsKey(vertName) && colorStringHash.get(vertName).equalsIgnoreCase(Constants.TRANSPARENT)) {
 			retColor = null;
 		}
-		
 		return retColor;
 	}
+	
+	
+	/**
+	 * Method parseRgb. - Translates RGB colors defined in a string into an actual RGB Color object.
+	 * @param rgbString String - rgb string - the appropriate rgb string the method will try to convert
+	
+	*/
+	public static Color parseRgb(String rgbString) {
+	    Pattern c = Pattern.compile("RGB *\\( *([0-9]+), *([0-9]+), *([0-9]+) *\\)");
+	    Matcher m = c.matcher(rgbString);
+	    if (m.matches()) 
+	    {
+	        return new Color(Integer.valueOf(m.group(1)),  // r
+	                         Integer.valueOf(m.group(2)),  // g
+	                         Integer.valueOf(m.group(3))); // b 
+	    }
+	    return null;  
+	}
+	
 	
 	/**
 	 * Method getShapeAsString. - Retrieves the shape in string format from the shapeString hashtable.
