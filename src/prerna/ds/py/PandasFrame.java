@@ -193,7 +193,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				// we need to replace all inner quotes with ""
 				@Override
 				public String processString(String input) {
-					return input.replace("\"", "\"\"");
+					return input.replace("\"", "\\\"");
 				}
 			});
 			
