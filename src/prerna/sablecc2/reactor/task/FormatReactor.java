@@ -25,7 +25,11 @@ public class FormatReactor extends TaskBuilderReactor {
 		GenRowStruct options = this.store.getNoun(keysToGet[1]);
 		if(options != null && !options.isEmpty()) {
 			Map<String, Object> optionValues = (Map<String, Object>) options.get(0);
+			// do we have custom colors in the insight and not overriding those in the reactor?
 			task.setFormatOptions(optionValues);
+		} else {
+			// do we have custom colors on the insight that we should add?
+			
 		}
 		
 		if(this.task.getTaskOptions() != null) {
