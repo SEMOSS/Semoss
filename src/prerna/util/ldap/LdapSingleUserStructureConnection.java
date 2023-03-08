@@ -125,7 +125,7 @@ public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator
 				classLogger.info(principalDN + " failed to change password");
 			}
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Failed to chagne password. Error message: " + e.getMessage());
+			throw new IllegalArgumentException("Failed to change password. Error message: " + e.getMessage());
 		} finally {
 			if(ldapContext != null) {
 				ldapContext.close();
