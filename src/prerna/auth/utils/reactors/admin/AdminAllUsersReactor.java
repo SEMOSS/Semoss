@@ -67,6 +67,9 @@ public class AdminAllUsersReactor extends ToExcelReactor {
 			
 			// get a random file name
 			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+			if(prefixName == null || prefixName.isEmpty()) {
+				prefixName = "All_Users";
+			}
 			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 			// grab file path to write the file
 			this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
