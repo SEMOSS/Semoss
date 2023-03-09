@@ -33,7 +33,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter {
 	private TinkerFrame tf;
 	private TinkerGraph g;
 	private OwlTemporalEngineMeta meta;
-	private Map<String, String> nodeColorMap;
+	private Map<String, Color> nodeColorMap;
 	// the edge iterator
 	private GraphTraversal<Edge, Edge> edgesIt;
 	// the vert iterator
@@ -51,7 +51,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter {
 		this.vertSet = new HashSet<String>();
 	}
 	
-	public TinkerFrameGraphExporter(TinkerFrame tf, Map<String, String> colorMap) {
+	public TinkerFrameGraphExporter(TinkerFrame tf, Map<String, Color> colorMap) {
 		this.tf = tf;
 		this.g = tf.g;
 		this.meta = tf.getMetaData();
@@ -115,7 +115,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter {
 		
 		// need to add in color
 		//Color color = TypeColorShapeTable.getInstance().getColor(type, value.toString());
-		Color color = TypeColorShapeTable.getInstance().getColor(type, value.toString(), this.nodeColorMap);
+		Color color = this.nodeColorMap.get(type) == null ? TypeColorShapeTable.getInstance().getColor(type, value.toString()) : this.nodeColorMap.get(type);
 		vertexMap.put(Constants.VERTEX_COLOR, IGraphExporter.getRgb(color));
 		
 		// add to the meta count

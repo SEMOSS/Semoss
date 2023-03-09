@@ -97,7 +97,7 @@ public class SEMOSSVertex{
 		logger.debug("Name is " + instanceName);
 
 		
-		Color color = TypeColorShapeTable.getInstance().getColor(className, instanceName, null);
+		Color color = TypeColorShapeTable.getInstance().getColor(className, instanceName);
 		setColor(color);
 		logger.debug("Color is " + color);
 	}
@@ -136,7 +136,7 @@ public class SEMOSSVertex{
 		putProperty(Constants.VERTEX_NAME, value);
 		logger.debug("Name is " + value);
 
-		Color color = TypeColorShapeTable.getInstance().getColor(className, value, null);
+		Color color = TypeColorShapeTable.getInstance().getColor(className, value);
 		setColor(color);
 		logger.debug("Color is " + color);
 	}
@@ -154,7 +154,7 @@ public class SEMOSSVertex{
 	// refresh the color with what is in TypeColorShapeTable
 	public void resetColor()
 	{
-		this.setColor(TypeColorShapeTable.getInstance().getColor(this.getProperty(Constants.VERTEX_TYPE)+"", this.getProperty(Constants.VERTEX_NAME)+"", null));
+		this.setColor(TypeColorShapeTable.getInstance().getColor(this.getProperty(Constants.VERTEX_TYPE)+"", this.getProperty(Constants.VERTEX_NAME)+""));
 	}
 	
 	public void setColor(Color c){
