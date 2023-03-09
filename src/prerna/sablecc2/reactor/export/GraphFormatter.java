@@ -129,7 +129,9 @@ public class GraphFormatter extends AbstractFormatter {
 			}
 
 			GraphFormatterMap nodeMap = new GraphFormatterMap();
-			Color color = this.colorsMap.get(vertexType) == null ? TypeColorShapeTable.getInstance().getColor(vertexType, vertexLabel.toString()) : this.colorsMap.get(vertexType);
+			Color color = (this.colorsMap != null && this.colorsMap.get(vertexType) == null) 
+					? TypeColorShapeTable.getInstance().getColor(vertexType, vertexLabel.toString()) 
+					: this.colorsMap.get(vertexType);
 			nodeMap.put(Constants.VERTEX_COLOR, getRgb(color));
 			nodeMap.put(Constants.VERTEX_TYPE, vertexType);
 			nodeMap.put(Constants.VERTEX_NAME, vertexLabel);
