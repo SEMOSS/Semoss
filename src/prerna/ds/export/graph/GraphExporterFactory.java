@@ -1,5 +1,6 @@
 package prerna.ds.export.graph;
 
+import java.awt.Color;
 import java.util.Map;
 import prerna.ds.TinkerFrame;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -29,7 +30,7 @@ public class GraphExporterFactory {
 		return graphExporter;
 	}
 	
-	public static IGraphExporter getExporter(IDataMaker frame, Map<String, String> colorMap) {
+	public static IGraphExporter getExporter(IDataMaker frame, Map<String, Color> colorMap) {
 		IGraphExporter graphExporter = null;
 		if(frame instanceof TinkerFrame) {
 			graphExporter = new TinkerFrameGraphExporter((TinkerFrame) frame, colorMap);

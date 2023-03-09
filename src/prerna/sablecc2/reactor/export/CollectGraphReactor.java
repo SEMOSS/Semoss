@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +36,7 @@ public class CollectGraphReactor extends CollectReactor {
 		// check if the user has defined their own color scheme in the insight
 		NounMetadata graphMetadata = this.insight.getVarStore().get("GRAPH_COLORS");
 		if (graphMetadata != null) {
-			Map<String, String> colorsMap  = (Map<String, String>) graphMetadata.getValue();
+			Map<String, Color> colorsMap  = (Map<String, Color>) graphMetadata.getValue();
 			exporter = GraphExporterFactory.getExporter(frame, colorsMap);
 		} else {
 			exporter = GraphExporterFactory.getExporter(frame);
