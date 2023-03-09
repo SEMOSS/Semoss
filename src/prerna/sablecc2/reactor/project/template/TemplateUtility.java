@@ -73,7 +73,7 @@ public class TemplateUtility {
 	 * @return
 	 */
 	public static String getTemplateFile(String projectId, String templateName) {
-		String assetFolder = AssetUtility.getProjectAssetFolder(projectId).replace('\\', '/');
+		String assetFolder = AssetUtility.getProjectBaseFolder(projectId).replace('\\', '/');
 		String fileName = getTemplateList(projectId).get(templateName);
 		// returns the project template folder appended with the template file name 
 		if(fileName.startsWith("/") || fileName.startsWith("\\")) {
