@@ -101,7 +101,7 @@ public class SetInsightGraphOptionsReactor extends AbstractReactor{
 	
 	*/
 	public static Color parseRgb(String rgbString) {
-	    Pattern c = Pattern.compile("RGB *\\( *([0-9]), *([0-9]), *([0-9]) *\\)");
+		Pattern c = Pattern.compile("RGB *\\( *([0-9]+), *([0-9]+), *([0-9]+) *\\)");
 	    Matcher m = c.matcher(rgbString);
 	    if (m.matches()) 
 	    {
