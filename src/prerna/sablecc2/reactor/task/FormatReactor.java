@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.task;
 
+import java.awt.Color;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -7,6 +9,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
 
 public class FormatReactor extends TaskBuilderReactor {
@@ -18,18 +21,22 @@ public class FormatReactor extends TaskBuilderReactor {
 	@Override
 	protected void buildTask() {
 		GenRowStruct type = this.store.getNoun("type");
+		String formatType = null;
 		if(type != null && !type.isEmpty()) {
-			String formatType = type.get(0).toString();
+			formatType = type.get(0).toString();
 			task.setFormat(formatType);
 		}
+		Map<String, Object> optionValues = null;
+
 		GenRowStruct options = this.store.getNoun(keysToGet[1]);
 		if(options != null && !options.isEmpty()) {
-			Map<String, Object> optionValues = (Map<String, Object>) options.get(0);
-			// do we have custom colors in the insight and not overriding those in the reactor?
+			optionValues = (Map<String, Object>) options.get(0);
+		}
+		optionValues = applyDefaultOptions(optionValues);
+		
+		// set the option values into the task
+		if(optionValues != null && !optionValues.isEmpty()) {
 			task.setFormatOptions(optionValues);
-		} else {
-			// do we have custom colors on the insight that we should add?
-			
 		}
 		
 		if(this.task.getTaskOptions() != null) {
@@ -47,6 +54,30 @@ public class FormatReactor extends TaskBuilderReactor {
 				InsightUtility.setPanelForVisualization(this.insight, panelId);
 			}
 		}
+	}
+	
+	/**
+	 * Merge insight formats into the specific formats applied into the task
+	 * @param optionValues
+	 * @return
+	 */
+	private Map<String, Object> applyDefaultOptions(Map<String, Object> optionValues) {
+		Map<String, Object> defaultOptions = new HashMap<>();
+		// do we have custom colors on the insight that we should add?
+		// check if the user has defined their own color scheme in the insight
+		if (this.insight.getVarStore().get(Constants.GRAPH_COLORS) != null) {
+			Map<String, Color> colorsMap = (Map<String, Color>) this.insight.getVarStore().get("GRAPH_COLORS").getValue();
+			defaultOptions.put("colors", colorsMap);
+		}
+		
+		if(optionValues == null || optionValues.isEmpty()) {
+			return defaultOptions;
+		}
+		
+		for(String key : defaultOptions.keySet()) {
+			optionValues.putIfAbsent(key, defaultOptions.get(key));
+		}
+		return optionValues;
 	}
 	
 	///////////////////////// KEYS /////////////////////////////////////
