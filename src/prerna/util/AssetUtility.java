@@ -217,6 +217,12 @@ public class AssetUtility {
 		File file = new File(assetFolder + DIR_SEPARATOR + ".git");
 		return file.exists();
 	}
+
+	public static String getProjectBaseFolder(String projectId) {
+        IProject project = Utility.getProject(projectId);
+        String projectName = project.getProjectName();
+        return AssetUtility.getProjectBaseFolder(projectName, projectId);
+    }
 	
 	public static String getProjectBaseFolder(String projectName, String projectId) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
