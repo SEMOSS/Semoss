@@ -66,7 +66,7 @@ public class QueryExecutionUtility {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			while(wrapper.hasNext()) {
-				return (Integer) wrapper.next().getValues()[0];
+				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -84,7 +84,7 @@ public class QueryExecutionUtility {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			while(wrapper.hasNext()) {
-				return (Long) wrapper.next().getValues()[0];
+				return ((Number) wrapper.next().getValues()[0]).longValue();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
