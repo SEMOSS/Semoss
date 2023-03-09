@@ -281,39 +281,13 @@ public class TypeColorShapeTable {
 	 * @param vertName String - vertex name
 	
 	 * @return Color - the color based on the type and vertex name*/
-	public Color getColor(String type, String vertName, Map<String, String> userDefinedColors)
+	public Color getColor(String type, String vertName)
 	{
 		Color retColor = null;
 		// first we check if the user has defined the color
 		// this has to go first so that if the user wants same node to be different color in a separate insights, it will catch it
-		if (userDefinedColors != null && userDefinedColors.get(type) != null) {
-			String nodeColor = userDefinedColors.get(type).toUpperCase();
-			// check if it is a predefined color
-			retColor = (Color) DIHelper.getInstance().getLocalProp(nodeColor.toUpperCase());
-			
-			// if reColor is not null, then we have a match. Otherwise, need try other options
-			if (retColor == null ) {
-				// check if its an hex code 
-				if (nodeColor.contains("#")) {
-					retColor = Color.decode(nodeColor);
-				} 
-				// check if its an rgb
-				else if (nodeColor.contains("RGB")) {
-					retColor = parseRgb(nodeColor);
-				}
- 				// if its a word then try reflection to get it
-				else {
-					try {
-					    Field field = Class.forName("java.awt.Color").getField(nodeColor.toLowerCase());
-					    retColor = (Color) field.get(null);
-					} catch (Exception e) {
-						retColor = null; // Not defined
-					}
-				}
-			}
-		}
 		// otherwise, we will use the hash to standardize
-		else if(colorHash.containsKey(vertName)) {
+		if(colorHash.containsKey(vertName)) {
 			retColor = colorHash.get(vertName);
 		} else if(colorHash.containsKey(type)) {
 			retColor = colorHash.get(type);
@@ -323,23 +297,12 @@ public class TypeColorShapeTable {
 		}
 		if(retColor == null && !colorStringHash.containsKey(vertName)){
 			//instead of returning default color, going to return random color that hasn't been used yet
-			if (userDefinedColors == null) {
-				for(String color : colors){
-					if(!colorStringHash.containsValue(color)){
-						//got a unique color, set node that color
-						retColor = (Color) DIHelper.getInstance().getLocalProp(color);
-						addColor(type, color);
-						break;
-					}
-				}
-			} else {
-				for(String color : colors){
-					if(!colorStringHash.containsValue(color) && !userDefinedColors.containsValue(color)){
-						//got a unique color, set node that color
-						retColor = (Color) DIHelper.getInstance().getLocalProp(color);
-						addColor(type, color);
-						break;
-					}
+			for(String color : colors){
+				if(!colorStringHash.containsValue(color)){
+					//got a unique color, set node that color
+					retColor = (Color) DIHelper.getInstance().getLocalProp(color);
+					addColor(type, color);
+					break;
 				}
 			}
 			

@@ -45,7 +45,7 @@ public class GraphFormatter extends AbstractFormatter {
 	private Map<String, List<String>> connectionsMap;
 	private Map<String, List<String>> nodePropertiesMap;
 	private Map<String, List<String>> edgePropertiesMap;
-	private Map<String, String> colorsMap;
+	private Map<String, Color> colorsMap;
 	private List<String> nodeList;
 	private Map<String, String> aliasMap;
 
@@ -129,7 +129,7 @@ public class GraphFormatter extends AbstractFormatter {
 			}
 
 			GraphFormatterMap nodeMap = new GraphFormatterMap();
-			Color color = TypeColorShapeTable.getInstance().getColor(vertexType, vertexLabel.toString(), colorsMap);
+			Color color = this.colorsMap.get(vertexType) == null ? TypeColorShapeTable.getInstance().getColor(vertexType, vertexLabel.toString()) : this.colorsMap.get(vertexType);
 			nodeMap.put(Constants.VERTEX_COLOR, getRgb(color));
 			nodeMap.put(Constants.VERTEX_TYPE, vertexType);
 			nodeMap.put(Constants.VERTEX_NAME, vertexLabel);
@@ -321,7 +321,7 @@ public class GraphFormatter extends AbstractFormatter {
 		}
 		Object colors = this.optionsMap.get("colors");
 		if (colors != null) {
-			this.colorsMap = (Map<String, String>) colors;
+			this.colorsMap = (Map<String, Color>) colors;
 		}
 	}
 	
