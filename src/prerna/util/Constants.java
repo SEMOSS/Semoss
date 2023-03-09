@@ -389,6 +389,9 @@ public class Constants {
 	public static final String TYPE = "TYPE";
 	public static final String SPARQL = "SPARQL";
 
+	public static final String GRAPH_COLORS = "GRAPH_COLORS";
+	public static final String GRAPH_SHAPES = "GRAPH_SHAPES";
+	
 	public static final String ENGINE_WEB_WATCHER = "ENGINE_WEB_WATCHER";
 	public static final String PROJECT_WATCHER = "PROJECT_WATCHER";
 
