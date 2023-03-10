@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -60,10 +61,10 @@ public class SetInsightGraphOptionsReactor extends AbstractReactor{
 							throw new IllegalArgumentException("Option has not yet been defined/implemented");
 					}
 				}
-				return new NounMetadata(mapValue,PixelDataType.MAP);
+				return new NounMetadata(mapValue, PixelDataType.MAP, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 			}
 		}
-		return new NounMetadata(Collections.<String, String>emptyMap(), PixelDataType.MAP);
+		return new NounMetadata(Collections.<String, String>emptyMap(), PixelDataType.MAP, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 	}
 	
 	public Color getColor(String userDefinedColor) {
