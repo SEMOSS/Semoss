@@ -37,9 +37,12 @@ def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', e
     else:
       all_files = f"{all_files}, {input_file.stem}"
     csv_file = pd.read_csv(file, encoding=encoding)
+    csv_file = csv_file.fillna(value='NA')
+    csv_dict = csv_file.to_dict(orient="records")
+    csv_dict = convert_pd_to_list(csv_dict, content_column)
     #print(text)
     # separate it by some separator, the default is 
-    documents = np.array(list(csv_file["Content"]))
+    documents = np.array(csv_dict)
     master_document.extend(documents)
     
   # index all of them  
@@ -77,7 +80,7 @@ def delete_processed(folder_name=None):
   folder_name = folder_name.replace(os.sep, '/')
   shutil.rmtree(f"{folder_name}/processed")
 
-def get_master_document(folder_name=None, encoding="iso-8859-1"):
+def get_master_document(folder_name=None, encoding="iso-8859-1", content_column='Content'):
   import glob
   file_list = glob.glob(f"{folder_name}/processed/*.csv")
   import numpy as np
@@ -94,9 +97,13 @@ def get_master_document(folder_name=None, encoding="iso-8859-1"):
     else:
       all_files = f"{all_files}, {input_file.stem}"
     csv_file = pd.read_csv(file, encoding=encoding)
+    csv_file = csv_file.fillna(value='NA')
+
+    csv_dict = csv_file.to_dict(orient="records")
+    csv_dict = convert_pd_to_list(csv_dict, content_column)
     #print(text)
     # separate it by some separator, the default is 
-    documents = np.array(list(csv_file["Content"]))
+    documents = np.array(csv_dict)
     master_document.extend(documents)
   return master_document
 
@@ -123,19 +130,20 @@ def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="de
 
   return_data = []
   
-  print(hits)
-  print(type(hits))
-  print(len(master_document))
+  #print(hits)
+  #print(type(hits))
+  #print(len(master_document))
 
   for i,hit in enumerate(hits):
     #print(f'Document {i+1} Cos Sim {hit["score"]:.3f}:\n\r {documents[hit["corpus_id"]]}')
     item = {}
-    
+    #print(hit)
     if(hit["score"] > threshold):
       nlp_output = nlp(query, str(master_document[hit['corpus_id']]))
-      print(nlp_output)
+      fd = master_document[hit['corpus_id']]
       if source:
-        item.update({"full_document" : master_document[hit['corpus_id']]})
+        item.update({"full_document" : fd['content']})
+      item.update({"meta": fd['meta']})
       item.update({"source_document_id" : hit['corpus_id']})
       item.update({"start" : nlp_output["start"]})
       item.update({"end" : nlp_output["end"]})
@@ -144,3 +152,14 @@ def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="de
       return_data.append(item);
   
   return return_data
+
+
+def convert_pd_to_list(incoming_dict, content_column_name):
+  doc_list = []
+  for i in range(0,len(incoming_dict)-1):
+    new_data = {}
+    content = incoming_dict[i].pop(content_column_name)
+    new_data.update({'content' : content})
+    new_data.update({'meta' : incoming_dict[i]})
+    doc_list.append(new_data)
+  return doc_list
