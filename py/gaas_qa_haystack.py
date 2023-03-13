@@ -125,5 +125,5 @@ def convert_pd_to_list(incoming_dict, content_column_name):
     doc_list.append(new_data)
   return doc_list
 
-def get_master_document(folder_name=None, encoding="iso-8859-1"): # dummy call 
+def get_master_document(folder_name=None, encoding="iso-8859-1", content_column='Content'): # dummy call 
   return 1
