@@ -15,10 +15,10 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.om.Insight;
 import prerna.om.InsightFile;
 import prerna.om.OldInsight;
-import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,13 +42,9 @@ public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 		// need the engine name and id that has the recipe
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
-		// get the engine so i can get the new insight
-		IProject project = Utility.getProject(projectId);
-		if(project == null) {
-			throw new IllegalArgumentException("Cannot find project = " + projectId);
-		}
-		List<Insight> in = project.getInsight(rdbmsId);
-		Insight newInsight = in.get(0);
+		
+		// pull the insight from the security db
+		Insight newInsight = SecurityInsightUtils.getInsight(projectId, rdbmsId);
 
 		// OLD INSIGHT
 		if(newInsight instanceof OldInsight) {
