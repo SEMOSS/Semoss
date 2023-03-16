@@ -94,7 +94,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		String cacheCron = Utility.getApplicationCacheCron();
 		LocalDateTime cachedOn = null;
 		
-		ClusterUtil.reactorPullInsightsDB(projectId);
+//		ClusterUtil.reactorPullInsightsDB(projectId);
 		if(addAll) {
 			addedInsight = true;
 
@@ -274,7 +274,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		}
 		
 		// push to the cloud
-		ClusterUtil.reactorPushInsightDB(projectId);
+//		ClusterUtil.reactorPushInsightDB(projectId);
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN); 
 		if(addedInsight) {
