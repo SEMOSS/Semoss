@@ -115,12 +115,7 @@ public class InsightAdministrator {
 
 		PreparedStatement ps = null;
 		try {
-			ps = insightEngine.bulkInsertPreparedStatement(new String[] {
-					TABLE_NAME, QUESTION_ID_COL, QUESTION_NAME_COL, QUESTION_LAYOUT_COL, 
-					HIDDEN_INSIGHT_COL, CACHEABLE_COL, CACHE_MINUTES_COL, 
-					CACHE_CRON_COL, CACHED_ON_COL, CACHE_ENCRYPT_COL, QUESTION_PKQL_COL, 
-					SCHEMA_NAME_COL
-			});
+			ps = getAddInsightPreparedStatement();
 
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, insightId);
@@ -183,6 +178,80 @@ public class InsightAdministrator {
 		// return the new rdbms id
 		return insightId;
 	}
+	
+	public String batchInsight(PreparedStatement ps, String insightId, String insightName, String layout, List<String> pixelRecipeToSave, 
+			boolean global, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
+			String schemaName) {
+		return batchInsight(ps, insightId, insightName, layout, pixelRecipeToSave.toArray(new String[] {}), 
+				global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+	}
+	
+	/**
+	 * 
+	 * @param insightId
+	 * @param insightName
+	 * @param layout
+	 * @param pixelRecipeToSave
+	 * @param global
+	 * @param cacheable
+	 * @param cacheMinutes
+	 * @param cacheEncrypt
+	 * @return
+	 */
+	public String batchInsight(PreparedStatement ps, String insightId, String insightName, String layout, String[] pixelRecipeToSave, 
+			boolean global, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, 
+			String schemaName) {
+		logger.info("Adding new question with insight id :::: " + Utility.cleanLogString(insightId));
+		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
+		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
+		logger.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
+
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+
+		try {
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, insightName);
+			ps.setString(parameterIndex++, layout);
+			ps.setBoolean(parameterIndex++, !global);
+			ps.setBoolean(parameterIndex++, cacheable);
+			ps.setInt(parameterIndex++, cacheMinutes);
+			if(cacheCron == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, cacheCron);
+			}
+			if(cachedOn == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+			} else {
+				ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn), cal);
+			}
+			ps.setBoolean(parameterIndex++, cacheEncrypt);
+			if(this.allowArrayDatatype) {
+				java.sql.Array array = ps.getConnection().createArrayOf("VARCHAR", pixelRecipeToSave);
+				ps.setArray(parameterIndex++, array);
+			} else if(this.allowClobJavaObject) {
+				java.sql.Clob clob = ps.getConnection().createClob();
+				clob.setString(1, getClobRecipeSyntax(pixelRecipeToSave));
+				ps.setClob(parameterIndex++, clob);
+			} else {
+				ps.setString(parameterIndex++, getClobRecipeSyntax(pixelRecipeToSave));
+			}
+			if(schemaName == null) {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			} else {
+				ps.setString(parameterIndex++, schemaName);
+			}
+			ps.addBatch();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred adding insight definition");
+		}
+
+		// return the new rdbms id
+		return insightId;
+	}
+	
 
 	/**
 	 * Update the insight tags for the insight
@@ -315,7 +384,6 @@ public class InsightAdministrator {
 			}
 		}
 	}
-
 
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, 
 			boolean global, boolean cacheable, int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt,
@@ -640,6 +708,18 @@ public class InsightAdministrator {
 		}
 	}
 
+	public void batchInsightMetadata(PreparedStatement insertPs, String insightId, String metaKey, String metaValue, int order) {
+		try {
+			insertPs.setString(1, insightId);
+			insertPs.setString(2, metaKey);
+			insertPs.setString(3, metaValue);
+			insertPs.setInt(4, order);
+			insertPs.addBatch();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+	}
+	
 	/**
 	 * Drop specific insights from the insight
 	 * @param insightIDs
@@ -673,6 +753,40 @@ public class InsightAdministrator {
 		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
 		logger.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
 		insightEngine.removeData(deleteQuery);
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public PreparedStatement getAddInsightPreparedStatement() {
+		PreparedStatement ps = null;
+		try {
+			ps = insightEngine.bulkInsertPreparedStatement(new String[] {
+					TABLE_NAME, QUESTION_ID_COL, QUESTION_NAME_COL, QUESTION_LAYOUT_COL, 
+					HIDDEN_INSIGHT_COL, CACHEABLE_COL, CACHE_MINUTES_COL, 
+					CACHE_CRON_COL, CACHED_ON_COL, CACHE_ENCRYPT_COL, QUESTION_PKQL_COL, 
+					SCHEMA_NAME_COL
+			});
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred generating the prepared statement to insert the insight");
+		}
+		
+		return ps;
+	}
+	
+	public PreparedStatement getAddInsightMetaPreparedStatement() {
+		PreparedStatement ps = null;
+		try {
+			ps = insightEngine.bulkInsertPreparedStatement(new String[] {
+					"INSIGHTMETA", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred generating the prepared statement to insert the insight metadata");
+		}
+		
+		return ps;
 	}
 
 	/**
@@ -736,4 +850,5 @@ public class InsightAdministrator {
 	public static String getClobRecipeSyntax(Collection<String> pixelRecipeToSave) {
 		return getClobRecipeSyntax(pixelRecipeToSave.toArray(new String[pixelRecipeToSave.size()]));
 	}
+
 }

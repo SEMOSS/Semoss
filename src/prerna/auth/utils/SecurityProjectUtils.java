@@ -1,5 +1,7 @@
 package prerna.auth.utils;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -26,9 +28,13 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -44,16 +50,196 @@ import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.PixelUtility;
+import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.parser.ParserException;
 import prerna.util.Constants;
+import prerna.util.ProjectUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	private static final Logger logger = LogManager.getLogger(SecurityProjectUtils.class);
 
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static File createInsightsDatabase(String projectId, String folderPath) {
+		IProject project = Utility.getProject(projectId);
+		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
+		
+		RDBMSNativeEngine newInsightDatabase = ProjectUtils.generateInsightsDatabase(insightType, folderPath);
+		ProjectUtils.runInsightCreateTableQueries(newInsightDatabase);
+		
+		InsightAdministrator admin = new InsightAdministrator(newInsightDatabase);
+		
+		{
+			boolean error = false;
+			PreparedStatement insertPs = null;
+			
+			String iprefix = "INSIGHT__";
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector(iprefix+"INSIGHTID"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"INSIGHTNAME"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"LAYOUT"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"CREATEDON"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"LASTMODIFIEDON"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"GLOBAL"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"CACHEABLE"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"CACHEMINUTES"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"CACHECRON"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"CACHEDON"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"CACHEENCRYPT"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"RECIPE"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"SCHEMANAME"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(iprefix+"PROJECTID", "==", projectId));
+			IRawSelectWrapper wrapper = null;
+			try {
+				insertPs = admin.getAddInsightPreparedStatement();
+
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+	
+				while(wrapper.hasNext()) {
+					Object[] row = wrapper.next().getValues();
+					
+					int index = 0;
+					String insightId = (String) row[index++];
+					String insightName = (String) row[index++];
+					String insightLayout = (String) row[index++];
+					SemossDate createdOn = (SemossDate) row[index++];
+					SemossDate lastModifiedOn = (SemossDate) row[index++];
+					Boolean global = (Boolean) row[index++];
+					Boolean cacheable = (Boolean) row[index++];
+					int cacheMinutes = ((Number) row[index++]).intValue();
+					String cacheCron = (String) row[index++];
+					SemossDate sdCachedOn = (SemossDate) row[index++];
+					LocalDateTime cachedOn = null;
+					if(sdCachedOn != null) {
+						cachedOn = sdCachedOn.getLocalDateTime();
+					}
+					boolean cacheEncrypt = (Boolean) row[index++];
+					String pixelRecipe = (String) row[index++];
+					String schemaName = (String) row[index++];
+					
+					List<String> pixelList = null;
+	
+					if(pixelRecipe != null && !pixelRecipe.isEmpty() && !pixelRecipe.equals("null")) {
+						List<String> pixel = securityGson.fromJson(pixelRecipe, List.class);
+						int pixelSize = pixel.size();
+						pixelList = new ArrayList<>(pixelSize);
+						for(int i = 0; i < pixelSize; i++) {
+							String pixelString = pixel.get(i).toString();
+							List<String> breakdown;
+							try {
+								breakdown = PixelUtility.parsePixel(pixelString);
+								pixelList.addAll(breakdown);
+							} catch (ParserException | LexerException | IOException e) {
+								logger.error(Constants.STACKTRACE, e);
+								throw new IllegalArgumentException("Error occurred parsing the pixel expression");
+							}
+						}
+					} else {
+						logger.warn("Cannot write insight id '"+insightId+"' with no pixel recipe");
+						continue;
+					}
+	
+					admin.batchInsight(insertPs, insightId, insightName, insightLayout, pixelList, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+				}
+				
+				insertPs.executeBatch();
+				if(!insertPs.getConnection().getAutoCommit()) {
+					insertPs.getConnection().commit();
+				}
+			} catch(Exception e) {
+				error = true;
+				logger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error occured creating the insights database");
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
+				if(insertPs != null) {
+					try {
+						insertPs.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+				if(error) {
+					try {
+						newInsightDatabase.closeDB();
+					} catch (Exception e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+					String databaseFileLocation = newInsightDatabase.getProp().getProperty(AbstractSqlQueryUtil.HOSTNAME);
+					File databaseFile = new File(databaseFileLocation);
+					if(databaseFile.exists() && databaseFile.isFile()) {
+						databaseFile.delete();
+					}
+				}
+			}
+		}
+		{
+			PreparedStatement insertPs = null;
+
+			String iprefix = "INSIGHTMETA__";
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector(iprefix+"INSIGHTID"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"METAKEY"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"METAVALUE"));
+			qs.addSelector(new QueryColumnSelector(iprefix+"METAORDER"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(iprefix+"PROJECTID", "==", projectId));
+
+			IRawSelectWrapper wrapper = null;
+			try {
+				insertPs = admin.getAddInsightMetaPreparedStatement();
+				
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+	
+				while(wrapper.hasNext()) {
+					Object[] row = wrapper.next().getValues();
+					
+					int index = 0;
+					String insightId = (String) row[index++];
+					String metaKey = (String) row[index++];
+					String metaValue = (String) row[index++];
+					int metaOrder = ((Number) row[index++]).intValue();
+
+					admin.batchInsightMetadata(insertPs, insightId, metaKey, metaValue, metaOrder);
+				}
+				
+				insertPs.executeBatch();
+				if(!insertPs.getConnection().getAutoCommit()) {
+					insertPs.getConnection().commit();
+				}
+			} catch(Exception e) {
+				// insight metadata is not as important, log the error
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
+				if(insertPs != null) {
+					try {
+						insertPs.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+
+		String databaseFileLocation = newInsightDatabase.getProp().getProperty(AbstractSqlQueryUtil.HOSTNAME);
+		File databaseFile = new File(databaseFileLocation);
+		return databaseFile;
+	}
+	
 	/**
 	 * Try to reconcile and get the engine id
 	 * @return

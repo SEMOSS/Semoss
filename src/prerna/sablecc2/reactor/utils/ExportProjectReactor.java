@@ -3,16 +3,19 @@ package prerna.sablecc2.reactor.utils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
@@ -23,7 +26,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.EngineSyncUtility;
+import prerna.util.ProjectSyncUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -53,11 +56,6 @@ public class ExportProjectReactor extends AbstractReactor {
 				}
 			}
 		} 
-//		else {
-//			project = MasterDatabaseUtility.testDatabaseIdIfAlias(project);
-//			if (!MasterDatabaseUtility.getAllDatabaseIds().contains(project))
-//				throw new IllegalArgumentException("Project " + project + " does not exist.");
-//		}
 
 		logger.info("Exporting project now...");
 		logger.info("Stopping the project...");
@@ -72,7 +70,7 @@ public class ExportProjectReactor extends AbstractReactor {
 		// SmssUtilities.getUniqueName(engineName, project);
 		zipFilePath = OUTPUT_PATH + "/" + projectName + "_project.zip";
 
-		Lock lock = EngineSyncUtility.getEngineLock(projectName);
+		Lock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
 		try {
 			DIHelper.getInstance().removeProjectProperty(projectId);
@@ -80,14 +78,35 @@ public class ExportProjectReactor extends AbstractReactor {
 			// zip project
 			ZipOutputStream zos = null;
 			try {
-				// zip project folder
-				logger.info("Zipping project files...");
-				zos = ZipUtils.zipFolder(projectDir, zipFilePath);
-				logger.info("Done zipping project files...");
+				if(ClusterUtil.IS_CLUSTER) {
+					logger.info("Creating insight database ...");
+					File insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
+					logger.info("Done creating insight database ...");
+
+					// zip project folder minus insights
+					logger.info("Zipping project files...");
+					zos = ZipUtils.zipFolder(projectDir, zipFilePath, 
+							// ignore the current insights database
+							Arrays.asList(new String[] {
+									SmssUtilities.getUniqueName(projectName, projectId)+"/"+FilenameUtils.getName(insightsFile.getAbsolutePath())}));
+					logger.info("Done zipping project files...");
+					
+					logger.info("Zipping insight database ...");
+					ZipUtils.addToZipFile(insightsFile, zos, SmssUtilities.getUniqueName(projectName, projectId));
+					logger.info("Done zipping insight database...");
+				} else {
+					// zip project folder
+					logger.info("Zipping project files...");
+					zos = ZipUtils.zipFolder(projectDir, zipFilePath);
+					logger.info("Done zipping project files...");
+				}
+				
 				// add smss file
+				logger.info("Zipping project smss...");
 				File smss = new File(projectDir + "/../" + SmssUtilities.getUniqueName(projectName, projectId) + ".smss");
-				logger.info("Saving file " + smss.getName());
 				ZipUtils.addToZipFile(smss, zos);
+				logger.info("Done zipping project smss files...");
+
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
