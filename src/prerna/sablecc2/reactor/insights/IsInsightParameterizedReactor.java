@@ -75,7 +75,7 @@ public class IsInsightParameterizedReactor extends AbstractInsightReactor {
 			newInsight = in.get(0);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			logger.info("Pulling app from cloud storage, projectId=" + projectId);
-			ClusterUtil.reactorPullInsightsDB(projectId);
+//			ClusterUtil.reactorPullInsightsDB(projectId);
 			// this is needed for the pipeline json
 			ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 			try {
