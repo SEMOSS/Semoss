@@ -773,6 +773,20 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CACHEENCRYPT</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RECIPE/INSIGHT">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/INSIGHT">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RECIPE/INSIGHT"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RECIPE/INSIGHT">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RECIPE/INSIGHT"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">RECIPE</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHEMANAME/INSIGHT">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
@@ -2862,7 +2876,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:01:31 13:38:46</TIME>
+	<TIME xmlns="ENGINE:">2023:03:15 10:45:18</TIME>
 </rdf:Description>
 
 </rdf:RDF>
