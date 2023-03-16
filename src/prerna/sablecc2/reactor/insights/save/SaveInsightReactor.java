@@ -173,7 +173,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		IProject project = Utility.getProject(projectId);
 		
 		// pull the insights db again incase someone just saved something 
-		ClusterUtil.reactorPullInsightsDB(projectId);
+//		ClusterUtil.reactorPullInsightsDB(projectId);
 		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		
 		// get an updated recipe if there are files used
@@ -319,7 +319,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			this.insight.getUser().addOpenInsight(projectId, newInsightId, this.insight.getInsightId());
 		}
 		
-		ClusterUtil.reactorPushInsightDB(projectId);
+//		ClusterUtil.reactorPushInsightDB(projectId);
 		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();

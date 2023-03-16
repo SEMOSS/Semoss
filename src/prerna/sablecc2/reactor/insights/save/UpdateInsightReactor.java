@@ -203,7 +203,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		recipeToSave = PixelUtility.appendPreAppliedParameter(this.insight, recipeToSave);
 		
 		//Pull the insights db again incase someone just saved something 
-		ClusterUtil.reactorPullInsightsDB(projectId);
+//		ClusterUtil.reactorPullInsightsDB(projectId);
 		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 
 		// add the recipe to the insights database
@@ -278,7 +278,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		// NOTE ::: We already pulled above, so we will not pull again to delete the cache
 		InsightCacheUtility.deleteCache(projectId, project.getProjectName(), existingId, null, false);
 		// push back to the cluster
-		ClusterUtil.reactorPushInsightDB(projectId);
+//		ClusterUtil.reactorPushInsightDB(projectId);
 		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();

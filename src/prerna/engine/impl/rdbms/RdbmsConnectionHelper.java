@@ -462,7 +462,7 @@ public class RdbmsConnectionHelper {
 			if(catalogFilter.isEmpty()) {
 				catalogFilter="cassandra";
 			}
-				columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);	
+			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);	
 		}
 		else {
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
