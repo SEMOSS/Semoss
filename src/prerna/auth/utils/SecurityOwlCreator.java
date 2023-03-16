@@ -124,6 +124,9 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CACHEDON/INSIGHT")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/RECIPE/INSIGHT")) {
+				return true;
+			}
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SCHEMANAME/INSIGHT")) {
 				return true;
 			}
@@ -305,6 +308,7 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHT", "CACHECRON", "VARCHAR(25)");
 		owler.addProp("INSIGHT", "CACHEDON", "TIMESTAMP");
 		owler.addProp("INSIGHT", "CACHEENCRYPT", "BOOLEAN");
+		owler.addProp("INSIGHT", "RECIPE", "CLOB");
 		owler.addProp("INSIGHT", "SCHEMANAME", "VARCHAR(255)");
 
 		// USERINSIGHTPERMISSION

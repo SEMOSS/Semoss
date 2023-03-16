@@ -58,15 +58,31 @@ public final class ZipUtils {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public static ZipOutputStream zipFolder(String folderPath, String zipFilePath)
-			throws FileNotFoundException, IOException {
+	public static ZipOutputStream zipFolder(String folderPath, String zipFilePath) throws FileNotFoundException, IOException {
 		FileOutputStream fos = new FileOutputStream(zipFilePath);
 		ZipOutputStream zos = new ZipOutputStream(fos);
 		File dir = new File(folderPath);
-		addAllToZip(dir, zos, null);
+		addAllToZip(dir, zos, null, null);
 		return zos;
 	}
 
+	/**
+	 * Zip files within a dir
+	 * 
+	 * @param folderPath
+	 * @param zipFilePath
+	 * @return
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static ZipOutputStream zipFolder(String folderPath, String zipFilePath, List<String> ignoreFiles) throws FileNotFoundException, IOException {
+		FileOutputStream fos = new FileOutputStream(zipFilePath);
+		ZipOutputStream zos = new ZipOutputStream(fos);
+		File dir = new File(folderPath);
+		addAllToZip(dir, zos, null, ignoreFiles);
+		return zos;
+	}
+	
 	/**
 	 * Add file to ZipOutputStream
 	 * 
@@ -94,7 +110,34 @@ public final class ZipUtils {
 		zos.closeEntry();
 	}
 
-	private static void addAllToZip(File file, ZipOutputStream zos, String prefix)
+	/**
+	 * Add file to ZipOutputStream
+	 * 
+	 * @param file
+	 * @param zos
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static void addToZipFile(File file, ZipOutputStream zos, String prefix) throws FileNotFoundException, IOException {
+		ZipEntry zipEntry = new ZipEntry(prefix + FILE_SEPARATOR + file.getName());
+		zos.putNextEntry(zipEntry);
+
+		FileInputStream fis = null;
+		try {
+			int length;
+			fis = new FileInputStream(file);
+			while ((length = fis.read(buffer)) >= 0) {
+				zos.write(buffer, 0, length);
+			}
+		} finally {
+			if (fis != null) {
+				fis.close();
+			}
+		}
+		zos.closeEntry();
+	}
+	
+	private static void addAllToZip(File file, ZipOutputStream zos, String prefix, List<String> ignoreFiles)
 			throws FileNotFoundException, IOException {
 		if (file.isDirectory()) {
 			String subPrefix = file.getName();
@@ -103,28 +146,31 @@ public final class ZipUtils {
 			}
 			File[] files = file.listFiles();
 			for (File subF : files) {
-				addAllToZip(subF, zos, subPrefix);
+				addAllToZip(subF, zos, subPrefix, ignoreFiles);
 			}
 		} else {
 			String fileName = file.getName();
 			if (prefix != null) {
 				fileName = prefix + FILE_SEPARATOR + file.getName();
 			}
-			ZipEntry zipEntry = new ZipEntry(fileName);
-			zos.putNextEntry(zipEntry);
-			FileInputStream fis = null;
-			try {
-				int length;
-				fis = new FileInputStream(file);
-				while ((length = fis.read(buffer)) >= 0) {
-					zos.write(buffer, 0, length);
+			// make sure its not in the ignore list if we have one
+			if(ignoreFiles == null || !ignoreFiles.contains(fileName)) {
+				ZipEntry zipEntry = new ZipEntry(fileName);
+				zos.putNextEntry(zipEntry);
+				FileInputStream fis = null;
+				try {
+					int length;
+					fis = new FileInputStream(file);
+					while ((length = fis.read(buffer)) >= 0) {
+						zos.write(buffer, 0, length);
+					}
+				} finally {
+					if (fis != null) {
+						fis.close();
+					}
 				}
-			} finally {
-				if (fis != null) {
-					fis.close();
-				}
+				zos.closeEntry();
 			}
-			zos.closeEntry();
 		}
 	}
 
