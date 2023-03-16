@@ -16,7 +16,6 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
 import prerna.project.api.IProject;
@@ -168,7 +167,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		logger.info(step + ") Done...");
 		step++;
 
-		ClusterUtil.reactorPushInsightDB(projectId);
+//		ClusterUtil.reactorPushInsightDB(projectId);
 
 		Map<String, Object> returnMap = new HashMap<>();
 		returnMap.put("name", insightName);

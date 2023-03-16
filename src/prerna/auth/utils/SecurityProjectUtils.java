@@ -71,6 +71,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static File createInsightsDatabase(String projectId, String folderPath) {
+		
+		// TODO: potentially take into consideration playsheet legacy insights
+		
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
 		

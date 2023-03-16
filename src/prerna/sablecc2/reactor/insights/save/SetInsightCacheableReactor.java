@@ -129,7 +129,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		returnMap.put("cacheCron", cacheCron);
 
 		//push insight db
-		ClusterUtil.reactorPushInsightDB(projectId);
+//		ClusterUtil.reactorPushInsightDB(projectId);
 		if(cacheEncrypt != Boolean.parseBoolean(currentInsightDetails.get("cacheEncrypt")+"")) {
 			// delete the current cache
 			InsightCacheUtility.deleteCache(projectId, project.getProjectName(), existingId, null, false);
