@@ -67,8 +67,8 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 		} else {
 			this.fileLocation += DIR_SEPARATOR + exportName;
 			insightFile.setDeleteOnInsightClose(false);
-
 		}
+		
 		insightFile.setFilePath(this.fileLocation);
 		buildTask();
 

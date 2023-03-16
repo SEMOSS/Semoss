@@ -122,9 +122,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		Insight newInsight = null;
 		try {
-			List<Insight> in = project.getInsight(rdbmsId + "");
-			newInsight = in.get(0);
-		} catch (ArrayIndexOutOfBoundsException e) {
+			newInsight = SecurityInsightUtils.getInsight(projectId, rdbmsId);
+		} catch (Exception e) {
+			logger.warn(Constants.STACKTRACE, e);
 			logger.info("Pulling project from cloud storage, projectId=" + projectId);
 			ClusterUtil.reactorPullInsightsDB(projectId);
 			// this is needed for the pipeline json

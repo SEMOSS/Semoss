@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.io.IOException;
 import java.sql.Clob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -28,7 +29,10 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.Insight;
+import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -42,7 +46,10 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.PixelUtility;
+import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.parser.ParserException;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
@@ -52,6 +59,90 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 	private static final Logger logger = LogManager.getLogger(SecurityInsightUtils.class);
 	
+	/**
+	 * Get an insight
+	 * @param questionIDs
+	 * @return
+	 */
+	public static Insight getInsight(String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__RECIPE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEMINUTES"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHECRON"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
+
+ 		IRawSelectWrapper wrap = null;
+		try {
+			wrap = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrap.hasNext()) {
+				IHeadersDataRow dataRow = wrap.next();
+				Object[] values = dataRow.getValues();
+
+				int index = 0;
+				String thisProjectId = values[index++] + "";
+				String thisInsightId = values[index++] + "";
+				String thisInsightName = values[index++] + "";
+				String pixelRecipe = (String) values[index++];
+
+				IProject project = Utility.getProject(projectId);
+
+				if(pixelRecipe == null || pixelRecipe.isEmpty() || pixelRecipe.equals("null")) {
+					Vector<Insight> legacyGetInsightReturn = project.getInsight(insightId);
+					if(legacyGetInsightReturn == null || legacyGetInsightReturn.isEmpty()) {
+						throw new IllegalArgumentException("Could not find insight with given insight id");
+					}
+					return legacyGetInsightReturn.get(0);
+				}
+
+				boolean cacheable = (boolean) values[index++];
+				Integer cacheMinutes = (Integer) values[index++];
+				if(cacheMinutes == null) {
+					cacheMinutes = -1;
+				}
+				String cacheCron = (String) values[index++];
+				Boolean cacheEncrypt = (Boolean) values[index++];
+				if(cacheEncrypt == null) {
+					cacheEncrypt = false;
+				}
+
+				List<String> pixel = securityGson.fromJson(pixelRecipe, List.class);
+				int pixelSize = pixel.size();
+				
+				List<String> pixelList = new ArrayList<>(pixelSize);
+				for(int i = 0; i < pixelSize; i++) {
+					String pixelString = pixel.get(i).toString();
+					List<String> breakdown;
+					try {
+						breakdown = PixelUtility.parsePixel(pixelString);
+						pixelList.addAll(breakdown);
+					} catch (ParserException | LexerException | IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Error occurred parsing the pixel expression");
+					}
+				}
+				
+				Insight in = new Insight(projectId, project.getProjectName(), insightId, cacheable, cacheMinutes, cacheCron, cacheEncrypt, pixel.size());
+				in.setInsightName(thisInsightName);
+				in.setPixelRecipe(pixelList);
+				return in;
+			}
+		} catch (Exception e1) {
+			logger.error(Constants.STACKTRACE, e1);
+		} 
+		finally {
+			if(wrap != null) {
+				wrap.cleanUp();
+			}
+		}
+		return null;
+	}
+
 	/**
 	 * See if the insight name exists within the engine
 	 * @param projectId
