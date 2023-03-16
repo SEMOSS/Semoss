@@ -237,6 +237,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
+		
+		// close the db so we can move it
+		newInsightDatabase.closeDB();
 
 		String databaseFileLocation = newInsightDatabase.getProp().getProperty(AbstractSqlQueryUtil.HOSTNAME);
 		File databaseFile = new File(databaseFileLocation);
