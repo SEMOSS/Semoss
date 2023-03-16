@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -13,6 +16,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ProjectUtils {
+	
+	private static final Logger classLogger = LogManager.getLogger(ProjectUtils.class);
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String PROJECT_DIRECTORY;
@@ -74,13 +79,13 @@ public class ProjectUtils {
 						"QUESTION_LAYOUT", "QUESTION_ORDER", "QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", 
 						InsightAdministrator.HIDDEN_INSIGHT_COL, InsightAdministrator.CACHEABLE_COL, InsightAdministrator.CACHE_MINUTES_COL,
 						InsightAdministrator.CACHE_CRON_COL, InsightAdministrator.CACHED_ON_COL, InsightAdministrator.CACHE_ENCRYPT_COL,
-						InsightAdministrator.QUESTION_PKQL_COL
+						InsightAdministrator.QUESTION_PKQL_COL, InsightAdministrator.SCHEMA_NAME_COL
 					};
 				types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", 
 						"VARCHAR(255)", "INT", "VARCHAR(255)", CLOB_DATATYPE, "VARCHAR(500)", 
 						BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, "INT", 
 						"VARCHAR(25)", TIMESTAMP_DATATYPE, BOOLEAN_DATATYPE, 
-						"ARRAY"
+						"ARRAY", "VARCHAR(255)"
 					};
 				// this is annoying
 				// need to adjust if the engine allows array data types
@@ -99,7 +104,7 @@ public class ProjectUtils {
 			}
 
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		/*
@@ -123,7 +128,7 @@ public class ProjectUtils {
 					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 			try {
@@ -133,7 +138,7 @@ public class ProjectUtils {
 					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -149,7 +154,7 @@ public class ProjectUtils {
 	 * @param appName
 	 * @return
 	 */
-	private static final Map<String, Object> getNewInsightDatabaseConnectionPropValues(RdbmsTypeEnum rdbmsType, String projectId, String projectName) {
+	public static final Map<String, Object> getNewInsightDatabaseConnectionPropValues(RdbmsTypeEnum rdbmsType, String projectId, String projectName) {
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put(Constants.DRIVER, rdbmsType.getDriver());
 		retMap.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
@@ -179,8 +184,83 @@ public class ProjectUtils {
 			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
 			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
 			retMap.put(AbstractSqlQueryUtil.ADDITIONAL, "query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
-
 		}
+		
+		// regardless of OS, connection url is always /
+		hostname = hostname.replace('\\', '/');
+		retMap.put(AbstractSqlQueryUtil.HOSTNAME, hostname);
+		
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(rdbmsType);
+		String connectionUrl = queryUtil.setConnectionDetailsfromMap(retMap);
+		retMap.put(AbstractSqlQueryUtil.CONNECTION_URL, connectionUrl);
+		return retMap;
+	}
+	
+	/**
+	 * Generate an empty insight database
+	 * @param appName
+	 * @return
+	 */
+	public static RDBMSNativeEngine generateInsightsDatabase(RdbmsTypeEnum rdbmsType, String folderLocation) {
+		if(rdbmsType == null) {
+			String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+			if(rdbmsTypeStr == null) {
+				// default will be h2
+				rdbmsTypeStr = "H2_DB";
+			}
+			rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+		}
+		
+		Properties prop = new Properties();
+
+		/*
+		 * This must be either H2 or SQLite
+		 */
+		prop.putAll(getNewInsightDatabaseConnectionPropValues(rdbmsType, folderLocation));
+		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
+		insightEngine.setProp(prop);
+		// opening will work since we directly injected the prop map
+		// this way i do not need to write it to disk and then recreate it later
+		insightEngine.openDB(null);
+		insightEngine.setBasic(true);
+
+		runInsightCreateTableQueries(insightEngine);
+		return insightEngine;
+	}
+	
+	/**
+	 * 
+	 * @param rdbmsType
+	 * @param folderLocation
+	 * @return
+	 */
+	public static final Map<String, Object> getNewInsightDatabaseConnectionPropValues(RdbmsTypeEnum rdbmsType, String folderLocation) {
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put(Constants.DRIVER, rdbmsType.getDriver());
+		retMap.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
+		retMap.put("TEMP", "TRUE");
+		
+		folderLocation = Utility.normalizePath(folderLocation);
+		
+		String hostname = null;
+		
+		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
+			// sqlite has no username/password
+			// append .sqlite so it looks nicer - realize it is not required
+			hostname = folderLocation + DIR_SEPARATOR + "insights_database.sqlite";
+			
+			retMap.put(AbstractSqlQueryUtil.USERNAME, "");
+			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
+		} else {
+			// h2 only has username
+			hostname = folderLocation + DIR_SEPARATOR + "insights_database.mv.db";
+			
+			retMap.put(AbstractSqlQueryUtil.USERNAME, "sa");
+			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
+			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
+			retMap.put(AbstractSqlQueryUtil.ADDITIONAL, "query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+		}
+		
 		// regardless of OS, connection url is always /
 		hostname = hostname.replace('\\', '/');
 		retMap.put(AbstractSqlQueryUtil.HOSTNAME, hostname);
