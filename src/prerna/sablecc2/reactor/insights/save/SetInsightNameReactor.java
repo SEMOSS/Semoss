@@ -11,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
 import prerna.project.api.IProject;
@@ -49,12 +48,6 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
 			}
 		} 
-//		else {
-//			projectId = MasterDatabaseUtility.testEngineIdIfAlias(projectId);
-//			if(!MasterDatabaseUtility.getAllEngineIds().contains(projectId)) {
-//				throw new IllegalArgumentException("App " + projectId + " does not exist");
-//			}
-//		}
 		
 		String insightName = getInsightName();
 		if(insightName == null || (insightName = insightName.trim()).isEmpty()) {
@@ -66,13 +59,6 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		}
 		
 		IProject project = Utility.getProject(projectId);
-//		if(project == null) {
-//			// we may have the alias
-//			project = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(projectId));
-//			if(project == null) {
-//				throw new IllegalArgumentException("Cannot find app = " + projectId);
-//			}
-//		}
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 
@@ -89,7 +75,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		updateRecipeFile(logger, project.getProjectId(), project.getProjectName(), existingId, insightName);
 		logger.info("3) Done");
 
-		ClusterUtil.reactorPushInsightDB(projectId);
+//		ClusterUtil.reactorPushInsightDB(projectId);
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("app_insight_id", existingId);
