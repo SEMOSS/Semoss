@@ -469,7 +469,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			}
 
 			// return/generate a connection object
-			return dataSource.getConnection();
+			Connection conn = dataSource.getConnection();
+			this.queryUtil.enhanceConnection(conn);
+			return conn;
 		}
 
 		// re-establish bad connections
@@ -483,6 +485,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			}
 			this.engineConnected = true;
 			this.autoCommit = this.engineConn.getAutoCommit();
+			this.queryUtil.enhanceConnection(this.engineConn);
 		}
 
 		return this.engineConn;
