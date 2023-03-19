@@ -58,11 +58,13 @@ def hydrate_model(folder_name = None):
   from sentence_transformers import SentenceTransformer, util
   from transformers import pipeline
   import torch
+  print("Loading project model")
   model_file_name = f"{folder_name}/model/siamese.pt"
   import pathlib
   model_file = pathlib.Path(model_file_name)    
   if model_file.exists():
     model = torch.load(model_file_name)
+    print("Loaded Project Model")
     return model
   else:
     return None
@@ -88,6 +90,7 @@ def get_master_document(folder_name=None, encoding="iso-8859-1", content_column=
   master_document = []
   all_files = ""
   import pathlib
+  print("Loading Corpus for project")
   for i, file in enumerate(file_list):
     # index this file
     # encoding windows encoding windows-1252
@@ -108,32 +111,36 @@ def get_master_document(folder_name=None, encoding="iso-8859-1", content_column=
   return master_document
 
 #Moose ( command = "docqa:what is firm fixed price ?" , filePath = "qa_models" , model = "siamese" ) ;
+#Moose ( command = "docqa:what is firm fixed price ?" , filePath = "qa_models" , model = "siamese" , project = "9f78e44f-64cc-456a-925f-b5062783315f" ) ;
 def search(folder_name=None, sent_ckpt='msmarco-distilbert-base-v4', qa_ckpt="deepset/roberta-base-squad2", encoding='windows-1252', separator="=x=x=x=", model=None, query=None, threshold=0.2, result_count=3, source=False, master_document=None):
   import os
   folder_name = folder_name.replace(os.sep, '/')
   from sentence_transformers import SentenceTransformer, util
   from transformers import pipeline
   import torch
+  print("Starting Search..")
   if model is None:
     return []
+  print("Loading Sentence Model")
   bi_encoder = SentenceTransformer(sent_ckpt)
   bi_encoder.max_seq_length=256
   # picks all of the text files here
   # converts it to model
+  print("Indexing Document")
   if master_document is None:
     master_document = get_master_document(folder_name)
   # index all of them  
   # write it to the folder
+  print("Loading Document Model for Query")
   nlp = pipeline("question-answering", model=qa_ckpt , tokenizer=qa_ckpt, max_length=10)
   question_embedding = bi_encoder.encode(query, convert_to_tensor=True)
+  print("Performing Search.. ")
   hits = util.semantic_search(question_embedding, model, top_k=result_count)[0]  
-
   return_data = []
-  
   #print(hits)
   #print(type(hits))
   #print(len(master_document))
-
+  print("Formatting Result.. ")
   for i,hit in enumerate(hits):
     #print(f'Document {i+1} Cos Sim {hit["score"]:.3f}:\n\r {documents[hit["corpus_id"]]}')
     item = {}
