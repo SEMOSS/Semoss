@@ -4,13 +4,16 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -64,7 +67,7 @@ public class SocketServerHandler implements Runnable {
 	private RConnection retCon = null;
 
 	private Map <String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
-	private Map <String, Insight> insightMap = new HashMap<String, Insight>();
+	public Map <String, Insight> insightMap = new HashMap<String, Insight>();
 	private Map <String, Project> projectMap = new HashMap<String, Project>();
 	private Map <String, CmdExecUtil> cmdMap = new HashMap<String, CmdExecUtil>();
 	
@@ -72,6 +75,8 @@ public class SocketServerHandler implements Runnable {
 	private Map <String, PayloadStruct> outgoing = new HashMap<String, PayloadStruct>();
 	
 	private int curEpoc = 1;
+	
+	ErrorThread et = null;
 		
 	public void setLogger(Logger classLogger) {
 		SocketServerHandler.classLogger = classLogger;
@@ -81,9 +86,11 @@ public class SocketServerHandler implements Runnable {
 	{
 		this.pt = pt;
 		this.pyt = new PyTranslator();
-		pyt.setPy(pt);;
+		pyt.setPy(pt);
+		// also start the error thread
+		//startErrorThread();
 	}
-	
+			
 	// this is where the processing happens
 	public PayloadStruct getFinalOutput(PayloadStruct ps)
 	{
@@ -98,7 +105,7 @@ public class SocketServerHandler implements Runnable {
 				incoming.put(ps.epoc, ps);
 				ps.response = true;
 				outgoing.put(ps.epoc, ps);
-
+				
 				//System.out.println("Getting final output for " + ps.methodName);
 				classLogger.info("Getting final output for " + ps.methodName);
 				
@@ -147,15 +154,18 @@ public class SocketServerHandler implements Runnable {
 				{
 					// get the py translator for the first time
 					getPyTranslator();
+
 					try {
+						
 						Method method = findPyMethod(ps.methodName, ps.payloadClasses);
+						
 						Object output = runMethodPy(method, ps.payload);
-						//if(output != null)
-						//	classLogger.info("Output is not null - PY");
 						Object [] retObject = new Object[1];
 						retObject[0] = output;
 						ps.payload = retObject;
 						ps.processed = true;
+						//ps.operation = ps.operation.PYTHON;
+						// remove this item
 					} catch(Exception ex) {
 						ex.printStackTrace();
 						classLogger.error(Constants.STACKTRACE, ex);
@@ -330,8 +340,6 @@ public class SocketServerHandler implements Runnable {
 						}
 					} catch(Exception ex) {
 						classLogger.error(Constants.STACKTRACE, ex);
-						//ex.printStackTrace();
-						//System.err.println("Method.. " + ps.methodName);
 						ps.ex = ExceptionUtils.getStackTrace(ex);						
 						//TCPChromeDriverUtility.quit("stop");
 					}
@@ -415,6 +423,7 @@ public class SocketServerHandler implements Runnable {
 		try
 		{
 			os.write(psBytes);
+			// remove from the epoc queue
 		}
 		catch(Exception ex)
 		{
@@ -437,7 +446,7 @@ public class SocketServerHandler implements Runnable {
 		// put the current structure into outgoing
 		// block on that payload object
 		// wait
-		else// this is for interim operations
+		else // this is for interim operations
 		{
 			// put this into unprocessed
 			// synchronize on the payload
@@ -824,7 +833,6 @@ public class SocketServerHandler implements Runnable {
 					e.printStackTrace();
 				}
 			}
-			
 			classLogger.info("PyThread Started");
 			setPyExecutorThread(this.pt);
 			System.err.println("Got the py thread");
@@ -884,6 +892,7 @@ public class SocketServerHandler implements Runnable {
 							{
 								PayloadStruct output = getFinalOutput((PayloadStruct)retObject);
 								writeResponse(output);
+
 							}
 							
 							else
@@ -945,6 +954,11 @@ public class SocketServerHandler implements Runnable {
 				}
 			}
 		}
+	}
+	
+	public PayloadStruct getPayloadForEpoc(String epoc)
+	{
+		return incoming.get(epoc);
 	}
 
 }
