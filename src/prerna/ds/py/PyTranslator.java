@@ -1,18 +1,13 @@
 package prerna.ds.py;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
@@ -20,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
+import prerna.tcp.client.ErrorSenderThread;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -191,7 +187,7 @@ public class PyTranslator {
 		return pt.response;
 	}
 
-	protected synchronized void executeEmptyPyDirect(String script) {
+	protected synchronized void executeEmptyPyDirect(String script, Insight in) {
 		if (this.pt == null)
 			this.pt = insight.getPy();
 
@@ -206,98 +202,6 @@ public class PyTranslator {
 			}
 			logger.info("Completed processing");
 
-		}
-
-	}
-
-	protected void executeEmptyPyDirect2(String script, String file) {
-		if (this.pt == null)
-			this.pt = insight.getPy();
-
-		Object monitor = pt.getMonitor();
-		String driverMonitor = insight.getInsightId();
-		// I need to go into a while true loop here
-		// I need to keep checking to see if the thread is still running
-		// if so loop
-		File daFile = new File(file);
-		int marker = 0;
-		RandomAccessFile raf = null;
-		try {
-			synchronized (monitor) {
-				pt.command = new String[] { script };
-				pt.setDriverMonitor(driverMonitor);
-				// keep notifying until the thread has started
-				// while(pt.curState == ThreadState.wait)
-				monitor.notify();
-				// monitor.wait();
-			}
-
-			// wait for the file
-			// waitFileCreate(file);
-
-			while (!daFile.exists()) {
-				try {
-					Thread.sleep(100);
-					// monitor.notifyAll();
-				} catch (Exception ex) {
-					ex.printStackTrace();
-				}
-				daFile = new File(file);
-			}
-
-			// open the file in read mode
-			raf = new RandomAccessFile(file, "r");
-			long offset = raf.getFilePointer();
-			int count = 0;
-			int sleepTime = 200;
-			int sleepMax = 3000;
-			int numLines = 0;
-			do {
-				// release the lock
-
-				// monitor.wait();
-				long dataAvailable = daFile.length();
-				if (offset < dataAvailable) {
-					raf.seek(offset);
-					String line = raf.readLine();
-					do {
-						line = raf.readLine();
-						// numLines = numLines + 1;
-						if (line != null)
-							logger.info(Utility.cleanLogString(line));
-					} while (line != null);
-					// if there were more than 3 lines that assimilated in 200 milliseconds increase
-					// sleep time ?
-					if (count % 3 == 0)
-						sleepTime = sleepTime + 100;
-					if (sleepTime > sleepMax)
-						sleepTime = sleepMax;
-					offset = raf.getFilePointer();
-				}
-				// sleep for sleepTime or until he pythread informs us
-				synchronized (driverMonitor) {
-					driverMonitor.wait(sleepTime);
-				}
-			} while (pt.curState != ThreadState.wait);
-			logger.info("Completed processing");
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			try {
-				if (raf != null) {
-					raf.close();
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 		}
 
 	}
@@ -439,7 +343,7 @@ public class PyTranslator {
 			try {
 				FileUtils.writeStringToFile(preScriptFile, preScript);
 				// execute all the commands for setting variables etc.
-				executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())");
+				executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", null);
 
 				FileUtils.writeStringToFile(scriptFile, script);
 
@@ -452,7 +356,7 @@ public class PyTranslator {
 				RuntimeException error = null;
 				try {
 					executeEmptyPyDirect("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \""
-							+ outputPath + "\", globals())");
+							+ outputPath + "\", globals())", null);
 					// executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" +
 					// outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
 				} catch (RuntimeException e) {
@@ -515,7 +419,7 @@ public class PyTranslator {
 		}
 	}
 
-	public synchronized String runSingle(Map<String, StringBuffer> appMap, String inscript) {
+	public synchronized String runSingle(Map<String, StringBuffer> appMap, String inscript, Insight in) {
 		// Clean the script
 		String script = convertArrayToString(inscript);
 		script = script.trim();
@@ -594,9 +498,17 @@ public class PyTranslator {
 				+ varFolderAssignment;
 		// execute all the commands for setting variables etc.
 		// Try writing the script to a file
+		ErrorSenderThread est = new ErrorSenderThread();
+		if(in != null)
+		{
+			est.setInsight(in);
+			est.start();
+			est.setFile(outputPath);
+		}				
+
 		try {
 			FileUtils.writeStringToFile(preScriptFile, preScript);
-			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())");
+			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", null);
 			FileUtils.writeStringToFile(scriptFile, script);
 
 			// check packages
@@ -607,8 +519,17 @@ public class PyTranslator {
 			// (later)
 			RuntimeException error = null;
 			try {
-				executeEmptyPyDirect("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \""
-						+ outputPath + "\", globals())");
+				// Start the error sender thread
+				//executeEmptyPyDirect("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \""
+				//		+ outputPath + "\", globals())", null);
+				runScript("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \""
+								+ outputPath + "\", globals())");
+				
+				if(in != null)
+				{
+					est.stopSession();
+				}
+				//runScript(script, in);
 				// executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" +
 				// outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
 			} catch (RuntimeException e) {
@@ -667,7 +588,7 @@ public class PyTranslator {
 
 	// overloading the run script method to pass in the user map
 
-	public String runScript(Map<String, StringBuffer> appMap, String script) {
+	public String runScript(Map<String, StringBuffer> appMap, String script, Insight in) {
 
 		String removePathVariables = "";
 		String insightRootAssignment = "";
@@ -711,7 +632,7 @@ public class PyTranslator {
 		String assignmentString = insightRootAssignment + appRootAssignment + userRootAssignment + varFolderAssignment;
 
 		// String assignmentScript = getAssignments(appMap);
-		executeEmptyPyDirect(assignmentString);
+		executeEmptyPyDirect(assignmentString, in);
 		String output = runScript(script) + "";
 
 		// clean up the output
@@ -853,5 +774,32 @@ public class PyTranslator {
 //		String output = py.runPyAndReturnOutput(command);
 //		System.out.println("Output >> " + output);
 //	}
+
+	
+	public synchronized Object runScript(String script, Insight insight) 
+	{
+		return null;
+	}
+	
+	public void makeTempFolder(String baseFolder)
+	{
+		String pyTemp  = baseFolder + "/Py/Temp";
+		
+		File pyTempF = new File(pyTemp);
+		if (!pyTempF.exists()) {
+			pyTempF.mkdirs();
+			pyTempF.setExecutable(true);
+			pyTempF.setReadable(true);
+			pyTempF.setReadable(true);
+		}
+
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))
+				&& AbstractSecurityUtils.securityEnabled()) {
+			if (this.insight.getUser() != null) {
+				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+			}
+		}
+
+	}
 
 }

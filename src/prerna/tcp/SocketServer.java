@@ -39,6 +39,7 @@ public class SocketServer implements Runnable {
 	private String baseFolder = null;
 		
 	private static boolean multi = false; // allow multiple threads at the same time
+	public static boolean testMode = false;
 	
 	public static void main(String [] args) throws Exception {
 		// arg1 - the directory where commands would be thrown
@@ -54,12 +55,13 @@ public class SocketServer implements Runnable {
 		
 		if(args == null || args.length == 0) {
 			args = new String[5];
-			args[0] = "/Users/mahkhalil/workspace/Semoss_Dev/InsightCache/a1048966239358036599";
-			args[1] = "/Users/mahkhalil/workspace/Semoss_Dev/RDF_Map.prop";;
-			args[2] = "7777";
+			args[0] = "c:/Users/pkapaleeswaran/workspacej3/SemossDev/py/log-config";
+			args[1] = "c:/Users/pkapaleeswaran/workspacej3/SemossDev/RDF_Map.prop";;
+			args[2] = "9999";
 			args[3] = "r";
 			args[4] = "mixed";
 			multi = true;
+			testMode = true;
 		}
 		
 		if(args.length < 3) {
@@ -73,6 +75,7 @@ public class SocketServer implements Runnable {
 		
 		String log4JPropFile = Paths.get(Utility.normalizePath(socketDir), "log4j2.properties").toAbsolutePath().toString();
 
+		
 		// set to say this is not core
 		DIHelper.getInstance().setLocalProperty("core", "false");
 		
@@ -148,7 +151,7 @@ public class SocketServer implements Runnable {
 	// start listening for connections
 	public void run() {
 		// do the listening here and then spawn the thread
-		while(!done) {
+			while(!done) {
 			if(this.clientSocket == null || multi) {
 		        try {
 		            clientSocket = serverSocket.accept();
@@ -178,6 +181,7 @@ public class SocketServer implements Runnable {
 		        ssh.socket = serverSocket;
 		        ssh.server = this;
 		        ssh.mainFolder = socketDir;
+		        
 		        Thread readerThread = new Thread(ssh);
 		        readerThread.start();
 			} else {
@@ -190,7 +194,8 @@ public class SocketServer implements Runnable {
 						closeStream(clientSocket);
 						closeStream(serverSocket);
 						closeStream(is);
-						ssh.cleanUp();
+						if(!testMode)	
+							ssh.cleanUp();
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 						classLogger.error(Constants.STACKTRACE, e);
