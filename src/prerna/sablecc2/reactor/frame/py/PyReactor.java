@@ -61,7 +61,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			//if(tokens > 1) 
 			{
-				output = pyTranslator.runSingle(insight.getUser().getVarMap(), code) + "";
+				output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
 			} 
 			/*else {
 				//output = pyTranslator.runScript(code) + "";
@@ -71,7 +71,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		{
 			//if(tokens > 1) 
 			{
-				output = pyTranslator.runSingle(null, code) + "";
+				output = pyTranslator.runSingle(null, code, this.insight) + "";
 			} 
 			/*else {
 				output = pyTranslator.runScript(code) + "";

@@ -73,10 +73,6 @@ public class QueryQAModelReactor extends GaasBaseReactor {
 		folderName = folderName.replace("\\", "/");
 		
 		System.err.println("Folder.. " + folderName);
-
-		String columnName = "Content";
-		if(keyValue.containsKey(keysToGet[6]))
-			columnName = keyValue.get(keysToGet[6]);
 			
 
 		String semossModelName = modelType + "_" + modelSubType + "_" + modelName;
@@ -115,7 +111,7 @@ public class QueryQAModelReactor extends GaasBaseReactor {
 												+ "result_count = " + numRows + ", "
 												+ "source=" + source + ","
 												+ "master_document=" + masterDocument
-												+ ")"
+												+ ")", this.insight
 												);
 		
 		//pt.runScript(modelVariable + " = " +semossModelName + ".create_model(folder_name='" + folderName + "')");

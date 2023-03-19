@@ -30,7 +30,7 @@ public final class PyExecutorThread extends Thread {
 	private volatile boolean keepAlive = true;
 	private volatile boolean ready = false;
 	private Object driverMonitor = null;
-
+	
 	@Override
 	public void run() {
 		// wait to see if process is true
@@ -150,7 +150,7 @@ public final class PyExecutorThread extends Thread {
 	public Object getMonitor() {
 		return daLock;
 	}
-
+	
 	public Jep getJep() {
 		try {
 			if (this.jep == null) {
@@ -183,6 +183,14 @@ public final class PyExecutorThread extends Thread {
 				pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
 				pyBase = pyBase.replace('\\', '/');
 				aJepConfig.addIncludePaths(pyBase);
+				
+//				try {
+//					aJepConfig.redirectStdout(new FileOutputStream("c:/temp/pyout.out"));
+//				} catch (FileNotFoundException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+				
 				aJepConfig.setRedirectOutputStreams(true);
 
 				// add the libraries
@@ -194,8 +202,8 @@ public final class PyExecutorThread extends Thread {
 				
 				jep = new SharedInterpreter();
 
-				jep.eval("from jep import redirect_streams");
-				jep.eval("redirect_streams.setup()");
+				//jep.eval("from jep import redirect_streams");
+				//jep.eval("redirect_streams.setup()");
 				
 				// exec(open('c:/users/pkapaleeswaran/workspacej3/SemossDev/py/init.py').read())
 				String execCommand = "exec(open('" + pyBase + "/init.py" + "').read())";
@@ -232,13 +240,14 @@ public final class PyExecutorThread extends Thread {
 				// these needs to be a better way to do this where we can add other things
 				jep.eval("from clean import PyFrame");
 				jep.eval("import smssutil");
+				
 			}
 		} catch (JepException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		return jep;
 	}
-
+	
 	public void killThread() {
 		this.keepAlive = false;
 	}
@@ -261,4 +270,29 @@ public final class PyExecutorThread extends Thread {
 			}
 		}
 	}
+						
+	/***** PURELY FOR TESTING PURPOSES
+	 
+	public void makeTheCall(PyTester pt)
+	{
+		try {
+			getJep().eval("print(et.startSession('monkesh'))");
+		} catch (JepException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void makeAnotherCall(PyTester pt)
+	{
+		et.setPyTester(pt);
+		try {
+			getJep().eval("print(et.startSession('monkesh'))");
+		} catch (JepException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	*************************/
 }
