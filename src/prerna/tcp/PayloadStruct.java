@@ -10,7 +10,7 @@ public class PayloadStruct implements Serializable{
 	// SET
 	
 	
-	public enum OPERATION {R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD}; 
+	public enum OPERATION {R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR}; 
 	public OPERATION operation = OPERATION.R; // setting default to R
 	public String methodName = "method";
 	public Object [] payload = null;
