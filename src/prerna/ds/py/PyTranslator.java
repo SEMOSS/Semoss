@@ -778,7 +778,36 @@ public class PyTranslator {
 	
 	public synchronized Object runScript(String script, Insight insight) 
 	{
-		return null;
+		ErrorSenderThread est = null;
+		String payload = script;
+		if(insight != null)
+		{
+			est = new ErrorSenderThread();
+			est.setInsight(insight);
+	
+			// write the file to create
+			// for now let it be
+			String file = Utility.getRandomString(5);
+			makeTempFolder(insight.getInsightFolder());
+			String pyTemp  = insight.getInsightFolder() + "/Py/Temp";
+			file = pyTemp + "/" + file;
+			file = file.replace("\\", "/");
+			
+			script = script.replace("\"", "'");
+			payload = "smssutil.runwrappereval_return(\"" + script + "\", '" + file + "', '" + file + "', globals())";
+			est.setFile(file);
+			est.start();
+		}
+		
+		Object retObject = runScript(payload);
+		
+		if(insight != null)
+		{
+			est.stopSession();
+		}
+		
+		return retObject;
+		
 	}
 	
 	public void makeTempFolder(String baseFolder)
