@@ -152,7 +152,7 @@ public class NLPQueryReactor extends AbstractReactor {
 			String frameType = "Py";
 			
 			outputs.add(new NounMetadata("Query Generated : " + sqlDFQuery + " Data : " + frameName, PixelDataType.CONST_STRING));
-			outputs.add(new NounMetadata(this.insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameName + ".head(20)"), PixelDataType.CONST_STRING));
+			outputs.add(new NounMetadata(this.insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameName + ".head(20)", this.insight), PixelDataType.CONST_STRING));
 			outputs.add(new NounMetadata("To start working with this frame  GenerateFrameFrom" + frameType + "Variable('" + frameName + "')", PixelDataType.CONST_STRING));
 			
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);

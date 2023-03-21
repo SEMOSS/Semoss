@@ -80,7 +80,7 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		//pyt.runScript("smssutil.runwrapper(" +  path + ", " + assetOutput + ", " + assetOutput + "globals()\")");
 		//pyt.runScript(name +  " = smssutil.loadScript('smss', '" + path + "')");
 		
-		pyt.runScript(this.insight.getUser().getVarMap(), "smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())");
+		pyt.runScript(this.insight.getUser().getVarMap(), "smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())", this.insight);
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));
