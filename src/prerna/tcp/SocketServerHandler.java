@@ -4,16 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -76,7 +73,7 @@ public class SocketServerHandler implements Runnable {
 	
 	private int curEpoc = 1;
 	
-	ErrorThread et = null;
+//	ErrorThread et = null;
 		
 	public void setLogger(Logger classLogger) {
 		SocketServerHandler.classLogger = classLogger;
