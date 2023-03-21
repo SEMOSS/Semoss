@@ -4,14 +4,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import org.bouncycastle.util.Arrays;
 
 import prerna.om.Insight;
 import prerna.sablecc2.comm.JobManager;
-import prerna.test.PyTester;
 
 public class ErrorSenderThread extends Thread
 {
