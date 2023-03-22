@@ -67,12 +67,13 @@ public interface ILdapAuthenticator extends Closeable {
 	
 	/**
 	 * Create the DirContext for the username/password
-	 * @param username
+	 * @param providerUrl
+	 * @param principalDN
 	 * @param password
 	 * @return
 	 * @throws Exception
 	 */
-	DirContext createLdapContext(String principalDN, String password) throws Exception;
+	DirContext createLdapContext(String providerUrl, String principalDN, String password) throws Exception;
 	
 	/**
 	 * Authenticate the user input
@@ -85,41 +86,60 @@ public interface ILdapAuthenticator extends Closeable {
 	/**
 	 * Produce the access token from the user attributes
 	 * @param attributes
+	 * @param userDN
+	 * @param attributeIdKey
+	 * @param attributeNameKey
+	 * @param attributeEmailKey
+	 * @param attributeUserNameKey
+	 * @param attributeLastPwdChangeKey
+	 * @param requirePwdChangeAfterDays
 	 * @return
 	 * @throws Exception
 	 */
-	AccessToken generateAccessToken(Attributes attributes) throws Exception;
-	
+	AccessToken generateAccessToken(Attributes attributes, 
+			String userDN,
+			String attributeIdKey, 
+			String attributeNameKey, 
+			String attributeEmailKey, 
+			String attributeUserNameKey,
+			String attributeLastPwdChangeKey,
+			int requirePwdChangeAfterDays) throws Exception;
+
 	/**
-	 * Update User Password in Microsoft Active Directory
+	 * 
 	 * @param username
 	 * @param curPassword
 	 * @param newPassword
 	 * @throws Exception
 	 */
 	void updateUserPassword(String username, String curPassword, String newPassword) throws Exception;
-	
+
 	/**
 	 * 
 	 * @param attributes
+	 * @param attributeLastPwdChangeKey
 	 * @return
 	 * @throws NamingException
 	 */
-	LocalDateTime getLastPwdChange(Attributes attributes) throws NamingException;
+	LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey) throws NamingException;
 
 	/**
 	 * Does this user require a password change
+	 * @param lastPwdChange
+	 * @param requirePwdChangeAfterDays
 	 * @return
-	 * @throws NamingException 
+	 * @throws NamingException
 	 */
-	boolean requirePasswordChange(LocalDateTime lastPwdChange) throws NamingException;
+	boolean requirePasswordChange(LocalDateTime lastPwdChange, int requirePwdChangeAfterDays) throws NamingException;
 
 	
 	/**
 	 * Does this user require a password change
+	 * @param attributes
+	 * @param attributeLastPwdChangeKey
+	 * @param requirePwdChangeAfterDays
 	 * @return
-	 * @throws NamingException 
+	 * @throws NamingException
 	 */
-	boolean requirePasswordChange(Attributes attributes) throws NamingException;
-
+	boolean requirePasswordChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException;
 }
