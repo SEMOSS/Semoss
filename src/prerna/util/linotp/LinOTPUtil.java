@@ -182,6 +182,15 @@ public class LinOTPUtil {
 						
 						linotpResponse.setToken(token);
 						linotpResponse.setResponseCode(200);
+						
+						// this is just an attempt to reset counter
+						// still allow user to login
+						try {
+							resetCounter(new LinOTPResponse(), username);
+						} catch(Exception e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+						
 						return linotpResponse;
 					} else {
 						// challenge request flow
@@ -256,6 +265,15 @@ public class LinOTPUtil {
 						
 						linotpResponse.setToken(token);
 						linotpResponse.setResponseCode(200);
+						
+						// this is just an attempt to reset counter
+						// still allow user to login
+						try {
+							resetCounter(new LinOTPResponse(), username);
+						} catch(Exception e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+						
 						return linotpResponse;
 					}
 					else {
@@ -282,19 +300,16 @@ public class LinOTPUtil {
 	 * @throws IOException
 	 */
 	public static LinOTPResponse resetCounter(HttpServletRequest request) throws ClientProtocolException, IOException {
-		SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
-
+		User thisUser = (User) request.getSession().getAttribute(Constants.SESSION_USER);
+		String username = request.getParameter("username");
+		return resetCounter(thisUser, username);
+	}
+	
+	public static LinOTPResponse resetCounter(User thisUser, String username) throws ClientProtocolException, IOException {
 		Map<String, Object> returnMap = new HashMap<>();
 		LinOTPResponse linotpResponse = new LinOTPResponse();
 		linotpResponse.setReturnMap(returnMap);
 		
-		if(socialData.getLoginsAllowed().get("linotp")==null || !socialData.getLoginsAllowed().get("linotp")) {
-			returnMap.put(Constants.ERROR_MESSAGE, "LinOTP login is not allowed");
-			linotpResponse.setResponseCode(400);
-			return linotpResponse;
-		}
-
-		User thisUser = (User) request.getSession().getAttribute(Constants.SESSION_USER);
 		if(thisUser == null) {
 			returnMap.put(Constants.ERROR_MESSAGE, "User must be logged in to invoke this endpoint");
 			linotpResponse.setResponseCode(500);
@@ -303,6 +318,19 @@ public class LinOTPUtil {
 		if(SecurityAdminUtils.getInstance(thisUser) != null) {
 			returnMap.put(Constants.ERROR_MESSAGE, "User must be an admin");
 			linotpResponse.setResponseCode(500);
+			return linotpResponse;
+		}
+		
+		return resetCounter(linotpResponse, username);
+	}
+	
+	private static LinOTPResponse resetCounter(LinOTPResponse linotpResponse, String username) throws ClientProtocolException, IOException {
+		SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
+		Map<String, Object> returnMap = linotpResponse.getReturnMap();
+		
+		if(socialData.getLoginsAllowed().get("linotp")==null || !socialData.getLoginsAllowed().get("linotp")) {
+			returnMap.put(Constants.ERROR_MESSAGE, "LinOTP login is not allowed");
+			linotpResponse.setResponseCode(400);
 			return linotpResponse;
 		}
 
@@ -315,8 +343,6 @@ public class LinOTPUtil {
 			return linotpResponse;
 		}
 
-		final String LINOTP_USERNAME = "user";
-
 		// https://YOUR_LINOTP_SERVER/admin/reset?user=USERNAME
 		final String hostname = socialData.getProperty("linotp_hostname"); 
 		final String realm = socialData.getProperty("linotp_realm");
@@ -324,7 +350,6 @@ public class LinOTPUtil {
 		String controller = "admin";
 		String action = "reset";
 		String requestURL = hostname + "/" + controller + "/" + action;
-		String username = request.getParameter("username");
 
 		if( username == null || username.isEmpty() ) {
 			returnMap.put(Constants.ERROR_MESSAGE, "The user name cannot be null or empty.");
@@ -354,7 +379,6 @@ public class LinOTPUtil {
 		BasicClientCookie2 cookie = new BasicClientCookie2("admin_session", token);
 		cstore.addCookie(cookie);
 		context.setCookieStore(cstore);
-		
 		
 		// Create HTTP request via ssl port (https) and pass post parameters
 		CloseableHttpClient httpclient = HttpClients
