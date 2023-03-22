@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.utils;
 
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,7 +27,7 @@ public class GetUserInfoReactor extends AbstractReactor {
 				providerMap.put("name", token.getName() == null ? "null" : token.getName());
 				providerMap.put("email", token.getEmail() == null ? "null" : token.getEmail());
 				providerMap.put("lastPwdReset", token.getLastPasswordReset() == null ? "null" : token.getLastPasswordReset());
-				Hashtable<String, String> san = token.getSAN();
+				Map<String, String> san = token.getSAN();
 				providerMap.put("san", san);
 				String groupType = token.getUserGroupType();
 				Set<String> groups = token.getUserGroups();

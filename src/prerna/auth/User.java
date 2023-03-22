@@ -503,12 +503,10 @@ public class User implements Serializable {
 					name = "";
 				}
 				
-				
-		
 				Map<String, Object> innerMap = new HashMap<>();
 				innerMap.put("id", id);
 				innerMap.put("name", name);
-				Hashtable<String, String> sans = token.getSAN();
+				Map<String, String> sans = token.getSAN();
 				if(sans!=null && sans.size()>0) {
 					innerMap.put("san", sans);
 				}
