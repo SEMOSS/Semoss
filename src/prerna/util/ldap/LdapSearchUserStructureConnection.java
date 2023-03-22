@@ -217,18 +217,21 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 	@Override
 	public void updateUserPassword(String username, String curPassword, String newPassword) throws NamingException {
 		String principalDN = null;
+		
+		classLogger.info("Attempting login for user " + username + " to confirm has proper current password");
+		AccessToken token = null;
 		try {
-			classLogger.info("Attempting login for user " + username + " to confirm has proper current password");
-			
-			AccessToken token = authenticate(username, curPassword);
-			if(token == null) {
-				String error = "User was unable to authenticate with current password, username entered: " + username;
-				classLogger.error(error);
-				throw new IllegalArgumentException(error);
-			}
-			principalDN = token.getSAN().get("DN");
-			classLogger.info("Successful confirmation of current password for user " + principalDN);
-			
+			token = authenticate(username, curPassword);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			String error = "User was unable to authenticate with current password, username entered: " + username;
+			classLogger.error(error);
+			throw new IllegalArgumentException(error);
+		}
+		principalDN = token.getSAN().get("DN");
+		classLogger.info("Successful confirmation of current password for user " + principalDN);
+
+		try {
 			String quotedPassword = "\"" + newPassword + "\"";
 			char unicodePwd[] = quotedPassword.toCharArray();
 			byte pwdArray[] = new byte[unicodePwd.length * 2];
