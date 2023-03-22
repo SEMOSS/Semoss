@@ -305,6 +305,14 @@ public class LinOTPUtil {
 		return resetCounter(thisUser, username);
 	}
 	
+	/**
+	 * 
+	 * @param thisUser
+	 * @param username
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 */
 	public static LinOTPResponse resetCounter(User thisUser, String username) throws ClientProtocolException, IOException {
 		Map<String, Object> returnMap = new HashMap<>();
 		LinOTPResponse linotpResponse = new LinOTPResponse();
@@ -324,6 +332,14 @@ public class LinOTPUtil {
 		return resetCounter(linotpResponse, username);
 	}
 	
+	/**
+	 * 
+	 * @param linotpResponse
+	 * @param username
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 */
 	private static LinOTPResponse resetCounter(LinOTPResponse linotpResponse, String username) throws ClientProtocolException, IOException {
 		SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
 		Map<String, Object> returnMap = linotpResponse.getReturnMap();
