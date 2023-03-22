@@ -7,11 +7,11 @@ public class LdapAuthenticationFactory {
 	 * @return
 	 */
 	public static ILdapAuthenticator getAuthenticator(String ldapType) {
-		if(ILdapAuthenticator.LDAP_TYPE_MULTI.equals(ldapType)) {
-			
+		if(ILdapAuthenticator.LDAP_TYPE_SEARCH.equals(ldapType)) {
+			return new LdapSearchUserStructureConnection();
 		}
 		// default to simple case
-		return new LdapSingleUserStructureConnection();
+		return new LdapTemplateStructureConnection();
 	}
 	
 	private LdapAuthenticationFactory() {

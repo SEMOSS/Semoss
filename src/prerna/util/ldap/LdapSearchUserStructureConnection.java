@@ -20,9 +20,9 @@ import prerna.util.Constants;
  * Assumes that the authentication for each user has the same DN structure
  * but only the CN will change based on the user input
  */
-public class LdapSingleUserStructureConnection extends AbstractLdapAuthenticator {
+public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator {
 
-	private static final Logger classLogger = LogManager.getLogger(LdapSingleUserStructureConnection.class);
+	private static final Logger classLogger = LogManager.getLogger(LdapSearchUserStructureConnection.class);
 
 	@Override
 	public void validate() throws IOException {

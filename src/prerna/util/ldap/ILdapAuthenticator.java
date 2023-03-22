@@ -21,8 +21,8 @@ public interface ILdapAuthenticator extends Closeable {
 	
 	// what type of ldap process are we using
 	String LDAP_TYPE = LDAP_PREFIX + "type";
-	String LDAP_TYPE_SINGLE = "single";
-	String LDAP_TYPE_MULTI = "multi";
+	String LDAP_TYPE_TEMPLATE = "template";
+	String LDAP_TYPE_SEARCH = "search";
 	
 	// the provider url
 	String LDAP_PROVIDER_URL = LDAP_PREFIX + "provider_url";
