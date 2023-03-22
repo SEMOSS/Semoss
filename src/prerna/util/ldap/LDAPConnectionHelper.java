@@ -7,12 +7,20 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 import javax.naming.Context;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
+import javax.naming.directory.ModificationItem;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.date.SemossDate;
 import prerna.util.Constants;
 
 public class LDAPConnectionHelper {
@@ -22,6 +30,10 @@ public class LDAPConnectionHelper {
 	private transient DirContext ldapContext = null;
 	private String principalDN = null;
 	private String principalTemplate = null;
+	
+	private LDAPConnectionHelper() {
+		
+	}
 	
 	public DirContext getLdapContext() {
 		return ldapContext;
@@ -116,5 +128,191 @@ public class LDAPConnectionHelper {
 				);
 		return date;
 	}
+	
+	public static AccessToken generateAccessToken(Attributes attributes, 
+			String userDN,
+			String attributeIdKey, 
+			String attributeNameKey, 
+			String attributeEmailKey, 
+			String attributeUserNameKey,
+			String attributeLastPwdChangeKey,
+			int requirePwdChangeAfterDays
+			) throws Exception {
+		// for debugging
+//		printAllAttributes(attributes);
+		
+		Object userId = getAttributeValue(attributes, attributeIdKey);
+		Object name = getAttributeValue(attributes, attributeNameKey);
+		Object email = getAttributeValue(attributes, attributeEmailKey);
+		Object username = getAttributeValue(attributes, attributeUserNameKey);
+
+		if(userId == null || userId.toString().isEmpty()) {
+			throw new IllegalArgumentException("Cannot login user due to not having a proper attribute for the user id");
+		}
+
+		LocalDateTime lastPwdChange = getLastPwdChange(attributes, attributeLastPwdChangeKey);
+		if(lastPwdChange != null) {
+			if(requirePasswordChange(lastPwdChange, requirePwdChangeAfterDays)) {
+				throw new LDAPPasswordChangeRequiredException("User must change their password before login");
+			}
+		}
+		
+		AccessToken token = new AccessToken();
+		token.setProvider(AuthProvider.ACTIVE_DIRECTORY);
+		token.setSAN("DN", userDN);
+		token.setId(userId + "");
+		if(name != null) {
+			token.setName(name + "");
+		}
+		if(email != null) {
+			token.setEmail(email + "");
+		}
+		if(username != null) {
+			token.setUsername(username + "");
+		}
+		if(lastPwdChange != null) {
+			token.setLastPasswordReset(new SemossDate(lastPwdChange));
+		}
+
+		return token;
+	}
+	
+	public static LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey) throws NamingException {
+		if(attributeLastPwdChangeKey != null) {
+			// assuming if you define this, that the value must exist
+			Object lastPwdChange = getAttributeValue(attributes, attributeLastPwdChangeKey);
+			if(lastPwdChange == null) {
+				throw new IllegalArgumentException("Unable to pull last password change attribute");
+			}
+			LocalDateTime pwdChange = null;
+			if(lastPwdChange instanceof Long) {
+				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((long) lastPwdChange);
+			} else if(lastPwdChange instanceof String) {
+				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((String) lastPwdChange);
+			} else {
+				throw new IllegalArgumentException("Unhandled data type for password change: " + lastPwdChange.getClass().getName());
+			}
+			
+			return pwdChange;
+		}
+		
+		return null;
+	}
+	
+	public static boolean requirePasswordChange(LocalDateTime lastPwdChange, int requirePwdChangeAfterDays) throws NamingException {
+		LocalDateTime now = LocalDateTime.now();
+		if(lastPwdChange.plusDays(requirePwdChangeAfterDays).isBefore(now)) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static boolean requirePasswordChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
+		if(attributeLastPwdChangeKey != null) {
+			// assuming if you define this, that the value must exist
+			Object lastPwdChange = getAttributeValue(attributes, attributeLastPwdChangeKey);
+			if(lastPwdChange == null) {
+				throw new IllegalArgumentException("Unable to pull last password change attribute");
+			}
+			LocalDateTime pwdChange = null;
+			if(lastPwdChange instanceof Long) {
+				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((long) lastPwdChange);
+			} else if(lastPwdChange instanceof String) {
+				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((String) lastPwdChange);
+			} else {
+				throw new IllegalArgumentException("Unhandled data type for password change: " + lastPwdChange.getClass().getName());
+			}
+			
+			LocalDateTime now = LocalDateTime.now();
+			if(pwdChange.plusDays(requirePwdChangeAfterDays).isBefore(now)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	public static void updateUserPassword(String providerUrl, List<String> securityPrincipalTemplate, 
+			String username, String curPassword, String newPassword,
+			boolean useCustomContextForPwdChange, DirContext customPwdChangeLdapContext) throws Exception { 
+		DirContext ldapContext = null;
+		String principalDN = null;
+		try {
+			classLogger.info("Attempting login for user " + username + " to confirm has proper current password");
+			LDAPConnectionHelper loginObj = LDAPConnectionHelper.tryLogins(providerUrl, securityPrincipalTemplate, username, curPassword);
+			String principalTemplate = loginObj.getPrincipalTemplate();
+			principalDN = loginObj.getPrincipalDN();
+			ldapContext = loginObj.getLdapContext();
+			classLogger.info("Successful confirmation of current password for user " + principalDN);
+
+			String quotedPassword = "\"" + newPassword + "\"";
+			char unicodePwd[] = quotedPassword.toCharArray();
+			byte pwdArray[] = new byte[unicodePwd.length * 2];
+			for (int i = 0; i < unicodePwd.length; i++)
+			{
+				pwdArray[i * 2 + 1] = (byte) (unicodePwd[i] >>> 8);
+				pwdArray[i * 2 + 0] = (byte) (unicodePwd[i] & 0xff);
+			}
+
+			ModificationItem[] mods = new ModificationItem[1];
+			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwdArray));
+
+			classLogger.info(principalDN + " is attemping to change password");
+			if(useCustomContextForPwdChange) {
+				if(customPwdChangeLdapContext == null) {
+					throw new IllegalArgumentException("Invalid configuration for changing user passwords - please contact your administrator");
+				}
+				customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
+			} else {
+				ldapContext.modifyAttributes(principalDN, mods);
+			}
+			classLogger.info(principalDN + " successfully changed password");
+		} catch (Exception e) {
+			if(principalDN == null) {
+				classLogger.error("User was unable to authenticate with current password, username entered: " + username);
+			} else {
+				classLogger.info(principalDN + " failed to change password");
+			}
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to change password. Error message: " + e.getMessage());
+		} finally {
+			if(ldapContext != null) {
+				ldapContext.close();
+			}
+		}
+	}
+	
+	/**
+	 * Grab the value of an attribute and perform necessary null checks
+	 * @param attributes
+	 * @param name
+	 * @return
+	 * @throws NamingException
+	 */
+	public static Object getAttributeValue(Attributes attributes, String name) throws NamingException {
+		if(name == null) {
+			return null;
+		}
+		Attribute attr = attributes.get(name);
+		if(attr == null) {
+			return null;
+		}
+		return attr.get();
+	}
+	
+//	/**
+//	 * This is for testing - printing all attributes of the logged in user
+//	 * @param attributes
+//	 * @throws NamingException
+//	 */
+//	private void printAllAttributes(Attributes attributes) throws NamingException {
+//		NamingEnumeration<? extends Attribute> allAttributes = attributes.getAll();
+//		while(allAttributes.hasMore()) {
+//			Attribute nextAttr = allAttributes.next();
+//			if(nextAttr != null) {
+//				classLogger.info(nextAttr.getID() + " ::: " + nextAttr.get());
+//			}
+//		}
+//	}
 	
 }
