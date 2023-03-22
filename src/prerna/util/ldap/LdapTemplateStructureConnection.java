@@ -242,13 +242,15 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 			}
 			classLogger.info(principalDN + " successfully changed password");
 		} catch (Exception e) {
+			String message = null;
 			if(principalDN == null) {
-				classLogger.error("User was unable to authenticate with current password, username entered: " + username);
+				message = "User was unable to authenticate with current password, username entered: " + username;
 			} else {
-				classLogger.info(principalDN + " failed to change password");
+				message = "Failed to change password. Error message = " + e.getMessage();
 			}
+			classLogger.error(message);
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Failed to change password. Error message: " + e.getMessage());
+			throw new IllegalArgumentException(message);
 		} finally {
 			if(ldapContext != null) {
 				ldapContext.close();
