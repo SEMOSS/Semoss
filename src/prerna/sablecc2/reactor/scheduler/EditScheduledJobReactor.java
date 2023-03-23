@@ -51,6 +51,10 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 	@Override
 	public NounMetadata execute() {
+		if(Utility.schedulerForceDisable()) {
+			throw new IllegalArgumentException("Scheduler is not enabled");
+		}
+		
 		Map<String, String> quartzJobMetadata = null;
 		String userId = null;
 

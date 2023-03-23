@@ -10,6 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public class ListAllJobsReactor extends AbstractReactor {
 
@@ -23,6 +24,10 @@ public class ListAllJobsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		if(Utility.schedulerForceDisable()) {
+			throw new IllegalArgumentException("Scheduler is not enabled");
+		}
+		
 		/**
 		 * 4 POSSIBLE CASES
 		 * ListAllJobs();
@@ -33,8 +38,8 @@ public class ListAllJobsReactor extends AbstractReactor {
 		 * This reactor will return all jobs based on app and user, if no parameters are
 		 * passed it will check if user has admin permissions, if so it will return all
 		 * jobs, if not it will throw error.
-		 * 
 		 */
+		
 		Map<String, Map<String, String>> jobMap = null;
 		organizeKeys();
 
