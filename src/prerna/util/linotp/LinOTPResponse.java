@@ -1,5 +1,6 @@
 package prerna.util.linotp;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.AccessToken;
@@ -11,6 +12,9 @@ public class LinOTPResponse {
 	private int responseCode = -1;
 	
 	public Map<String, Object> getReturnMap() {
+		if(returnMap == null) {
+			returnMap = new HashMap<>();
+		}
 		return returnMap;
 	}
 	
