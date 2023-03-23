@@ -323,7 +323,7 @@ public class LinOTPUtil {
 			linotpResponse.setResponseCode(500);
 			return linotpResponse;
 		}
-		if(SecurityAdminUtils.getInstance(thisUser) != null) {
+		if(SecurityAdminUtils.getInstance(thisUser) == null) {
 			returnMap.put(Constants.ERROR_MESSAGE, "User must be an admin");
 			linotpResponse.setResponseCode(500);
 			return linotpResponse;
