@@ -531,7 +531,8 @@ public class Constants {
 	public static final String SCHEDULER_ENDPOINT = "SCHEDULER_ENDPOINT";
 	public static final String SCHEDULER_KEYSTORE = "SCHEDULER_KEYSTORE";
 	public static final String SCHEDULER_KEYSTORE_PASSWORD = "SCHEDULER_KEYSTORE_PASSWORD";
-	
+	public static final String SCHEDULER_FORCE_DISABLE = "SCHEDULER_FORCE_DISABLE";
+
 	//RDBMS specific
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";

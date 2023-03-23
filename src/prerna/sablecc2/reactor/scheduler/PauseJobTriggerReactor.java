@@ -16,6 +16,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class PauseJobTriggerReactor extends AbstractReactor {
 
@@ -27,6 +28,10 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		if(Utility.schedulerForceDisable()) {
+			throw new IllegalArgumentException("Scheduler is not enabled");
+		}
+		
 		/**
 		 * PauseJobTrigger(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
 		 * 
