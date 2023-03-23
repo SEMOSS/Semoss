@@ -20,6 +20,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public class SchedulerHistoryReactor extends AbstractReactor {
 
@@ -30,7 +31,10 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-
+		if(Utility.schedulerForceDisable()) {
+			throw new IllegalArgumentException("Scheduler is not enabled");
+		}
+		
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		// start up scheduler if it isn't on
 		SchedulerDatabaseUtility.startScheduler(scheduler);

@@ -3811,6 +3811,20 @@ public class Utility {
 		return Boolean.parseBoolean(userTracking);
 	}
 	
+	/**
+	 * Determine if user tracking enabled
+	 * @return
+	 */
+	public static boolean schedulerForceDisable() {
+		String schedulerForceDisable  = DIHelper.getInstance().getProperty(Constants.SCHEDULER_FORCE_DISABLE);
+		if(schedulerForceDisable == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(schedulerForceDisable);
+	}
+	
 	public static boolean isUserTrackingDisabled() {
 		return !isUserTrackingEnabled();
 	}
