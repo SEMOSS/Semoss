@@ -33,8 +33,8 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 	// if multi structure searching
 	// need to have an application login to search for the user CN
 	// and then try to login as the user
-	String applicationSecurityPrincipal = null;
-	String applicationSecurityCredentials = null;
+	String applicationMasterPrincipal = null;
+	String applicationMasterCredentials = null;
 	transient DirContext applicationContext = null;	
 
 	// attribute mapping
@@ -65,8 +65,8 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
 
 		this.providerUrl = socialData.getProperty(LDAP_PROVIDER_URL);
-		this.applicationSecurityPrincipal = socialData.getProperty(LDAP_APPLICATION_SECURITY_PRINCIPAL);
-		this.applicationSecurityCredentials = socialData.getProperty(LDAP_APPLICATION_SECURITY_CREDENTIALS);
+		this.applicationMasterPrincipal = socialData.getProperty(LDAP_APPLICATION_SECURITY_PRINCIPAL);
+		this.applicationMasterCredentials = socialData.getProperty(LDAP_APPLICATION_SECURITY_CREDENTIALS);
 
 		this.attributeIdKey = socialData.getProperty(LDAP_ID_KEY);
 		this.attributeNameKey = socialData.getProperty(LDAP_NAME_KEY);
@@ -129,14 +129,14 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		}
 
 		// we require a valid application context
-		if(this.applicationSecurityPrincipal == null || (this.applicationSecurityPrincipal=this.applicationSecurityPrincipal.trim()).isEmpty()) {
+		if(this.applicationMasterPrincipal == null || (this.applicationMasterPrincipal=this.applicationMasterPrincipal.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the attribute for the application ldap principal");
 		}
-		if(this.applicationSecurityCredentials == null || (this.applicationSecurityCredentials=this.applicationSecurityCredentials.trim()).isEmpty()) {
+		if(this.applicationMasterCredentials == null || (this.applicationMasterCredentials=this.applicationMasterCredentials.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the attribute for the application ldap credentials");
 		}
 		try {
-			this.applicationContext = LDAPConnectionHelper.createLdapContext(this.providerUrl, this.applicationSecurityPrincipal, this.applicationSecurityCredentials);
+			this.applicationContext = LDAPConnectionHelper.createLdapContext(this.providerUrl, this.applicationMasterPrincipal, this.applicationMasterCredentials);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Unable to login to create the application ldap context");
 		}
