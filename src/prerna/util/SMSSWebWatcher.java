@@ -255,23 +255,24 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		}
 
 		// change to scheduler info
-		String schedulerDbName = Constants.SCHEDULER_DB + this.extension;
-		int schedulerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, schedulerDbName);
-		if(schedulerDbNameIndex > -1) {
-			loadExistingDB(fileNames[schedulerDbNameIndex]);
-			// initialize the scheduler database
-			try {
-				SchedulerDatabaseUtility.startServer();
-			} catch (SQLException sqe) {
-				// we couldn't initialize the db remove it from DIHelper
-				DIHelper.getInstance().removeDbProperty(Constants.SCHEDULER_DB);
-				logger.error(Constants.STACKTRACE, sqe);
-			} catch (IOException e) {
-				DIHelper.getInstance().removeDbProperty(Constants.SCHEDULER_DB);
-				logger.error(Constants.STACKTRACE, e);
-			}
+		if(!Utility.schedulerForceDisable()) {
+			String schedulerDbName = Constants.SCHEDULER_DB + this.extension;
+			int schedulerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, schedulerDbName);
+			if(schedulerDbNameIndex > -1) {
+				loadExistingDB(fileNames[schedulerDbNameIndex]);
+				// initialize the scheduler database
+				try {
+					SchedulerDatabaseUtility.startServer();
+				} catch (SQLException sqe) {
+					// we couldn't initialize the db remove it from DIHelper
+					DIHelper.getInstance().removeDbProperty(Constants.SCHEDULER_DB);
+					logger.error(Constants.STACKTRACE, sqe);
+				} catch (IOException e) {
+					DIHelper.getInstance().removeDbProperty(Constants.SCHEDULER_DB);
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}	
 		}
-		
 		
 		// load user tracking database
 		if(Utility.isUserTrackingEnabled()) {

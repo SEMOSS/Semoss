@@ -14,6 +14,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class ExecuteScheduledJobReactor extends AbstractReactor {
 
@@ -25,6 +26,10 @@ public class ExecuteScheduledJobReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		if(Utility.schedulerForceDisable()) {
+			throw new IllegalArgumentException("Scheduler is not enabled");
+		}
+		
 		organizeKeys();
 
 		// Get inputs
