@@ -185,8 +185,10 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 
 		NamingEnumeration<SearchResult> findUser = applicationContext.search(searchContextName, searchFilter, controls);
 
+		boolean foundUser = false;
 		SearchResult result = null;
 		while(findUser.hasMoreElements()) {
+			foundUser = true;
 			result = findUser.next();
 			// confirm the password works for this user
 			String userDN = result.getNameInNamespace();
@@ -210,7 +212,11 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			}
 		}
 
-		return null;
+		if(foundUser) {
+			throw new IllegalArgumentException("Found username but invalid credentials to login");
+		} else {
+			throw new IllegalArgumentException("Unable to find username = " + username);
+		}
 	}
 
 
