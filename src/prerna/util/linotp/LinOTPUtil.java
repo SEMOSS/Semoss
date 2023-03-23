@@ -30,13 +30,14 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.cookie.ClientCookie;
 import org.apache.http.impl.auth.DigestScheme;
 import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.cookie.BasicClientCookie2;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
@@ -363,6 +364,13 @@ public class LinOTPUtil {
 		final String hostname = socialData.getProperty("linotp_hostname"); 
 		final String realm = socialData.getProperty("linotp_realm");
 
+		String cleanHostname = hostname;
+		if(cleanHostname.startsWith("https://")) {
+			cleanHostname = cleanHostname.substring("https://".length());
+		} else if(cleanHostname.startsWith("http://")) {
+			cleanHostname = cleanHostname.substring("http://".length());
+		}
+		
 		String controller = "admin";
 		String action = "reset";
 		String requestURL = hostname + "/" + controller + "/" + action;
@@ -386,13 +394,15 @@ public class LinOTPUtil {
 		CredentialsProvider credsProvider = new BasicCredentialsProvider();
 		credsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(adminUser, adminPass));
 		AuthCache authCache = new BasicAuthCache();
-		authCache.put(new HttpHost(hostname), new DigestScheme());
+		authCache.put(new HttpHost(cleanHostname), new DigestScheme());
 		context.setAuthCache(authCache);
 		context.setCredentialsProvider(credsProvider);
 		
 		// must send the token in the cookie as well as the session key in the body
 		CookieStore cstore = new BasicCookieStore();
-		BasicClientCookie2 cookie = new BasicClientCookie2("admin_session", token);
+		BasicClientCookie cookie = new BasicClientCookie("admin_session", token);
+		cookie.setDomain(cleanHostname);
+	    cookie.setAttribute(ClientCookie.DOMAIN_ATTR, "true");
 		cstore.addCookie(cookie);
 		context.setCookieStore(cstore);
 		
@@ -426,18 +436,33 @@ public class LinOTPUtil {
 					linotpResponse.setResponseCode(200);
 					return linotpResponse;
 				} else {
-					try {
-						JsonObject errorJson = j_response.getJsonObject("result");
-						String errorMessage = errorJson.getString("message");
-						returnMap.put(Constants.ERROR_MESSAGE, "Unsuccessful reset - " + errorMessage);
-						linotpResponse.setResponseCode(500);
-						return linotpResponse;
-					} catch(Exception ignore) {
-						//ignore
-						returnMap.put(Constants.ERROR_MESSAGE, "Unsuccessful reset - unable to parse error details");
-						linotpResponse.setResponseCode(500);
-						return linotpResponse;
+					JsonObject detailJson = j_response.getJsonObject("detail");
+					if(detailJson != null) {
+						String errorMessage = detailJson.getString("message");
+						if(errorMessage != null) {
+							returnMap.put(Constants.ERROR_MESSAGE, "Unsuccessful reset - " + errorMessage);
+							linotpResponse.setResponseCode(500);
+							return linotpResponse;
+						}
 					}
+					
+					JsonObject resultJson = j_response.getJsonObject("result");
+					if(resultJson != null) {
+						JsonObject errorJson = resultJson.getJsonObject("error");
+						if(errorJson != null) {
+							String errorMessage = errorJson.getString("message");
+							if(errorMessage != null) {
+								returnMap.put(Constants.ERROR_MESSAGE, "Unsuccessful reset - " + errorMessage);
+								linotpResponse.setResponseCode(500);
+								return linotpResponse;
+							}
+						}
+					}
+					
+					// could not parse a specific message - return json response for debugging
+					returnMap.put(Constants.ERROR_MESSAGE, "Unsuccessful reset - unable to parse error details. Full error: " + j_response.toString());
+					linotpResponse.setResponseCode(500);
+					return linotpResponse;
 				}
 			} finally {
 				// consume will release the entity
