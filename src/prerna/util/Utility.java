@@ -162,6 +162,7 @@ import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
+import prerna.sablecc2.reactor.IReactor;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
 import prerna.tcp.workers.EngineSocketWrapper;
@@ -3979,13 +3980,13 @@ public class Utility {
 		return thisMap;
 	}
 
-	public static Map<String, Class> loadReactors(String folder, SemossClassloader customClassLoader) {
+	public static Map<String, Class<IReactor>> loadReactors(String folder, SemossClassloader customClassLoader) {
 		return loadReactors(folder, customClassLoader, "classes");
 	}
 
 	// loads classes through this specific class loader for the insight
-	public static Map<String, Class> loadReactors(String folder, SemossClassloader customClassLoader, String outputFolder) {
-		Map<String, Class> reactorMap = new HashMap<>();
+	public static Map<String, Class<IReactor>> loadReactors(String folder, SemossClassloader customClassLoader, String outputFolder) {
+		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
@@ -4032,7 +4033,7 @@ public class Utility {
 							&& !classObject.isAbstract() 
 							&& classObject.isPublic() 
 							&& isValidReactor(classObject)) {
-						Class actualClass = customClassLoader.loadClass(className);
+						Class<IReactor> actualClass = (Class<IReactor>) customClassLoader.loadClass(className);
 					
 						String reactorName = classes.get(classIndex).getSimpleName();
 						final String REACTOR_KEY = "REACTOR";
@@ -4074,14 +4075,14 @@ public class Utility {
 	}
 
 	// loads classes through this specific class loader for the insight
-	public static Map loadReactorsMvn(String folder, JarClassLoader cl, String outputFolder) {
-		Map<String, Class> reactors = new HashMap<>();
+	public static Map<String, Class<IReactor>> loadReactorsFromPom(String folder, JarClassLoader cl, String outputFolder) {
+		Map<String, Class<IReactor>> reactors = new HashMap<>();
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
-				 logger.debug("App specific reactors are disabled");
+				 logger.debug("Project specific reactors are disabled");
 				 return reactors;
-			 };
+			 }
 		}
 		try {
 			// I should create the class pool everytime
@@ -4146,7 +4147,7 @@ public class Utility {
 						reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
 					}
 
-					reactors.put(reactorName.toUpperCase(), loadedObject.getClass());
+					reactors.put(reactorName.toUpperCase(), (Class<IReactor>) loadedObject.getClass());
 				}
 			}
 		} catch (Exception ex) {
@@ -4161,13 +4162,13 @@ public class Utility {
 	 * @param urls
 	 * @return
 	 */
-	public static Map loadReactorsMvn(URL[] urls) {
+	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls) {
 		URLClassLoader cl = null;
-		Map<String, Class> reactorsMap = new HashMap<>();
+		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			if(Boolean.parseBoolean(disable_terminal)) {
-				logger.debug("App specific reactors are disabled");
+				logger.debug("Project specific reactors are disabled");
 				return reactorsMap;
 			};
 		}
@@ -4194,7 +4195,7 @@ public class Utility {
 						&& !classObject.isAbstract() 
 						&& classObject.isPublic() 
 						&& isValidReactor(classObject)) {
-					Class actualClass = jcl.loadClass(className);
+					Class<IReactor> actualClass = jcl.loadClass(className);
 					
 					String reactorName = classes.get(classIndex).getSimpleName();
 					final String REACTOR_KEY = "REACTOR";
@@ -5002,7 +5003,7 @@ public class Utility {
 		for(int i = 0; i < jars.length; i++) {
 			urls[i] = jars[i].toURI().toURL();
 		}
-		System.out.println(Utility.loadReactorsMvn(urls));
+		System.out.println(Utility.loadReactorsFromJars(urls));
 	}
 
 }
