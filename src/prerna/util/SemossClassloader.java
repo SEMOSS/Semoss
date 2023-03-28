@@ -15,7 +15,7 @@ public class SemossClassloader extends ClassLoader {
 	private static final Logger classLogger = LogManager.getLogger(SemossClassloader.class);
 	
 	private String folder = null;
-	private Map<String, Boolean> dbLoaded = new Hashtable<>();
+	private Map<String, Boolean> projectLoaded = new Hashtable<>();
 
 	public void setFolder(String folder)
 	{
@@ -27,19 +27,19 @@ public class SemossClassloader extends ClassLoader {
 		super(parent);
 	}
 
-	public void commitEngine(String engine)
+	public void commitEngine(String projectId)
 	{
-		dbLoaded.put(engine, true);
+		projectLoaded.put(projectId, true);
 	}
 
-	public void uncommitEngine(String engine)
+	public void uncommitEngine(String projectId)
 	{
-		dbLoaded.remove(engine);
+		projectLoaded.remove(projectId);
 	}
 
-	public boolean isCommitted(String engine)
+	public boolean isCommitted(String projectId)
 	{
-		return dbLoaded.containsKey(engine);
+		return projectLoaded.containsKey(projectId);
 	}
 
 	/**

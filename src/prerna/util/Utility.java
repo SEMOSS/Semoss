@@ -35,6 +35,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -4021,12 +4022,18 @@ public class Utility {
 				// find everything implementing IReactor
 				// get implementing classes doesn't seem to work when overriding the classpath
 				// likely because the base semoss classes are not in the scope of the ClassGraph object
-				ClassInfoList classes = sr.getAllClasses(); // sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor"); 
+				ClassInfoList classes = sr.getAllClasses(); 
 				for(int classIndex = 0;classIndex < classes.size();classIndex++) {
 					ClassInfo classObject = classes.get(classIndex);
-					if(isValidReactor(classObject)) {
-						Class actualClass = customClassLoader.loadClass(classes.get(classIndex).getName());
-						
+					String className = classObject.getName();
+					System.out.println(className);
+
+					if(!classObject.isInterface() 
+							&& !classObject.isAbstract() 
+							&& classObject.isPublic() 
+							&& isValidReactor(classObject)) {
+						Class actualClass = customClassLoader.loadClass(className);
+					
 						String reactorName = classes.get(classIndex).getSimpleName();
 						final String REACTOR_KEY = "REACTOR";
 						if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
@@ -4148,6 +4155,72 @@ public class Utility {
 
 		return reactors;
 	}
+	
+	/**
+	 * Load reactors directly from a compiled jar(s)
+	 * @param urls
+	 * @return
+	 */
+	public static Map loadReactorsMvn(URL[] urls) {
+		URLClassLoader cl = null;
+		Map<String, Class> reactorsMap = new HashMap<>();
+		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
+			if(Boolean.parseBoolean(disable_terminal)) {
+				logger.debug("App specific reactors are disabled");
+				return reactorsMap;
+			};
+		}
+		try {
+			cl = new URLClassLoader(urls);
+			JarClassLoader jcl = new JarClassLoader(cl);
+			
+			// scan all abstract reactors
+			ScanResult sr = new ClassGraph()
+					.overrideClasspath((Object[]) urls)
+					.enableClassInfo()
+					.scan();
+			
+			// find everything implementing IReactor
+			// get implementing classes doesn't seem to work when overriding the classpath
+			// likely because the base semoss classes are not in the scope of the ClassGraph object
+			ClassInfoList classes = sr.getAllClasses(); 
+			for(int classIndex = 0;classIndex < classes.size();classIndex++) {
+				ClassInfo classObject = classes.get(classIndex);
+				String className = classObject.getName();
+//				System.out.println(className);
+
+				if(!classObject.isInterface() 
+						&& !classObject.isAbstract() 
+						&& classObject.isPublic() 
+						&& isValidReactor(classObject)) {
+					Class actualClass = jcl.loadClass(className);
+					
+					String reactorName = classes.get(classIndex).getSimpleName();
+					final String REACTOR_KEY = "REACTOR";
+					if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
+						reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+					}
+					
+					reactorsMap.put(reactorName.toUpperCase(), actualClass);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(cl != null) {
+				try {
+					cl.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return reactorsMap;
+	}
+
 
 	public static String getCP() {
 		String envClassPath = null;
@@ -4916,9 +4989,20 @@ public class Utility {
 
 	}
 
-	public static void main(String[] args) {
-		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop");
-		Utility.startTCPServer(null, "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer", "6666");
+	public static void main(String[] args) throws MalformedURLException {
+		File folder = new File("/Users/mahkhalil/workspace/Semoss_Dev/project/Blood Glucose__049b3b6a-6630-4f77-8f3a-2892fec2188b/app_root/version/assets/java/");
+		File[] jars = folder.listFiles(new FilenameFilter() {
+			
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".jar");
+			}
+		});
+		URL[] urls = new URL[jars.length];
+		for(int i = 0; i < jars.length; i++) {
+			urls[i] = jars[i].toURI().toURL();
+		}
+		System.out.println(Utility.loadReactorsMvn(urls));
 	}
 
 }
