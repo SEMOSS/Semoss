@@ -389,7 +389,6 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 							meta.getConnection().close();
 						} catch (SQLException e) {
 							logger.error(Constants.STACKTRACE, e);
-							e.printStackTrace();
 						}
 					}
 				}
@@ -1032,7 +1031,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					conceptIdHash.setEngine(this);
 					conceptIdHash.load();
 				} catch(Exception ex) {
-					ex.printStackTrace();
+					logger.error(Constants.STACKTRACE, ex);
 				}
 			}
 		}
