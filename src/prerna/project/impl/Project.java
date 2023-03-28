@@ -112,7 +112,7 @@ public class Project implements IProject {
 	/**
 	 * Hash for the specific engine reactors
 	 */
-	private Map <String, Class> projectSpecificHash = null;
+	private Map <String, Class<IReactor>> projectSpecificHash = null;
 	
 	/**
 	 * Custom class loader
@@ -689,9 +689,15 @@ public class Project implements IProject {
 				return name.endsWith(".jar");
 			}
 		});
+		File pomFile = new File(javaDirectory.getAbsolutePath() + DIR_SEPARATOR + "pom.xml");
+
+		boolean loadJars = jars != null && jars.length > 0;
+		boolean hasPom = pomFile.exists() && pomFile.isFile();
 		
-		if(jars != null && jars.length > 0) {
-			retReac =  getReactorMvn(className, jars, null);
+		if(loadJars) {
+			retReac =  getReactorFromJars(className, jars);
+		} else if(hasPom) {
+			retReac = getReactorsFromPom(className, pomFile);
 		}
 		else // keep the old processing
 		{
@@ -892,18 +898,55 @@ public class Project implements IProject {
 		return this.lastPublishDate;
 	}
 	
-	// new reactor method that uses maven
-	// the end user will execute maven. No automation is required there
-	// need to compare target directory date with current
-	// if so create a new classloader and load it
+	/**
+	 * 
+	 * @param className
+	 * @param pomFile
+	 * @return
+	 */
+	private IReactor getReactorsFromPom(String className, File pomFile) {
+		IReactor retReac = null;
+		
+		if(mvnClassLoader == null || evalMvnReload())
+		{
+			mvnClassLoader = null;
+			makeMvnClassloader(pomFile);
+			if(!mvnDefined) {
+				// no point none of the stuff is set anyways
+				return null;
+			}
+			// try to load it directly from assets
+			String targetFolder = getTargetFolder(pomFile);
+			targetFolder = targetFolder + DIR_SEPARATOR + "classes"; // target folder is relative to java folder for the main assets
+			projectSpecificHash = Utility.loadReactorsFromPom(pomFile.getParent(), mvnClassLoader, targetFolder);
+			ProjectCustomReactorCompilator.setCompiled(this.projectId);
+		}
+
+		// now that you have the reactor
+		// create the reactor
+		try
+		{
+			if(projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) 
+			{
+				Class<IReactor> thisReactorClass = projectSpecificHash.get(className.toUpperCase());
+				retReac = (IReactor) thisReactorClass.newInstance();
+				return retReac;
+			}
+		} catch (InstantiationException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (IllegalAccessException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		return retReac;
+	}
+	
 	/**
 	 * 
 	 * @param className
 	 * @param jars
-	 * @param customLoader
 	 * @return
 	 */
-	private IReactor getReactorMvn(String className, File[] jars, JarClassLoader customLoader) {	
+	private IReactor getReactorFromJars(String className, File[] jars) {	
 		IReactor retReac = null;
 
 		// have the classes been loaded already?
@@ -918,13 +961,13 @@ public class Project implements IProject {
 					throw new IllegalArgumentException("Unable to load jar file : " + jars[i].getName());
 				}
 			}
-			projectSpecificHash = Utility.loadReactorsMvn(urls);
+			projectSpecificHash = Utility.loadReactorsFromJars(urls);
 			ProjectCustomReactorCompilator.setCompiled(this.projectId);
 		}
 		
 		try {
 			if(projectSpecificHash.containsKey(className.toUpperCase())) {
-				Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
+				Class<IReactor> thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 				retReac = (IReactor) thisReactorClass.newInstance();
 			}
 		} catch (InstantiationException e) {
@@ -940,7 +983,7 @@ public class Project implements IProject {
 	// the end user will execute maven. No automation is required there
 	// need to compare target directory date with current
 	// if so create a new classloader and load it
-	private IReactor getPortalReactorMvn(String className, JarClassLoader customLoader) 
+	private IReactor getPortalReactorMvn(String className, File pomFile, JarClassLoader customLoader) 
 	{	
 		// run through every portal and load
 		
@@ -970,12 +1013,12 @@ public class Project implements IProject {
 		if(mvnClassLoader == null || evalMvnReload())
 		{
 			mvnClassLoader = null;
-			makeMvnClassloader();
+			makeMvnClassloader(pomFile);
 			cl = mvnClassLoader;
 			// try to load it directly from assets
-			projectSpecificHash = Utility.loadReactorsMvn(AssetUtility.getProjectBaseFolder(this.projectName, this.projectId), cl, "target" + DIR_SEPARATOR + "classes");
+			projectSpecificHash = Utility.loadReactorsFromPom(AssetUtility.getProjectBaseFolder(this.projectName, this.projectId), cl, "target" + DIR_SEPARATOR + "classes");
 			// if not load it from the 
-			Map <String, Class> versionHash = Utility.loadReactorsMvn(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + DIR_SEPARATOR + "java", cl, "target" + DIR_SEPARATOR + "classes");
+			Map <String, Class<IReactor>> versionHash = Utility.loadReactorsFromPom(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + DIR_SEPARATOR + "java", cl, "target" + DIR_SEPARATOR + "classes");
 			projectSpecificHash.putAll(versionHash);
 			ProjectCustomReactorCompilator.setCompiled(this.projectId);
 		}
@@ -1004,7 +1047,7 @@ public class Project implements IProject {
 	}
 
 	
-	private void makeMvnClassloader() {
+	private void makeMvnClassloader(File pomFile) {
 		if(mvnClassLoader == null) // || if the classes folder is newer than the dependency file name
 		{
 			// now load the classloader
@@ -1015,8 +1058,7 @@ public class Project implements IProject {
 			mvnClassLoader = new JarClassLoader();
 			// get all the new jars first
 			// to add to the classloader
-			String appRoot = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
-			String assetsFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
+//			String appRoot = AssetUtility.getProjectBaseFolder(this.projectName, this.projectId);
 			
 			String mvnHome = System.getProperty(Settings.MVN_HOME);
 			if(mvnHome == null) {
@@ -1031,7 +1073,7 @@ public class Project implements IProject {
 			// appRoot / classes
 			// get the libraries
 			// run maven dependency:list to get all the dependencies and process
-			List <String> classpaths = composeClasspath(appRoot, assetsFolder, mvnHome);
+			List <String> classpaths = composeClasspath(pomFile, mvnHome);
 			if(classpaths != null) {
 				for(int classPathIndex = 0;classPathIndex < classpaths.size();classPathIndex++) {
 					// add all the libraries
@@ -1039,51 +1081,49 @@ public class Project implements IProject {
 				}
 			}
 			
-			// lastly add the classes folder
-			mvnClassLoader.add(appRoot + File.pathSeparator + "classes/");
+//			// lastly add the classes folder
+//			mvnClassLoader.add(appRoot + File.pathSeparator + "classes/");
 		}
 	}
 	
-	private List <String> composeClasspath(String appRoot, String versionFolder, String mvnHome)
+	private List <String> composeClasspath(File pomFile, String mvnHome)
 	{
-		// java files are in /version/assets/java
-		String pomFile  =  versionFolder + DIR_SEPARATOR + "java" + DIR_SEPARATOR + "pom.xml" ; // it is sitting in the asset root/version/assets/java
 		BufferedReader br = null;
 		try 
 		{
-	        String outputFile = appRoot + DIR_SEPARATOR + "mvn_dep.output"; // need to change this java
-			if(mvnHome != null)
+	        File outputFile = new File(pomFile.getParent() + DIR_SEPARATOR + "mvn_dep.output"); // need to change this java
+			boolean built = false;
+	        if(mvnHome != null)
 			{
 		        
 		        // run this only if mvn dependencies have been wiped out
-		        File outputFile1 = new File(outputFile);
-		        
-		        if(!outputFile1.exists())
-		        {
+		        if(outputFile.exists()) {
+		        	built = true;
+		        } else {
 					InvocationRequest request = new DefaultInvocationRequest();
 					//request.
-					request.setPomFile( new File(pomFile) );
-			        request.setMavenOpts("-DoutputType=graphml -DoutputFile=" + outputFile + " -DincludeScope=runtime ");
+					request.setPomFile( pomFile );
+			        request.setMavenOpts("-DoutputType=graphml -DoutputFile=\"" + outputFile.getAbsolutePath() + "\" -DincludeScope=runtime ");
 					request.setGoals( Collections.singletonList("dependency:list" ) );
 		
 					Invoker invoker = new DefaultInvoker();
-		
+					invoker.setWorkingDirectory(pomFile.getParentFile());
 					invoker.setMavenHome(new File(Utility.normalizePath(mvnHome)));
 					InvocationResult result = invoker.execute( request );
 					 
 					if ( result.getExitCode() != 0 )
 					{
-					    throw new IllegalStateException( "Build failed." );
+					    built = false;
+					    //throw new IllegalStateException( "Build failed." );
 					}
 		        }
-		        
 			}
-			else // may be maven is not set but mvn as a executor is available
-			{
+	        
+	        if(!built) { // may be maven is not set but mvn as a executor is available
 				// need to make the modification to this
-				CmdExecUtil ceu = new CmdExecUtil(projectName, versionFolder + DIR_SEPARATOR + "java", null);
-				// mvn dependency:list -DoutputType=graphml -DoutputFile=./dep.list -DincludeScope=runtime -f pom.xml
-				ceu.executeCommand("mvn dependency:list -DoutputType=graphml -DoutputFile=" + outputFile + " -DincludeScope=runtime -f " + pomFile);
+				CmdExecUtil ceu = new CmdExecUtil(projectName, pomFile.getParent(), null);
+				// mvn dependency:list -DoutputType=graphml -DoutputFile=./mvn_dep.output -DincludeScope=runtime -f pom.xml
+				ceu.executeCommand("mvn dependency:list -DoutputType=graphml -DoutputFile=\"" + outputFile.getAbsolutePath() + "\" -DincludeScope=runtime -f \"" + pomFile + "\"");
 			}
 			// now process the dependency list 
 			// and then delete it
@@ -1098,8 +1138,7 @@ public class Project implements IProject {
 			}
 			
 			List <String> finalCP = new Vector<String>();
-			File classesFile = new File(outputFile);
-			br = new BufferedReader(new InputStreamReader(new FileInputStream(classesFile)));
+			br = new BufferedReader(new InputStreamReader(new FileInputStream(outputFile)));
 			String data = null;
 			while((data = br.readLine()) != null)
 			{
@@ -1179,7 +1218,7 @@ public class Project implements IProject {
 	}
 		
 	// get the target folder
-	public String getTargetFolder(String pomFile) {
+	public String getTargetFolder(File pomFile) {
 		String targetFolder = null;
 		try {
 			InputSource is = new InputSource(new FileInputStream(pomFile));
