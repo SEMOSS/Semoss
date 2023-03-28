@@ -3,15 +3,20 @@ package prerna.util;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.sql.Statement;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class PersistentHash {
+
+	private static final Logger logger = LogManager.getLogger(PersistentHash.class);
 
 	// simple hash table that saves and gets values from the database
 	private static final String TABLE_NAME = "KVSTORE";
@@ -45,14 +50,14 @@ public class PersistentHash {
 				}	
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if (engine.isConnectionPooling() && conn != null) {
 					conn.close();
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -91,14 +96,14 @@ public class PersistentHash {
 					this.dirty = false;
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				try {
 					if (engine.isConnectionPooling() && conn != null) {
 						conn.close();
 					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -125,14 +130,14 @@ public class PersistentHash {
 			// make sure the KVSTORE table exists
 			return queryUtil.tableExists(conn, TABLE_NAME, engine.getDatabase(), engine.getSchema());
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(engine.isConnectionPooling() && conn != null) {
 					conn.close();
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return false;
