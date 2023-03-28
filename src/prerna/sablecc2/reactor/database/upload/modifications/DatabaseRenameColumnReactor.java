@@ -19,6 +19,13 @@ import prerna.sablecc2.reactor.masterdatabase.SyncDatabaseWithLocalMasterReactor
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
+/**
+ * 1) Rename the column in the DB
+ * 2) Update the physical name in the owl, this does not change the conceptual name
+ * 
+ * @author rramirezjimenez
+ *
+ */
 public class DatabaseRenameColumnReactor extends AbstractReactor {
 
 	public DatabaseRenameColumnReactor() {
@@ -69,6 +76,7 @@ public class DatabaseRenameColumnReactor extends AbstractReactor {
 		// update owl
 		try {
 			owler.renameProp(databaseId, table, existingColumn, newColumn);
+			owler.commit();
 			owler.export();
 			SyncDatabaseWithLocalMasterReactor syncWithLocal = new SyncDatabaseWithLocalMasterReactor();
 			syncWithLocal.setInsight(this.insight);
@@ -77,7 +85,7 @@ public class DatabaseRenameColumnReactor extends AbstractReactor {
 			syncWithLocal.execute();
 		} catch (IOException e) {
 			NounMetadata noun = new NounMetadata(dbUpdate, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(getError("Error occurred savig the metadata file with the executed changes"));
+			noun.addAdditionalReturn(getError("Error occurred saving the metadata file with the executed changes"));
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
