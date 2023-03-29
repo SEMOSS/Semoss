@@ -23,6 +23,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.query.querystruct.transform.QSRenameTableConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -46,6 +47,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Error generating new sql frame", e);
 		}
+		this.originalName = this.frameName;
 	}
 	
 	public AbstractRdbmsFrame(String tableName) {
@@ -60,6 +62,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error generating new sql frame", e);
 		}
+		this.originalName = this.frameName;
 	}
 	
 	public AbstractRdbmsFrame(String[] headers) {
@@ -75,6 +78,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		ImportUtility.parseHeadersAndTypeIntoMeta(this, headers, types, this.frameName);
 		this.builder.alterTableNewColumns(this.frameName, headers, types);
 		syncHeaders();
+		this.originalName = this.frameName;
 	}
 	
 	public AbstractRdbmsFrame(String[] headers, String[] types) {
@@ -82,6 +86,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		ImportUtility.parseHeadersAndTypeIntoMeta(this, headers, types, this.frameName);
 		this.builder.alterTableNewColumns(this.frameName, headers, types);
 		syncHeaders();
+		this.originalName = this.frameName;
 	}
 	
 	/**
@@ -211,6 +216,11 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		logger.info("Generating SQL query...");
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+		if(!this.frameName.equals(this.originalName)) {
+			Map<String, String> transformation = new HashMap<>();
+			transformation.put(originalName, frameName);
+			qs = QSRenameTableConverter.convertQs(qs, transformation, true);
+		}
 		IQueryInterpreter interp = getQueryInterpreter();
 		interp.setQueryStruct(qs);
 		interp.setLogger(this.logger);
@@ -261,6 +271,13 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 	public DataFrameTypeEnum getFrameType() {
 		return DataFrameTypeEnum.GRID;
 	}
+	
+	
+	@Override
+	public IQueryInterpreter getQueryInterpreter() {
+		return getQueryUtil().getInterpreter(this);
+	}
+
 	
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
