@@ -2,6 +2,7 @@ package prerna.engine.api.impl.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -655,6 +656,8 @@ public class Owler extends AbstractOwler {
 		// then everything downstream needs to be edited
 		// then everything upstream needs to be edited
 		List<Object[]> newTriplesToAdd = new ArrayList<>();
+		List<Object[]> oldTriplesToDelete = new ArrayList<>();
+
 		// then we need to change the property name as well to point to the new table name
 		
 		
@@ -667,8 +670,8 @@ public class Owler extends AbstractOwler {
 
 			IEngine engine = Utility.getEngine(appId);
 			RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
-			String conceptPhysical = engine.getPhysicalUriFromPixelSelector(oldConceptName);
-			properties = engine.getPropertyUris4PhysicalUri(conceptPhysical);
+			String oldConceptPhysical = engine.getPhysicalUriFromPixelSelector(oldConceptName);
+			properties = engine.getPropertyUris4PhysicalUri(oldConceptPhysical);
 			StringBuilder bindings = new StringBuilder();
 			for (String oldProp : properties) {
 				bindings.append("(<").append(oldProp).append(">)");
@@ -680,29 +683,64 @@ public class Owler extends AbstractOwler {
 			}
 
 			// remove relationships to node
-			//TODO
 			List<String[]> fkRelationships = getPhysicalRelationships(owlEngine);
+			String baseRelationURI = SEMOSS_URI_PREFIX + DEFAULT_RELATION_CLASS;
 
 			for (String[] relations: fkRelationships) {
-				String instanceName = Utility.getInstanceName(relations[2]);
-				String[] tablesAndPrimaryKeys = instanceName.split("\\.");
+				// track if change needs to be made
+				boolean edit = false;
+				String start = relations[0];
+				String end = relations[1];
+				String relURI = relations[2];
+				String relationName = Utility.getInstanceName(relURI); // this is either a.b.c.d or x.a.b.y.c.d
+				String[] tablesAndPrimaryKeys = relationName.split("\\.");
 				
-				for (int i=0; i < tablesAndPrimaryKeys.length; i+=2) {
-					String key = tablesAndPrimaryKeys[i];
+				String newStart = relations[0];
+				String newEnd = relations[1];
+				if (start.equals(oldConceptPhysical)) {
+					edit = true;
+					//need to change the start table
+					newStart = newConceptPhysicalUri;
+					
+					// need to change the a in relationName
+					if (tablesAndPrimaryKeys.length == 4) {
+						//a.b.c.d
+						tablesAndPrimaryKeys[0] = newConceptName;
+					} else if (tablesAndPrimaryKeys.length == 6) {
+						// this has the schema
+						//x.a.b.y.c.d
+						tablesAndPrimaryKeys[1]= newConceptName;
+					}
 
-					if (oldConceptName.equalsIgnoreCase(key)) {
-						owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[0], relations[2], relations[1], true });
-						owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
-						// old concept is fromTable
-						if (i == 0) {
-							
-						}
-						// old concept is toTable
-						else if (i == 2) {
-
-						}
+				} else if (end.equals(oldConceptPhysical)) {
+					edit = true;
+					//need to change the end table
+					newEnd = newConceptPhysicalUri;
+					
+					// need to change the c in relationName
+					if (tablesAndPrimaryKeys.length == 4) {
+						//a.b.c.d
+						tablesAndPrimaryKeys[2] = newConceptName;
+					} else if (tablesAndPrimaryKeys.length == 6) {
+						// this has the schema
+						//x.a.b.y.c.d
+						tablesAndPrimaryKeys[4]= newConceptName;
 					}
 				}
+				if (edit) {
+					// create relationship name a.b.c.d or x.a.b.y.c.d
+					String newRelName = String.join(".", tablesAndPrimaryKeys);
+					String newRelationURI =  baseRelationURI +"/" + newRelName;
+					
+					// store old relationship info
+					oldTriplesToDelete.add(new Object[] { relations[0], relations[2], relations[1], true });
+					oldTriplesToDelete.add(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
+					
+					// store new relationship info
+					newTriplesToAdd.add(new Object[]{newStart, newRelationURI, newEnd,true});
+					newTriplesToAdd.add(new Object[] { newRelationURI, RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
+				}
+				
 			}
 
 			if (bindings.length() > 0) {
@@ -715,17 +753,23 @@ public class Owler extends AbstractOwler {
 						it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
 						while (it.hasNext()) {
 							IHeadersDataRow headerRows = it.next();
-							executeRemoveQuery(headerRows, owlEngine);
+							storeTripleToDelete(headerRows, oldTriplesToDelete);
+							
+							
 							
 							// add the new concept downstream props
 							Object[] raw = headerRows.getRawValues();
+							System.out.println(Arrays.toString(raw));
+							String s = raw[0].toString();
 							String p = raw[1].toString();
 							String o = raw[2].toString();
+							String newS = newProperties.get(s);
+							
 							boolean isLiteral = objectIsLiteral(p);
 							if (isLiteral) {
-								newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, p, headerRows.getValues()[2], false });
+								newTriplesToAdd.add(new Object[] { newS, p, headerRows.getValues()[2], false });
 							} else {
-								newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, p, o, true });
+								newTriplesToAdd.add(new Object[] { newS, p, o, true });
 							}
 						}
 					} catch (Exception e) {
@@ -741,19 +785,27 @@ public class Owler extends AbstractOwler {
 				// repeat for upstream of prop
 				{
 					String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?o {"	+ bindings.toString() + "}";
-
+				
 					IRawSelectWrapper it = null;
 					try {
 						it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
 						while (it.hasNext()) {
 							IHeadersDataRow headerRows = it.next();
-							executeRemoveQuery(headerRows, owlEngine);
+							storeTripleToDelete(headerRows, oldTriplesToDelete);
 
 							// add the new concept upstream props
 							Object[] raw = headerRows.getRawValues();
+							System.out.println(Arrays.toString(raw));
+
 							String s = raw[0].toString();
 							String p = raw[1].toString();
-							newTriplesToAdd.add(new Object[] { s, p, newConceptPhysicalUri, true });
+							String o = raw[2].toString();
+							String newO = newProperties.get(o);
+							if (s.equals(oldConceptPhysical)) {
+								newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, p, newO, true });
+							} else {
+								newTriplesToAdd.add(new Object[] { s, p, newO, true });
+							}
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -770,7 +822,7 @@ public class Owler extends AbstractOwler {
 			// now repeat for the node itself
 			// remove everything downstream of the node
 			{
-				String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?s) {?s ?p ?o} }";
+				String query = "select ?s ?p ?o where { bind(<" + oldConceptPhysical + "> as ?s) {?s ?p ?o} }";
 
 				IRawSelectWrapper it = null;
 				try {
@@ -778,10 +830,12 @@ public class Owler extends AbstractOwler {
 					while (it.hasNext()) {
 						hasTriple = true;
 						IHeadersDataRow headerRows = it.next();
-						executeRemoveQuery(headerRows, owlEngine);
+						storeTripleToDelete(headerRows, oldTriplesToDelete);
 
 						// add downstream for node props
 						Object[] raw = headerRows.getRawValues();
+						System.out.println(Arrays.toString(raw));
+
 						String p = raw[1].toString();
 						String o = raw[2].toString();
 						boolean isLiteral = objectIsLiteral(p);
@@ -802,7 +856,7 @@ public class Owler extends AbstractOwler {
 
 			// repeat for upstream of the node
 			{
-				String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?o) {?s ?p ?o} }";
+				String query = "select ?s ?p ?o where { bind(<" + oldConceptPhysical + "> as ?o) {?s ?p ?o} }";
 
 				IRawSelectWrapper it = null;
 				try {
@@ -810,10 +864,12 @@ public class Owler extends AbstractOwler {
 					while (it.hasNext()) {
 						hasTriple = true;
 						IHeadersDataRow headerRows = it.next();
-						executeRemoveQuery(headerRows, owlEngine);
+						storeTripleToDelete(headerRows, oldTriplesToDelete);
 
 						// add for the upstream of the node
 						Object[] raw = headerRows.getRawValues();
+						System.out.println(Arrays.toString(raw));
+
 						String s = raw[0].toString();
 						String p = raw[1].toString();
 						newTriplesToAdd.add(new Object[] { s, p, newConceptPhysicalUri, true });
@@ -832,13 +888,22 @@ public class Owler extends AbstractOwler {
 			}
 			
 			// adding the properties to the new concept
-			for(String oldProp :newProperties.keySet()) {
-				String newProp = newProperties.get(oldProp);
-				newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, OWL.DatatypeProperty.toString(), newProp, true });
+//			for(String oldProp :newProperties.keySet()) {
+//				String newProp = newProperties.get(oldProp);
+//				newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, OWL.DatatypeProperty.toString(), newProp, true });
+//			}
+			
+			// delete the old triples
+			for(Object[] data : oldTriplesToDelete) {
+				owlEngine.removeStatement(data);
 			}
+//			
+//			// now do all the adds
+//			System.out.println("NEW DATA::::::::::::::::::");
 
-			// now do all the adds
 			for(Object[] data : newTriplesToAdd) {
+				
+				System.out.println(Arrays.toString(data));
 				owlEngine.addStatement(data);
 			}
 			
@@ -981,6 +1046,19 @@ public class Owler extends AbstractOwler {
 			owlEngine.removeStatement(new Object[] { s, p, headerRows.getValues()[2], false });
 		} else {
 			owlEngine.removeStatement(new Object[] { s, p, o, true });
+		}
+	}
+	
+	private void storeTripleToDelete(IHeadersDataRow headerRows, List<Object[]> dataToDelete ) {
+		Object[] raw = headerRows.getRawValues();
+		String s = raw[0].toString();
+		String p = raw[1].toString();
+		String o = raw[2].toString();
+		boolean isLiteral = objectIsLiteral(p);
+		if (isLiteral) {
+			dataToDelete.add(new Object[] { s, p, headerRows.getValues()[2], false });
+		} else {
+			dataToDelete.add(new Object[] { s, p, o, true });
 		}
 	}
 
