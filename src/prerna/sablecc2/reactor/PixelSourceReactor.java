@@ -13,6 +13,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 public class PixelSourceReactor extends AbstractReactor {
 
@@ -31,7 +32,7 @@ public class PixelSourceReactor extends AbstractReactor {
 		// read in the file
 		// execute it within this insight
 		// return the results
-		File file = new File(path);
+		File file = new File(Utility.normalizePath(path));
 		if(!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path : " + relativePath);
 		}

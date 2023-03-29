@@ -78,7 +78,7 @@ public class AdminAllUsersReactor extends ToExcelReactor {
 			if (this.fileLocation == null) {
 				String insightFolder = this.insight.getInsightFolder();
 				{
-					File f = new File(insightFolder);
+					File f = new File(Utility.normalizePath(insightFolder));
 					if(!f.exists()) {
 						f.mkdirs();
 					}

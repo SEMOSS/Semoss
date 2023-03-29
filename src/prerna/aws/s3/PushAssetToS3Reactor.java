@@ -23,6 +23,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class PushAssetToS3Reactor extends AbstractReactor {
 
@@ -65,7 +66,7 @@ public class PushAssetToS3Reactor extends AbstractReactor {
 
 		if (relativeAssetPath != null && relativeAssetPath.length() > 0) {
 			pushPath = assetFolder + DIR_SEPARATOR + relativeAssetPath;
-			File assetToPush = new File(pushPath);
+			File assetToPush = new File(Utility.normalizePath(pushPath));
 			if (!assetToPush.exists()) {
 				NounMetadata error = NounMetadata.getErrorNounMessage("File does not exist");
 				SemossPixelException exception = new SemossPixelException(error);

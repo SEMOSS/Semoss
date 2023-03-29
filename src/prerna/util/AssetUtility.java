@@ -214,7 +214,7 @@ public class AssetUtility {
 	}
 	
 	public static boolean isGit(String assetFolder) {
-		File file = new File(assetFolder + DIR_SEPARATOR + ".git");
+		File file = new File(Utility.normalizePath(assetFolder) + DIR_SEPARATOR + ".git");
 		return file.exists();
 	}
 

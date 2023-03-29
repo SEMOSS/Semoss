@@ -108,7 +108,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 			String subject = modification[0] + "";
 			Object object = modification[1];
 			
-			logger.info("Modifying object " + Arrays.toString(modification));
+			logger.info("Modifying object " + Utility.cleanLogString(Arrays.toString(modification)));
 			// remove
 			if(object instanceof SemossDate) {
 				engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, 
