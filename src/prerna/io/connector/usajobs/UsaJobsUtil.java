@@ -254,7 +254,7 @@ public class UsaJobsUtil {
 	{
 		try
 		{
-			File file = new File(fileName);
+			File file = new File(Utility.normalizePath(fileName));
 			file.getParentFile().mkdirs();
 			curFile = new FileWriter(file);
 		}catch(Exception ex)

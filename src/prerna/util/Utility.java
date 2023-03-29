@@ -1477,7 +1477,7 @@ public class Utility {
 	}
 
 	public static IPlaySheet getPlaySheet(IEngine engine, String psName) {
-		logger.info("Trying to get playsheet for " + psName);
+		logger.info("Trying to get playsheet for " + Utility.cleanLogString(psName));
 		String psClassName = null;
 		if (engine != null) {
 			psClassName = engine.getProperty(psName);
@@ -1501,7 +1501,7 @@ public class Utility {
 	}
 
 	public static IDataMaker getDataMaker(IEngine engine, String dataMakerName) {
-		logger.info("Trying to get data maker for " + dataMakerName);
+		logger.info("Trying to get data maker for " + Utility.cleanLogString(dataMakerName));
 		String dmClassName = null;
 		if (engine != null) {
 			dmClassName = engine.getProperty(dataMakerName);
@@ -1536,7 +1536,7 @@ public class Utility {
 	}
 
 	public static ISEMOSSTransformation getTransformation(IEngine engine, String transName) {
-		logger.info("Trying to get transformation for " + transName);
+		logger.info("Trying to get transformation for " + Utility.cleanLogString(transName));
 		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
 		if (transClassName == null) {
 			transClassName = DIHelper.getInstance().getProperty(transName);
@@ -1550,7 +1550,7 @@ public class Utility {
 	}
 
 	public static ISEMOSSAction getAction(IEngine engine, String actionName) {
-		logger.info("Trying to get action for " + actionName);
+		logger.info("Trying to get action for " + Utility.cleanLogString(actionName));
 		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
 		if (actionClassName == null) {
 			actionClassName = DIHelper.getInstance().getProperty(actionName);
@@ -1566,29 +1566,29 @@ public class Utility {
 	public static Object getClassFromString(String className) {
 		Object obj = null;
 		try {
-			logger.debug("Dataframe name is " + className);
+			logger.debug("Dataframe name is " + Utility.cleanLogString(className));
 			obj = Class.forName(className).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException cnfe) {
 			logger.error(Constants.STACKTRACE, cnfe);
-			logger.fatal("No such class: " + className);
+			logger.fatal("No such class: " + Utility.cleanLogString(className));
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);
-			logger.fatal("Failed instantiation: " + className);
+			logger.fatal("Failed instantiation: " + Utility.cleanLogString(className));
 		} catch (IllegalAccessException iae) {
 			logger.error(Constants.STACKTRACE, iae);
-			logger.fatal("Illegal Access: " + className);
+			logger.fatal("Illegal Access: " + Utility.cleanLogString(className));
 		} catch (IllegalArgumentException iare) {
 			logger.error(Constants.STACKTRACE, iare);
-			logger.fatal("Illegal argument: " + className);
+			logger.fatal("Illegal argument: " + Utility.cleanLogString(className));
 		} catch (InvocationTargetException ite) {
 			logger.error(Constants.STACKTRACE, ite);
-			logger.fatal("Invocation exception: " + className);
+			logger.fatal("Invocation exception: " + Utility.cleanLogString(className));
 		} catch (NoSuchMethodException nsme) {
 			logger.error(Constants.STACKTRACE, nsme);
-			logger.fatal("No constructor: " + className);
+			logger.fatal("No constructor: " + Utility.cleanLogString(className));
 		} catch (SecurityException se) {
 			logger.error(Constants.STACKTRACE, se);
-			logger.fatal("Security exception: " + className);
+			logger.fatal("Security exception: " + Utility.cleanLogString(className));
 		}
 		return obj;
 	}
@@ -2606,10 +2606,10 @@ public class Utility {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				logger.info("Applying lock for project " + projectId);
+				logger.info("Applying lock for project " + Utility.cleanLogString(projectId));
 				ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 				lock.lock();
-				logger.info("Project "+ projectId + " is locked");
+				logger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
 	
 				try {
 					// Need to do a double check here,
@@ -2644,7 +2644,7 @@ public class Utility {
 				} finally {
 					// Make sure to unlock now
 					lock.unlock();
-					logger.info("Project "+ projectId + " is unlocked");
+					logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
 				}
 			}
 		}
@@ -2787,10 +2787,10 @@ public class Utility {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				logger.info("Applying lock for database " + engineId + " to pull app");
+				logger.info("Applying lock for database " + Utility.cleanLogString(engineId) + " to pull app");
 				ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 				lock.lock();
-				logger.info("Database "+ engineId + " is locked");
+				logger.info("Database "+ Utility.cleanLogString(engineId) + " is locked");
 	
 				try {
 					// Need to do a double check here,
@@ -2824,10 +2824,10 @@ public class Utility {
 					{
 						engine = Utility.loadEngine(null, prop);	
 					} else {
-						logger.info("There is no SMSS File for the database " + engineId + "...");
-						logger.info("There is no SMSS File for the database " + engineId + "...");
-						logger.info("There is no SMSS File for the database " + engineId + "...");
-						logger.info("There is no SMSS File for the database " + engineId + "...");
+						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");
+						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");
+						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");
+						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");
 					}
 	
 					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
@@ -2864,7 +2864,7 @@ public class Utility {
 				} finally {
 					// Make sure to unlock now
 					lock.unlock();
-					logger.info("Database "+ engineId + " is unlocked");
+					logger.info("Database "+ Utility.cleanLogString(engineId) + " is unlocked");
 				}
 			}
 			// send the information of engine to the smssfile to the socket
@@ -2926,7 +2926,7 @@ public class Utility {
 				// write the properties file or not
 				// return the properties
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-				File engineDir = new File(baseFolder + File.separator + "engines" + File.separator + engineId);
+				File engineDir = new File(Utility.normalizeParam(baseFolder) + File.separator + "engines" + File.separator + engineId);
 				if(!engineDir.exists()) {
 					engineDir.mkdirs();
 				}
@@ -3328,7 +3328,7 @@ public class Utility {
 		}
 
 		long end = System.currentTimeMillis();
-		logger.info("Time to output file = " + (end - start) + " ms. File written to:" + fileLocation);
+		logger.info("Time to output file = " + (end - start) + " ms. File written to:" + Utility.normalizePath(fileLocation));
 
 		return f;
 	}
@@ -3461,7 +3461,7 @@ public class Utility {
 				fis = new FileInputStream(Utility.normalizePath(filePath));
 				retProp.load(fis);
 			} catch (IOException ioe) {
-				logger.info("Unable to read properties file: " + filePath);
+				logger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
 				logger.error(Constants.STACKTRACE, ioe);
 			} finally {
 				if (fis != null) {
@@ -3906,7 +3906,7 @@ public class Utility {
 			// basefolder/db/insightfolder/classes - right now I have it as classes. we can
 			// change it to something else if we want
 			String classesFolder = folder + "/classes";
-			classesFolder = classesFolder.replaceAll("\\\\", "/");
+			classesFolder = Utility.normalizePath(classesFolder.replaceAll("\\\\", "/"));
 
 			File file = new File(classesFolder);
 			if (file.exists()) {
@@ -4899,7 +4899,7 @@ public class Utility {
 		int status = -1;
 		
 		String javaFolder = folder + "/java";
-		Path path = Paths.get(javaFolder);
+		Path path = Paths.get(Utility.normalizePath(javaFolder));
 		
 		if (Files.isDirectory(path)) {
 			logger.info("Compiling Java in Folder " + javaFolder);
@@ -4925,7 +4925,7 @@ public class Utility {
 	
 	private static int compileJava(List<File> files, String folder, String classpath) throws IOException {
 		String outputFolder = folder + "/classes";	
-		Files.createDirectories(Paths.get(outputFolder));
+		Files.createDirectories(Paths.get(Utility.normalizePath(outputFolder)));
 
 		List<String> options = new ArrayList<>();
 		options.add("-d");
@@ -4942,7 +4942,7 @@ public class Utility {
 		StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
 		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(files);
 
-		Path error = Paths.get(outputFolder, "compileerror.out");
+		Path error = Paths.get(Utility.normalizePath(outputFolder), "compileerror.out");
 		Files.deleteIfExists(error);
 		
 		try (OutputStream os = Files.newOutputStream(error)) {

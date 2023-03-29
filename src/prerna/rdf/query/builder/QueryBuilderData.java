@@ -60,7 +60,7 @@ public class QueryBuilderData {
 	transient private final String NODE_PROPS_KEY = "SelectedNodeProps";
 
 	public QueryBuilderData(Map json){
-		logger.info("Instantiating QueryBuilderData with json " + json);
+		//logger.info("Instantiating QueryBuilderData with json " + json);
 
 		if(json.containsKey(NODE_PROPS_KEY)){
 			setNodeProps((List) json.get(NODE_PROPS_KEY));
@@ -371,10 +371,10 @@ public class QueryBuilderData {
 		if(this.nodeProps != null){
 			for(Map<String, String> nodeProp: this.nodeProps){
 				String propVarName = nodeProp.get("uriKey");
-				logger.info("checking if we need to add property to edgeHash::: " + propVarName);
+				logger.info("checking if we need to add property to edgeHash::: " + Utility.cleanLogString(propVarName));
 				if(!limitReturnToVarsList || this.returnVars.contains(propVarName)){
 					String nodeVarName = nodeProp.get("equivalentURI");
-					logger.info("yes, adding now. " + propVarName + " is downstream of " + nodeVarName);
+					logger.info("yes, adding now. " + Utility.cleanLogString(propVarName) + " is downstream of " + Utility.cleanLogString(nodeVarName));
 					qs.addSelector(Utility.getInstanceName(nodeVarName), Utility.getInstanceName(propVarName));
 				}
 			}

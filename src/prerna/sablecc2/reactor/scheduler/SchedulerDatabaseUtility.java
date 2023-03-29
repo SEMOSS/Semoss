@@ -822,7 +822,7 @@ public class SchedulerDatabaseUtility {
 				String jobName = result.getString(JOB_NAME);
 				String jobGroup = result.getString(JOB_GROUP);
 				JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
-				logger.info("Triggering job on startup " + jobName);
+				logger.info("Triggering job on startup " + Utility.cleanLogString(jobName));
 				scheduler.triggerJob(jobKey);
 			}
 

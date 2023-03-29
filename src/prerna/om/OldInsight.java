@@ -384,9 +384,9 @@ public class OldInsight extends Insight {
 		logger.info("adding pre trans :::: " + preTrans);
 		Map<String, Object> props = getProperties(preTrans+"", makeupEng);
 		String type = props.get(ISEMOSSTransformation.TYPE) + "";
-		logger.info("TRANS TYPE IS " + type);
+		logger.info("TRANS TYPE IS " + Utility.cleanLogString(type));
 		ISEMOSSTransformation trans = Utility.getTransformation(this.mainEngine, type);
-		logger.info("pre trans properties :::: " + props.toString());
+		logger.info("pre trans properties :::: " + Utility.cleanLogString(props.toString()));
 		trans.setProperties(props);
 		trans.setId(compId + ":" + PRE_TRANS + Utility.getInstanceName(preTrans + ""));
 		dmc.addPreTrans(trans);
@@ -403,9 +403,9 @@ public class OldInsight extends Insight {
 		logger.info("adding post trans :::: " + postTrans);
 		Map<String, Object> props = getProperties(postTrans+"", makeupEng);
 		String type = props.get(ISEMOSSTransformation.TYPE) + "";
-		logger.info("TRANS TYPE IS " + type);
+		logger.info("TRANS TYPE IS " + Utility.cleanLogString(type));
 		ISEMOSSTransformation trans = Utility.getTransformation(this.mainEngine, type);
-		logger.info("post trans properties :::: " + props.toString());
+		logger.info("post trans properties :::: " + Utility.cleanLogString(props.toString()));
 		trans.setProperties(props);
 		trans.setId(compId + ":" + POST_TRANS + Utility.getInstanceName(postTrans + ""));
 		dmc.addPostTrans(trans);
@@ -424,7 +424,7 @@ public class OldInsight extends Insight {
 		String type = props.get(ISEMOSSAction.TYPE) + "";
 		logger.info("TRANS TYPE IS " + type);
 		ISEMOSSAction actionObj = Utility.getAction(this.mainEngine, type);
-		logger.info("action properties :::: " + props.toString());
+		logger.info("action properties :::: " + Utility.cleanLogString(props.toString()));
 		actionObj.setProperties(props);
 		actionObj.setId(compId + ":" + ACTION + Utility.getInstanceName(action + ""));
 		dmc.addAction(actionObj);
@@ -441,17 +441,17 @@ public class OldInsight extends Insight {
 				uri + 
 				"> AS ?obj) {?obj <http://semoss.org/ontologies/Relation/Contains/propMap> ?Value}}";
 		
-		logger.info("Running query to get properties: " + propQuery);
+		logger.info("Running query to get properties: " + Utility.cleanLogString(propQuery));
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(makeupEng, propQuery);
 		Map<String, Object> retMap = new HashMap<>();
 		if(wrap.hasNext()){ // there should only be one prop map associated with each transformation or action
 			ISelectStatement ss = wrap.next();
 			String jsonPropMap = ss.getVar("Value") + "";
-			logger.info(jsonPropMap);
+			logger.info(Utility.cleanLogString(jsonPropMap));
 			retMap = gson.fromJson(jsonPropMap, Map.class);
 		}
 		if(wrap.hasNext()){
-			logger.error("More than one prop map has shown up for uri ::::: " + uri);
+			logger.error("More than one prop map has shown up for uri ::::: " + Utility.cleanLogString(uri));
 			logger.error("Need to find reason why/how it was stored this way...");
 		}
 		return retMap;
@@ -545,7 +545,7 @@ public class OldInsight extends Insight {
 	 */
 	public void setDataTableAlign(String dataTableAlignJSON) {
 		if(dataTableAlignJSON != null && !dataTableAlignJSON.isEmpty()){
-			logger.info("Setting json dataTableAlign " + dataTableAlignJSON);
+			logger.info("Setting json dataTableAlign " + Utility.cleanLogString(dataTableAlignJSON));
 			this.dataTableAlign = gson.fromJson(dataTableAlignJSON, Map.class);
 		} else {
 			logger.info("data table align is empty");
@@ -568,7 +568,7 @@ public class OldInsight extends Insight {
 				this.playSheet.setDataMaker(getDataMaker());
 			}
 			else {
-				logger.error("Broken insight... cannot get playsheet :: " + this.layout);
+				logger.error("Broken insight... cannot get playsheet :: " + Utility.cleanLogString(this.layout));
 			}
 		}
 		return this.playSheet;

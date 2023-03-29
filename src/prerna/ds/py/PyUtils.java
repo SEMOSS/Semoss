@@ -133,7 +133,7 @@ public class PyUtils {
 				LOGGER.info(">>>STARTING PyServe USER<<<");
 				// going to create this in insight cache dir
 				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-				Path chrootPath = Paths.get(chrootDir);
+				Path chrootPath = Paths.get(Utility.normalizePath(chrootDir));
 				Path mainCachePath = Paths.get(chrootDir+paramDir);
 				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
 				String relative = chrootPath.relativize(tempDirForUser).toString();

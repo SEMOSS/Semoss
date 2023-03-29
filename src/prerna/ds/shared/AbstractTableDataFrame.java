@@ -46,6 +46,7 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import prerna.util.gson.GenRowFiltersAdapter;
 
 public abstract class AbstractTableDataFrame implements ITableDataFrame {
@@ -609,9 +610,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			String frameStateFileName = folderDir + DIR_SEPARATOR + "FRAME_STATE__" + fileName + ".json";
 			Writer writer = null;
 			if(cipher != null) {
-				writer = new OutputStreamWriter(new CipherOutputStream(new FileOutputStream(new File(frameStateFileName)), cipher));
+				writer = new OutputStreamWriter(new CipherOutputStream(new FileOutputStream(new File(Utility.normalizePath(frameStateFileName))), cipher));
 			} else {
-				writer = new OutputStreamWriter(new FileOutputStream(new File(frameStateFileName)));
+				writer = new OutputStreamWriter(new FileOutputStream(new File(Utility.normalizePath(frameStateFileName))));
 			}
 			JsonWriter jWriter = new JsonWriter(writer);
 			GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();

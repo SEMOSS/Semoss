@@ -11,6 +11,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class TestRDBMSInsights {
 
@@ -33,7 +34,7 @@ public class TestRDBMSInsights {
 			wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
 			while(wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
-				logger.info(Arrays.toString(row.getRawValues()));
+				logger.info(Utility.cleanLogString(Arrays.toString(row.getRawValues())));
 			}
 		} catch (Exception e) {
 			logger.error("StackTrace: ", e);
@@ -49,7 +50,7 @@ public class TestRDBMSInsights {
 			wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
 			while(wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
-				logger.info(Arrays.toString(row.getRawValues()));
+				logger.info(Utility.cleanLogString(Arrays.toString(row.getRawValues())));
 			}
 		} catch (Exception e) {
 			logger.error("StackTrace: ", e);

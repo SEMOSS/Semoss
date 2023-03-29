@@ -56,6 +56,7 @@ import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
 import prerna.auth.AccessToken;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public abstract class AbstractHttpHelper {
 
@@ -99,7 +100,7 @@ public abstract class AbstractHttpHelper {
 			logger.info("Request for access token at " + url + " returned status code = " + status);
 
 			result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-			logger.info("Request response = " + result);
+			logger.info("Request response = " + Utility.cleanLogString(result));
 			
 			// this will set the token to use
 			if(status == 200 && extract) {
@@ -128,7 +129,7 @@ public abstract class AbstractHttpHelper {
 		}
 
 		if(tok != null && tok.getAccess_token() == null) {
-			logger.warn("Error occurred grabbing the access token: " + result);
+			logger.warn("Error occurred grabbing the access token: " + Utility.cleanLogString(result));
 		}
 		
 		// send back the token
@@ -166,7 +167,7 @@ public abstract class AbstractHttpHelper {
 			logger.info("Request for access token at " + url + " returned status code = " + status);
 
 			result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-			logger.info("Request response = " + result);
+			logger.info("Request response = " + Utility.cleanLogString(result));
 			
 			// this will set the token to use
 			if(status == 200 && extract) {
@@ -195,7 +196,7 @@ public abstract class AbstractHttpHelper {
 		}
 
 		if(tok != null && tok.getAccess_token() == null) {
-			logger.warn("Error occurred grabbing the id token: " + result);
+			logger.warn("Error occurred grabbing the id token: " + Utility.cleanLogString(result));
 		}
 		
 		// send back the token

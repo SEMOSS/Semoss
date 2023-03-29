@@ -79,7 +79,7 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 		}
 
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		File uploadFile = new File(filePath);
+		File uploadFile = new File(Utility.normalizePath(filePath));
 		if(!uploadFile.exists() || !uploadFile.isFile()) {
 			throw new IllegalArgumentException("Could not find the specified file");
 		}

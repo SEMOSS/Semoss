@@ -19,6 +19,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 public class InsightComment {
 	
@@ -94,12 +95,12 @@ public class InsightComment {
 
 		String baseDir = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId) + DIR_SEPARATOR + this.rdbmsId;
 
-		File path = new File(baseDir);
+		File path = new File(Utility.normalizePath(baseDir));
 		// create insight directory if it doesn't exist
 		path.mkdirs();
 		String commentInfoPath = baseDir + DIR_SEPARATOR + this.id + "_" + this.createdTimeStamp +  COMMENT_EXTENSION;
 		// create file
-		File f = new File(commentInfoPath);
+		File f = new File(Utility.normalizePath(commentInfoPath));
 		try {
 			// write json to file
 			FileUtils.writeStringToFile(f, json);
