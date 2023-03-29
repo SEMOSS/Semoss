@@ -302,7 +302,7 @@ public final class ZipUtils {
 		// unzip files
 		ZipFile zipIn = null;
 		try {
-			zipIn = new ZipFile(zipFilePath);
+			zipIn = new ZipFile(Utility.normalizePath(zipFilePath));
 			Enumeration<? extends ZipEntry> entries = zipIn.entries();
 			while (entries.hasMoreElements()) {
 				ZipEntry entry = entries.nextElement();

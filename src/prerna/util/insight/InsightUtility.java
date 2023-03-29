@@ -307,7 +307,7 @@ public class InsightUtility {
 	 */
 	public static NounMetadata clearInsight(final Insight insight, boolean noOpType) {
 		synchronized(insight) {
-			classLogger.info("Start clearning insight " + insight.getInsightId());
+			classLogger.info("Start clearning insight " + Utility.cleanLogString(insight.getInsightId()));
 
 			// drop all the tasks that are currently running
 			TaskStore taskStore = insight.getTaskStore();
@@ -342,7 +342,7 @@ public class InsightUtility {
 			for(ITableDataFrame dm : allCreatedFrames) {
 				if(!dm.isClosed()) {
 					try {
-						classLogger.info("There are untracked frames in this insight. Frame with name = " + dm.getOriginalName() );
+						classLogger.info("There are untracked frames in this insight. Frame with name = " + Utility.cleanLogString(dm.getOriginalName()) );
 						dm.close();
 					} catch(Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
@@ -365,7 +365,7 @@ public class InsightUtility {
 						InsightFile insightFile = fileExports.get(fileKey);
 						if(insightFile.isDeleteOnInsightClose()) {
 							try {
-								File f = new File(insightFile.getFilePath());
+								File f = new File(Utility.normalizePath(insightFile.getFilePath()));
 								f.delete();
 								classLogger.debug("Successfully deleted export file used in insight " + f.getName());
 							} catch(Exception e) {
@@ -388,7 +388,7 @@ public class InsightUtility {
 				}
 			}
 			
-			classLogger.info("Successfully cleared insight " + insight.getInsightId());
+			classLogger.info("Successfully cleared insight " + Utility.cleanLogString(insight.getInsightId()));
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("suppress", noOpType);
 			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.CLEAR_INSIGHT);

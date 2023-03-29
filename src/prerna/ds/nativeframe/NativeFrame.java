@@ -442,7 +442,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		String randFrameName = "Native" + Utility.getRandomString(6);
 		cf.setFrameName(randFrameName);
 		String frameFileName = folderDir + DIR_SEPARATOR + randFrameName + ".json";
-		File frameFile = new File(frameFileName);
+		File frameFile = new File(Utility.normalizePath(frameFileName));
 		Writer writer = null;
 		JsonWriter jWriter = null;
 		try {

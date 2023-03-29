@@ -69,7 +69,7 @@ public class InMemoryConsole extends Logger {
 	
 	@Override
 	public void debug(String message) {
-		super.debug(this.jobID + " >> " + message);
+		super.debug(this.jobID + " >> " + Utility.cleanLogString(message));
 		if(level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
 			JobManager.getManager().addStdErr(jobID, message + "");
 		}

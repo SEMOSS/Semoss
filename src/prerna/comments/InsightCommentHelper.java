@@ -12,6 +12,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class InsightCommentHelper {
 
@@ -40,7 +41,7 @@ public class InsightCommentHelper {
 				+ engineName + DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId;
 
 		// find all the comment files in the directory
-		File dir = new File(baseDir);
+		File dir = new File(Utility.normalizePath(baseDir));
 		List<String> accept = new ArrayList<>();
 		accept.add("*" + InsightComment.COMMENT_EXTENSION);
 		FilenameFilter filter = new WildcardFileFilter(accept);

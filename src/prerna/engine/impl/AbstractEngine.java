@@ -280,7 +280,7 @@ public abstract class AbstractEngine implements IEngine {
 	public String getProperty(String key) {
 		String retProp = null;
 
-		logger.debug("Property is " + key + "]");
+		logger.debug("Property is " + Utility.cleanLogString(key) + "]");
 		if (generalEngineProp != null && generalEngineProp.containsKey(key))
 			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
@@ -679,7 +679,7 @@ public abstract class AbstractEngine implements IEngine {
 				if(wrap.hasNext()) {
 					IHeadersDataRow data = wrap.next();
 					baseUri = data.getRawValues()[0] + "";
-					logger.info("Got base uri from owl " + this.baseUri + " for engine " + getEngineId() + " : " + getEngineName());
+					logger.info("Got base uri from owl " + Utility.cleanLogString(this.baseUri) + " for engine " + getEngineId() + " : " + getEngineName());
 				}
 				if(baseUri == null){
 					baseUri = Constants.CONCEPT_URI;

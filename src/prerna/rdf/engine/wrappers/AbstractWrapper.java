@@ -34,6 +34,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IRemoteQueryable;
+import prerna.util.Utility;
 
 public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrapper {
 
@@ -92,7 +93,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 
 	@Override
 	public void setQuery(String query) {
-		logger.debug("Setting the query " + query);
+		logger.debug("Setting the query " + Utility.cleanLogString(query));
 		this.query = query;
 	}
 	

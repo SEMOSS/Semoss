@@ -1334,7 +1334,7 @@ public class Insight implements Serializable {
         // Adding it, even though this might not exist
         if(insightFolder != null)
         {
-	        File file = new File(insightFolder);
+	        File file = new File(Utility.normalizePath(insightFolder));
 	        if(file.exists())
 	        {
 	        	retClassPath.append(insightFolder + "/classes;");        

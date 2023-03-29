@@ -117,7 +117,7 @@ public class QuestionListener implements IChakraListener {
 				playSheetComboBox.setSelectedItem(layoutValue);
 			}
 
-			logger.info("Sparql is " + sparql);
+			logger.info("Sparql is " + Utility.cleanLogString(sparql));
 
 			List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(project.getInsightDatabase(), questionID);
 			

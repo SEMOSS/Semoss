@@ -125,7 +125,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	@Override
 	public void close() {
 		super.close();
-		File f = new File(this.fileLocation);
+		File f = new File(Utility.normalizePath(this.fileLocation));
 		DeleteDbFiles.execute(f.getParent().replace('\\','/'), this.fileNameToUse.replace(".mv.db", ""), false);
 		if(f.exists()) {
 			f.delete();

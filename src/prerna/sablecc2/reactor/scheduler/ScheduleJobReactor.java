@@ -200,7 +200,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		try {
 			jobDataMap = jobConfig.getJobDataMap();
 		} catch (ParseConfigException | IllegalConfigException e) {
-			logger.error("Failed to parse job data map for " + jobName + ".");
+			logger.error("Failed to parse job data map for " + Utility.cleanLogString(jobName) + ".");
 			throw e;
 		}
 
@@ -212,7 +212,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 		scheduler.scheduleJob(job, trigger);
 
-		logger.info("Scheduled " + jobId + " to run on the following schedule: " + cronExpression + ".");
+		logger.info("Scheduled " + Utility.cleanLogString(jobId) + " to run on the following schedule: " + Utility.cleanLogString(cronExpression) + ".");
 
 		// Return the job key
 		return job.getKey();

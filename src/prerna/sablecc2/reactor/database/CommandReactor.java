@@ -120,7 +120,7 @@ public class CommandReactor extends GitBaseReactor {
 		// if so no issue ootherwise need to gitclone from the repository
 		if(git != null && git.equalsIgnoreCase("cd") && gitCommand != null)
 		{
-			File file = new File(util.getWorkingDir() + "/" + gitCommand);
+			File file = new File(Utility.normalizePath(util.getWorkingDir()) + "/" + gitCommand);
 			if(!file.exists())
 			{
 				// clone the git repository
@@ -293,7 +293,7 @@ public class CommandReactor extends GitBaseReactor {
 				String dirName = Utility.getInstanceName(repoURL);
 				
 				// see if this directory exists in base folder
-				String appBaseFolder =  workingDir;
+				String appBaseFolder =  Utility.normalizePath(workingDir);
 				if(cloneAllowed && appBaseFolder.endsWith("app_root") && new File(appBaseFolder + "/version").exists() && new File(appBaseFolder + "/" + dirName).exists())
 				{
 					// we are in the right location process now
@@ -353,7 +353,7 @@ public class CommandReactor extends GitBaseReactor {
 				
 				else if(!cloneAllowed)
 				{
-					File gitFolder = new File(workingDir + File.separator + dirName + File.separator + ".git");
+					File gitFolder = new File(Utility.normalizePath(workingDir) + File.separator + dirName + File.separator + ".git");
 					if(gitFolder.exists())
 					{
 						try {
@@ -405,7 +405,7 @@ public class CommandReactor extends GitBaseReactor {
 	{
 		FileInputStream fis = null;
 		try {
-			File repoFile = new File(workingDir + "/version/repoList.txt");
+			File repoFile = new File(Utility.normalizePath(workingDir) + "/version/repoList.txt");
 			
 			if(repoFile.exists())
 			{
@@ -442,7 +442,7 @@ public class CommandReactor extends GitBaseReactor {
 	{
 		String newOutput = output;
 		
-		File repoFile = new File(workingDir + "/version/repoList.txt");
+		File repoFile = new File(Utility.normalizePath(workingDir) + "/version/repoList.txt");
 
 		if(repoFile.exists())
 		{
