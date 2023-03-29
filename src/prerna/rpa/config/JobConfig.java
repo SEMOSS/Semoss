@@ -20,6 +20,7 @@ import com.google.gson.JsonObject;
 import prerna.rpa.RPAProps;
 import prerna.rpa.config.specific.anthem.ProcessWGSPReportsJobConfig;
 import prerna.rpa.config.specific.anthem.RunKickoutAlgorithmJobConfig;
+import prerna.util.Utility;
 
 public abstract class JobConfig {
 
@@ -294,7 +295,7 @@ public abstract class JobConfig {
 			Date date = parseDate(dateString);
 			jobDataMap.put(jobInputKey, date);
 		} catch (ParseException e) {
-			throw new ParseConfigException("Failed to parse " + dateString + " into " + DATE_FORMAT + " format."); 
+			throw new ParseConfigException("Failed to parse " + Utility.cleanLogString(dateString) + " into " + DATE_FORMAT + " format."); 
 		} 
 	}
 	

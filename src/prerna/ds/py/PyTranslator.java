@@ -221,14 +221,14 @@ public class PyTranslator {
 			pyTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/Py/Temp/").replace('\\', '/');
 		}
 
-		File pyTempF = new File(pyTemp);
+		File pyTempF = new File(Utility.normalizePath(pyTemp));
 		if (!pyTempF.exists()) {
 			pyTempF.mkdirs();
 		}
 
 		String scriptFileName = Utility.getRandomString(12);
 		String scriptPath = pyTemp + scriptFileName + ".py";
-		File scriptFile = new File(scriptPath);
+		File scriptFile = new File(Utility.normalizePath(scriptPath));
 
 		try {
 			String finalScript = convertArrayToString(script);
@@ -304,7 +304,7 @@ public class PyTranslator {
 		if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
 			varFolderAssignment = appMap.get("PY_VAR_STRING").toString();
 
-		File pyTempF = new File(pyTemp);
+		File pyTempF = new File(Utility.normalizePath(pyTemp));
 		if (!pyTempF.exists()) {
 			pyTempF.mkdirs();
 			pyTempF.setExecutable(true);
@@ -323,10 +323,10 @@ public class PyTranslator {
 		String prePyName = Utility.getRandomString(5);
 		String scriptPath = pyTemp + pyFileName + ".py";
 		String preScriptPath = pyTemp + prePyName + ".py";
-		File scriptFile = new File(scriptPath);
-		File preScriptFile = new File(preScriptPath);
+		File scriptFile = new File(Utility.normalizePath(scriptPath));
+		File preScriptFile = new File(Utility.normalizePath(preScriptPath));
 		String outputPath = pyTemp + pyFileName + ".txt";
-		File outputFile = new File(outputPath);
+		File outputFile = new File(Utility.normalizePath(outputPath));
 
 		multi = true;
 

@@ -107,7 +107,7 @@ public class ChromeDriverUtility {
 		driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
 
 		if (ChromeDriverUtility.contextPath != null) {
-			logger.info("##CHROME DRIVER: starting url = "+ url);
+			logger.info("##CHROME DRIVER: starting url = "+ Utility.cleanLogString(url));
 
 			logger.info("##CHROME DRIVER: context path not null = "+ ChromeDriverUtility.contextPath);
 			logger.info("##CHROME DRIVER: starting feUrl = "+ feUrl);
@@ -126,7 +126,7 @@ public class ChromeDriverUtility {
 		} else {
 			driver.get(url);
 			logger.info("##CHROME DRIVER: contextPath is null");
-			logger.info("##CHROME DRIVER: url to get = "+ url);
+			logger.info("##CHROME DRIVER: url to get = "+ Utility.cleanLogString(url));
 
 		}
 
@@ -174,7 +174,7 @@ public class ChromeDriverUtility {
 		// take image
 		File scrFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
 		try {
-			FileUtils.copyFile(scrFile, new File(imagePath));
+			FileUtils.copyFile(scrFile, new File(Utility.normalizePath(imagePath)));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

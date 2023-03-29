@@ -219,7 +219,7 @@ public class InsightCacheUtility {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		
-		File versionFile = new File(versionFileLoc);
+		File versionFile = new File(Utility.normalizePath(versionFileLoc));
 		try {
 			FileUtils.writeStringToFile(versionFile, version.toString());
 		} catch (IOException e) {
@@ -259,14 +259,14 @@ public class InsightCacheUtility {
 	 */
 	public static Insight readInsightCache(Insight existingInsight, Map<String, Object> paramValues) throws IOException, RuntimeException {
 		String insightZipLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight, paramValues) + DIR_SEPARATOR + InsightCacheUtility.INSIGHT_ZIP;
-		File insightZip = new File(insightZipLoc);
+		File insightZip = new File(Utility.normalizePath(insightZipLoc));
 		if(!insightZip.exists()) {
 			// just return null
 			return null;
 		}
 		
 		String versionFileLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight, paramValues) + DIR_SEPARATOR + InsightCacheUtility.VERSION_FILE;
-		File versionFile = new File(versionFileLoc);
+		File versionFile = new File(Utility.normalizePath(versionFileLoc));
 		if(!versionFile.exists() || !versionFile.isFile()) {
 			// delete the current cache in case it is not accurate
 			InsightCacheUtility.deleteCache(existingInsight.getProjectId(), existingInsight.getProjectName(), 
@@ -468,7 +468,7 @@ public class InsightCacheUtility {
 		// but i do want to delete the cache in case i am saving 
 		// from an existing insight as the .cache folder gets moved
 
-		String folderDir = getInsightCacheFolderPath(projectId, projectName, rdbmsId, parameters);
+		String folderDir = Utility.normalizePath(getInsightCacheFolderPath(projectId, projectName, rdbmsId, parameters));
 		Path projectFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR 
 				+ Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId));
 		Path relative = projectFolder.relativize( Paths.get(folderDir));
@@ -499,7 +499,7 @@ public class InsightCacheUtility {
 			SecurityInsightUtils.updateInsightCachedOn(projectId, rdbmsId, cachedOn);
 			
 			String mosfetPath = MosfetSyncHelper.getMosfetFileLocation(projectId, projectName, rdbmsId);
-			File mosfet = new File(mosfetPath);
+			File mosfet = new File(Utility.normalizePath(mosfetPath));
 			if(mosfet.exists() && mosfet.isFile()) {
 				MosfetSyncHelper.updateMosfitFileCachedOn(mosfet, cachedOn);
 			}

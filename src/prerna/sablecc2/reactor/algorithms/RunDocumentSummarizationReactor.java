@@ -92,7 +92,7 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 		if (fileOrigin.equals("File Path")) {
 			userInput = UploadInputUtility.getFilePath(this.store, this.insight, USER_INPUT);
 			userInput = userInput.replace("\\", "/");
-			File f = new File(userInput);
+			File f = new File(Utility.normalizePath(userInput));
 			if (!f.exists()) {
 				throw new IllegalArgumentException("File does not exist at that location");
 			}

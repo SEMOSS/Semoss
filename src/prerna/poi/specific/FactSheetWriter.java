@@ -367,7 +367,7 @@ public class FactSheetWriter {
 		String picFileLoc = workingDir + folder + picFileName;
 		FileInputStream inputStream = null;
 		try {
-			inputStream = new FileInputStream(picFileLoc); //FileInputStream obtains input bytes from the image file
+			inputStream = new FileInputStream(Utility.normalizePath(picFileLoc)); //FileInputStream obtains input bytes from the image file
 			byte[] bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
 			int pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
 
@@ -994,12 +994,12 @@ public class FactSheetWriter {
 		FileInputStream inputStream1 = null;
 		FileInputStream inputStream2 = null;
 		try {
-			inputStream1 = new FileInputStream(picFileLoc); //FileInputStream obtains input bytes from the image file
+			inputStream1 = new FileInputStream(Utility.normalizePath(picFileLoc)); //FileInputStream obtains input bytes from the image file
 			byte[] bytes = IOUtils.toByteArray(inputStream1); //Get the contents of an InputStream as a byte[].
 			pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
 			inputStream1.close();
 
-			inputStream2 = new FileInputStream(picFileLoc2); //FileInputStream obtains input bytes from the image file
+			inputStream2 = new FileInputStream(Utility.normalizePath(picFileLoc2)); //FileInputStream obtains input bytes from the image file
 			bytes = IOUtils.toByteArray(inputStream2); //Get the contents of an InputStream as a byte[].
 			pictureIdx2 = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
 		} catch (FileNotFoundException e) {

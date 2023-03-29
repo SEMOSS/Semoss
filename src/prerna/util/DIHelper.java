@@ -250,7 +250,7 @@ public class DIHelper {
 			if(repos != null && repos.length > 0)
 			{
 				IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
-				logger.info("Engine is " + engine.getEngineId() + name);
+				logger.info("Engine is " + engine.getEngineId() + Utility.cleanLogString(name));
 				retName =  engine.getProperty(name);
 				logger.info("RetName " + retName);
 			}			

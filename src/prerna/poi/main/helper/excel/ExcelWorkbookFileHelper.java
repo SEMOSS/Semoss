@@ -12,6 +12,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.util.Utility;
 
 public class ExcelWorkbookFileHelper {
 
@@ -29,7 +30,7 @@ public class ExcelWorkbookFileHelper {
 	 */
 	private void createParser() {
 		try {
-			sourceFile = new FileInputStream(fileLocation);
+			sourceFile = new FileInputStream(Utility.normalizePath(fileLocation));
 			try {
 				workbook = WorkbookFactory.create(sourceFile);
 			} catch (EncryptedDocumentException e) {

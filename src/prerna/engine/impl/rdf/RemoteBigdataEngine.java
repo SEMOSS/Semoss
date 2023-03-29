@@ -195,7 +195,7 @@ public class RemoteBigdataEngine extends AbstractEngine implements IEngine {
 
 		try {
 			Query fullQuery = rc.prepareQuery(QueryLanguage.SPARQL, query);
-			logger.debug("\nSPARQL: " + query);
+			logger.debug("\nSPARQL: " + Utility.cleanLogString(query));
 			fullQuery.setIncludeInferred(true /* includeInferred */);
 			if(fullQuery instanceof TupleQuery){
 				TupleQueryResult sparqlResults = ((TupleQuery) fullQuery).evaluate();

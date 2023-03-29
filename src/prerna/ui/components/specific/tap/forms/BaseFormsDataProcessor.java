@@ -221,7 +221,7 @@ public class BaseFormsDataProcessor {
 	}
 
 	protected XSSFWorkbook getWorkBook(String fileName) throws FileNotFoundException, IOException {
-		LOGGER.info("************** Begin getWorkBook for " + fileName);
+		LOGGER.info("************** Begin getWorkBook for " + Utility.cleanLogString(fileName));
 		
 		
 		XSSFWorkbook workbook = null;
