@@ -424,7 +424,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			this.logger.info("Checking differences in metamodel to add");
 			// loop through new tables and column names and add them in to existing metamodel
 			newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
-				this.logger.info("Adding table to OWL: " + newTableName);
+				this.logger.info("Adding table to OWL: " + Utility.cleanLogString(newTableName));
 				if (!existingMetamodel.containsKey(newTableName)) {
 					owler.addConcept(newTableName, null, null);
 				}

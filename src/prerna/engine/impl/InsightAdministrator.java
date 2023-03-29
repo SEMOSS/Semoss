@@ -622,7 +622,7 @@ public class InsightAdministrator {
 	}
 
 	public void updateInsightCachedOn(String existingRdbmsId, LocalDateTime cachedOn) {
-		logger.info("Modifying insight id :::: " + existingRdbmsId);
+		logger.info("Modifying insight id :::: " + Utility.cleanLogString(existingRdbmsId));
 		logger.info("Updating question cache date :::: " + cachedOn);
 
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));

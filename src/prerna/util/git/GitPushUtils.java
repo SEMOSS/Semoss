@@ -275,7 +275,7 @@ public class GitPushUtils {
 		if(attempt < 3) {
 			Boolean isGitlab = (prov == AuthProvider.GITLAB);
 
-			File dirFile = new File(repository);
+			File dirFile = new File(Utility.normalizePath(repository));
 			Git thisGit = null;
 			try {
 				thisGit = Git.open(dirFile);
@@ -319,7 +319,7 @@ public class GitPushUtils {
 				isGitlab=false;
 			}
 			
-			File dirFile = new File(repository);
+			File dirFile = new File(Utility.normalizePath(repository));
 			Git thisGit = null;
 			try {
 				thisGit = Git.open(dirFile);
@@ -365,7 +365,7 @@ public class GitPushUtils {
 				isGitlab=false;
 			}
 			
-			File dirFile = new File(repository);
+			File dirFile = new File(Utility.normalizePath(repository));
 			Git thisGit = null;
 			boolean exists = false;
 			try {
@@ -438,6 +438,7 @@ public class GitPushUtils {
    
    public static NounMetadata clone(String workingDir, String repo, String token, AuthProvider prov, boolean appendFolderName) {
 	   Boolean isGitlab = (prov == AuthProvider.GITLAB);
+	   workingDir = Utility.normalizePath(workingDir);
 	   
 	   File dirFile = null;
 	   if(appendFolderName) {

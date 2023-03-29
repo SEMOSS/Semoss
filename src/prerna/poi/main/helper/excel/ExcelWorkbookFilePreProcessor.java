@@ -14,6 +14,8 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
+import prerna.util.Utility;
+
 public class ExcelWorkbookFilePreProcessor {
 
 	private	Workbook workbook = null;
@@ -32,7 +34,7 @@ public class ExcelWorkbookFilePreProcessor {
 	 */
 	private void createParser() {
 		try {
-			sourceFile = new FileInputStream(fileLocation);
+			sourceFile = new FileInputStream(Utility.normalizePath(fileLocation));
 			try {
 				workbook = WorkbookFactory.create(sourceFile);
 			} catch (EncryptedDocumentException e) {

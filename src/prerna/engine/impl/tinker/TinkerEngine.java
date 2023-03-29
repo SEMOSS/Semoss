@@ -194,7 +194,7 @@ public class TinkerEngine extends AbstractEngine {
 				g.tx().commit();
 			}
 			long endTime = System.currentTimeMillis();
-			logger.info("Successfully saved graph to file: " + fileLocation + "(" + (endTime - startTime) + " ms)");
+			logger.info("Successfully saved graph to file: " + Utility.normalizePath(fileLocation) + "(" + (endTime - startTime) + " ms)");
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}

@@ -97,7 +97,7 @@ public class MountHelper {
 
 		// this.targetDirName = baseMountPath + FILE_SEPARATOR + targetDirName;
 		this.targetDirName = targetDirName;
-		File targetDir = new File(targetDirName);
+		File targetDir = new File(Utility.normalizePath(targetDirName));
 		if (!targetDir.exists()) {
 			logger.info("Target folder doesn't exist. Making folder now at: " + targetDirName);
 			boolean success = targetDir.mkdir(); // make directory
@@ -107,7 +107,7 @@ public class MountHelper {
 		// also create the semoss home folder
 		String appHome = this.targetDirName + FILE_SEPARATOR
 				+ DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		targetDir = new File(appHome);
+		targetDir = new File(Utility.normalizePath(appHome));
 		if (!targetDir.exists()) {
 			targetDir.mkdirs(); // make app home directory
 		}
@@ -166,16 +166,16 @@ public class MountHelper {
 			subPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			;
 		}
-		File sourceDir = new File(sourceDirName);
+		File sourceDir = new File(Utility.normalizePath(sourceDirName));
 		if (!sourceDir.exists() || !sourceDir.isDirectory())
-			logger.info("Source directory not available" + sourceDirName);
+			logger.info("Source directory not available" + Utility.cleanLogString(sourceDirName));
 
 		String targetPath = targetDirName + FILE_SEPARATOR + subPath;
 
-		File thisTargetFile = new File(targetPath);
+		File thisTargetFile = new File(Utility.normalizePath(targetPath));
 		boolean success = thisTargetFile.mkdirs();
-		logger.info("Making folder at " + targetPath + " was a " + success);
-		logger.info("Mounting folder at srcPat:  " + sourceDirName + " and targetPath: " + targetPath);
+		logger.info("Making folder at " + Utility.cleanLogString(targetPath) + " was a " + success);
+		logger.info("Mounting folder at srcPat:  " + Utility.cleanLogString(sourceDirName) + " and targetPath: " + Utility.cleanLogString(targetPath));
 
 		mountDir(sourceDirName, targetPath, enableSudo, readOnly);
 

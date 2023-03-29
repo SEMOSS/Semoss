@@ -92,7 +92,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 	@Override
 	public void close() {
 		super.close();
-		File f = new File(this.fileLocation);
+		File f = new File(Utility.normalizePath(this.fileLocation));
 		if(f.exists()) {
 			f.delete();
 		}
@@ -106,7 +106,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		cf.setFrameName(frameName);
 
 		//save frame
-		String frameFileName = folderDir + DIR_SEPARATOR + frameName + ".sqlite";
+		String frameFileName = Utility.normalizePath(folderDir + DIR_SEPARATOR + frameName + ".sqlite");
 		
 		String saveScript = "backup to '" + frameFileName + "'";
 		Statement stmt = null;

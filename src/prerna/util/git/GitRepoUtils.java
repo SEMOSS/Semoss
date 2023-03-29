@@ -503,7 +503,7 @@ public class GitRepoUtils {
 		Git thisGit = null;
 		Repository thisRepo = null;
 		try {
-			File file = new File(localRepositoryName);
+			File file = new File(Utility.normalizePath(localRepositoryName));
 			thisGit = Git.open(file);
 			thisRepo = thisGit.getRepository();
 			String[] remNames = thisRepo.getRemoteNames().toArray(new String[]{});

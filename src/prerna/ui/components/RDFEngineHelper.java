@@ -50,6 +50,7 @@ import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.om.GraphDataModel;
 import prerna.rdf.engine.wrappers.SesameConstructWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Utility;
 
 /**
  * This class is responsible for loading many of the hierarchies available in RDF through the repository connection.
@@ -219,7 +220,7 @@ public class RDFEngineHelper {
 					"{?Subject ?Object ?Predicate} BIND('' AS ?Property)}";
 		}
 		
-		logger.info("Local node prop query " + propertyQuery);
+		logger.info("Local node prop query " + Utility.cleanLogString(propertyQuery));
 
 
 		//SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();

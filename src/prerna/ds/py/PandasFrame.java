@@ -182,7 +182,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
 				Insight in = this.pyt.insight;
 				String insightFolder = in.getInsightFolder();
-				new File(insightFolder).mkdirs();
+				new File(Utility.normalizePath(insightFolder)).mkdirs();
 				if(in.getUser() != null) {
 					in.getUser().getUserMountHelper().mountFolder(insightFolder,insightFolder, false);
 				}

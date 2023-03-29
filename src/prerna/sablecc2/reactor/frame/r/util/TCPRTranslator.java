@@ -11,6 +11,7 @@ import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
+import prerna.util.Utility;
 
 public class TCPRTranslator extends AbstractRJavaTranslator {
 
@@ -106,7 +107,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			
 			
 			if(ps != null  &&  ps.ex!= null)
-				logger.info(ps.ex);
+				logger.info(Utility.cleanLogString(ps.ex));
 		}		
 	}
 
@@ -129,7 +130,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			ps.hasReturn = false;
 			ps = (PayloadStruct)nc.executeCommand(ps);
 			if(ps != null  &&  ps.ex!= null)
-				logger.info(ps.ex);
+				logger.info(Utility.cleanLogString(ps.ex));
 		}		
 	}
 
@@ -212,7 +213,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 				return (String [])ps.payload[0];
 			}
 			if(ps != null)
-				logger.info(ps.ex);
+				logger.info(Utility.cleanLogString(ps.ex));
 		}
 		return null;
 	}
@@ -441,7 +442,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			ps = (PayloadStruct)nc.executeCommand(ps);
 			if(ps != null  &&  ps.ex!= null)
 			{
-				logger.info("Exception " + ps.ex);
+				logger.info("Exception " + Utility.cleanLogString(ps.ex));
 			}
 		}
 	}
@@ -516,7 +517,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			ps = (PayloadStruct)nc.executeCommand(ps);
 			if(ps != null  &&  ps.ex!= null)
 			{
-				logger.info("Exception " + ps.ex);
+				logger.info("Exception " + Utility.cleanLogString(ps.ex));
 			}
 			else if(ps != null)
 				return (Object[])ps.payload[0];
@@ -535,7 +536,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			ps = (PayloadStruct)nc.executeCommand(ps);
 			if(ps != null  &&  ps.ex!= null)
 			{
-				logger.info("Exception " + ps.ex);
+				logger.info("Exception " + Utility.cleanLogString(ps.ex));
 			}
 			else if(ps != null)
 				return (List<Object[]>)ps.payload[0];
@@ -751,7 +752,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			ps = (PayloadStruct)nc.executeCommand(ps);
 			if(ps != null  &&  ps.ex!= null)
 			{
-				logger.info(ps.ex);
+				logger.info(Utility.cleanLogString(ps.ex));
 			}
 		}
 		

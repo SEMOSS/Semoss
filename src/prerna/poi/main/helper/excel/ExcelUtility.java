@@ -35,7 +35,7 @@ public class ExcelUtility {
 			workbook.close();
 			encos.close();
 			
-			os = new FileOutputStream(fileLocation);
+			os = new FileOutputStream(Utility.normalizePath(fileLocation));
 			fs.writeFilesystem(os);
 		} catch (GeneralSecurityException e) {
 			throw new RuntimeException(e);

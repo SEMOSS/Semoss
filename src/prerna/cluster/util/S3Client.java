@@ -438,13 +438,13 @@ public class S3Client extends CloudClient {
 		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to pull folder " + remoteRelativePath);
+		logger.info("Applying lock for " + Utility.cleanLogString(projectId) + " to pull folder " + Utility.normalizePath(remoteRelativePath));
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		logger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
-			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + projectId);
+			logger.info("Pulling folder for " + Utility.normalizePath(remoteRelativePath) + " from remote=" + Utility.cleanLogString(projectId));
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+remoteRelativePath, absolutePath);
 		} finally {
@@ -455,7 +455,7 @@ public class S3Client extends CloudClient {
 			}finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
 			}
 		}
 	}
@@ -477,13 +477,13 @@ public class S3Client extends CloudClient {
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
 		}
 		// synchronize on the app id
-		logger.info("Applying lock for project " + projectId + " to push folder " + remoteRelativePath);
+		logger.info("Applying lock for project " + Utility.cleanLogString(projectId) + " to push folder " + Utility.normalizePath(remoteRelativePath));
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		logger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
-			logger.info("Pushing folder for " + remoteRelativePath + " from remote=" + projectId);
+			logger.info("Pushing folder for " + Utility.normalizePath(remoteRelativePath) + " from remote=" + Utility.cleanLogString(projectId));
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", absolutePath, rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+remoteRelativePath);
 		} finally {
@@ -495,7 +495,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
 			}
 		}
 	}
@@ -661,10 +661,10 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to pull app");
+		logger.info("Applying lock for " + Utility.cleanLogString(appId) + " to pull app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		logger.info("App "+ Utility.cleanLogString(appId) + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rCloneConfig+RCLONE_DB_PATH+smssContainer);
@@ -720,10 +720,10 @@ public class S3Client extends CloudClient {
 				logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 				// Now pull the smss
-				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
+				logger.info("Pulling smss from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + Utility.normalizePath(dbFolder));
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 				runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_DB_PATH+smssContainer, dbFolder);
-				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+				logger.debug("Done pulling from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + Utility.normalizePath(dbFolder));
 
 				// Catalog the db if it is new
 				if (!appAlreadyLoaded) {
@@ -744,7 +744,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				logger.info("App "+ Utility.cleanLogString(appId) + " is unlocked");
 			}
 		}
 	}
