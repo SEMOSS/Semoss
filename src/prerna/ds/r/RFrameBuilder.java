@@ -526,7 +526,7 @@ public class RFrameBuilder {
 		if (colNamesSet.size() > 0 ){
 			long start = System.currentTimeMillis();
 			String rIndex = null;
-			logger.info("Generating index on R Data Table on columns = " + StringUtils.join(colNamesSet,", "));
+			logger.info("Generating index on R Data Table on columns = " + Utility.cleanLogString(StringUtils.join(colNamesSet,", ")));
 			logger.debug("CREATING INDEX ON R TABLE = " + tableName + " ON COLUMN(S) = " + StringUtils.join(colNamesSet,", "));
 			try {
 				rIndex = "CREATE INDEX ON " + tableName + "(" + StringUtils.join(colNamesSet,", ") + ")";
@@ -550,7 +550,7 @@ public class RFrameBuilder {
 				
 				long end = System.currentTimeMillis();
 				logger.debug("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
-				logger.info("Finished generating indices on R Data Table on columns = " + StringUtils.join(colNamesSet,", "));
+				logger.info("Finished generating indices on R Data Table on columns = " + Utility.cleanLogString(StringUtils.join(colNamesSet,", ")));
 			} catch (Exception e) {
 				logger.debug("ERROR WITH R INDEX !!! " + rIndex);
 				e.printStackTrace();
@@ -646,7 +646,7 @@ public class RFrameBuilder {
 	protected void saveFst(String frameFileName, String frameName) {
 		this.evalR("library(\"fst\")");
 		this.evalR("write_fst(" + frameName + ", \"" + frameFileName.replace("\\", "/") + "\")");
-		if (new File(frameFileName).length() == 0){
+		if (new File(Utility.normalizePath(frameFileName)).length() == 0){
 			throw new IllegalArgumentException("Attempting to save an empty R frame");
 		}
 	}

@@ -43,6 +43,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class WrapperManager {
 
@@ -307,7 +308,7 @@ public class WrapperManager {
 			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getEngineType());
 		}
 
-		logger.debug(returnWrapper.getClass() + " executing query: " + query);
+		logger.debug(returnWrapper.getClass() + " executing query: " + Utility.cleanLogString(query));
 		returnWrapper.setEngine(engine);
 		returnWrapper.setQuery(query);
 		returnWrapper.execute();

@@ -612,7 +612,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		}
 
 		logger.info("Executing file at " + rTemp);
-		File rTempF = new File(rTemp);
+		File rTempF = new File(Utility.normalizePath(rTemp));
 		if(!rTempF.exists()) {
 			rTempF.mkdirs();
 		}
