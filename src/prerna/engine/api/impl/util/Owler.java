@@ -637,7 +637,6 @@ public class Owler extends AbstractOwler {
 	// rename things
 	
 	/**
-	 * TODO ::: NOT FINISHED
 	 * Rename an old concept name to a new name
 	 * @param appId
 	 * @param oldConceptName
@@ -651,6 +650,8 @@ public class Owler extends AbstractOwler {
 
 		// then we need to take the properties of the table and store
 		Map<String, String> newProperties = new HashMap<String, String>();
+		Map<String, String> newRelations = new HashMap<String, String>();
+
 		List<String> properties = null;
 		
 		// then everything downstream needs to be edited
@@ -659,266 +660,262 @@ public class Owler extends AbstractOwler {
 		List<Object[]> oldTriplesToDelete = new ArrayList<>();
 
 		// then we need to change the property name as well to point to the new table name
-		
-		
-		// since RDF uses this multiple times, don't create it each time and just store
-		// it in a hash to send back
-		if (!conceptHash.containsKey(oldConceptName)) {
-			// create the physical uri for the concept
-			// the base URI for the concept will be the baseNodeURI
-			String subject = BASE_NODE_URI + "/" + oldConceptName;
 
-			IEngine engine = Utility.getEngine(appId);
-			RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
-			String oldConceptPhysical = engine.getPhysicalUriFromPixelSelector(oldConceptName);
-			properties = engine.getPropertyUris4PhysicalUri(oldConceptPhysical);
-			StringBuilder bindings = new StringBuilder();
-			for (String oldProp : properties) {
-				bindings.append("(<").append(oldProp).append(">)");
+		IEngine engine = Utility.getEngine(appId);
+		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
+		String oldConceptPhysical = engine.getPhysicalUriFromPixelSelector(oldConceptName);
+		properties = engine.getPropertyUris4PhysicalUri(oldConceptPhysical);
+		StringBuilder bindings = new StringBuilder();
+		for (String oldProp : properties) {
+			bindings.append("(<").append(oldProp).append(">)");
+
+			// store new prop with new table name
+			int index = oldProp.lastIndexOf("/");
+			String newProp = oldProp.substring(0, index) + "/" + newConceptName;
+			newProperties.put(oldProp, newProp);
+		}
+
+		// remove relationships to node
+		List<String[]> fkRelationships = getPhysicalRelationships(owlEngine);
+		String baseRelationURI = SEMOSS_URI_PREFIX + DEFAULT_RELATION_CLASS;
+
+		for (String[] relations : fkRelationships) {
+			// track if change needs to be made
+			boolean editRelation = false;
+			String start = relations[0];
+			String end = relations[1];
+			String relURI = relations[2];
+			String relationName = Utility.getInstanceName(relURI); // this is either a.b.c.d or x.a.b.y.c.d
+			String[] tablesAndPrimaryKeys = relationName.split("\\.");
 				
-				// store new prop with new table name
-				int index = oldProp.lastIndexOf("/");
-				String newProp = oldProp.substring(0, index) + "/"+ newConceptName;
-				newProperties.put(oldProp, newProp);
-			}
+			String newStart = relations[0];
+			String newEnd = relations[1];
+			if (start.equals(oldConceptPhysical)) {
+				editRelation = true;
+				// need to change the start table
+				newStart = newConceptPhysicalUri;
 
-			// remove relationships to node
-			List<String[]> fkRelationships = getPhysicalRelationships(owlEngine);
-			String baseRelationURI = SEMOSS_URI_PREFIX + DEFAULT_RELATION_CLASS;
-
-			for (String[] relations: fkRelationships) {
-				// track if change needs to be made
-				boolean edit = false;
-				String start = relations[0];
-				String end = relations[1];
-				String relURI = relations[2];
-				String relationName = Utility.getInstanceName(relURI); // this is either a.b.c.d or x.a.b.y.c.d
-				String[] tablesAndPrimaryKeys = relationName.split("\\.");
-				
-				String newStart = relations[0];
-				String newEnd = relations[1];
-				if (start.equals(oldConceptPhysical)) {
-					edit = true;
-					//need to change the start table
-					newStart = newConceptPhysicalUri;
-					
-					// need to change the a in relationName
-					if (tablesAndPrimaryKeys.length == 4) {
-						//a.b.c.d
-						tablesAndPrimaryKeys[0] = newConceptName;
-					} else if (tablesAndPrimaryKeys.length == 6) {
-						// this has the schema
-						//x.a.b.y.c.d
-						tablesAndPrimaryKeys[1]= newConceptName;
-					}
-
-				} else if (end.equals(oldConceptPhysical)) {
-					edit = true;
-					//need to change the end table
-					newEnd = newConceptPhysicalUri;
-					
-					// need to change the c in relationName
-					if (tablesAndPrimaryKeys.length == 4) {
-						//a.b.c.d
-						tablesAndPrimaryKeys[2] = newConceptName;
-					} else if (tablesAndPrimaryKeys.length == 6) {
-						// this has the schema
-						//x.a.b.y.c.d
-						tablesAndPrimaryKeys[4]= newConceptName;
-					}
-				}
-				if (edit) {
-					// create relationship name a.b.c.d or x.a.b.y.c.d
-					String newRelName = String.join(".", tablesAndPrimaryKeys);
-					String newRelationURI =  baseRelationURI +"/" + newRelName;
-					
-					// store old relationship info
-					oldTriplesToDelete.add(new Object[] { relations[0], relations[2], relations[1], true });
-					oldTriplesToDelete.add(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
-					
-					// store new relationship info
-					newTriplesToAdd.add(new Object[]{newStart, newRelationURI, newEnd,true});
-					newTriplesToAdd.add(new Object[] { newRelationURI, RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
-				}
-				
-			}
-
-			if (bindings.length() > 0) {
-				// get everything downstream of the props
-				{
-					String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?s {" + bindings.toString() + "}";
-
-					IRawSelectWrapper it = null;
-					try {
-						it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-						while (it.hasNext()) {
-							IHeadersDataRow headerRows = it.next();
-							storeTripleToDelete(headerRows, oldTriplesToDelete);
-							
-							
-							
-							// add the new concept downstream props
-							Object[] raw = headerRows.getRawValues();
-							System.out.println(Arrays.toString(raw));
-							String s = raw[0].toString();
-							String p = raw[1].toString();
-							String o = raw[2].toString();
-							String newS = newProperties.get(s);
-							
-							boolean isLiteral = objectIsLiteral(p);
-							if (isLiteral) {
-								newTriplesToAdd.add(new Object[] { newS, p, headerRows.getValues()[2], false });
-							} else {
-								newTriplesToAdd.add(new Object[] { newS, p, o, true });
-							}
-						}
-					} catch (Exception e) {
-						e.printStackTrace();
-					} finally {
-						if(it != null) {
-							it.cleanUp();
-						}
-					}
-					
+				// need to change the a in relationName
+				if (tablesAndPrimaryKeys.length == 4) {
+					// a.b.c.d
+					tablesAndPrimaryKeys[0] = newConceptName;
+				} else if (tablesAndPrimaryKeys.length == 6) {
+					// this has the schema
+					// x.a.b.y.c.d
+					tablesAndPrimaryKeys[1] = newConceptName;
 				}
 
-				// repeat for upstream of prop
-				{
-					String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?o {"	+ bindings.toString() + "}";
-				
-					IRawSelectWrapper it = null;
-					try {
-						it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-						while (it.hasNext()) {
-							IHeadersDataRow headerRows = it.next();
-							storeTripleToDelete(headerRows, oldTriplesToDelete);
+			} else if (end.equals(oldConceptPhysical)) {
+				editRelation = true;
+				// need to change the end table
+				newEnd = newConceptPhysicalUri;
 
-							// add the new concept upstream props
-							Object[] raw = headerRows.getRawValues();
-							System.out.println(Arrays.toString(raw));
-
-							String s = raw[0].toString();
-							String p = raw[1].toString();
-							String o = raw[2].toString();
-							String newO = newProperties.get(o);
-							if (s.equals(oldConceptPhysical)) {
-								newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, p, newO, true });
-							} else {
-								newTriplesToAdd.add(new Object[] { s, p, newO, true });
-							}
-						}
-					} catch (Exception e) {
-						e.printStackTrace();
-					} finally {
-						if(it != null) {
-							it.cleanUp();
-						}
-					}
+				// need to change the c in relationName
+				if (tablesAndPrimaryKeys.length == 4) {
+					// a.b.c.d
+					tablesAndPrimaryKeys[2] = newConceptName;
+				} else if (tablesAndPrimaryKeys.length == 6) {
+					// this has the schema
+					// x.a.b.y.c.d
+					tablesAndPrimaryKeys[4] = newConceptName;
 				}
 			}
+			if (editRelation) {
+				// create relationship name a.b.c.d or x.a.b.y.c.d
+				String newRelName = String.join(".", tablesAndPrimaryKeys);
+				String newRelationURI = baseRelationURI + "/" + newRelName;
+				newRelations.put(relURI, newRelationURI);
 
-			boolean hasTriple = false;
+				// store old relationship info
+				oldTriplesToDelete.add(new Object[] { relations[0], relations[2], relations[1], true });
+				oldTriplesToDelete.add(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), AbstractOwler.BASE_RELATION_URI, true });
 
-			// now repeat for the node itself
-			// remove everything downstream of the node
+				// store new relationship info
+				newTriplesToAdd.add(new Object[] { newStart, newRelationURI, newEnd, true });
+				newTriplesToAdd.add(new Object[] { newRelationURI, RDFS.SUBPROPERTYOF.toString(), AbstractOwler.BASE_RELATION_URI, true });
+			}
+
+		}
+
+		if (bindings.length() > 0) {
+			// get everything downstream of the props
 			{
-				String query = "select ?s ?p ?o where { bind(<" + oldConceptPhysical + "> as ?s) {?s ?p ?o} }";
+				String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?s {" + bindings.toString() + "}";
 
 				IRawSelectWrapper it = null;
 				try {
 					it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
 					while (it.hasNext()) {
-						hasTriple = true;
 						IHeadersDataRow headerRows = it.next();
 						storeTripleToDelete(headerRows, oldTriplesToDelete);
 
-						// add downstream for node props
+						// add the new concept downstream props
 						Object[] raw = headerRows.getRawValues();
-						System.out.println(Arrays.toString(raw));
-
-						String p = raw[1].toString();
-						String o = raw[2].toString();
-						boolean isLiteral = objectIsLiteral(p);
-						if (isLiteral) {
-							newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, p, headerRows.getValues()[2], false });
-						} else {
-							newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, p, o, true });
-						}
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				} finally {
-					if(it != null) {
-						it.cleanUp();
-					}
-				}
-			}
-
-			// repeat for upstream of the node
-			{
-				String query = "select ?s ?p ?o where { bind(<" + oldConceptPhysical + "> as ?o) {?s ?p ?o} }";
-
-				IRawSelectWrapper it = null;
-				try {
-					it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-					while (it.hasNext()) {
-						hasTriple = true;
-						IHeadersDataRow headerRows = it.next();
-						storeTripleToDelete(headerRows, oldTriplesToDelete);
-
-						// add for the upstream of the node
-						Object[] raw = headerRows.getRawValues();
-						System.out.println(Arrays.toString(raw));
-
 						String s = raw[0].toString();
 						String p = raw[1].toString();
-						newTriplesToAdd.add(new Object[] { s, p, newConceptPhysicalUri, true });
+						String o = raw[2].toString();
+						String newS = newProperties.get(s);
+						if (p.equals(AbstractOwler.PIXEL_RELATION_URI)) {
+							String newO = o.substring(0, o.lastIndexOf("/") + 1);
+							o = newO + newConceptName;
+						}
+						boolean isLiteral = objectIsLiteral(p);
+						if (isLiteral) {
+							newTriplesToAdd.add(new Object[] { newS, p, headerRows.getValues()[2], false });
+						} else {
+							newTriplesToAdd.add(new Object[] { newS, p, o, true });
+						}
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				} finally {
-					if(it != null) {
+					if (it != null) {
+						it.cleanUp();
+					}
+				}
+
+			}
+
+			// repeat for upstream of prop
+			{
+				String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?o {" + bindings.toString() + "}";
+
+				IRawSelectWrapper it = null;
+				try {
+					it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+					while (it.hasNext()) {
+						IHeadersDataRow headerRows = it.next();
+						storeTripleToDelete(headerRows, oldTriplesToDelete);
+
+						// add the new concept upstream props
+						Object[] raw = headerRows.getRawValues();
+						String s = raw[0].toString();
+						String p = raw[1].toString();
+						String o = raw[2].toString();
+						String newO = newProperties.get(o);
+						if (s.equals(oldConceptPhysical)) {
+							newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, p, newO, true });
+						} else {
+							newTriplesToAdd.add(new Object[] { s, p, newO, true });
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if (it != null) {
 						it.cleanUp();
 					}
 				}
 			}
+		}
 
-			if (!hasTriple) {
-				throw new IllegalArgumentException("Cannot find concept in existing metadata to remove");
-			}
-			
-			// adding the properties to the new concept
-//			for(String oldProp :newProperties.keySet()) {
-//				String newProp = newProperties.get(oldProp);
-//				newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, OWL.DatatypeProperty.toString(), newProp, true });
-//			}
-			
-			// delete the old triples
-			for(Object[] data : oldTriplesToDelete) {
-				owlEngine.removeStatement(data);
-			}
-//			
-//			// now do all the adds
-//			System.out.println("NEW DATA::::::::::::::::::");
+		boolean hasTriple = false;
 
-			for(Object[] data : newTriplesToAdd) {
-				
-				System.out.println(Arrays.toString(data));
-				owlEngine.addStatement(data);
-			}
-			
+		// now repeat for the node itself
+		// remove everything downstream of the node
+		{
+			String query = "select ?s ?p ?o where { bind(<" + oldConceptPhysical + "> as ?s) {?s ?p ?o} }";
+
+			IRawSelectWrapper it = null;
 			try {
-				owlEngine.exportDB();
+				it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+				while (it.hasNext()) {
+					hasTriple = true;
+					IHeadersDataRow headerRows = it.next();
+
+					// add downstream for node props
+					Object[] raw = headerRows.getRawValues();
+
+					String p = raw[1].toString();
+					if (newRelations.containsKey(p)) {
+						// this relation has already been modified
+						continue;
+					}
+
+					String o = raw[2].toString();
+					if (newProperties.containsKey(o)) {
+						o = newProperties.get(o);
+					} else if (o.equals(oldConceptPhysical)) {
+						o = newConceptPhysicalUri;
+					}
+					boolean isLiteral = objectIsLiteral(p);
+					if (isLiteral) {
+						newTriplesToAdd
+								.add(new Object[] { newConceptPhysicalUri, p, headerRows.getValues()[2], false });
+					} else {
+						newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, p, o, true });
+					}
+					storeTripleToDelete(headerRows, oldTriplesToDelete);
+
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
-				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired concept", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-				return noun;
+			} finally {
+				if (it != null) {
+					it.cleanUp();
+				}
 			}
-			
-			// remove it from the hash
-			conceptHash.remove(oldConceptName, subject);
 		}
+
+		// repeat for upstream of the node
+		{
+			String query = "select ?s ?p ?o where { bind(<" + oldConceptPhysical + "> as ?o) {?s ?p ?o} }";
+
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+				while (it.hasNext()) {
+					hasTriple = true;
+					IHeadersDataRow headerRows = it.next();
+
+					// add for the upstream of the node
+					Object[] raw = headerRows.getRawValues();
+
+					String s = raw[0].toString();
+					if (s.equals(oldConceptPhysical)) {
+						s = newConceptPhysicalUri;
+					} else if (newProperties.containsKey(s)) {
+						s = newProperties.get(s);
+					}
+					String p = raw[1].toString();
+					if (newRelations.containsKey(p)) {
+						// this relation has already been modified
+						continue;
+					}
+					newTriplesToAdd.add(new Object[] { s, p, newConceptPhysicalUri, true });
+					storeTripleToDelete(headerRows, oldTriplesToDelete);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if (it != null) {
+					it.cleanUp();
+				}
+			}
+		}
+
+		if (!hasTriple) {
+			throw new IllegalArgumentException("Cannot find concept in existing metadata to remove");
+		}
+			
+		// delete the old triples
+		for (Object[] data : oldTriplesToDelete) {
+			owlEngine.removeStatement(data);
+		}
+
+		for (Object[] data : newTriplesToAdd) {
+			owlEngine.addStatement(data);
+		}
+
+		try {
+			owlEngine.exportDB();
+		} catch (Exception e) {
+			e.printStackTrace();
+			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired concept", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			return noun;
+		}
+			
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
@@ -946,6 +943,62 @@ public class Owler extends AbstractOwler {
 		String newPropPhysicalUri = BASE_PROPERTY_URI + "/" + newPropName + "/" + tableName;
 
 		List<Object[]> newTriplesToAdd = new ArrayList<>();
+		List<Object[]> oldTriplesToDelete = new ArrayList<>();
+
+		// remove relationships to node
+		List<String[]> fkRelationships = getPhysicalRelationships(owlEngine);
+		String baseRelationURI = SEMOSS_URI_PREFIX + DEFAULT_RELATION_CLASS;
+
+		for (String[] relations: fkRelationships) {
+			// track if change needs to be made
+			boolean editRelation = false;
+			String start = relations[0];
+			String end = relations[1];
+			String relURI = relations[2];
+			String relationName = Utility.getInstanceName(relURI); // this is either a.b.c.d or x.a.b.y.c.d
+			String[] tablesAndPrimaryKeys = relationName.split("\\.");
+			
+			// need to change the b or d in relationName
+			if (tablesAndPrimaryKeys.length == 4) {
+				String startCol = tablesAndPrimaryKeys[1];
+				String endCol = tablesAndPrimaryKeys[3];
+				if(startCol.equals(oldPropName)) {
+					editRelation = true;
+					tablesAndPrimaryKeys[1] = newPropName;
+				} else if (endCol.equals(oldPropName)) {
+					editRelation = true;
+					tablesAndPrimaryKeys[3] = newPropName;
+				}
+			} else if (tablesAndPrimaryKeys.length == 6) {
+				// this has the schema
+				// x.a.b.y.c.d
+				String startCol = tablesAndPrimaryKeys[2];
+				String endCol = tablesAndPrimaryKeys[5];
+				if(startCol.equals(oldPropName)) {
+					editRelation = true;
+					tablesAndPrimaryKeys[2] = newPropName;
+				} else if (endCol.equals(oldPropName)) {
+					editRelation = true;
+					tablesAndPrimaryKeys[5] = newPropName;
+				}
+			}
+
+			if (editRelation) {
+				// create relationship name a.b.c.d or x.a.b.y.c.d
+				String newRelName = String.join(".", tablesAndPrimaryKeys);
+				String newRelationURI = baseRelationURI + "/" + newRelName;
+
+				// store old relationship info
+				oldTriplesToDelete.add(new Object[] { relations[0], relations[2], relations[1], true });
+				oldTriplesToDelete.add(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), AbstractOwler.BASE_RELATION_URI, true });
+
+				// store new relationship info
+				newTriplesToAdd.add(new Object[] { start, newRelationURI, end, true });
+				newTriplesToAdd.add(new Object[] { newRelationURI, RDFS.SUBPROPERTYOF.toString(), AbstractOwler.BASE_RELATION_URI, true });
+			}
+
+		}
+		
 		
 		{
 			// remove everything downstream of the property
@@ -955,8 +1008,8 @@ public class Owler extends AbstractOwler {
 				it = WrapperManager.getInstance().getRawWrapper(owlEngine, downstreamQuery);
 				while (it.hasNext()) {
 					IHeadersDataRow headerRows = it.next();
-					executeRemoveQuery(headerRows, owlEngine);
-					
+					storeTripleToDelete(headerRows, oldTriplesToDelete);
+
 					Object[] raw = headerRows.getRawValues();
 					String p = raw[1].toString();
 					String o = raw[2].toString();
@@ -984,7 +1037,7 @@ public class Owler extends AbstractOwler {
 				it = WrapperManager.getInstance().getRawWrapper(owlEngine, upstreamQuery);
 				while (it.hasNext()) {
 					IHeadersDataRow headerRows = it.next();
-					executeRemoveQuery(headerRows, owlEngine);
+					storeTripleToDelete(headerRows, oldTriplesToDelete);
 					
 					Object[] raw = headerRows.getRawValues();
 					String s = raw[0].toString();
@@ -999,8 +1052,12 @@ public class Owler extends AbstractOwler {
 				}
 			}
 		}
+		// delete the old triples
+		for (Object[] data : oldTriplesToDelete) {
+			owlEngine.removeStatement(data);
+		}
 		
-		// now do all the adds
+		// add new triples
 		for(Object[] data : newTriplesToAdd) {
 			owlEngine.addStatement(data);
 		}
@@ -1010,14 +1067,12 @@ public class Owler extends AbstractOwler {
 		} catch (Exception e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired property",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired property", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully removed property", PixelDataType.CONST_STRING,
-				PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(new NounMetadata("Successfully removed property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 	
