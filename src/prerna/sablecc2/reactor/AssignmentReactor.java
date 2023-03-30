@@ -104,6 +104,9 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 		StringBuilder javaSignature = new StringBuilder();
 		javaSignature.append(this.operationName+" = ");
 		List<NounMetadata> inputs = this.getJavaInputs();
+		if(inputs == null || inputs.isEmpty()) {
+			inputs = this.curRow.getVector();
+		}
 		NounMetadata assignmentNoun = inputs.get(0);
 		Object assignmentInput = assignmentNoun.getValue();
 		String argument;
