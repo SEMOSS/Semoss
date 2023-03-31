@@ -1018,8 +1018,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// TOKENS
-		colNames = new String[] { "IPADDR", "VAL", "DATEADDED" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+		colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("TOKEN", colNames, types));
 		} else {
@@ -1027,6 +1027,16 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.tableExists(conn, "TOKEN", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("TOKEN", colNames, types));
+			}
+		}
+		//MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
+		{
+			List<String> allCols = queryUtil.getTableColumns(conn, "TOKEN", database, schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("CLIENTID") && !allCols.contains("clientid")) {
+				String addIdColumn = queryUtil.alterTableAddColumn("TOKEN", "CLIENTID", "VARCHAR(255)");
+				securityDb.insertData(addIdColumn);
 			}
 		}
 		if(allowIfExistsIndexs) {
