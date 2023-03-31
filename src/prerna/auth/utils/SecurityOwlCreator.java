@@ -171,6 +171,11 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CATALOGNAME/PROJECT")) {
 				return true;
 			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/TOKEN");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKEN")) {
+				return true;
+			}
 		}
 		
 		List<String[]> allRelationships = securityDb.getPhysicalRelationships();
@@ -362,6 +367,7 @@ public class SecurityOwlCreator {
 		owler.addProp("TOKENS", "IPADDR", "VARCHAR(255)");
 		owler.addProp("TOKENS", "VAL", "VARCHAR(255)");
 		owler.addProp("TOKENS", "DATEADDED", "TIMESTAMP");
+		owler.addProp("TOKENS", "CLIENTID", "VARCHAR(255)");
 
 		// PERMISSION
 		owler.addConcept("PERMISSION", null, null);
