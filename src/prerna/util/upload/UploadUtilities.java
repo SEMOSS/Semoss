@@ -22,6 +22,8 @@ import java.util.TreeSet;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -68,6 +70,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class UploadUtilities {
 
+	private static final Logger classLogger = LogManager.getLogger(UploadUtilities.class);
+	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String ENGINE_DIRECTORY;
 	static {
@@ -200,7 +204,7 @@ public class UploadUtilities {
 			bufferedWriter.write("</rdf:RDF>");
 			
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(bufferedWriter != null) {
@@ -210,7 +214,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -379,7 +383,7 @@ public class UploadUtilities {
 			// the connection url
 			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
@@ -390,7 +394,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -446,7 +450,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -516,7 +520,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -576,7 +580,7 @@ public class UploadUtilities {
 			}
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
@@ -593,7 +597,7 @@ public class UploadUtilities {
 					bufferedReader.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -675,7 +679,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -757,7 +761,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -841,7 +845,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -908,7 +912,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return dbTempSmss;
@@ -972,7 +976,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -1057,7 +1061,7 @@ public class UploadUtilities {
 				bufferedWriter.write(key + tab + jdbcPropertiesMap.get(key) + newLine);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
@@ -1068,7 +1072,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return dbTempSmss;
@@ -1123,7 +1127,7 @@ public class UploadUtilities {
 				bufferedWriter.write(Constants.ADDITIONAL_DATA_TYPES + tab + gson.toJson(additionalDataTypeMap) + newLine);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
@@ -1134,7 +1138,7 @@ public class UploadUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -1265,7 +1269,7 @@ public class UploadUtilities {
 				retMap.put(SCHEMA_NAME_KEY, schemaName);
 				return retMap;
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return null;
@@ -1310,7 +1314,7 @@ public class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -1356,7 +1360,7 @@ public class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -1411,7 +1415,7 @@ public class UploadUtilities {
 				retMap.put(SCHEMA_NAME_KEY, schemaName);
 				return retMap;
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return null;
@@ -1466,7 +1470,7 @@ public class UploadUtilities {
 				retMap.put(SCHEMA_NAME_KEY, schemaName);
 				return retMap;
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return null;
@@ -1525,7 +1529,7 @@ public class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -1585,7 +1589,7 @@ public class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -1646,7 +1650,7 @@ public class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -1703,7 +1707,7 @@ public class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return null;
@@ -1744,31 +1748,37 @@ public class UploadUtilities {
 	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(MetaHelper helper) {
 		List<String> conceptsList = helper.getPhysicalConcepts();
 		Map<String, Map<String, SemossDataType>> existingMetaModel = new HashMap<>();
-		for (String conceptPhysicalUri : conceptsList) {
-			// so grab the conceptual name
-			String conceptName = helper.getPixelSelectorFromPhysicalUri(conceptPhysicalUri);
-			// and grab its properties
-			List<String> properties = helper.getPropertyUris4PhysicalUri(conceptPhysicalUri);
-			
-			Map<String, SemossDataType> propMap = new HashMap<>();
-			for (String prop : properties) {
-				// grab the conceptual name
-				String propertyPixelName = helper.getPixelSelectorFromPhysicalUri(prop);
-				String owlType = helper.getDataTypes(prop);
-				SemossDataType type = null;
-				if(owlType != null) {
-					owlType = owlType.replace("TYPE:", "");
-					type = SemossDataType.convertStringToDataType(owlType);
-				} else {
-					// something is weird that you have no type
-					// lets assume you are a string
-					type = SemossDataType.STRING;
+		
+		try {
+			for (String conceptPhysicalUri : conceptsList) {
+				// so grab the conceptual name
+				String conceptName = helper.getPixelSelectorFromPhysicalUri(conceptPhysicalUri);
+				// and grab its properties
+				List<String> properties = helper.getPropertyUris4PhysicalUri(conceptPhysicalUri);
+				
+				Map<String, SemossDataType> propMap = new HashMap<>();
+				for (String prop : properties) {
+					// grab the conceptual name
+					String propertyPixelName = helper.getPixelSelectorFromPhysicalUri(prop);
+					String owlType = helper.getDataTypes(prop);
+					SemossDataType type = null;
+					if(owlType != null) {
+						owlType = owlType.replace("TYPE:", "");
+						type = SemossDataType.convertStringToDataType(owlType);
+					} else {
+						// something is weird that you have no type
+						// lets assume you are a string
+						type = SemossDataType.STRING;
+					}
+					// property conceptual uris are always /Column/Table
+					String propertyConceptualName = propertyPixelName.split("__")[1];
+					propMap.put(propertyConceptualName, type);
 				}
-				// property conceptual uris are always /Column/Table
-				String propertyConceptualName = propertyPixelName.split("__")[1];
-				propMap.put(propertyConceptualName, type);
+				existingMetaModel.put(conceptName, propMap);
 			}
-			existingMetaModel.put(conceptName, propMap);
+		} catch(Exception e) {
+			classLogger.warn("OWL is not formatted properly...");
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return existingMetaModel;
 	}
