@@ -72,7 +72,7 @@ public class SocialPropertiesProcessor {
 		for( String prop : loginProps) {
 			//prop ex. ms_login
 			//get provider from prop by split on _
-			String provider = prop.split("_")[0];
+			String provider = prop.split("_login")[0];
 		
 			this.loginsAllowedMap.put(provider,  Boolean.parseBoolean(socialData.getProperty(prop)));
 			//remove the provider from the defaultProvider list
