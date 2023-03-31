@@ -67,10 +67,10 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 	 * @param ipAddr
 	 * @return
 	 */
-	public static Object[] generateToken(String ipAddr) {
+	public static Object[] generateToken(String ipAddr, String clientId) {
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 
-		String query = "INSERT INTO TOKEN (IPADDR, VAL, DATEADDED) VALUES (?,?,?)";
+		String query = "INSERT INTO TOKEN (IPADDR, VAL, DATEADDED, CLIENTID) VALUES (?,?,?,?)";
 		String tokenValue = UUID.randomUUID().toString();
 		LocalDateTime ldt = LocalDateTime.now();
 		PreparedStatement ps = null;
@@ -80,6 +80,7 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, ipAddr);
 			ps.setString(parameterIndex++, tokenValue);
 			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(ldt), cal);
+			ps.setString(parameterIndex++, clientId);
 			ps.execute();
 			logger.debug("Adding new token=" + tokenValue + " for ip=" + ipAddr);
 		} catch (SQLException e) {
@@ -109,18 +110,17 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 	 * @param ipAddr
 	 * @return
 	 */
-	public static String getToken(String ipAddr) {
-		String token = null;
-		
+	public static Object[] getToken(String ipAddr) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("TOKEN__VAL"));
 		qs.addSelector(new QueryColumnSelector("TOKEN__IPADDR"));
+		qs.addSelector(new QueryColumnSelector("TOKEN__CLIENTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("TOKEN__IPADDR", "==", ipAddr));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
-				token = (String) wrapper.next().getValues()[0];
+				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -130,6 +130,6 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		return token;
+		return null;
 	}
 }
