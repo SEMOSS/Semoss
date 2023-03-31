@@ -511,6 +511,9 @@ public class Constants {
 	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_INSIGHT_SHARE = "ADMIN_ONLY_INSIGHT_SHARE";
 
+	// admin only create api user
+	public static final String ADMIN_ONLY_CREATE_API_USER = "ADMIN_ONLY_CREATE_API_USER";
+	
 	@Deprecated
 	public static final String PIPELINE_LANDING_FILTER = "PIPELINE_LANDING_FILTER";
 	@Deprecated
@@ -607,6 +610,9 @@ public class Constants {
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 
+	// check for API User Key
+	public static final String API_USER_CHECK = "API_USER_CHECK";
+	
 	//if spark is enabled
 	public static final String SPARK = "SPARK";
 	public static final String USE_SPARK = "USE_SPARK";

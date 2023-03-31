@@ -3863,6 +3863,33 @@ public class Utility {
 		return timeZone.trim();
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
+	public static Boolean getApplicationAPIUserTokenCheck() {
+		String apiCheck = DIHelper.getInstance().getProperty(Constants.API_USER_CHECK);
+		if(apiCheck == null || (apiCheck=apiCheck.trim()).isEmpty()) {
+			// default to true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(apiCheck);
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public static Boolean getApplicationAdminOnlyCreateAPIUser() {
+		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_CREATE_API_USER);
+		if(boolString == null || (boolString=boolString.trim()).isEmpty()) {
+			// default to true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(boolString);
+	}
 	
 	public static void copyURLtoFile(String urlString, String filePath) {
 		try(PrintWriter out = new PrintWriter(filePath)){
