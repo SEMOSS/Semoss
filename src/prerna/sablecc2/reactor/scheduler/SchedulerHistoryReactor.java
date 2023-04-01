@@ -52,6 +52,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_DELTA));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.SUCCESS));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.IS_LATEST));
+		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.SCHEDULER_OUTPUT));
 		qs.addRelation(SchedulerConstants.SMSS_JOB_RECIPES+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_AUDIT_TRAIL+"__"+SchedulerConstants.JOB_ID, "left.outer.join");
 
 /*		QueryFunctionSelector tagSelector = new QueryFunctionSelector();

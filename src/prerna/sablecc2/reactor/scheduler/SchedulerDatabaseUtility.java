@@ -60,6 +60,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.QRTZ_TRIGGERS
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.REPEAT_COUNT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.REPEAT_INTERVAL;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.REQUESTS_RECOVERY;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SCHEDULER_OUTPUT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SCHED_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SCHED_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMALLINT;
@@ -328,7 +329,7 @@ public class SchedulerDatabaseUtility {
 		return true;
 	}
 
-	public static boolean insertIntoAuditTrailTable(String jobId, String jobGroup, Long start, Long end, boolean success) {
+	public static boolean insertIntoAuditTrailTable(String jobId, String jobGroup, Long start, Long end, boolean success, String schedulerOutput) {
 		Connection conn = connectToScheduler();
 
 		Timestamp startTimeStamp = new Timestamp(start);
@@ -348,16 +349,18 @@ public class SchedulerDatabaseUtility {
 			}
 			// now insert the new record with is_latest as true
 			try (PreparedStatement statement = conn
-					.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS, IS_LATEST) VALUES (?,?,?,?,?,?,?)")) {
-				statement.setString(1, jobId);
-				statement.setString(2, jobGroup);
-				statement.setTimestamp(3, startTimeStamp, cal);
-				statement.setTimestamp(4, endTimeStamp, cal);
-				statement.setString(5, String.valueOf(end - start));
-				statement.setBoolean(6, success);
-				statement.setBoolean(7, true);
+					.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS, IS_LATEST, SCHEDULER_OUTPUT) VALUES (?,?,?,?,?,?,?,?)")) {
+				int index = 1;
+				statement.setString(index++, jobId);
+				statement.setString(index++, jobGroup);
+				statement.setTimestamp(index++, startTimeStamp, cal);
+				statement.setTimestamp(index++, endTimeStamp, cal);
+				statement.setString(index++, String.valueOf(end - start));
+				statement.setBoolean(index++, success);
+				statement.setBoolean(index++, true);
+				queryUtil.handleInsertionOfBlob(conn, statement, schedulerOutput, index++);
 				statement.executeUpdate();
-			} catch (SQLException e) {
+			} catch (UnsupportedEncodingException | SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 				return false;
 			}
@@ -379,16 +382,17 @@ public class SchedulerDatabaseUtility {
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn
 				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE) VALUES (?,?,?,?,?,?,?,?,?,?)")) {
-			statement.setString(1, userId);
-			statement.setString(2, jobId);
-			statement.setString(3, jobName);
-			statement.setString(4, jobGroup);
-			statement.setString(5, cronExpression);
-			queryUtil.handleInsertionOfBlob(conn, statement, recipe, 6);
-			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, 7);
-			statement.setString(8, jobCategory);
-			statement.setBoolean(9, triggerOnLoad);
-			queryUtil.handleInsertionOfBlob(conn, statement, uiState, 10);
+			int index = 1;
+			statement.setString(index++, userId);
+			statement.setString(index++, jobId);
+			statement.setString(index++, jobName);
+			statement.setString(index++, jobGroup);
+			statement.setString(index++, cronExpression);
+			queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
+			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
+			statement.setString(index++, jobCategory);
+			statement.setBoolean(index++, triggerOnLoad);
+			queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
 			
 			statement.executeUpdate();
 		} catch (SQLException | UnsupportedEncodingException e) {
@@ -463,19 +467,20 @@ public class SchedulerDatabaseUtility {
 		try (PreparedStatement statement = conn
 				.prepareStatement("UPDATE SMSS_JOB_RECIPES SET USER_ID = ?, JOB_NAME = ?, JOB_GROUP = ?, CRON_EXPRESSION = ?, PIXEL_RECIPE = ?, "
 						+ "PIXEL_RECIPE_PARAMETERS = ?, JOB_CATEGORY = ?, TRIGGER_ON_LOAD = ?, UI_STATE = ? WHERE JOB_ID = ? AND JOB_GROUP = ?")) {
-			statement.setString(1, userId);
-			statement.setString(2, jobName);
-			statement.setString(3, jobGroup);
-			statement.setString(4, cronExpression);
-			queryUtil.handleInsertionOfBlob(conn, statement, recipe, 5);
-			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, 6);
-			statement.setString(7, jobCategory);
-			statement.setBoolean(8, triggerOnLoad);
-			queryUtil.handleInsertionOfBlob(conn, statement, uiState, 9);
+			int index = 1;
+			statement.setString(index++, userId);
+			statement.setString(index++, jobName);
+			statement.setString(index++, jobGroup);
+			statement.setString(index++, cronExpression);
+			queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
+			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
+			statement.setString(index++, jobCategory);
+			statement.setBoolean(index++, triggerOnLoad);
+			queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
 
 			// where clause filters
-			statement.setString(10, jobId);
-			statement.setString(11, existingJobGroup);
+			statement.setString(index++, jobId);
+			statement.setString(index++, existingJobGroup);
 			
 			statement.executeUpdate();
 		} catch (SQLException | UnsupportedEncodingException e) {
@@ -1182,6 +1187,19 @@ public class SchedulerDatabaseUtility {
 				}
 			}
 			
+			// 2023-04-01 just check all the columns we defined are actually there
+			{
+				// just check all the columns are there
+				List<String> allCols = queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, col, types[i]);
+						schedulerDb.insertData(addColumnSql);
+					}
+				}
+			}
+			
 			// SMSS_JOB_TAGS
 			colNames = new String[]{JOB_ID, JOB_TAG};
 			types = new String[]{VARCHAR_200, VARCHAR_200};
@@ -1195,13 +1213,26 @@ public class SchedulerDatabaseUtility {
 					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_JOB_TAGS, colNames, types, constraints));
 				}
 			}
+			
+			// 2023-04-01 just check all the columns we defined are actually there
+			{
+				// just check all the columns are there
+				List<String> allCols = queryUtil.getTableColumns(connection, SMSS_JOB_TAGS, database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn(SMSS_JOB_TAGS, col, types[i]);
+						schedulerDb.insertData(addColumnSql);
+					}
+				}
+			}
 
 			// SMSS_AUDIT_TRAIL
 			// adding is_latest flag to mark the latest record
-			colNames = new String[] { JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS, IS_LATEST};
-			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE};
+			colNames = new String[] { JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS, IS_LATEST, SCHEDULER_OUTPUT};
+			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, BLOB_DATATYPE_NAME};
 			if(!dateTimeType.equals(TIMESTAMP)) { types = cleanUpDataType(types, TIMESTAMP, dateTimeType); };
-			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null };
+			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames,
 						types, constraints));
@@ -1239,6 +1270,19 @@ public class SchedulerDatabaseUtility {
 						updateAuditTrailStatement.executeUpdate();
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+			
+			// 2023-04-01 just check all the columns we defined are actually there
+			{
+				// just check all the columns are there
+				List<String> allCols = queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						String addColumnSql = queryUtil.alterTableAddColumn(SMSS_AUDIT_TRAIL, col, types[i]);
+						schedulerDb.insertData(addColumnSql);
 					}
 				}
 			}
