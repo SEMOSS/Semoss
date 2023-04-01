@@ -513,6 +513,11 @@ public class Constants {
 
 	// admin only create api user
 	public static final String ADMIN_ONLY_CREATE_API_USER = "ADMIN_ONLY_CREATE_API_USER";
+	// check for API User Key
+	public static final String API_USER_CHECK = "API_USER_CHECK";
+	// do we require a dynamic api token or do we login
+	public static final String REQUIRE_DYNAMIC_API_TOKEN = "REQUIRE_DYNAMIC_API_TOKEN";
+
 	
 	@Deprecated
 	public static final String PIPELINE_LANDING_FILTER = "PIPELINE_LANDING_FILTER";
@@ -610,9 +615,6 @@ public class Constants {
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 
-	// check for API User Key
-	public static final String API_USER_CHECK = "API_USER_CHECK";
-	
 	//if spark is enabled
 	public static final String SPARK = "SPARK";
 	public static final String USE_SPARK = "USE_SPARK";
