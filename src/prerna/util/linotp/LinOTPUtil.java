@@ -213,11 +213,17 @@ public class LinOTPUtil {
 					
 				} finally {
 					// consume will release the entity
-					EntityUtils.consume(entity);
-					postResponse.close();
+					if(entity != null) {
+						EntityUtils.consume(entity);
+					}
+					if(postResponse != null) {
+						postResponse.close();
+					}
 				}
 			} finally {
-				httpclient.close();
+				if(httpclient != null) {
+					httpclient.close();
+				}
 			}
 			
 		} else {
@@ -284,11 +290,17 @@ public class LinOTPUtil {
 					}
 				} finally {
 					// consume will release the entity
-					EntityUtils.consume(entity);
-					postResponse.close();
+					if(entity != null) {
+						EntityUtils.consume(entity);
+					}
+					if(postResponse != null) {
+						postResponse.close();
+					}
 				}
 			} finally {
-				httpclient.close();
+				if(httpclient != null) {
+					httpclient.close();
+				}
 			}
 		}
 	}
@@ -466,11 +478,17 @@ public class LinOTPUtil {
 				}
 			} finally {
 				// consume will release the entity
-				EntityUtils.consume(entity);
-				postResponse.close();
+				if(entity != null) {
+					EntityUtils.consume(entity);
+				}
+				if(postResponse != null) {
+					postResponse.close();
+				}
 			}
 		} finally {
-			httpclient.close();
+			if(httpclient != null) {
+				httpclient.close();
+			}
 		}
 	}
 	
