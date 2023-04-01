@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
@@ -16,6 +17,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.InterruptableJob;
@@ -63,7 +65,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		
 		try {
 			// run the pixel endpoint
-			boolean success;
+			boolean success = false;
 			String url = DIHelper.getInstance().getProperty(Constants.SCHEDULER_ENDPOINT);
 			if(url == null) {
 				throw new IllegalArgumentException("Must define the scheduler endpoint to run scheduled jobs");
@@ -144,26 +146,45 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			
 			long start = System.currentTimeMillis();
 			
+			int status = -1;
 			CloseableHttpResponse response = null;
+			HttpEntity entity = null;
+			String schedulerOutput = null;
 			try {
 				httppost.setEntity(new UrlEncodedFormEntity(paramList));
 				response = httpclient.execute(httppost);
+				if(response != null && response.getStatusLine() != null) {
+					status = response.getStatusLine().getStatusCode();
+				}
+				
+				if (status == 200 ) {
+					success = true;
+				}
+				
+				entity = response.getEntity();
+				schedulerOutput = EntityUtils.toString(entity);
 			} catch (ClientProtocolException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				// consume will release the entity
+				if(entity != null) {
+					try {
+						EntityUtils.consume(entity);
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+				if(response != null) {
+					try {
+						response.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
 			}
 			
-			int status = -1;
-			if(response != null && response.getStatusLine() != null) {
-				status = response.getStatusLine().getStatusCode();
-			}
-			
-			if (status == 200 ) {
-				success = true;
-			} else {
-				success = false;
-			}
 			logger.info("##SCHEDULED JOB: Response Code " + status);
 //			try {
 //				logger.info("##SCHEDULED JOB: Json return = " + EntityUtils.toString(response.getEntity()));
@@ -175,7 +196,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			
 			// store execution time and date in SMSS_AUDIT_TRAIL table
 			long end = System.currentTimeMillis();
-			SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, success);
+			SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, success, schedulerOutput);
 			logger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
 		} finally {
 			// always delete the UUID
