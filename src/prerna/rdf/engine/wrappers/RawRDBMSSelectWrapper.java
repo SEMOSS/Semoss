@@ -199,7 +199,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					}
 				} 
 				else if(type == Types.BLOB) {
-					val = rs.getClob(colNum);
+					val = rs.getBlob(colNum);
 					try {
 						val = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) val);
 					} catch (IOException e) {
