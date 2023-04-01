@@ -19,6 +19,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
+import prerna.util.SocialPropertiesUtil;
 import prerna.util.Utility;
 
 public class SecurityAPIUserUtils extends AbstractSecurityUtils {
@@ -31,8 +32,41 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 	private static final String PASSWORD_COL = SMSS_USER_TABLE_NAME + "__PASSWORD";
 	private static final String SALT_COL = SMSS_USER_TABLE_NAME + "__SALT";
 	
+	// check for API User Key
+	public static final String API_USER_CHECK = "api_user_token_check";
+	// do we require a dynamic api token or do we login
+	public static final String REQUIRE_DYNAMIC_API_TOKEN = "api_user_require_dynamic_token";
+	
 	private SecurityAPIUserUtils() {
 
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public static Boolean getApplicationAPIUserTokenCheck() {
+		String apiCheck = SocialPropertiesUtil.getInstance().getProperty(API_USER_CHECK); 
+		if(apiCheck == null || (apiCheck=apiCheck.trim()).isEmpty()) {
+			// default to true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(apiCheck);
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public static Boolean getApplicationRequireDynamicToken() {
+		String requireDynamicToken = SocialPropertiesUtil.getInstance().getProperty(REQUIRE_DYNAMIC_API_TOKEN);
+		if(requireDynamicToken == null || (requireDynamicToken=requireDynamicToken.trim()).isEmpty()) {
+			// default to true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(requireDynamicToken);
 	}
 
 	/**
