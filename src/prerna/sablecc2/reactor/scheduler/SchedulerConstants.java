@@ -86,6 +86,7 @@ public final class SchedulerConstants {
 	public static final String UI_STATE = "UI_STATE";
 	public static final String EXEC_ID = "EXEC_ID";
 	public static final String IS_LATEST = "IS_LATEST";
+	public static final String SCHEDULER_OUTPUT = "SCHEDULER_OUTPUT";
 	
 	// SQL data types
 	public static final String VARCHAR_8 = "VARCHAR (8)";
