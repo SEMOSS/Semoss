@@ -3881,6 +3881,20 @@ public class Utility {
 	 * 
 	 * @return
 	 */
+	public static Boolean getApplicationRequireDynamicToken() {
+		String requireDynamicToken = DIHelper.getInstance().getProperty(Constants.REQUIRE_DYNAMIC_API_TOKEN);
+		if(requireDynamicToken == null || (requireDynamicToken=requireDynamicToken.trim()).isEmpty()) {
+			// default to true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(requireDynamicToken);
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
 	public static Boolean getApplicationAdminOnlyCreateAPIUser() {
 		String boolString = DIHelper.getInstance().getProperty(Constants.ADMIN_ONLY_CREATE_API_USER);
 		if(boolString == null || (boolString=boolString.trim()).isEmpty()) {
