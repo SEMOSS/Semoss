@@ -9,6 +9,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BOOL_PROP_2;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CALENDAR;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CALENDAR_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CHECKIN_INTERVAL;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CLOB;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CRON_EXPRESSION;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.DEC_PROP_1;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.DEC_PROP_2;
@@ -355,7 +356,7 @@ public class SchedulerOwlCreator {
 		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_DELTA, VARCHAR_255);
 		owler.addProp(SMSS_AUDIT_TRAIL, SUCCESS, BOOLEAN);
 		owler.addProp(SMSS_AUDIT_TRAIL, IS_LATEST, BOOLEAN);
-		owler.addProp(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, BLOB);
+		owler.addProp(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, CLOB);
 
 		// SMSS_JOB_TAGS
 		owler.addConcept(SMSS_JOB_TAGS, null, null);
