@@ -121,6 +121,9 @@ import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -331,6 +334,7 @@ public class SchedulerDatabaseUtility {
 
 	public static boolean insertIntoAuditTrailTable(String jobId, String jobGroup, Long start, Long end, boolean success, String schedulerOutput) {
 		Connection conn = connectToScheduler();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		Timestamp startTimeStamp = new Timestamp(start);
 		Timestamp endTimeStamp = new Timestamp(end);
@@ -358,7 +362,7 @@ public class SchedulerDatabaseUtility {
 				statement.setString(index++, String.valueOf(end - start));
 				statement.setBoolean(index++, success);
 				statement.setBoolean(index++, true);
-				queryUtil.handleInsertionOfBlob(conn, statement, schedulerOutput, index++);
+				queryUtil.handleInsertionOfClob(conn, statement, schedulerOutput, index++, gson);
 				statement.executeUpdate();
 			} catch (UnsupportedEncodingException | SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
@@ -1119,9 +1123,9 @@ public class SchedulerDatabaseUtility {
 		boolean allowBlobDataType = queryUtil.allowBlobDataType();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		String dateTimeType = queryUtil.getDateWithTimeDataType();
-		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
+		final String BLOB_DATATYPE = queryUtil.getBlobDataTypeName();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
-
+		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName(); 
 		String[] colNames = null;
 		String[] types = null;
 		Object[] constraints = null;
@@ -1130,8 +1134,8 @@ public class SchedulerDatabaseUtility {
 			// SMSS_JOB_RECIPES
 			colNames = new String[] { USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, 
 					JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE };
-			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB_DATATYPE_NAME, BLOB_DATATYPE_NAME, 
-					VARCHAR_200, BOOLEAN_DATATYPE, BLOB_DATATYPE_NAME };
+			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB_DATATYPE, BLOB_DATATYPE, 
+					VARCHAR_200, BOOLEAN_DATATYPE, BLOB_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 
 			if (allowIfExistsTable) {
@@ -1152,7 +1156,7 @@ public class SchedulerDatabaseUtility {
 				// since we added the pixel recipe parameters at a later point...
 				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(UI_STATE)) {
 					// alter table to add the column
-					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, UI_STATE, BLOB_DATATYPE_NAME));
+					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, UI_STATE, BLOB_DATATYPE));
 					// set it to the value of the previous name "PARAMETER"
 					schedulerDb.insertData("UPDATE " + SMSS_JOB_RECIPES + " SET " + UI_STATE + "=PARAMETERS");
 					// now delete
@@ -1167,7 +1171,7 @@ public class SchedulerDatabaseUtility {
 				// since we added the pixel recipe parameters at a later point...
 				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(PIXEL_RECIPE_PARAMETERS)) {
 					// alter table to add the column
-					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB_DATATYPE_NAME));
+					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB_DATATYPE));
 				}
 			}
 
@@ -1230,7 +1234,7 @@ public class SchedulerDatabaseUtility {
 			// SMSS_AUDIT_TRAIL
 			// adding is_latest flag to mark the latest record
 			colNames = new String[] { JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS, IS_LATEST, SCHEDULER_OUTPUT};
-			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, BLOB_DATATYPE_NAME};
+			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, CLOB_DATATYPE};
 			if(!dateTimeType.equals(TIMESTAMP)) { types = cleanUpDataType(types, TIMESTAMP, dateTimeType); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
@@ -1286,7 +1290,25 @@ public class SchedulerDatabaseUtility {
 					}
 				}
 			}
-
+			// 2023-04-03 changing from BLOB to CLOB
+			{
+				// just check all the columns are there
+				try {
+					String[] nameAndType = queryUtil.getColumnDetails(connection, SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, database, schema);
+					if(nameAndType != null) {
+						String name = nameAndType[0];
+						String type = nameAndType[1];
+						if(!CLOB_DATATYPE.equalsIgnoreCase(type)) {
+							// we alter
+							schedulerDb.insertData(queryUtil.modColumnType(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, CLOB_DATATYPE));
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			
+			
 			// SMSS_EXECUTION_SCHEDULE
 			colNames = new String[] { EXEC_ID, JOB_ID, JOB_GROUP};
 			types = new String[] { VARCHAR_200, VARCHAR_200, VARCHAR_200};

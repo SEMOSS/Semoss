@@ -46,7 +46,6 @@ import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RDBMSUtility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
@@ -306,8 +305,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// need to determine if our input is a clob
 					// and if the database allows a clob data type
 					// use the utility method generated
-					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, pixelObject, securityGson);
-
+//					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, pixelObject, securityGson);
+					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, pixelObject, parameterIndex++, securityGson);
+					
+					
 					if(schemaName == null) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
@@ -396,7 +397,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// and if the database allows a clob data type
 					// use the utility method generated
 					Object metaValue = raw[2];
-					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, metaValue, securityGson);
+//					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, metaValue, securityGson);
+					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, metaValue, parameterIndex++, securityGson);
 					
 					// add the order
 					ps.setInt(parameterIndex++, ((Number) row[3]).intValue());
