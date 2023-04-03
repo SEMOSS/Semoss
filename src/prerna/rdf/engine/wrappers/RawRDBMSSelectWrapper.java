@@ -31,7 +31,6 @@ import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
@@ -189,10 +188,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				else if(type == Types.CLOB) {
 					val = rs.getClob(colNum);
 					try {
-						val = RDBMSUtility.flushClobToString((java.sql.Clob) val);
-					} catch (IOException e) {
+						val = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) val);
+					} catch (Exception e) {
 						logger.error(Constants.STACKTRACE, e);
-					} catch (NullPointerException e) {
 						if(!rs.wasNull()) {
 							val = rs.getString(colNum);
 						}
