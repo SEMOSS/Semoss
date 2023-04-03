@@ -2,6 +2,7 @@ package prerna.util.sql;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,6 +14,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -814,6 +817,72 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String getBlobDataTypeName() {
 		return "BLOB";
+	}
+	
+	@Override
+	public void handleInsertionOfClob(Connection conn, PreparedStatement statement, Object object, int index, Gson gson) throws SQLException, UnsupportedEncodingException {
+		if(object == null) {
+			statement.setNull(index, java.sql.Types.CLOB);
+			return;
+		}
+
+		// DUE TO NOT RETURNING CLOB FROM THE WRAPPER BUT FLUSHING IT OUT
+		// THIS IS THE ONLY BLOCK THAT SHOULD GET ENTERED
+		if(object instanceof String) {
+			if(this.allowClobJavaObject()) {
+				Clob engineClob = conn.createClob();
+				engineClob.setString(1, (String) object);
+				statement.setClob(index, engineClob);
+			} else {
+				statement.setString(index, (String) object);
+			}
+			return;
+		}
+
+		// do we allow clob data types?
+		if(this.allowClobJavaObject()) {
+			Clob engineClob = conn.createClob();
+
+			boolean canTransfer = false;
+			// is our input also a clob?
+			if(object instanceof Clob) {
+				// yes clob - transfer clob from one to the other
+				try {
+					transferClob((Clob) object, engineClob);
+				} catch(Exception e) {
+					//ignore 
+					canTransfer = false;
+				}
+			}
+			// if we cant transfer
+			// we have to flush and push
+			if(!canTransfer) {
+				if(object instanceof Clob) {
+					// flush the clob to a string
+					String stringInput = flushClobToString((Clob) object);
+					engineClob.setString(1, stringInput);
+				} else {
+					// no clob - flush to string
+					engineClob.setString(1, gson.toJson(object));
+				}
+			}
+			// set the clob in the prepared statement
+			statement.setClob(index, engineClob);
+		} else {
+			// we do not allow clob data types
+			// we will just set this as a string value
+			// in the prepared statement
+			String stringInput = null;
+			// is our input a clob?
+			if(object instanceof Clob) {
+				// flush the clob to a string
+				stringInput = flushClobToString((Clob) object);
+			} else {
+				stringInput = gson.toJson(object);
+			}
+			// add the string to the prepared statement
+			statement.setString(index, stringInput);
+		}
 	}
 	
 	@Override
