@@ -111,7 +111,8 @@ public final class SchedulerConstants {
 	public static final String NUMERIC_13_4 = "NUMERIC(13,4)";
 	public static final String TIMESTAMP = "TIMESTAMP";
 	public static final String BLOB = "BLOB";
-
+	public static final String CLOB = "CLOB";
+	
 	// Constraints
 	public static final String NOT_NULL = "NOT NULL";
 }

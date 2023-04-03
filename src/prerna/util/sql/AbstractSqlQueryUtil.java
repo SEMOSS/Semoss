@@ -31,8 +31,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -54,6 +56,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -528,6 +532,24 @@ public abstract class AbstractSqlQueryUtil {
 	}
 	
 	/**
+	 * 
+	 * @param sourceClob
+	 * @param targetClob
+	 * @throws SQLException
+	 * @throws IOException
+	 */
+	public static void transferClob(Clob sourceClob, Clob targetClob) throws SQLException, IOException {
+		InputStream source = sourceClob.getAsciiStream();
+		OutputStream target = targetClob.setAsciiStream(1);
+		
+		byte[] buf = new byte[8192];
+		int length;
+		while ((length = source.read(buf)) > 0) {
+			target.write(buf, 0, length);
+		}
+	}
+	
+	/**
 	 * Clean the table name so it is valid for SQL
 	 * @param tableName
 	 * @return
@@ -838,6 +860,18 @@ public abstract class AbstractSqlQueryUtil {
 	 * @throws SQLException 
 	 */
 	public abstract String handleBlobRetrieval(ResultSet result, int index) throws SQLException, IOException;
+	
+	/**
+	 * 
+	 * @param conn
+	 * @param statement
+	 * @param object
+	 * @param index
+	 * @param gson
+	 * @throws SQLException
+	 * @throws UnsupportedEncodingException
+	 */
+	public abstract void handleInsertionOfClob(Connection conn, PreparedStatement statement, Object object, int index, Gson gson) throws SQLException, UnsupportedEncodingException;
 	
 	/**
 	 * Get the RDBMS type name for blob type (BLOB is ANSI)
@@ -1694,6 +1728,47 @@ public abstract class AbstractSqlQueryUtil {
 		}
 
 		return tableColumns;
+	}
+	
+	/**
+	 * Get the details for a specific column
+	 * @param conn
+	 * @param tableName
+	 * @param columnName
+	 * @param database
+	 * @param schema
+	 * @return
+	 */
+	public String[] getColumnDetails(Connection conn, String tableName, String columnName, String database, String schema) {
+		String query = this.columnDetailsQuery(tableName, columnName, database, schema);
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				return new String[] { rs.getString(1).toUpperCase(), rs.getString(2) };
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return null;
 	}
 	
 	public static DatabaseUpdateMetadata performDatabaseAdditions(IRDBMSEngine rdbmsDb, Map<String, Map<String, String>> updates, Logger logger) {
