@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.poi.main.helper.ImportOptions;
+import prerna.util.Utility;
 
 public class ImportDataProcessor {
 	private static final Logger logger = LogManager.getLogger(ImportDataProcessor.class.getName());
@@ -48,7 +49,7 @@ public class ImportDataProcessor {
 	 */
 	public void runProcessor(ImportOptions options) throws Exception {
 		ImportOptions.IMPORT_METHOD importMethod = options.getImportMethod();
-		String baseDir = options.getBaseFolder();
+		String baseDir = Utility.normalizePath( options.getBaseFolder());
 
 		// check for basic info that is required.. if not present, throw an error right
 		// away

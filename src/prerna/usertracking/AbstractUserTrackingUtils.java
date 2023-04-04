@@ -104,7 +104,9 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 			}
 			if(engine.isConnectionPooling()) {
 				try {
+					if(ps != null) {
 					ps.getConnection().close();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -143,7 +145,9 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 			}
 			if(engine.isConnectionPooling()) {
 				try {
+					if(ps != null) {
 					ps.getConnection().close();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}

@@ -439,7 +439,7 @@ public class SmssUtilities {
 	 * @throws IOException
 	 */
 	public static File createTemporaryProjectSmss(String projectId, String projectName, String gitProvider, String gitCloneUrl, RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
-		String projectTempSmssLoc = getProjectTempSmssLoc(projectId, projectName);
+		String projectTempSmssLoc = Utility.normalizePath( getProjectTempSmssLoc(projectId, projectName));
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
