@@ -1459,6 +1459,20 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_LATEST</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHEDULER_OUTPUT/SMSS_AUDIT_TRAIL">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_AUDIT_TRAIL">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHEDULER_OUTPUT/SMSS_AUDIT_TRAIL"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SCHEDULER_OUTPUT/SMSS_AUDIT_TRAIL">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SCHEDULER_OUTPUT/SMSS_AUDIT_TRAIL"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SCHEDULER_OUTPUT</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_JOB_TAGS">
 	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
@@ -1640,7 +1654,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2021:07:26 15:46:18</TIME>
+	<TIME xmlns="ENGINE:">2023:04:03 10:16:49</TIME>
 </rdf:Description>
 
 </rdf:RDF>
