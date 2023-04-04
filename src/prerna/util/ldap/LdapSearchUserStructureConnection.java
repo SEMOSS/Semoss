@@ -267,6 +267,62 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 	}
 
 	@Override
+	public void updateForgottenPassword(String username, String newPassword) throws Exception {
+		// first find the user DN
+		String searchContextName = this.searchContextName.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+		String searchFilter = this.searchMatchingAttributes.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+
+		SearchControls controls = new SearchControls();
+		controls.setSearchScope(this.searchContextScope);
+		controls.setReturningAttributes(this.requestAttributes);
+
+		NamingEnumeration<SearchResult> findUser = this.applicationContext.search(searchContextName, searchFilter, controls);
+
+		String principalDN = null;
+		boolean foundUser = false;
+		SearchResult result = null;
+		while(findUser.hasMoreElements()) {
+			foundUser = true;
+			result = findUser.next();
+			// we got the user DN
+			principalDN = result.getNameInNamespace();
+			classLogger.info("Found user DN = " + principalDN + " > attemping to login");
+		}
+		
+		if(!foundUser) {
+			throw new IllegalArgumentException("Unable to find username = " + username);
+		}
+		
+		try {
+			String quotedPassword = "\"" + newPassword + "\"";
+			char unicodePwd[] = quotedPassword.toCharArray();
+			byte pwdArray[] = new byte[unicodePwd.length * 2];
+			for (int i = 0; i < unicodePwd.length; i++)
+			{
+				pwdArray[i * 2 + 1] = (byte) (unicodePwd[i] >>> 8);
+				pwdArray[i * 2 + 0] = (byte) (unicodePwd[i] & 0xff);
+			}
+
+			ModificationItem[] mods = new ModificationItem[1];
+			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwdArray));
+
+			classLogger.info(principalDN + " is attemping to change password");
+			if(this.useCustomContextForPwdChange) {
+				if(this.customPwdChangeLdapContext == null) {
+					throw new IllegalArgumentException("Invalid configuration for changing user passwords - please contact your administrator");
+				}
+				this.customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
+			} else {
+				this.applicationContext.modifyAttributes(principalDN, mods);
+			}
+			classLogger.info(principalDN + " successfully changed password");
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to change password. Error message: " + e.getMessage());
+		}
+	}
+	
+	@Override
 	public void close() {
 		try {
 			this.applicationContext.close();
@@ -274,4 +330,5 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
+
 }

@@ -1182,8 +1182,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// PASSWORD RESET
-		colNames = new String[] { "EMAIL", "TOKEN", "DATE_ADDED" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+		colNames = new String[] { "EMAIL", "TYPE", "TOKEN", "DATE_ADDED" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PASSWORD_RESET", colNames, types));
 		} else {
@@ -1191,15 +1191,6 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.tableExists(conn, "PASSWORD_RESET", database, schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PASSWORD_RESET", colNames, types));
-			}
-		}
-		// 2022-04-01
-		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "API_KEY", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(allCols.contains("LIMIT") || allCols.contains("limit")) {
-				securityDb.removeData(queryUtil.dropTable("API_KEY"));
 			}
 		}
 		
@@ -1268,6 +1259,16 @@ public abstract class AbstractSecurityUtils {
 						wrapper.cleanUp();
 					}
 				}
+			}
+		}
+		
+		// 2022-04-01
+		{
+			List<String> allCols = queryUtil.getTableColumns(conn, "API_KEY", database, schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(allCols.contains("LIMIT") || allCols.contains("limit")) {
+				securityDb.removeData(queryUtil.dropTable("API_KEY"));
 			}
 		}
 		
