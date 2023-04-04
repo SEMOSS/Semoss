@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
-import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -578,33 +577,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Get the user id from the email
-	 * @param email
-	 * @return
-	 */
-	public static String getUserIdFromEmail(String email) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(USERID_COL));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.toString()));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
-				return (String) wrapper.next().getValues()[0];
-			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				wrapper.cleanUp();
-			}
-		}
-		
-		return null;
-	}
-	
-	/**
 	 * Brings all the user basic information from the database.
 	 * 
 	 * @param username
@@ -710,82 +682,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Generate and return a one time token to allow the user to reset the password
-	 * @param email
+	 * Reset the user password
+	 * @param token
+	 * @param password
 	 * @return
 	 * @throws Exception
 	 */
-	public static String allowUserResetPassword(String email) throws Exception {
-		if(!SecurityNativeUserUtils.userEmailExists(email)) {
-			throw new IllegalArgumentException("The email '" + email + "' does not exist for any user");
-		}
-		
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-		String uniqueToken = UUID.randomUUID().toString();
-		
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.bulkInsertPreparedStatement(new Object[] {
-					"PASSWORD_RESET", "EMAIL", "TOKEN", "DATE_ADDED"
-				});
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, email);
-			ps.setString(parameterIndex++, uniqueToken);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
-			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(ps != null) {
-				ps.close();
-			}
-			if(securityDb.isConnectionPooling()) {
-				if(ps != null) {
-					ps.getConnection().close();
-				}
-			}
-		}
-		
-		return uniqueToken;
-	}
-
-	public static String userResetPassword(String token, String password) throws Exception {
-		SemossDate dateTokenAdded = null;
-		String email = null;
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__DATE_ADDED"));
-		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__EMAIL"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_RESET__TOKEN", "==", token));
-		IRawSelectWrapper iterator = null;
-		try {
-			iterator = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(iterator.hasNext()) {
-				Object[] row = iterator.next().getValues();
-				dateTokenAdded = (SemossDate) row[0];
-				email = (String) row[1];
-			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(iterator != null) {
-				iterator.cleanUp();
-			}
-		}
-		
-		if(dateTokenAdded == null) {
-			throw new IllegalArgumentException("Invalid attempt trying to update password");
-		}
-		if(dateTokenAdded.getLocalDateTime().isBefore(LocalDateTime.now().minusMinutes(15))) {
-			throw new IllegalArgumentException("This link to reset the password has expired, please request a new link");
-		}
-		
-		// grab the userid from the email
-		String userId = getUserIdFromEmail(email);
+	public static String performResetPassword(String userId, String password) throws Exception {
 		// make sure the new password is valid or throw error
 		validPassword(userId, AuthProvider.NATIVE, password);
 		
