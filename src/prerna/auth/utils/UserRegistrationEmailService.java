@@ -50,7 +50,7 @@ public class UserRegistrationEmailService {
 		return instance;
 	}
 	
-	public boolean sendPasswordResetEmail(String recipient, String customUrl) {
+	public boolean sendPasswordResetRequestEmail(String recipient, String customUrl) {
 		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String subject = "SEMOSS Reset Password";
 		String sender = "no-reply@semoss.org";
@@ -64,8 +64,33 @@ public class UserRegistrationEmailService {
 		// construct the message
 		String message;
 		try {
-			message = new String(Files.readAllBytes(Paths.get(this.emailTemplatesFolder + "passReset.html")));
+			message = new String(Files.readAllBytes(Paths.get(this.emailTemplatesFolder + "passResetRequest.html")));
 			message = message.replace(this.REPLACE_LINK, customUrl);
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		}
+		
+		// send email
+		boolean success = EmailUtility.sendEmail(emailSession, recipients, ccRecipients, bccRecipients, sender, subject, message, isHtml, attachments);
+		return success;
+	}
+	
+	public boolean sendPasswordResetSuccessEmail(String recipient) {
+		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
+		String subject = "SEMOSS Reset Password";
+		String sender = "no-reply@semoss.org";
+		boolean isHtml = true;
+		String[] ccRecipients = null;
+		String[] bccRecipients = null;
+		String[] attachments = null;
+
+		String[] recipients = new String[] {recipient};
+
+		// construct the message
+		String message;
+		try {
+			message = new String(Files.readAllBytes(Paths.get(this.emailTemplatesFolder + "passResetSuccess.html")));
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
@@ -79,7 +104,7 @@ public class UserRegistrationEmailService {
 	public static void main(String[] args) {
 		TestUtilityMethods.loadDIHelper("/Users/mahkhalil/development/workspace/Semoss_Dev/RDF_Map.prop");
 		UserRegistrationEmailService emailInstance = UserRegistrationEmailService.getInstance();
-		emailInstance.sendPasswordResetEmail("khalil.maher91@gmail.com", 
+		emailInstance.sendPasswordResetRequestEmail("khalil.maher91@gmail.com", 
 				"http://localhost:8080/Monolith_Dev/resetPassword/index.html?token=***REMOVED***");
 	}
 	

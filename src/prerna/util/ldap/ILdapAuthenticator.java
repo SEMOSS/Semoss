@@ -116,6 +116,14 @@ public interface ILdapAuthenticator extends Closeable {
 
 	/**
 	 * 
+	 * @param username
+	 * @param newPassword
+	 * @throws Exception
+	 */
+	void updateForgottenPassword(String username, String newPassword) throws Exception;
+	
+	/**
+	 * 
 	 * @param attributes
 	 * @param attributeLastPwdChangeKey
 	 * @return
