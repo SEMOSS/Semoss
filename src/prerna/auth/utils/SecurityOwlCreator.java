@@ -176,6 +176,11 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKEN")) {
 				return true;
 			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PASSWORD_RESET");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/TYPE/PASSWORD_RESET")) {
+				return true;
+			}
 		}
 		
 		List<String[]> allRelationships = securityDb.getPhysicalRelationships();
@@ -400,6 +405,7 @@ public class SecurityOwlCreator {
 		// PASSWORD_RESET
 		owler.addConcept("PASSWORD_RESET", null, null);
 		owler.addProp("PASSWORD_RESET", "EMAIL", "VARCHAR(255)");
+		owler.addProp("PASSWORD_RESET", "TYPE", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "TOKEN", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "DATE_ADDED", "TIMESTAMP");
 		

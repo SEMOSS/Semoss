@@ -74,7 +74,8 @@ public class LinOTPUtil {
 		final String LINOTP_USERNAME = "username";
 		final String LINOTP_TRANSACTION = "transactionId";
 		final String OTP = "OTP";
-
+		final String AD_ACCESS_TOKEN = "ad_token";
+		
 		// https://YOUR_LINOTP_SERVER/validate/check?user=USERNAME&pass=PINOTP
 		final String hostname = socialData.getProperty("linotp_hostname");
 		final String realm = socialData.getProperty("linotp_realm");
@@ -99,17 +100,21 @@ public class LinOTPUtil {
 			return linotpResponse;
 		}
 
-		
+		AccessToken adAuthToken = null;
 		if (otp==null) {
 			boolean checkAD = Boolean.parseBoolean(socialData.getProperty("linotp_check_ad", "false"));
 			if(checkAD) {
 				ILdapAuthenticator authenticator = null;
 				try {
 					authenticator = socialData.getLdapAuthenticator();
-					AccessToken authToken = authenticator.authenticate(username, pin);
-					if(authToken == null) {
+					adAuthToken = authenticator.authenticate(username, pin);
+					if(adAuthToken == null) {
 						throw new IllegalArgumentException("Unable to parse any user attributes");
 					}
+					
+					// store this in the session
+					HttpSession session = request.getSession();
+					session.setAttribute(AD_ACCESS_TOKEN, adAuthToken);
 				} catch(LDAPPasswordChangeRequiredException e) {
 					HttpSession session = request.getSession(false);
 					if(session != null) {
@@ -180,6 +185,15 @@ public class LinOTPUtil {
 						token.setUsername(username);
 						returnMap.put("success", "true");
 						returnMap.put("username", username);
+						
+						// if we did an AD login might as well grab those properties
+						HttpSession session = request.getSession();
+						adAuthToken = (AccessToken) session.getAttribute(AD_ACCESS_TOKEN);
+						if(adAuthToken != null) {
+							token.setEmail(adAuthToken.getEmail());
+							token.setLastPasswordReset(adAuthToken.getLastPasswordReset());
+							session.removeAttribute(AD_ACCESS_TOKEN);
+						}
 						
 						linotpResponse.setToken(token);
 						linotpResponse.setResponseCode(200);
@@ -266,6 +280,14 @@ public class LinOTPUtil {
 						token.setProvider(AuthProvider.LINOTP);
 						token.setId(username);
 						token.setUsername(username);
+						
+						// if we did an AD login might as well grab those properties
+						adAuthToken = (AccessToken) session.getAttribute(AD_ACCESS_TOKEN);
+						if(adAuthToken != null) {
+							token.setEmail(adAuthToken.getEmail());
+							token.setLastPasswordReset(adAuthToken.getLastPasswordReset());
+							session.removeAttribute(AD_ACCESS_TOKEN);
+						}
 						
 						returnMap.put("success", "true");
 						returnMap.put("username", username);
