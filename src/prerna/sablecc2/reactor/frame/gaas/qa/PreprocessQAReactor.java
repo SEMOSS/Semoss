@@ -18,6 +18,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.gaas.GaasBaseReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 public class PreprocessQAReactor extends GaasBaseReactor {
 
@@ -74,12 +75,12 @@ public class PreprocessQAReactor extends GaasBaseReactor {
 				processedFiles.append(",  ");
 			if(inputFileName.endsWith(".pdf")) // this is a pdf file // need a better way
 			{
-				inputFileName = folderName + "/" + inputFileName;
+				inputFileName = Utility.normalizePath(folderName) + DIR_SEPARATOR + inputFileName;
 				String documentName = FileNameUtils.getBaseName(inputFileName);
 				processedFiles.append(documentName);
-				String txtOutputFileName = txtFolder + "/" + documentName + ".txt" ;
+				String txtOutputFileName = txtFolder + DIR_SEPARATOR + documentName + ".txt" ;
 				//convertPDFFile2Text(inputFileName, txtOutputFileName, documentName, separator);
-				String csvOutputFileName = txtFolder + "/" + documentName + ".csv" ;
+				String csvOutputFileName = txtFolder + DIR_SEPARATOR + documentName + ".csv" ;
 				convertPDFFile2CSV(inputFileName, csvOutputFileName, documentName, separator);
 			}
 		}
@@ -176,14 +177,14 @@ public class PreprocessQAReactor extends GaasBaseReactor {
 	}
 
 	
-	public static void main(String [] args)
-	{
-		PreprocessQAReactor reac = new PreprocessQAReactor();
-		reac.keyValue = new HashMap();
-		reac.keyValue.put(reac.keysToGet[0], "C:\\Users\\pkapaleeswaran\\workspacej3\\SemossDev\\project\\FrameTester__9f78e44f-64cc-456a-925f-b5062783315f\\app_root\\version\\assets\\qa_models");
-		reac.execute();
-		
-	}
+//	public static void main(String [] args)
+//	{
+//		PreprocessQAReactor reac = new PreprocessQAReactor();
+//		reac.keyValue = new HashMap();
+//		reac.keyValue.put(reac.keysToGet[0], "C:\\Users\\pkapaleeswaran\\workspacej3\\SemossDev\\project\\FrameTester__9f78e44f-64cc-456a-925f-b5062783315f\\app_root\\version\\assets\\qa_models");
+//		reac.execute();
+//		
+//	}
 	
 	
 
