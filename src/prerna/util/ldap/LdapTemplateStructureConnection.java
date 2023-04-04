@@ -53,6 +53,7 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 	String[] requestAttributes = null;
 
 	// searching for user
+	String searchContextName = null;
 	String searchContextScopeString = null;
 	int searchContextScope = 2;
 	String searchMatchingAttributes = null;
@@ -85,6 +86,10 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 			} catch(NumberFormatException e) {
 				throw new IllegalArgumentException("Invalid value for " + LDAP_FORCE_PWD_CHANGE_KEY + ". " + e.getMessage());
 			}
+		}
+		this.searchContextName = socialData.getProperty(LDAP_SEARCH_CONTEXT_NAME);
+		if(this.searchContextName == null || (this.searchContextName=this.searchContextName.trim()).isEmpty()) {
+			this.searchContextName = "(&(cn=<username>)(objectClass=inetOrgPerson))";
 		}
 		// should match integer values of
 		// OBJECT_SCOPE, ONELEVEL_SCOPE, SUBTREE_SCOPE
@@ -255,6 +260,59 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 			if(ldapContext != null) {
 				ldapContext.close();
 			}
+		}
+	}
+
+	@Override
+	public void updateForgottenPassword(String username, String newPassword) throws Exception {
+		if(this.customPwdChangeLdapContext == null) {
+			throw new IllegalArgumentException("Invalid configuration for changing user passwords - please contact your administrator");
+		}
+		
+		// first find the user DN
+		String searchContextName = this.searchContextName.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+		String searchFilter = this.searchMatchingAttributes.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+
+		SearchControls controls = new SearchControls();
+		controls.setSearchScope(this.searchContextScope);
+		controls.setReturningAttributes(this.requestAttributes);
+
+		NamingEnumeration<SearchResult> findUser = this.customPwdChangeLdapContext.search(searchContextName, searchFilter, controls);
+
+		String principalDN = null;
+		boolean foundUser = false;
+		SearchResult result = null;
+		while(findUser.hasMoreElements()) {
+			foundUser = true;
+			result = findUser.next();
+			// we got the user DN
+			principalDN = result.getNameInNamespace();
+			classLogger.info("Found user DN = " + principalDN + " > attemping to login");
+		}
+		
+		if(!foundUser) {
+			throw new IllegalArgumentException("Unable to find username = " + username);
+		}
+		
+		try {
+			String quotedPassword = "\"" + newPassword + "\"";
+			char unicodePwd[] = quotedPassword.toCharArray();
+			byte pwdArray[] = new byte[unicodePwd.length * 2];
+			for (int i = 0; i < unicodePwd.length; i++)
+			{
+				pwdArray[i * 2 + 1] = (byte) (unicodePwd[i] >>> 8);
+				pwdArray[i * 2 + 0] = (byte) (unicodePwd[i] & 0xff);
+			}
+
+			ModificationItem[] mods = new ModificationItem[1];
+			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwdArray));
+
+			classLogger.info(principalDN + " is attemping to change password");
+			this.customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
+			classLogger.info(principalDN + " successfully changed password");
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to change password. Error message: " + e.getMessage());
 		}
 	}
 	
