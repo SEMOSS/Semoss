@@ -49,7 +49,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class AZClient extends CloudClient {
 	
-	private static final Logger logger = LogManager.getLogger(AZClient.class);
+	private static final Logger classLogger = LogManager.getLogger(AZClient.class);
 
 	// this is a singleton
 
@@ -157,9 +157,9 @@ public class AZClient extends CloudClient {
 				this.serviceClient = account.createCloudBlobClient();
 			}
 		} catch (URISyntaxException use) {
-			logger.error(Constants.STACKTRACE, use);
+			classLogger.error(Constants.STACKTRACE, use);
 		} catch (InvalidKeyException ike) {
-			logger.error(Constants.STACKTRACE, ike);
+			classLogger.error(Constants.STACKTRACE, ike);
 		}
 	}
 
@@ -173,11 +173,11 @@ public class AZClient extends CloudClient {
 			retString = container.getUri() + "?" + container.generateSharedAccessSignature(getSASConstraints(), null); 
 
 		} catch (URISyntaxException use) {
-			logger.error(Constants.STACKTRACE, use);
+			classLogger.error(Constants.STACKTRACE, use);
 		} catch (StorageException se) {
-			logger.error(Constants.STACKTRACE, se);
+			classLogger.error(Constants.STACKTRACE, se);
 		} catch (InvalidKeyException ike) {
-			logger.error(Constants.STACKTRACE, ike);
+			classLogger.error(Constants.STACKTRACE, ike);
 		}
 
 		return retString;
@@ -237,10 +237,10 @@ public class AZClient extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to pull owl");
+		classLogger.info("Applying lock for " + appId + " to pull owl");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 
 		try {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
@@ -248,7 +248,7 @@ public class AZClient extends CloudClient {
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
 
-			logger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + appId);
+			classLogger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + appId);
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
@@ -269,7 +269,7 @@ public class AZClient extends CloudClient {
 			} finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -287,17 +287,17 @@ public class AZClient extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to push owl");
+		classLogger.info("Applying lock for " + appId + " to push owl");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
 			//close the owl
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
 
-			logger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + appId);
+			classLogger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + appId);
 
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
@@ -322,7 +322,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -341,13 +341,13 @@ public class AZClient extends CloudClient {
 		String thisProjectFolder = this.projectFolder + FILE_SEPARATOR + aliasProjectId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to pull insights db");
+		classLogger.info("Applying lock for " + projectId + " to pull insights db");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
-			logger.info("Pulling insights database for " + alias + " from remote=" + projectId);
+			classLogger.info("Pulling insights database for " + alias + " from remote=" + projectId);
 			String insightDB = getInsightDB(project, thisProjectFolder);
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
@@ -370,7 +370,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 		}
 	}
@@ -387,14 +387,14 @@ public class AZClient extends CloudClient {
 		String thisProjectFolder = this.projectFolder + FILE_SEPARATOR + aliasProjectId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to push insights db");
+		classLogger.info("Applying lock for " + projectId + " to push insights db");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
 			project.getInsightDatabase().closeDB();
-			logger.info("Pushing insights database for " + alias + " from remote=" + projectId);
+			classLogger.info("Pushing insights database for " + alias + " from remote=" + projectId);
 			String insightDB = getInsightDB(project, thisProjectFolder);
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
@@ -418,7 +418,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 
 		}
@@ -437,16 +437,16 @@ public class AZClient extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to push db file");
+		classLogger.info("Applying lock for " + appId + " to push db file");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
 			DIHelper.getInstance().removeDbProperty(appId);
 			engine.closeDB();
 
-			logger.info("Pushing database for " + alias + " from remote=" + appId);
+			classLogger.info("Pushing database for " + alias + " from remote=" + appId);
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				
@@ -470,7 +470,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}		
 	}
@@ -486,10 +486,10 @@ public class AZClient extends CloudClient {
 		String smssRCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + databaseId + " to push app");
+		classLogger.info("Applying lock for " + databaseId + " to push app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
-		logger.info("App "+ databaseId + " is locked");
+		classLogger.info("App "+ databaseId + " is locked");
 		try {
 			String smssContainer = databaseId + SMSS_POSTFIX;
 			smssRCloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + smssContainer);
@@ -506,9 +506,9 @@ public class AZClient extends CloudClient {
 				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
 				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":" + DB_CONTAINER_PREFIX + smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -529,7 +529,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ databaseId + " is unlocked");
+				classLogger.info("App "+ databaseId + " is unlocked");
 			}
 		}
 	}
@@ -546,14 +546,14 @@ public class AZClient extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to pull db file");
+		classLogger.info("Applying lock for " + appId + " to pull db file");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
 			engine.closeDB();
-			logger.info("Pulling database for " + alias + " from remote=" + appId);
+			classLogger.info("Pulling database for " + alias + " from remote=" + appId);
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				//TODO kunal: below calls will break
@@ -574,7 +574,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -594,13 +594,13 @@ public class AZClient extends CloudClient {
 		// adding a lock for now, but there may be times we don't need one and other times we do
 		// reaching h2 db from version folder vs static assets in asset app
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to pull folder " + remoteRelativePath);
+		classLogger.info("Applying lock for " + appId + " to pull folder " + remoteRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
-			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + appId);
+			classLogger.info("Pulling folder for " + remoteRelativePath + " from remote=" + appId);
 
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX +appId+  "/" + remoteRelativePath, absolutePath);
 		} finally {
@@ -612,7 +612,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 
 			}
 		}
@@ -637,14 +637,14 @@ public class AZClient extends CloudClient {
 		// adding a lock for now, but there may be times we don't need one and other times we do
 		// reaching h2 db from version folder vs static assets in asset app
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to push folder " + remoteRelativePath);
+		classLogger.info("Applying lock for " + appId + " to push folder " + remoteRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 
 		try {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
-			logger.info("Pushing folder for " + remoteRelativePath + " to remote=" + appId);
+			classLogger.info("Pushing folder for " + remoteRelativePath + " to remote=" + appId);
 
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":"+DB_CONTAINER_PREFIX+appId+  "/" + remoteRelativePath);
 		} finally {
@@ -656,7 +656,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -669,13 +669,13 @@ public class AZClient extends CloudClient {
 		}
 		String rcloneConfig = null;
 
-		logger.info("Applying lock for " + Utility.cleanLogString(projectId) + " to pull folder " + remoteRelativePath);
+		classLogger.info("Applying lock for " + Utility.cleanLogString(projectId) + " to pull folder " + remoteRelativePath);
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
+		classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
 		try {
 			rcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
-			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + Utility.cleanLogString(projectId));
+			classLogger.info("Pulling folder for " + remoteRelativePath + " from remote=" + Utility.cleanLogString(projectId));
 
 			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", rcloneConfig + ":"+PROJECT_CONTAINER_PREFIX+projectId+  "/" + remoteRelativePath, absolutePath);
 		} finally {
@@ -687,7 +687,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
+				classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
 
 			}
 		}
@@ -713,14 +713,14 @@ public class AZClient extends CloudClient {
 		// adding a lock for now, but there may be times we don't need one and other times we do
 		// reaching h2 db from version folder vs static assets in asset app
 		// synchronize on the app id
-		logger.info("Applying lock for " + Utility.cleanLogString(projectId) + " to push folder " + remoteRelativePath);
+		classLogger.info("Applying lock for " + Utility.cleanLogString(projectId) + " to push folder " + remoteRelativePath);
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 
 		try {
 			appRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
-			logger.info("Pushing folder for " + remoteRelativePath + " to remote=" + Utility.cleanLogString(projectId));
+			classLogger.info("Pushing folder for " + remoteRelativePath + " to remote=" + Utility.cleanLogString(projectId));
 
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":" + PROJECT_CONTAINER_PREFIX+projectId+  "/" + remoteRelativePath);
 		} finally {
@@ -732,7 +732,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
+				classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
 			}
 		}
 	}
@@ -746,10 +746,10 @@ public class AZClient extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to pull app");
+		classLogger.info("Applying lock for " + appId + " to pull app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			smssCloneConfig = createRcloneConfig(smssContainer);
 			rCloneConfig = createRcloneConfig(appId);
@@ -771,15 +771,15 @@ public class AZClient extends CloudClient {
 			File appFolder = new File(dbFolder + FILE_SEPARATOR + Utility.normalizePath(aliasAppId));
 			appFolder.mkdir();
 			// Pull the contents of the app folder before the smss
-			logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+			classLogger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+":"+appId, appFolder.getPath());
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 			// Now pull the smss
-			logger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
+			classLogger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 			runRcloneTransferProcess(smssCloneConfig, "rclone", "copy", smssCloneConfig+":"+smssContainer, dbFolder);
-			logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+			classLogger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 			LegacyToProjectRestructurerHelper fixer = new LegacyToProjectRestructurerHelper();
 			fixer.init();
@@ -806,7 +806,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -839,15 +839,15 @@ public class AZClient extends CloudClient {
 			File appFolder = new File(dbFolder + FILE_SEPARATOR + Utility.normalizePath(aliasAppId));
 			appFolder.mkdir();
 			// Pull the contents of the app folder before the smss
-			logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+			classLogger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+":"+appId, appFolder.getPath());
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 			// Now pull the smss
-			logger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
+			classLogger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 			runRcloneTransferProcess(smssCloneConfig, "rclone", "copy", smssCloneConfig+":"+smssContainer, dbFolder);
-			logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+			classLogger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 			LegacyToProjectRestructurerHelper fixer = new LegacyToProjectRestructurerHelper();
 			fixer.init();
@@ -917,10 +917,10 @@ public class AZClient extends CloudClient {
 		String smssRCloneConfig = null;
 
 		// synchronize on the project id
-		logger.info("Applying lock for " + projectId + " to push app");
+		classLogger.info("Applying lock for " + projectId + " to push app");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			projectRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
 			String smssContainer = projectId + SMSS_POSTFIX;
@@ -936,9 +936,9 @@ public class AZClient extends CloudClient {
 				project.closeProject();
 
 				// Push the app folder
-				logger.info("Pushing app from source=" + thisProjectFolder + " to remote=" + projectId);
+				classLogger.info("Pushing app from source=" + thisProjectFolder + " to remote=" + projectId);
 				runRcloneTransferProcess(projectRcloneConfig, "rclone", "sync", thisProjectFolder, projectRcloneConfig + ":"+PROJECT_CONTAINER_PREFIX + projectId);
-				logger.debug("Done pushing from source=" + thisProjectFolder + " to remote=" + projectId);
+				classLogger.debug("Done pushing from source=" + thisProjectFolder + " to remote=" + projectId);
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the project folder)
 				String tempFolder = Utility.getRandomString(10);
@@ -948,9 +948,9 @@ public class AZClient extends CloudClient {
 				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
 				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":"+PROJECT_CONTAINER_PREFIX + smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -974,7 +974,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 		}
 	}
@@ -990,10 +990,10 @@ public class AZClient extends CloudClient {
 		String smssRCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to push app");
+		classLogger.info("Applying lock for " + projectId + " to push app");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			String smssContainer = projectId + SMSS_POSTFIX;
 			smssRCloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + smssContainer);
@@ -1010,9 +1010,9 @@ public class AZClient extends CloudClient {
 				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
 				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":"+PROJECT_CONTAINER_PREFIX + smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -1030,7 +1030,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 		}
 	}
@@ -1057,10 +1057,10 @@ public class AZClient extends CloudClient {
 		String smssRcloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to pull project");
+		classLogger.info("Applying lock for " + projectId + " to pull project");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			projectRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + projectId);
 			smssRcloneConfig = createRcloneConfig(PROJECT_CONTAINER_PREFIX + smssContainer);
@@ -1078,6 +1078,7 @@ public class AZClient extends CloudClient {
 				try {
 					fixLegacyDbStructure(projectId);
 				} catch(IOException | InterruptedException e) {
+					classLogger.info(Constants.STACKTRACE, e);
 					throw new IOException("Failed to pull app for projectId=" + projectId);
 				}
 				
@@ -1114,16 +1115,16 @@ public class AZClient extends CloudClient {
 				thisProjectFolder.mkdir(); 
 
 				// Pull the contents of the project folder before the smss
-				logger.info("Pulling app from remote=" + projectId + " to target=" + thisProjectFolder.getPath());
+				classLogger.info("Pulling app from remote=" + projectId + " to target=" + thisProjectFolder.getPath());
 				runRcloneTransferProcess(projectRcloneConfig, "rclone", "sync", projectRcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId, thisProjectFolder.getPath());
-				logger.debug("Done pulling from remote=" + projectId + " to target=" + thisProjectFolder.getPath());
+				classLogger.debug("Done pulling from remote=" + projectId + " to target=" + thisProjectFolder.getPath());
 
 				// Now pull the smss
-				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + projectFolder);
+				classLogger.info("Pulling smss from remote=" + smssContainer + " to target=" + projectFolder);
 
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE PROJECT FOLDER
 				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":"+PROJECT_CONTAINER_PREFIX + smssContainer, projectFolder);
-				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + projectFolder);
+				classLogger.debug("Done pulling from remote=" + smssContainer + " to target=" + projectFolder);
 
 				// Catalog the project if it is new
 				if (!projectAlreadyLoaded) {
@@ -1147,7 +1148,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 		}
 	}
@@ -1170,11 +1171,11 @@ public class AZClient extends CloudClient {
 			
 			String remoteInsightLoc = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 			
-			logger.info("Pushing insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(remoteInsightLoc));
+			classLogger.info("Pushing insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(remoteInsightLoc));
 			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
 					insightFolder.getPath(),
 					rcloneConfig+":"+remoteInsightLoc);
-			logger.debug("Done pushing insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(remoteInsightLoc));
+			classLogger.debug("Done pushing insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(remoteInsightLoc));
 		} finally {
 			if (rcloneConfig != null) {
 				deleteRcloneConfig(rcloneConfig);
@@ -1200,11 +1201,11 @@ public class AZClient extends CloudClient {
 			
 			String remoteInsightLoc = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 			
-			logger.info("Pulling insight from remote=" + Utility.cleanLogString(remoteInsightLoc) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			classLogger.info("Pulling insight from remote=" + Utility.cleanLogString(remoteInsightLoc) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 			runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
 					rcloneConfig+":"+remoteInsightLoc,
 					insightFolder.getPath());
-			logger.debug("Done pulling insight from remote=" + Utility.cleanLogString(remoteInsightLoc) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+			classLogger.debug("Done pulling insight from remote=" + Utility.cleanLogString(remoteInsightLoc) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 		} finally {
 			if (rcloneConfig != null) {
 				deleteRcloneConfig(rcloneConfig);
@@ -1229,23 +1230,23 @@ public class AZClient extends CloudClient {
 			if(oldImageFileName != null) {
 				String oldFileToDelete = remoteInsightImageFilePath+"/"+oldImageFileName;
 				
-				logger.info("Deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
+				classLogger.info("Deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
 				runRcloneDeleteFileProcess(rcloneConfig, "rclone", "deletefile", rcloneConfig+":"+oldFileToDelete);
-				logger.debug("Done deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
+				classLogger.debug("Done deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
 			} else {
-				logger.info("No old insight image on remote to delete");
+				classLogger.info("No old insight image on remote to delete");
 			}
 
 			if(newImageFileName != null) {
 				String insightImageFilePath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId + "/" + newImageFileName);
 	
-				logger.info("Pushing insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
+				classLogger.info("Pushing insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
 				runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
 						insightImageFilePath,
 						rcloneConfig+":"+remoteInsightImageFilePath);
-				logger.debug("Done pushing insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
+				classLogger.debug("Done pushing insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
 			} else {
-				logger.info("No new insight image to add to remote");
+				classLogger.info("No new insight image to add to remote");
 			}
 		} finally {
 			if (rcloneConfig != null) {
@@ -1271,10 +1272,10 @@ public class AZClient extends CloudClient {
 		String smssRcloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to pull project");
+		classLogger.info("Applying lock for " + projectId + " to pull project");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			userRcloneConfig = createRcloneConfig(USER_CONTAINER_PREFIX + projectId);
 			smssRcloneConfig = createRcloneConfig(USER_CONTAINER_PREFIX + smssContainer);
@@ -1293,7 +1294,7 @@ public class AZClient extends CloudClient {
 				try {
 					fixLegacyUserAssetStructure(projectId, isAsset);
 				} catch(IOException | InterruptedException e) {
-					e.printStackTrace();
+					classLogger.info(Constants.STACKTRACE, e);
 					throw new IOException("Failed to pull project for projectId=" + projectId);
 				}
 				
@@ -1330,15 +1331,15 @@ public class AZClient extends CloudClient {
 				thisUserFolder.mkdir(); 
 
 				// Pull the contents of the project folder before the smss
-				logger.info("Pulling app from remote=" + projectId + " to target=" + thisUserFolder.getPath());
+				classLogger.info("Pulling app from remote=" + projectId + " to target=" + thisUserFolder.getPath());
 				runRcloneTransferProcess(userRcloneConfig, "rclone", "sync", userRcloneConfig + ":" + USER_CONTAINER_PREFIX + projectId, thisUserFolder.getPath());
-				logger.debug("Done pulling from remote=" + projectId + " to target=" + thisUserFolder.getPath());
+				classLogger.debug("Done pulling from remote=" + projectId + " to target=" + thisUserFolder.getPath());
 
 				// Now pull the smss
-				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + userFolder);
+				classLogger.info("Pulling smss from remote=" + smssContainer + " to target=" + userFolder);
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE USER FOLDER
 				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":" + USER_CONTAINER_PREFIX + smssContainer, userFolder);
-				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + userFolder);
+				classLogger.debug("Done pulling from remote=" + smssContainer + " to target=" + userFolder);
 			} finally {
 				// Re-open the project
 				if (projectAlreadyLoaded) {
@@ -1357,7 +1358,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 		}
 	}
@@ -1396,9 +1397,9 @@ public class AZClient extends CloudClient {
 				project.closeProject();
 
 				// Push the app folder
-				logger.info("Pushing app from source=" + thisUserFolder + " to remote=" + projectId);
+				classLogger.info("Pushing app from source=" + thisUserFolder + " to remote=" + projectId);
 				runRcloneTransferProcess(userRcloneConfig, "rclone", "sync", thisUserFolder, userRcloneConfig + ":" + USER_CONTAINER_PREFIX + projectId);
-				logger.debug("Done pushing from source=" + thisUserFolder + " to remote=" + projectId);
+				classLogger.debug("Done pushing from source=" + thisUserFolder + " to remote=" + projectId);
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
 				String tempFolder = Utility.getRandomString(10);
@@ -1408,9 +1409,9 @@ public class AZClient extends CloudClient {
 				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
 				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":" + USER_CONTAINER_PREFIX + smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -1448,10 +1449,10 @@ public class AZClient extends CloudClient {
 	//		try {
 	//			appRcloneConfig = createRcloneConfig(appId);
 	//				engine.closeDB();
-	//				logger.debug("Checking from app path" + appFolder + " to remote=" + appId);
+	//				classLogger.debug("Checking from app path" + appFolder + " to remote=" + appId);
 	//				List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "check", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
 	//				for(String s:results){
-	//				logger.debug("Result String: " + s);
+	//				classLogger.debug("Result String: " + s);
 	//				}
 	//				if(results.get(0).contains("ERROR")){
 	//					sync=true;
@@ -1494,10 +1495,10 @@ public class AZClient extends CloudClient {
 		String smssRCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to push app");
+		classLogger.info("Applying lock for " + appId + " to push app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
 			String smssContainer = appId + SMSS_POSTFIX;
@@ -1513,9 +1514,9 @@ public class AZClient extends CloudClient {
 				engine.closeDB();
 
 				// Push the app folder
-				logger.info("Pushing app from source=" + appFolder + " to remote=" + appId);
+				classLogger.info("Pushing app from source=" + appFolder + " to remote=" + appId);
 				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder, appRcloneConfig + ":"+DB_CONTAINER_PREFIX + appId);
-				logger.debug("Done pushing from source=" + appFolder + " to remote=" + appId);
+				classLogger.debug("Done pushing from source=" + appFolder + " to remote=" + appId);
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
 				String tempFolder = Utility.getRandomString(10);
@@ -1525,9 +1526,9 @@ public class AZClient extends CloudClient {
 				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + smssContainer);
 				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":" + DB_CONTAINER_PREFIX + smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -1551,7 +1552,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -1579,10 +1580,10 @@ public class AZClient extends CloudClient {
 		String smssRcloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + Utility.cleanLogString(appId) + " to pull app");
+		classLogger.info("Applying lock for " + Utility.cleanLogString(appId) + " to pull app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ Utility.cleanLogString(appId) + " is locked");
+		classLogger.info("App "+ Utility.cleanLogString(appId) + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
 			smssRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + smssContainer);
@@ -1600,6 +1601,7 @@ public class AZClient extends CloudClient {
 				try {
 					fixLegacyDbStructure(appId);
 				} catch(IOException | InterruptedException e) {
+					classLogger.info(Constants.STACKTRACE, e);
 					throw new IOException("Failed to pull app for appid=" + appId);
 				}
 				
@@ -1636,16 +1638,16 @@ public class AZClient extends CloudClient {
 				appFolder.mkdir(); 
 
 				// Pull the contents of the app folder before the smss
-				logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + appFolder.getPath());
+				classLogger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + appFolder.getPath());
 				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId, appFolder.getPath());
-				logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + appFolder.getPath());
+				classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + appFolder.getPath());
 
 				// Now pull the smss
-				logger.info("Pulling smss from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + dbFolder);
+				classLogger.info("Pulling smss from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + dbFolder);
 
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":" + DB_CONTAINER_PREFIX + smssContainer, dbFolder);
-				logger.debug("Done pulling from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + dbFolder);
+				classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + dbFolder);
 
 				// Catalog the db if it is new
 				if (!appAlreadyLoaded) {
@@ -1669,7 +1671,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ Utility.cleanLogString(appId) + " is unlocked");
+				classLogger.info("App "+ Utility.cleanLogString(appId) + " is unlocked");
 			}
 		}
 	}
@@ -1770,12 +1772,12 @@ public class AZClient extends CloudClient {
 		String rcloneConfig = Utility.getRandomString(10);
 		try {
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-			logger.debug("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+			classLogger.debug("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + DB_CONTAINER_PREFIX + appId);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + DB_CONTAINER_PREFIX +appId + SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + DB_CONTAINER_PREFIX +appId);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + DB_CONTAINER_PREFIX +appId + SMSS_POSTFIX);
-			logger.debug("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+			classLogger.debug("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
 		}
@@ -1789,12 +1791,12 @@ public class AZClient extends CloudClient {
 		String rcloneConfig = Utility.getRandomString(10);
 		try {
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-			logger.debug("Deleting container=" + projectId + ", " + projectId + SMSS_POSTFIX);
+			classLogger.debug("Deleting container=" + projectId + ", " + projectId + SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX);
-			logger.debug("Done deleting container=" + projectId + ", " + projectId + SMSS_POSTFIX);
+			classLogger.debug("Done deleting container=" + projectId + ", " + projectId + SMSS_POSTFIX);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
 		}
@@ -1823,10 +1825,10 @@ public class AZClient extends CloudClient {
 		String rcloneConfig = Utility.getRandomString(10);
 		try {
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-			logger.debug("Deleting container=" + containerId);
+			classLogger.debug("Deleting container=" + containerId);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + containerId);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + containerId);
-			logger.debug("Done deleting container=" + containerId);
+			classLogger.debug("Done deleting container=" + containerId);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
 		}
@@ -1846,11 +1848,11 @@ public class AZClient extends CloudClient {
 	private static String createRcloneConfig(String container) throws IOException, InterruptedException {
 		if(!(container.startsWith(DB_CONTAINER_PREFIX) || container.startsWith(PROJECT_CONTAINER_PREFIX) || container.startsWith(USER_CONTAINER_PREFIX)
 				|| container.startsWith(ClusterUtil.DB_IMAGES_BLOB) || container.startsWith(ClusterUtil.PROJECT_IMAGES_BLOB))) {
-			logger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
-			logger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
-			logger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
+			classLogger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
+			classLogger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
+			classLogger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
 		}
-		logger.debug("Generating SAS for container=" + container);
+		classLogger.debug("Generating SAS for container=" + container);
 		String sasUrl = client.getSAS(container);
 		String rcloneConfig = Utility.getRandomString(10);
 		runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
@@ -1936,7 +1938,7 @@ public class AZClient extends CloudClient {
 				if (error) {
 					System.err.println(line);
 				} else {
-					logger.debug(line);
+					classLogger.debug(line);
 				}
 			}
 			return lines;
@@ -1966,7 +1968,7 @@ public class AZClient extends CloudClient {
 			}
 			for(String s: appWithImages){
 
-				logger.debug(s);
+				classLogger.debug(s);
 				List<String> copied = runAnyProcess("rclone", "copy" , "kunalp:"+s+"version/image.png", "kunalp:aaa-imagecontainer/");
 				List<String> moved = runAnyProcess("rclone", "moveto" , "kunalp:aaa-imagecontainer/image.png", "kunalp:aaa-imagecontainer/"+s.substring(0, s.length()-1)+".png");
 
@@ -1988,25 +1990,25 @@ public class AZClient extends CloudClient {
 //				for(String content : results2){
 //					if( content.contains("version")){
 //						
-//						logger.debug(appid + " has a version folder");
+//						classLogger.debug(appid + " has a version folder");
 //						appWithVersion.add(appid);
 //					}
 //				}
 //			}
 
 		} catch(Exception e){
-			logger.error(STACKTRACE, e);
+			classLogger.error(STACKTRACE, e);
 		}
 
 		//DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
 		//		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
-		//		logger.debug(AZClient.getInstance().getSAS("timb"));
+		//		classLogger.debug(AZClient.getInstance().getSAS("timb"));
 		//		AZClient.getInstance().deleteApp("1bab355d-a2ea-4fde-9d2c-088287d46978");
 		//		AZClient.getInstance().pushApp(appId);
 		//		AZClient.getInstance().pullApp(appId);
 		//		List<String> containers = AZClient.getInstance().listAllBlobContainers();
 		//		for(String container : containers) {
-		//			logger.debug(container);
+		//			classLogger.debug(container);
 		//		}
 	}
 	 */
