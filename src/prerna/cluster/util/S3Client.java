@@ -34,7 +34,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class S3Client extends CloudClient {
 
-	private static Logger logger = LogManager.getLogger(S3Client.class);
+	private static Logger classLogger = LogManager.getLogger(S3Client.class);
 
 	private static final String PROVIDER = "s3";
 	private static final String SMSS_POSTFIX = "-smss";
@@ -169,17 +169,17 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to pull owl");
+		classLogger.info("Applying lock for " + appId + " to pull owl");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			//close the owl
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
 
-			logger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + appId);
+			classLogger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + appId);
 
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
@@ -203,7 +203,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 
 		}
@@ -222,17 +222,17 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to push owl");
+		classLogger.info("Applying lock for " + appId + " to push owl");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			//close the owl
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
 
-			logger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + appId);
+			classLogger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + appId);
 
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
@@ -255,7 +255,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -273,14 +273,14 @@ public class S3Client extends CloudClient {
 		String thisProjectFolder = this.projectFolder + FILE_SEPARATOR + aliasProjectId;
 		
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to pull insights db");
+		classLogger.info("Applying lock for " + projectId + " to pull insights db");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
 			project.getInsightDatabase().closeDB();
-			logger.info("Pulling insights database for " + thisProjectFolder + " from remote=" + projectId);
+			classLogger.info("Pulling insights database for " + thisProjectFolder + " from remote=" + projectId);
 			String insightDB = getInsightDB(project, thisProjectFolder);
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+insightDB, thisProjectFolder);
 		} finally {
@@ -299,7 +299,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 		}
 	}
@@ -317,14 +317,14 @@ public class S3Client extends CloudClient {
 		String thisProjectFolder = this.projectFolder + FILE_SEPARATOR + aliasProjectId;
 
 		// synchronize on the project id
-		logger.info("Applying lock for " + projectId + " to push insights db");
+		classLogger.info("Applying lock for " + projectId + " to push insights db");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
 			project.getInsightDatabase().closeDB();
-			logger.info("Pushing insights database for " + thisProjectFolder + " from remote=" + projectId);
+			classLogger.info("Pushing insights database for " + thisProjectFolder + " from remote=" + projectId);
 			String insightDB = getInsightDB(project, thisProjectFolder);
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
@@ -346,7 +346,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 
 		}
@@ -364,13 +364,13 @@ public class S3Client extends CloudClient {
 		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to pull folder " + remoteRelativePath);
+		classLogger.info("Applying lock for " + appId + " to pull folder " + remoteRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
-			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + appId);
+			classLogger.info("Pulling folder for " + remoteRelativePath + " from remote=" + appId);
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+RCLONE_DB_PATH+appId+"/"+remoteRelativePath, absolutePath);
 		} finally {
@@ -381,7 +381,7 @@ public class S3Client extends CloudClient {
 			}finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -403,13 +403,13 @@ public class S3Client extends CloudClient {
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
 		}
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to push folder " + remoteRelativePath);
+		classLogger.info("Applying lock for " + appId + " to push folder " + remoteRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
-			logger.info("Pushing folder for " + remoteRelativePath + " from remote=" + appId);
+			classLogger.info("Pushing folder for " + remoteRelativePath + " from remote=" + appId);
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", absolutePath, rCloneConfig+RCLONE_DB_PATH+appId+"/"+remoteRelativePath);
 		} finally {
@@ -421,7 +421,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -438,13 +438,13 @@ public class S3Client extends CloudClient {
 		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + Utility.cleanLogString(projectId) + " to pull folder " + Utility.normalizePath(remoteRelativePath));
+		classLogger.info("Applying lock for " + Utility.cleanLogString(projectId) + " to pull folder " + Utility.normalizePath(remoteRelativePath));
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
+		classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
-			logger.info("Pulling folder for " + Utility.normalizePath(remoteRelativePath) + " from remote=" + Utility.cleanLogString(projectId));
+			classLogger.info("Pulling folder for " + Utility.normalizePath(remoteRelativePath) + " from remote=" + Utility.cleanLogString(projectId));
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+remoteRelativePath, absolutePath);
 		} finally {
@@ -455,7 +455,7 @@ public class S3Client extends CloudClient {
 			}finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
+				classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
 			}
 		}
 	}
@@ -477,13 +477,13 @@ public class S3Client extends CloudClient {
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
 		}
 		// synchronize on the app id
-		logger.info("Applying lock for project " + Utility.cleanLogString(projectId) + " to push folder " + Utility.normalizePath(remoteRelativePath));
+		classLogger.info("Applying lock for project " + Utility.cleanLogString(projectId) + " to push folder " + Utility.normalizePath(remoteRelativePath));
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
+		classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
-			logger.info("Pushing folder for " + Utility.normalizePath(remoteRelativePath) + " from remote=" + Utility.cleanLogString(projectId));
+			classLogger.info("Pushing folder for " + Utility.normalizePath(remoteRelativePath) + " from remote=" + Utility.cleanLogString(projectId));
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", absolutePath, rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+remoteRelativePath);
 		} finally {
@@ -495,7 +495,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
+				classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
 			}
 		}
 	}
@@ -527,10 +527,10 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to push app");
+		classLogger.info("Applying lock for " + appId + " to push app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			String smssContainer = appId + SMSS_POSTFIX;
@@ -546,9 +546,9 @@ public class S3Client extends CloudClient {
 				engine.closeDB();
 
 				// Push the app folder
-				logger.info("Pushing app from source=" + thisDbFolder + " to remote=" + Utility.cleanLogString(appId));
+				classLogger.info("Pushing app from source=" + thisDbFolder + " to remote=" + Utility.cleanLogString(appId));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", thisDbFolder, rCloneConfig+RCLONE_DB_PATH+appId);
-				logger.debug("Done pushing from source=" + thisDbFolder + " to remote=" + Utility.cleanLogString(appId));
+				classLogger.debug("Done pushing from source=" + thisDbFolder + " to remote=" + Utility.cleanLogString(appId));
 
 				// Move the smss to an empty temp directory (otherwise will push all items in
 				// the db folder)
@@ -559,9 +559,9 @@ public class S3Client extends CloudClient {
 				Files.copy(new File(smssFile), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", temp.getPath(), rCloneConfig+RCLONE_DB_PATH+smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -582,7 +582,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -597,10 +597,10 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + databaseId + " to push app");
+		classLogger.info("Applying lock for " + databaseId + " to push app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
-		logger.info("App "+ databaseId + " is locked");
+		classLogger.info("App "+ databaseId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(databaseId);
 			String smssContainer = databaseId + SMSS_POSTFIX;
@@ -618,9 +618,9 @@ public class S3Client extends CloudClient {
 				Files.copy(new File(smssFile), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", temp.getPath(), rCloneConfig+RCLONE_DB_PATH+smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -638,7 +638,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ databaseId + " is unlocked");
+				classLogger.info("App "+ databaseId + " is unlocked");
 			}
 		}
 	}
@@ -661,10 +661,10 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + Utility.cleanLogString(appId) + " to pull app");
+		classLogger.info("Applying lock for " + Utility.cleanLogString(appId) + " to pull app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ Utility.cleanLogString(appId) + " is locked");
+		classLogger.info("App "+ Utility.cleanLogString(appId) + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rCloneConfig+RCLONE_DB_PATH+smssContainer);
@@ -679,6 +679,7 @@ public class S3Client extends CloudClient {
 				try {
 					fixLegacyDbStructure(appId);
 				} catch(IOException | InterruptedException e) {
+					classLogger.info(Constants.STACKTRACE, e);
 					throw new IOException("Failed to pull app for appid=" + appId);
 				}
 				
@@ -715,15 +716,15 @@ public class S3Client extends CloudClient {
 				File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
 				appFolder.mkdir();
 				// Pull the contents of the app folder before the smss
-				logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+				classLogger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+RCLONE_DB_PATH+appId, appFolder.getPath());
-				logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+				classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 				// Now pull the smss
-				logger.info("Pulling smss from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + Utility.normalizePath(dbFolder));
+				classLogger.info("Pulling smss from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + Utility.normalizePath(dbFolder));
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 				runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_DB_PATH+smssContainer, dbFolder);
-				logger.debug("Done pulling from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + Utility.normalizePath(dbFolder));
+				classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + Utility.normalizePath(dbFolder));
 
 				// Catalog the db if it is new
 				if (!appAlreadyLoaded) {
@@ -744,7 +745,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ Utility.cleanLogString(appId) + " is unlocked");
+				classLogger.info("App "+ Utility.cleanLogString(appId) + " is unlocked");
 			}
 		}
 	}
@@ -763,12 +764,12 @@ public class S3Client extends CloudClient {
 		String cleanedAppId = Utility.cleanLogString(appId);
 		try {
 			rcloneConfig = createRcloneConfig(appId);
-			logger.info("Deleting container=" + cleanedAppId + ", " + cleanedAppId + SMSS_POSTFIX);
+			classLogger.info("Deleting container=" + cleanedAppId + ", " + cleanedAppId + SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig+RCLONE_DB_PATH+appId);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig+RCLONE_DB_PATH+appId+SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig+RCLONE_DB_PATH+appId);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig+RCLONE_DB_PATH+appId+SMSS_POSTFIX);
-			logger.info("Done deleting container=" + cleanedAppId + ", " + cleanedAppId + SMSS_POSTFIX);
+			classLogger.info("Done deleting container=" + cleanedAppId + ", " + cleanedAppId + SMSS_POSTFIX);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
 		}
@@ -792,10 +793,10 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to pull project");
+		classLogger.info("Applying lock for " + projectId + " to pull project");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
 			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rCloneConfig+RCLONE_PROJECT_PATH+smssContainer);
@@ -811,6 +812,7 @@ public class S3Client extends CloudClient {
 				try {
 					fixLegacyDbStructure(projectId);
 				} catch(IOException | InterruptedException e) {
+					classLogger.info(Constants.STACKTRACE, e);
 					throw new IOException("Failed to pull project for projectId=" + projectId);
 				}
 				
@@ -846,15 +848,15 @@ public class S3Client extends CloudClient {
 				File thisProjectFolder = new File(projectFolder + FILE_SEPARATOR + Utility.normalizePath(aliasProjectId));
 				thisProjectFolder.mkdir();
 				// Pull the contents of the app folder before the smss
-				logger.info("Pulling project from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisProjectFolder.getPath()));
+				classLogger.info("Pulling project from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisProjectFolder.getPath()));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+RCLONE_PROJECT_PATH+projectId, thisProjectFolder.getPath());
-				logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisProjectFolder.getPath()));
+				classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisProjectFolder.getPath()));
 
 				// Now pull the smss
-				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + projectFolder);
+				classLogger.info("Pulling smss from remote=" + smssContainer + " to target=" + projectFolder);
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE PROJECT FOLDER
 				runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_PROJECT_PATH+smssContainer, projectFolder);
-				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + projectFolder);
+				classLogger.debug("Done pulling from remote=" + smssContainer + " to target=" + projectFolder);
 
 				// Catalog the project if it is new
 				if (!projectAlreadyLoaded) {
@@ -875,7 +877,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 		}
 	}
@@ -901,10 +903,10 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to push project");
+		classLogger.info("Applying lock for " + projectId + " to push project");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
 			String smssContainer = projectId + SMSS_POSTFIX;
@@ -920,9 +922,9 @@ public class S3Client extends CloudClient {
 				project.closeProject();
 
 				// Push the project folder
-				logger.info("Pushing project from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
+				classLogger.info("Pushing project from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", thisProjectFolder, rCloneConfig+RCLONE_PROJECT_PATH+projectId);
-				logger.debug("Done pushing from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
+				classLogger.debug("Done pushing from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the project folder)
 				String tempFolder = Utility.getRandomString(10);
@@ -932,9 +934,9 @@ public class S3Client extends CloudClient {
 				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", temp.getPath(), rCloneConfig+RCLONE_PROJECT_PATH+smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -955,7 +957,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 		}
 	}
@@ -970,10 +972,10 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + projectId + " to push project");
+		classLogger.info("Applying lock for " + projectId + " to push project");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
-		logger.info("Project "+ projectId + " is locked");
+		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
 			String smssContainer = projectId + SMSS_POSTFIX;
@@ -991,9 +993,9 @@ public class S3Client extends CloudClient {
 				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", temp.getPath(), rCloneConfig+RCLONE_PROJECT_PATH+smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -1011,7 +1013,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("Project "+ projectId + " is unlocked");
+				classLogger.info("Project "+ projectId + " is unlocked");
 			}
 		}
 	}
@@ -1022,12 +1024,12 @@ public class S3Client extends CloudClient {
 		String cleanedProjectId = Utility.cleanLogString(projectId);
 		try {
 			rcloneConfig = createRcloneConfig(projectId);
-			logger.info("Deleting container=" + cleanedProjectId + ", " + cleanedProjectId + SMSS_POSTFIX);
+			classLogger.info("Deleting container=" + cleanedProjectId + ", " + cleanedProjectId + SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig+RCLONE_PROJECT_PATH+projectId);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig+RCLONE_PROJECT_PATH+projectId+SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig+RCLONE_PROJECT_PATH+projectId);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig+RCLONE_PROJECT_PATH+projectId+SMSS_POSTFIX);
-			logger.info("Done deleting container=" + cleanedProjectId + ", " + cleanedProjectId + SMSS_POSTFIX);
+			classLogger.info("Done deleting container=" + cleanedProjectId + ", " + cleanedProjectId + SMSS_POSTFIX);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
 		}
@@ -1055,10 +1057,10 @@ public class S3Client extends CloudClient {
 		String cleanedContainerId = Utility.cleanLogString(containerId);
 		try {
 			rcloneConfig = createRcloneConfig();
-			logger.info("Deleting container = " + cleanedContainerId);
+			classLogger.info("Deleting container = " + cleanedContainerId);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + BUCKET + "/" + containerId);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + BUCKET + "/" + containerId);
-			logger.info("Done deleting container = " + cleanedContainerId);
+			classLogger.info("Done deleting container = " + cleanedContainerId);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
 		}
@@ -1069,17 +1071,17 @@ public class S3Client extends CloudClient {
 	////////////////////////////////////////////////////////////////////////////////////////// ////////////////////////////////////
 
 	private String createRcloneConfig(String id) {
-		logger.info("Generating config for app/project/image " + Utility.cleanLogString(id));
+		classLogger.info("Generating config for app/project/image " + Utility.cleanLogString(id));
 		String rcloneConfig = null;
 		try {
 			rcloneConfig = createRcloneConfig();
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		} catch (InterruptedException ie) {
-			logger.error(Constants.STACKTRACE, ie);
+			classLogger.error(Constants.STACKTRACE, ie);
 			Thread.currentThread().interrupt();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return rcloneConfig;
 	}
@@ -1183,17 +1185,17 @@ public class S3Client extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to push db file");
+		classLogger.info("Applying lock for " + appId + " to push db file");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 
 			DIHelper.getInstance().removeDbProperty(appId);
 			engine.closeDB();
 
-			logger.info("Pulling database for" + appFolder + " from remote=" + appId);
+			classLogger.info("Pulling database for" + appFolder + " from remote=" + appId);
 			if (e == RdbmsTypeEnum.SQLITE) {
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				for (String sqliteFile : sqliteFileNames) {
@@ -1216,7 +1218,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -1233,15 +1235,15 @@ public class S3Client extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to pull db file");
+		classLogger.info("Applying lock for " + appId + " to pull db file");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			engine.closeDB();
-			logger.info("Pulling database for" + appFolder + " from remote=" + appId);
+			classLogger.info("Pulling database for" + appFolder + " from remote=" + appId);
 			if (e == RdbmsTypeEnum.SQLITE) {
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				for (String sqliteFile : sqliteFileNames) {
@@ -1261,7 +1263,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -1286,10 +1288,10 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		logger.info("Applying lock for " + appId + " to pull app");
+		classLogger.info("Applying lock for " + appId + " to pull app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
-		logger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			// WE HAVE TO PULL FROM THE OLD LOCATION WITHOUT THERE BEING A /db/ IN THE PATH
@@ -1310,15 +1312,15 @@ public class S3Client extends CloudClient {
 			File appFolder = new File(dbFolder + FILE_SEPARATOR + Utility.normalizePath(aliasAppId));
 			appFolder.mkdir();
 			// Pull the contents of the app folder before the smss
-			logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+			classLogger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+":"+BUCKET+"/"+appId, appFolder.getPath());
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 			// Now pull the smss
-			logger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
+			classLogger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+BUCKET+"/"+smssContainer, dbFolder);
-			logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+			classLogger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 			LegacyToProjectRestructurerHelper fixer = new LegacyToProjectRestructurerHelper();
 			fixer.init();
@@ -1342,7 +1344,7 @@ public class S3Client extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				logger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -1373,15 +1375,15 @@ public class S3Client extends CloudClient {
 			File appFolder = new File(dbFolder + FILE_SEPARATOR + Utility.normalizePath(aliasAppId));
 			appFolder.mkdir();
 			// Pull the contents of the app folder before the smss
-			logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+			classLogger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+":"+BUCKET+"/"+appId, appFolder.getPath());
-			logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 			// Now pull the smss
-			logger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
+			classLogger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+BUCKET+"/"+smssContainer, dbFolder);
-			logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+			classLogger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 			LegacyToProjectRestructurerHelper fixer = new LegacyToProjectRestructurerHelper();
 			fixer.init();
@@ -1441,11 +1443,11 @@ public class S3Client extends CloudClient {
 			
 			String remoteInsightFolder = RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 			
-			logger.info("Pushing insight insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(remoteInsightFolder));
+			classLogger.info("Pushing insight insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(remoteInsightFolder));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
 					insightFolder.getPath(),
 					rCloneConfig+remoteInsightFolder);
-			logger.debug("Done pushing insight from remote=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(remoteInsightFolder));
+			classLogger.debug("Done pushing insight from remote=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(remoteInsightFolder));
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1471,11 +1473,11 @@ public class S3Client extends CloudClient {
 			
 			String remoteInsightFolder = RCLONE_PROJECT_PATH+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 			
-			logger.info("Pulling insight from remote=" + Utility.cleanLogString(remoteInsightFolder) + " to local=" + Utility.cleanLogString(insightFolder.getPath()));
+			classLogger.info("Pulling insight from remote=" + Utility.cleanLogString(remoteInsightFolder) + " to local=" + Utility.cleanLogString(insightFolder.getPath()));
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", 
 					rCloneConfig+remoteInsightFolder, 
 					insightFolder.getPath());
-			logger.debug("Done pulling insight from remote=" + Utility.cleanLogString(remoteInsightFolder) + " to local=" + Utility.cleanLogString(insightFolder.getPath()));
+			classLogger.debug("Done pulling insight from remote=" + Utility.cleanLogString(remoteInsightFolder) + " to local=" + Utility.cleanLogString(insightFolder.getPath()));
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1500,23 +1502,23 @@ public class S3Client extends CloudClient {
 			if(oldImageFileName != null) {
 				String oldFileToDelete = remoteInsightImageFilePath+"/"+oldImageFileName;
 				
-				logger.info("Deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
+				classLogger.info("Deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
 				runRcloneDeleteFileProcess(rcloneConfig, "rclone", "deletefile", rcloneConfig+oldFileToDelete);
-				logger.debug("Done deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
+				classLogger.debug("Done deleting old insight image from remote=" + Utility.cleanLogString(oldFileToDelete));
 			} else {
-				logger.info("No old insight image on remote to delete");
+				classLogger.info("No old insight image on remote to delete");
 			}
 
 			if(newImageFileName != null) {
 				String insightImageFilePath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId + "/" + newImageFileName);
 	
-				logger.info("Pushing new insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
+				classLogger.info("Pushing new insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
 				runRcloneTransferProcess(rcloneConfig, "rclone", "sync", 
 						insightImageFilePath,
 						rcloneConfig+remoteInsightImageFilePath);
-				logger.debug("Done pushing new insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
+				classLogger.debug("Done pushing new insight image from local=" + Utility.cleanLogString(insightImageFilePath) + " to remote=" + Utility.cleanLogString(remoteInsightImageFilePath));
 			} else {
-				logger.info("No new insight image to add to remote");
+				classLogger.info("No new insight image to add to remote");
 			}
 		} finally {
 			if (rcloneConfig != null) {
@@ -1552,7 +1554,7 @@ public class S3Client extends CloudClient {
 				try {
 					fixLegacyUserAssetStructure(projectId, isAsset);
 				} catch(IOException | InterruptedException e) {
-					e.printStackTrace();
+					classLogger.info(Constants.STACKTRACE, e);
 					throw new IOException("Failed to pull project for projectId=" + projectId);
 				}
 				
@@ -1589,15 +1591,15 @@ public class S3Client extends CloudClient {
 				File thisUserFolder = new File(userFolder + FILE_SEPARATOR + Utility.normalizePath(aliasProjectId));
 				thisUserFolder.mkdir();
 				// Pull the contents of the app folder before the smss
-				logger.info("Pulling app from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisUserFolder.getPath()));
+				classLogger.info("Pulling app from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisUserFolder.getPath()));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig+RCLONE_USER_PATH+projectId, thisUserFolder.getPath());
-				logger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisUserFolder.getPath()));
+				classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(projectId) + " to target=" + Utility.cleanLogString(thisUserFolder.getPath()));
 
 				// Now pull the smss
-				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + userFolder);
+				classLogger.info("Pulling smss from remote=" + smssContainer + " to target=" + userFolder);
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE USER FOLDER
 				runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_USER_PATH+smssContainer, userFolder);
-				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + userFolder);
+				classLogger.debug("Done pulling from remote=" + smssContainer + " to target=" + userFolder);
 			} finally {
 				// Re-open the database (if an existing app)
 				if (projectAlreadyLoaded) {
@@ -1643,9 +1645,9 @@ public class S3Client extends CloudClient {
 				project.closeProject();
 
 				// Push the app folder
-				logger.info("Pushing project from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
+				classLogger.info("Pushing project from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", thisProjectFolder, rCloneConfig+RCLONE_USER_PATH+projectId);
-				logger.debug("Done pushing from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
+				classLogger.debug("Done pushing from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the project folder)
 				String tempFolder = Utility.getRandomString(10);
@@ -1655,9 +1657,9 @@ public class S3Client extends CloudClient {
 				Files.copy(new File(smssFile), copy);
 
 				// Push the smss
-				logger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", temp.getPath(), rCloneConfig+RCLONE_USER_PATH+smssContainer);
-				logger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				classLogger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 			} finally {
 				if (copy != null) {
 					copy.delete();
