@@ -45,7 +45,7 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 
 	// if we require password changes
 	String attributeLastPwdChangeKey = null;
-	int requirePwdChangeAfterDays = 80;
+	int requirePwdChangeAfterDays = 90;
 
 	// do we use a different user/pass for changing pwds
 	boolean useCustomContextForPwdChange = false;
