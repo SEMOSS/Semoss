@@ -150,12 +150,7 @@ public class LDAPConnectionHelper {
 			throw new IllegalArgumentException("Cannot login user due to not having a proper attribute for the user id");
 		}
 
-		LocalDateTime lastPwdChange = getLastPwdChange(attributes, attributeLastPwdChangeKey);
-		if(lastPwdChange != null) {
-			if(requirePasswordChange(lastPwdChange, requirePwdChangeAfterDays)) {
-				throw new LDAPPasswordChangeRequiredException("User must change their password before login");
-			}
-		}
+		LocalDateTime lastPwdChange = getLastPwdChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
 		
 		AccessToken token = new AccessToken();
 		token.setProvider(AuthProvider.ACTIVE_DIRECTORY);
@@ -177,58 +172,49 @@ public class LDAPConnectionHelper {
 		return token;
 	}
 	
-	public static LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey) throws NamingException {
-		if(attributeLastPwdChangeKey != null) {
-			// assuming if you define this, that the value must exist
-			Object lastPwdChange = getAttributeValue(attributes, attributeLastPwdChangeKey);
-			if(lastPwdChange == null) {
-				throw new IllegalArgumentException("Unable to pull last password change attribute");
-			}
-			LocalDateTime pwdChange = null;
-			if(lastPwdChange instanceof Long) {
-				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((long) lastPwdChange);
-			} else if(lastPwdChange instanceof String) {
-				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((String) lastPwdChange);
-			} else {
-				throw new IllegalArgumentException("Unhandled data type for password change: " + lastPwdChange.getClass().getName());
-			}
-			
-			return pwdChange;
+	public static LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
+		// no defined key - nothing to do
+		if(attributeLastPwdChangeKey == null || attributeLastPwdChangeKey.isEmpty()) {
+			return null;
 		}
 		
-		return null;
+		// assuming if you define this, that the value must exist
+		Object lastPwdChange = getAttributeValue(attributes, attributeLastPwdChangeKey);
+		if(lastPwdChange == null) {
+			throw new IllegalArgumentException("Unable to pull last password change attribute");
+		}
+
+		if(requirePwdChangeAfterDays > 0 && lastPwdChange.toString().equals("0")) {
+			throw new LDAPPasswordChangeRequiredException("User's last password change is 0, must change their password on first login");
+		}
+		
+		LocalDateTime pwdChange = null;
+		if(lastPwdChange instanceof Integer || lastPwdChange instanceof Long) {
+			pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((long) lastPwdChange);
+		} else if(lastPwdChange instanceof String) {
+			pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((String) lastPwdChange);
+		} else {
+			classLogger.warn("Unhandled data type for password change: " + lastPwdChange.getClass().getName());
+		}
+		
+		if(requirePwdChangeAfterDays > 0) {
+			if(pwdChange == null) {
+				throw new IllegalArgumentException("There is a password change requirement but could not parse last password change attribute, please reach out to an administrator");
+			}
+			
+			if(requirePasswordChange(pwdChange, requirePwdChangeAfterDays)) {
+				throw new LDAPPasswordChangeRequiredException("User must change their password before login");
+			}
+		}
+
+		return pwdChange;
 	}
 	
-	public static boolean requirePasswordChange(LocalDateTime lastPwdChange, int requirePwdChangeAfterDays) throws NamingException {
+	private static boolean requirePasswordChange(LocalDateTime lastPwdChange, int requirePwdChangeAfterDays) throws NamingException {
 		LocalDateTime now = LocalDateTime.now();
 		if(lastPwdChange.plusDays(requirePwdChangeAfterDays).isBefore(now)) {
 			return true;
 		}
-		return false;
-	}
-	
-	public static boolean requirePasswordChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
-		if(attributeLastPwdChangeKey != null) {
-			// assuming if you define this, that the value must exist
-			Object lastPwdChange = getAttributeValue(attributes, attributeLastPwdChangeKey);
-			if(lastPwdChange == null) {
-				throw new IllegalArgumentException("Unable to pull last password change attribute");
-			}
-			LocalDateTime pwdChange = null;
-			if(lastPwdChange instanceof Long) {
-				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((long) lastPwdChange);
-			} else if(lastPwdChange instanceof String) {
-				pwdChange = LDAPConnectionHelper.convertWinFileTimeToJava((String) lastPwdChange);
-			} else {
-				throw new IllegalArgumentException("Unhandled data type for password change: " + lastPwdChange.getClass().getName());
-			}
-			
-			LocalDateTime now = LocalDateTime.now();
-			if(pwdChange.plusDays(requirePwdChangeAfterDays).isBefore(now)) {
-				return true;
-			}
-		}
-		
 		return false;
 	}
 	

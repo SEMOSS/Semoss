@@ -36,18 +36,8 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	}
 	
 	@Override 
-	public LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey) throws NamingException {
-		return LDAPConnectionHelper.getLastPwdChange(attributes, attributeLastPwdChangeKey);
-	}
-	
-	@Override
-	public boolean requirePasswordChange(LocalDateTime lastPwdChange, int requirePwdChangeAfterDays) throws NamingException {
-		return LDAPConnectionHelper.requirePasswordChange(lastPwdChange, requirePwdChangeAfterDays);
-	}
-	
-	@Override
-	public boolean requirePasswordChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
-		return LDAPConnectionHelper.requirePasswordChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
+	public LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
+		return LDAPConnectionHelper.getLastPwdChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
 	}
 	
 }
