@@ -149,12 +149,7 @@ public class Insight implements Serializable {
 	
 	// also store insight sheets
 	private transient Map<String, InsightSheet> insightSheets = new LinkedHashMap<String, InsightSheet>();
-	{
-		// add a default insight
-		// this is because old pixels didn't have an insight sheet
-		// and dont want those recipes to break
-		insightSheets.put(DEFAULT_SHEET_ID, new InsightSheet(DEFAULT_SHEET_ID, DEFAULT_SHEET_LABEL));
-	}
+	
 	// this is the store holding information around the panels associated with this insight
 	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
 	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
@@ -232,6 +227,7 @@ public class Insight implements Serializable {
 	Map <String, GenExpressionWrapper> sqlWrapperMap = new HashMap<String, GenExpressionWrapper>();
 	Map <String, String> id2SQLMapper = new HashMap<String, String>();
 	int idCount = 0;
+	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////// START CONSTRUCTORS //////////////////////////////////
@@ -243,6 +239,13 @@ public class Insight implements Serializable {
 	 */
 	public Insight() {
 		loadDefaultSettings(500);
+		
+		{
+			// add a default insight
+			// this is because old pixels didn't have an insight sheet
+			// and dont want those recipes to break
+			insightSheets.put(DEFAULT_SHEET_ID, new InsightSheet(DEFAULT_SHEET_ID, DEFAULT_SHEET_LABEL));
+		}
 	}
 
 	/**
@@ -278,7 +281,7 @@ public class Insight implements Serializable {
 		// put the pragmap
 		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
 			if(this.user != null) {
-			this.user.getUserMountHelper().mountFolder(getInsightFolder(), getInsightFolder(), false);
+				this.user.getUserMountHelper().mountFolder(getInsightFolder(), getInsightFolder(), false);
 			}
 		}
 	}
@@ -1149,7 +1152,9 @@ public class Insight implements Serializable {
 			InsightUtility.clearInsight(this, false);
 			// clear the sheets and add the default one
 			this.insightSheets.clear();
-			this.insightSheets.put(DEFAULT_SHEET_ID, new InsightSheet(DEFAULT_SHEET_ID, DEFAULT_SHEET_LABEL));
+			if(!this.isSavedInsight()) {
+				this.insightSheets.put(DEFAULT_SHEET_ID, new InsightSheet(DEFAULT_SHEET_ID, DEFAULT_SHEET_LABEL));
+			}
 			// clear the panels
 			this.insightPanels.clear();
 			if(appendPanel0) {

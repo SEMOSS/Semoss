@@ -186,6 +186,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// get the last task at each layer for each panel
 		// this will be written to the vizOutputFile
 		Insight cachedInsight = new Insight();
+		// TODO: this is because the BE adds a default sheet for new insights
+		// but this is not required for cached insights
+		cachedInsight.getInsightSheets().clear();
 		InsightUtility.transferDefaultVars(value, cachedInsight);
 		cachedInsight.setVarStore(value.getVarStore());
 		cachedInsight.setUser(value.getUser());
@@ -234,6 +237,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
 		Insight insight = new Insight();
+		// TODO: this is because the BE adds a default sheet for new insights
+		// but this is not required for cached insights
+		insight.getInsightSheets().clear();
 		
 		in.beginObject();
 		in.nextName();
