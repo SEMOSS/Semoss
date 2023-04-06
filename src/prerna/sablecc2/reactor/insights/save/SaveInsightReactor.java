@@ -184,7 +184,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			try {
 				// if we are saving a saved insight as another insight
 				// do not delete the file from this insight
-				if(saveFilesInInsight(insightPixelList, projectId, project.getProjectName(), newInsightId, !this.insight.isSavedInsight())) {
+				if(saveFilesInInsight(insightPixelList, projectId, project.getProjectName(), newInsightId, !this.insight.isSavedInsight(), this.insight.getPixelList())) {
 					// need to pull the new saved recipe
 					recipeToSave = insightPixelList.getPixelRecipe();
 				}

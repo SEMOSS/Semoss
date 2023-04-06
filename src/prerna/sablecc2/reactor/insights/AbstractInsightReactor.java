@@ -460,7 +460,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @param deleteOrigFile
 	 * @return
 	 */
-	protected boolean saveFilesInInsight(PixelList insightPixelList, String projectId, String projectName, String newInsightId, boolean deleteOrigFile) {
+	protected boolean saveFilesInInsight(PixelList insightPixelList, String projectId, String projectName, String newInsightId, boolean deleteOrigFile, PixelList originalInsightPixelList) {
 		boolean filesSaved = false;
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -509,6 +509,11 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 						boolean isUserSpace = space != null && space.toUpperCase().equals(AssetUtility.USER_SPACE_KEY);
 						if(space == null || space.isEmpty() || isUserSpace) {
 							File origF = new File(fileLoc);
+							if(!origF.exists() || origF.isDirectory()) {
+								// this might have already been moved 
+								// weird situation but dont dont update anything
+								continue;
+							}
 							String newFileLoc = BASE + DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR + 
 													SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + 
 													"app_root" + DIR_SEPARATOR + "version" + DIR_SEPARATOR +
@@ -533,22 +538,26 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 							}
 							try {
 								FileUtils.copyFile(origF, newF);
+								String newFilePixel = "data" + DIR_SEPARATOR + filename;
+								// need to make new pixel
+								String newPixel = p.getPixelString().replace(filePixelPortion, newFilePixel);
+								// if user, need to replace the space to be an empty string
+								if(isUserSpace) {
+									newPixel = newPixel.replace("space = [ \"" + space + "\" ]", "space = [\"\"]");
+								}
+								p.setPixelString(newPixel);
+								filesSaved = true;
+								
+								Pixel originalP = originalInsightPixelList.getPixel(p.getId());
+								originalP.setPixelString(newPixel);
+
+								// only after successful setting of everything will we delete the original F
 								if(!isUserSpace && deleteOrigFile) {
 									origF.delete();
 								}
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
-							
-							String newFilePixel = "data" + DIR_SEPARATOR + filename;
-							// need to make new pixel
-							String newPixel = p.getPixelString().replace(filePixelPortion, newFilePixel);
-							// if user, need to replace the space to be an empty string
-							if(isUserSpace) {
-								newPixel = newPixel.replace("space = [ \"" + space + "\" ]", "space = [\"\"]");
-							}
-							p.setPixelString(newPixel);
-							filesSaved = true;
 						}
 					}
 				}
