@@ -150,7 +150,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(insightPixelList != null) {
 			try {
 				// we will delete and move the files used in this insight space to the data folder
-				if(saveFilesInInsight(insightPixelList, projectId, project.getProjectName(), existingId, true)) {
+				if(saveFilesInInsight(insightPixelList, projectId, project.getProjectName(), existingId, true, this.insight.getPixelList())) {
 					// need to pull the new saved recipe
 					recipeToSave = insightPixelList.getPixelRecipe();
 				}
