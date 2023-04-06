@@ -126,28 +126,9 @@ public interface ILdapAuthenticator extends Closeable {
 	 * 
 	 * @param attributes
 	 * @param attributeLastPwdChangeKey
-	 * @return
-	 * @throws NamingException
-	 */
-	LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey) throws NamingException;
-
-	/**
-	 * Does this user require a password change
-	 * @param lastPwdChange
 	 * @param requirePwdChangeAfterDays
 	 * @return
 	 * @throws NamingException
 	 */
-	boolean requirePasswordChange(LocalDateTime lastPwdChange, int requirePwdChangeAfterDays) throws NamingException;
-
-	
-	/**
-	 * Does this user require a password change
-	 * @param attributes
-	 * @param attributeLastPwdChangeKey
-	 * @param requirePwdChangeAfterDays
-	 * @return
-	 * @throws NamingException
-	 */
-	boolean requirePasswordChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException;
+	LocalDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException;
 }
