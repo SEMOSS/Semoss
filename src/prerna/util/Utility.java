@@ -4383,7 +4383,7 @@ public class Utility {
 			jep = jep.replace("\\", "/");
 
 			String pyWorker = DIHelper.getInstance().getProperty(Constants.TCP_WORKER);
-			if(pyWorker == null) {
+			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
 				pyWorker = "prerna.tcp.SocketServer";
 			}
 			String[] commands = null;
@@ -4526,7 +4526,7 @@ public class Utility {
 			jep = jep.replace("\\", "/");
 
 			String pyWorker = DIHelper.getInstance().getProperty(Constants.TCP_WORKER);
-			if(pyWorker == null) {
+			if(pyWorker == null || (pyWorker=pyWorker.trim()).isEmpty()) {
 				pyWorker = "prerna.tcp.SocketServer";
 			}
 			String[] commands = null;
