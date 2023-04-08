@@ -2,7 +2,6 @@ package prerna.util.ldap;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -10,10 +9,8 @@ import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
-import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
-import javax.naming.directory.ModificationItem;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,7 +28,7 @@ public class LDAPConnectionHelper {
 	private String principalDN = null;
 	private String principalTemplate = null;
 	
-	private LDAPConnectionHelper() {
+	LDAPConnectionHelper() {
 		
 	}
 	
@@ -57,32 +54,6 @@ public class LDAPConnectionHelper {
 	
 	public void setPrincipalTemplate(String principalTemplate) {
 		this.principalTemplate = principalTemplate;
-	}
-	
-	public static LDAPConnectionHelper tryLogins(String providerUrl, List<String> securityPrincipalTemplate, String username, String password) throws Exception {
-		int i = 0;
-		Exception lastException = null;
-		do {
-			try {
-				String principalTemplate = securityPrincipalTemplate.get(i);
-				String principalDN = principalTemplate.replace(ILdapAuthenticator.SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
-				DirContext ldapContext = createLdapContext(providerUrl, principalDN, password);
-
-				LDAPConnectionHelper retObj = new LDAPConnectionHelper();
-				retObj.setLdapContext(ldapContext);
-				retObj.setPrincipalDN(principalDN);
-				retObj.setPrincipalTemplate(principalTemplate);
-				return retObj;
-			} catch(Exception e) {
-				classLogger.error("Failed connection with template: " + securityPrincipalTemplate.get(i));
-				lastException = e;
-			}
-			i++;
-		} while(i < securityPrincipalTemplate.size());
-
-		// if we dont have any successful login, just throw the last error and also print it to log
-		classLogger.error(Constants.STACKTRACE, lastException);
-		throw lastException;
 	}
 	
 	public static DirContext createLdapContext(String providerUrl, String principalDN, String password) throws Exception {
@@ -184,7 +155,7 @@ public class LDAPConnectionHelper {
 			throw new IllegalArgumentException("Unable to pull last password change attribute");
 		}
 
-		if(requirePwdChangeAfterDays > 0 && lastPwdChange.toString().equals("0")) {
+		if(lastPwdChange.toString().equals("0")) {
 			throw new LDAPPasswordChangeRequiredException("User's last password change is 0, must change their password on first login");
 		}
 		
@@ -218,56 +189,6 @@ public class LDAPConnectionHelper {
 		return false;
 	}
 	
-	public static void updateUserPassword(String providerUrl, List<String> securityPrincipalTemplate, 
-			String username, String curPassword, String newPassword,
-			boolean useCustomContextForPwdChange, DirContext customPwdChangeLdapContext) throws Exception { 
-		DirContext ldapContext = null;
-		String principalDN = null;
-		try {
-			classLogger.info("Attempting login for user " + username + " to confirm has proper current password");
-			LDAPConnectionHelper loginObj = LDAPConnectionHelper.tryLogins(providerUrl, securityPrincipalTemplate, username, curPassword);
-			String principalTemplate = loginObj.getPrincipalTemplate();
-			principalDN = loginObj.getPrincipalDN();
-			ldapContext = loginObj.getLdapContext();
-			classLogger.info("Successful confirmation of current password for user " + principalDN);
-
-			String quotedPassword = "\"" + newPassword + "\"";
-			char unicodePwd[] = quotedPassword.toCharArray();
-			byte pwdArray[] = new byte[unicodePwd.length * 2];
-			for (int i = 0; i < unicodePwd.length; i++)
-			{
-				pwdArray[i * 2 + 1] = (byte) (unicodePwd[i] >>> 8);
-				pwdArray[i * 2 + 0] = (byte) (unicodePwd[i] & 0xff);
-			}
-
-			ModificationItem[] mods = new ModificationItem[1];
-			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwdArray));
-
-			classLogger.info(principalDN + " is attemping to change password");
-			if(useCustomContextForPwdChange) {
-				if(customPwdChangeLdapContext == null) {
-					throw new IllegalArgumentException("Invalid configuration for changing user passwords - please contact your administrator");
-				}
-				customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
-			} else {
-				ldapContext.modifyAttributes(principalDN, mods);
-			}
-			classLogger.info(principalDN + " successfully changed password");
-		} catch (Exception e) {
-			if(principalDN == null) {
-				classLogger.error("User was unable to authenticate with current password, username entered: " + username);
-			} else {
-				classLogger.info(principalDN + " failed to change password");
-			}
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Failed to change password. Error message: " + e.getMessage());
-		} finally {
-			if(ldapContext != null) {
-				ldapContext.close();
-			}
-		}
-	}
-	
 	/**
 	 * Grab the value of an attribute and perform necessary null checks
 	 * @param attributes
@@ -284,6 +205,23 @@ public class LDAPConnectionHelper {
 			return null;
 		}
 		return attr.get();
+	}
+	
+	/**
+	 * 
+	 * @param password
+	 * @return
+	 */
+	public static byte[] toUnicodeBytes(String password) {
+		String quotedPassword = "\"" + password + "\"";
+		char unicodePwd[] = quotedPassword.toCharArray();
+		byte pwdArray[] = new byte[unicodePwd.length * 2];
+		for (int i = 0; i < unicodePwd.length; i++)
+		{
+			pwdArray[i * 2 + 1] = (byte) (unicodePwd[i] >>> 8);
+			pwdArray[i * 2 + 0] = (byte) (unicodePwd[i] & 0xff);
+		}
+		return pwdArray;
 	}
 	
 //	/**
