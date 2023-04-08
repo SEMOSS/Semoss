@@ -213,6 +213,19 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		}
 
 		if(foundUser) {
+			// see if we can determine that they cannot signin but actually need to reset their password details
+			if(result != null) {
+				// this method will throw LDAPPasswordChangeRequiredException if the password needs to be reset to login
+				try {
+					this.getLastPwdChange(result.getAttributes(), this.attributeLastPwdChangeKey, this.requirePwdChangeAfterDays);
+				} catch(LDAPPasswordChangeRequiredException e) {
+					throw e;
+				} catch(Exception e) {
+					classLogger.error("Error occurred seeing if login issue is that user must change password");
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			
 			throw new IllegalArgumentException("Found username but invalid credentials to login");
 		} else {
 			throw new IllegalArgumentException("Unable to find username = " + username);
@@ -238,17 +251,12 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		classLogger.info("Successful confirmation of current password for user " + principalDN);
 
 		try {
-			String quotedPassword = "\"" + newPassword + "\"";
-			char unicodePwd[] = quotedPassword.toCharArray();
-			byte pwdArray[] = new byte[unicodePwd.length * 2];
-			for (int i = 0; i < unicodePwd.length; i++)
-			{
-				pwdArray[i * 2 + 1] = (byte) (unicodePwd[i] >>> 8);
-				pwdArray[i * 2 + 0] = (byte) (unicodePwd[i] & 0xff);
-			}
-
-			ModificationItem[] mods = new ModificationItem[1];
-			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwdArray));
+			byte[] oldPwdArray = LDAPConnectionHelper.toUnicodeBytes(curPassword);
+			byte[] newPwdArray = LDAPConnectionHelper.toUnicodeBytes(newPassword);
+			ModificationItem[] mods = new ModificationItem[2];
+			mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("UnicodePwd", oldPwdArray));
+			mods[1] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("UnicodePwd", newPwdArray));
+			this.customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
 
 			classLogger.info(principalDN + " is attemping to change password");
 			if(this.useCustomContextForPwdChange) {
@@ -294,15 +302,7 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		}
 		
 		try {
-			String quotedPassword = "\"" + newPassword + "\"";
-			char unicodePwd[] = quotedPassword.toCharArray();
-			byte pwdArray[] = new byte[unicodePwd.length * 2];
-			for (int i = 0; i < unicodePwd.length; i++)
-			{
-				pwdArray[i * 2 + 1] = (byte) (unicodePwd[i] >>> 8);
-				pwdArray[i * 2 + 0] = (byte) (unicodePwd[i] & 0xff);
-			}
-
+			byte[] pwdArray = LDAPConnectionHelper.toUnicodeBytes(newPassword);
 			ModificationItem[] mods = new ModificationItem[1];
 			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwdArray));
 
