@@ -317,11 +317,11 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 
 			try {
 				classLogger.info("Using ldap context for pwd change");
-				String oldPwd = LDAPConnectionHelper.toUnicodePassword(curPassword);
-				String newPwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
+				byte[] oldPwd = LDAPConnectionHelper.toUnicodePassword(curPassword);
+				byte[] newPwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
 				ModificationItem[] mods = new ModificationItem[2];
-				mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("UnicodePwd", oldPwd));
-				mods[1] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("UnicodePwd", newPwd));
+				mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("unicodePwd", oldPwd));
+				mods[1] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("unicodePwd", newPwd));
 				this.customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
 			} catch(Exception e) {
 				String message = null;
@@ -348,9 +348,9 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 				ldapContext = loginObj.getLdapContext();
 				classLogger.info("Successful confirmation of current password for user " + principalDN);
 
-				String newPwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
+				byte[] newPwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
 				ModificationItem[] mods = new ModificationItem[1];
-				mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", newPwd));
+				mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("unicodePwd", newPwd));
 
 				classLogger.info(principalDN + " is attemping to change password");
 				ldapContext.modifyAttributes(principalDN, mods);
@@ -405,9 +405,9 @@ public class LdapTemplateStructureConnection extends AbstractLdapAuthenticator {
 		}
 
 		try {
-			String pwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
+			byte[] pwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
 			ModificationItem[] mods = new ModificationItem[1];
-			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwd));
+			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("unicodePwd", pwd));
 
 			classLogger.info(principalDN + " is attemping to change password");
 			this.customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
