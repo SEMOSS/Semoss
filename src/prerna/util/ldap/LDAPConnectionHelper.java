@@ -3,6 +3,7 @@ package prerna.util.ldap;
 import java.io.UnsupportedEncodingException;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -214,9 +215,11 @@ public class LDAPConnectionHelper {
 	 * @return
 	 * @throws UnsupportedEncodingException 
 	 */
-	public static byte[] toUnicodeBytes(String password) throws UnsupportedEncodingException {
+	public static String toUnicodePassword(String password) throws UnsupportedEncodingException {
 		String quotedPassword = "\"" + password + "\"";
-        return quotedPassword.getBytes("UTF-16LE");
+        byte[] newUnicodePwd = quotedPassword.getBytes("UTF-16LE");
+        String encodedPwd = new String(Base64.getEncoder().encode(newUnicodePwd));
+        return encodedPwd;
         
 //		String quotedPassword = "\"" + password + "\"";
 //		char unicodePwd[] = quotedPassword.toCharArray();
