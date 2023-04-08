@@ -235,29 +235,41 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 
 	@Override
 	public void updateUserPassword(String username, String curPassword, String newPassword) throws NamingException {
-		String principalDN = null;
-		
-		classLogger.info("Attempting login for user " + username + " to confirm has proper current password");
-		AccessToken token = null;
-		try {
-			token = authenticate(username, curPassword);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			String error = "User was unable to authenticate with current password, username entered: " + username;
-			classLogger.error(error);
-			throw new IllegalArgumentException(error);
-		}
-		principalDN = token.getSAN().get("DN");
-		classLogger.info("Successful confirmation of current password for user " + principalDN);
+		// first find the user DN
+		String searchContextName = this.searchContextName.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+		String searchFilter = this.searchMatchingAttributes.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
 
+		SearchControls controls = new SearchControls();
+		controls.setSearchScope(this.searchContextScope);
+		controls.setReturningAttributes(this.requestAttributes);
+
+		NamingEnumeration<SearchResult> findUser = this.applicationContext.search(searchContextName, searchFilter, controls);
+
+		String principalDN = null;
+		boolean foundUser = false;
+		SearchResult result = null;
+		while(findUser.hasMoreElements()) {
+			foundUser = true;
+			result = findUser.next();
+			// we got the user DN
+			principalDN = result.getNameInNamespace();
+			classLogger.info("Found user DN = " + principalDN + " > attemping to login");
+		}
+		
+		if(!foundUser) {
+			throw new IllegalArgumentException("Unable to find username = " + username);
+		}
+
+		// we do not need to authenticate
+		// just hash the old and new so that way we know it is accurate
+		// this will allow us to account for expired passwords due or
+		// forced password changes on login
 		try {
 			byte[] oldPwdArray = LDAPConnectionHelper.toUnicodeBytes(curPassword);
 			byte[] newPwdArray = LDAPConnectionHelper.toUnicodeBytes(newPassword);
 			ModificationItem[] mods = new ModificationItem[2];
 			mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("UnicodePwd", oldPwdArray));
 			mods[1] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("UnicodePwd", newPwdArray));
-			this.customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
-
 			classLogger.info(principalDN + " is attemping to change password");
 			if(this.useCustomContextForPwdChange) {
 				if(this.customPwdChangeLdapContext == null) {
