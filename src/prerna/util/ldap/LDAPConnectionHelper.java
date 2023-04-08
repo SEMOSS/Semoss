@@ -215,11 +215,9 @@ public class LDAPConnectionHelper {
 	 * @return
 	 * @throws UnsupportedEncodingException 
 	 */
-	public static String toUnicodePassword(String password) throws UnsupportedEncodingException {
+	public static byte[] toUnicodePassword(String password) throws UnsupportedEncodingException {
 		String quotedPassword = "\"" + password + "\"";
-        byte[] newUnicodePwd = quotedPassword.getBytes("UTF-16LE");
-        String encodedPwd = new String(Base64.getEncoder().encode(newUnicodePwd));
-        return encodedPwd;
+        return quotedPassword.getBytes("UTF-16LE");
         
 //		String quotedPassword = "\"" + password + "\"";
 //		char unicodePwd[] = quotedPassword.toCharArray();
