@@ -265,11 +265,11 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		// this will allow us to account for expired passwords due or
 		// forced password changes on login
 		try {
-			String oldPwd = LDAPConnectionHelper.toUnicodePassword(curPassword);
-			String newPwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
+			byte[] oldPwd = LDAPConnectionHelper.toUnicodePassword(curPassword);
+			byte[] newPwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
 			ModificationItem[] mods = new ModificationItem[2];
-			mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("UnicodePwd", oldPwd));
-			mods[1] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("UnicodePwd", newPwd));
+			mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("unicodePwd", oldPwd));
+			mods[1] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("unicodePwd", newPwd));
 			classLogger.info(principalDN + " is attemping to change password");
 			if(this.useCustomContextForPwdChange) {
 				if(this.customPwdChangeLdapContext == null) {
@@ -314,9 +314,9 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		}
 		
 		try {
-			String pwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
+			byte[] pwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
 			ModificationItem[] mods = new ModificationItem[1];
-			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("UnicodePwd", pwd));
+			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("unicodePwd", pwd));
 
 			classLogger.info(principalDN + " is attemping to change password");
 			if(this.useCustomContextForPwdChange) {
