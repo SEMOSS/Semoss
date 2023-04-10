@@ -330,7 +330,7 @@ public class RSyntaxHelper {
 				rColNames += ", ";
 			}
 		}
-		String script = "colnames(" + frameName + ") <- c(" + rColNames + ")";
+		String script = "colnames(" + frameName + ") <- c(" + rColNames + ");";
 		return script;
 	}
 	
@@ -856,6 +856,22 @@ public class RSyntaxHelper {
 		rsb.append(frameName + " <- as.data.table(" + frameName + ");");
 		return rsb.toString();
 	}
+	
+	/**
+	 * Load parquet file to dataframe
+	 * @param filePath The file path of the parquet file
+	 * @param frameName The name of the frame to create
+	 * @return
+	 */
+	public static String loadParquetFile(String filePath, String frameName) {
+		StringBuilder rsb = new StringBuilder();
+		rsb.append("library(arrow);");
+		filePath = filePath.replace("\\", "/");
+		rsb.append(frameName + " <- read_parquet(file = \"" + filePath + "\", col_select = NULL, as_data_frame = TRUE);");
+		rsb.append(frameName + " <- as.data.table(" + frameName + ");");
+		return rsb.toString();
+	}
+
 	
 	/**
 	 * 

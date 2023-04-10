@@ -55,8 +55,8 @@ public class SocketServer implements Runnable {
 		
 		if(args == null || args.length == 0) {
 			args = new String[5];
-			args[0] = "c:/Users/pkapaleeswaran/workspacej3/SemossDev/py/log-config";
-			args[1] = "c:/Users/pkapaleeswaran/workspacej3/SemossDev/RDF_Map.prop";;
+			args[0] = "C:\\workspace\\Semoss_Dev\\InsightCache\\a2553409442950089814";
+			args[1] = "C:\\workspace\\Semoss_Dev\\RDF_Map.prop";;
 			args[2] = "9999";
 			args[3] = "r";
 			args[4] = "mixed";

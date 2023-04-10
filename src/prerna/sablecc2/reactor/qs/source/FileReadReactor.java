@@ -7,6 +7,7 @@ import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.ParquetQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -65,10 +66,13 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 
 		// get file extension to determine qs
 		boolean isExcel = false;
+		boolean isParquet = false;
 		if (fileLocation.contains(".")) {
 			fileExtension = fileLocation.substring(fileLocation.lastIndexOf('.'), fileLocation.length());
 			if(fileExtension.equals(".xls") || fileExtension.equals(".xlsx") || fileExtension.equals(".xlsm")) {
 				isExcel = true;
+			} else if(fileExtension.equals(".parquet")) {
+				isParquet = true;
 			}
 		}
 		if(isExcel) { 
@@ -79,6 +83,8 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 			qs = new ExcelQueryStruct();
 			((ExcelQueryStruct) qs).setSheetName(sheetName);
 			((ExcelQueryStruct) qs).setSheetRange(sheetRange);
+		} else if(isParquet) {
+			qs = new ParquetQueryStruct();
 		} else { // set csv qs
 			char delimiter = getDelimiter();
 			qs = new CsvQueryStruct();
@@ -238,10 +244,13 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 
 		// get file extension to determine qs
 		boolean isExcel = false;
+		boolean isParquet = false;
 		if (fileLocation.contains(".")) {
 			fileExtension = fileLocation.substring(fileLocation.indexOf('.'), fileLocation.length());
 			if(fileExtension.equals(".xls") || fileExtension.equals(".xlsx") || fileExtension.equals(".xlsm")) {
 				isExcel = true;
+			} else if(fileExtension.equals(".parquet")) {
+				isParquet = true;
 			}
 		}
 		if(isExcel) { // set excelQS
@@ -251,6 +260,8 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 			qs = new ExcelQueryStruct();
 			((ExcelQueryStruct) qs).setSheetName(sheetName);
 			((ExcelQueryStruct) qs).setSheetRange(sheetRange);
+		} else if(isParquet) {
+			qs = new ParquetQueryStruct();
 		} else { // set csv qs
 			char delimiter = getDelimiter();
 			qs = new CsvQueryStruct();

@@ -20,6 +20,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.util.flatfile.CsvFileIterator;
+import prerna.ds.util.flatfile.ParquetFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.IStringExportProcessor;
@@ -29,6 +30,7 @@ import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.ParquetQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -163,6 +165,33 @@ public class RFrameBuilder {
 			}
 			this.rJavaTranslator.runR(script.toString());
 			fileType = "excel";
+			loaded = true;
+		} else if(it instanceof ParquetFileIterator) {
+			ParquetQueryStruct qs = ((ParquetFileIterator) it).getQs();
+			String filePath = qs.getFilePath();
+			// load parquet file
+			this.rJavaTranslator.runR(RSyntaxHelper.loadParquetFile(filePath, tableName));
+			
+			// clean headers
+			String[] colNames = this.rJavaTranslator.getColumns(tableName);
+			StringBuilder script = new StringBuilder();
+			
+			// apply limit for import
+			long limit = qs.getLimit();
+			if (limit > -1) {
+				String rowLimits = String.valueOf(limit);
+				script.append(tableName + "<-" + tableName + "[1:" + rowLimits + ",];");
+			}
+			script.append(RSyntaxHelper.cleanFrameHeaders(tableName, colNames));
+			
+			// set new header names for frame
+			Map<String, String> newHeaders = qs.getNewHeaderNames();
+			for (String newHeader : newHeaders.keySet()) {
+				String oldHeader = newHeaders.get(newHeader);
+				script.append(RSyntaxHelper.alterColumnName(tableName, oldHeader, newHeader));
+			}
+			this.rJavaTranslator.runR(script.toString());
+			fileType = "parquet";
 			loaded = true;
 		}
 		

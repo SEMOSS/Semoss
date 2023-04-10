@@ -21,6 +21,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.util.flatfile.CsvFileIterator;
+import prerna.ds.util.flatfile.ParquetFileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -33,6 +34,7 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.LambdaQueryStruct;
+import prerna.query.querystruct.ParquetQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.joins.BasicRelationship;
 import prerna.query.querystruct.joins.IRelation;
@@ -109,6 +111,12 @@ public class ImportUtility {
 //			ExcelFileIterator it = new ExcelFileIterator(xlQS);
 //			return it;
 		}
+		// parquet file
+		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.PARQUET_FILE) {
+			ParquetQueryStruct parquetQs = (ParquetQueryStruct) qs;
+			ParquetFileIterator it = new ParquetFileIterator(parquetQs);
+			return it;
+		}
  		// throw error saying i have no idea what to do with you
 		else {
 			throw new IllegalArgumentException("Cannot currently import from this type = " + qs.getQsType() + " in ImportUtility yet...");
@@ -172,6 +180,10 @@ public class ImportUtility {
 		else if(qsType == QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			parseExcelFileQsToFlatTable(dataframe, (ExcelQueryStruct) qs, frameTableName);
 		} 
+		// parquet file
+		else if(qsType == QUERY_STRUCT_TYPE.PARQUET_FILE) {
+			parseParquetFileQsToFlatTable(dataframe, (ParquetQueryStruct) qs, frameTableName);
+		}
 		// from algorithm routine
 		else if(qsType == QUERY_STRUCT_TYPE.LAMBDA) {
 			parseLambdaQsToFlatTable(dataframe, (LambdaQueryStruct) qs, frameTableName);
@@ -498,6 +510,63 @@ public class ImportUtility {
 		}
 	}
 	
+	private static void parseParquetFileQsToFlatTable(ITableDataFrame dataframe, ParquetQueryStruct qs, String frameTableName) {
+		List<IQuerySelector> selectors = qs.getSelectors();
+		String parquetFileName = FilenameUtils.getBaseName(qs.getFilePath());
+		// remove the ugly stuff we add to make this unique
+		if(parquetFileName.contains("_____UNIQUE")) {
+			parquetFileName = parquetFileName.substring(0, parquetFileName.indexOf("_____UNIQUE"));
+		}
+		parquetFileName = Utility.makeAlphaNumeric(parquetFileName);
+		Map<String, String> dataTypes = qs.getColumnTypes();
+		Map<String, String> additionalTypes = qs.getAdditionalTypes();
+		// define the frame table name as a primary key within the meta
+		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
+		metaData.addVertex(frameTableName);
+		metaData.setPrimKeyToVertex(frameTableName, true);
+
+		// loop through all the selectors
+		// insert them into the frame
+		int numSelectors = selectors.size();
+		for(int i = 0; i < numSelectors; i++) {
+			IQuerySelector selector = selectors.get(i);
+			String alias = selector.getAlias();
+			String qsName = selector.getQueryStructName();
+			boolean isDerived = selector.isDerived();
+			
+			String uniqueHeader = frameTableName + "__" + alias;
+			metaData.addProperty(frameTableName, uniqueHeader);
+			metaData.setQueryStructNameToProperty(uniqueHeader, parquetFileName, qsName);
+			metaData.setDerivedToProperty(uniqueHeader, isDerived);
+			metaData.setAliasToProperty(uniqueHeader, alias);
+
+			QueryColumnSelector cSelect = (QueryColumnSelector) selector;
+			String table = cSelect.getTable();
+			String column = cSelect.getColumn();
+			
+			// I am just doing a check for bad inputs
+			// We want to standardize so it is always DND__CSV_COLUMN_NAME
+			// but just in case someone doesn't do DND and just passed in CSV_COLUMN_NAME
+			// the column will be defaulted to PRIM_KEY_PLACEHOLDER based on our construct
+			if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				metaData.setQueryStructNameToProperty(uniqueHeader, parquetFileName, table);
+				String type = dataTypes.get(table);
+				metaData.setDataTypeToProperty(uniqueHeader, type);
+				
+				if(additionalTypes.get(table) != null) {
+					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(uniqueHeader));
+				}
+			} else {
+				metaData.setQueryStructNameToProperty(uniqueHeader, parquetFileName, table + "__" + column);
+				String type = dataTypes.get(column);
+				metaData.setDataTypeToProperty(uniqueHeader, type);
+				
+				if(additionalTypes.get(column) != null) {
+					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(column));
+				}
+			}
+		}
+	}
 	/**
 	 * When we are generating information programmatically without a standard data source
 	 * We can create a new meta using the column names, types, and the table name
@@ -1368,6 +1437,8 @@ public class ImportUtility {
 			return getMetaDataFromCsvQs((CsvQueryStruct)qs);
 		} else if (qsType == QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			return getMetaDataFromExcelQs((ExcelQueryStruct)qs);
+		} else if(qsType == QUERY_STRUCT_TYPE.PARQUET_FILE) {
+			return getMetaDataFromParquetQs((ParquetQueryStruct)qs);
 		} else if(qsType == QUERY_STRUCT_TYPE.LAMBDA) {
 			return getMetaDataFromLambdaQs((LambdaQueryStruct)qs);
 		} else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
@@ -1496,6 +1567,34 @@ public class ImportUtility {
 	}
 	
 	private static Map<String, SemossDataType> getMetaDataFromExcelQs(ExcelQueryStruct qs) {
+		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
+		List<IQuerySelector> selectors = qs.getSelectors();
+		Map<String, String> dataTypes = qs.getColumnTypes();
+
+		// loop through all the selectors
+		int numSelectors = selectors.size();
+		for(int i = 0; i < numSelectors; i++) {
+			IQuerySelector selector = selectors.get(i);
+			String alias = selector.getAlias();
+			String dataType = selector.getDataType();
+			if(dataType == null) {
+				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
+				String table = cSelect.getTable();
+				String column = cSelect.getColumn();
+				// this only happens when we have a column selector
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					dataType = dataTypes.get(table);
+				} else {
+					dataType = dataTypes.get(column);
+				}
+			}
+			SemossDataType dtEnum = SemossDataType.convertStringToDataType(dataType);
+			metaData.put(alias, dtEnum);
+		}
+		return metaData;
+	}
+	
+	private static Map<String, SemossDataType> getMetaDataFromParquetQs(ParquetQueryStruct qs) {
 		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		Map<String, String> dataTypes = qs.getColumnTypes();
