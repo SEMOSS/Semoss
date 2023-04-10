@@ -738,6 +738,18 @@ public class PyTranslator {
 		}
 		return curEncoding;
 	}
+	
+	 /* This method is used to get the column names of a frame
+	 * 
+	 * @param frameName
+	 */
+	public String[] getColumns(String frameName) {
+		String script = "list(" + frameName + ".columns)";
+		ArrayList<String> colNames = (ArrayList<String>) runScript(script);
+		String[] colNamesArray = new String[colNames.size()];
+		colNamesArray = colNames.toArray(colNamesArray);
+		return colNamesArray;
+	 }
 
 //	public static void main(String [] args) {
 //		DIHelper helper = DIHelper.getInstance();

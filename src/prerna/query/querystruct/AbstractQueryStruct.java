@@ -21,6 +21,7 @@ import prerna.util.gson.AbstractSemossTypeAdapter;
 import prerna.util.gson.CsvQueryStructAdapter;
 import prerna.util.gson.ExcelQueryStructAdapter;
 import prerna.util.gson.HardSelectQueryStructAdapter;
+import prerna.util.gson.ParquetQueryStructAdapter;
 import prerna.util.gson.SelectQueryStructAdapter;
 import prerna.util.gson.TemporalEngineHardSelectQueryStructAdapter;
 
@@ -30,7 +31,7 @@ public abstract class AbstractQueryStruct {
 	
 	public final static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 	
-	public enum QUERY_STRUCT_TYPE {ENGINE, FRAME, CSV_FILE, EXCEL_FILE, RAW_ENGINE_QUERY, RAW_JDBC_ENGINE_QUERY, 
+	public enum QUERY_STRUCT_TYPE {ENGINE, FRAME, CSV_FILE, EXCEL_FILE, PARQUET_FILE, RAW_ENGINE_QUERY, RAW_JDBC_ENGINE_QUERY, 
 		RAW_RDF_FILE_ENGINE_QUERY, RAW_FRAME_QUERY, DIRECT_API_QUERY, LAMBDA};
 	
 	// qs type
@@ -585,6 +586,8 @@ public abstract class AbstractQueryStruct {
 			return new CsvQueryStructAdapter();
 		} else if(type == QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			return new ExcelQueryStructAdapter();
+		} else if(type == QUERY_STRUCT_TYPE.PARQUET_FILE) {
+			return new ParquetQueryStructAdapter();
 		} else if(type == QUERY_STRUCT_TYPE.LAMBDA) {
 			
 		}
@@ -614,6 +617,8 @@ public abstract class AbstractQueryStruct {
 			return QUERY_STRUCT_TYPE.CSV_FILE;
 		} else if(s.equals(QUERY_STRUCT_TYPE.EXCEL_FILE.toString())) {
 			return QUERY_STRUCT_TYPE.EXCEL_FILE;
+		} else if(s.equals(QUERY_STRUCT_TYPE.PARQUET_FILE.toString())) {
+			return QUERY_STRUCT_TYPE.PARQUET_FILE;
 		} else if(s.equals(QUERY_STRUCT_TYPE.LAMBDA.toString())) {
 			return QUERY_STRUCT_TYPE.LAMBDA;
 		}
