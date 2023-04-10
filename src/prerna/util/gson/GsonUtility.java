@@ -16,6 +16,7 @@ import prerna.om.SEMOSSVertex;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.ParquetQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -69,6 +70,7 @@ public class GsonUtility {
 				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
 				.registerTypeAdapter(CsvQueryStruct.class, new CsvQueryStructAdapter())
 				.registerTypeAdapter(ExcelQueryStruct.class, new ExcelQueryStructAdapter())
+				.registerTypeAdapter(ParquetQueryStruct.class, new ParquetQueryStructAdapter())
 				.registerTypeAdapter(UpdateQueryStruct.class, new UpdateQueryStructAdapter())
 				.registerTypeAdapter(ColorByValueRule.class, new ColorByValueRuleAdapter())
 				

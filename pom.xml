@@ -2000,5 +2000,10 @@
 		    <artifactId>staedi</artifactId>
 		    <version>1.22.0</version>
 		</dependency>
+		<dependency>
+	        <groupId>org.apache.parquet</groupId>
+	        <artifactId>parquet-avro</artifactId>
+	        <version>1.10.0</version>
+	    </dependency>
 	</dependencies>
 </project>
