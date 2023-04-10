@@ -5,11 +5,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.crypto.Cipher;
@@ -23,6 +25,7 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.ds.util.flatfile.CsvFileIterator;
+import prerna.ds.util.flatfile.ParquetFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.IStringExportProcessor;
@@ -34,6 +37,7 @@ import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.ParquetQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.reactor.imports.ImportUtility;
@@ -159,13 +163,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 */
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> dataTypeMap) {
 		boolean loaded = false;
+		long limit = -1;
 		if(it instanceof CsvFileIterator) {
 			CsvQueryStruct csvQs = ((CsvFileIterator) it).getQs();
 			if(csvQs.getLimit() == -1 || csvQs.getLimit() > 10_000) {
 				addRowsViaCsvIterator((CsvFileIterator) it, tableName);
 				loaded = true;
-			}
-		} 
+			} else {
+				limit = csvQs.getLimit();
+ 			}
+		}
 		
 		// just flush the excel to a grid through the iterator
 		// using the below logic
@@ -173,6 +180,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 			addRowsViaExcelIterator((ExcelSheetFileIterator) it, tableName);
 			loaded = true;
 		} 
+		else if(it instanceof ParquetFileIterator) {
+			// do something
+			addRowsViaParquetIterator((ParquetFileIterator) it, tableName);
+			loaded = true;
+		}
 		
 		if(!loaded) {
 			// default behavior is to just write this to a csv file
@@ -204,6 +216,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String fileLocation = newFile.getAbsolutePath();
 			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
 					fileLocation, tableName, ",", "\"", "\\\\", pyt.getCurEncoding(), dataTypeMap);
+			
+			// what if its not above 10,000 but there is still a limit
+			if (limit > -1) {
+				String rowLimits = String.valueOf(limit);
+				loadS = loadS + "[:" + rowLimits + "]";
+			}
+			
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
 			// execute the script
 			//pyt.runScript(importS, loadS);
@@ -238,21 +257,51 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String importPandasS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
 		String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
 		String fileLocation = it.getFileLocation();
+		Map<String, String> temp = qs.getColumnTypes();
 		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
 				fileLocation, tableName, qs.getDelimiter() + "", "\"", "\\\\", pyt.getCurEncoding(), qs.getColumnTypes());
 
-		// need to compose a string for names
-		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
-		// execute all 3 scripts
-		//pyt.runScript(importS, loadS, headerS);
+		// apply limit for import
+		long limit = qs.getLimit();
+		if (limit > -1) {
+			String rowLimits = String.valueOf(limit);
+			loadS = loadS + "[:" + rowLimits + "]";
+		}
+				
+		// run import of packages and df
+		pyt.runEmptyPy(importPandasS, importNumpyS, loadS);
+		
+		// need a clean headers call
+		String[] colNames = pyt.getColumns(tableName);
+		String cleanHeaders = PandasSyntaxHelper.cleanFrameHeaders(tableName, colNames);
+		pyt.runEmptyPy(cleanHeaders);	
+		
+		
+		// De-select section
+		// Need to do
+		// proper logic first
+		Map<String, String> newHeaders = qs.getNewHeaderNames();
+		String[] selectedHeaders = it.getHeaders();
+		String [] cleanNewHeaders = new String [selectedHeaders.length];
+		int i = 0;
+		for(String newColName : selectedHeaders) {
+			String oldColName = newHeaders.get(newColName);
+			if (oldColName != null) {
+				cleanNewHeaders[i] = oldColName;
+			} else {
+				cleanNewHeaders[i] = newColName;
+			}
+			i++;
+		}
+		
+		String selectedColumns = PandasSyntaxHelper.filterByColumn(tableName, tableName,  Arrays.asList(cleanNewHeaders) );
+		String headerS = PandasSyntaxHelper.setColumnNames(tableName, selectedHeaders);
 		String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
-		pyt.runEmptyPy(importPandasS, importNumpyS, loadS, headerS, makeWrapper);
-		// need to set up the name here as well as make the frame
-		//pyt.runScript(makeWrapper);
+		pyt.runEmptyPy(selectedColumns, headerS, makeWrapper);
 	}
 	
 	/**
-	 * Generate a table from a CSV file iterator
+	 * Generate a table from a Excel file iterator
 	 * @param it
 	 * @param tableName
 	 */
@@ -263,17 +312,97 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String sheetRange = qs.getSheetRange();
 		it.getSheet();
 		// generate the script
-		String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
+		String importPandasS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
+		String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
+		// run import of packages
+		pyt.runEmptyPy(importPandasS,importNumpyS);
+	
 		String loadS = PandasSyntaxHelper.loadExcelSheet(PANDAS_IMPORT_VAR, filePath, tableName, sheetName, sheetRange);
-		// need to compose a string for names
-		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
-		// execute all 3 scripts
-		// need to set up the name here as well as make the frame
-		String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
-		//pyt.runScript(importS, loadS, headerS);
+		long limit = qs.getLimit();
+		if (limit > -1) {
+			String rowLimits = String.valueOf(limit);
+			loadS = loadS + "[:" + rowLimits + "]";
+		}
 		
-		//pyt.runScript(makeWrapper);
-		pyt.runEmptyPy(importS, loadS, headerS, makeWrapper);
+		// run import df
+		pyt.runEmptyPy(loadS);
+		
+		// need a clean headers call
+		String[] colNames = pyt.getColumns(tableName);
+		String cleanHeaders = PandasSyntaxHelper.cleanFrameHeaders(tableName, colNames);
+		pyt.runEmptyPy(cleanHeaders);	
+		
+		
+		// De-select section
+		// Need to do
+		// proper logic first
+		Map<String, String> newHeaders = qs.getNewHeaderNames();
+		String[] selectedHeaders = it.getHeaders();
+		String [] cleanNewHeaders = new String [selectedHeaders.length];
+		int i = 0;
+		for(String newColName : selectedHeaders) {
+			String oldColName = newHeaders.get(newColName);
+			if (oldColName != null) {
+				cleanNewHeaders[i] = oldColName;
+			} else {
+				cleanNewHeaders[i] = newColName;
+			}
+			i++;
+		}
+		
+		String selectedColumns = PandasSyntaxHelper.filterByColumn(tableName, tableName,  Arrays.asList(cleanNewHeaders) );
+		String headerS = PandasSyntaxHelper.setColumnNames(tableName, selectedHeaders);
+		String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
+		pyt.runEmptyPy(selectedColumns, headerS, makeWrapper);
+ 	}
+	
+ 	/**
+	 * Generate a table from a Parquet file iterator
+	 * @param it
+	 * @param tableName
+	 */
+	private void addRowsViaParquetIterator(ParquetFileIterator it, String tableName) {
+		// generate the script
+		ParquetQueryStruct qs = it.getQs();
+		String importPandasS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
+		String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
+		String fileLocation = it.getFileLocation();
+		String loadS = PandasSyntaxHelper.getParquetFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
+				fileLocation, tableName);
+		// apply limit for import
+		long limit = qs.getLimit();
+		if (limit > -1) {
+			String rowLimits = String.valueOf(limit);
+			loadS = loadS + "[:" + rowLimits + "]";
+		}
+		pyt.runEmptyPy(importPandasS, importNumpyS, loadS);
+		
+		// need a clean headers call
+		String[] colNames = pyt.getColumns(tableName);
+		String cleanHeaders = PandasSyntaxHelper.cleanFrameHeaders(tableName, colNames);
+		pyt.runEmptyPy(cleanHeaders);	
+		
+		
+		// De-select section
+		Map<String, String> newHeaders = qs.getNewHeaderNames();
+		String[] selectedHeaders = it.getHeaders();
+		
+		String [] cleanNewHeaders = new String [selectedHeaders.length];
+		int i = 0;
+		for(String newColName : selectedHeaders) {
+			String oldColName = newHeaders.get(newColName);
+			if (oldColName != null) {
+				cleanNewHeaders[i] = oldColName;
+			} else {
+				cleanNewHeaders[i] = newColName;
+			}
+			i++;
+		}
+		
+		String selectedColumns = PandasSyntaxHelper.filterByColumn(tableName, tableName,  Arrays.asList(cleanNewHeaders) );
+		String headerS = PandasSyntaxHelper.setColumnNames(tableName, selectedHeaders);
+		String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
+		pyt.runEmptyPy(selectedColumns, headerS, makeWrapper);
 	}
 	
 	/**

@@ -17,6 +17,7 @@ import prerna.om.InsightFile;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.ParquetQueryStruct;
 import prerna.query.querystruct.SQLQueryUtils;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
@@ -169,6 +170,8 @@ public class ImportReactor extends AbstractReactor {
 			storeCsvFileMeta((CsvQueryStruct) qs);
 		} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			storeExcelFileMeta((ExcelQueryStruct) qs);
+		} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.PARQUET_FILE) {
+			storeParquetFileMeta((ParquetQueryStruct) qs);
 		}
 		
 		// track GA data
@@ -235,6 +238,22 @@ public class ImportReactor extends AbstractReactor {
 		insightFile.setFilePath(qs.getFilePath());
 		insightFile.setFrameUpload(true);
 		this.insight.addLoadInsightFile(insightFile);
+	}
+	
+	private void storeParquetFileMeta(ParquetQueryStruct qs) {
+		// based on convo w/ PK, this could happen
+		if(qs.getSource() == ParquetQueryStruct.ORIG_SOURCE.FILE_UPLOAD) {
+			InsightFile insightFile = new InsightFile();
+			insightFile.setFilePath(qs.getFilePath());
+			insightFile.setFrameUpload(true);
+			this.insight.addLoadInsightFile(insightFile);
+		} else {
+			// it is from an API call of some sort
+			// delete it
+			// when we save, we want to repull every time
+			File parquetFile = new File(qs.getFilePath());
+			parquetFile.delete();
+		}
 	}
 }
 
