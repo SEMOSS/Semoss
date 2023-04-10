@@ -357,6 +357,22 @@ public class PandasSyntaxHelper {
 		return tableName + " = " + pandasImportVar + ".read_pickle(\"" + fileLocation.replaceAll("\\\\+", "/") + "\")";
 		//		return tableName + " = " + pickleVarName + ".load(open(\"" + fileLocation.replaceAll("\\\\+", "/") + "\", \"wb\"))";
 	}
+	
+ 	/**
+	 * Reads a Parquet File using pandas. less greedy / dynamic version. 
+	 * @param pandasImportVar
+	 * @param numpyImportVar
+	 * @param fileLocation
+	 * @param tableName
+	 * @param dataTypeMaps
+	 * @return
+	 */
+	public static String getParquetFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName) {
+		StringBuffer script = new StringBuffer();
+		script.append(tableName).append("=").append(pandasImportVar).append(".read_parquet('").append(fileLocation.replaceAll("\\\\+", "/"))
+		  .append("')");
+		return script.toString();
+	}
 
 	/** Merges two dataframes. if nonEqui is true, implicitly performs a join by taking the cross product. 
 	 * 
@@ -472,6 +488,24 @@ public class PandasSyntaxHelper {
 	public static String alterColumnName(String tableName, String oldHeader, String newHeader) {
 		return tableName + ".rename(columns={'" + oldHeader + "':'" + newHeader + "'}, inplace=True)";
 	}
+	
+	public static String alterColumnName(String tableName, Map<String, String>  oldNewHeaders) {
+		// create loop to generate key value pair
+		int numRenames = oldNewHeaders.size();
+		StringBuilder keyValues = new StringBuilder();
+		int i = 1;
+		for (String newHeader : oldNewHeaders.keySet()) {
+			String oldHeader = oldNewHeaders.get(newHeader);
+			if (i == numRenames) {
+				keyValues.append("'" + oldHeader + "':'" + newHeader + "'");
+				break;
+			} else {
+				keyValues.append("'" + oldHeader + "':'" + newHeader + "',");
+			}
+			i++;
+		}
+		return tableName + ".rename(columns={" + keyValues.toString() + "}, inplace=True)";
+	}
 
 	/**
 	 * Generate an alter statement to add new columns, taking into consideration
@@ -562,7 +596,7 @@ public class PandasSyntaxHelper {
 
 	// gets all the columns as an array
 	public static String getColumns(String tableName) {
-		String cols = "list(" + tableName + ")";
+		String cols = "list(" + tableName + ".columns)";
 		return cols;
 	}
 
