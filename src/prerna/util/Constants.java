@@ -601,6 +601,11 @@ public class Constants {
 	// is this server running locally
 	public static final String LOCAL_DEPLOYMENT = "LOCAL_DEPLOYMENT";
 	
+	
+	// moose configurations
+	public static final String MOOSE_MODEL = "MOOSE_MODEL";
+	public static final String MOOSE_ENDPOINT = "MOOSE_ENDPOINT";
+	
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
 	public static final String PY_WORKER_CP = "PY_WORKER_CP";
