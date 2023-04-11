@@ -31,6 +31,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class NLPQuery2Reactor extends AbstractFrameReactor {
@@ -39,7 +41,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 	// starts the environment / sets the model
 	// convert text to sql through pipeline
 	// plug the pipeline into insight
-	
+
 	//
 	private static final Logger logger = LogManager.getLogger(NLPQuery2Reactor.class);
 
@@ -51,14 +53,14 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				ReactorKeysEnum.FRAME.getKey(),
 				"allFrames",
 				"dialect"
-			};
+		};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String query = keyValue.get(keysToGet[0]);
-		
+
 		boolean json = true;
 		if(keyValue.containsKey(keysToGet[1])) {
 			if(keyValue.get(keysToGet[1]).equalsIgnoreCase("true")) {
@@ -85,12 +87,19 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 			}
 			theseFrames.add(thisFrame);
 		}
-		
+
 		String dialect = this.keyValue.get(this.keysToGet[5]);
 		if(dialect == null || (dialect=dialect.trim()).isEmpty()) {
 			dialect = "SQLite3";
 		}
+
 		
+		String model = DIHelper.getInstance().getProperty(Constants.MOOSE_MODEL);
+		if(model == null || model.trim().isEmpty()) {
+			model = "gpt_3";
+		}
+
+
 		// create the prompt
 		// format
 		/*
@@ -105,83 +114,113 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		 * 
 		 */
 		// use \n to separate
-		
+
 		// make the call to the open ai and get the response back
-		
+
 		// may be we should get all the frames here
 		//Set <ITableDataFrame> allFrames = this.insight.getVarStore().getFrames();
 		//Iterator <ITableDataFrame> frameIterator = allFrames.iterator();
-		
+
 		List<NounMetadata> retListForFrames = new ArrayList<>();
-		
+
 		for(ITableDataFrame thisFrame : theseFrames) {
-		
-			StringBuffer finalDbString = new StringBuffer("### "+dialect+" SQL Tables, with their properties:");
-			finalDbString.append("\\n#\\n");
-			
-			//ITableDataFrame thisFrame = frameIterator.next();
-			logger.info("Processing frame " + thisFrame.getName());
-			finalDbString.append("#").append(thisFrame.getName()).append("(");
-			
-			String [] columns = thisFrame.getColumnHeaders();
-			
-			// if the frame is pandas frame get the data
-			// we will get to this shortly
-			for(int columnIndex = 0;columnIndex < columns.length;columnIndex++) {
-				if(columnIndex == 0) {
-					finalDbString.append(columns[columnIndex]);
-				} else { 
-					finalDbString.append(" , ").append(columns[columnIndex]);
+			StringBuffer finalDbString = new StringBuffer();
+			if(model.equalsIgnoreCase("alpaca")) {
+
+				finalDbString.append("Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\\n\\n### Instruction:\\n");
+
+				finalDbString.append(dialect+" SQL Tables, with their properties: \\n\\nTABLE Name ::: ");
+				finalDbString.append(thisFrame.getName());
+				finalDbString.append("\\n\\nCOLUMNS ::: ");
+				String [] columns = thisFrame.getColumnHeaders();
+				for(int columnIndex = 0;columnIndex < columns.length;columnIndex++) {
+					if(columnIndex == 0) {
+						finalDbString.append(columns[columnIndex]);
+					} else { 
+						finalDbString.append(" , ").append(columns[columnIndex]);
+					}
 				}
+				finalDbString.append("\\n\\nWhat is the SQL to ").append(query);
+				finalDbString.append("\\n\\n### Response:");
 			}
-			finalDbString.append(")\\n");
-			finalDbString.append("#\\n").append("### A query to list ").append(query).append("\\n").append("SELECT");
-			
-			logger.info("executing query " + finalDbString);
-	
-			Object output = insight.getPyTranslator().runScript("smssutil.run_gpt_3(\"" + finalDbString + "\", " + maxTokens + ")");
+			else{
+				finalDbString.append("### "+dialect+" SQL Tables, with their properties:");
+				finalDbString.append("\\n#\\n");
+
+				//ITableDataFrame thisFrame = frameIterator.next();
+				logger.info("Processing frame " + thisFrame.getName());
+				finalDbString.append("#").append(thisFrame.getName()).append("(");
+
+				String [] columns = thisFrame.getColumnHeaders();
+
+				// if the frame is pandas frame get the data
+				// we will get to this shortly
+				for(int columnIndex = 0;columnIndex < columns.length;columnIndex++) {
+					if(columnIndex == 0) {
+						finalDbString.append(columns[columnIndex]);
+					} else { 
+						finalDbString.append(" , ").append(columns[columnIndex]);
+					}
+				}
+				finalDbString.append(")\\n");
+				finalDbString.append("#\\n").append("### A query to list ").append(query).append("\\n").append("SELECT");
+
+				logger.info("executing query " + finalDbString);
+
+			}
+			Object output;
+			if(model.equalsIgnoreCase("alpaca")) {
+				String endpoint = DIHelper.getInstance().getProperty(Constants.MOOSE_ENDPOINT);
+				if(endpoint == null || endpoint.trim().isEmpty()) {
+					throw new IllegalArgumentException("Must define endpoint to run custom models");
+				} 
+				output = insight.getPyTranslator().runScript("smssutil.run_alpaca(\"" + finalDbString + "\", " + maxTokens + " ,\" "  + endpoint.trim() + "\")");
+			}
+			else {
+				output = insight.getPyTranslator().runScript("smssutil.run_gpt_3(\"" + finalDbString + "\", " + maxTokens + ")");
+			}
 			// get the string
 			// make a frame
 			// load the frame into insight
 			logger.info("SQL query is " + output);
-			
+
 			//Create a new SQL Data Frame 
 			String sqlDFQuery = output.toString().trim();
 			// remove the new line
 			sqlDFQuery = sqlDFQuery.replace("\n", " ");
-			
+
 			// execute sqlDF to create a frame
 			// need to check if the query is right and then feed this into sqldf
-			
+
 			// need to parse this
 			//a.  see if the table names match with the frame names if not change it 
 			//b. See the constants and change the value based on the appropriate value the column has - you can circumvent this by giving value in quotes
-			
+
 			String frameName = Utility.getRandomString(5);
-	
+
 			Map<String, String> outputMap = new HashMap<>();
-			
+
 			boolean sameColumns = isSameColumns(sqlDFQuery, thisFrame);
 			outputMap.put("COLUMN_CHANGE", sameColumns + "");
-			
+
 			if(thisFrame instanceof PandasFrame) {
 				sqlDFQuery = sqlDFQuery.replace("\"", "\\\"");
-	
+
 				// do we need a way to check the library is installed?
-	
+
 				PandasFrame pFrame = (PandasFrame)thisFrame;
 				String sqliteName = pFrame.getSQLite();
-				
+
 				// pd.read_sql("select * from diab1 where age > 60", conn)
 				String frameMaker = "pd.read_sql(\"" + sqlDFQuery + "\", " + sqliteName + ").head(20)";
 				logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 				String sampleOut = insight.getPyTranslator().runSingle(insight.getUser().getVarMap(), frameMaker, this.insight); // load the sql df
-				
+
 				System.err.println(sampleOut);
 				// send information
 				// check to see if the variable was created
 				// if not this is a bad query
-	
+
 				if(sampleOut != null && sampleOut.length() > 0)
 				{
 					if(json) {
@@ -221,14 +260,14 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				sqlDFQuery = sqlDFQuery.replace("\"", "\\\"");
 				AbstractRJavaTranslator rt = insight.getRJavaTranslator(this.getClass().getName());
 				rt.checkPackages(new String[] { "sqldf" });
-				
+
 				String frameMaker = frameName + " <- sqldf(\"" + sqlDFQuery + "\")";
 				logger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 				rt.runRAndReturnOutput("library(sqldf)");
 				rt.runR(frameMaker); // load the sql df			
-	
+
 				boolean frameCreated = rt.runRAndReturnOutput("exists('" + frameName + "')").toUpperCase().contains("TRUE");
-	
+
 				if(frameCreated)
 				{
 					String sampleOut = rt.runRAndReturnOutput("head(" + frameName + ", 20)");
@@ -270,7 +309,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				SelectQueryStruct allDataQs = thisFrame.getMetaData().getFlatTableQs(true);
 				String baseQuery = ((NativeFrame) thisFrame).getEngineQuery(allDataQs);
 				String newQuery = sqlDFQuery.replace(thisFrame.getName(), "(" + baseQuery+") as " + thisFrame.getName());
-	
+
 				HardSelectQueryStruct hqs = new HardSelectQueryStruct();
 				hqs.setQuery(newQuery);
 				int counter = 0;
@@ -281,13 +320,13 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 						sampleOut.add(Arrays.asList(it.next().getValues()));
 						counter++;
 					}
-					
+
 					if(json) {
 						outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), DataFrameTypeEnum.NATIVE.getTypeAsString());
 						outputMap.put("Query", newQuery);
 						outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
 						outputMap.put("SAMPLE", sampleOut.toString());
-	
+
 						retListForFrames.add(new NounMetadata(outputMap, PixelDataType.MAP));
 					} else {
 						StringBuffer outputString = new StringBuffer("Query Generated : " + newQuery);
@@ -321,13 +360,13 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 						sampleOut.add(Arrays.asList(it.next().getValues()));
 						counter++;
 					}
-					
+
 					if(json) {
 						outputMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), DataFrameTypeEnum.GRID.getTypeAsString());
 						outputMap.put("Query", sqlDFQuery);
 						outputMap.put(ReactorKeysEnum.FRAME.getKey(), frameName);
 						outputMap.put("SAMPLE", sampleOut.toString());
-	
+
 						retListForFrames.add(new NounMetadata(outputMap, PixelDataType.MAP));
 					} else {
 						StringBuffer outputString = new StringBuffer("Query Generated : " + sqlDFQuery);
@@ -354,10 +393,10 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				retListForFrames.add(getError("NLP Query 2 has only been implemented for python, r, grid, and native frame at this point, please convert your frames to python,r and try again"));
 			}
 		}
-		
+
 		return new NounMetadata(retListForFrames, PixelDataType.VECTOR, PixelOperationType.VECTOR);
 	}
-	
+
 	private boolean isSameColumns(String sqlDFQuery, ITableDataFrame thisFrame)
 	{
 		boolean sameColumns = true;
@@ -365,10 +404,10 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		{
 			SqlParser2 p2 = new SqlParser2();
 			GenExpressionWrapper wrapper = p2.processQuery(sqlDFQuery);
-			
+
 			String [] columnHeaders = thisFrame.getColumnHeaders();
 			boolean allColumns = false;
-			
+
 			List <GenExpression> selects = wrapper.root.nselectors;
 			if(selects.size() == 1)
 			{
@@ -402,7 +441,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		}
 		return sameColumns;
 	}
-	
+
 	private void processSQL(String sql)
 	{
 		sql = "SELECT actor_name, title, gender" + 
@@ -412,19 +451,19 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				"title IN (SELECT title" + 
 				"                FROM mv" + 
 				"                WHERE director = 'Steven Spielberg' AND revenue_domestic > budget)" ;
-			
+
 		try 
 		{
 			SqlParser2 parser = new SqlParser2();
 			parser.parameterize = false;
 			GenExpressionWrapper gew = parser.processQuery(sql);
-			
+
 			// need to walk the gen expression and figure out if there are subqueries and start assimilating
 			GenExpression ge = gew.root;
-			
+
 			// get the filter
 			GenExpression mainFilter = ge.filter;
-			
+
 			Object finalObject = processFilter(mainFilter, null);
 			// if main filter is not null
 			// see what type of filter
@@ -432,14 +471,14 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 			// if it is AND/OR, it is an and filter and then parse again
 			// if it is an IN filter then the right hand side could possibly be a query struct (like above)
 			System.err.println(finalObject);
-			
-			
+
+
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-	
+
 	private Object processFilter(GenExpression filter, IQueryFilter parentFilter)
 	{
 
@@ -450,33 +489,33 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		// if it is an IN filter then the right hand side could possibly be a query struct (like above)
 		// or it is in list and then right side is an opaque list
 		// else this is simple.. column and something else
-		
+
 		// other things to do
 		// do paranthesis to find the levels - so it can all be added to the same step
-		
+
 		// if parentfilter == null
 		// make parent filter
 		// if not and this is not a paranthesis
 		// (a or b) and (c) and ((e or f) and g)
-		
-		
-		
-		
-		
+
+
+
+
+
 		if(filter != null)
 		{
 			// if it is = or AND or OR
 			if(filter.operation.equalsIgnoreCase("=") || filter.operation.equalsIgnoreCase(">")  || filter.operation.equalsIgnoreCase("<") || filter.operation.equalsIgnoreCase(">=")  
-			   || filter.operation.equalsIgnoreCase("<=") 
-			   || filter.operation.equalsIgnoreCase("AND") || filter.operation.equalsIgnoreCase("OR")
-			   
-			   || filter.operation.equalsIgnoreCase("IN") // pass the left and right and get it aligned
-			   )
+					|| filter.operation.equalsIgnoreCase("<=") 
+					|| filter.operation.equalsIgnoreCase("AND") || filter.operation.equalsIgnoreCase("OR")
+
+					|| filter.operation.equalsIgnoreCase("IN") // pass the left and right and get it aligned
+					)
 			{
 				System.err.println("Operation " + filter.operation);
-				
+
 				System.err.println("Paranthesis " + filter.paranthesis);
-				
+
 				IQueryFilter newParentFilter = null;
 				boolean root = false;
 				if(parentFilter == null)
@@ -485,7 +524,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 						parentFilter = new AndQueryFilter();
 					else if (filter.operation.equalsIgnoreCase("OR"))
 						parentFilter = new OrQueryFilter();
-					
+
 					else if((filter.operation.equalsIgnoreCase("=") || filter.operation.equalsIgnoreCase(">")  
 							|| filter.operation.equalsIgnoreCase("<") || filter.operation.equalsIgnoreCase(">=")  
 							|| filter.operation.equalsIgnoreCase("<="))
@@ -495,10 +534,10 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 						NounMetadata replacer = new NounMetadata("replacer", PixelDataType.CONST_STRING);
 						parentFilter = new SimpleQueryFilter(replacer, "***", replacer); // I will replace these values shortly.
 					}
-					
+
 					root = true;
 				}
-				
+
 				// if there is a paranthesis this is start of a new level
 				if(filter.paranthesis && ! root) // start of a new world
 				{
@@ -515,16 +554,16 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 						NounMetadata replacer = new NounMetadata("replacer", PixelDataType.CONST_STRING);
 						newParentFilter = new SimpleQueryFilter(replacer, "***", replacer); // I will replace these values shortly.
 					}
-					
+
 					if(parentFilter instanceof AndQueryFilter)
 						((AndQueryFilter)parentFilter).addFilter(newParentFilter);
-					
+
 					if(parentFilter instanceof OrQueryFilter)
 						((OrQueryFilter)parentFilter).addFilter(newParentFilter);
-					
+
 					parentFilter = newParentFilter;
 				}
-				
+
 				// also address the regular case where this is not an and
 				else 
 					if((filter.operation.equalsIgnoreCase("=") || filter.operation.equalsIgnoreCase(">")  
@@ -532,19 +571,19 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 							|| filter.operation.equalsIgnoreCase("<="))
 							|| filter.operation.equalsIgnoreCase("IN")
 							)
-				{
-					NounMetadata replacer = new NounMetadata("replacer", PixelDataType.CONST_STRING);
-					newParentFilter = new SimpleQueryFilter(replacer, "***", replacer); // I will replace these values shortly.
-					
-					if(parentFilter instanceof AndQueryFilter)
-						((AndQueryFilter)parentFilter).addFilter(newParentFilter);
-					
-					if(parentFilter instanceof OrQueryFilter)
-						((OrQueryFilter)parentFilter).addFilter(newParentFilter);
-					
-					parentFilter = newParentFilter;
-				}
-				
+					{
+						NounMetadata replacer = new NounMetadata("replacer", PixelDataType.CONST_STRING);
+						newParentFilter = new SimpleQueryFilter(replacer, "***", replacer); // I will replace these values shortly.
+
+						if(parentFilter instanceof AndQueryFilter)
+							((AndQueryFilter)parentFilter).addFilter(newParentFilter);
+
+						if(parentFilter instanceof OrQueryFilter)
+							((OrQueryFilter)parentFilter).addFilter(newParentFilter);
+
+						parentFilter = newParentFilter;
+					}
+
 				Object leftItem = null;
 				Object rightItem = null;
 				if(filter.leftItem != null && filter.leftItem instanceof GenExpression)
@@ -559,7 +598,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 					// run the processing
 					rightItem = processFilter(right, parentFilter);
 				}
-				
+
 				// make the evaluation here to say what you want to do
 				// if it is = then do those
 				/*
@@ -570,7 +609,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				 * (NounMetadata)rightItem); return sq; } else
 				 */					return parentFilter;
 			}
-			
+
 			// if it is a column print column
 			if(filter.operation.equalsIgnoreCase("column"))
 			{
@@ -579,7 +618,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				System.err.println(filter.leftItem);
 				return nmd;
 			}
-			
+
 			// see if it is a query struct
 			if(filter.operation.equalsIgnoreCase("querystruct"))
 			{
@@ -588,9 +627,9 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				NounMetadata nmd = new NounMetadata(filter.body.aQuery, PixelDataType.SUB_QUERY_EXPRESSION);
 				System.err.println(filter.leftItem);
 				return nmd;
-				
+
 			}
-			
+
 			if( filter.getOperation().equalsIgnoreCase("string"))
 			{
 				NounMetadata nmd = new NounMetadata(filter.leftItem, PixelDataType.CONST_STRING);
@@ -631,17 +670,17 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				System.err.println("something else " + filter.operation);				
 			}
 			// need to account for function
-			
+
 		}
-		
+
 		return null;
 	}
-	
+
 	public static void main(String [] args)
 	{
 		NLPQuery2Reactor nl = new NLPQuery2Reactor();
 		nl.processSQL(null);
 	}
-	
-	
+
+
 }
