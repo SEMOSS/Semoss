@@ -316,6 +316,17 @@ def run_gpt_3(nl_query, max_tokens_value):
   print (query)
   return query
 
+def run_alpaca(nl_query, max_tokens_value, api_base):
+  #import os
+  import openai
+  openai.api_base = api_base
+  #response = openai.Completion.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  response = openai.Completion.create(model="alpaca-13b-lora-int4", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  #response = openai.Completion.create(model="alpaca-lora-7b", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  query=response.choices[0].text
+  print (query)
+  return query
+
 def convert_pdf_to_text(document_location):
   import PyPDF2
   import pathlib
