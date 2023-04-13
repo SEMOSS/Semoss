@@ -9,7 +9,7 @@ public class GCPClientBuilder extends AbstractClientBuilder {
 	public GCPClientBuilder() {};
 
 	@Override
-	public CloudClient buildClient() {
+	public AbstractCloudClient buildClient() {
 		if(this.region == null || this.region.isEmpty()) {
 			throw new IllegalArgumentException("There is no region specified.");
 		}

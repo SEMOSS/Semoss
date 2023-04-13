@@ -145,7 +145,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -2624,7 +2624,7 @@ public class Utility {
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 						try {
-							CloudClient.getClient().pullProject(projectId);
+							AbstractCloudClient.getClient().pullProject(projectId);
 						} catch (IOException | InterruptedException e) {
 							logger.error(Constants.STACKTRACE, e);
 							return null;
@@ -2687,7 +2687,7 @@ public class Utility {
 				// correct jdbcs...
 				if (ClusterUtil.IS_CLUSTER) {
 					try {
-						CloudClient.getClient().pullUserAssetOrWorkspace(projectId, isAsset, false);
+						AbstractCloudClient.getClient().pullUserAssetOrWorkspace(projectId, isAsset, false);
 					} catch (IOException | InterruptedException e) {
 						logger.error(Constants.STACKTRACE, e);
 						return null;
@@ -2805,7 +2805,7 @@ public class Utility {
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 						try {
-							CloudClient.getClient().pullApp(engineId);
+							AbstractCloudClient.getClient().pullApp(engineId);
 						} catch (IOException | InterruptedException e) {
 							logger.error(Constants.STACKTRACE, e);
 							return null;
