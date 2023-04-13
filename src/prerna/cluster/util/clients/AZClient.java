@@ -50,7 +50,7 @@ import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class AZClient extends CloudClient {
+public class AZClient extends AbstractCloudClient {
 	
 	private static final Logger classLogger = LogManager.getLogger(AZClient.class);
 

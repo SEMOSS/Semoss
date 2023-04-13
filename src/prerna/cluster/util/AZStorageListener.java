@@ -3,7 +3,7 @@ package prerna.cluster.util;
 import org.apache.zookeeper.ZooKeeper;
 
 import prerna.cluster.util.clients.AZClient;
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 
 public class AZStorageListener implements IZKListener {
 
@@ -18,7 +18,7 @@ public class AZStorageListener implements IZKListener {
 		// and reset on the AZClient
 		
 		String data = ZKClient.getNodeData(path, zk);
-		((AZClient) CloudClient.getClient()).swapKey(data);
+		((AZClient) AbstractCloudClient.getClient()).swapKey(data);
 	}
 	
 }

@@ -18,7 +18,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
@@ -117,7 +117,7 @@ public class ProjectHelper {
 
 			if (ClusterUtil.IS_CLUSTER) {
 				logger.info("Syncing project for cloud backup");
-				CloudClient.getClient().pushProject(projectId);
+				AbstractCloudClient.getClient().pushProject(projectId);
 			}
 
 			SecurityUpdateUtils.addProject(projectId);

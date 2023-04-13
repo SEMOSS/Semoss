@@ -24,7 +24,7 @@ import org.json.JSONObject;
 
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
@@ -184,7 +184,7 @@ public class ClusterUtil {
 	public static void reactorPullApp(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullApp(appId);
+				AbstractCloudClient.getClient().pullApp(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to pull app to cloud storage", PixelDataType.CONST_STRING,
@@ -199,7 +199,7 @@ public class ClusterUtil {
 	public static void reactorPullApp(String appId, boolean appAlreadyLoaded) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullApp(appId, appAlreadyLoaded);
+				AbstractCloudClient.getClient().pullApp(appId, appAlreadyLoaded);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to pull app to cloud storage", PixelDataType.CONST_STRING,
@@ -214,7 +214,7 @@ public class ClusterUtil {
 	public static void reactorPushDatabase(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushApp(appId);
+				AbstractCloudClient.getClient().pushApp(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push app to cloud storage", PixelDataType.CONST_STRING,
@@ -229,7 +229,7 @@ public class ClusterUtil {
 	public static void reactorPushDatabaseSmss(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushDatabaseSmss(appId);
+				AbstractCloudClient.getClient().pushDatabaseSmss(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push app smss to cloud storage", PixelDataType.CONST_STRING,
@@ -244,7 +244,7 @@ public class ClusterUtil {
 	public static void reactorPullInsightsDB(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullInsightsDB(projectId);
+				AbstractCloudClient.getClient().pullInsightsDB(projectId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to check if project has been modified", PixelDataType.CONST_STRING,
@@ -260,7 +260,7 @@ public class ClusterUtil {
 	public static void reactorPushInsightDB(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushInsightDB(projectId);
+				AbstractCloudClient.getClient().pushInsightDB(projectId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to check if project has been modified", PixelDataType.CONST_STRING,
@@ -276,7 +276,7 @@ public class ClusterUtil {
 	public static void reactorPullOwl(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullOwl(appId);
+				AbstractCloudClient.getClient().pullOwl(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to pull owl for engine: " + appId, PixelDataType.CONST_STRING,
@@ -292,7 +292,7 @@ public class ClusterUtil {
 	public static void reactorPushOwl(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushOwl(appId);
+				AbstractCloudClient.getClient().pushOwl(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push owl for engine: " + appId, PixelDataType.CONST_STRING,
@@ -310,7 +310,7 @@ public class ClusterUtil {
 	public static void reactorUpdateApp(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().updateApp(appId);
+				AbstractCloudClient.getClient().updateApp(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to update app from cloud storage",
@@ -325,7 +325,7 @@ public class ClusterUtil {
 	public static void reactorImagePull(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().updateApp(appId);
+				AbstractCloudClient.getClient().updateApp(appId);
 			}  catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to fetch app image", PixelDataType.CONST_STRING,
@@ -352,7 +352,7 @@ public class ClusterUtil {
 	private static void reactorPushDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushEngineFolder(appId, absolutePath, remoteRelativePath);
+				AbstractCloudClient.getClient().pushEngineFolder(appId, absolutePath, remoteRelativePath);
 			}  catch (IOException | InterruptedException e) {
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
@@ -381,7 +381,7 @@ public class ClusterUtil {
 	public static void reactorPullDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullEngineFolder(appId, absolutePath, remoteRelativePath);
+				AbstractCloudClient.getClient().pullEngineFolder(appId, absolutePath, remoteRelativePath);
 			}  catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
@@ -396,7 +396,7 @@ public class ClusterUtil {
 	public static void reactorPushProject(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushProject(projectId);
+				AbstractCloudClient.getClient().pushProject(projectId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push project to cloud storage", PixelDataType.CONST_STRING,
@@ -411,7 +411,7 @@ public class ClusterUtil {
 	public static void reactorPushProjectSmss(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushProjectSmss(projectId);
+				AbstractCloudClient.getClient().pushProjectSmss(projectId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push project smss to cloud storage", PixelDataType.CONST_STRING,
@@ -439,7 +439,7 @@ public class ClusterUtil {
 	public static void reactorPushProjectFolder(String projectId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushProjectFolder(projectId, absolutePath, remoteRelativePath);
+				AbstractCloudClient.getClient().pushProjectFolder(projectId, absolutePath, remoteRelativePath);
 			}  catch (IOException | InterruptedException e) {
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
@@ -467,7 +467,7 @@ public class ClusterUtil {
 	public static void reactorPullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullProjectFolder(projectId, absolutePath, remoteRelativePath);
+				AbstractCloudClient.getClient().pullProjectFolder(projectId, absolutePath, remoteRelativePath);
 			}  catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
@@ -482,7 +482,7 @@ public class ClusterUtil {
 	public static void reactorPushInsight(String projectId, String rdbmsId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushInsight(projectId, rdbmsId);
+				AbstractCloudClient.getClient().pushInsight(projectId, rdbmsId);
 			}  catch (IOException | InterruptedException e) {
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
@@ -496,7 +496,7 @@ public class ClusterUtil {
 	public static void reactorPullInsight(String projectId, String rdbmsId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullInsight(projectId, rdbmsId);
+				AbstractCloudClient.getClient().pullInsight(projectId, rdbmsId);
 			}  catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
@@ -511,7 +511,7 @@ public class ClusterUtil {
 	public static void reactorPushUserWorkspace(IProject project, boolean isAsset) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushUserAssetOrWorkspace(project.getProjectId(), isAsset);
+				AbstractCloudClient.getClient().pushUserAssetOrWorkspace(project.getProjectId(), isAsset);
 			}  catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push user/workplace project", PixelDataType.CONST_STRING,
@@ -526,7 +526,7 @@ public class ClusterUtil {
 	public static void reactorPullUserWorkspace(IProject project, boolean isAsset) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullUserAssetOrWorkspace(project.getProjectId(), isAsset, false);
+				AbstractCloudClient.getClient().pullUserAssetOrWorkspace(project.getProjectId(), isAsset, false);
 			}  catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push user/workplace project", PixelDataType.CONST_STRING,
@@ -558,7 +558,7 @@ public class ClusterUtil {
 		else {
 			try {
 				//first try to pull the images folder, Return it after the pull, or else we make the file
-				CloudClient.getClient().pullDatabaseImageFolder();
+				AbstractCloudClient.getClient().pullDatabaseImageFolder();
 				//so i dont always know the extension, but every image should be named by the appid which means i need to search the folder for something like the file
 				images = imageFolder.listFiles(new FilenameFilter() {
 					@Override
@@ -578,7 +578,7 @@ public class ClusterUtil {
 					} else{
 						TextToGraphic.makeImage(databaseId, imageFilePath);
 					}
-					CloudClient.getClient().pushDatabaseImageFolder();
+					AbstractCloudClient.getClient().pushDatabaseImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
 				imageFile = new File(imageFilePath);
@@ -624,7 +624,7 @@ public class ClusterUtil {
 		else {
 			try {
 				// first try to pull the images folder, Return it after the pull, or else we make the file
-				CloudClient.getClient().pullProjectImageFolder();
+				AbstractCloudClient.getClient().pullProjectImageFolder();
 				// so i dont always know the extension, but every image should be named by the 
 				// projectId which means i need to search the folder for something like the file
 				images = imageFolder.listFiles(new FilenameFilter() {
@@ -645,7 +645,7 @@ public class ClusterUtil {
 					} else{
 						TextToGraphic.makeImage(projectId, imageFilePath);
 					}
-					CloudClient.getClient().pushProjectImageFolder();
+					AbstractCloudClient.getClient().pushProjectImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
 				imageFile = new File(imageFilePath);
