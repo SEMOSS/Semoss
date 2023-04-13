@@ -468,7 +468,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		logger.info("Finished adding engine = " + Utility.cleanLogString(projectId));
+		logger.info("Finished adding project = " + Utility.cleanLogString(projectId));
 	}
 	
 	/**
