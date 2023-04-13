@@ -19,8 +19,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
-import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.clients.CloudClient;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -942,8 +942,9 @@ public class User implements Serializable {
 	}
 	
 	public CmdExecUtil getCmdUtil() {
-		if(tcpServer != null && tcpServer.isConnected())
+		if(cmdUtil != null && tcpServer != null && tcpServer.isConnected()) {
 			cmdUtil.setTcpClient(tcpServer);
+		}
 		return this.cmdUtil;
 	}
 	
