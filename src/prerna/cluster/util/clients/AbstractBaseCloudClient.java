@@ -32,7 +32,7 @@ import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public abstract class AbstractBaseCloudClient extends CloudClient {
+public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	private static Logger classLogger = LogManager.getLogger(AbstractBaseCloudClient.class);
 

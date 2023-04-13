@@ -16,7 +16,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.sablecc2.om.PixelDataType;
@@ -126,7 +126,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 						
 						// Delete from cluster
 						try {
-							CloudClient.getClient().deleteApp(appId);
+							AbstractCloudClient.getClient().deleteApp(appId);
 							
 							// Successful cleanup
 							removedAppsMap.put(key, "removed");
@@ -152,7 +152,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 			Map<String, Object> removedContainersMap = new HashMap<>();
 			if (cleanUpCloudStorage) {
 				try {
-					List<String> allContainers = CloudClient.getClient().listAllBlobContainers();
+					List<String> allContainers = AbstractCloudClient.getClient().listAllBlobContainers();
 					for (String container : allContainers) {
 						String cleanedContainerName = container.replaceAll("-smss", "").replaceAll("/", "");
 						//we now have configuration blobs like the image blob we dont want to delete
@@ -164,7 +164,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 							if (!dryRun) {
 								// Actually remove
 								try {
-									CloudClient.getClient().deleteContainer(container);
+									AbstractCloudClient.getClient().deleteContainer(container);
 
 									// Successful cleanup
 									removedContainersMap.put(container, "removed");

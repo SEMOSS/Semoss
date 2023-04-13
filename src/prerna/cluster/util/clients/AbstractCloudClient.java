@@ -19,7 +19,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public abstract class CloudClient implements ICloudClient {
+public abstract class AbstractCloudClient implements ICloudClient {
 
 	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	protected static final String SMSS_POSTFIX = "-smss";
@@ -34,9 +34,9 @@ public abstract class CloudClient implements ICloudClient {
 	// this must be set in the implementing class
 	protected String PROVIDER = null;
 	
-	private static CloudClient singleton = null;
+	private static AbstractCloudClient singleton = null;
 	
-	public CloudClient(ICloudClientBuilder builder) {
+	public AbstractCloudClient(ICloudClientBuilder builder) {
 		// used to enforce builder for creation of cloud clients
 		this.RCLONE = builder.getRClonePath();
 	}
@@ -45,13 +45,13 @@ public abstract class CloudClient implements ICloudClient {
 	 * Get the cloud client for this cluster
 	 * @return
 	 */
-	public static CloudClient getClient() {
+	public static AbstractCloudClient getClient() {
 		if(singleton != null) {
 			return singleton;
 		}
 		
 		if(singleton == null) {
-			synchronized (CloudClient.class) {
+			synchronized (AbstractCloudClient.class) {
 				if(singleton == null) {
 					singleton = buildClient();
 				}
@@ -61,7 +61,7 @@ public abstract class CloudClient implements ICloudClient {
 		return singleton;
 	}
 	
-	private static synchronized CloudClient buildClient() {
+	private static synchronized AbstractCloudClient buildClient() {
 		if(ClusterUtil.STORAGE_PROVIDER == null||ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AZURE")){
 			return new AZClientBuilder().pullValuesFromSystem().buildClient();
 		}
@@ -69,7 +69,7 @@ public abstract class CloudClient implements ICloudClient {
 			return new S3ClientBuilder().pullValuesFromSystem().buildClient();
 		} 
 		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("MINIO")){
-			CloudClient client = new MinioClientBuilder().pullValuesFromSystem().buildClient();
+			AbstractCloudClient client = new MinioClientBuilder().pullValuesFromSystem().buildClient();
 			client.TRANSFER_LIMIT = "4";
 			return client;
 		} 
