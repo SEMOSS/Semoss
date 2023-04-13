@@ -20,7 +20,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -253,7 +253,7 @@ public class User implements Serializable {
 		//TODO actually sync the pull, not sure pull it
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullUserAssetOrWorkspace(projectId, false, false);
+				AbstractCloudClient.getClient().pullUserAssetOrWorkspace(projectId, false, false);
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} catch (InterruptedException ie) {
@@ -292,7 +292,7 @@ public class User implements Serializable {
 		//TODO actually sync the pull, not sure pull it
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullUserAssetOrWorkspace(projectId, true, false);
+				AbstractCloudClient.getClient().pullUserAssetOrWorkspace(projectId, true, false);
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} catch (InterruptedException ie) {

@@ -2,7 +2,7 @@ package prerna.cluster.util;
 
 import java.io.IOException;
 
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 
 public class DeleteAppRunner implements Runnable {
 
@@ -15,7 +15,7 @@ public class DeleteAppRunner implements Runnable {
 	@Override
 	public void run() {
 		try {
-			CloudClient.getClient().deleteApp(appId);
+			AbstractCloudClient.getClient().deleteApp(appId);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {

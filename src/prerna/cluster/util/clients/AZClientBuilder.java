@@ -16,7 +16,7 @@ public class AZClientBuilder extends AbstractClientBuilder {
 	public AZClientBuilder() {};
 
 	@Override
-	public CloudClient buildClient() {
+	public AbstractCloudClient buildClient() {
 		if(this.connectionString == null || this.connectionString.isEmpty()) {
 			throw new IllegalArgumentException("There is no connection string specified.");
 		}
