@@ -64,7 +64,7 @@ public class ZKClient implements Watcher{
 	public static final String SEMOSS_HOME = "sem";
 
 	
-	ZooKeeper zk = null;
+	public ZooKeeper zk = null;
 	Map <String, String> env = null;
 	public String zkServer = "localhost:2181";
 	public String host = "localhost:8888";
