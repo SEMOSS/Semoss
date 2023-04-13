@@ -1,4 +1,4 @@
-package prerna.cluster.util;
+package prerna.cluster.util.clients;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +30,9 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.cluster.util.AZStorageListener;
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.ZKClient;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
@@ -51,86 +54,50 @@ public class AZClient extends CloudClient {
 	
 	private static final Logger classLogger = LogManager.getLogger(AZClient.class);
 
-	// this is a singleton
-
+	private static String DB_CONTAINER_PREFIX = "db-";
+	private static String PROJECT_CONTAINER_PREFIX = "project-";
+	private static String USER_CONTAINER_PREFIX = "user-";
+	
 	// does some basic ops
 	// get the SAS URL for a given container - boolean create or not
 	// Delete the container
-
-	protected static final String PROVIDER = "azureblob";
-	protected static final String SMSS_POSTFIX = "-smss";
-
-	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
-	public static final String AZ_NAME = "AZ_NAME";
-	public static final String AZ_KEY = "AZ_KEY";
-	public static final String SAS_URL = "SAS_URL";
-	public static final String AZ_URI = "AZ_URI";
-	public static final String STORAGE = "STORAGE"; // says if this is local / cluster
-	public static final String KEY_HOME = "KEY_HOME"; // this is where the various keys are cycled
-
-	public String azKeyRoot = "/khome";
-
-	static AZClient client = null;
-	static String rcloneConfigFolder = null;
-
-	CloudBlobClient serviceClient = null;
-	String connectionString = null;
-	String name = null;
-	String key = null;
-	String blobURI = null;
-	String sasURL = null;
-	
-	String dbFolder = null;
-	String projectFolder = null;
-	String userFolder = null;
-
-	static String DB_CONTAINER_PREFIX = "db-";
-	static String PROJECT_CONTAINER_PREFIX = "project-";
-	static String USER_CONTAINER_PREFIX = "user-";
-	
-	// create an instance
-	// Also needs to be synchronized so multiple calls don't try to init at the same time
-	public static synchronized AZClient getInstance() {
-		if(client == null) {
-			client = new AZClient();
-			client.init();
-		}
-		return client;
+	{
+		this.PROVIDER = "azureblob";
 	}
 
-	// initialize
-	public void init()
-	{
-		rcloneConfigFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "rcloneConfig";		
-		new File(rcloneConfigFolder).mkdir();
+	public String azKeyRoot = "/khome";
+	public static final String KEY_HOME = "KEY_HOME"; // this is where the various keys are cycled
 
+	private CloudBlobClient serviceClient = null;
+	private String connectionString = null;
+	private String name = null;
+	private String key = null;
+	private String blobURI = null;
+	private String sasURL = null;
+	
+	public AZClient(AZClientBuilder builder) {
+		super(builder);
+		
 		// if the zookeeper is defined.. find from zookeeper what the key is
 		// and register for the key change
 		// if not.. the storage key is sitting some place pick it up and get it
-		String storage = DIHelper.getInstance().getProperty(STORAGE);
-		
-		this.dbFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.DB_FOLDER;
-		this.projectFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.PROJECT_FOLDER;
-		this.userFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.USER_FOLDER;
-
-		Map <String, String> env = System.getenv();
-		if(env.containsKey(KEY_HOME)) {
-			this.azKeyRoot = env.get(KEY_HOME);
-		}
-
-		if(env.containsKey(KEY_HOME.toUpperCase())) {
-			this.azKeyRoot = env.get(KEY_HOME.toUpperCase());
-		}
-
+		String storage = builder.storage;
 		if(storage == null || storage.equalsIgnoreCase("LOCAL")) {
-			// dont bother with anything
-			// TODO >>>timb: these should all be centralized somewhere so we know what is needed for cluster
-			this.connectionString = DIHelper.getInstance().getProperty(AZ_CONN_STRING);
-			this.name = DIHelper.getInstance().getProperty(AZ_NAME);
-			this.key = DIHelper.getInstance().getProperty(AZ_KEY);
-			this.blobURI = DIHelper.getInstance().getProperty(AZ_URI);
-			this.sasURL = DIHelper.getInstance().getProperty(SAS_URL);
+			this.connectionString = builder.connectionString;
+			this.blobURI = builder.blobURI;
+			this.name = builder.name;
+			this.key = builder.key;
+			this.sasURL = builder.sasURL;
 		} else {
+			Map <String, String> env = System.getenv();
+			if(env.containsKey(KEY_HOME)) {
+				this.azKeyRoot = env.get(KEY_HOME);
+			}
+
+			if(env.containsKey(KEY_HOME.toUpperCase())) {
+				this.azKeyRoot = env.get(KEY_HOME.toUpperCase());
+			}
+			
 			// need the zk piece here
 			ZKClient client = ZKClient.getInstance();
 			this.connectionString = client.getNodeData(azKeyRoot, client.zk);
@@ -145,8 +112,8 @@ public class AZClient extends CloudClient {
 		}
 
 		createServiceClient();
-	}
-
+	}	
+	
 	public void createServiceClient() {
 		try {
 			if(sasURL != null) {
@@ -535,33 +502,33 @@ public class AZClient extends CloudClient {
 	}
 	
 	@Override
-	public void pullDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+	public void pullDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(databaseId, false);
 		if (engine == null) {
-			throw new IllegalArgumentException("App not found...");
+			throw new IllegalArgumentException("Database not found...");
 		}
 		String appRcloneConfig = null;
-		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
-		String aliasAppId = alias + "__" + appId;
+		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
+		String aliasAppId = alias + "__" + databaseId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		classLogger.info("Applying lock for " + appId + " to pull db file");
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		classLogger.info("Applying lock for " + databaseId + " to pull database file");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
-		classLogger.info("App "+ appId + " is locked");
+		classLogger.info("Database "+ databaseId + " is locked");
 		try {
-			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
+			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + databaseId);
 			engine.closeDB();
-			classLogger.info("Pulling database for " + alias + " from remote=" + appId);
-			if(e == RdbmsTypeEnum.SQLITE){
+			classLogger.info("Pulling database for " + alias + " from remote=" + databaseId);
+			if(rdbmsType == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				//TODO kunal: below calls will break
 				for(String sqliteFile : sqliteFileNames){			
-					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+DB_CONTAINER_PREFIX+appId+"/"+sqliteFile, appFolder);
+					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+DB_CONTAINER_PREFIX+databaseId+"/"+sqliteFile, appFolder);
 				}
-			} else if(e == RdbmsTypeEnum.H2_DB){
-				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":" + DB_CONTAINER_PREFIX+appId+"/database.mv.db", appFolder);
+			} else if(rdbmsType == RdbmsTypeEnum.H2_DB){
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":" + DB_CONTAINER_PREFIX+databaseId+"/database.mv.db", appFolder);
 			} else{
 				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
 			}
@@ -574,7 +541,7 @@ public class AZClient extends CloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				classLogger.info("App "+ appId + " is unlocked");
+				classLogger.info("Database "+ databaseId + " is unlocked");
 			}
 		}
 	}
@@ -1041,7 +1008,7 @@ public class AZClient extends CloudClient {
 	}
 
 	@Override
-	protected void pullProject(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException {
+	public void pullProject(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException {
 		IProject project = null;
 		if (projectAlreadyLoaded) {
 			project = Utility.getProject(projectId, false);
@@ -1564,7 +1531,7 @@ public class AZClient extends CloudClient {
 		pullApp(appId, false);
 	}
 
-	protected void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException {
+	public void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException {
 		IEngine engine = null;
 		if (appAlreadyLoaded) {
 			engine = Utility.getEngine(appId, false);
@@ -1845,7 +1812,7 @@ public class AZClient extends CloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private static String createRcloneConfig(String container) throws IOException, InterruptedException {
+	private String createRcloneConfig(String container) throws IOException, InterruptedException {
 		if(!(container.startsWith(DB_CONTAINER_PREFIX) || container.startsWith(PROJECT_CONTAINER_PREFIX) || container.startsWith(USER_CONTAINER_PREFIX)
 				|| container.startsWith(ClusterUtil.DB_IMAGES_BLOB) || container.startsWith(ClusterUtil.PROJECT_IMAGES_BLOB))) {
 			classLogger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
@@ -1853,7 +1820,7 @@ public class AZClient extends CloudClient {
 			classLogger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
 		}
 		classLogger.debug("Generating SAS for container=" + container);
-		String sasUrl = client.getSAS(container);
+		String sasUrl = getSAS(container);
 		String rcloneConfig = Utility.getRandomString(10);
 		runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
 		return rcloneConfig;

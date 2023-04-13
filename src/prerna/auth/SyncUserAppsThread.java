@@ -6,8 +6,8 @@ import java.util.Map;
 
 import javax.servlet.http.HttpSession;
 
-import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.clients.CloudClient;
 import prerna.util.Constants;
 
 public class SyncUserAppsThread implements Runnable {

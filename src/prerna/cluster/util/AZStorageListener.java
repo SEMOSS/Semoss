@@ -2,6 +2,9 @@ package prerna.cluster.util;
 
 import org.apache.zookeeper.ZooKeeper;
 
+import prerna.cluster.util.clients.AZClient;
+import prerna.cluster.util.clients.CloudClient;
+
 public class AZStorageListener implements IZKListener {
 
 	// main listener class to listen on key changes
@@ -15,8 +18,7 @@ public class AZStorageListener implements IZKListener {
 		// and reset on the AZClient
 		
 		String data = ZKClient.getNodeData(path, zk);
-		AZClient.getInstance().swapKey(data);
+		((AZClient) CloudClient.getClient()).swapKey(data);
 	}
-
 	
 }
