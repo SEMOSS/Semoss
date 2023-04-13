@@ -6,7 +6,7 @@ public interface ICloudClientBuilder {
 	 * Build the client
 	 * @return
 	 */
-	CloudClient buildClient();
+	ICloudClient buildClient();
 	
 	/**
 	 * 

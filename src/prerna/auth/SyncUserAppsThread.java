@@ -7,7 +7,7 @@ import java.util.Map;
 import javax.servlet.http.HttpSession;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.util.Constants;
 
 public class SyncUserAppsThread implements Runnable {
@@ -71,7 +71,7 @@ public class SyncUserAppsThread implements Runnable {
 			if(workspaceIds != null) {
 				for(String workspaceAppId : workspaceIds) {
 					try {
-						CloudClient.getClient().pushUserAssetOrWorkspace(workspaceAppId, false);
+						AbstractCloudClient.getClient().pushUserAssetOrWorkspace(workspaceAppId, false);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -80,7 +80,7 @@ public class SyncUserAppsThread implements Runnable {
 			if(assetIds != null) {
 				for(String assetAppId : assetIds) {
 					try {
-						CloudClient.getClient().pushUserAssetOrWorkspace(assetAppId, true);
+						AbstractCloudClient.getClient().pushUserAssetOrWorkspace(assetAppId, true);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
