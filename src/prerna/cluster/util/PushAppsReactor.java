@@ -9,7 +9,7 @@ import java.util.Map;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -51,7 +51,7 @@ public class PushAppsReactor extends AbstractReactor{
 		List<String> appIds = SecurityDatabaseUtils.getAllDatabaseIds();
 
 		try {
-			CloudClient cc = CloudClient.getClient();
+			AbstractCloudClient cc = AbstractCloudClient.getClient();
 			List<String> allContainers = cc.listAllBlobContainers();
 			List<String> cleanedNames = new ArrayList<String>();
 			for (String container : allContainers) {

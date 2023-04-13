@@ -11,7 +11,7 @@ public class MinioClientBuilder extends AbstractClientBuilder {
 	public MinioClientBuilder() {};
 
 	@Override
-	public CloudClient buildClient() {
+	public AbstractCloudClient buildClient() {
 		if(this.region == null || this.region.isEmpty()) {
 			throw new IllegalArgumentException("There is no region specified.");
 		}

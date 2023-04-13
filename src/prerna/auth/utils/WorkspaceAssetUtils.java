@@ -10,7 +10,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.clients.CloudClient;
+import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -130,7 +130,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		project.openProject(smssFile.getAbsolutePath());
 		
 		if (ClusterUtil.IS_CLUSTER) {
-			CloudClient.getClient().pushUserAssetOrWorkspace(projectId, isAsset);
+			AbstractCloudClient.getClient().pushUserAssetOrWorkspace(projectId, isAsset);
 		}
 		
 		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
