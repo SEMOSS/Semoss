@@ -425,7 +425,20 @@ public class ClusterUtil {
 	
 	public static void  reactorPushProjectFolder(IProject project, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
-
+			reactorPushProjectFolder(project, absolutePath, null);
+		}		
+	}
+	
+	public static void  reactorPushProjectFolder(IProject project, String absolutePath, String relativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			if(relativePath != null && !(relativePath=relativePath.trim()).isEmpty()) {
+				if(absolutePath.endsWith(DIR_SEPARATOR)) {
+					absolutePath += relativePath;
+				} else {
+					absolutePath += DIR_SEPARATOR + relativePath;
+				}
+			}
+			
 			String projectHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
 					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId());
@@ -453,7 +466,20 @@ public class ClusterUtil {
 	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
 	public static void  reactorPullProjectFolder(IProject project, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
+			reactorPullProjectFolder(project, absolutePath, null);
+		}		
+	}
 
+	public static void  reactorPullProjectFolder(IProject project, String absolutePath, String relativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			if(relativePath != null && !(relativePath=relativePath.trim()).isEmpty()) {
+				if(absolutePath.endsWith(DIR_SEPARATOR)) {
+					absolutePath += relativePath;
+				} else {
+					absolutePath += DIR_SEPARATOR + relativePath;
+				}
+			}
+			
 			String projectHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
 					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId());
@@ -462,7 +488,7 @@ public class ClusterUtil {
 			ClusterUtil.reactorPullProjectFolder(project.getProjectId(), absolutePath, relative.toString());
 		}		
 	}
-
+	
 	//create a pull folder
 	public static void reactorPullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
