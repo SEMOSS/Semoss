@@ -22,6 +22,7 @@ import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class InsightUsageStatisticsReactor extends AbstractReactor {
 	
@@ -86,7 +87,9 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			qs = SecurityInsightUtils.searchInsightsUsage(pFilters, searchTerm, tagFilters);
 		}
 		
-		IEngine securityDb = (IEngine) DIHelper.getInstance().getLocalProp(Constants.SECURITY_DB);
+		IEngine securityDb = Utility.getEngine(Constants.SECURITY_DB);
+
+		//IEngine securityDb = (IEngine) DIHelper.getInstance().getLocalProp(Constants.SECURITY_DB);
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
