@@ -2425,9 +2425,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "left.outer.join");
 			qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "left.outer.join");
 //		}
-//		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+		qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
 		return qs;
 	}
 	
