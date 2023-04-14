@@ -120,6 +120,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		if(project == null) {
 			throw new IllegalArgumentException("Cannot find project = " + projectId);
 		}
+		
+		// we have to pull the insight assets in case those changed since we last opened the insight
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId), rdbmsId);
 		Insight newInsight = null;
 		try {
 			newInsight = SecurityInsightUtils.getInsight(projectId, rdbmsId);
