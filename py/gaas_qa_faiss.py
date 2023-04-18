@@ -61,8 +61,9 @@ def create_model(folder_name="random", sent_ckpt='msmarco-distilbert-base-v4', e
   ip = TextIndexingPipeline(document_store)
   return hydrate_model(document_store=document_store)
   
-def hydrate_model(document_store=None,qa_model_ckpt="deepset/roberta-base-squad2"):
+def hydrate_model(folder_name=None, document_store=None,qa_model_ckpt="deepset/roberta-base-squad2"):
   from haystack.nodes import BM25Retriever, EmbeddingRetriever, TfidfRetriever
+  model_file_name = f"{folder_name}/model/haystack.db"
   retriever = TfidfRetriever(document_store=document_store)
   from haystack.nodes import FARMReader
   reader = FARMReader(model_name_or_path=qa_model_ckpt, use_gpu=True)
@@ -122,3 +123,6 @@ def convert_pd_to_list(incoming_dict, content_column_name):
     new_data.update({'meta' : incoming_dict[i]})
     doc_list.append(new_data)
   return doc_list
+
+def get_master_document(folder_name=None, encoding="iso-8859-1", content_column='Content'): # dummy call 
+  return 1
