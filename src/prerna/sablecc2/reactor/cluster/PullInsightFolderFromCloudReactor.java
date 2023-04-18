@@ -38,7 +38,7 @@ public class PullInsightFolderFromCloudReactor extends AbstractReactor {
 		}
 		
 		IProject project = Utility.getProject(projectId);
-		String projectFolderPath = AssetUtility.getProjectBaseFolder(project.getProjectName(), projectId).replace("\\", "/");
+		String projectFolderPath = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId).replace("\\", "/");
 		ClusterUtil.reactorPullProjectFolder(project, projectFolderPath, rdbmsId);
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
