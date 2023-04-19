@@ -200,10 +200,6 @@ public class AssetUtility {
 	}
 	
 	public static String getProjectVersionFolder(String projectName, String projectId) {
-		return getProjectVersionFolder(projectName, projectId, false);
-	}
-	
-	public static String getProjectVersionFolder(String projectName, String projectId, boolean ignoreGit) {
 		String appBaseFolder = getProjectBaseFolder(projectName, projectId);
 		String gitFolder = appBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER;
 		// if this folder does not exist create it
@@ -212,7 +208,7 @@ public class AssetUtility {
 			file.mkdir();
 		}
 		
-		if(!ignoreGit && !isGit(gitFolder)) {
+		if(!isGit(gitFolder)) {
 			GitRepoUtils.init(gitFolder);
 		}
 		return gitFolder;
@@ -287,12 +283,52 @@ public class AssetUtility {
 	 * USER ASSET METHODS
 	 */
 	
+	/**
+	 * 
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
 	public static String getUserAssetAndWorkspaceVersionFolder(String projectName, String projectId) {
 		// get the base folder
 		String baseFodler = getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
-		return baseFodler + "/version";
+		String gitFolder = baseFodler + "/version";
+		
+		File file = new File(Utility.normalizePath(gitFolder));
+		if (!file.exists()) {			
+			file.mkdir();
+		}
+		
+		if(!isGit(gitFolder)) {
+			GitRepoUtils.init(gitFolder);
+		}
+		return gitFolder;
 	}
 	
+	/**
+	 * 
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public static String getUserAssetAndWorkspaceAssetFolder(String projectName, String projectId) {
+		String projectVersionBaseFolder = getUserAssetAndWorkspaceVersionFolder(projectName, projectId);
+		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + "assets";
+
+		// if this folder does not exist create it
+		File file = new File(projectFolder);
+		if (!file.exists()) {
+			file.mkdir();
+		}
+		return projectFolder;
+	}
+	
+	/**
+	 * 
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
 	public static String getUserAssetAndWorkspaceBaseFolder(String projectName, String projectId) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {

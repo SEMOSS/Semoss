@@ -9,7 +9,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.Session;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesProcessor;
 
@@ -23,9 +22,9 @@ public class ProjectProperties {
 	private File socialProp = null;
 	private SocialPropertiesProcessor processor = null;
 
-	public ProjectProperties(String projectName, String projectId) {
-		this.projectDirString = AssetUtility.getProjectAssetFolder(projectName, projectId);
-		this.adminDir = new File(projectDirString + "/" + ADMIN_DIRECTORY);
+	public ProjectProperties(String projectDirString, String projectName, String projectId) {
+		this.projectDirString = projectDirString;
+		this.adminDir = new File(this.projectDirString + "/" + ADMIN_DIRECTORY);
 		if(!this.adminDir.exists() || !this.adminDir.isDirectory()) {
 			this.adminDir.mkdirs();
 		}
