@@ -842,8 +842,8 @@ public class Project implements IProject {
 			boolean enableForProject = (prop != null && Boolean.parseBoolean(prop.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
 			try {
 				if(this.republish || (enableForProject && !this.publish)) {
-					Path sourcePath = Paths.get(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId));
-					Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId);
+					Path sourcePath = Paths.get(AssetUtility.getProjectPortalsFolder(this.projectName, this.projectId));
+					Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
 		
 					File targetDirectory = targetPath.toFile();
 					// if the target directory exists
