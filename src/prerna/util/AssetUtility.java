@@ -181,6 +181,24 @@ public class AssetUtility {
 		return projectFolder;
 	}
 	
+	public static String getProjectPortalsFolder(String projectId) {
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
+		return AssetUtility.getProjectPortalsFolder(projectName, projectId);
+	}
+	
+	public static String getProjectPortalsFolder(String projectName, String projectId) {
+		String assetFolder = getProjectAssetFolder(projectName, projectId);
+		String portalsFolder = assetFolder + DIR_SEPARATOR + Constants.PORTALS_FOLDER;
+
+		// if this folder does not exist create it
+		File file = new File(portalsFolder);
+		if (!file.exists()) {
+			file.mkdir();
+		}
+		return portalsFolder;
+	}
+	
 	public static String getProjectVersionFolder(String projectName, String projectId) {
 		return getProjectVersionFolder(projectName, projectId, false);
 	}
