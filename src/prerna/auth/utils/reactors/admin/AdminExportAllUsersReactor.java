@@ -21,11 +21,11 @@ import prerna.sablecc2.reactor.export.ToExcelReactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class AdminAllUsersReactor extends ToExcelReactor {
+public class AdminExportAllUsersReactor extends ToExcelReactor {
 
-	private static final String CLASS_NAME = AdminAllUsersReactor.class.getName();
+	private static final String CLASS_NAME = AdminExportAllUsersReactor.class.getName();
 
-	public AdminAllUsersReactor() {
+	public AdminExportAllUsersReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), 
 				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
