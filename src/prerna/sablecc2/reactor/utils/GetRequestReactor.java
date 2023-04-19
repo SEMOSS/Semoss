@@ -46,7 +46,7 @@ public class GetRequestReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String url = this.keyValue.get(this.keysToGet[0]);
-			
+		Utility.checkIfValidDomain(url);
 		List<Map<String, String>> headersMap = getHeadersMap();
 		String keyStore = null;
 		String keyStorePass = null;
