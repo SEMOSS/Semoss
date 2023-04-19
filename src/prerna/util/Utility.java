@@ -129,6 +129,7 @@ import org.xeustechnologies.jcl.JarClassLoader;
 import org.xeustechnologies.jcl.JclObjectFactory;
 
 import com.google.common.base.Strings;
+import com.google.common.net.InternetDomainName;
 import com.google.gson.GsonBuilder;
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
@@ -5000,9 +5001,33 @@ public class Utility {
 	 */
 	public static boolean isNullValue(Object obj){
 		return (Objects.isNull(obj) || (obj instanceof Double && Double.isNaN((Double)obj)));
-
 	}
 
+	/**
+	 * 
+	 * @param urlString
+	 */
+	public static void checkIfValidDomain(String urlString) {
+		String whiteListDomains =  DIHelper.getInstance().getProperty(Constants.WHITE_LIST_DOMAINS);
+		if(whiteListDomains == null || (whiteListDomains=whiteListDomains.trim()).isEmpty()) {
+			return;
+		}
+		
+		List<String> domainList = Arrays.stream(whiteListDomains.split(",")).collect(Collectors.toList());
+		URL url = null;
+		try {
+			url = new URL(urlString);
+			final String host = url.getHost();
+			final InternetDomainName domainName = InternetDomainName.from(host).topPrivateDomain();
+			if(!domainList.contains(domainName.toString())) {
+				throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
+			}
+		} catch (MalformedURLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Invalid URL: " + urlString + ". Detailed message: " + e.getMessage());
+		}
+	}
+	
 	public static void main(String[] args) throws MalformedURLException {
 		File folder = new File("/Users/mahkhalil/workspace/Semoss_Dev/project/Blood Glucose__049b3b6a-6630-4f77-8f3a-2892fec2188b/app_root/version/assets/java/");
 		File[] jars = folder.listFiles(new FilenameFilter() {
