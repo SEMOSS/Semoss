@@ -1372,7 +1372,8 @@ public class GitRepoUtils {
 		FileWriter fw = null;
 		BufferedWriter bw  = null;
 		try {
-			File f = new File(folder + "/.gitignore");
+			File f = new File(folder, ".gitignore");
+			f.createNewFile();
 			fw = new FileWriter(f);
 			bw = new BufferedWriter(fw);
 			bw.write("*.cache");

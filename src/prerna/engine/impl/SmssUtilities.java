@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -20,10 +23,11 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class SmssUtilities {
 
+	private static final Logger classLogger = LogManager.getLogger(SmssUtilities.class);
+
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	public static final String ENGINE_REPLACEMENT = "@" + Constants.ENGINE + "@";
 	public static final String PROJECT_REPLACEMENT = "@" + Constants.PROJECT + "@";
-
 
 	private SmssUtilities() {
 
@@ -499,8 +503,8 @@ public class SmssUtilities {
 			}
 			String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
-		} catch (IOException ex) {
-			ex.printStackTrace();
+		} catch (IOException e) {
+			classLogger.info(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate project smss file");
 		} finally {
 			try {
@@ -511,7 +515,7 @@ public class SmssUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -590,8 +594,8 @@ public class SmssUtilities {
 			}
 			String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
-		} catch (IOException ex) {
-			ex.printStackTrace();
+		} catch (IOException e) {
+			classLogger.info(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate project smss file");
 		} finally {
 			try {
@@ -602,7 +606,7 @@ public class SmssUtilities {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -728,7 +732,7 @@ public class SmssUtilities {
 			}
 
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		/*
@@ -752,7 +756,7 @@ public class SmssUtilities {
 					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 			try {
@@ -762,7 +766,7 @@ public class SmssUtilities {
 					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
