@@ -23,6 +23,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class PostRequestReactor extends AbstractReactor {
 
@@ -34,6 +35,7 @@ public class PostRequestReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String url = this.keyValue.get(this.keysToGet[0]);
+		Utility.checkIfValidDomain(url);
 		List<Map<String, String>> headersMap = getHeadersMap();
 		List<Map<String, String>> bodyMap = getBody();
 		String keyStore = null;
