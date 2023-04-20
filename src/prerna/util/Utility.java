@@ -3837,6 +3837,28 @@ public class Utility {
 	}
 	
 	/**
+	 * 
+	 * @return
+	 */
+	public static String getDefaultTerminalMode() {
+		String terminalMode  = DIHelper.getInstance().getProperty(Constants.TERMINAL_MODE);
+		if(terminalMode == null || (terminalMode=terminalMode.trim()).isEmpty()) {
+			// default configuration is false
+			return "cmd";
+		}
+		
+		List<String> valid = new ArrayList<>();
+		valid.add("cmd");
+		valid.add("powershell");
+		
+		if(!valid.contains(terminalMode) && !valid.contains(terminalMode.toLowerCase())) {
+			logger.warn("Invalid terminal mode = " + terminalMode + ". Switching to cmd for windows and bash for mac/linux.");
+		}
+		
+		return terminalMode;
+	}
+	
+	/**
 	 * Determine if We need to show Welcome Dialog on Application Load
 	 * @return
 	 */
