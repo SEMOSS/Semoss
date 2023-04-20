@@ -640,6 +640,9 @@ public class Constants {
 	public static final String GIT_TRUSTED_REPO="GIT_TRUSTED_REPO";
 	public static final String GIT_DEFAULT_BRANCH="GIT_DEFAULT_BRANCH";
 
+	// what terminal mode are we using in windows
+	public static final String TERMINAL_MODE = "TERMINAL_MODE";
+	
 	// pivot values 
 	public static final String PIVOT_ROW_MAX = "PIVOT_ROW_MAX";
 	public static final String PIVOT_COL_MAX = "PIVOT_COL_MAX";

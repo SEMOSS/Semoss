@@ -1,8 +1,8 @@
 package prerna.util;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
 
@@ -10,12 +10,16 @@ import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 
 public class CmdExecUtil {
 
+	private static final Logger classLogger = LogManager.getLogger(CmdExecUtil.class);
+	
 	// the user already keeps a list of mappings
 	// just need to use that directly
 	String mountName = "appName";
@@ -27,19 +31,18 @@ public class CmdExecUtil {
 	String insightId = null;
 
 	
-	public CmdExecUtil(String mountName, String mountDir, SocketClient tcpClient)
-	{
+	public CmdExecUtil(String mountName, String mountDir, SocketClient tcpClient) {
 		getCommandAppender();
 		mountDir = mountDir.replace("\\", "/");
 		this.mountName = mountName;
 		this.mountDir = mountDir;
 		this.workingDir = mountDir;
 		this.tcpClient = tcpClient;
-		System.err.println("Working Dir is set to ..  " + workingDir);
+		classLogger.info("Working Dir is set to ..  " + workingDir);
 		
-		
-		if(tcpClient != null)
+		if(tcpClient != null) {
 			pushMountToSocket();
+		}
 	}
 	
 	public void pushMountToSocket()
@@ -53,7 +56,6 @@ public class CmdExecUtil {
 			ps.hasReturn = false;
 			PayloadStruct retPS = (PayloadStruct)tcpClient.executeCommand(ps);			
 		}
-		
 	}
 	
 	public String executeCommand(String command)
@@ -200,24 +202,23 @@ public class CmdExecUtil {
 		
 	}
 
-	private void getCommandAppender()
-	{
+	private void getCommandAppender() {
 		String osName = System.getProperty("os.name").toLowerCase();
-
-
-		String starter = ""; 
-		String[] commandsStarter = null;
-
-		if (osName.indexOf("win") >= 0) 
-		{
-			this.commandAppender = "cmd";
-			pwdCommand = "cd";
-		}
-		else
+		if (osName.indexOf("win") >= 0) {
+			String terminalMode = Utility.getDefaultTerminalMode();
+			if(terminalMode.equals("cmd")) {
+				this.commandAppender = "cmd";
+				this.pwdCommand = "cd";
+			} else {
+				// if not cmd, then we are powershell
+				this.commandAppender = "powershell.exe";
+				this.pwdCommand = "pwd";
+			}
+		} else {
 			this.commandAppender = "/bin/bash";
-
+			this.pwdCommand = "pwd";
+		}
 	}
-	
 	
 	private String replaceAppAlias(String output)
 	{
@@ -233,45 +234,45 @@ public class CmdExecUtil {
 	
 	private String[] runCommand(String command) 
 	{
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		boolean success = true;
-		//command = commandAppender + command;
 		DefaultExecutor executor;
 		CommandLine cmdLine = new CommandLine(commandAppender);
-		if(commandAppender.equalsIgnoreCase("/bin/bash"))
+		if(commandAppender.equalsIgnoreCase("/bin/bash")) {
 			cmdLine.addArgument("-c");
-		else
+		} else {
 			cmdLine.addArgument("/C");
-
+		}
 		//command = "\"" + command + "\"";
 		cmdLine.addArgument(command, false);
 		
 		//System.err.println("Running command ..  " + cmdLine);
-		
-		CollectingLogOutputStream clos = new CollectingLogOutputStream();
-		executor = new DefaultExecutor();
-		PumpStreamHandler streamHandler = new PumpStreamHandler(clos);
-		executor.setStreamHandler(streamHandler);
-		executor.setWorkingDirectory(new File(Utility.normalizePath(workingDir)));
-		ExecuteWatchdog watchdog = new ExecuteWatchdog(20000); // 20 seconds is plenty of time.. if the process doesnt return kill it
-		executor.setWatchdog(watchdog);
-		try
-		{
-			int exitValue = executor.execute(cmdLine);
-		}catch(Exception ex)
-		{
-			success = false;
-		}
-		List <String> lines = clos.getLines();
-		StringBuilder builder = new StringBuilder();
-		for(int lineIndex = 0;lineIndex < lines.size();builder.append(lines.get(lineIndex)).append("\n"), lineIndex++);
-		//System.out.println(" List " + lines);
-		String output = builder.toString();;
-		output = output.replace("\\", "/");
-		
 		String [] foutput = new String[2];
-		foutput[0] = success +"";
-		foutput[1] = output;
+		try(CollectingLogOutputStream clos = new CollectingLogOutputStream()){
+			executor = new DefaultExecutor();
+			PumpStreamHandler streamHandler = new PumpStreamHandler(clos);
+			executor.setStreamHandler(streamHandler);
+			executor.setWorkingDirectory(new File(Utility.normalizePath(workingDir)));
+			ExecuteWatchdog watchdog = new ExecuteWatchdog(20000); // 20 seconds is plenty of time.. if the process doesnt return kill it
+			executor.setWatchdog(watchdog);
+			try
+			{
+				int exitValue = executor.execute(cmdLine);
+			}catch(Exception ex)
+			{
+				success = false;
+			}
+			List <String> lines = clos.getLines();
+			StringBuilder builder = new StringBuilder();
+			for(int lineIndex = 0;lineIndex < lines.size();builder.append(lines.get(lineIndex)).append("\n"), lineIndex++);
+			//System.out.println(" List " + lines);
+			String output = builder.toString();;
+			output = output.replace("\\", "/");
+			
+			foutput[0] = success +"";
+			foutput[1] = output;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}		
 		
 		return foutput;
 	}
@@ -279,9 +280,7 @@ public class CmdExecUtil {
 	
 	public void runUserCommand()
 	{
-		try
-		{
-			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		try(BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
 			String data = br.readLine();
 			while(data != null)
 			{
@@ -290,11 +289,10 @@ public class CmdExecUtil {
 				System.err.println("Next Command : ");
 				data = br.readLine();
 			}
-		}catch(Exception ex)
-		{
-			System.err.println("Exception is  " + ex);
+		} catch(Exception e) {
+			System.err.println("Exception is  " + e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
 	}
 	
 	private String adjustWorkingDir(String command)
@@ -344,9 +342,7 @@ public class CmdExecUtil {
 		
 		//System.out.println("Working Dir Set to " + workingDir);
 		return workingDir;
-		
 	}
-	
 	
 	public String getWorkingDir()
 	{
@@ -368,6 +364,8 @@ public class CmdExecUtil {
 		// TODO Auto-generated method stub
 		CmdExecUtil test = new CmdExecUtil("mango", "c:/users/pkapaleeswaran/workspacej3/gittest", null);
 		test.runUserCommand();
-		
 	}
+	
 }
+
+
