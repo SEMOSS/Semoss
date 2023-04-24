@@ -514,11 +514,9 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 								// weird situation but dont dont update anything
 								continue;
 							}
-							String newFileLoc = BASE + DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR + 
-													SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + 
-													"app_root" + DIR_SEPARATOR + "version" + DIR_SEPARATOR +
-													newInsightId + DIR_SEPARATOR + 
-													"data";
+							String newFileLoc = AssetUtility.getProjectVersionFolder(projectName, projectId)
+													+ DIR_SEPARATOR + newInsightId 
+													+ DIR_SEPARATOR + "data";
 							// create parent directory
 							File newF = new File(newFileLoc);
 							newF.mkdirs();
