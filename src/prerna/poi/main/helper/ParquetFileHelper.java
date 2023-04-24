@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.hadoop.ParquetFileReader;
@@ -17,8 +18,13 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
 
 public class ParquetFileHelper {
+	
+	private static final Logger classLogger = LogManager.getLogger(ParquetFileHelper.class);
+
+	
 	// local for helper
 	private Logger logger = null;
+	
 	private String fileLocation = null;
 	// we need to keep two sets of headers
 	// we will keep the headers as is within the physical file
@@ -99,86 +105,99 @@ public class ParquetFileHelper {
 		Map<String, SemossDataType> headersPlusDataTypes = new LinkedHashMap<>();
 		
 		// read in the file and get the defined schema
-        ParquetFileReader reader = ParquetFileReader.open(new LocalInputFile(fileLocation));
-        MessageType schema = reader.getFooter().getFileMetaData().getSchema();
-        
-        // for every column, loop through and grab the data type
-        // Note: don't need to predict here since the type is defined in the meta data
-        int numCols = schema.getFieldCount();
-        String parquetDtype;
-        String [] cols = new String[numCols];
-        SemossDataType [] dataTypes = new SemossDataType[numCols];
-        List<ColumnDescriptor> columns = schema.getColumns();
-        List<String[]> paths = schema.getPaths();
-        boolean[] missingColumns = new boolean[numCols];
-        
-        for (int i = 0; i < schema.getFieldCount(); ++i) {
-        	Type t = schema.getFields().get(i);
-        	  
-        	if (!t.isPrimitive() || t.isRepetition(Type.Repetition.REPEATED)) {
-        		throw new UnsupportedOperationException("Complex types not supported.");
-        	}
-        	cols[i] = t.getName();
-        	//t.getOriginalType().toString();
-        	parquetDtype = t.asPrimitiveType().getPrimitiveTypeName().toString().toUpperCase();
-			switch (parquetDtype) {
-			case "BOOLEAN":
-				dataTypes[i] = SemossDataType.BOOLEAN;
-				break;
-			case "DATE":
-				dataTypes[i] = SemossDataType.DATE;
-				break;
-			case "DECIMAL":
-				dataTypes[i] = SemossDataType.DOUBLE;
-				break;
-			case "DOUBLE":
-				dataTypes[i] = SemossDataType.DOUBLE;
-				break;
-			case "FLOAT":
-				dataTypes[i] = SemossDataType.DOUBLE;
-				break;
-			case "TIME":
-				dataTypes[i] = SemossDataType.TIMESTAMP;
-				break;
-			case "TIMESTAMP":
-				dataTypes[i] = SemossDataType.TIMESTAMP;
-				break;
-			case "INT32":
-				dataTypes[i] = SemossDataType.INT;
-				break;
-			case "INT64":
-				dataTypes[i] = SemossDataType.INT;
-				break;
-			default:
-				dataTypes[i] = SemossDataType.STRING;
-			}        	  
-        	String[] colPath = paths.get(i);
-		      
-		    if (schema.containsPath(colPath)) {
-		        ColumnDescriptor fd = schema.getColumnDescription(colPath);
-		        if (!fd.equals(columns.get(i))) {
-		        	 throw new UnsupportedOperationException("Schema evolution not supported.");
-		         }
-		      } else {
-		    	  if (columns.get(i).getMaxDefinitionLevel() == 0) {
-		          // Column is missing in data but the required data is non-nullable. This file is invalid.
-		        	 throw new IOException("Required column is missing in data file. Col: " +
-		        			 Arrays.toString(colPath));
-		         }
-		         missingColumns[i] = true;
-		      }
-		    headersPlusDataTypes.put(cols[i], dataTypes[i]);
+		ParquetFileReader reader = null;
+		try {
+//			reader = ParquetFileReader.open(HadoopInputFile.fromPath(new Path(fileLocation), new Configuration()));
+			reader = ParquetFileReader.open(new LocalInputFile(fileLocation));
+			MessageType schema = reader.getFooter().getFileMetaData().getSchema();
+	
+			// for every column, loop through and grab the data type
+	        // Note: don't need to predict here since the type is defined in the meta data
+	        int numCols = schema.getFieldCount();
+	        String parquetDtype;
+	        String [] cols = new String[numCols];
+	        SemossDataType [] dataTypes = new SemossDataType[numCols];
+	        List<ColumnDescriptor> columns = schema.getColumns();
+	        List<String[]> paths = schema.getPaths();
+	        boolean[] missingColumns = new boolean[numCols];
+	        
+	        for (int i = 0; i < schema.getFieldCount(); ++i) {
+	        	Type t = schema.getFields().get(i);
+	        	  
+	        	if (!t.isPrimitive() || t.isRepetition(Type.Repetition.REPEATED)) {
+	        		throw new UnsupportedOperationException("Complex types not supported.");
+	        	}
+	        	cols[i] = t.getName();
+	        	//t.getOriginalType().toString();
+	        	parquetDtype = t.asPrimitiveType().getPrimitiveTypeName().toString().toUpperCase();
+				switch (parquetDtype) {
+				case "BOOLEAN":
+					dataTypes[i] = SemossDataType.BOOLEAN;
+					break;
+				case "DATE":
+					dataTypes[i] = SemossDataType.DATE;
+					break;
+				case "DECIMAL":
+					dataTypes[i] = SemossDataType.DOUBLE;
+					break;
+				case "DOUBLE":
+					dataTypes[i] = SemossDataType.DOUBLE;
+					break;
+				case "FLOAT":
+					dataTypes[i] = SemossDataType.DOUBLE;
+					break;
+				case "TIME":
+					dataTypes[i] = SemossDataType.TIMESTAMP;
+					break;
+				case "TIMESTAMP":
+					dataTypes[i] = SemossDataType.TIMESTAMP;
+					break;
+				case "INT32":
+					dataTypes[i] = SemossDataType.INT;
+					break;
+				case "INT64":
+					dataTypes[i] = SemossDataType.INT;
+					break;
+				default:
+					dataTypes[i] = SemossDataType.STRING;
+				}        	  
+	        	String[] colPath = paths.get(i);
+			      
+			    if (schema.containsPath(colPath)) {
+			        ColumnDescriptor fd = schema.getColumnDescription(colPath);
+			        if (!fd.equals(columns.get(i))) {
+			        	 throw new UnsupportedOperationException("Schema evolution not supported.");
+			         }
+			      } else {
+			    	  if (columns.get(i).getMaxDefinitionLevel() == 0) {
+			          // Column is missing in data but the required data is non-nullable. This file is invalid.
+			        	 throw new IOException("Required column is missing in data file. Col: " +
+			        			 Arrays.toString(colPath));
+			         }
+			         missingColumns[i] = true;
+			      }
+			    headersPlusDataTypes.put(cols[i], dataTypes[i]);
+			}
+			return headersPlusDataTypes;
+		} finally {
+			if(reader != null) {
+				try {
+					reader.close();
+				} catch(IOException e) {
+					classLogger.error(e.toString());
+				}
+			}
 		}
-		return headersPlusDataTypes;
 	}
 	
 	public void collectHeaders() {
 		if(allParquetHeaders == null) {
 			
-	        ParquetFileReader reader;
+	        ParquetFileReader reader = null;
 			try {
+//				reader = ParquetFileReader.open(HadoopInputFile.fromPath(new Path(fileLocation), new Configuration()));
 				reader = ParquetFileReader.open(new LocalInputFile(fileLocation));
-		        MessageType schema = reader.getFooter().getFileMetaData().getSchema();
+				MessageType schema = reader.getFooter().getFileMetaData().getSchema();
 		        int numCols = schema.getFieldCount();
 		        String [] cols = new String[numCols];
 		        for (int i = 0; i < schema.getFieldCount(); ++i) {
@@ -186,8 +205,16 @@ public class ParquetFileHelper {
 		        }	
 		        allParquetHeaders = cols;
 			} catch (IllegalArgumentException | IOException e) {
-				logger.error(e.toString());
+				classLogger.error(e.toString());
 				e.printStackTrace();
+			} finally {
+				if(reader != null) {
+					try {
+						reader.close();
+					} catch (IOException e) {
+						classLogger.error(e.toString());
+					}
+				}
 			}
 			
 			// need to keep track and make sure our headers are good
