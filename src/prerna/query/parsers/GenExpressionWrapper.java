@@ -488,9 +488,10 @@ public class GenExpressionWrapper {
 	{
 		//String tableAliasName = columnName.substring(0, columnName.indexOf("."));
 		String tableAliasName = tableName;
-		if(tableAlias.containsKey(tableAliasName))
+		if(tableAlias.containsKey(tableAliasName)) {
 			tableName = tableAlias.get(tableAliasName);
-
+		}
+		
 		//columnName = columnName.replace(tableAliasName + ".", "");
 		//columnName = columnName.replace(".", "");
 
