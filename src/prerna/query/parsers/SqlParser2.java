@@ -55,6 +55,7 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SetOperation;
 import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.SubSelect;
+import net.sf.jsqlparser.statement.select.WithItem;
 import prerna.query.querystruct.FunctionExpression;
 import prerna.query.querystruct.GenExpression;
 import prerna.query.querystruct.InGenExpression;
@@ -128,6 +129,9 @@ public class SqlParser2 {
 	{
 
 		wrapper = new GenExpressionWrapper();
+		//storing the with clause in qs
+		List<GenExpression> withqs = new ArrayList<>();
+        List<String> withAlias = new ArrayList<>();
 		// this is the main query struct
 		GenExpression qs = new GenExpression();
 		// parse the sql
@@ -137,7 +141,22 @@ public class SqlParser2 {
 		if(select.getSelectBody() instanceof PlainSelect)
 		{
 			PlainSelect sb = (PlainSelect)select.getSelectBody();
+			List<WithItem> withItemList = select.getWithItemsList();
+            if (withItemList != null) {
+                for (WithItem wi : withItemList) {
+                    PlainSelect wbody = (PlainSelect) wi.getSelectBody();
+                    String asName = wi.getName();
+
+                    if (wbody instanceof PlainSelect) {
+                        GenExpression withstruct = processSelect(null, (PlainSelect) wbody);
+                        withqs.add(withstruct);
+                        withAlias.add(asName);
+                    }
+                }
+			}		
 			qs = processSelect(null, sb);
+			qs.setWithFrom(withAlias);
+            qs.setWithList(withqs);
 		}
 		if(select.getSelectBody() instanceof SetOperationList)
 		{
@@ -909,7 +928,7 @@ public class SqlParser2 {
 						}
 					}
 
-					if(binary && column && constantValue != null)
+					if(binary && column && tableName != null && constantValue != null)
 					{
 						String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
 						this.wrapper.makeParameters(columnName, constantValue, modifier + eqExpr.getOperation().trim(), eqExpr.getOperation().trim(), constantType, exprToTrack, tableName, defQuery);
@@ -1034,7 +1053,7 @@ public class SqlParser2 {
 	
 			}
 
-			if(paramBetween)
+			if(paramBetween && tableName != null)
 			{
 				// process the start value if it is a constant
 				if( (startExpression.getOperation().equalsIgnoreCase("string")) 

@@ -45,7 +45,9 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	public String userTableAlias = null;
 	
 	public boolean distinct = false;
-	
+
+	public List<String> withFrom = null;
+	public List<GenExpression> withList = null;
 	
 	public void setRightExpresion(Object rightItem)
 	{
@@ -118,6 +120,26 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		return this.operation;
 	}
 
+	public void setWithFrom(List<String> withFrom) 
+	{
+	    this.withFrom = withFrom;
+	}
+	
+	public List<String> getWithFrom()
+	{
+	    return this.withFrom;
+	}
+	
+    public void setWithList(List<GenExpression> withList) 
+    {
+        this.withList = withList;
+    }
+    
+    public List<GenExpression> getWithList()
+    {
+        return this.withList;
+    }
+
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
 		// TODO Auto-generated method stub
@@ -175,6 +197,21 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			buf = new StringBuffer();
 		}
 		boolean processed = false;
+		
+		if(qs.withFrom != null && qs.withFrom.size() > 0)
+		{   
+		    buf.append("WITH ");
+		    for(int i=0;i<qs.withFrom.size();i++) {
+				if(i>0){
+					buf.append(",");
+				}
+		        buf.append(qs.withFrom.get(i));
+		        buf.append(" AS (");
+		        printQS(qs.withList.get(i),buf);
+		        buf.append(") ");
+		    }
+		}
+
 		if(qs != null && qs.operation != null && !qs.neutralize) {
 			if(qs.operation.equalsIgnoreCase("select") || qs.operation.equalsIgnoreCase("querystruct")) {
 				buf.append(newLine);
