@@ -106,19 +106,20 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static String allowUserResetPassword(String email, String type) throws Exception {
-		if(!SecurityPasswordResetUtils.userEmailExists(email, type)) {
-			throw new IllegalArgumentException("The email '" + email + "' does not exist");
-		}
-		
+		AuthProvider provider = null;
 		try {
-			AuthProvider provider = AuthProvider.valueOf(type);
+			provider = AuthProvider.valueOf(type);
 			if(provider != AuthProvider.NATIVE 
-					|| provider != AuthProvider.LINOTP 
-					|| provider != AuthProvider.ACTIVE_DIRECTORY) {
+					&& provider != AuthProvider.LINOTP 
+					&& provider != AuthProvider.ACTIVE_DIRECTORY) {
 				throw new IllegalArgumentException("Cannot reset password for type = '" + type + "'");
 			}
 		} catch(Exception e) {
 			throw e;
+		}
+		
+		if(!SecurityPasswordResetUtils.userEmailExists(email, provider.toString())) {
+			throw new IllegalArgumentException("The email '" + email + "' does not exist");
 		}
 		
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
