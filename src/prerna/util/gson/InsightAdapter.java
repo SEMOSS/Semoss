@@ -406,6 +406,12 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		if(path == null) {
 			return null;
 		}
+		
+		// we want to keep the final / in the path
+		if(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
+			baseFolder = baseFolder.substring(0, baseFolder.length()-1);
+		}
+		
 		path = path.replace(baseFolder, "@" + Constants.BASE_FOLDER + "@");
 		path = path.replace(SmssUtilities.getUniqueName(engineName, engineId), "@" + Constants.ENGINE + "@");
 		return path;
@@ -415,6 +421,25 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		if(path == null) {
 			return null;
 		}
+		
+		// if we have a separator in the parameterized path
+		// we do not want a separator in baseFolder
+		// if there is no separator in the parameterized path
+		// then we do want a separator in baseFolder
+		
+		// separator parameterized path 
+		if(path.contains("@" + Constants.BASE_FOLDER + "@\\") || path.contains("@" + Constants.BASE_FOLDER + "@/")) {
+			if(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
+				baseFolder = baseFolder.substring(0, baseFolder.length()-1);
+			}
+		}
+		// no separator in parameterized path
+		else {
+			if(!baseFolder.endsWith("/") && !baseFolder.endsWith("\\")) {
+				baseFolder += DIR_SEPARATOR;
+			}
+		}
+		
 		path = path.replace("@" + Constants.BASE_FOLDER + "@", baseFolder);
 		path = path.replace("@" + Constants.ENGINE + "@", SmssUtilities.getUniqueName(engineName, engineId));
 		return path;
