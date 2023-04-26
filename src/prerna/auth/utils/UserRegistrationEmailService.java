@@ -50,10 +50,15 @@ public class UserRegistrationEmailService {
 		return instance;
 	}
 	
-	public boolean sendPasswordResetRequestEmail(String recipient, String customUrl) {
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-		String subject = "SEMOSS Reset Password";
-		String sender = "no-reply@semoss.org";
+	public boolean sendPasswordResetRequestEmail(String recipient, String customUrl, String customEmailSubject) {
+		SocialPropertiesUtil socialProps = SocialPropertiesUtil.getInstance();
+		Session emailSession = socialProps.getEmailSession();
+		String sender = socialProps.getSmtpSender();
+		String subject = customEmailSubject;
+		if(subject == null || (subject=subject.trim()).isEmpty()) {
+			subject = "SEMOSS Reset Password : Request";
+		}
+		
 		boolean isHtml = true;
 		String[] ccRecipients = null;
 		String[] bccRecipients = null;
@@ -76,10 +81,15 @@ public class UserRegistrationEmailService {
 		return success;
 	}
 	
-	public boolean sendPasswordResetSuccessEmail(String recipient) {
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-		String subject = "SEMOSS Reset Password";
-		String sender = "no-reply@semoss.org";
+	public boolean sendPasswordResetSuccessEmail(String recipient, String customEmailSubject) {
+		SocialPropertiesUtil socialProps = SocialPropertiesUtil.getInstance();
+		Session emailSession = socialProps.getEmailSession();
+		String sender = socialProps.getSmtpSender();
+		String subject = customEmailSubject;
+		if(subject == null || (subject=subject.trim()).isEmpty()) {
+			subject = "SEMOSS Reset Password : Success";
+		}
+		
 		boolean isHtml = true;
 		String[] ccRecipients = null;
 		String[] bccRecipients = null;
@@ -105,7 +115,8 @@ public class UserRegistrationEmailService {
 		TestUtilityMethods.loadDIHelper("/Users/mahkhalil/development/workspace/Semoss_Dev/RDF_Map.prop");
 		UserRegistrationEmailService emailInstance = UserRegistrationEmailService.getInstance();
 		emailInstance.sendPasswordResetRequestEmail("khalil.maher91@gmail.com", 
-				"http://localhost:8080/Monolith_Dev/resetPassword/index.html?token=***REMOVED***");
+				"http://localhost:8080/Monolith_Dev/resetPassword/index.html?token=***REMOVED***", 
+				null);
 	}
 	
 }
