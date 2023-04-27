@@ -3,10 +3,8 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +19,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
-import prerna.util.Utility;
 import prerna.util.ldap.ILdapAuthenticator;
 
 public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
@@ -122,7 +119,6 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The email '" + email + "' does not exist");
 		}
 		
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 		String uniqueToken = UUID.randomUUID().toString();
 		
@@ -135,7 +131,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, email);
 			ps.setString(parameterIndex++, type);
 			ps.setString(parameterIndex++, uniqueToken);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -156,7 +152,13 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		return uniqueToken;
 	}
 	
-	
+	/**
+	 * 
+	 * @param token
+	 * @param newPassword
+	 * @return
+	 * @throws Exception
+	 */
 	public static Map<String, Object> userResetPassword(String token, String newPassword) throws Exception {
 		Map<String, Object> retMap = new HashMap<>();
 		SemossDate dateTokenAdded = null;
