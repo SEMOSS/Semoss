@@ -188,10 +188,9 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		if(dateTokenAdded == null) {
 			throw new IllegalArgumentException("Invalid attempt trying to update password");
 		}
-		if(dateTokenAdded.getLocalDateTime().isBefore(LocalDateTime.now().minusMinutes(15))) {
+		if(LocalDateTime.now().minusMinutes(15).isBefore(dateTokenAdded.getLocalDateTime())) {
 			throw new IllegalArgumentException("This link to reset the password has expired, please request a new link");
 		}
-		
 		
 		String userId = getUserIdFromEmail(email, type);
 		AuthProvider provider = AuthProvider.valueOf(type);
