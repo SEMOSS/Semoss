@@ -162,6 +162,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		SemossDate dateTokenAdded = null;
 		String email = null;
 		String type = null;
+		AuthProvider provider = null;
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__DATE_ADDED"));
@@ -185,6 +186,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		provider = AuthProvider.valueOf(type);
 		if(dateTokenAdded == null) {
 			throw new IllegalArgumentException("Invalid attempt trying to update password");
 		}
@@ -192,15 +194,14 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("This link to reset the password has expired, please request a new link");
 		}
 		
-		String userId = getUserIdFromEmail(email, type);
-		AuthProvider provider = AuthProvider.valueOf(type);
+		String userId = getUserIdFromEmail(email, provider.toString());
 		if(provider == AuthProvider.NATIVE) {
 			SecurityNativeUserUtils.performResetPassword(userId, newPassword);
 		} else if(provider == AuthProvider.ACTIVE_DIRECTORY || provider == AuthProvider.LINOTP) {
 			ILdapAuthenticator authenticator = SocialPropertiesUtil.getInstance().getLdapAuthenticator();
 			authenticator.updateForgottenPassword(userId, newPassword);
 		} else {
-			throw new IllegalArgumentException("The ability to update the password for this provider has not been implemented.");
+			throw new IllegalArgumentException("The ability to update the password for this provider (" + type + ") has not been implemented.");
 		}
 		
 		retMap.put("userId", userId);
