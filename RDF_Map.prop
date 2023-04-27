@@ -22,6 +22,7 @@ ProjectWatcher_EXT	.smss
 
 BaseFolder	C:\\workspace\\Semoss_Dev
 ADDITIONAL_REACTORS C:\\workspace\\Semoss_Dev\\reactors.json
+ADDITIONAL_REACTOR_PACKAGES
 SOCIAL	C:\\workspace\\Semoss_Dev\\social.properties
 EMAIL_TEMPLATES	C:\\workspace\\Semoss_Dev\\emailTemplates\\
 
