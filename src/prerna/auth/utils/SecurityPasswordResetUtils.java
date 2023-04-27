@@ -138,6 +138,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			}
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred inserting the request to update the password");
 		} finally {
 			if(ps != null) {
 				ps.close();
@@ -211,4 +212,47 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		retMap.put("dateAdded", dateTokenAdded);
 		return retMap;
 	}
+	
+	
+	/**
+	 * Generate and return a one time token to allow the user to reset the password
+	 * @param email
+	 * @return
+	 * @throws Exception
+	 */
+	public static boolean deleteToken(String token) {
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("DELETE FROM PASSWORD_RESET WHERE TOKEN=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, token);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(securityDb.isConnectionPooling()) {
+				if(ps != null) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		
+		return true;
+	}
+
 }
