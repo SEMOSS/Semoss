@@ -25,8 +25,29 @@ public class PO850ST implements IX12Format {
 	}
 
 	public PO850ST setSt02(String st02) {
+		if(st02 == null || st02.length() < 4 || st02.length() > 9) {
+			throw new IllegalArgumentException("ST02 transaction control number must be between 4 and 9 digits long");
+		}
 		this.st02 = st02;
 		return this;
 	}
 
+	public PO850ST setTransactionSetControlNumber(String st02) {
+		return setSt02(st02);
+	}
+	
+	
+	
+	/**
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		PO850ST st = new PO850ST()
+			.setTransactionSetControlNumber("0001") // 2
+			;
+		
+		System.out.println(st.generateX12("^", "~\n"));
+	}
+	
 }
