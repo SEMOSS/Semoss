@@ -201,13 +201,13 @@ public class PO850 implements IX12Format {
 					.setAcknowledgementRequested("1")
 					.setUsageIndicator("T")
 					.setIsa16("^:~\n")
-					)
+				)
 				.setGs(new PO850GS()
 					.setSenderId("SENDER1234") // 2
 					.setReceiverId("RECEIVER12") // 3
 					.setDateAndTime(now) // 4, 5
 					.setGroupControlNumber("001") // 6
-					)
+				)
 				.setSt(new PO850ST()
 					.setTransactionSetControlNumber("0001")
 				)
@@ -231,7 +231,7 @@ public class PO850 implements IX12Format {
 							.setEntityCode("ST") // 1 - ship to
 							.setName("Anchorage VA Medical Center") // 2 - name
 							.setIdentificationCode("91") // 3 - 91=assigned by seller
-							.setIdentificationCode("DEMO-ID")
+							.setIdentificationCode("FACILITY-DEMO-ID")
 						)
 						.setN3(new PO850N3()
 							.setAddressInfo1("1201 N Muldoon Rd")
@@ -240,6 +240,23 @@ public class PO850 implements IX12Format {
 							.setCity("Anchorage")
 							.setState("AK")
 							.setZip("99504")
+							.setCountryCode("US")
+						)
+					)
+					.addN1Group(new PO850N1Entity()
+						.setN1( new PO850N1()
+							.setEntityCode("SE") // 1 - selling party
+							.setName("MEDLINE") // 2 - name
+							.setIdentificationCode("91") // 3 - 91=assigned by seller
+							.setIdentificationCode("MEDLINE-DEMO-ID")
+						)
+						.setN3(new PO850N3()
+							.setAddressInfo1("1900 Meadowville Technology Pkwy")
+						)
+						.setN4(new PO850N4()
+							.setCity("Chester")
+							.setState("VA")
+							.setZip("23836")
 							.setCountryCode("US")
 						)
 					)
