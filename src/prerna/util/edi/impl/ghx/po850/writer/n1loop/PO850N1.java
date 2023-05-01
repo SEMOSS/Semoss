@@ -4,7 +4,7 @@ import prerna.util.edi.IX12Format;
 
 public class PO850N1 implements IX12Format {
 
-	private String n101 = ""; // entity identifier code - ST=ShipTo, VN=Vendor, BT=BillTo, BY=BuyingParty
+	private String n101 = ""; // entity identifier code - ST=ShipTo, SE=Selling Party, BT=BillToParty, BY=BuyingParty, VN=Vendor
 	private String n102 = ""; // name for n101
 	private String n103 = ""; // identification code qualifier - 91=assigned by seller, 92=assigned by buyer
 	private String n104 = ""; // identification code for n103
