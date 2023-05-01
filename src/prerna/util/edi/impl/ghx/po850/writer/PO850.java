@@ -167,7 +167,19 @@ public class PO850 implements IX12Format {
 	
 	public static void main(String[] args) {
 		PO850 po850 = new PO850();
-		
+			po850.setIsa(new PO850ISA()
+					.setAuthorizationInfoQualifier("00") // 1
+					.setSecurityInformationQualifier("00") // 4
+					.setSenderIdQualifier("ZZ") // 5
+					.setSenderId("SENDER1234") // 6
+					.setReceiverIdQualifier("ZZ") // 7
+					.setReceiverId("RECEIVER12") // 8
+					.setDateAndTime() // 9, 10
+					.setInterchangeControlNumber("123456789") // 13
+					.setAcknowledgementRequested("1")
+					.setUsageIndicator("T")
+					.setIsa16("^:~\n"))
+			;
 		
 		System.out.println(po850.generateX12("^", "~\n"));
 	}
