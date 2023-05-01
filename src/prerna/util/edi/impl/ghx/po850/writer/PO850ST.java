@@ -5,7 +5,7 @@ import prerna.util.edi.IX12Format;
 public class PO850ST implements IX12Format {
 
 	private String st01 = "850";
-	private String st02 = "";
+	private String st02 = ""; // transaction control number - must match se02
 	
 	@Override
 	public String generateX12(String elementDelimiter, String segmentDelimiter) {
