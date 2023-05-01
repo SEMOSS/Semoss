@@ -11,8 +11,20 @@ public class PO850N1Loop implements IX12Format {
 
 	@Override
 	public String generateX12(String elementDelimiter, String segmentDelimiter) {
-		// TODO Auto-generated method stub
-		return null;
+		String builder = "";
+		for(PO850N1Entity loop : n1list) {
+			builder += loop.generateX12(elementDelimiter, segmentDelimiter);
+		}
+		return builder;
+	}
+	
+	public PO850N1Loop addPO1(PO850N1Entity n1) {
+		n1list.add(n1);
+		return this;
+	}
+	
+	public List<PO850N1Entity> getPO1List() {
+		return this.n1list;
 	}
 	
 }
