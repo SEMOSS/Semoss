@@ -46,7 +46,7 @@ public class PO850ISA implements IX12Format {
 		return builder;
 	}
 
-	// generate get / set
+	// setters/getter
 
 	public String getIsa01() {
 		return isa01;
