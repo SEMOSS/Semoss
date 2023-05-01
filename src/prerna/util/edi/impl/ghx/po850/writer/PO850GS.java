@@ -12,8 +12,8 @@ public class PO850GS implements IX12Format {
 	private String gs03 = ""; // receiver interchange id qualifier
 	private String gs04 = ""; // date CCYYMMDD
 	private String gs05 = ""; // time HHmm
-	private String gs06 = ""; // group control number - assigned number originated and maintained by the sender
-	private String gs07 = "T"; // issuer of the standard used with GS08 - T = Transportation Data Coordinating Committe (TDCC)
+	private String gs06 = ""; // group control number - must match GE02
+	private String gs07 = "T"; // issuer of the standard used with GS08 - T = Transportation Data Coordinating Committe (TDCC), X = Accredited Standards Committee X12
 	private String gs08 = "004010"; // version industry identifier
 	
 	@Override
@@ -116,6 +116,9 @@ public class PO850GS implements IX12Format {
 	}
 
 	public PO850GS setGs06(String gs06) {
+		if(gs06 == null || gs06.length() < 3) {
+			throw new IllegalArgumentException("GS06 Group Control Number must be at least 3 digits");
+		}
 		this.gs06 = gs06;
 		return this;
 	}
@@ -152,7 +155,7 @@ public class PO850GS implements IX12Format {
 			.setSenderId("SENDER1234") // 2
 			.setReceiverId("RECEIVER12") // 3
 			.setDateAndTime() // 4, 5
-			.setGroupControlNumber("1") // 6
+			.setGroupControlNumber("001") // 6
 			;
 		
 		System.out.println(gs.generateX12("^", "~\n"));
