@@ -19,7 +19,7 @@ public class PO850ISA implements IX12Format {
 	private String isa10 = ""; // time (HHMM)
 	private String isa11 = "U"; // interchange control standards identifier - always U for EDI 00401
 	private String isa12 = "00401"; // interchange control version number
-	private String isa13 = ""; // interchange control number
+	private String isa13 = ""; // interchange control number - must match IEA02
 	private String isa14 = ""; // acknowledgement requested
 	private String isa15 = ""; // interchange usage indicator (T - test, P production)
 	private String isa16 = ""; // componenent element separator
@@ -279,6 +279,8 @@ public class PO850ISA implements IX12Format {
 		this.isa16 = isa16;
 		return this;
 	}
+	
+	
 	
 	/**
 	 * 
