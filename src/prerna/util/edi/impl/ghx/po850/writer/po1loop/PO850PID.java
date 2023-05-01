@@ -40,32 +40,32 @@ public class PO850PID implements IX12Format {
 		return this;
 	}
 
-	public String getPid02() {
-		return pid02;
-	}
-
-	public PO850PID setPid02(String pid02) {
-		this.pid02 = pid02;
-		return this;
-	}
-
-	public String getPid03() {
-		return pid03;
-	}
-
-	public PO850PID setPid03(String pid03) {
-		this.pid03 = pid03;
-		return this;
-	}
-
-	public String getPid04() {
-		return pid04;
-	}
-
-	public PO850PID setPid04(String pid04) {
-		this.pid04 = pid04;
-		return this;
-	}
+//	public String getPid02() {
+//		return pid02;
+//	}
+//
+//	public PO850PID setPid02(String pid02) {
+//		this.pid02 = pid02;
+//		return this;
+//	}
+//
+//	public String getPid03() {
+//		return pid03;
+//	}
+//
+//	public PO850PID setPid03(String pid03) {
+//		this.pid03 = pid03;
+//		return this;
+//	}
+//
+//	public String getPid04() {
+//		return pid04;
+//	}
+//
+//	public PO850PID setPid04(String pid04) {
+//		this.pid04 = pid04;
+//		return this;
+//	}
 
 	public String getPid05() {
 		return pid05;
@@ -79,6 +79,20 @@ public class PO850PID implements IX12Format {
 	public PO850PID setItemDescription(String pid05) {
 		this.pid05 = pid05;
 		return this;
+	}
+	
+	
+	
+	/**
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		PO850PID pid = new PO850PID()
+			.setItemDescription("CARDINAL HEALTH™ WOUND CLOSURE STRIP, REINFORCED, 0.125 X 3IN, FOB (Destination), Manufacturer (CARDINAL HEALTH 200, LLC); BOX of 50")
+			;
+		
+		System.out.println(pid.generateX12("^", "~\n"));
 	}
 	
 }

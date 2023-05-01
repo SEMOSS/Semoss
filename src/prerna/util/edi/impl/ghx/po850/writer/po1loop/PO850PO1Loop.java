@@ -26,5 +26,29 @@ public class PO850PO1Loop implements IX12Format {
 	public List<PO850PO1Entity> getPO1List() {
 		return this.po1list;
 	}
+
+	
+	/**
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		PO850PO1Loop po1loop = new PO850PO1Loop()
+			.addPO1(new PO850PO1Entity()
+				.setPo1(new PO850PO1()
+					.setUniqueId("1") // 1 - unique id 
+					.setQuantityOrdered("10") // 2 - quantity ordered
+					.setUnitOfMeasure("BX") // 3 - unit measurement
+					.setUnitPrice("27.50") // 4 unit price (not total)
+					.setProductId("BXTS1040") // product id
+				)
+				.setPid(new PO850PID()
+					.setItemDescription("CARDINAL HEALTH™ WOUND CLOSURE STRIP, REINFORCED, 0.125 X 3IN, FOB (Destination), Manufacturer (CARDINAL HEALTH 200, LLC); BOX of 50")
+				)
+			)
+			;
+	
+		System.out.println(po1loop.generateX12("^", "~\n"));
+	}
 	
 }
