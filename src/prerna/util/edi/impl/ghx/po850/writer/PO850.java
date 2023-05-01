@@ -1,5 +1,7 @@
 package prerna.util.edi.impl.ghx.po850.writer;
 
+import java.time.LocalDateTime;
+
 import prerna.util.edi.IX12Format;
 import prerna.util.edi.impl.ghx.po850.writer.n1loop.PO850N1Loop;
 import prerna.util.edi.impl.ghx.po850.writer.po1loop.PO850PO1Loop;
@@ -33,10 +35,10 @@ public class PO850 implements IX12Format {
 	
 	@Override
 	public String generateX12(String elementDelimiter, String segmentDelimiter) {
-		if(elementDelimiter != null && !(elementDelimiter=elementDelimiter.trim()).isEmpty()) {
+		if(elementDelimiter != null && !elementDelimiter.isEmpty()) {
 			this.elementDelimiter = elementDelimiter;
 		}
-		if(segmentDelimiter != null && !(segmentDelimiter=segmentDelimiter.trim()).isEmpty()) {
+		if(segmentDelimiter != null && !segmentDelimiter.isEmpty()) {
 			this.segmentDelimiter = segmentDelimiter;
 		}
 		
@@ -45,11 +47,11 @@ public class PO850 implements IX12Format {
 				+ st.generateX12(elementDelimiter, segmentDelimiter)
 				+ beg.generateX12(elementDelimiter, segmentDelimiter)
 				+ ref.generateX12(elementDelimiter, segmentDelimiter)
-				+ n1loop.generateX12(elementDelimiter, segmentDelimiter)
-				+ po1loop.generateX12(elementDelimiter, segmentDelimiter)
-				+ se.generateX12(elementDelimiter, segmentDelimiter)
-				+ ge.generateX12(elementDelimiter, segmentDelimiter)
-				+ iea.generateX12(elementDelimiter, segmentDelimiter)
+//				+ n1loop.generateX12(elementDelimiter, segmentDelimiter)
+//				+ po1loop.generateX12(elementDelimiter, segmentDelimiter)
+//				+ se.generateX12(elementDelimiter, segmentDelimiter)
+//				+ ge.generateX12(elementDelimiter, segmentDelimiter)
+//				+ iea.generateX12(elementDelimiter, segmentDelimiter)
 				;
 		
 		return builder;
@@ -166,19 +168,39 @@ public class PO850 implements IX12Format {
 	}
 	
 	public static void main(String[] args) {
-		PO850 po850 = new PO850();
-			po850.setIsa(new PO850ISA()
+		LocalDateTime now = LocalDateTime.now();
+		
+		PO850 po850 = new PO850()
+				.setIsa(new PO850ISA()
 					.setAuthorizationInfoQualifier("00") // 1
 					.setSecurityInformationQualifier("00") // 4
 					.setSenderIdQualifier("ZZ") // 5
 					.setSenderId("SENDER1234") // 6
 					.setReceiverIdQualifier("ZZ") // 7
 					.setReceiverId("RECEIVER12") // 8
-					.setDateAndTime() // 9, 10
+					.setDateAndTime(now) // 9, 10
 					.setInterchangeControlNumber("123456789") // 13
 					.setAcknowledgementRequested("1")
 					.setUsageIndicator("T")
-					.setIsa16("^:~\n"))
+					.setIsa16("^:~\n")
+					)
+				.setGs(new PO850GS()
+					.setSenderId("SENDER1234") // 2
+					.setReceiverId("RECEIVER12") // 3
+					.setDateAndTime(now) // 4, 5
+					.setGroupControlNumber("1") // 6
+					)
+				.setSt(new PO850ST()
+					.setTransactionSetControlNumber("0001")
+				)
+				.setBeg(new PO850BEG()
+					.setTransactionPurposeCode("00") // 1
+					.setPurchaseOrderNumber("RequestID") // 3
+					.setDateAndTime(now)
+				)
+				.setRef(new PO850REF()
+					.setReferenceIdentification("NCRT-Demo")
+				)
 			;
 		
 		System.out.println(po850.generateX12("^", "~\n"));

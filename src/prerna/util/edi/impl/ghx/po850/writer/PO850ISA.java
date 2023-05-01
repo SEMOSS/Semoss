@@ -162,6 +162,10 @@ public class PO850ISA implements IX12Format {
 	
 	public PO850ISA setDateAndTime() {
 		LocalDateTime now = LocalDateTime.now();
+		return setDateAndTime(now);
+	}
+	
+	public PO850ISA setDateAndTime(LocalDateTime now) {
 		String isa09 = now.format(DateTimeFormatter.ofPattern("yyMMdd"));
 		setIsa09(isa09);
 		String isa10 = now.format(DateTimeFormatter.ofPattern("HHmm"));
@@ -276,7 +280,10 @@ public class PO850ISA implements IX12Format {
 		return this;
 	}
 	
-	
+	/**
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		PO850ISA isa = new PO850ISA()
 			.setAuthorizationInfoQualifier("00") // 1
