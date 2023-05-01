@@ -59,9 +59,9 @@ public class PO850 implements IX12Format {
 				+ per.generateX12(elementDelimiter, segmentDelimiter)
 				+ n1loop.generateX12(elementDelimiter, segmentDelimiter)
 				+ po1loop.generateX12(elementDelimiter, segmentDelimiter)
-//				+ se.generateX12(elementDelimiter, segmentDelimiter)
-//				+ ge.generateX12(elementDelimiter, segmentDelimiter)
-//				+ iea.generateX12(elementDelimiter, segmentDelimiter)
+				+ se.generateX12(elementDelimiter, segmentDelimiter)
+				+ ge.generateX12(elementDelimiter, segmentDelimiter)
+				+ iea.generateX12(elementDelimiter, segmentDelimiter)
 				;
 		
 		return builder;
@@ -188,9 +188,8 @@ public class PO850 implements IX12Format {
 	
 	public static void main(String[] args) {
 		LocalDateTime now = LocalDateTime.now();
-		
-		PO850 po850 = new PO850()
-				.setIsa(new PO850ISA()
+		PO850 po850 = new PO850();
+		po850.setIsa(new PO850ISA()
 					.setAuthorizationInfoQualifier("00") // 1
 					.setSecurityInformationQualifier("00") // 4
 					.setSenderIdQualifier("ZZ") // 5
@@ -207,7 +206,7 @@ public class PO850 implements IX12Format {
 					.setSenderId("SENDER1234") // 2
 					.setReceiverId("RECEIVER12") // 3
 					.setDateAndTime(now) // 4, 5
-					.setGroupControlNumber("1") // 6
+					.setGroupControlNumber("001") // 6
 					)
 				.setSt(new PO850ST()
 					.setTransactionSetControlNumber("0001")
@@ -259,10 +258,19 @@ public class PO850 implements IX12Format {
 						)
 					)
 				)
+				.setSe(new PO850SE()
+						.setTransactionSetControlNumber(po850.getSt().getSt02())
+//						.setTotalSegments(po850.countSegments())
+				)
+				.setGe(new PO850GE()
+						.setGroupControlNumber(po850.getGs().getGs06()) // 2 - GE02 = GS06
+				)
+				.setIea(new PO850IEA()
+					.setInterchangeControlNumber(po850.getIsa().getIsa13()) // 2 - IEA02 = ISA13
+				)
 			;
 		
 		System.out.println(po850.generateX12("^", "~\n"));
 	}
 
-	
 }
