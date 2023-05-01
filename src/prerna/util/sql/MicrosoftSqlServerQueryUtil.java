@@ -87,7 +87,7 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		if(this.database == null || this.database.isEmpty()) {
-			throw new RuntimeException("Must pass in schema name");
+			throw new RuntimeException("Must pass in database name");
 		}
 		
 		String port = getPort();
