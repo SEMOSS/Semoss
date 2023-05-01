@@ -3,7 +3,14 @@ package prerna.util.edi.impl.ghx.po850.writer;
 import java.time.LocalDateTime;
 
 import prerna.util.edi.IX12Format;
+import prerna.util.edi.impl.ghx.po850.writer.n1loop.PO850N1;
+import prerna.util.edi.impl.ghx.po850.writer.n1loop.PO850N1Entity;
 import prerna.util.edi.impl.ghx.po850.writer.n1loop.PO850N1Loop;
+import prerna.util.edi.impl.ghx.po850.writer.n1loop.PO850N3;
+import prerna.util.edi.impl.ghx.po850.writer.n1loop.PO850N4;
+import prerna.util.edi.impl.ghx.po850.writer.po1loop.PO850PID;
+import prerna.util.edi.impl.ghx.po850.writer.po1loop.PO850PO1;
+import prerna.util.edi.impl.ghx.po850.writer.po1loop.PO850PO1Entity;
 import prerna.util.edi.impl.ghx.po850.writer.po1loop.PO850PO1Loop;
 
 public class PO850 implements IX12Format {
@@ -21,6 +28,8 @@ public class PO850 implements IX12Format {
 	private PO850BEG beg;
 	// reference identification
 	private PO850REF ref;
+	// reference identification
+	private PO850PER per;
 	
 	// n1 loop
 	private PO850N1Loop n1loop;
@@ -47,8 +56,9 @@ public class PO850 implements IX12Format {
 				+ st.generateX12(elementDelimiter, segmentDelimiter)
 				+ beg.generateX12(elementDelimiter, segmentDelimiter)
 				+ ref.generateX12(elementDelimiter, segmentDelimiter)
-//				+ n1loop.generateX12(elementDelimiter, segmentDelimiter)
-//				+ po1loop.generateX12(elementDelimiter, segmentDelimiter)
+				+ per.generateX12(elementDelimiter, segmentDelimiter)
+				+ n1loop.generateX12(elementDelimiter, segmentDelimiter)
+				+ po1loop.generateX12(elementDelimiter, segmentDelimiter)
 //				+ se.generateX12(elementDelimiter, segmentDelimiter)
 //				+ ge.generateX12(elementDelimiter, segmentDelimiter)
 //				+ iea.generateX12(elementDelimiter, segmentDelimiter)
@@ -119,6 +129,15 @@ public class PO850 implements IX12Format {
 	
 	public PO850 setRef(PO850REF ref) {
 		this.ref = ref;
+		return this;
+	}
+	
+	public PO850PER getPer() {
+		return per;
+	}
+	
+	public PO850 setPer(PO850PER per) {
+		this.per = per;
 		return this;
 	}
 	
@@ -200,6 +219,45 @@ public class PO850 implements IX12Format {
 				)
 				.setRef(new PO850REF()
 					.setReferenceIdentification("NCRT-Demo")
+				)
+				.setPer(new PO850PER()
+						.setContactFunctionCode("BD") // 1 - BD=Buyer Name
+						.setContactName("Maher Khalil") // 2
+						.setTelephone("(202)222-2222") // 4
+						.setEmail("mahkhalil@deloitte.com") // 6
+				)
+				.setN1loop(new PO850N1Loop()
+					.addN1Group(new PO850N1Entity()
+						.setN1( new PO850N1()
+							.setEntityCode("ST") // 1 - ship to
+							.setName("Anchorage VA Medical Center") // 2 - name
+							.setIdentificationCode("91") // 3 - 91=assigned by seller
+							.setIdentificationCode("DEMO-ID")
+						)
+						.setN3(new PO850N3()
+							.setAddressInfo1("1201 N Muldoon Rd")
+						)
+						.setN4(new PO850N4()
+							.setCity("Anchorage")
+							.setState("AK")
+							.setZip("99504")
+							.setCountryCode("US")
+						)
+					)
+				)
+				.setPo1loop(new PO850PO1Loop()
+					.addPO1(new PO850PO1Entity()
+						.setPo1(new PO850PO1()
+							.setUniqueId("1") // 1 - unique id 
+							.setQuantityOrdered("10") // 2 - quantity ordered
+							.setUnitOfMeasure("BX") // 3 - unit measurement
+							.setUnitPrice("27.50") // 4 unit price (not total)
+							.setProductId("BXTS1040") // product id
+						)
+						.setPid(new PO850PID()
+							.setItemDescription("CARDINAL HEALTH™ WOUND CLOSURE STRIP, REINFORCED, 0.125 X 3IN, FOB (Destination), Manufacturer (CARDINAL HEALTH 200, LLC); BOX of 50")
+						)
+					)
 				)
 			;
 		
