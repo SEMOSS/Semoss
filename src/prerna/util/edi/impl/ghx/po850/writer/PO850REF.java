@@ -20,14 +20,14 @@ public class PO850REF implements IX12Format {
 
 	// setters/getter
 
-	public String getRef01() {
-		return ref01;
-	}
-
-	public PO850REF setRef01(String ref01) {
-		this.ref01 = ref01;
-		return this;
-	}
+//	public String getRef01() {
+//		return ref01;
+//	}
+//
+//	public PO850REF setRef01(String ref01) {
+//		this.ref01 = ref01;
+//		return this;
+//	}
 
 	public String getRef02() {
 		return ref02;
@@ -37,5 +37,22 @@ public class PO850REF implements IX12Format {
 		this.ref02 = ref02;
 		return this;
 	}
+	
+	public PO850REF setReferenceIdentification(String ref02) {
+		return setRef02(ref02);
+	}
 
+	
+	/**
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		PO850REF ref = new PO850REF()
+			.setReferenceIdentification("NCRT-Demo") // 2
+			;
+		
+		System.out.println(ref.generateX12("^", "~\n"));
+	}
+	
 }
