@@ -4,10 +4,8 @@ import prerna.util.edi.IX12Format;
 
 public class PO850N3 implements IX12Format {
 
-	private String n301 = "";
-	private String n302 = "";
-	private String n303 = "";
-	private String n304 = "";
+	private String n301 = ""; // address information 
+	private String n302 = ""; // address information
 	
 	@Override
 	public String generateX12(String elementDelimiter, String segmentDelimiter) {
@@ -15,8 +13,6 @@ public class PO850N3 implements IX12Format {
 		String builder = "N3" 
 				+ elementDelimiter + n301
 				+ elementDelimiter + n302
-				+ elementDelimiter + n303
-				+ elementDelimiter + n304
 				+ segmentDelimiter;
 		
 		return builder;
@@ -33,6 +29,10 @@ public class PO850N3 implements IX12Format {
 		return this;
 	}
 
+	public PO850N3 setAddressInfo1(String n301) {
+		return setN301(n301);
+	}
+	
 	public String getN302() {
 		return n302;
 	}
@@ -42,22 +42,21 @@ public class PO850N3 implements IX12Format {
 		return this;
 	}
 
-	public String getN303() {
-		return n303;
+	public PO850N3 setAddressInfo2(String n302) {
+		return setN302(n302);
 	}
 
-	public PO850N3 setN303(String n303) {
-		this.n303 = n303;
-		return this;
+	
+	/**
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		PO850N3 n3 = new PO850N3()
+			.setAddressInfo1("1201 N Muldoon Rd") // 1
+			;
+		
+		System.out.println(n3.generateX12("^", "~\n"));
 	}
-
-	public String getN304() {
-		return n304;
-	}
-
-	public PO850N3 setN304(String n304) {
-		this.n304 = n304;
-		return this;
-	}
-
+	
 }
