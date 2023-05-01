@@ -1,17 +1,20 @@
 package prerna.util.edi.impl.ghx.po850.writer;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 import prerna.util.edi.IX12Format;
 
 public class PO850GS implements IX12Format {
 
-	private String gs01 = "PO";
-	private String gs02 = "";
-	private String gs03 = "";
-	private String gs04 = "";
-	private String gs05 = "";
-	private String gs06 = "";
-	private String gs07 = "";
-	private String gs08 = "";
+	private String gs01 = "PO"; // functional identifier code
+	private String gs02 = ""; // sender interchange id qualifier
+	private String gs03 = ""; // receiver interchange id qualifier
+	private String gs04 = ""; // date CCYYMMDD
+	private String gs05 = ""; // time HHmm
+	private String gs06 = ""; // group control number - assigned number originated and maintained by the sender
+	private String gs07 = "T"; // issuer of the standard used with GS08 - T = Transportation Data Coordinating Committe (TDCC)
+	private String gs08 = "004010"; // version industry identifier
 	
 	@Override
 	public String generateX12(String elementDelimiter, String segmentDelimiter) {
@@ -49,6 +52,10 @@ public class PO850GS implements IX12Format {
 		this.gs02 = gs02;
 		return this;
 	}
+	
+	public PO850GS setSenderId(String gs02) {
+		return setGs02(gs02);
+	}
 
 	public String getGs03() {
 		return gs03;
@@ -58,14 +65,38 @@ public class PO850GS implements IX12Format {
 		this.gs03 = gs03;
 		return this;
 	}
+	
+	public PO850GS setReceiverId(String gs03) {
+		return setGs03(gs03);
+	}
 
+	public PO850GS setDateAndTime() {
+		LocalDateTime now = LocalDateTime.now();
+		return setDateAndTime(now);
+	}
+	
+	public PO850GS setDateAndTime(LocalDateTime now) {
+		String gs04 = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+		setGs04(gs04);
+		String gs05 = now.format(DateTimeFormatter.ofPattern("HHmm"));
+		setGs05(gs05);
+		return this;
+	}
+	
 	public String getGs04() {
 		return gs04;
 	}
 
 	public PO850GS setGs04(String gs04) {
+		if(gs04 == null || gs04.length() != 8) {
+			throw new IllegalArgumentException("GS04 Date must be 8 digit date CCYYMMDD");
+		}
 		this.gs04 = gs04;
 		return this;
+	}
+	
+	public PO850GS setDate(String gs04) {
+		return  setGs04(gs04);
 	}
 
 	public String getGs05() {
@@ -73,6 +104,9 @@ public class PO850GS implements IX12Format {
 	}
 
 	public PO850GS setGs05(String gs05) {
+		if(gs05 == null || gs05.length() != 4) {
+			throw new IllegalArgumentException("GS05 Time must be 4 digit time HHMM");
+		}
 		this.gs05 = gs05;
 		return this;
 	}
@@ -85,23 +119,43 @@ public class PO850GS implements IX12Format {
 		this.gs06 = gs06;
 		return this;
 	}
+	
+	public PO850GS setGroupControlNumber(String gs06) {
+		return setGs06(gs06);
+	}
 
 	public String getGs07() {
 		return gs07;
 	}
 
-	public PO850GS setGs07(String gs07) {
-		this.gs07 = gs07;
-		return this;
-	}
+//	public PO850GS setGs07(String gs07) {
+//		this.gs07 = gs07;
+//		return this;
+//	}
 
 	public String getGs08() {
 		return gs08;
 	}
 
-	public PO850GS setGs08(String gs08) {
-		this.gs08 = gs08;
-		return this;
-	}
+//	public PO850GS setGs08(String gs08) {
+//		this.gs08 = gs08;
+//		return this;
+//	}
 
+	
+	/**
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		PO850GS gs = new PO850GS()
+			.setSenderId("SENDER1234") // 2
+			.setReceiverId("RECEIVER12") // 3
+			.setDateAndTime() // 4, 5
+			.setGroupControlNumber("1") // 6
+			;
+		
+		System.out.println(gs.generateX12("^", "~\n"));
+	}
+	
 }
