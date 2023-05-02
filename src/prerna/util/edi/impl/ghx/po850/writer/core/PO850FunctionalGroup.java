@@ -102,7 +102,7 @@ public class PO850FunctionalGroup implements IX12Format {
 					.setReferenceId("NCRT-Demo")
 				)
 				.setPer(new PO850PER()
-						.setContactFunctionCode("BD") // 1 - BD=Buyer Name
+						.setContactFunctionCode("NE") // 1 - NE=NewOrder, BD=Bidding
 						.setContactName("Maher Khalil") // 2
 						.setTelephone("(202)222-2222") // 4
 						.setEmail("mahkhalil@deloitte.com") // 6
