@@ -1,8 +1,8 @@
 package prerna.util.edi.impl.ghx.po850.writer.heading;
 
-import prerna.util.edi.IX12Format;
+import prerna.util.edi.IPO850IEA;
 
-public class PO850IEA implements IX12Format {
+public class GHXPO850IEA implements IPO850IEA {
 
 	public String iea01 = "1"; // number of included GS segments
 	public String iea02 = ""; // interchange control number - must match ISA13
@@ -21,21 +21,29 @@ public class PO850IEA implements IX12Format {
 
 	// setters/getter
 	
-	// only allowing 1 GS segment per transaction
+	@Override
+	public String getIea01() {
+		return iea01;
+	}
 	
-//	public String getIea01() {
-//		return iea01;
-//	}
-//
-//	public void setIea01(String iea01) {
-//		this.iea01 = iea01;
-//	}
+	@Override
+	public GHXPO850IEA setIea01(String iea01) {
+		this.iea01 = iea01;
+		return this;
+	}
+	
+	@Override
+	public GHXPO850IEA setTotalGroups(String iea01) {
+		return setIea01(iea01);
+	}
 
+	@Override
 	public String getIea02() {
 		return iea02;
 	}
 
-	public PO850IEA setIea02(String iea02) {
+	@Override
+	public GHXPO850IEA setIea02(String iea02) {
 		if(iea02 == null || iea02.length() != 9) {
 			throw new IllegalArgumentException("IEA02 Interchange Control Number must be 9 digits");
 		}
@@ -43,9 +51,11 @@ public class PO850IEA implements IX12Format {
 		return this;
 	}
 
-	public PO850IEA setInterchangeControlNumber(String iea02) {
+	@Override
+	public GHXPO850IEA setInterchangeControlNumber(String iea02) {
 		return setIea02(iea02);
 	}
+	
 	
 	
 	
@@ -54,7 +64,7 @@ public class PO850IEA implements IX12Format {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		PO850IEA iea = new PO850IEA()
+		GHXPO850IEA iea = new GHXPO850IEA()
 			.setInterchangeControlNumber("123456789") // 02
 			;
 		
