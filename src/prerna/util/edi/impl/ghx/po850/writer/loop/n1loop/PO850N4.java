@@ -11,7 +11,6 @@ public class PO850N4 implements IX12Format {
 	
 	@Override
 	public String generateX12(String elementDelimiter, String segmentDelimiter) {
-		
 		String builder = "N4" 
 				+ elementDelimiter + n401
 				+ elementDelimiter + n402

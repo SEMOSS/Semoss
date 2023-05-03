@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import prerna.util.edi.IX12Format;
+import prerna.util.edi.po850.enums.PO850PO1QualifierIdEnum;
 
 public class PO850PO1Loop implements IX12Format {
 
@@ -46,10 +47,11 @@ public class PO850PO1Loop implements IX12Format {
 			.addPO1(new PO850PO1Entity()
 				.setPo1(new PO850PO1()
 					.setUniqueId("1") // 1 - unique id 
-					.setQuantityOrdered("10") // 2 - quantity ordered
+					.setQuantityOrdered(10) // 2 - quantity ordered
 					.setUnitOfMeasure("BX") // 3 - unit measurement
-					.setUnitPrice("27.50") // 4 unit price (not total)
-					.setProductId("BXTS1040") // product id
+					.setUnitPrice(27.50) // 4 unit price (not total)
+					.addQualifierAndValue(PO850PO1QualifierIdEnum.VC, "BXTS1040")
+					.addQualifierAndValue(PO850PO1QualifierIdEnum.IN, "299176")
 				)
 				.setPid(new PO850PID()
 					.setItemDescription("CARDINAL HEALTH™ WOUND CLOSURE STRIP, REINFORCED, 0.125 X 3IN, FOB (Destination), Manufacturer (CARDINAL HEALTH 200, LLC); BOX of 50")
