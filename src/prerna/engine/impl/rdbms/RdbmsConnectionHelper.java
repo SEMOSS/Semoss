@@ -1,9 +1,7 @@
 package prerna.engine.impl.rdbms;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -16,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.util.Constants;
-import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsConnectionHelper {
@@ -25,187 +22,6 @@ public class RdbmsConnectionHelper {
 
 	private RdbmsConnectionHelper() {
 
-	}
-
-	/**
-	 * Method to get a connection to an existing RDBMS engine
-	 * If the username or password are null, we will assume the information is already provided within the connectionUrl
-	 * @param connectionUrl
-	 * @param userName
-	 * @param password
-	 * @param driver
-	 * @return
-	 * @throws SQLException 
-	 */
-	public static Connection getConnection(String connectionUrl, String userName, String password, String driver) throws SQLException {
-		String driverType = driver.toUpperCase();
-		try {
-			String predictedDriver = RdbmsTypeEnum.getDriverFromString(driverType);
-			if(predictedDriver != null) {
-				Class.forName(predictedDriver);
-			} else {
-				Class.forName(driver);
-			}
-		} catch (ClassNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new SQLException("Unable to find driver for engine type");
-		}
-
-		// create the iterator
-		Connection conn;
-		try {
-			if (userName == null || password == null) {
-				conn = DriverManager.getConnection(connectionUrl);
-			} else {
-				conn = DriverManager.getConnection(connectionUrl, userName, password);
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new SQLException(e.getMessage());
-		}
-
-		return conn;
-	}
-
-	/**
-	 * Return the connection url string
-	 * @param driverType
-	 * @param host
-	 * @param port
-	 * @param schema
-	 * @param additonalProperties
-	 * @return
-	 * @throws SQLException
-	 */
-	public static String getConnectionUrl(String driverType, String host, String port, String schema, String additonalProperties) throws SQLException {
-		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromString(driverType);
-		if(rdbmsType == null) {
-			throw new SQLException("Invalid driver");
-		}
-		String connectionUrl = rdbmsType.getUrlPrefix();
-
-		if (rdbmsType == RdbmsTypeEnum.ASTER) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (rdbmsType == RdbmsTypeEnum.ATHENA) {
-			connectionUrl += "://";
-		}
-		else if (rdbmsType == RdbmsTypeEnum.CASSANDRA) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.CLICKHOUSE) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.DB2) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.DERBY) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.H2_DB) {
-			File f = new File(Utility.normalizePath(host));
-			if(f.exists()) {
-				host = host.replace(".mv.db", "");
-				// there is no port for files
-				connectionUrl += ":nio:HOST/SCHEMA".replace("HOST", host);
-			} else {
-				connectionUrl += ":tcp://HOST:PORT/SCHEMA".replace("HOST", host);
-			}
-			// schema may be empty
-			if(schema == null || schema.isEmpty()) {
-				connectionUrl = connectionUrl.replace("/SCHEMA", "");
-			} else {
-				connectionUrl = connectionUrl.replace("SCHEMA", schema);
-			}
-		} else if( rdbmsType == RdbmsTypeEnum.SQLITE) {
-			host = host.replace(".mv.db", "");
-			// there is no port for files
-			// sqlite doesn't really support schemas
-			connectionUrl += ":HOST".replace("HOST", host);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.HIVE) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.IMPALA) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.REDSHIFT) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.MARIADB) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.MYSQL) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.ORACLE) {
-			connectionUrl += ":@HOST:PORT:SERVICE".replace("HOST", host).replace("SERVICE", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.PHOENIX) {
-			connectionUrl += ":HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.POSTGRES) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.SAP_HANA) {
-			connectionUrl += "://HOST:PORT/?currentSchema=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.SPARK) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.SNOWFLAKE) {
-			connectionUrl += "://HOST:PORT/?db=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.SYNAPSE) {
-			connectionUrl += "://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.SQL_SERVER) {
-			connectionUrl += "://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.TERADATA) {
-			connectionUrl += "://HOST/DATABASE=SCHEMA,:PORT".replace("HOST", host).replace("SCHEMA", schema);
-		}		
-		else if (rdbmsType == RdbmsTypeEnum.TIBCO) {
-			connectionUrl += "@HOST:PORT?SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-
-		// replace the PORT if defined
-		// else it should use the default
-		if (port != null && !port.isEmpty()) {
-			if (rdbmsType == RdbmsTypeEnum.TERADATA){
-				connectionUrl = connectionUrl.replace(":PORT", "DBS_PORT=" + port);
-			} else {
-				connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-			}
-		} else {
-			connectionUrl = connectionUrl.replace(":PORT", "");
-		}
-
-		// add additional properties that are considered optional
-		if(additonalProperties != null && !additonalProperties.isEmpty()) {
-			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
-				connectionUrl += ";" + additonalProperties;
-			} else {
-				connectionUrl += additonalProperties;
-			}
-		}
-		return connectionUrl;
-	}
-
-	/**
-	 * Try to construct the connection URL based on inputs
-	 * @param driver
-	 * @param host
-	 * @param port
-	 * @param userName
-	 * @param password
-	 * @param schema
-	 * @param additonalProperties
-	 * @return
-	 * @throws SQLException 
-	 */
-	public static Connection buildConnection(String driver, String host, String port, String userName, String password, String schema, String additonalProperties) throws SQLException {
-		String connectionUrl = getConnectionUrl(driver, host, port, schema, additonalProperties);
-		return getConnection(connectionUrl, userName, password, driver);
 	}
 
 	/**

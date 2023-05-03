@@ -115,17 +115,36 @@ public class AuditDatabaseReactor extends AbstractReactor {
 				}
 				sql.append(selector);
 			}
-			sql.append(" FROM AUDIT_TABLE WHERE ");
-			if(queryUtil.isSelectorKeyword("TABLE")) {
-				sql.append(queryUtil.getEscapeKeyword("TABLE"));
-			} else {
-				sql.append("TABLE");
-			}
+			sql.append(" FROM AUDIT_TABLE ");
 			// add table and column filters
-			sql.append(" in " + tableFilterSyntax + " AND ALTERED_COLUMN IN " + columnFilterSyntax + " ");
+			boolean hasWhere = false;
+			if(!tableFilterSyntax.equals("()")) {
+				hasWhere = true;
+				sql.append(" WHERE ");
+				if(queryUtil.isSelectorKeyword("TABLE")) {
+					sql.append(queryUtil.getEscapeKeyword("TABLE"));
+				} else {
+					sql.append("TABLE");
+				}
+				sql.append(" in " + tableFilterSyntax);
+			} else if(!columnFilterSyntax.equals("()")) {
+				if(!hasWhere) {
+					sql.append(" WHERE ");
+					hasWhere = true;
+				} else {
+					sql.append(" AND ");
+				}
+				sql.append("ALTERED_COLUMN IN " + columnFilterSyntax + " ");
+			}
 			// add time filters
 			if (dateTimeField != null && dateDiffStr != null) {
-				sql.append(" AND TIMESTAMP > " + queryUtil.getDateAddFunctionSyntax(dateTimeField, dateDiff * -1, queryUtil.getCurrentDate()));
+				if(!hasWhere) {
+					sql.append(" WHERE ");
+					hasWhere = true;
+				} else {
+					sql.append(" AND ");
+				}
+				sql.append(" TIMESTAMP > " + queryUtil.getDateAddFunctionSyntax(dateTimeField, dateDiff * -1, queryUtil.getCurrentDate()));
 			}
 			// end sql staement
 			sql.append(";");
@@ -161,7 +180,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 				insertPS.setString(i, userId);
 				insertPS.addBatch();
 			}
-			insertPS.executeBatch();
+ 			insertPS.executeBatch();
 //			if (userIdSet.isEmpty()) {
 //				String errorMsg = "No modifications have been made with the specified parameters.";
 //				NounMetadata noun = new NounMetadata(errorMsg, PixelDataType.CONST_STRING, PixelOperationType.ERROR);

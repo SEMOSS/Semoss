@@ -32,14 +32,13 @@ import prerna.util.sql.SqlQueryUtilFactory;
 
 public class AuditDatabase {
 	
-	private static final Logger logger = LogManager.getLogger(AuditDatabase.class);
+	private static final Logger classLogger = LogManager.getLogger(AuditDatabase.class);
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final int INSERT_SIZE = 10;
 
 	private static final String AUDIT_TABLE = "AUDIT_TABLE";
 	private static final String QUERY_TABLE = "QUERY_TABLE";
-	private static final String STACKTRACE = "StackTrace: ";
 
 	private Connection conn;
 	private AbstractSqlQueryUtil queryUtil;
@@ -84,7 +83,7 @@ public class AuditDatabase {
 				try {
 					f.createNewFile();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		} else {
@@ -94,12 +93,11 @@ public class AuditDatabase {
 				try {
 					f.createNewFile();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
-
-		RdbmsConnectionBuilder builder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
+		
 		String connectionUrl = null;
 		if (rdbmsType == RdbmsTypeEnum.SQLITE) {
 			connectionUrl = "jdbc:sqlite:" + fileLocation;
@@ -108,20 +106,25 @@ public class AuditDatabase {
 		}
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
-		builder.setConnectionUrl(connectionUrl);
-		builder.setDriver(rdbmsType.getDriver());
-		builder.setUserName("sa");
-		builder.setPassword("");
 
-		logger.info("Audit connection url is " + builder.getConnectionUrl());
-		logger.info("Audit connection url is " + builder.getConnectionUrl());
-		logger.info("Audit connection url is " + builder.getConnectionUrl());
+		classLogger.info("Audit connection url is " + connectionUrl);
+		classLogger.info("Audit connection url is " + connectionUrl);
+		classLogger.info("Audit connection url is " + connectionUrl);
+		
+//		RdbmsConnectionBuilder builder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
+//		builder.setConnectionUrl(connectionUrl);
+//		builder.setDriver(rdbmsType.getDriver());
+//		builder.setUserName("sa");
+//		builder.setPassword("");
+//		logger.info("Audit connection url is " + builder.getConnectionUrl());
+//		logger.info("Audit connection url is " + builder.getConnectionUrl());
+//		logger.info("Audit connection url is " + builder.getConnectionUrl());
 
 		try {
-			this.conn = builder.build();
+			this.conn = AbstractSqlQueryUtil.makeConnection(rdbmsType, connectionUrl, "sa", "");
 			this.queryUtil = SqlQueryUtilFactory.initialize(rdbmsType, connectionUrl, "sa", "");
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// create the tables if necessary
@@ -142,7 +145,7 @@ public class AuditDatabase {
 			auditTableStatement.execute();
 			queryTableStatement.execute();
 		} catch(SQLException e){
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -210,7 +213,7 @@ public class AuditDatabase {
 			insertStatement.execute();
 			auditStatement.execute();
 		} catch(SQLException e){
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -293,8 +296,11 @@ public class AuditDatabase {
 		){
 			insertStatement.execute();
 			updateStatement.execute();
-		}catch(SQLException e){
-			e.printStackTrace();
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch(SQLException e){
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -362,8 +368,8 @@ public class AuditDatabase {
 		){
 			statement.execute();
 			deleteStatement.execute();
-		}catch(SQLException e){
-			e.printStackTrace();
+		} catch(SQLException e){
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -378,7 +384,7 @@ public class AuditDatabase {
 		try(PreparedStatement statement = conn.prepareStatement(q)){
 			statement.execute();
 		} catch(SQLException e){
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -449,7 +455,7 @@ public class AuditDatabase {
 		try(PreparedStatement statement = this.conn.prepareStatement(q)){
 			statement.execute();
 		} catch(SQLException e){
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -472,7 +478,7 @@ public class AuditDatabase {
 		try {
 			this.conn.close();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
