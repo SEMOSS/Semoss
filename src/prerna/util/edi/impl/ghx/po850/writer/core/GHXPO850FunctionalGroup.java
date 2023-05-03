@@ -24,6 +24,7 @@ import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1Entity;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1Loop;
 import prerna.util.edi.po850.enums.PO850BEGQualifierIdEnum;
+import prerna.util.edi.po850.enums.PO850PO1QualifierIdEnum;
 
 public class GHXPO850FunctionalGroup implements IPO850FunctionalGroup {
 
@@ -151,16 +152,31 @@ public class GHXPO850FunctionalGroup implements IPO850FunctionalGroup {
 					.addPO1(new PO850PO1Entity()
 						.setPo1(new PO850PO1()
 							.setUniqueId("1") // 1 - unique id 
-							.setQuantityOrdered("10") // 2 - quantity ordered
+							.setQuantityOrdered(10) // 2 - quantity ordered
 							.setUnitOfMeasure("BX") // 3 - unit measurement
-							.setUnitPrice("27.50") // 4 unit price (not total)
-							.setProductId("BXTS1040") // product id
+							.setUnitPrice(27.50) // 4 unit price (not total)
+							.addQualifierAndValue(PO850PO1QualifierIdEnum.VC, "BXTS1040")
+							.addQualifierAndValue(PO850PO1QualifierIdEnum.IN, "299176")
 						)
 						.setPid(new PO850PID()
 							.setItemDescription("CARDINAL HEALTH™ WOUND CLOSURE STRIP, REINFORCED, 0.125 X 3IN, FOB (Destination), Manufacturer (CARDINAL HEALTH 200, LLC); BOX of 50")
 						)
 					)
+					.addPO1(new PO850PO1Entity()
+							.setPo1(new PO850PO1()
+								.setUniqueId("2") // 1 - unique id 
+								.setQuantityOrdered(25) // 2 - quantity ordered
+								.setUnitOfMeasure("BX") // 3 - unit measurement
+								.setUnitPrice(260.27) // 4 unit price (not total)
+								.addQualifierAndValue(PO850PO1QualifierIdEnum.VC, "VMRM1535")
+								.addQualifierAndValue(PO850PO1QualifierIdEnum.IN, "299188")
+							)
+						.setPid(new PO850PID()
+							.setItemDescription("PIN SKULL ADULT DISPO SS 3/PK 12/BX, FOB (Destination), Manufacturer (BECTON, DICKINSON AND COMPANY); BOX of 12")
+						)
+					)
 				)
+				.calculateCtt()
 				.calculateSe()
 			)
 			.calculateGe();
