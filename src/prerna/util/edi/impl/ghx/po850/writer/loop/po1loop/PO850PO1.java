@@ -1,6 +1,7 @@
 package prerna.util.edi.impl.ghx.po850.writer.loop.po1loop;
 
 import prerna.util.edi.IX12Format;
+import prerna.util.edi.po850.enums.PO850PO1QualifierIdEnum;
 
 public class PO850PO1 implements IX12Format {
 
@@ -9,7 +10,7 @@ public class PO850PO1 implements IX12Format {
 	private String po103 = ""; // unit of basis for measurement CA=case, EA=each, etc.
 	private String po104 = ""; // unit price
 	private String po105 = ""; // basis of unit price PE
-	private String po106 = "VC"; // product qualifier 
+	private String po106 = PO850PO1QualifierIdEnum.VC.getId(); // product qualifier - vendor catalog number
 	private String po107 = ""; // product identifier
 
 	@Override

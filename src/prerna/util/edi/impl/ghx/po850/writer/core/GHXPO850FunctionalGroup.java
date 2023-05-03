@@ -4,13 +4,16 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.util.edi.IX12Format;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850BEG;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850GE;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850GS;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850PER;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850REF;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850ST;
+import prerna.util.edi.IPO850FunctionalGroup;
+import prerna.util.edi.IPO850GE;
+import prerna.util.edi.IPO850GS;
+import prerna.util.edi.IPO850TransactionSet;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850BEG;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850GE;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850GS;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850PER;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850REF;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850ST;
 import prerna.util.edi.impl.ghx.po850.writer.loop.n1loop.PO850N1;
 import prerna.util.edi.impl.ghx.po850.writer.loop.n1loop.PO850N1Entity;
 import prerna.util.edi.impl.ghx.po850.writer.loop.n1loop.PO850N1Loop;
@@ -20,18 +23,18 @@ import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PID;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1Entity;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1Loop;
+import prerna.util.edi.po850.enums.PO850BEGQualifierIdEnum;
 
-public class PO850FunctionalGroup implements IX12Format {
+public class GHXPO850FunctionalGroup implements IPO850FunctionalGroup {
 
-	private PO850GS gs;
-	private PO850GE ge;
-	
-	private List<PO850TransactionSet> stList = new ArrayList<>();
-	
+	private IPO850GS gs;
+	private List<IPO850TransactionSet> stList = new ArrayList<>();
+	private IPO850GE ge;
+
 	@Override
 	public String generateX12(String elementDelimiter, String segmentDelimiter) {
 		String builder = gs.generateX12(elementDelimiter, segmentDelimiter);
-		for(PO850TransactionSet st : stList) {
+		for(IPO850TransactionSet st : stList) {
 			builder += st.generateX12(elementDelimiter, segmentDelimiter);
 		}
 		builder += ge.generateX12(elementDelimiter, segmentDelimiter);
@@ -39,8 +42,8 @@ public class PO850FunctionalGroup implements IX12Format {
 		return builder;
 	}
 	
-	public PO850FunctionalGroup calculateGe() {
-		this.ge = new PO850GE();
+	public GHXPO850FunctionalGroup calculateGe() {
+		this.ge = new GHXPO850GE();
 		this.ge.setNumberOfTransactions(this.stList.size()+"");
 		this.ge.setGroupControlNumber(gs.getGs06());
 		return this;
@@ -48,25 +51,25 @@ public class PO850FunctionalGroup implements IX12Format {
 	
 	// get/set methods
 	
-	public PO850GS getGs() {
+	public IPO850GS getGs() {
 		return gs;
 	}
 	
-	public PO850FunctionalGroup setGs(PO850GS gs) {
+	public GHXPO850FunctionalGroup setGs(IPO850GS gs) {
 		this.gs = gs;
 		return this;
 	}
 	
-	public PO850GE getGe() {
+	public IPO850GE getGe() {
 		return ge;
 	}
 	
-	public PO850FunctionalGroup setGe(PO850GE ge) {
+	public GHXPO850FunctionalGroup setGe(IPO850GE ge) {
 		this.ge = ge;
 		return this;
 	}
 	
-	public PO850FunctionalGroup addTransactionSet(PO850TransactionSet st) {
+	public GHXPO850FunctionalGroup addTransactionSet(IPO850TransactionSet st) {
 		this.stList.add(st);
 		return this;
 	}
@@ -81,28 +84,29 @@ public class PO850FunctionalGroup implements IX12Format {
 	public static void main(String[] args) {
 		LocalDateTime now = LocalDateTime.now();
 
-		PO850FunctionalGroup fg = new PO850FunctionalGroup()
-			.setGs(new PO850GS()
+		GHXPO850FunctionalGroup fg = new GHXPO850FunctionalGroup()
+			.setGs(new GHXPO850GS()
 				.setSenderId("SENDER1234") // 2
 				.setReceiverId("RECEIVER12") // 3
 				.setDateAndTime(now) // 4, 5
 				.setGroupControlNumber("001") // 6
 			)
-			.addTransactionSet(new PO850TransactionSet()
-				.setSt(new PO850ST()
+			.addTransactionSet(new GHXPO850TransactionSet()
+				.setSt(new GHXPO850ST()
 					.setTransactionSetControlNumber("0001")
 				)
-				.setBeg(new PO850BEG()
+				.setBeg(new GHXPO850BEG()
+					.setPurchaseOrderTypeCode(PO850BEGQualifierIdEnum.NE)
 					.setTransactionPurposeCode("00") // 1
 					.setPurchaseOrderNumber("RequestID") // 3
 					.setDateAndTime(now)
 				)
-				.setRef(new PO850REF()
+				.setRef(new GHXPO850REF()
 					.setReferenceIdQualifier("ZZ") // 1
 					.setReferenceId("NCRT-Demo")
 				)
-				.setPer(new PO850PER()
-						.setContactFunctionCode("NE") // 1 - NE=NewOrder, BD=Bidding
+				.setPer(new GHXPO850PER()
+						.setContactFunctionCode("BD") // 1 - BD=Buyer Name
 						.setContactName("Maher Khalil") // 2
 						.setTelephone("(202)222-2222") // 4
 						.setEmail("mahkhalil@deloitte.com") // 6

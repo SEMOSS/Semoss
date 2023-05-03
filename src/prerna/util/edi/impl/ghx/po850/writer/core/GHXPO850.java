@@ -4,14 +4,16 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.util.edi.IX12Format;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850BEG;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850GS;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850IEA;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850ISA;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850PER;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850REF;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850ST;
+import prerna.util.edi.IPO850FunctionalGroup;
+import prerna.util.edi.IPO850IEA;
+import prerna.util.edi.IPO850ISA;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850BEG;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850GS;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850IEA;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850ISA;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850PER;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850REF;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850ST;
 import prerna.util.edi.impl.ghx.po850.writer.loop.n1loop.PO850N1;
 import prerna.util.edi.impl.ghx.po850.writer.loop.n1loop.PO850N1Entity;
 import prerna.util.edi.impl.ghx.po850.writer.loop.n1loop.PO850N1Loop;
@@ -21,20 +23,20 @@ import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PID;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1Entity;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1Loop;
+import prerna.util.edi.po850.IPO850;
+import prerna.util.edi.po850.enums.PO850BEGQualifierIdEnum;
 
-public class PO850 implements IX12Format {
+public class GHXPO850 implements IPO850 {
 
 	private String elementDelimiter = "^";
 	private String segmentDelimiter = "~\n";
 	
 	// headers isa and ga
-	private PO850ISA isa;
-	
+	private IPO850ISA isa;
 	// list of functional groups
-	private List<PO850FunctionalGroup> functionalGroups = new ArrayList<>();
-	
+	private List<IPO850FunctionalGroup> functionalGroups = new ArrayList<>();
 	// end isa
-	private PO850IEA iea;
+	private IPO850IEA iea;
 	
 	@Override
 	public String generateX12(String elementDelimiter, String segmentDelimiter) {
@@ -46,7 +48,7 @@ public class PO850 implements IX12Format {
 		}
 		
 		String builder = isa.generateX12(elementDelimiter, segmentDelimiter);
-		for(PO850FunctionalGroup fg : functionalGroups) {
+		for(IPO850FunctionalGroup fg : functionalGroups) {
 			builder += fg.generateX12(elementDelimiter, segmentDelimiter);
 		}
 		builder += iea.generateX12(elementDelimiter, segmentDelimiter);
@@ -60,7 +62,7 @@ public class PO850 implements IX12Format {
 		return elementDelimiter;
 	}
 
-	public PO850 setElementDelimiter(String elementDelimiter) {
+	public GHXPO850 setElementDelimiter(String elementDelimiter) {
 		this.elementDelimiter = elementDelimiter;
 		return this;
 	}
@@ -69,39 +71,46 @@ public class PO850 implements IX12Format {
 		return segmentDelimiter;
 	}
 
-	public PO850 setSegmentDelimiter(String segmentDelimiter) {
+	public GHXPO850 setSegmentDelimiter(String segmentDelimiter) {
 		this.segmentDelimiter = segmentDelimiter;
 		return this;
 	}
 	
-	public PO850ISA getIsa() {
+	public IPO850ISA getIsa() {
 		return isa;
 	}
 	
-	public PO850 setIsa(PO850ISA isa) {
+	public GHXPO850 setIsa(IPO850ISA isa) {
 		this.isa = isa;
 		return this;
 	}
 	
-	public PO850 addFunctionalGroup(PO850FunctionalGroup fg) {
-		this.functionalGroups.add(fg);
-		return this;
-	}
-
-	
-	public PO850IEA getIea() {
+	public IPO850IEA getIea() {
 		return iea;
 	}
 	
-	public PO850 setIea(PO850IEA iea) {
+	public GHXPO850 setIea(IPO850IEA iea) {
 		this.iea = iea;
 		return this;
 	}
 	
+	public GHXPO850 addFunctionalGroup(IPO850FunctionalGroup fg) {
+		this.functionalGroups.add(fg);
+		return this;
+	}
+	
+	public List<IPO850FunctionalGroup> getFunctionalGroups() {
+		return this.functionalGroups;
+	}
+	
+	/**
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		LocalDateTime now = LocalDateTime.now();
-		PO850 po850 = new PO850();
-		po850.setIsa(new PO850ISA()
+		GHXPO850 po850 = new GHXPO850();
+		po850.setIsa(new GHXPO850ISA()
 					.setAuthorizationInfoQualifier("00") // 1
 					.setSecurityInformationQualifier("00") // 4
 					.setSenderIdQualifier("ZZ") // 5
@@ -114,28 +123,29 @@ public class PO850 implements IX12Format {
 					.setUsageIndicator("T")
 					.setIsa16("^:~\n")
 				)
-				.addFunctionalGroup(new PO850FunctionalGroup()
-					.setGs(new PO850GS()
+				.addFunctionalGroup(new GHXPO850FunctionalGroup()
+					.setGs(new GHXPO850GS()
 						.setSenderId("SENDER1234") // 2
 						.setReceiverId("RECEIVER12") // 3
 						.setDateAndTime(now) // 4, 5
 						.setGroupControlNumber("001") // 6
 					)
-					.addTransactionSet(new PO850TransactionSet()
-						.setSt(new PO850ST()
+					.addTransactionSet(new GHXPO850TransactionSet()
+						.setSt(new GHXPO850ST()
 							.setTransactionSetControlNumber("0001")
 						)
-						.setBeg(new PO850BEG()
+						.setBeg(new GHXPO850BEG()
+							.setPurchaseOrderTypeCode(PO850BEGQualifierIdEnum.NE)
 							.setTransactionPurposeCode("00") // 1
 							.setPurchaseOrderNumber("RequestID") // 3
 							.setDateAndTime(now)
 						)
-						.setRef(new PO850REF()
+						.setRef(new GHXPO850REF()
 							.setReferenceIdQualifier("ZZ") // 1
 							.setReferenceId("NCRT-Demo")
 						)
-						.setPer(new PO850PER()
-								.setContactFunctionCode("NE") // 1 - NE=NewOrder, BD=Bidding
+						.setPer(new GHXPO850PER()
+								.setContactFunctionCode("BD") // 1 - BD=Buyer Name
 								.setContactName("Maher Khalil") // 2
 								.setTelephone("(202)222-2222") // 4
 								.setEmail("mahkhalil@deloitte.com") // 6
@@ -194,7 +204,8 @@ public class PO850 implements IX12Format {
 					)
 					.calculateGe()
 				)
-				.setIea(new PO850IEA()
+				.setIea(new GHXPO850IEA()
+					.setTotalGroups(po850.getFunctionalGroups().size()+"")
 					.setInterchangeControlNumber(po850.getIsa().getIsa13()) // 2 - IEA02 = ISA13
 				)
 			;
