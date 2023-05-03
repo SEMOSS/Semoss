@@ -203,6 +203,21 @@ public abstract class AbstractSqlQueryUtil {
 	
 	/**
 	 * Method to get a connection to an existing RDBMS engine
+	 * @param driverEnum
+	 * @param connectionUrl
+	 * @param connectionDetails
+	 * @return
+	 * @throws SQLException 
+	 */
+	public static Connection makeConnection(AbstractSqlQueryUtil util, String connectionUrl, CaseInsensitiveProperties prop) throws SQLException {
+		return AbstractSqlQueryUtil.makeConnection(util.getDbType(), 
+				connectionUrl, 
+				(String) prop.get(util.getConnectionUserKey()), 
+				(String) prop.get(util.getConnectionPasswordKey()));
+	}
+	
+	/**
+	 * Method to get a connection to an existing RDBMS engine
 	 * If the username or password are null, we will assume the information is already provided within the connectionUrl
 	 * @param connectionUrl
 	 * @param userName
