@@ -16,6 +16,7 @@ public class PO850N4 implements IX12Format {
 				+ elementDelimiter + n401
 				+ elementDelimiter + n402
 				+ elementDelimiter + n403
+				+ elementDelimiter + n404
 				+ segmentDelimiter;
 		
 		return builder;
@@ -73,7 +74,7 @@ public class PO850N4 implements IX12Format {
 		if(n404 == null || n404.length() != 2) {
 			throw new IllegalArgumentException("N404 Country Code must be 2 digits");
 		}
-		this.n402 = n404;
+		this.n404 = n404;
 		return this;
 	}
 	

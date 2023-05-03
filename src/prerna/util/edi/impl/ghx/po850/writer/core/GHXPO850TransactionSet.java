@@ -2,12 +2,14 @@ package prerna.util.edi.impl.ghx.po850.writer.core;
 
 import java.time.LocalDateTime;
 
-import prerna.util.edi.IX12Format;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850BEG;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850PER;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850REF;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850SE;
-import prerna.util.edi.impl.ghx.po850.writer.heading.PO850ST;
+import prerna.util.edi.IPO850SE;
+import prerna.util.edi.IPO850ST;
+import prerna.util.edi.IPO850TransactionSet;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850BEG;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850PER;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850REF;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850SE;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850ST;
 import prerna.util.edi.impl.ghx.po850.writer.loop.n1loop.PO850N1;
 import prerna.util.edi.impl.ghx.po850.writer.loop.n1loop.PO850N1Entity;
 import prerna.util.edi.impl.ghx.po850.writer.loop.n1loop.PO850N1Loop;
@@ -17,18 +19,22 @@ import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PID;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1Entity;
 import prerna.util.edi.impl.ghx.po850.writer.loop.po1loop.PO850PO1Loop;
+import prerna.util.edi.po850.IPO850BEG;
+import prerna.util.edi.po850.IPO850PER;
+import prerna.util.edi.po850.IPO850REF;
+import prerna.util.edi.po850.enums.PO850BEGQualifierIdEnum;
 
-public class PO850TransactionSet implements IX12Format {
+public class GHXPO850TransactionSet implements IPO850TransactionSet {
 
 	// start transaction
-	private PO850ST st;
+	private IPO850ST st;
 	
 	// beginning segment
-	private PO850BEG beg;
+	private IPO850BEG beg;
 	// reference identification
-	private PO850REF ref;
+	private IPO850REF ref;
 	// reference identification
-	private PO850PER per;
+	private IPO850PER per;
 	
 	// n1 loop
 	private PO850N1Loop n1loop;
@@ -36,7 +42,7 @@ public class PO850TransactionSet implements IX12Format {
 	private PO850PO1Loop po1loop;
 	
 	// end transaction 
-	private PO850SE se;
+	private IPO850SE se;
 
 	
 	@Override
@@ -53,8 +59,8 @@ public class PO850TransactionSet implements IX12Format {
 		return builder;
 	}
 	
-	public PO850TransactionSet calculateSe() {
-		this.se = new PO850SE();
+	public GHXPO850TransactionSet calculateSe() {
+		this.se = new GHXPO850SE();
 		this.se.setTotalSegments(
 				(
 					1 // sf
@@ -73,38 +79,38 @@ public class PO850TransactionSet implements IX12Format {
 	
 	// get/set methods
 
-	public PO850ST getSt() {
+	public IPO850ST getSt() {
 		return st;
 	}
 	
-	public PO850TransactionSet setSt(PO850ST st) {
+	public GHXPO850TransactionSet setSt(IPO850ST st) {
 		this.st = st;
 		return this;
 	}
 	
-	public PO850BEG getBeg() {
+	public IPO850BEG getBeg() {
 		return beg;
 	}
 	
-	public PO850TransactionSet setBeg(PO850BEG beg) {
+	public GHXPO850TransactionSet setBeg(IPO850BEG beg) {
 		this.beg = beg;
 		return this;
 	}
 	
-	public PO850REF getRef() {
+	public IPO850REF getRef() {
 		return ref;
 	}
 	
-	public PO850TransactionSet setRef(PO850REF ref) {
+	public GHXPO850TransactionSet setRef(IPO850REF ref) {
 		this.ref = ref;
 		return this;
 	}
 	
-	public PO850PER getPer() {
+	public IPO850PER getPer() {
 		return per;
 	}
 	
-	public PO850TransactionSet setPer(PO850PER per) {
+	public GHXPO850TransactionSet setPer(IPO850PER per) {
 		this.per = per;
 		return this;
 	}
@@ -113,7 +119,7 @@ public class PO850TransactionSet implements IX12Format {
 		return n1loop;
 	}
 	
-	public PO850TransactionSet setN1loop(PO850N1Loop n1loop) {
+	public GHXPO850TransactionSet setN1loop(PO850N1Loop n1loop) {
 		this.n1loop = n1loop;
 		return this;
 	}
@@ -122,16 +128,16 @@ public class PO850TransactionSet implements IX12Format {
 		return po1loop;
 	}
 	
-	public PO850TransactionSet setPo1loop(PO850PO1Loop po1loop) {
+	public GHXPO850TransactionSet setPo1loop(PO850PO1Loop po1loop) {
 		this.po1loop = po1loop;
 		return this;
 	}
 	
-	public PO850SE getSe() {
+	public IPO850SE getSe() {
 		return se;
 	}
 	
-	public PO850TransactionSet setSe(PO850SE se) {
+	public GHXPO850TransactionSet setSe(IPO850SE se) {
 		this.se = se;
 		return this;
 	}
@@ -146,21 +152,22 @@ public class PO850TransactionSet implements IX12Format {
 	public static void main(String[] args) {
 		LocalDateTime now = LocalDateTime.now();
 
-		PO850TransactionSet st = new PO850TransactionSet()
-			.setSt(new PO850ST()
+		GHXPO850TransactionSet st = new GHXPO850TransactionSet()
+			.setSt(new GHXPO850ST()
 				.setTransactionSetControlNumber("0001")
 			)
-			.setBeg(new PO850BEG()
+			.setBeg(new GHXPO850BEG()
+				.setPurchaseOrderTypeCode(PO850BEGQualifierIdEnum.NE)
 				.setTransactionPurposeCode("00") // 1
 				.setPurchaseOrderNumber("RequestID") // 3
 				.setDateAndTime(now)
 			)
-			.setRef(new PO850REF()
+			.setRef(new GHXPO850REF()
 				.setReferenceIdQualifier("ZZ") // 1
 				.setReferenceId("NCRT-Demo") // 2
 			)
-			.setPer(new PO850PER()
-					.setContactFunctionCode("NE") // 1 - NE=NewOrder, BD=Bidding
+			.setPer(new GHXPO850PER()
+					.setContactFunctionCode("BD") // 1 - BD=Buyer Name
 					.setContactName("Maher Khalil") // 2
 					.setTelephone("(202)222-2222") // 4
 					.setEmail("mahkhalil@deloitte.com") // 6
