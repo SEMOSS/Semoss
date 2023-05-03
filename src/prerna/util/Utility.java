@@ -2608,11 +2608,12 @@ public class Utility {
 				// don't want several calls to try and load the engine at the same
 				// time
 				logger.info("Applying lock for project " + Utility.cleanLogString(projectId));
-				ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
-				lock.lock();
-				logger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
-	
+				ReentrantLock lock = null;
 				try {
+					lock = ProjectSyncUtility.getProjectLock(projectId);
+					lock.lock();
+					logger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
+					
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
 					// it doesn't go through this process again
@@ -2643,9 +2644,11 @@ public class Utility {
 						logger.debug("There is no SMSS File for the project " + projectId + "...");
 					}
 				} finally {
-					// Make sure to unlock now
-					lock.unlock();
-					logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
+					if(lock != null) {
+						// Make sure to unlock now
+						lock.unlock();
+						logger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
+					}
 				}
 			}
 		}
@@ -2789,11 +2792,12 @@ public class Utility {
 				// don't want several calls to try and load the engine at the same
 				// time
 				logger.info("Applying lock for database " + Utility.cleanLogString(engineId) + " to pull app");
-				ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
-				lock.lock();
-				logger.info("Database "+ Utility.cleanLogString(engineId) + " is locked");
-	
+				ReentrantLock lock = null;
 				try {
+					lock = EngineSyncUtility.getEngineLock(engineId);
+					lock.lock();
+					logger.info("Database "+ Utility.cleanLogString(engineId) + " is locked");
+		
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
 					// it doesn't go through this process again
@@ -2864,8 +2868,10 @@ public class Utility {
 					}
 				} finally {
 					// Make sure to unlock now
-					lock.unlock();
-					logger.info("Database "+ Utility.cleanLogString(engineId) + " is unlocked");
+					if(lock != null) {
+						lock.unlock();
+						logger.info("Database "+ Utility.cleanLogString(engineId) + " is unlocked");
+					}
 				}
 			}
 			// send the information of engine to the smssfile to the socket
