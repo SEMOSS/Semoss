@@ -228,6 +228,7 @@ public class WrapperManager {
 					}
 				}
 			} catch(Exception e) {
+				logger.error(Constants.STACKTRACE, e);
 				error = true;
 				throw e;
 			} finally {
