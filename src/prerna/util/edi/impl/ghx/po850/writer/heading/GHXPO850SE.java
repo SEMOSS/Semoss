@@ -1,8 +1,8 @@
 package prerna.util.edi.impl.ghx.po850.writer.heading;
 
-import prerna.util.edi.IX12Format;
+import prerna.util.edi.IPO850SE;
 
-public class PO850SE implements IX12Format {
+public class GHXPO850SE implements IPO850SE {
 
 	private String se01 = ""; // number of transactions in segment
 	private String se02 = ""; // transaction control number - must match se02
@@ -20,24 +20,29 @@ public class PO850SE implements IX12Format {
 
 	// setters/getter
 
+	@Override
 	public String getSe01() {
 		return se01;
 	}
 
-	public PO850SE setSe01(String se01) {
+	@Override
+	public GHXPO850SE setSe01(String se01) {
 		this.se01 = se01;
 		return this;
 	}
 	
-	public PO850SE setTotalSegments(String se01) {
+	@Override
+	public GHXPO850SE setTotalSegments(String se01) {
 		return setSe01(se01);
 	}
 
+	@Override
 	public String getSe02() {
 		return se02;
 	}
 
-	public PO850SE setSe02(String se02) {
+	@Override
+	public GHXPO850SE setSe02(String se02) {
 		if(se02 == null || se02.length() < 4 || se02.length() > 9) {
 			throw new IllegalArgumentException("SE02 transaction control number must be between 4 and 9 digits long");
 		}
@@ -45,7 +50,8 @@ public class PO850SE implements IX12Format {
 		return this;
 	}
 	
-	public PO850SE setTransactionSetControlNumber(String st02) {
+	@Override
+	public GHXPO850SE setTransactionSetControlNumber(String st02) {
 		return setSe02(st02);
 	}
 	
@@ -56,7 +62,7 @@ public class PO850SE implements IX12Format {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		PO850SE se = new PO850SE()
+		GHXPO850SE se = new GHXPO850SE()
 			.setTotalSegments("10")
 			.setTransactionSetControlNumber("0001") // 2
 			;
