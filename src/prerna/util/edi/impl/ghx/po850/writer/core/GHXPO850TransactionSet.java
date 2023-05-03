@@ -1,11 +1,14 @@
 package prerna.util.edi.impl.ghx.po850.writer.core;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
+import prerna.util.edi.IPO850CTT;
 import prerna.util.edi.IPO850SE;
 import prerna.util.edi.IPO850ST;
 import prerna.util.edi.IPO850TransactionSet;
 import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850BEG;
+import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850CTT;
 import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850PER;
 import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850REF;
 import prerna.util.edi.impl.ghx.po850.writer.heading.GHXPO850SE;
@@ -23,6 +26,7 @@ import prerna.util.edi.po850.IPO850BEG;
 import prerna.util.edi.po850.IPO850PER;
 import prerna.util.edi.po850.IPO850REF;
 import prerna.util.edi.po850.enums.PO850BEGQualifierIdEnum;
+import prerna.util.edi.po850.enums.PO850PO1QualifierIdEnum;
 
 public class GHXPO850TransactionSet implements IPO850TransactionSet {
 
@@ -41,6 +45,8 @@ public class GHXPO850TransactionSet implements IPO850TransactionSet {
 	// po1 loop
 	private PO850PO1Loop po1loop;
 	
+	// transaction totals
+	private IPO850CTT ctt;
 	// end transaction 
 	private IPO850SE se;
 
@@ -53,6 +59,7 @@ public class GHXPO850TransactionSet implements IPO850TransactionSet {
 			+ per.generateX12(elementDelimiter, segmentDelimiter)
 			+ n1loop.generateX12(elementDelimiter, segmentDelimiter)
 			+ po1loop.generateX12(elementDelimiter, segmentDelimiter)
+			+ ctt.generateX12(elementDelimiter, segmentDelimiter)
 			+ se.generateX12(elementDelimiter, segmentDelimiter)
 			;
 		
@@ -69,11 +76,28 @@ public class GHXPO850TransactionSet implements IPO850TransactionSet {
 					+ 1 // per
 					+ n1loop.getNumSegments()
 					+ po1loop.getNumSegments()
+					+ 1 // ctt
 					+ 1 // se
 				)
 				+ ""
 		);
 		this.se.setTransactionSetControlNumber(st.getSt02());
+		return this;
+	}
+	
+	public GHXPO850TransactionSet calculateCtt() {
+		List<PO850PO1Entity> po1List = po1loop.getPO1List();
+		int numPo1 = po1List.size();
+		int sumPo101 = 0;
+		
+		for(PO850PO1Entity po1 : po1List) {
+			PO850PO1 poi = po1.getPo1();
+			sumPo101 += poi.getPo102();
+		}
+		
+		this.ctt = new GHXPO850CTT()
+				.setNumPO1Segments(numPo1)
+				.setSumPO102Qualities(sumPo101);
 		return this;
 	}
 	
@@ -212,16 +236,31 @@ public class GHXPO850TransactionSet implements IPO850TransactionSet {
 				.addPO1(new PO850PO1Entity()
 					.setPo1(new PO850PO1()
 						.setUniqueId("1") // 1 - unique id 
-						.setQuantityOrdered("10") // 2 - quantity ordered
+						.setQuantityOrdered(10) // 2 - quantity ordered
 						.setUnitOfMeasure("BX") // 3 - unit measurement
-						.setUnitPrice("27.50") // 4 unit price (not total)
-						.setProductId("BXTS1040") // product id
+						.setUnitPrice(27.50) // 4 unit price (not total)
+						.addQualifierAndValue(PO850PO1QualifierIdEnum.VC, "BXTS1040")
+						.addQualifierAndValue(PO850PO1QualifierIdEnum.IN, "299176")
 					)
 					.setPid(new PO850PID()
 						.setItemDescription("CARDINAL HEALTH™ WOUND CLOSURE STRIP, REINFORCED, 0.125 X 3IN, FOB (Destination), Manufacturer (CARDINAL HEALTH 200, LLC); BOX of 50")
 					)
 				)
+				.addPO1(new PO850PO1Entity()
+						.setPo1(new PO850PO1()
+							.setUniqueId("2") // 1 - unique id 
+							.setQuantityOrdered(25) // 2 - quantity ordered
+							.setUnitOfMeasure("BX") // 3 - unit measurement
+							.setUnitPrice(260.27) // 4 unit price (not total)
+							.addQualifierAndValue(PO850PO1QualifierIdEnum.VC, "VMRM1535")
+							.addQualifierAndValue(PO850PO1QualifierIdEnum.IN, "299188")
+						)
+					.setPid(new PO850PID()
+						.setItemDescription("PIN SKULL ADULT DISPO SS 3/PK 12/BX, FOB (Destination), Manufacturer (BECTON, DICKINSON AND COMPANY); BOX of 12")
+					)
+				)
 			)
+			.calculateCtt()
 			.calculateSe();
 
 		System.out.println(st.generateX12("^", "~\n"));
