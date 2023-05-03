@@ -1,8 +1,8 @@
 package prerna.util.edi.impl.ghx.po850.writer.heading;
 
-import prerna.util.edi.IX12Format;
+import prerna.util.edi.po850.IPO850REF;
 
-public class PO850REF implements IX12Format {
+public class GHXPO850REF implements IPO850REF {
 
 	private String ref01 = "";
 	private String ref02 = "";
@@ -20,39 +20,47 @@ public class PO850REF implements IX12Format {
 
 	// setters/getter
 
+	@Override
 	public String getRef01() {
 		return ref01;
 	}
 
-	public PO850REF setRef01(String ref01) {
+	@Override
+	public GHXPO850REF setRef01(String ref01) {
 		this.ref01 = ref01;
 		return this;
 	}
 	
-	public PO850REF setReferenceIdQualifier(String ref01) {
+	@Override
+	public GHXPO850REF setReferenceIdQualifier(String ref01) {
 		return setRef01(ref01);
 	}
 
+	@Override
 	public String getRef02() {
 		return ref02;
 	}
 
-	public PO850REF setRef02(String ref02) {
+	@Override
+	public GHXPO850REF setRef02(String ref02) {
 		this.ref02 = ref02;
 		return this;
 	}
 	
-	public PO850REF setReferenceId(String ref02) {
+	@Override
+	public GHXPO850REF setReferenceId(String ref02) {
 		return setRef02(ref02);
 	}
 
+	
+	
 	
 	/**
 	 * 
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		PO850REF ref = new PO850REF()
+		GHXPO850REF ref = new GHXPO850REF()
 			.setReferenceIdQualifier("ZZ") // 1
 			.setReferenceId("NCRT-Demo") // 2
 			;
