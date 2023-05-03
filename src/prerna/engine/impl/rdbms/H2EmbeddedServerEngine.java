@@ -21,13 +21,7 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 	private String serverUrl;
 	
 	@Override
-	protected void init(RdbmsConnectionBuilder builder, boolean force) {
-		String connectionUrl = builder.getConnectionUrl();
-		String originalUrl = builder.getOriginalUrl();
-		if(originalUrl != null) {
-			connectionUrl = originalUrl;
-		}
-		
+	protected String init(String connectionUrl, boolean force) {
 		String baseConnUrl = connectionUrl;
 		if(baseConnUrl.startsWith("jdbc:h2:nio:")) {
 			baseConnUrl = baseConnUrl.substring("jdbc:h2:nio:".length());
@@ -68,12 +62,6 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
 				serverUrl = "jdbc:h2:" + server.getURL() + "/nio:" + baseConnUrl;
 				server.start();
-				
-				// update the builder
-				if(originalUrl == null) {
-					builder.setOriginalUrl(connectionUrl);
-				}
-				builder.setConnectionUrl(serverUrl);
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
@@ -82,7 +70,8 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 		logger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
 		logger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
 		logger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
-
+		
+		return serverUrl;
 	}
 
 	@Override

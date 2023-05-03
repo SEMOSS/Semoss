@@ -53,6 +53,7 @@ import org.openrdf.query.TupleQueryResult;
 
 import com.zaxxer.hikari.HikariDataSource;
 
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractEngine;
@@ -98,10 +99,12 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	public PersistentHash conceptIdHash = null;
 
-	private RdbmsConnectionBuilder connBuilder;
+//	private RdbmsConnectionBuilder connBuilder;
+	
 	private String userName = null;
 	private String password = null;
 	private String driver = null;
+	private String originalConnectionURL = null;
 	private String connectionURL = null;
 	private String database = null;
 	private String schema = null;
@@ -118,7 +121,8 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	private AbstractSqlQueryUtil queryUtil = null;
 
 	private String fileDB = null;
-	private String createString = null;
+	private Map<String, String> fileConceptAndType = null;
+	private String fileCreateString = null;
 
 	@Override
 	public void openDB(String propFile)
@@ -190,6 +194,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
 				prop.put(Constants.CONNECTION_URL, this.connectionURL);
 			}
+			this.originalConnectionURL = this.connectionURL;
 			
 			// make a check to see if it is asking to use file
 			boolean useFile = false;
@@ -261,62 +266,51 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 				}
 			}
 
-			this.connBuilder = null;
-			if(useFile) {
-				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.BUILD_FROM_FILE);
-
-				// determine the location of the file relative to where SEMOSS is installed
-				this.fileDB = SmssUtilities.getDataFile(prop).getAbsolutePath();
-				// set the file location
-				connBuilder.setFileLocation(this.fileDB);
-
-				// set the types
-				Vector<String> concepts = this.getConcepts();
-				String [] conceptsArray = concepts.toArray(new String[concepts.size()]);
-				Map <String,String> conceptAndType = this.getDataTypes(conceptsArray);
-				for(int conceptIndex = 0;conceptIndex < conceptsArray.length;conceptIndex++) {
-					List<String> propList = getPropertyUris4PhysicalUri(conceptsArray[conceptIndex]);
-					String [] propArray = propList.toArray(new String[propList.size()]);
-					Map<String, String> typeMap = getDataTypes(propArray);
-					conceptAndType.putAll(typeMap);
-				}
-				connBuilder.setColumnToTypesMap(conceptAndType);
-
-				// also update the connection url
-				Hashtable<String, String> paramHash = new Hashtable<String, String>();
-				String dbName = this.fileDB.replace(".csv", "").replace(".tsv", "");
-				paramHash.put("database", dbName);
-				this.connectionURL = Utility.fillParam2(connectionURL, paramHash);
-
-			} else if(useConnectionPooling) {
-				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.CONNECTION_POOL);
-			} else {
-				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
-			}
-
-			connBuilder.setConnectionUrl(this.connectionURL);
-			connBuilder.setUserName(this.userName);
-			connBuilder.setPassword(this.password);
-			connBuilder.setDriver(this.driver);
-
-			init(connBuilder);
-
 			try {
+				// account for files
+				if(useFile) {
+					// also update the connection url
+					Hashtable<String, String> paramHash = new Hashtable<String, String>();
+					String dbName = this.fileDB.replace(".csv", "").replace(".tsv", "");
+					paramHash.put("database", dbName);
+					this.connectionURL = Utility.fillParam2(connectionURL, paramHash);
+					
+					// set the types
+					Vector<String> concepts = this.getConcepts();
+					this.fileConceptAndType = new HashMap<>();
+					for(int conceptIndex = 0;conceptIndex < concepts.size(); conceptIndex++) {
+						List<String> propList = getPropertyUris4PhysicalUri(concepts.get(conceptIndex));
+						String [] propArray = propList.toArray(new String[propList.size()]);
+						Map<String, String> typeMap = getDataTypes(propArray);
+						this.fileConceptAndType.putAll(typeMap);
+					}
+					
+					this.fileCreateString = RdbmsQueryBuilder.createTableFromFile(this.fileDB, this.fileConceptAndType);
+
+					// this makes the connection and creates the table
+					makeConnection(dbType.getDriver(), this.userName, this.password, this.connectionURL, this.fileCreateString);
+				}
+				
+				// init - example of this is H2Server where we spin up and have a new connection url
+				String initUrl = init(this.originalConnectionURL);
+				if(initUrl != null) {
+					this.connectionURL = initUrl;
+				}
+				
 				// update the query utility values
 				this.queryUtil.setConnectionUrl(this.connectionURL);
 				this.queryUtil.setConnectionDetailsFromSMSS(this.prop);
-				// build the connection
-				this.engineConn = connBuilder.build();
+				// if we are connection pooling
 				if(useConnectionPooling) {
-					this.dataSource = connBuilder.getDataSource();
+					this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
 					setDataSourceProperties(this.dataSource);
 					this.datasourceConnected = true;
-					this.autoCommit = this.engineConn.getAutoCommit();
-					this.queryUtil.enhanceConnection(this.engineConn);
-					this.engineConn.close();
+					logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				} else {
+					this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.prop);
 					this.autoCommit = this.engineConn.getAutoCommit();
 					this.queryUtil.enhanceConnection(this.engineConn);
+					logger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				}
 				this.engineConnected = true;
 			} catch (SQLException e) {
@@ -329,22 +323,25 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	 * This is for when there are other engines that extend
 	 * the base RDBMSNativeEngine that need to do additional processing
 	 * before a connection can be made
-	 * @param connBuilder
+	 * @param connectionUrl
+	 * @return
 	 */
-	protected void init(RdbmsConnectionBuilder connBuilder) {
+	protected String init(String connectionUrl) {
 		// default does nothing
-		init(connBuilder, false);
+		return null;
 	}
 
 	/**
 	 * This is for when there are other engines that extend
 	 * the base RDBMSNativeEngine that need to do additional processing
 	 * before a connection can be made
-	 * @param connBuilder
-	 * @param force force the init again
+	 * @param connectionUrl
+	 * @param force force the init againrce
+	 * @return
 	 */
-	protected void init(RdbmsConnectionBuilder connBuilder, boolean force) {
+	protected String init(String connectionUrl, boolean force) {
 		// default does nothing
+		return null;
 	}
 
 	protected void setDataSourceProperties(HikariDataSource dataSource) {
@@ -436,7 +433,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	public void reloadFile() {
 		try {
 			this.engineConn.close();
-			makeConnection(this.driver, this.userName, this.password, this.connectionURL, this.createString);
+			makeConnection(this.driver, this.userName, this.password, this.connectionURL, this.fileCreateString);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -452,39 +449,45 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 		if(this.dataSource != null) {
 			// re-establish bad connections
 			if(this.dataSource.isClosed()) {
-				try {
-					init(connBuilder, true);
-					this.engineConn = connBuilder.build();
-					if(useConnectionPooling) {
-						this.dataSource = connBuilder.getDataSource();
-						setDataSourceProperties(this.dataSource);
-						this.datasourceConnected = true;
-					}
-					this.engineConnected = true;
-					this.autoCommit = this.engineConn.getAutoCommit();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+				String initUrl = init(this.originalConnectionURL, true);
+				if(initUrl != null) {
+					this.connectionURL = initUrl;
+					this.queryUtil.setConnectionUrl(this.connectionURL);
 				}
+				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
+				setDataSourceProperties(this.dataSource);
+				this.datasourceConnected = true;
+				logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 
 			// return/generate a connection object
 			Connection conn = dataSource.getConnection();
+			this.autoCommit = conn.getAutoCommit();
 			this.queryUtil.enhanceConnection(conn);
 			return conn;
 		}
 
 		// re-establish bad connections
 		if(!isConnected() || this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
-			init(connBuilder, true);
-			this.engineConn = connBuilder.build();
-			if(useConnectionPooling) {
-				this.dataSource = connBuilder.getDataSource();
-				setDataSourceProperties(this.dataSource);
-				this.datasourceConnected = true;
+			String initUrl = init(this.originalConnectionURL, true);
+			if(initUrl != null) {
+				this.connectionURL = initUrl;
+				this.queryUtil.setConnectionUrl(this.connectionURL);
 			}
-			this.engineConnected = true;
-			this.autoCommit = this.engineConn.getAutoCommit();
+			if(useConnectionPooling) {
+				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
+				setDataSourceProperties(this.dataSource);
+				this.engineConn = this.dataSource.getConnection();
+				this.datasourceConnected = true;
+				logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			} else {
+				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.prop);
+				this.autoCommit = this.engineConn.getAutoCommit();
+				logger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			}
 			this.queryUtil.enhanceConnection(this.engineConn);
+			this.autoCommit = this.engineConn.getAutoCommit();
+			this.engineConnected = true;
 		}
 
 		return this.engineConn;
@@ -706,6 +709,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	@Override
 	public boolean isConnected() {
+		if(this.useConnectionPooling) {
+			return this.dataSource != null && this.datasourceConnected;
+		}
 		return engineConn !=null && this.engineConnected;
 	}
 
