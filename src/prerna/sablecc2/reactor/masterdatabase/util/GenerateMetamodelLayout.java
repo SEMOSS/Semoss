@@ -43,65 +43,72 @@ public class GenerateMetamodelLayout {
 		File owlF = new File(owlFileLocation);
 
 		// owl is stored as RDF/XML file
-		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-		rfse.openFile(owlFileLocation, null, null);
-		// we create the meta helper to facilitate querying the engine OWL
-		MetaHelper helper = new MetaHelper(rfse, null, null);
-
-		long startTimer = System.currentTimeMillis();
-
-		Graph graph = new MultiGraph(Utility.getRandomString(6));
-		Layout layout = new SpringBox(false);
-		graph.addSink(layout);
-		layout.addAttributeSink(graph);
-
-		List<String> nodes = helper.getPhysicalConcepts();
-		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
-
-		for (String node : nodes) {
-			String nodeName = Utility.getInstanceName(node);
-			List<String> properties = helper.getPropertyUris4PhysicalUri(node);
-			nodeSizes.put(nodeName, properties.size());
-			graph.addNode(Utility.getInstanceName(node));
-		}
-
-		List<String[]> relationships = helper.getPhysicalRelationships();
-		for (String[] relation : relationships) {
-			String start = Utility.getInstanceName(relation[0]);
-			String end = Utility.getInstanceName(relation[1]);
-			String edge = Utility.getInstanceName(relation[2]) + "-" + start + "-" + end;
-			graph.addEdge(edge, start, end);
-		}
-
-		while (layout.getStabilization() < 0.9) {
-			layout.compute();
-		}
-
-		Map<String, Rectangle2D> rectangles = GenerateMetamodelLayout.getRectangles(graph, nodeSizes);
-		Rectangles fixRectangles = new Rectangles();
-		// get map of correctly spaced nodes/rectangles for metamodel
-		Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
-		Map<String, Map<String, Double>> positionMap = GenerateMetamodelLayout.generatePositionMap(graph, fixedRectangles);
-
-		long endTimer = System.currentTimeMillis();
-		System.out.println("Compute time = " + (endTimer - startTimer) + " ms");
-
-		// now write the file
-		String baseFolder = owlF.getParent();
-		String positionJson = baseFolder + "/" + AbstractEngine.OWL_POSITION_FILENAME;
-		FileWriter writer = null;
+		RDFFileSesameEngine rfse = null;
 		try {
-			writer = new FileWriter(positionJson);
-			writer.write(new GsonBuilder().setPrettyPrinting().create().toJson(positionMap));
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if(writer != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					e.printStackTrace();
+			rfse = new RDFFileSesameEngine();
+			rfse.openFile(owlFileLocation, null, null);
+			// we create the meta helper to facilitate querying the engine OWL
+			MetaHelper helper = new MetaHelper(rfse, null, null);
+	
+			long startTimer = System.currentTimeMillis();
+	
+			Graph graph = new MultiGraph(Utility.getRandomString(6));
+			Layout layout = new SpringBox(false);
+			graph.addSink(layout);
+			layout.addAttributeSink(graph);
+	
+			List<String> nodes = helper.getPhysicalConcepts();
+			Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
+	
+			for (String node : nodes) {
+				String nodeName = Utility.getInstanceName(node);
+				List<String> properties = helper.getPropertyUris4PhysicalUri(node);
+				nodeSizes.put(nodeName, properties.size());
+				graph.addNode(Utility.getInstanceName(node));
+			}
+	
+			List<String[]> relationships = helper.getPhysicalRelationships();
+			for (String[] relation : relationships) {
+				String start = Utility.getInstanceName(relation[0]);
+				String end = Utility.getInstanceName(relation[1]);
+				String edge = Utility.getInstanceName(relation[2]) + "-" + start + "-" + end;
+				graph.addEdge(edge, start, end);
+			}
+	
+			while (layout.getStabilization() < 0.9) {
+				layout.compute();
+			}
+	
+			Map<String, Rectangle2D> rectangles = GenerateMetamodelLayout.getRectangles(graph, nodeSizes);
+			Rectangles fixRectangles = new Rectangles();
+			// get map of correctly spaced nodes/rectangles for metamodel
+			Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
+			Map<String, Map<String, Double>> positionMap = GenerateMetamodelLayout.generatePositionMap(graph, fixedRectangles);
+	
+			long endTimer = System.currentTimeMillis();
+			System.out.println("Compute time = " + (endTimer - startTimer) + " ms");
+	
+			// now write the file
+			String baseFolder = owlF.getParent();
+			String positionJson = baseFolder + "/" + AbstractEngine.OWL_POSITION_FILENAME;
+			FileWriter writer = null;
+			try {
+				writer = new FileWriter(positionJson);
+				writer.write(new GsonBuilder().setPrettyPrinting().create().toJson(positionMap));
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if(writer != null) {
+					try {
+						writer.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
+			}
+		} finally {
+			if(rfse != null) {
+				rfse.closeDB();
 			}
 		}
 	}
