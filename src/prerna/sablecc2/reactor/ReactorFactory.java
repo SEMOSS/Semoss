@@ -64,13 +64,13 @@ import prerna.sablecc2.reactor.algorithms.UpdateNLPHistoryReactor;
 import prerna.sablecc2.reactor.algorithms.dataquality.GetDQRulesReactor;
 import prerna.sablecc2.reactor.algorithms.dataquality.RunDataQualityReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetCSVSchemaReactor;
-import prerna.sablecc2.reactor.algorithms.xray.GetExternalSchemaReactor;
+//import prerna.sablecc2.reactor.algorithms.xray.GetExternalSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetLocalSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
-import prerna.sablecc2.reactor.algorithms.xray.RunXRayReactor;
-import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
+//import prerna.sablecc2.reactor.algorithms.xray.RunXRayReactor;
+//import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.cluster.CleanUpDatabasesReactor;
 import prerna.sablecc2.reactor.cluster.OpenDatabaseReactor;
 import prerna.sablecc2.reactor.cluster.UpdateDatabaseReactor;
@@ -1038,14 +1038,14 @@ public class ReactorFactory {
 		reactorHash.put("RunAnomaly", RunAnomalyReactor.class);
 		
 		// X-Ray reactors
-		reactorHash.put("RunXray", RunXRayReactor.class);
+//		reactorHash.put("RunXray", RunXRayReactor.class);
 		reactorHash.put("GetXrayConfigList", GetXrayConfigListReactor.class);
 		reactorHash.put("GetXrayConfigFile", GetXrayConfigFileReactor.class);
 		reactorHash.put("GetLocalSchema", GetLocalSchemaReactor.class);
 		reactorHash.put("GetXLSchema", GetXLSchemaReactor.class);
 		reactorHash.put("GetCSVSchema",GetCSVSchemaReactor.class);
-		reactorHash.put("GetExternalSchema", GetExternalSchemaReactor.class);
-		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
+//		reactorHash.put("GetExternalSchema", GetExternalSchemaReactor.class);
+//		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
 //		reactorHash.put("MetaSemanticSimilarity", MetaSemanticSimilarityReactor.class);
 		
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
