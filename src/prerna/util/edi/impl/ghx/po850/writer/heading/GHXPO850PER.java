@@ -1,8 +1,8 @@
 package prerna.util.edi.impl.ghx.po850.writer.heading;
 
-import prerna.util.edi.IX12Format;
+import prerna.util.edi.po850.IPO850PER;
 
-public class PO850PER implements IX12Format {
+public class GHXPO850PER implements IPO850PER {
 
 	private String per01 = ""; // contact function code - BD=Buyer Name
 	private String per02 = ""; // name for per01
@@ -28,29 +28,35 @@ public class PO850PER implements IX12Format {
 
 	// setters/getter
 	
+	@Override
 	public String getPer01() {
 		return per01;
 	}
 
-	public PO850PER setPer01(String per01) {
+	@Override
+	public GHXPO850PER setPer01(String per01) {
 		this.per01 = per01;
 		return this;
 	}
 	
-	public PO850PER setContactFunctionCode(String per01) {
+	@Override
+	public GHXPO850PER setContactFunctionCode(String per01) {
 		return setPer01(per01);
 	}
 
+	@Override
 	public String getPer02() {
 		return per02;
 	}
 
-	public PO850PER setPer02(String per02) {
+	@Override
+	public GHXPO850PER setPer02(String per02) {
 		this.per02 = per02;
 		return this;
 	}
 	
-	public PO850PER setContactName(String per02) {
+	@Override
+	public GHXPO850PER setContactName(String per02) {
 		return setPer02(per02);
 	}
 
@@ -63,16 +69,19 @@ public class PO850PER implements IX12Format {
 //		return this;
 //	}
 
+	@Override
 	public String getPer04() {
 		return per04;
 	}
 
-	public PO850PER setPer04(String per04) {
+	@Override
+	public GHXPO850PER setPer04(String per04) {
 		this.per04 = per04;
 		return this;
 	}
 	
-	public PO850PER setTelephone(String per04) {
+	@Override
+	public GHXPO850PER setTelephone(String per04) {
 		this.per04 = per04;
 		return this;
 	}
@@ -86,28 +95,32 @@ public class PO850PER implements IX12Format {
 //		return this;
 //	}
 
+	@Override
 	public String getPer06() {
 		return per06;
 	}
 
-	public PO850PER setPer06(String per06) {
+	@Override
+	public GHXPO850PER setPer06(String per06) {
 		this.per06 = per06;
 		return this;
 	}
 	
-	public PO850PER setEmail(String per06) {
+	@Override
+	public GHXPO850PER setEmail(String per06) {
 		this.per06 = per06;
 		return this;
 	}
 
+	
 	
 	/**
 	 * 
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		PO850PER per = new PO850PER()
-			.setContactFunctionCode("NE") // 1 - NE=NewOrder, BD=Bidding
+		GHXPO850PER per = new GHXPO850PER()
+			.setContactFunctionCode("BD") // 1 - BD=Buyer Name
 			.setContactName("Maher Khalil") // 2
 			.setTelephone("(202)222-2222") // 4
 			.setEmail("mahkhalil@deloitte.com") // 6

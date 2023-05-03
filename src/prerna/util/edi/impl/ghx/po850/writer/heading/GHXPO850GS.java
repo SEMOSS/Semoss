@@ -2,12 +2,10 @@ package prerna.util.edi.impl.ghx.po850.writer.heading;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 
-import prerna.util.edi.IX12Format;
+import prerna.util.edi.IPO850GS;
 
-public class PO850GS implements IX12Format {
+public class GHXPO850GS implements IPO850GS {
 
 	private String gs01 = "PO"; // functional identifier code
 	private String gs02 = ""; // sender interchange id qualifier
@@ -15,10 +13,8 @@ public class PO850GS implements IX12Format {
 	private String gs04 = ""; // date CCYYMMDD
 	private String gs05 = ""; // time HHmm
 	private String gs06 = ""; // group control number - must match GE02
-	private String gs07 = "T"; // issuer of the standard used with GS08 - T = Transportation Data Coordinating Committe (TDCC), X = Accredited Standards Committee X12
+	private String gs07 = "X"; // issuer of the standard used with GS08 - T = Transportation Data Coordinating Committe (TDCC), X = Accredited Standards Committee X12
 	private String gs08 = "004010"; // version industry identifier
-	
-	private List<PO850ST> statements = new ArrayList<>();
 	
 	@Override
 	public String generateX12(String elementDelimiter, String segmentDelimiter) {
@@ -48,38 +44,46 @@ public class PO850GS implements IX12Format {
 //		this.gs01 = gs01;
 //	}
 
+	@Override
 	public String getGs02() {
 		return gs02;
 	}
 
-	public PO850GS setGs02(String gs02) {
+	@Override
+	public GHXPO850GS setGs02(String gs02) {
 		this.gs02 = gs02;
 		return this;
 	}
 	
-	public PO850GS setSenderId(String gs02) {
+	@Override
+	public GHXPO850GS setSenderId(String gs02) {
 		return setGs02(gs02);
 	}
 
+	@Override
 	public String getGs03() {
 		return gs03;
 	}
 
-	public PO850GS setGs03(String gs03) {
+	@Override
+	public GHXPO850GS setGs03(String gs03) {
 		this.gs03 = gs03;
 		return this;
 	}
 	
-	public PO850GS setReceiverId(String gs03) {
+	@Override
+	public GHXPO850GS setReceiverId(String gs03) {
 		return setGs03(gs03);
 	}
 
-	public PO850GS setDateAndTime() {
+	@Override
+	public GHXPO850GS setDateAndTime() {
 		LocalDateTime now = LocalDateTime.now();
 		return setDateAndTime(now);
 	}
 	
-	public PO850GS setDateAndTime(LocalDateTime now) {
+	@Override
+	public GHXPO850GS setDateAndTime(LocalDateTime now) {
 		String gs04 = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 		setGs04(gs04);
 		String gs05 = now.format(DateTimeFormatter.ofPattern("HHmm"));
@@ -87,11 +91,13 @@ public class PO850GS implements IX12Format {
 		return this;
 	}
 	
+	@Override
 	public String getGs04() {
 		return gs04;
 	}
 
-	public PO850GS setGs04(String gs04) {
+	@Override
+	public GHXPO850GS setGs04(String gs04) {
 		if(gs04 == null || gs04.length() != 8) {
 			throw new IllegalArgumentException("GS04 Date must be 8 digit date CCYYMMDD");
 		}
@@ -99,15 +105,18 @@ public class PO850GS implements IX12Format {
 		return this;
 	}
 	
-	public PO850GS setDate(String gs04) {
+	@Override
+	public GHXPO850GS setDate(String gs04) {
 		return  setGs04(gs04);
 	}
 
+	@Override
 	public String getGs05() {
 		return gs05;
 	}
 
-	public PO850GS setGs05(String gs05) {
+	@Override
+	public GHXPO850GS setGs05(String gs05) {
 		if(gs05 == null || gs05.length() != 4) {
 			throw new IllegalArgumentException("GS05 Time must be 4 digit time HHMM");
 		}
@@ -115,11 +124,13 @@ public class PO850GS implements IX12Format {
 		return this;
 	}
 
+	@Override
 	public String getGs06() {
 		return gs06;
 	}
 
-	public PO850GS setGs06(String gs06) {
+	@Override
+	public GHXPO850GS setGs06(String gs06) {
 		if(gs06 == null || gs06.length() < 3) {
 			throw new IllegalArgumentException("GS06 Group Control Number must be at least 3 digits");
 		}
@@ -127,10 +138,12 @@ public class PO850GS implements IX12Format {
 		return this;
 	}
 	
-	public PO850GS setGroupControlNumber(String gs06) {
+	@Override
+	public GHXPO850GS setGroupControlNumber(String gs06) {
 		return setGs06(gs06);
 	}
 
+	@Override
 	public String getGs07() {
 		return gs07;
 	}
@@ -140,6 +153,7 @@ public class PO850GS implements IX12Format {
 //		return this;
 //	}
 
+	@Override
 	public String getGs08() {
 		return gs08;
 	}
@@ -149,18 +163,13 @@ public class PO850GS implements IX12Format {
 //		return this;
 //	}
 	
-	public PO850GS addStatement(PO850ST statement) {
-		this.statements.add(statement);
-		return this;
-	}
-
 	
 	/**
 	 * 
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		PO850GS gs = new PO850GS()
+		GHXPO850GS gs = new GHXPO850GS()
 			.setSenderId("SENDER1234") // 2
 			.setReceiverId("RECEIVER12") // 3
 			.setDateAndTime() // 4, 5

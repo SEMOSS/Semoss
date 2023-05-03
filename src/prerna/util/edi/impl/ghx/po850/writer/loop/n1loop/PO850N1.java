@@ -2,7 +2,7 @@ package prerna.util.edi.impl.ghx.po850.writer.loop.n1loop;
 
 import prerna.util.edi.IX12Format;
 
-public class PO850N1 implements IX12Format {
+public class PO850N1 implements IX12Format, IPO850N1 {
 
 	private String n101 = ""; // entity identifier code - ST=ShipTo, SE=SellingParty, BT=BillToParty, BY=BuyingParty, VN=Vendor
 	private String n102 = ""; // name for n101
@@ -23,54 +23,66 @@ public class PO850N1 implements IX12Format {
 
 	// setters/getter
 
+	@Override
 	public String getN101() {
 		return n101;
 	}
 
+	@Override
 	public PO850N1 setN101(String n101) {
 		this.n101 = n101;
 		return this;
 	}
 	
+	@Override
 	public PO850N1 setEntityCode(String n101) {
 		return setN101(n101);
 	}
 
+	@Override
 	public String getN102() {
 		return n102;
 	}
 
+	@Override
 	public PO850N1 setN102(String n102) {
 		this.n102 = n102;
 		return this;
 	}
 	
+	@Override
 	public PO850N1 setName(String n102) {
 		return setN102(n102);
 	}
 
+	@Override
 	public String getN103() {
 		return n103;
 	}
 
+	@Override
 	public PO850N1 setN103(String n103) {
 		this.n103 = n103;
 		return this;
 	}
 	
+	@Override
 	public PO850N1 setIdentificationCodeQualifier(String n103) {
 		return setN103(n103);
 	}
 
+	@Override
 	public String getN104() {
 		return n104;
 	}
 
+	@Override
 	public PO850N1 setN104(String n104) {
 		this.n104 = n104;
 		return this;
 	}
 
+	@Override
 	public PO850N1 setIdentificationCode(String n104) {
 		return setN104(n104);
 	}
