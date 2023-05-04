@@ -1,9 +1,10 @@
 package prerna.auth;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-public enum AuthProvider {
+public enum AuthProvider implements Serializable {
 
 	GOOGLE, 
 	GOOGLE_MAP,
