@@ -72,7 +72,6 @@ public class User implements Serializable {
 	private transient Object assetSyncObject = null;
 	private transient Object workspaceSyncObject = null;
 
-
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
 	List<AuthProvider> loggedInProfiles = new Vector<>();
 	// keeps the secret for every insight
@@ -83,7 +82,7 @@ public class User implements Serializable {
 	private Map<String, String> projectIdMap = new HashMap<>();
 	private Map<String, String> engineIdMap = new HashMap<>();
 	private Map<String, StringBuffer> varMap = new HashMap<>();
-	private Map<String, IStorageEngine> externalMounts = new HashMap<String, IStorageEngine>();
+	private transient Map<String, IStorageEngine> externalMounts = new HashMap<String, IStorageEngine>();
 	
 	private boolean anonymous;
 	private String anonymousId;
