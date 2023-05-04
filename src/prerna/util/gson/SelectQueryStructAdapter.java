@@ -42,7 +42,12 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 			String name = in.nextName();
 			if(name.equals("qsType")) {
 				qs.setQsType(QUERY_STRUCT_TYPE.valueOf(in.nextString()));
-			} else if(name.equals("engineName")) {
+			} 
+			// legacy key
+			else if(name.equals("engineName")) {
+				qs.setEngineId(in.nextString());
+			} 
+			else if(name.equals("engineId")) {
 				qs.setEngineId(in.nextString());
 			} else if(name.equals("frameName")) {
 				qs.setFrameName(in.nextString());
@@ -59,6 +64,22 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 			} else if(name.equals("queryAll")) {
 				qs.setQueryAll(in.nextBoolean());
 			}
+			
+			// custom query stuff
+			else if(name.equals("customFrom")) {
+				if(in.peek() == JsonToken.NULL) {
+					in.nextNull();
+				} else {
+					qs.setCustomFrom(in.nextString());
+				}
+			} else if(name.equals("customFromAliasName")) {
+				if(in.peek() == JsonToken.NULL) {
+					in.nextNull();
+				} else {
+					qs.setCustomFromAliasName(in.nextString());
+				}
+			}
+			
 			// selectors
 			else if(name.equals("selectors")) {
 				in.beginArray();
@@ -187,7 +208,7 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 		// qs type
 		out.name("qsType").value(value.getQsType().toString());
 		if(value.getEngineId() != null) {
-			out.name("engineName").value(value.getEngineId());
+			out.name("engineId").value(value.getEngineId());
 		}
 		if(value.getFrameName() != null) {
 			out.name("frameName").value(value.getFrameName());
@@ -199,6 +220,10 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 		out.name("offset").value(value.getOffset());
 		out.name("queryAll").value(value.getQueryAll());
 
+		// custom query stuff
+		out.name("customFrom").value(value.getCustomFrom());
+		out.name("customFromAliasName").value(value.getCustomFromAliasName());
+		
 		// now the fun stuff
 		
 		// selectors
