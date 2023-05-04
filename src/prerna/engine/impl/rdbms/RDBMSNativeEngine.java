@@ -328,7 +328,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	 */
 	protected String init(String connectionUrl) {
 		// default does nothing
-		return null;
+		return init(connectionUrl, false);
 	}
 
 	/**
