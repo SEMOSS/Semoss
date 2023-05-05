@@ -55,7 +55,10 @@ public abstract class OpBasic extends OpReactor {
 				objArray[i] = evaluateNoun(nouns.get(i));
 			}
 			obj = objArray;
-		} else if(valType == PixelDataType.FORMATTED_DATA_SET) {
+		} 
+		// sometimes this can still be an iterator which is fine
+		else if(valType == PixelDataType.FORMATTED_DATA_SET
+				&& val.getValue() instanceof Map) {
 			Map<String, Object> taskMap = (Map<String, Object>) val.getValue();
 			Map<String, Object> dataMap = (Map<String, Object>) taskMap.get("data");
 			List<Object[]> values = (List<Object[]>) dataMap.get("values");
