@@ -43,7 +43,7 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 			if(name.equals("qsType")) {
 				qs.setQsType(QUERY_STRUCT_TYPE.valueOf(in.nextString()));
 			} 
-			// legacy key
+			// engineName is legacy key - used in pipeline - do not delete
 			else if(name.equals("engineName")) {
 				qs.setEngineId(in.nextString());
 			} 
@@ -208,6 +208,8 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 		// qs type
 		out.name("qsType").value(value.getQsType().toString());
 		if(value.getEngineId() != null) {
+			// engineName is legacy key - used in pipeline - do not delete
+			out.name("engineName").value(value.getEngineId());
 			out.name("engineId").value(value.getEngineId());
 		}
 		if(value.getFrameName() != null) {
