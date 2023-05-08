@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.imports;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -31,7 +34,6 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -65,9 +67,9 @@ public class NativeImporter extends AbstractImporter {
 	public void insertData() {
 		// see if we can parse the query into a valid qs object
 		SemossDataType[] executedDataTypes = null;
-		IEngine app = this.qs.retrieveQueryStructEngine();
-		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY 
-				&& app instanceof IRDBMSEngine) {
+		String[] columnNames = null;
+		IEngine database = this.qs.retrieveQueryStructEngine();
+		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && database instanceof IRDBMSEngine) {
 			// if you are RDBMS
 			// we will make a new QS
 			// and we will wrap you
@@ -76,31 +78,53 @@ public class NativeImporter extends AbstractImporter {
 				query = query.substring(0, query.length()-1);
 			}
 			if(this.it == null) {
+				// use a prepared statement
+				// so we dont have to actually do the execution of the query
+				PreparedStatement ps = null;
+				ResultSetMetaData rsMeta = null;
 				try {
-					StringBuilder newQueryB = new StringBuilder(" select * from (" + query + ") as customQuery ");
-					newQueryB = ((IRDBMSEngine) app).getQueryUtil().getFirstRow(newQueryB);
-					this.it = WrapperManager.getInstance().getRawWrapper(app, newQueryB.toString());
-				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
-					// one more time
-					// try as well w/o changes - too bad on size...
-					try {
-						this.it = WrapperManager.getInstance().getRawWrapper(app, query);
-					} catch (Exception e1) {
-						logger.error(Constants.STACKTRACE, e1);
-						throw new SemossPixelException(
-								new NounMetadata("Error occurred executing query before loading into frame", 
-										PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+					ps = ((IRDBMSEngine) database).getPreparedStatement(query);
+					rsMeta = ps.getMetaData();
+					int numCols = rsMeta.getColumnCount();
+					columnNames = new String[numCols];
+					executedDataTypes = new SemossDataType[numCols];
+					for(int i = 0; i < numCols; i++) {
+						columnNames[i] = rsMeta.getColumnName(i+1);
+						executedDataTypes[i] = SemossDataType.convertStringToDataType(rsMeta.getColumnTypeName(i+1));
 					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
 				} finally {
-					if(this.it != null) {
-						((IRawSelectWrapper) this.it).cleanUp();
+					if(ps != null) {
+						try {
+							ps.close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
+//				try {
+//					StringBuilder newQueryB = new StringBuilder(" select * from (" + query + ") as customQuery ");
+//					newQueryB = ((IRDBMSEngine) database).getQueryUtil().getFirstRow(newQueryB);
+//					this.it = WrapperManager.getInstance().getRawWrapper(database, newQueryB.toString());
+//				} catch (Exception e) {
+//					logger.error(Constants.STACKTRACE, e);
+//					// one more time
+//					// try as well w/o changes - too bad on size...
+//					try {
+//						this.it = WrapperManager.getInstance().getRawWrapper(database, query);
+//					} catch (Exception e1) {
+//						logger.error(Constants.STACKTRACE, e1);
+//						throw new SemossPixelException(
+//								new NounMetadata("Error occurred executing query before loading into frame", 
+//										PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+//					}
+//				} finally {
+//					if(this.it != null) {
+//						((IRawSelectWrapper) this.it).cleanUp();
+//					}
+//				}
 			}
-			
-			String[] columnNames = ((IRawSelectWrapper) this.it).getHeaders();
-			executedDataTypes = ((IRawSelectWrapper) this.it).getTypes();
 			
 			String customFromAlias = "customquery";
 			SelectQueryStruct newQs = new SelectQueryStruct();
