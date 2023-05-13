@@ -200,6 +200,11 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getClobDataTypeName() {
+		return "VARCHAR(MAX)";
+	}
+	
+	@Override
 	public String getBooleanDataTypeName() {
 		return "BIT";
 	}
