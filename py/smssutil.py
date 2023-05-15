@@ -315,10 +315,21 @@ def run_gpt_3(nl_query, max_tokens_value):
   query = " SELECT " + response.choices[0].text
   print (query)
   return query
+  
+def chat_gpt_3(nl_query, max_tokens_value):
+  #import os
+  import openai
+  response = openai.Completion.create(model="code-davinci-002", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  query = " SELECT " + response.choices[0].text
+  print (query)
+  return query
 
 def run_alpaca(nl_query, max_tokens_value, api_base):
   #import os
   import openai
+  # forcing the api_key to a dummy value
+  if openai.api_key is None:
+    openai.api_key = "Non Existent API Key"
   openai.api_base = api_base
   #response = openai.Completion.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   response = openai.Completion.create(model="alpaca-13b-lora-int4", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
