@@ -1636,7 +1636,7 @@ public class Insight implements Serializable {
 			if(this.pyt instanceof TCPPyTranslator) {
 				SocketClient nc1 = ((TCPPyTranslator)pyt).nc;
 				this.pyt = new TCPPyTranslator();
-				((TCPPyTranslator)pyt).nc = nc1;
+				((TCPPyTranslator) this.pyt).setClient(nc1);
 			} else if(this.pyt instanceof PyTranslator) {
 				this.jepThread = pyt.getPy();
 				this.pyt = new PyTranslator();
