@@ -1,7 +1,6 @@
 package prerna.ds.py;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -106,7 +105,7 @@ public class PyUtils {
 				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				Path mainCachePath = Paths.get(dir);
 				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
-				writeLogConfigurationFile(tempDirForUser.toString());
+				Utility.writeLogConfigurationFile(tempDirForUser.toString());
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
@@ -141,7 +140,7 @@ public class PyUtils {
 					relative ="/"+relative;
 				}
 				LOGGER.info(">>>Creating Temp Dir at " + tempDirForUser.toString() + " <<<");
-				writeLogConfigurationFile(tempDirForUser.toString(), relative);
+				Utility.writeLogConfigurationFile(tempDirForUser.toString(), relative);
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
@@ -179,7 +178,7 @@ public class PyUtils {
 				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				Path mainCachePath = Paths.get(dir);
 				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
-				writeLogConfigurationFile(tempDirForUser.toString());
+				Utility.writeLogConfigurationFile(tempDirForUser.toString());
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
@@ -207,43 +206,6 @@ public class PyUtils {
 	}
 
 	
-	private void writeLogConfigurationFile(String dir)
-	{
-		try {
-			// read the file first
-			dir = dir.replace("\\", "/");
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
-			String logConfig = FileUtils.readFileToString(logFile);
-			//property.filename = target/rolling/rollingtest.log
-			logConfig = logConfig.replace("FILE_LOCATION", dir + "/output.log");
-			File newLogFile = new File(dir + "/log4j2.properties");
-			FileUtils.writeStringToFile(newLogFile, logConfig);
-		} catch (IOException e) {
-			LOGGER.error(Constants.STACKTRACE, e);
-		}
-		
-	}
-	
-	//chroot
-	private void writeLogConfigurationFile(String dir, String paramDir)
-	{
-		try {
-			// read the file first
-			dir = dir.replace("\\", "/");
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
-			String logConfig = FileUtils.readFileToString(logFile);
-			//property.filename = target/rolling/rollingtest.log
-			logConfig = logConfig.replace("FILE_LOCATION", paramDir + "/output.log");
-			File newLogFile = new File(dir + "/log4j2.properties");
-			FileUtils.writeStringToFile(newLogFile, logConfig);
-		} catch (IOException e) {
-			LOGGER.error(Constants.STACKTRACE, e);
-		}
-		
-	}
-		
 	public void killTempTupleSpace(Object user) {
 		// kill the process
 		// take out the dir
