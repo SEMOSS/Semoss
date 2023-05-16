@@ -32,6 +32,9 @@ public class MooseChatReactor extends GaasBaseReactor {
 		
 		String projectId = getProjectId();
 		Map output = new HashMap();
+		
+		// commenting out for now
+		projectId = null;
 
 		if(projectId == null)
 		{
