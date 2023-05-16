@@ -22,6 +22,10 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	boolean started = false;
 	boolean insightSet = false;
 	
+	/**
+	 * 
+	 * @param nc
+	 */
 	public void setClient(SocketClient nc) {
 		this.nc = nc;
 	}

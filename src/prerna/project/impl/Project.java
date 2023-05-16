@@ -51,6 +51,7 @@ import com.google.gson.Gson;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
@@ -70,8 +71,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ProjectCustomReactorCompilator;
+import prerna.sablecc2.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.tcp.client.CustomReactorWrapper;
+import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
@@ -133,6 +136,13 @@ public class Project implements IProject {
 	private boolean publish = false;
 	private boolean republish = false;
 	private LocalDateTime lastPublishDate = null;
+
+	// project specific analytics thread
+	private transient Process tcpServerProcess;
+	private transient SocketClient tcpClient;
+	private String processSpace = null;
+	private String port = null;
+
 	
 	@Override
 	public void openProject(String projectSmssFilePath) {
@@ -1291,6 +1301,101 @@ public class Project implements IProject {
 				if(this.projectSpecificHash != null && !this.projectSpecificHash.isEmpty()) {
 					ProjectCustomReactorCompilator.setCompiled(this.projectId);
 				}
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public SocketClient getProjectTcpClient() {
+		if(this.tcpClient != null) {
+			return this.tcpClient;
+		}
+		
+		createProjectTcpServer();
+		return this.tcpClient;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public TCPRTranslator getProjectRTranslator() {
+		TCPRTranslator rJavaTranslator = new TCPRTranslator();
+		rJavaTranslator.setClient(getProjectTcpClient());
+		return rJavaTranslator;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public TCPPyTranslator getProjectPyTranslator() {
+		TCPPyTranslator pyJavaTranslator = new TCPPyTranslator();
+		pyJavaTranslator.setClient(getProjectTcpClient());
+		return pyJavaTranslator;
+	}
+	
+	/**
+	 * 
+	 */
+	private synchronized void createProjectTcpServer() {
+		if (tcpClient == null || !tcpClient.isConnected())  // start only if it not already in progress
+		{
+			logger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.prop));
+			this.port = this.projectProperties.getProperty(Settings.FORCE_PORT);
+			// port has not been forced
+			if (this.port == null) {
+				this.port = Utility.findOpenPort();
+			}
+			
+			//TODO: how do we account for chroot??
+			String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+			if(cp == null) {
+				logger.info("No custom class path set");
+			}
+			
+			Path mainCachePath = null;
+			Path tempDirForProject = null;
+			try {
+				mainCachePath = Paths.get(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
+				tempDirForProject = Files.createTempDirectory(mainCachePath, "a");
+				this.processSpace = tempDirForProject.toString();
+				Utility.writeLogConfigurationFile(this.processSpace);
+				this.tcpServerProcess = Utility.startTCPServer(cp, this.processSpace, this.port);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+			
+			// instrumenting the client class also now
+			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
+			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
+				pyClient = "prerna.tcp.client.SocketClient";
+			}
+			
+			try {
+				this.tcpClient = (SocketClient) Class.forName(pyClient).newInstance();
+				tcpClient.connect("127.0.0.1", Integer.parseInt(port), false);
+				//nc.run(); - you cannot do this because then the client goes into listener mode
+				Thread t = new Thread(tcpClient);
+				t.start();
+				while(!tcpClient.isReady())
+				{
+					synchronized(tcpClient)
+					{
+						try 
+						{
+							tcpClient.wait();
+							logger.info("Setting the socket client ");
+						} catch (InterruptedException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
+			} catch(Exception e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
@@ -94,7 +93,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		} else {
 			output = rJavaTranslator.runRAndReturnOutput(code);
 		}
-		List<NounMetadata> outputs = new Vector<>(1);
+		List<NounMetadata> outputs = new ArrayList<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
 		
 		// set back the original security manager
@@ -294,7 +293,7 @@ public final class RReactor extends AbstractRFrameReactor {
 
 		// delete the pivot later
 		if(bin.length() > 0) {
-			Vector<NounMetadata> retList = new Vector<>();
+			List<NounMetadata> retList = new ArrayList<>();
 			InsightPanel daPanel = insight.getInsightPanel(panelId);
 			//newWindow = daPanel != null;
 			if(newWindow) {

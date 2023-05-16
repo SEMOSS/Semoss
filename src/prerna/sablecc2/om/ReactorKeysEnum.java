@@ -21,6 +21,7 @@ public enum ReactorKeysEnum {
 	CLEAN_UP_CLOUD_STORAGE("cleanUpCloudStorage",				"Boolean whether to clean up the cloud storage account used to persist databases in the cluster (defaults to false)"),
 	CLONE_PANEL_KEY("cloneId", 									"Id to assign the new clone panel"),
 	CLUSTER_KEY("numClusters", 									"Number of clusters"),
+	CODE("code",												"Inline R/Py code to execute"),
 	COLLABORATOR("collaborator",								"Username for an individual to collaborate with on an app"),
 	COLUMN("column", 											"Name of the column header"),
 	COLUMNS("columns", 											"List of column headers"),

@@ -32,10 +32,13 @@ import java.util.Properties;
 import java.util.Vector;
 
 import prerna.auth.AuthProvider;
+import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
 import prerna.sablecc2.reactor.IReactor;
+import prerna.sablecc2.reactor.frame.r.util.TCPRTranslator;
+import prerna.tcp.client.SocketClient;
 import prerna.util.SemossClassloader;
 
 public interface IProject {
@@ -173,12 +176,33 @@ public interface IProject {
 	String getProjectGitRepo();
 
 	/**
-	 * Get the rpoject git provider
+	 * Get the project git provider
 	 * @return
 	 */
 	AuthProvider getGitProvider();
 	
-	// clears the class cache
+	/**
+	 * Clears the class cache
+	 */
 	void clearClassCache();
+	
+	/**
+	 * 
+	 * @return
+	 */
+	SocketClient getProjectTcpClient();
+	
+	/**
+	 * 
+	 * @return
+	 */
+	TCPRTranslator getProjectRTranslator();
+	
+	/**
+	 * 
+	 * @return
+	 */
+	TCPPyTranslator getProjectPyTranslator();
+	
 }
 
