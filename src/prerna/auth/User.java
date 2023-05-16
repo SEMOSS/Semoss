@@ -965,7 +965,7 @@ public class User implements Serializable {
 	public void startTCPServer() {
 		if (tcpServer == null || !tcpServer.isConnected())  // start only if it not already in progress
 		{
-			logger.info("Starting the TCP Server !! ");
+			logger.info("Starting TCP Server for User = " + User.getSingleLogginName(this));
 			
 			// first preference given to user
 			if(forcePort > 0) {

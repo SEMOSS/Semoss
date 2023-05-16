@@ -4634,11 +4634,8 @@ public class Utility {
 			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
-			logger.info("came out of the waiting for process");
 			Process p = pb.start();
-
 			try {
-				// p.waitFor();
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
@@ -4896,6 +4893,48 @@ public class Utility {
 
 		
 		return commandsStarter;
+	}
+	
+	/**
+	 * Write the log4j2.properties file for the Socket Server
+	 * @param dir
+	 */
+	public static void writeLogConfigurationFile(String dir)
+	{
+		try {
+			// read the file first
+			dir = dir.replace("\\", "/");
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
+			String logConfig = FileUtils.readFileToString(logFile);
+			//property.filename = target/rolling/rollingtest.log
+			logConfig = logConfig.replace("FILE_LOCATION", dir + "/output.log");
+			File newLogFile = new File(dir + "/log4j2.properties");
+			FileUtils.writeStringToFile(newLogFile, logConfig);
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+	}
+	
+	/**
+	 * Write the log4j2.properties file for the Socket Server when chroot is enabled
+	 * @param dir
+	 * @param paramDir
+	 */
+	public static void writeLogConfigurationFile(String dir, String paramDir) {
+		try {
+			// read the file first
+			dir = dir.replace("\\", "/");
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
+			String logConfig = FileUtils.readFileToString(logFile);
+			//property.filename = target/rolling/rollingtest.log
+			logConfig = logConfig.replace("FILE_LOCATION", paramDir + "/output.log");
+			File newLogFile = new File(dir + "/log4j2.properties");
+			FileUtils.writeStringToFile(newLogFile, logConfig);
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
 	}
 	
 	/**

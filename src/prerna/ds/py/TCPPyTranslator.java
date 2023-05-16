@@ -1,16 +1,12 @@
 package prerna.ds.py;
 
-import java.io.File;
 import java.util.Hashtable;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.ErrorSenderThread;
 import prerna.tcp.client.SocketClient;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class TCPPyTranslator extends PyTranslator {
@@ -18,6 +14,14 @@ public class TCPPyTranslator extends PyTranslator {
 	public static final String METHOD_DELIMITER = "$$##";
 	public SocketClient nc = null;
 	String method = null;
+	
+	/**
+	 * 
+	 * @param nc
+	 */
+	public void setClient(SocketClient nc) {
+		this.nc = nc;
+	}
 	
 	@Override
 	public synchronized Object runScript(String script) 
