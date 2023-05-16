@@ -262,6 +262,8 @@ public class SendEmailReactor extends AbstractReactor {
 			return "The subject of the email.";
 		} else if (key.equals(ATTACHMENTS)) {
 			return "The file path of email attachments";
+		} else if (key.equals(MESSAGE_HTML)) {
+			return "Boolean is the message is html";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
