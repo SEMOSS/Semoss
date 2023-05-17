@@ -601,7 +601,7 @@ public class Constants {
 	
 	// is this server running locally
 	public static final String LOCAL_DEPLOYMENT = "LOCAL_DEPLOYMENT";
-	
+	public static final String SAMESITE_COOKIE = "SAMESITE_COOKIE";
 	
 	// moose configurations
 	public static final String MOOSE_MODEL = "MOOSE_MODEL";
