@@ -3906,6 +3906,29 @@ public class Utility {
 		return Boolean.parseBoolean(boolString);
 	}
 	
+	/**
+	 * 
+	 * 
+	 * 
+	 * @return
+	 */
+	public static String getSameSiteCookieValue() {
+		String sameSiteString = DIHelper.getInstance().getProperty(Constants.SAMESITE_COOKIE);
+		if(sameSiteString == null || (sameSiteString=sameSiteString.trim()).isEmpty()) {
+			return "none";
+		}
+		
+		if(!sameSiteString.equalsIgnoreCase("strict") && 
+				!sameSiteString.equalsIgnoreCase("lax") &&
+				!sameSiteString.equalsIgnoreCase("none")) {
+			logger.warn("Invalid samesite cookie option = '" + sameSiteString +"'. Must be 'strict', 'lax', or 'none'");
+			logger.warn("Default to samesite cookie option 'none'");
+			return "none";
+		}
+		
+		return sameSiteString;
+	}
+	
 	public static void copyURLtoFile(String urlString, String filePath) {
 		try(PrintWriter out = new PrintWriter(filePath)){
 			URL url = new URL(urlString);
