@@ -98,8 +98,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			throw e;
 		}
 		ClusterUtil.reactorPushDatabase(getEngineId());
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION, 
-				PixelOperationType.FORCE_SAVE_DATA_EXPORT);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION, PixelOperationType.FORCE_SAVE_DATA_EXPORT);
 	}
 
 	@Override
@@ -110,13 +109,13 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		logger.info("Replace existing table data = " + this.override);
 
 		// grab the engine
-		IEngine targetEngine = Utility.getEngine(engineId);
-
+		IEngine targetDatabase = Utility.getEngine(engineId);
 		// only for RDBMS right now
-		if(!(targetEngine instanceof IRDBMSEngine)) {
+		if(!(targetDatabase instanceof IRDBMSEngine)) {
 			throw new SemossPixelException(new NounMetadata("Can only persist data to a relational database at the moment", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		AbstractSqlQueryUtil queryUtil = ((IRDBMSEngine) targetEngine).getQueryUtil();
+		IRDBMSEngine targetEngine = (IRDBMSEngine) targetDatabase;
+		AbstractSqlQueryUtil queryUtil = targetEngine.getQueryUtil();
 		Map<String, String> typeConversionMap = queryUtil.getTypeConversionMap();
 		// create prepared statement of all inserts from task
 		List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
@@ -218,18 +217,17 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		}
 		PreparedStatement ps = null;
 		try {
-			ps = ((IRDBMSEngine) targetEngine).bulkInsertPreparedStatement(getPreparedStatementArgs);
+			ps = targetEngine.bulkInsertPreparedStatement(getPreparedStatementArgs);
 		} catch (SQLException e) {
 			throw new IllegalArgumentException("An error occurred creating the prepared statement with message = " + e.getMessage());
 		}
-
-		// keep a batch size so we dont get heapspace
-		final int batchSize = 5000;
-		int count = 0;
-
-		logger.info("Begin inserting new data");
-		// we loop through every row of task result
 		try {
+			// keep a batch size so we dont get heapspace
+			final int batchSize = 5000;
+			int count = 0;
+	
+			logger.info("Begin inserting new data");
+			// we loop through every row of task result
 			while (this.task.hasNext()) {
 				Object[] nextRow = this.task.next().getValues();
 				// we need to loop through every value and cast appropriately
@@ -330,12 +328,25 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			// well, we are done looping through now
 			logger.info("Executing final batch .... row num = " + count);
 			ps.executeBatch(); // insert any remaining records
-			ps.close();
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred persisting data into the database with message = " + e.getMessage());
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+				if(targetEngine.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 		}
-		
 		
 		// if we are overwriting the existing value
 		// we need to grab the current concept/columns
