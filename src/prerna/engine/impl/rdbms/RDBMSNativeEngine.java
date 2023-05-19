@@ -1014,15 +1014,44 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	@Override
 	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
-		return makeConnection().prepareStatement(sql);
+		boolean error = false;
+		Connection conn = null;
+		try {
+			conn = makeConnection();
+			return conn.prepareStatement(sql);
+		} catch(SQLException e) {
+			error = true;
+			logger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(error) {
+				if(conn != null) {
+					conn.close();
+				}
+			}
+		}
 	}
 
 	@Override
 	public DatabaseMetaData getConnectionMetadata() {
+		boolean error = false;
+		Connection conn = null;
 		try {
-			return getConnection().getMetaData();
-		} catch (SQLException e) {
+			conn = makeConnection();
+			return conn.getMetaData();
+		} catch(SQLException e) {
+			error = true;
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(error) {
+				if(conn != null) {
+					try {
+						conn.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 		}
 		return null;
 	}
