@@ -114,22 +114,19 @@ public class PersistentHash {
 	 * @param engine
 	 * @return
 	 */
-	public static boolean canInit(RDBMSNativeEngine engine) {
-		if(engine == null) {
-			return false;
-		}
-		
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		if(queryUtil == null) {
-			return false;
-		}
-
-		Connection conn = null;
+	public static boolean canInit(RDBMSNativeEngine engine, Connection conn) {
 		try {
-			conn = engine.getConnection();
+			if(engine == null) {
+				return false;
+			}
+			
+			AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+			if(queryUtil == null) {
+				return false;
+			}
 			// make sure the KVSTORE table exists
 			return queryUtil.tableExists(conn, TABLE_NAME, engine.getDatabase(), engine.getSchema());
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
