@@ -58,127 +58,118 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(driverEnum);
 
 		Connection con = null;
-		String connectionUrl = null;
-		try {
-			connectionUrl = queryUtil.setConnectionDetailsfromMap(connectionDetails);
-		} catch (RuntimeException e) {
-			throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		}
-
-		try {
-			con = AbstractSqlQueryUtil.makeConnection(queryUtil, connectionUrl, connectionDetails);
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			String driverError = e.getMessage();
-			String errorMessage = "Unable to establish connection given the connection details.\nDriver produced error: \" ";
-			errorMessage += driverError;
-			errorMessage += " \"";
-			throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		}
-
-		DatabaseMetaData meta;
-		boolean close = false;
-		try {
-			meta = con.getMetaData();
-		} catch (SQLException e) {
-			close = true;
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		} finally {
-			if(close) {
-				closeAutoClosable(con, logger);
-			}
-		}
-
-		String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
-		if(catalogFilter == null) {
-			try {
-				catalogFilter = con.getCatalog();
-			} catch (SQLException e) {
-				// we can ignore this
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
-		if(schemaFilter == null) {
-			schemaFilter = (String) connectionDetails.get(AbstractSqlQueryUtil.SCHEMA);
-		}
-		if(schemaFilter == null) {
-			schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
-		}
+		DatabaseMetaData meta = null;
 		Statement tableStmt = null;
 		ResultSet tablesRs = null;
 		try {
-			tableStmt = con.createStatement();
-			tablesRs = RdbmsConnectionHelper.getTables(con, tableStmt, meta, catalogFilter, schemaFilter, driverEnum);
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			close = true;
-			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		} finally {
-			if(close) {
-				closeAutoClosable(tablesRs, logger);
-				closeAutoClosable(tableStmt, logger);
-				closeAutoClosable(con, logger);
+			String connectionUrl = null;
+			try {
+				connectionUrl = queryUtil.setConnectionDetailsfromMap(connectionDetails);
+			} catch (RuntimeException e) {
+				throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
-		}
-
-		// keep a list of tables and views
-		List<String> tableSchemas = new ArrayList<String>();
-		List<String> tables = new ArrayList<String>();
-		List<String> viewSchemas = new ArrayList<String>();
-		List<String> views = new ArrayList<String>();
-
-		String[] tableKeys = RdbmsConnectionHelper.getTableKeys(driverEnum);
-		final String TABLE_NAME_STR = tableKeys[0];
-		final String TABLE_TYPE_STR = tableKeys[1];
-		final String TABLE_SCHEMA_STR = tableKeys[2];
-		try {
-			while (tablesRs.next()) {
-				String table = tablesRs.getString(TABLE_NAME_STR);
-				// this will be table or view
-				String tableType = tablesRs.getString(TABLE_TYPE_STR);
-				if(tableType != null) {
-					tableType = tableType.toUpperCase();
-				}
-				// get schema
-				String tableSchema = null;
-				if (driverEnum.equals(RdbmsTypeEnum.ORACLE)) {
-					tableSchema =  meta.getUserName();
-				} else {
-					tableSchema = tablesRs.getString(TABLE_SCHEMA_STR);
-				}
-				if(tableSchema != null) {
-					tableSchema = tableSchema.toUpperCase();
-				}
-				if(tableType.toUpperCase().contains("TABLE")) {
-					logger.info("Found table = " + Utility.cleanLogString(table));
-					tables.add(table);
-					tableSchemas.add(tableSchema);
-				} else {
-					// there may be views built from sys or information schema
-					// we want to ignore these
-					logger.info("Found view = " + Utility.cleanLogString(table));
-					views.add(table);
-					viewSchemas.add(tableSchema);
+	
+			try {
+				con = AbstractSqlQueryUtil.makeConnection(queryUtil, connectionUrl, connectionDetails);
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				String driverError = e.getMessage();
+				String errorMessage = "Unable to establish connection given the connection details.\nDriver produced error: \" ";
+				errorMessage += driverError;
+				errorMessage += " \"";
+				throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
+	
+			try {
+				meta = con.getMetaData();
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
+	
+			String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
+			if(catalogFilter == null) {
+				try {
+					catalogFilter = con.getCatalog();
+				} catch (SQLException e) {
+					// we can ignore this
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+	
+			String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
+			if(schemaFilter == null) {
+				schemaFilter = (String) connectionDetails.get(AbstractSqlQueryUtil.SCHEMA);
+			}
+			if(schemaFilter == null) {
+				schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
+			}
+			
+			try {
+				tableStmt = con.createStatement();
+				tablesRs = RdbmsConnectionHelper.getTables(con, tableStmt, meta, catalogFilter, schemaFilter, driverEnum);
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			} 
+	
+			// keep a list of tables and views
+			List<String> tableSchemas = new ArrayList<String>();
+			List<String> tables = new ArrayList<String>();
+			List<String> viewSchemas = new ArrayList<String>();
+			List<String> views = new ArrayList<String>();
+	
+			String[] tableKeys = RdbmsConnectionHelper.getTableKeys(driverEnum);
+			final String TABLE_NAME_STR = tableKeys[0];
+			final String TABLE_TYPE_STR = tableKeys[1];
+			final String TABLE_SCHEMA_STR = tableKeys[2];
+			try {
+				while (tablesRs.next()) {
+					String table = tablesRs.getString(TABLE_NAME_STR);
+					// this will be table or view
+					String tableType = tablesRs.getString(TABLE_TYPE_STR);
+					if(tableType != null) {
+						tableType = tableType.toUpperCase();
+					}
+					// get schema
+					String tableSchema = null;
+					if (driverEnum.equals(RdbmsTypeEnum.ORACLE)) {
+						tableSchema =  meta.getUserName();
+					} else {
+						tableSchema = tablesRs.getString(TABLE_SCHEMA_STR);
+					}
+					if(tableSchema != null) {
+						tableSchema = tableSchema.toUpperCase();
+					}
+					if(tableType.toUpperCase().contains("TABLE")) {
+						logger.info("Found table = " + Utility.cleanLogString(table));
+						tables.add(table);
+						tableSchemas.add(tableSchema);
+					} else {
+						// there may be views built from sys or information schema
+						// we want to ignore these
+						logger.info("Found view = " + Utility.cleanLogString(table));
+						views.add(table);
+						viewSchemas.add(tableSchema);
+					}
+				}
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			
+			logger.info("Done parsing database metadata");
+	
+			Map<String, List<String>> ret = new HashMap<String, List<String>>();
+			ret.put("tables", tables);
+			ret.put("tableSchemas", tableSchemas);
+			ret.put("views", views);
+			ret.put("viewSchemas", viewSchemas);
+			return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} finally {
 			closeAutoClosable(tablesRs, logger);
 			closeAutoClosable(tableStmt, logger);
 			closeAutoClosable(con, logger);
 		}
-		logger.info("Done parsing database metadata");
-
-		Map<String, List<String>> ret = new HashMap<String, List<String>>();
-		ret.put("tables", tables);
-		ret.put("tableSchemas", tableSchemas);
-		ret.put("views", views);
-		ret.put("viewSchemas", viewSchemas);
-		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
 	/**

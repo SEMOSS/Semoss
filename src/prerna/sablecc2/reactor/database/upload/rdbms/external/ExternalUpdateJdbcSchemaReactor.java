@@ -69,192 +69,196 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		AbstractSqlQueryUtil queryUtil = nativeDatabase.getQueryUtil();
 		
 		Connection connection = null;
+		DatabaseMetaData meta = null;
 		try {
-			connection = nativeDatabase.getConnection();
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
-		}
-
-		// tablename
-		List<Map<String, Object>> databaseTables = new ArrayList<Map<String, Object>>();
-		List<Map<String, String>> databaseJoins = new ArrayList<Map<String, String>>();
-
-		DatabaseMetaData meta;
-		try {
-			meta = connection.getMetaData();
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		}
-
-		List<String> tableAndViewFilters = getFilters();
-		boolean hasFilters = !tableAndViewFilters.isEmpty();
-
-		RdbmsTypeEnum driverEnum = nativeDatabase.getDbType();
-
-		String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
-		if(catalogFilter == null) {
 			try {
-				catalogFilter = connection.getCatalog();
-//				connectionUrl = meta.getURL();
+				connection = nativeDatabase.getConnection();
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException(e.getMessage());
 			}
-		}
-
-		String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
-		if(schemaFilter == null) {
-			schemaFilter = nativeDatabase.getSchema();
-		}
-
-		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(connection, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
-		
-		final String TABLE_KEY = "table";
-		final String COLUMNS_KEY = "columns";
-		final String TYPES_KEY = "raw_type";
-		final String CLEAN_TYPES_KEY = "type";
-		final String PRIM_KEY = "isPrimKey";
-		
-		final String TO_TABLE_KEY = "toTable";
-		final String TO_COL_KEY = "toCol";
-		final String FROM_TABLE_KEY = "fromTable";
-		final String FROM_COL_KEY = "fromCol";
-		
-		String[] columnKeys = RdbmsConnectionHelper.getColumnKeys(driverEnum);
-		final String COLUMN_NAME_STR = columnKeys[0];
-		final String COLUMN_TYPE_STR = columnKeys[1];
-
-		try {
-			while (tableViewIterator.hasNext()) {
-				String[] nextRow = tableViewIterator.next();
-				String tableOrView = nextRow[0];
-				String tableType = nextRow[1];
-				String schem = nextRow[2];
-				boolean isTable = tableType.toUpperCase().contains("TABLE");
-
-				// this will be table or view
-				if(isTable) {
-					logger.info("Processing table = " + Utility.cleanLogString(tableOrView));
-				} else {
-					// there may be views built from sys or information schema
-					// we want to ignore these
-					if(schem != null) {
-						if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("SYS")) {
-							continue;
-						}
-					}
-					logger.info("Processing view = " + Utility.cleanLogString(tableOrView));
-				}
-				// grab the table
-				// we want to get the following information
-				// table name
-				// column name
-				// column type
-				// is primary key
-				Map<String, Object> tableDetails = new HashMap<String, Object>(); 
-				tableDetails.put(TABLE_KEY, tableOrView);
-				
-				List<String> primaryKeys = new ArrayList<String>();
-				ResultSet keys = null;
+	
+			// tablename
+			List<Map<String, Object>> databaseTables = new ArrayList<Map<String, Object>>();
+			List<Map<String, String>> databaseJoins = new ArrayList<Map<String, String>>();
+	
+			try {
+				meta = connection.getMetaData();
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
+	
+			List<String> tableAndViewFilters = getFilters();
+			boolean hasFilters = !tableAndViewFilters.isEmpty();
+	
+			RdbmsTypeEnum driverEnum = nativeDatabase.getDbType();
+	
+			String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
+			if(catalogFilter == null) {
 				try {
-					keys = meta.getPrimaryKeys(catalogFilter, schemaFilter, tableOrView);
-					while(keys.next()) {
-						primaryKeys.add(keys.getString(COLUMN_NAME_STR));
-					}
+					catalogFilter = connection.getCatalog();
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					closeRs(keys);
 				}
-				
-				List<String> columnNames = new ArrayList<String>();
-				List<String> columnTypes = new ArrayList<String>();
-				List<String> cleanColumnTypes = new ArrayList<String>();
-				List<Boolean> isPrimKeys = new ArrayList<Boolean>();
-
-				ResultSet columnsRs = null;
-				try {
-					logger.info("....Processing columns");
-					
-					columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, driverEnum);
-					
-					while (columnsRs.next()) {
-						String cName = columnsRs.getString(COLUMN_NAME_STR);
-						columnNames.add(cName);
-						columnTypes.add(columnsRs.getString(COLUMN_TYPE_STR));
-						cleanColumnTypes.add(SemossDataType.convertStringToDataType(columnsRs.getString(COLUMN_TYPE_STR)).toString());
-						if(primaryKeys.contains(cName)) {
-							isPrimKeys.add(true);
-						} else {
-							isPrimKeys.add(false);
-						}
-					}
-					// done looping through
-					// add the data into the table details
-					tableDetails.put(COLUMNS_KEY, columnNames);
-					tableDetails.put(TYPES_KEY, columnTypes);
-					tableDetails.put(CLEAN_TYPES_KEY, cleanColumnTypes);
-					tableDetails.put(PRIM_KEY, isPrimKeys);
-
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					closeRs(columnsRs);
-				}
-				databaseTables.add(tableDetails);
-
-				// we are now done with the table info
-				// let us go to the joins
-				// only do this for tables, not for views
-				ResultSet relRs = null;
-				if(isTable) {
-					try {
-						logger.info("....Processing table foreign keys");
-						relRs = meta.getExportedKeys(catalogFilter, schemaFilter, tableOrView);
-						while (relRs.next()) {
-							String otherTableName = relRs.getString("FKTABLE_NAME");
-							
-							// add filter check
-							if(hasFilters && !tableAndViewFilters.contains(otherTableName)) {
-								// we will ignore this table and view!
+			}
+	
+			String schemaFilter = queryUtil.getDatabaseMetadataSchemaFilter();
+			if(schemaFilter == null) {
+				schemaFilter = nativeDatabase.getSchema();
+			}
+	
+			CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(connection, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
+			
+			final String TABLE_KEY = "table";
+			final String COLUMNS_KEY = "columns";
+			final String TYPES_KEY = "raw_type";
+			final String CLEAN_TYPES_KEY = "type";
+			final String PRIM_KEY = "isPrimKey";
+			
+			final String TO_TABLE_KEY = "toTable";
+			final String TO_COL_KEY = "toCol";
+			final String FROM_TABLE_KEY = "fromTable";
+			final String FROM_COL_KEY = "fromCol";
+			
+			String[] columnKeys = RdbmsConnectionHelper.getColumnKeys(driverEnum);
+			final String COLUMN_NAME_STR = columnKeys[0];
+			final String COLUMN_TYPE_STR = columnKeys[1];
+	
+			try {
+				while (tableViewIterator.hasNext()) {
+					String[] nextRow = tableViewIterator.next();
+					String tableOrView = nextRow[0];
+					String tableType = nextRow[1];
+					String schem = nextRow[2];
+					boolean isTable = tableType.toUpperCase().contains("TABLE");
+	
+					// this will be table or view
+					if(isTable) {
+						logger.info("Processing table = " + Utility.cleanLogString(tableOrView));
+					} else {
+						// there may be views built from sys or information schema
+						// we want to ignore these
+						if(schem != null) {
+							if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("SYS")) {
 								continue;
 							}
-							
-							Map<String, String> joinInfo = new HashMap<String, String>();
-							joinInfo.put(FROM_TABLE_KEY, tableOrView);
-							joinInfo.put(FROM_COL_KEY, relRs.getString("PKCOLUMN_NAME"));
-							joinInfo.put(TO_TABLE_KEY, otherTableName);
-							joinInfo.put(TO_COL_KEY, relRs.getString("FKCOLUMN_NAME"));
-							databaseJoins.add(joinInfo);
+						}
+						logger.info("Processing view = " + Utility.cleanLogString(tableOrView));
+					}
+					// grab the table
+					// we want to get the following information
+					// table name
+					// column name
+					// column type
+					// is primary key
+					Map<String, Object> tableDetails = new HashMap<String, Object>(); 
+					tableDetails.put(TABLE_KEY, tableOrView);
+					
+					List<String> primaryKeys = new ArrayList<String>();
+					ResultSet keys = null;
+					try {
+						keys = meta.getPrimaryKeys(catalogFilter, schemaFilter, tableOrView);
+						while(keys.next()) {
+							primaryKeys.add(keys.getString(COLUMN_NAME_STR));
 						}
 					} catch (SQLException e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
-						closeRs(relRs);
+						closeRs(keys);
+					}
+					
+					List<String> columnNames = new ArrayList<String>();
+					List<String> columnTypes = new ArrayList<String>();
+					List<String> cleanColumnTypes = new ArrayList<String>();
+					List<Boolean> isPrimKeys = new ArrayList<Boolean>();
+	
+					ResultSet columnsRs = null;
+					try {
+						logger.info("....Processing columns");
+						
+						columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, driverEnum);
+						
+						while (columnsRs.next()) {
+							String cName = columnsRs.getString(COLUMN_NAME_STR);
+							columnNames.add(cName);
+							columnTypes.add(columnsRs.getString(COLUMN_TYPE_STR));
+							cleanColumnTypes.add(SemossDataType.convertStringToDataType(columnsRs.getString(COLUMN_TYPE_STR)).toString());
+							if(primaryKeys.contains(cName)) {
+								isPrimKeys.add(true);
+							} else {
+								isPrimKeys.add(false);
+							}
+						}
+						// done looping through
+						// add the data into the table details
+						tableDetails.put(COLUMNS_KEY, columnNames);
+						tableDetails.put(TYPES_KEY, columnTypes);
+						tableDetails.put(CLEAN_TYPES_KEY, cleanColumnTypes);
+						tableDetails.put(PRIM_KEY, isPrimKeys);
+	
+					} catch (SQLException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					} finally {
+						closeRs(columnsRs);
+					}
+					databaseTables.add(tableDetails);
+	
+					// we are now done with the table info
+					// let us go to the joins
+					// only do this for tables, not for views
+					ResultSet relRs = null;
+					if(isTable) {
+						try {
+							logger.info("....Processing table foreign keys");
+							relRs = meta.getExportedKeys(catalogFilter, schemaFilter, tableOrView);
+							while (relRs.next()) {
+								String otherTableName = relRs.getString("FKTABLE_NAME");
+								
+								// add filter check
+								if(hasFilters && !tableAndViewFilters.contains(otherTableName)) {
+									// we will ignore this table and view!
+									continue;
+								}
+								
+								Map<String, String> joinInfo = new HashMap<String, String>();
+								joinInfo.put(FROM_TABLE_KEY, tableOrView);
+								joinInfo.put(FROM_COL_KEY, relRs.getString("PKCOLUMN_NAME"));
+								joinInfo.put(TO_TABLE_KEY, otherTableName);
+								joinInfo.put(TO_COL_KEY, relRs.getString("FKCOLUMN_NAME"));
+								databaseJoins.add(joinInfo);
+							}
+						} catch (SQLException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						} finally {
+							closeRs(relRs);
+						}
+					}
+				}
+			} finally {
+				if(tableViewIterator != null) {
+					tableViewIterator.close();
+				}
+			}
+			logger.info("Done parsing database metadata");
+			
+			HashMap<String, Object> ret = new HashMap<String, Object>();
+			ret.put(TABLES_KEY, databaseTables);
+			ret.put(RELATIONS_KEY, databaseJoins);
+			Map<String, Map<String, Double>> positions = GenerateMetamodelLayout.generateMetamodelLayoutForExternal(databaseTables, databaseJoins);
+			ret.put(Constants.POSITION_PROP, positions);
+			return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		} finally {
+			if(nativeDatabase.isConnectionPooling()) {
+				if(connection != null) {
+					try {
+						connection.close();
+					} catch (SQLException e) {
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
-		} finally {
-			if(tableViewIterator != null) {
-				tableViewIterator.close();
-			}
-			if(connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		logger.info("Done parsing database metadata");
-		
-		HashMap<String, Object> ret = new HashMap<String, Object>();
-		ret.put(TABLES_KEY, databaseTables);
-		ret.put(RELATIONS_KEY, databaseJoins);
-		Map<String, Map<String, Double>> positions = GenerateMetamodelLayout.generateMetamodelLayoutForExternal(databaseTables, databaseJoins);
-		ret.put(Constants.POSITION_PROP, positions);
-		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
 	/**
