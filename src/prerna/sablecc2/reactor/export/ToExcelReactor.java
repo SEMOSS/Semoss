@@ -94,8 +94,13 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			insightFile.setDeleteOnInsightClose(false);
 		}
 		insightFile.setFilePath(this.fileLocation);
-		buildTask();
-
+		try {
+			buildTask();
+		} finally {
+			if(this.task != null) {
+				this.task.cleanUp();
+			}
+		}
 		// store the insight file 
 		// in the insight so the FE can download it
 		// only from the given insight
