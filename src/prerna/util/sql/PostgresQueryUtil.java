@@ -63,17 +63,10 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public void initTypeConverstionMap() {
-		typeConversionMap.put("INT", "INT");
-		typeConversionMap.put("LONG", "BIGINT");
-		
+		super.initTypeConverstionMap();
 		typeConversionMap.put("NUMBER", "FLOAT");
 		typeConversionMap.put("FLOAT", "FLOAT");
 		typeConversionMap.put("DOUBLE", "FLOAT");
-
-		typeConversionMap.put("DATE", "DATE");
-		typeConversionMap.put("TIMESTAMP", "TIMESTAMP");
-		
-		typeConversionMap.put("STRING", "VARCHAR(800)");
 	}
 	
 	@Override
