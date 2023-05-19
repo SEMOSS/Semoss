@@ -22,6 +22,7 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public void initTypeConverstionMap() {
+		super.initTypeConverstionMap();
 		typeConversionMap.put("INT", "INT64");
 		typeConversionMap.put("LONG", "INT64");
 		
