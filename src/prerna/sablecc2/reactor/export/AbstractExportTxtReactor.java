@@ -69,17 +69,16 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 		if (delimiter == null) {
 			throw new IllegalArgumentException("Delimiter has not been defined for output");
 		}
-		// optimize the query so that it matches the general results on FE
-		try {
-			this.task.optimizeQuery(-1);
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred generating the query to write to the file");
-		}
-				
 		File f = new File(this.fileLocation);
-
 		try {
+			// optimize the query so that it matches the general results on FE
+			try {
+				this.task.optimizeQuery(-1);
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error occurred generating the query to write to the file");
+			}
+			
 			long start = System.currentTimeMillis();
 
 			try {
@@ -206,6 +205,10 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 				f.delete();
 			}
 			throw new IllegalArgumentException(e.getMessage(), e);
+		} finally {
+			if(this.task != null) {
+				this.task.cleanUp();
+			}
 		}
 	}
 
