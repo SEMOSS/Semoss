@@ -100,7 +100,6 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	public PersistentHash conceptIdHash = null;
 
 //	private RdbmsConnectionBuilder connBuilder;
-	
 	private String userName = null;
 	private String password = null;
 	private String driver = null;
@@ -1059,21 +1058,39 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	@Override
 	public Connection makeConnection() throws SQLException {
 		Connection retObject = getConnection();
-		if(conceptIdHash == null && Constants.LOCAL_MASTER_DB_NAME.equals(this.engineId)) {
-			if(PersistentHash.canInit(this)) {
-				conceptIdHash = new PersistentHash();
-				try {
-					conceptIdHash.setEngine(this);
-					conceptIdHash.load();
-				} catch(Exception ex) {
-					logger.error(Constants.STACKTRACE, ex);
-				}
-			}
-		}
 		return retObject;
 	}
 
 	public PersistentHash getConceptIdHash() {
+		if(conceptIdHash == null && Constants.LOCAL_MASTER_DB_NAME.equals(this.engineId)) {
+			Connection conn = null;
+			try {
+				conn = getConnection();
+				if(PersistentHash.canInit(this, conn)) {
+					conceptIdHash = new PersistentHash();
+					try {
+						conceptIdHash.setEngine(this);
+						conceptIdHash.load();
+					} catch(Exception ex) {
+						logger.error(Constants.STACKTRACE, ex);
+					}
+				}
+			} catch (SQLException ex) {
+				logger.error(Constants.STACKTRACE, ex);
+			}
+			// this is not required because the canInit does close
+//			finally {
+//				if(this.isConnectionPooling()) {
+//					if(conn != null) {
+//						try {
+//							conn.close();
+//						} catch (SQLException ex) {
+//							logger.error(Constants.STACKTRACE, ex);
+//						}
+//					}
+//				}
+//			}
+		}
 		return this.conceptIdHash;
 	}
 
