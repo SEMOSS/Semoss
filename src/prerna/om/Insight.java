@@ -821,6 +821,9 @@ public class Insight implements Serializable {
 	
 	public String getExportFileLocation(String uniqueKey) {
 		InsightFile insightFile = this.exportInsightFiles.get(uniqueKey);
+		if(insightFile == null) {
+			throw new IllegalArgumentException("The unique key '" + uniqueKey + "' is an incorrect identifier for the file");
+		}
 		String fileLocation = insightFile.getFilePath();
 		return getAbsoluteInsightFolderPath(fileLocation);
 	}
