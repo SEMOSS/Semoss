@@ -70,6 +70,7 @@ public class NativeImporter extends AbstractImporter {
 		String[] columnNames = null;
 		IEngine database = this.qs.retrieveQueryStructEngine();
 		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && database instanceof IRDBMSEngine) {
+			IRDBMSEngine rdbms = (IRDBMSEngine) database;
 			// if you are RDBMS
 			// we will make a new QS
 			// and we will wrap you
@@ -83,7 +84,7 @@ public class NativeImporter extends AbstractImporter {
 				PreparedStatement ps = null;
 				ResultSetMetaData rsMeta = null;
 				try {
-					ps = ((IRDBMSEngine) database).getPreparedStatement(query);
+					ps = rdbms.getPreparedStatement(query);
 					rsMeta = ps.getMetaData();
 					int numCols = rsMeta.getColumnCount();
 					columnNames = new String[numCols];
@@ -100,6 +101,13 @@ public class NativeImporter extends AbstractImporter {
 							ps.close();
 						} catch (SQLException e) {
 							logger.error(Constants.STACKTRACE, e);
+						}
+						if(rdbms.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
 						}
 					}
 				}
