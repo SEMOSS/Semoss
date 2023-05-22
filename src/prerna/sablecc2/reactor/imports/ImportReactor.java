@@ -103,36 +103,24 @@ public class ImportReactor extends AbstractReactor {
 		// we are not having the special native frame case
 		BasicIteratorTask task = null;
 		IRawSelectWrapper it = null;
-		if(!(frame instanceof NativeFrame)) {
-			try {
-				it = ImportUtility.generateIterator(qs, frame);
-			} catch(SemossPixelException e) {
-				throw e;
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				String message = "Error occurred executing query to load into the frame";
-				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
-					message += ". " + e.getMessage();
-				}
-				throw new SemossPixelException(getError(message));
-			}
-			
-			// is there an additional limit on a raw query?
-			if(limitRawQuery) {
-				if(!FrameSizeRetrictions.sizeWithinLimit(limitRawQueryVal)) {
-					SemossPixelException exception = new SemossPixelException(
-							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-									PixelDataType.CONST_STRING, 
-									PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-					exception.setContinueThreadOfExecution(false);
-					throw exception;
-				}
-				// set the limit into the flushed iterator
-				task = new BasicIteratorTask(qs, it);
-				task.setCollectLimit(limitRawQueryVal);
-			} else {
+		try {
+			if(!(frame instanceof NativeFrame)) {
 				try {
-					if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
+					it = ImportUtility.generateIterator(qs, frame);
+				} catch(SemossPixelException e) {
+					throw e;
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					String message = "Error occurred executing query to load into the frame";
+					if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+						message += ". " + e.getMessage();
+					}
+					throw new SemossPixelException(getError(message));
+				}
+				
+				// is there an additional limit on a raw query?
+				if(limitRawQuery) {
+					if(!FrameSizeRetrictions.sizeWithinLimit(limitRawQueryVal)) {
 						SemossPixelException exception = new SemossPixelException(
 								new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 										PixelDataType.CONST_STRING, 
@@ -140,44 +128,63 @@ public class ImportReactor extends AbstractReactor {
 						exception.setContinueThreadOfExecution(false);
 						throw exception;
 					}
-				} catch (SemossPixelException e) {
-					throw e;
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new SemossPixelException(getError("Error occurred executing query before loading into frame"));
+					// set the limit into the flushed iterator
+					task = new BasicIteratorTask(qs, it);
+					task.setCollectLimit(limitRawQueryVal);
+				} else {
+					try {
+						if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
+							SemossPixelException exception = new SemossPixelException(
+									new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+											PixelDataType.CONST_STRING, 
+											PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+							exception.setContinueThreadOfExecution(false);
+							throw exception;
+						}
+					} catch (SemossPixelException e) {
+						throw e;
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new SemossPixelException(getError("Error occurred executing query before loading into frame"));
+					}
 				}
 			}
+			
+			// insert the data
+			IImporter importer = null;
+			if(task != null) {
+				importer = ImportFactory.getImporter(frame, qs, task);
+			} else {
+				importer = ImportFactory.getImporter(frame, qs, it);
+			}
+			try {
+				importer.insertData();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException(e.getMessage());
+			}
+			// need to clear the unique col count used by FE for determining the need for math
+			frame.clearCachedMetrics();
+			frame.clearQueryCache();
+			
+			if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
+				storeCsvFileMeta((CsvQueryStruct) qs);
+			} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+				storeExcelFileMeta((ExcelQueryStruct) qs);
+			} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.PARQUET_FILE) {
+				storeParquetFileMeta((ParquetQueryStruct) qs);
+			}
+			
+			// track GA data
+			UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
+			
+			return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		} finally {
+			// always clean up the iterator
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
-		
-		// insert the data
-		IImporter importer = null;
-		if(task != null) {
-			importer = ImportFactory.getImporter(frame, qs, task);
-		} else {
-			importer = ImportFactory.getImporter(frame, qs, it);
-		}
-		try {
-			importer.insertData();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(e.getMessage());
-		}
-		// need to clear the unique col count used by FE for determining the need for math
-		frame.clearCachedMetrics();
-		frame.clearQueryCache();
-		
-		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
-			storeCsvFileMeta((CsvQueryStruct) qs);
-		} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
-			storeExcelFileMeta((ExcelQueryStruct) qs);
-		} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.PARQUET_FILE) {
-			storeParquetFileMeta((ParquetQueryStruct) qs);
-		}
-		
-		// track GA data
-		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	protected SelectQueryStruct getQueryStruct() {

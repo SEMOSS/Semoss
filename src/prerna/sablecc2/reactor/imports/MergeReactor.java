@@ -110,6 +110,8 @@ public class MergeReactor extends AbstractReactor {
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 						throw new SemossPixelException(e.getMessage(), e);
+					} finally {
+						task.cleanUp();
 					}
 				} else {
 					throw new IllegalArgumentException("Could not find any data input to merge into the frame");
@@ -311,28 +313,35 @@ public class MergeReactor extends AbstractReactor {
 			qs.setLimit(1);
 		}
 		
-		IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
-		if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-							PixelDataType.CONST_STRING, 
-							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
+		IRawSelectWrapper it = null;
+		try {
+			it = ImportUtility.generateIterator(qs, frame);
+			if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+								PixelDataType.CONST_STRING, 
+								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+			
+			IImporter importer = ImportFactory.getImporter(frame, qs, it);
+			// we reassign the frame because it might have changed
+			// this only happens for native frame
+			frame = importer.mergeData(joins);
+			
+			if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
+				storeCsvFileMeta((CsvQueryStruct) qs, this.curRow.getAllJoins());
+			} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+				storeExcelFileMeta((ExcelQueryStruct) qs, this.curRow.getAllJoins());
+			}
+			
+			return frame;
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
-		
-		IImporter importer = ImportFactory.getImporter(frame, qs, it);
-		// we reassign the frame because it might have changed
-		// this only happens for native frame
-		frame = importer.mergeData(joins);
-		
-		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
-			storeCsvFileMeta((CsvQueryStruct) qs, this.curRow.getAllJoins());
-		} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
-			storeExcelFileMeta((ExcelQueryStruct) qs, this.curRow.getAllJoins());
-		}
-		
-		return frame;
 	}
 	
 	/**
