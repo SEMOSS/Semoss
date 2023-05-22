@@ -3,6 +3,9 @@ package prerna.sablecc2.reactor.frame.convert;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -21,9 +24,12 @@ import prerna.sablecc2.reactor.imports.FrameSizeRetrictions;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
 import prerna.sablecc2.reactor.imports.ImportUtility;
+import prerna.util.Constants;
 
 public class ConvertReactor extends AbstractFrameReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(ConvertReactor.class);
+	
 	public ConvertReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), ReactorKeysEnum.FRAME.getKey(), 
 				ReactorKeysEnum.ALIAS.toString()};
@@ -40,55 +46,62 @@ public class ConvertReactor extends AbstractFrameReactor {
 		}
 		
 		IRawSelectWrapper it = null;
-		if(!(frame instanceof NativeFrame)) {
-			try {
-				it = frame.query(qs);
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new SemossPixelException(
-						new NounMetadata("Error occurred executing query before loading into frame", 
-								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			}
-			try {
-				if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
-					SemossPixelException exception = new SemossPixelException(
-							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-									PixelDataType.CONST_STRING, 
-									PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-					exception.setContinueThreadOfExecution(false);
-					throw exception;
-				}
-			} catch (SemossPixelException e) {
-				throw e;
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new SemossPixelException(getError("Error occurred executing query before loading into frame"));
-			}
-		}
-		
+		ITableDataFrame newFrame = null;
 		// get the name of the frame type
 		String frameType = getFrameType();
 		String alias = getAlias();
-		// will assume the person wants me to 
-		// override the existing variable
-		if(alias == null) {
-			alias = frame.getName();
-		}
-		ITableDataFrame newFrame = null;
 		try {
-			newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Error occurred trying to create frame of type " + frameType, e);
+			if(!(frame instanceof NativeFrame)) {
+				try {
+					it = frame.query(qs);
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new SemossPixelException(
+							new NounMetadata("Error occurred executing query before loading into frame", 
+									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				}
+				try {
+					if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
+						SemossPixelException exception = new SemossPixelException(
+								new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+										PixelDataType.CONST_STRING, 
+										PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+						exception.setContinueThreadOfExecution(false);
+						throw exception;
+					}
+				} catch (SemossPixelException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw e;
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new SemossPixelException(getError("Error occurred executing query before loading into frame"));
+				}
+			}
+			
+			// will assume the person wants me to 
+			// override the existing variable
+			if(alias == null) {
+				alias = frame.getName();
+			}
+			try {
+				newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error occurred trying to create frame of type " + frameType, e);
+			}
+			// insert the data for the new frame
+			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
+			try {
+				importer.insertData();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new SemossPixelException(e.getMessage());
+			}
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
-		// insert the data for the new frame
-		IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
-		try {
-			importer.insertData();
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new SemossPixelException(e.getMessage());
-		}
-		
 		// merge existing metadata
 		ImportUtility.mergeFlatTableSources(newFrame.getMetaData(), frame.getMetaData().getHeaderToSources());
 
