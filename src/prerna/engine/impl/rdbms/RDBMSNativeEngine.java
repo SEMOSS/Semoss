@@ -494,29 +494,33 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	@Override
 	public void insertData(String query) throws SQLException {
-		Connection conn = getConnection(); 
-		if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
-			try(Statement statement = conn.createStatement()){
-				statement.executeUpdate(query);
-			} catch(SQLException e){
-				logger.error(Constants.STACKTRACE, e);
-				throw e;
+		Connection conn = null;
+		try {
+			conn = getConnection(); 
+			if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
+				try(Statement statement = conn.createStatement()){
+					statement.executeUpdate(query);
+				} catch(SQLException e){
+					logger.error(Constants.STACKTRACE, e);
+					throw e;
+				}
+			} else {
+				try(PreparedStatement statement = conn.prepareStatement(query)){
+					statement.execute();
+				} catch(SQLException e){
+					logger.error(Constants.STACKTRACE, e);
+					throw e;
+				}
 			}
-		} else {
-			try(PreparedStatement statement = conn.prepareStatement(query)){
-				statement.execute();
-			} catch(SQLException e){
-				logger.error(Constants.STACKTRACE, e);
-				throw e;
-			}
-		}
-		// if datasource, give back the conn to the pool
-		if(this.datasourceConnected) {
 			// you have to commit on the connection itself
-			if(!autoCommit) {
+			if(!conn.getAutoCommit()) {
 				conn.commit();
 			}
-			conn.close();
+		} finally {
+			// if datasource, give back the conn to the pool
+			if(this.datasourceConnected && conn != null) {
+				conn.close();
+			}
 		}
 	}
 
@@ -834,20 +838,24 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	@Override
 	public void removeData(String query) throws SQLException {
-		Connection conn = getConnection();
-		try(PreparedStatement statement = conn.prepareStatement(query)){
-			statement.execute();
-		} catch(SQLException e){
-			logger.error(Constants.STACKTRACE, e);
-			throw e;
-		}
-		// if datasource, give back the conn to the pool
-		if(this.datasourceConnected) {
+		Connection conn = null;
+		try {
+			conn = getConnection();
+			try(PreparedStatement statement = conn.prepareStatement(query)){
+				statement.execute();
+			} catch(SQLException e){
+				logger.error(Constants.STACKTRACE, e);
+				throw e;
+			}
 			// you have to commit on the connection itself
-			if(!autoCommit) {
+			if(!conn.getAutoCommit()) {
 				conn.commit();
 			}
-			conn.close();
+		} finally {
+			// if datasource, give back the conn to the pool
+			if(this.datasourceConnected && conn != null) {
+				conn.close();
+			}
 		}
 	}
 
