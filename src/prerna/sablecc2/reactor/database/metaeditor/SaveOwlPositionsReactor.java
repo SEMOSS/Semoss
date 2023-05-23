@@ -11,6 +11,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -41,6 +42,9 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must pass in the valid position map");
 		}
 		
+		//TODO: below does not even work/is wrong
+		//TODO: need to make a method to push/pull the positions file
+		
 		// write the json file in the database folder
 		// just put it in the same location as the OWL
 		IEngine database = Utility.getEngine(databaseId);
@@ -65,7 +69,8 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 		ClusterUtil.reactorPushOwl(databaseId);
 		// update the positions cache
 		EngineSyncUtility.setMetamodelPositions(databaseId, positions);
-		
+		MasterDatabaseUtility.saveMetamodelPositions(databaseId, positions);
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	

@@ -56,7 +56,8 @@ public class DeleteFromMasterDB {
 			String relationDeleteSql = "DELETE FROM enginerelation WHERE engine = ?";
 			String conceptDeleteSql = "DELETE FROM engineconcept WHERE engine = ?";
 			String engineDeleteSql = "DELETE FROM engine WHERE id = ?";
-			for(String sql: new String[]{metaDeleteSql, relationDeleteSql, conceptDeleteSql, engineDeleteSql}){
+			String metamodelPositionDeleteSql = "DELETE FROM METAMODELPOSITION WHERE ENGINEID = ?";
+			for(String sql: new String[]{metaDeleteSql, relationDeleteSql, conceptDeleteSql, engineDeleteSql, metamodelPositionDeleteSql}){
 				try(PreparedStatement statement = conn.prepareStatement(sql)){
 					statement.setString(1, engineId);
 					statement.execute();
@@ -71,6 +72,8 @@ public class DeleteFromMasterDB {
 			} catch(SQLException e){
 				logger.error(Constants.STACKTRACE, e);
 			}
+			
+			
 
 //			String metaDelete = "delete from conceptmetadata where physicalnameid in (select physicalnameid from engineconcept where engine ='" + engineName +"')";
 //			String relationDelete = "delete from enginerelation where engine ='" + engineName +"'";

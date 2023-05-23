@@ -28,7 +28,7 @@ public class SmssUtilities {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	public static final String ENGINE_REPLACEMENT = "@" + Constants.ENGINE + "@";
 	public static final String PROJECT_REPLACEMENT = "@" + Constants.PROJECT + "@";
-
+	
 	private SmssUtilities() {
 
 	}
@@ -58,7 +58,7 @@ public class SmssUtilities {
 
 		return new File(Utility.normalizePath(owlFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
-
+	
 	/**
 	 * Get the insights rdbms file
 	 * @param prop

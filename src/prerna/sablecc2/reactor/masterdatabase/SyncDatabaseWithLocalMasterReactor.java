@@ -47,10 +47,10 @@ public class SyncDatabaseWithLocalMasterReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		logger.info("Starting to synchronize metadata");
 		
-		logger.info("Starting to remove exisitng metadata");
+		logger.info("Starting to remove existing metadata");
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(databaseId);
-		logger.info("Finished removing exisitng metadata");
+		logger.info("Finished removing existing metadata");
 
 		logger.info("Starting to add metadata");
 		String smssFile = (String) DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE);

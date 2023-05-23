@@ -1,11 +1,5 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +14,6 @@ import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -29,10 +21,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
-import prerna.util.Constants;
+import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelUtility;
 import prerna.util.EngineSyncUtility;
-import prerna.util.Utility;
 
 public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
@@ -110,53 +100,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 		// this is for the OWL positions for the new layout
 		if(options.contains("positions")) {
-			logger.info("Pulling database positions for database " + databaseId);
-			Map<String, Object> positions = EngineSyncUtility.getMetamodelPositions(databaseId);
-			if(positions == null) {
-				IEngine database = Utility.getEngine(databaseId);
-				if(database == null) {
-					logger.error("Could not load database '"+databaseId+"'");
-					logger.error("Could not load database '"+databaseId+"'");
-					logger.error("Could not load database '"+databaseId+"'");
-					logger.error("Could not load database '"+databaseId+"'");
-					logger.error("Could not load database '"+databaseId+"'");
-					metamodelObject.put("positions", new HashMap<String, Object>());
-				} else {
-					// if the file is present, pull it and load
-					File owlF = SmssUtilities.getOwlFile(database.getProp());
-					if(owlF == null || !owlF.isFile()) {
-						metamodelObject.put("positions", new HashMap<String, Object>());
-					} else {
-						File positionFile = database.getOwlPositionFile();
-						// try to make the file
-						if(!positionFile.exists() && !positionFile.isFile()) {
-							try {
-								logger.info("Generating metamodel layout for database " + databaseId);
-								logger.info("This process may take some time");
-								GenerateMetamodelLayout.generateLayout(databaseId);
-								logger.info("Metamodel layout has been generated");
-							} catch(Exception e) {
-								classLogger.info("Exception in creating database metamodel layout");
-								classLogger.error(Constants.STACKTRACE, e);
-							} catch(NoClassDefFoundError e) {
-								classLogger.info("Error in creating database metamodel layout");
-								classLogger.error(Constants.STACKTRACE, e);
-							}
-						}
-						
-						if(positionFile.exists() && positionFile.isFile()) {
-							// load the file
-							Path path = positionFile.toPath();
-							try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-								positions = gson.fromJson(reader, Map.class);
-								EngineSyncUtility.setMetamodelPositions(databaseId, positions);
-							} catch (IOException e) {
-								classLogger.error(Constants.STACKTRACE, e);
-							}
-						}
-					}
-				}
-			}
+			Map<String, Object> positions = GenerateMetamodelUtility.getMetamodelPositions(databaseId);
 			metamodelObject.put("positions", positions);
 			logger.info("Done pulling database positions for database " + databaseId);
 		}
