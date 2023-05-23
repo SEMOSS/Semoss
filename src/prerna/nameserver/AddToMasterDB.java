@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -54,6 +55,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
@@ -188,6 +190,13 @@ public class AddToMasterDB {
                 logger.debug("Processing relationship ::: " + Arrays.toString(relationshipToInsert));
                 masterRelationship(relationPs, engineRelationPs, engineName, relationshipToInsert, helper);
             }
+            
+            // sync metamodel position
+            Map<String, Object> positions = GenerateMetamodelUtility.getOwlMetamodelPositions(engineUniqueId);
+            if (positions.size() > 0) {
+            	MasterDatabaseUtility.saveMetamodelPositions(engineUniqueId, positions, conn);
+            }
+            
 
             // execute all of the inserts
             conceptPs.executeBatch();
