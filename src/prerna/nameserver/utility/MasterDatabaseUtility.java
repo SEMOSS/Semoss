@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -288,6 +289,20 @@ public class MasterDatabaseUtility {
 			}
 		}
 		
+		
+		// metamodel position
+		colNames = new String[] {"ENGINEID", "TABLENAME", "XPOS", "YPOS"};
+		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "FLOAT", "FLOAT"};
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists("METAMODELPOSITION", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(engine, "METAMODELPOSITION", database, schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable("METAMODELPOSITION", colNames, types));
+			}
+		}
+		
 		// this is just because of previous errors
 		// TODO: remove this after a few builds when its no longer needed
 		// added on 2020-06-04
@@ -327,6 +342,7 @@ public class MasterDatabaseUtility {
 				executeSql(conn, queryUtil.dropTableIfExists("ENGINERELATION"));
 				executeSql(conn, queryUtil.dropTableIfExists("RELATION"));
 				executeSql(conn, queryUtil.dropTableIfExists("KVSTORE"));
+				executeSql(conn, queryUtil.dropTableIfExists("METAMODELPOSITION"));
 			} else {
 				if(!queryUtil.tableExists(engine, "ENGINE", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINE"));
@@ -348,6 +364,9 @@ public class MasterDatabaseUtility {
 				}
 				if(!queryUtil.tableExists(engine, "KVSTORE", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("KVSTORE"));
+				}
+				if(!queryUtil.tableExists(engine, "METAMODELPOSITION", database, schema)) {
+					executeSql(conn, queryUtil.dropTable("METAMODELPOSITION"));
 				}
 			}
 		}
@@ -2922,6 +2941,114 @@ public class MasterDatabaseUtility {
 		}
         return retDate;
     }
+    
+    /**
+     * 
+     * @param databaseId
+     * @param positions
+     */
+    public static void saveMetamodelPositions(String databaseId, Map<String, Object> positions) {
+        IRDBMSEngine engine = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+        Connection conn = null;
+        Savepoint savepoint = null;
+        try {
+        	conn = engine.getConnection();
+        	savepoint = conn.setSavepoint("mm_position_" + Utility.getRandomString(5));
+        	saveMetamodelPositions(databaseId, positions, conn);
+        	if(!conn.getAutoCommit()) {
+        		conn.commit();
+        	}
+        } catch(Exception e) {
+        	logger.error(Constants.STACKTRACE, e);
+        	try {
+				conn.rollback(savepoint);
+			} catch (SQLException e1) {
+	        	logger.error(Constants.STACKTRACE, e);
+			}
+        } finally {
+        	if(savepoint != null) {
+        		try {
+					conn.releaseSavepoint(savepoint);
+				} catch (SQLException e) {
+		        	logger.error(Constants.STACKTRACE, e);
+				}
+        	}
+        	closeResources(engine, conn, null, null);
+        }
+    }
+    
+    /**
+     * It is your responsibility to close the connection object if connection pooling and using this method
+     * @param databaseId
+     * @param positions
+     * @param conn
+     * @throws Exception
+     */
+    public static void saveMetamodelPositions(String databaseId, Map<String, Object> positions, Connection conn) throws Exception {
+    	String removeExisting = "DELETE FROM METAMODELPOSITION where ENGINEID = ?";
+    	String insertStatement = "INSERT INTO METAMODELPOSITION VALUES (?, ?, ?, ?)";
+        
+        PreparedStatement remove = null;
+        PreparedStatement add = null;
+    	try {
+    		remove = conn.prepareStatement(removeExisting);
+    		remove.setString(1, databaseId);
+    		remove.execute();
+
+    		add = conn.prepareStatement(insertStatement);
+    		for (String x : positions.keySet()) {
+    			int i = 1;
+    			add.setString(i++, databaseId);
+    			add.setString(i++, x);
+    			Map<String, Object> topLeft = (Map<String, Object>) positions.get(x);
+    			Float left = convertToFloat(topLeft.get("left"));
+    			Float top = convertToFloat(topLeft.get("top"));
+    			add.setFloat(i++, left);
+    			add.setFloat(i++, top);
+    			add.addBatch();
+    		}
+    		
+    		add.executeBatch();
+    	} catch (Exception e) {
+    		logger.error("Could save metamodel positions", e);
+    		throw e;
+    	} finally {
+			closeResources(null, null, remove, null);
+			closeResources(null, null, add, null);
+    	}
+    }
+    
+    public static Map<String, Object> getMetamodelPositions(String databaseId) {
+        IRDBMSEngine engine = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+    	SelectQueryStruct qs = new SelectQueryStruct();
+    	qs.addSelector(new QueryColumnSelector("METAMODELPOSITION__TABLENAME"));
+    	qs.addSelector(new QueryColumnSelector("METAMODELPOSITION__XPOS"));
+    	qs.addSelector(new QueryColumnSelector("METAMODELPOSITION__YPOS"));
+    	qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("METAMODELPOSITION__ENGINEID", "==", databaseId));
+    	
+    	List<Object[]> objs = QueryExecutionUtility.flushRsToListOfObjArray(engine, qs);
+    	
+    	Map<String, Object> map = new HashMap<>();
+    	for (Object[] x : objs) {
+    		String tn = (String) x[0];
+    		Map<String, Object> position = new HashMap<>();
+    		position.put("left", x[1]);
+    		position.put("top", x[2]);
+    		map.put(tn, position);
+    	}
+    	return map;
+    }
+
+	private static Float convertToFloat(Object object) {
+		if (object instanceof Double) {
+			Double db = (Double) object;
+			return db.floatValue();
+		} else if (object instanceof Integer) {
+			return ((Integer) object).floatValue();
+		} else {
+			return Float.valueOf(object.toString());
+		}
+	}
 
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////

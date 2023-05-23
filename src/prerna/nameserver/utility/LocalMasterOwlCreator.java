@@ -23,6 +23,7 @@ public class LocalMasterOwlCreator {
 		conceptsRequired.add("ENGINERELATION");
 		conceptsRequired.add("KVSTORE");
 		conceptsRequired.add("RELATION");
+		conceptsRequired.add("METAMODELPOSITION");
 	}
 	
 	private IEngine localMasterDb;
@@ -168,6 +169,16 @@ public class LocalMasterOwlCreator {
 
 		owler.addRelation("CONCEPT", "RELATION", "CONCEPT.LOCALCONCEPTID.RELATION.SOURCEID");
 		owler.addRelation("CONCEPT", "RELATION", "CONCEPT.LOCALCONCEPTID.RELATION.TARGETID");
+		
+		
+		owler.addConcept("METAMODELPOSITION", null, null);
+		owler.addProp("METAMODELPOSITION", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("METAMODELPOSITION", "TABLENAME", "VARCHAR(255)");
+		owler.addProp("METAMODELPOSITION", "XPOS", "FLOAT");
+		owler.addProp("METAMODELPOSITION", "YPOS", "FLOAT");
+		
+		owler.addRelation("METAMODELPOSITION", "ENGINE", "METAMODELPOSITION.ENGINEID.ENGINE.ID");
+		
 		
 		owler.commit();
 		owler.export();
