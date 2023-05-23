@@ -34,7 +34,7 @@ import prerna.util.Utility;
 
 public class GenerateMetamodelLayout {
 	
-	private static final Logger logger = LogManager.getLogger(GenerateMetamodelLayout.class);
+	private static final Logger classLogger = LogManager.getLogger(GenerateMetamodelLayout.class);
 	
 	public static void generateLayout(String appId) {
 		String smssFile = (String) DIHelper.getInstance().getDbProperty(appId + "_" + Constants.STORE);
@@ -96,13 +96,13 @@ public class GenerateMetamodelLayout {
 				writer = new FileWriter(positionJson);
 				writer.write(new GsonBuilder().setPrettyPrinting().create().toJson(positionMap));
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(writer != null) {
 					try {
 						writer.close();
 					} catch (IOException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -239,7 +239,7 @@ public class GenerateMetamodelLayout {
 			try {
 				graph.addNode(tableName);
 			} catch(org.graphstream.graph.IdAlreadyInUseException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -250,7 +250,7 @@ public class GenerateMetamodelLayout {
 			try {
 				graph.addEdge(edge, start, end);
 			} catch(org.graphstream.graph.IdAlreadyInUseException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
