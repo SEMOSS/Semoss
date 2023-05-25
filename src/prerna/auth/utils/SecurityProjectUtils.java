@@ -429,7 +429,64 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static SemossDate getPortalPublishedTimestamp(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return (SemossDate) wrapper.next().getValues()[0];
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		return null;
+	}
+	
+	public static void setPortalPublish(User user, String projectId) {
+		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+		String updateQ = "UPDATE PROJECT SET PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
+		PreparedStatement updatePs = null;
+		try {
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			int i = 1;
+			updatePs.setTimestamp(i++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			updatePs.setString(i++, token.getId());
+			updatePs.setString(i++, token.getProvider().toString());
+			updatePs.setString(i++, projectId);
+			updatePs.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						updatePs.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
 
+	
 	/**
 	 * Determine if the user is the owner of a project
 	 * @param userFilters

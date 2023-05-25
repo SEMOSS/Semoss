@@ -27,11 +27,11 @@
  *******************************************************************************/
 package prerna.project.api;
 
-import java.time.LocalDateTime;
 import java.util.Properties;
 import java.util.Vector;
 
 import prerna.auth.AuthProvider;
+import prerna.date.SemossDate;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
@@ -149,7 +149,7 @@ public interface IProject {
 	 * 
 	 * @return
 	 */
-	LocalDateTime getLastPublishDate();
+	SemossDate getLastPublishDate();
 	
 	/**
 	 * Return if an asset
