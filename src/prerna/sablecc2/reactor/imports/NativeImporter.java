@@ -74,11 +74,11 @@ public class NativeImporter extends AbstractImporter {
 			// if you are RDBMS
 			// we will make a new QS
 			// and we will wrap you
-			String query = ((HardSelectQueryStruct) this.qs).getQuery().trim();
-			if(query.endsWith(";")) {
-				query = query.substring(0, query.length()-1);
-			}
-			if(this.it == null) {
+			String query = ((HardSelectQueryStruct) this.qs).getQuery();//.trim();
+//			if(query.endsWith(";")) {
+//				query = query.substring(0, query.length()-1);
+//			}
+//			if(this.it == null) {
 				// use a prepared statement
 				// so we dont have to actually do the execution of the query
 				PreparedStatement ps = null;
@@ -132,7 +132,7 @@ public class NativeImporter extends AbstractImporter {
 //						((IRawSelectWrapper) this.it).cleanUp();
 //					}
 //				}
-			}
+//			}
 			
 			String customFromAlias = "customquery";
 			SelectQueryStruct newQs = new SelectQueryStruct();
