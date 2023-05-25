@@ -30,10 +30,10 @@ package prerna.poi.main;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
-import java.util.Vector;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
@@ -101,8 +101,8 @@ public class ProcessNLP {
 			SemanticGraph graph = NaturalLanguageProcessingHelper.createDepList(lp, sentence, tdl, taggedWords); //create dependencies
 			if(graph != null)
 			{
-				Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
-				Hashtable<String, String> negHash = new Hashtable<String, String>();
+				Map<GrammaticalRelation, List<TypedDependency>> nodeHash = new HashMap<GrammaticalRelation, List<TypedDependency>>();
+				Map<String, String> negHash = new HashMap<String, String>();
 				// fill the hashtable between the grammatical part of speech to the words in the sentence
 				NaturalLanguageProcessingHelper.setTypeDependencyHash(tdl, nodeHash);
 				generateTriples(graph, sentence, file.substring(file.lastIndexOf(File.separator)+1), taggedWords, negHash, nodeHash);
@@ -155,7 +155,8 @@ public class ProcessNLP {
 		scan.close();
 	}
 	
-	public void generateTriples(SemanticGraph graph, String sentence, String documentName, List<TaggedWord> taggedWords, Hashtable<String, String> negHash, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public void generateTriples(SemanticGraph graph, String sentence, String documentName, List<TaggedWord> taggedWords, 
+			Map<String, String> negHash, Map<GrammaticalRelation, List<TypedDependency>> nodeHash)
 	{
 		NaturalLanguageProcessingHelper.createNegations(negHash, nodeHash);
 		// I ate the sandwich. -> I, ate, sandwich (“the” is included in expanded object.)
@@ -191,14 +192,14 @@ public class ProcessNLP {
 			String sentence,
 			String documentName,
 			List<TaggedWord> taggedWords, 
-			Hashtable<String, String> negHash, 
-			Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, 
+			Map<String, String> negHash, 
+			Map<GrammaticalRelation, List<TypedDependency>> nodeHash, 
 			GrammaticalRelation subjR, 
 			GrammaticalRelation objR)
 	{
 		// based on the subjects and objects now find the predicates
-		Vector<TypedDependency> dobjV = nodeHash.get(objR);
-		Vector<TypedDependency> subjV = nodeHash.get(subjR);
+		List<TypedDependency> dobjV = nodeHash.get(objR);
+		List<TypedDependency> subjV = nodeHash.get(subjR);
 
 		if(dobjV != null && subjV != null)
 		{
@@ -311,7 +312,7 @@ public class ProcessNLP {
 	}
 	
 	private void createOccuranceCount() {
-		Hashtable<String, Integer> termCounts = new Hashtable<String, Integer>();
+		Map<String, Integer> termCounts = new HashMap<String, Integer>();
 		int i = 0;
 		int numTriples = triples.size();
 		for(; i < numTriples; i++){
