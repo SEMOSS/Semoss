@@ -1205,16 +1205,13 @@ public class PixelUtility {
 			}
 		}
 		long end = System.currentTimeMillis();
-        System.out.println("Total time to process = " + (end-start));
+        logger.debug("Total time to process = " + (end-start));
         
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("idMapping", pixelList);
 		retMap.put("pixelParsing", translation.getAllRoutines());
 		return retMap;
 	}
-	
-	
-	
 	
 	
 	
