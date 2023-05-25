@@ -171,6 +171,7 @@ public enum ReactorKeysEnum {
 	RECIPE_PARAMETERS("recipeParameters", 						"Parameters for the recipe to execute on the insight recipe"),
 	REGEX("regex", 												"Regular expression (sequence of characters)"),
 	RELATIVE_PATH("relativePath", 								"Relative file path for user assets"),
+	RELEASE("release", 											"Boolean to confirm the operation should be released across containers"),
 	RELOAD("reload", 											"Reload an object or connection"),
 	REPLACE("replace",											"Replace data when adding to existing app"),
 	REPOSITORY("repository", 									"Name of the repository. Usually namespaced to be username\\appname"),
