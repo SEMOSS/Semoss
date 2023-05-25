@@ -183,7 +183,7 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 		baseFolder = baseFolder.replace("/", "_");
 
 		PyTranslator pyt = insight.getPyTranslator();
-		String baseVarName = projectId + "_" + baseFolder + "_" + indexName; 
+		String baseVarName = "a_" + projectId + "_" + baseFolder + "_" + indexName; 
 		String [] commands = new String[] {
 				"import gaas_simple_faiss as fa",
 				"from datasets import Dataset",
