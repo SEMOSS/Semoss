@@ -10,12 +10,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.ling.LabeledWord;
 import edu.stanford.nlp.ling.TaggedWord;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.process.CoreLabelTokenFactory;
 import edu.stanford.nlp.process.PTBTokenizer;
 import edu.stanford.nlp.process.TokenizerFactory;
+import edu.stanford.nlp.semgraph.SemanticGraph;
+import edu.stanford.nlp.semgraph.SemanticGraphFactory;
 import edu.stanford.nlp.trees.EnglishGrammaticalRelations;
 import edu.stanford.nlp.trees.GrammaticalRelation;
 import edu.stanford.nlp.trees.GrammaticalStructure;
@@ -48,7 +51,7 @@ public final class NaturalLanguageProcessingHelper {
 	 * @param taggedWords	The list to add all the Parts of Speech (POS) for each word in the sentence
 	 * @return				Returns a boolean if the sentence was parsable
 	 */
-	public static boolean createDepList(LexicalizedParser lp, String sentence, List<TypedDependency> tdl, List<TaggedWord> taggedWords)
+	public static SemanticGraph createDepList(LexicalizedParser lp, String sentence, List<TypedDependency> tdl, List<TaggedWord> taggedWords)
 	{
 		// Performs a Penn-Treebank Style Tokenization 
 		/* Basics of how this tokenization works (from http://www.cis.upenn.edu/~treebank/tokenization.html)
@@ -77,7 +80,7 @@ public final class NaturalLanguageProcessingHelper {
 			taggedWords.addAll(treeBank.taggedYield());
 		} catch(NullPointerException e) {
 			logger.info("The following sentence failed to be loadede:  " + sentence);
-			return false;
+			return null;
 		}
 		// Store the dependency relations between nodes in a tree
 		TreebankLanguagePack tlp = new PennTreebankLanguagePack();
@@ -86,7 +89,7 @@ public final class NaturalLanguageProcessingHelper {
 
 		// Get a list of typed dependencies, including control dependencies, by collapsing them and distributing relations across coordination
 		tdl.addAll(gs.typedDependenciesCCprocessed());
-		return true;
+		return SemanticGraphFactory.makeFromTree(gs);
 	}
 	
 	/**
@@ -159,19 +162,19 @@ public final class NaturalLanguageProcessingHelper {
 	 * @param objR
 	 * @return
 	 */
-	public static TreeGraphNode findPrepObject(Vector<TypedDependency> dobjV, Vector<TypedDependency> subjV, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, GrammaticalRelation subjR, GrammaticalRelation objR) {
+	public static IndexedWord findPrepObject(Vector<TypedDependency> dobjV, Vector<TypedDependency> subjV, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, GrammaticalRelation subjR, GrammaticalRelation objR) {
 		// based on the subjects and objects now find the predicates
 		dobjV = nodeHash.get(objR);
 		subjV = nodeHash.get(subjR);
 
 		if (dobjV != null && subjV != null) {
 			for (int dobjIndex = 0; dobjIndex < dobjV.size(); dobjIndex++) {
-				TreeGraphNode pobj = dobjV.get(dobjIndex).dep();
-				TreeGraphNode prep = dobjV.get(dobjIndex).gov();
+				IndexedWord pobj = dobjV.get(dobjIndex).dep();
+				IndexedWord prep = dobjV.get(dobjIndex).gov();
 
 				// now find the subject
 				for (int subjIndex = 0; subjIndex < subjV.size(); subjIndex++) {
-					TreeGraphNode prep2 = subjV.get(subjIndex).dep();
+					IndexedWord prep2 = subjV.get(subjIndex).dep();
 					if ((prep2 + "").equalsIgnoreCase(prep + "")) // this is the comparison to determine if there is a chain
 						return pobj;
 				}
@@ -187,9 +190,9 @@ public final class NaturalLanguageProcessingHelper {
 	 * @return
 	 */
 	// finds the expanded object
-	public static TreeGraphNode findCompObject(TreeGraphNode governor, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static IndexedWord findCompObject(IndexedWord governor, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
 	{
-		TreeGraphNode retNode = governor;
+		IndexedWord retNode = governor;
 		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
 		if(compVector != null) {
 			int i = 0;
@@ -225,9 +228,9 @@ public final class NaturalLanguageProcessingHelper {
 	 * @return
 	 */
 	// find expanded subject
-	public static TreeGraphNode findCompSubject(TreeGraphNode subj, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static IndexedWord findCompSubject(IndexedWord subj, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
 	{
-		TreeGraphNode retNode = subj;
+		IndexedWord retNode = subj;
 		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
 		boolean subjFound = false;
 		if(compVector != null)
@@ -283,9 +286,9 @@ public final class NaturalLanguageProcessingHelper {
 	 * @return
 	 */
 	//sometimes the DAMN complement is recursive
-	public static TreeGraphNode findComplementNoun(TreeGraphNode subj, TreeGraphNode dep2, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, GrammaticalRelation relation) {
+	public static IndexedWord findComplementNoun(IndexedWord subj, IndexedWord dep2, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, GrammaticalRelation relation) {
 
-		TreeGraphNode retNode = subj;
+		IndexedWord retNode = subj;
 		// find all the complements
 		// find the one where the dep is the same as dep passed through
 		// now find a nsubj based on that new gov
@@ -296,8 +299,8 @@ public final class NaturalLanguageProcessingHelper {
 			for(int cInd = 0;cInd < compVector.size();cInd++)
 			{
 				TypedDependency td = compVector.elementAt(cInd);
-				TreeGraphNode dep = td.dep();
-				TreeGraphNode gov = td.gov();
+				IndexedWord dep = td.dep();
+				IndexedWord gov = td.gov();
 				if(dep == dep2)
 				{
 					// now find the nsubj
@@ -353,14 +356,57 @@ public final class NaturalLanguageProcessingHelper {
 		}
 		return finalObject;
 	}
+	
+	/**
+	 * 
+	 * @param graph
+	 * @param node
+	 * @return
+	 */
+	public static String getFullNoun(SemanticGraph graph, IndexedWord node) 
+	{
+		String finalObject = "";
+		boolean npFound = false;
+		IndexedWord parentSearcher = node;
+		while(!npFound) {
+			if(parentSearcher != null && !parentSearcher.value().startsWith("NP")) {
+				IndexedWord possibleParent = graph.getParent(parentSearcher);
+				if(possibleParent != null)
+					parentSearcher = possibleParent;
+				else {
+					npFound = true;
+					parentSearcher = null;
+				}
+			}
+			else {
+				npFound = true;
+				if (parentSearcher != null) {
+					List<IndexedWord> lw = graph.getChildList(parentSearcher);
+					// if this is not a noun then I need find the actual proper noun
+					// and it may be because there is a CCOMP or XCOMP with this label
+					// or there is an amod with this label
+					for(int labIndex = 0; labIndex < lw.size();labIndex++)
+					{
+						finalObject = finalObject + lw.get(labIndex).word();
+						if(labIndex != lw.size() - 1) {
+							finalObject += " ";
+						}
+					}
+				}
+			}
+		}
+		return finalObject;
+	}
+
 
 	/**
 	 * 
+	 * @param graph
 	 * @param noun
 	 * @param nodeHash
 	 * @return
 	 */
-	public static String findPrepNoun(TreeGraphNode noun, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static String findPrepNoun(SemanticGraph graph, IndexedWord noun, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
 	{
 		// given the preperator
 		// complete the string
@@ -373,15 +419,15 @@ public final class NaturalLanguageProcessingHelper {
 		for(int prepIndex = 0;prepIndex < prepVector.size();prepIndex++)
 		{
 			TypedDependency tdl = prepVector.elementAt(prepIndex);
-			TreeGraphNode gov = tdl.gov();
-			TreeGraphNode dep = tdl.dep();
+			IndexedWord gov = tdl.gov();
+			IndexedWord dep = tdl.dep();
 			if(noun == gov )
 			{
-				String fullNoun = getFullNoun(dep);
+				String fullNoun = getFullNoun(graph, dep);
 				if(dep != null && dep.value() != null && fullNoun.equalsIgnoreCase(dep.value())) {
-					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(dep, nodeHash);
+					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(graph, dep, nodeHash);
 				} else {
-					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(dep, nodeHash).replace(dep.value(), "");
+					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(graph, dep, nodeHash).replace(dep.value(), "");
 				}
 			}
 		}
@@ -390,11 +436,12 @@ public final class NaturalLanguageProcessingHelper {
 
 	/**
 	 * 
+	 * @param graph
 	 * @param noun
 	 * @param nodeHash
 	 * @return
 	 */
-	public static String findPrepNounForPredicate(TreeGraphNode noun, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static String findPrepNounForPredicate(SemanticGraph graph, IndexedWord noun, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
 	{
 		// given the preperator
 		// complete the string
@@ -406,13 +453,13 @@ public final class NaturalLanguageProcessingHelper {
 		for(int prepIndex = 0;prepIndex < prepVector.size();prepIndex++)
 		{
 			TypedDependency tdl = prepVector.elementAt(prepIndex);
-			TreeGraphNode gov = tdl.gov();
-			TreeGraphNode dep = tdl.dep();
+			IndexedWord gov = tdl.gov();
+			IndexedWord dep = tdl.dep();
 			if(noun == gov )
 			{				 
-				String fullNoun = getFullNoun(dep);
+				String fullNoun = getFullNoun(graph, dep);
 				if(dep != null && dep.value() != null && fullNoun.equalsIgnoreCase(dep.value())) {
-					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(dep, nodeHash);
+					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(graph, dep, nodeHash);
 				} else {
 					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun;
 				}

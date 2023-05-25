@@ -1113,7 +1113,7 @@
 		<dependency>
 			<groupId>edu.stanford.nlp</groupId>
 			<artifactId>stanford-corenlp</artifactId>
-			<version>3.3.0</version>
+			<version>4.5.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1124,7 +1124,7 @@
 		<dependency>
 			<groupId>edu.stanford.nlp</groupId>
 			<artifactId>stanford-corenlp</artifactId>
-			<version>3.3.0</version>
+			<version>4.5.4</version>
 			<classifier>models</classifier>
 			<exclusions>
 				<exclusion>
