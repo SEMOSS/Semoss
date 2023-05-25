@@ -171,6 +171,9 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CATALOGNAME/PROJECT")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PORTALPUBLISHED/PROJECT")) {
+				return true;
+			}
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/TOKEN");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKEN")) {
@@ -274,6 +277,11 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECT", "TYPE", "VARCHAR(255)");
 		owler.addProp("PROJECT", "COST", "VARCHAR(255)");
 		owler.addProp("PROJECT", "CATALOGNAME", "VARCHAR(255)");
+		owler.addProp("PROJECT", "HASPORTAL", "BOOLEAN");
+		owler.addProp("PROJECT", "PORTALNAME", "VARCHAR(255)");
+		owler.addProp("PROJECT", "PORTALPUBLISHED", "TIMESTAMP");
+		owler.addProp("PROJECT", "PORTALPUBLISHEDUSER", "VARCHAR(255)");
+		owler.addProp("PROJECT", "PORTALPUBLISHEDTYPE", "VARCHAR(255)");
 
 		//PROJECTPERMISSION
 		owler.addConcept("PROJECTPERMISSION", null, null);

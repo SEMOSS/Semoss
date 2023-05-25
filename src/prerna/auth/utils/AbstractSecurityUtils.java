@@ -407,8 +407,10 @@ public abstract class AbstractSecurityUtils {
 		// PROJECT
 		// Type and cost are the main questions - 
 		boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
-		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", "TYPE", "COST", "CATALOGNAME" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", "TYPE", "COST", "CATALOGNAME", 
+				"HASPORTAL", "PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+				BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECT", colNames, types));
 		} else {
