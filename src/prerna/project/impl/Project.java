@@ -51,6 +51,9 @@ import com.google.gson.Gson;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.date.SemossDate;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -133,9 +136,11 @@ public class Project implements IProject {
 	private boolean mvnDefined = false;
 	
 	// publish portals
+	private boolean hasPortal = false;
+	private String portalName = null;
+	private SemossDate lastPublishDate = null;
 	private boolean publish = false;
 	private boolean republish = false;
-	private LocalDateTime lastPublishDate = null;
 
 	// project specific analytics thread
 	private transient Process tcpServerProcess;
@@ -861,8 +866,10 @@ public class Project implements IProject {
         return envClassPath;
 	}
 	
-	// create a symbolic link to the version directory
 	@Override
+	/**
+	 * Publish the portals folder to public_home
+	 */
 	public boolean publish(String public_home) {
 		// find what is the final URL
 		// this is the base url plus manipulations
@@ -870,8 +877,14 @@ public class Project implements IProject {
 		// no easy way to find other than may be find the classpath ? - will instrument this through RDF Map
 		if(public_home != null) {
 			boolean enableForProject = (prop != null && Boolean.parseBoolean(prop.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
+			SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
+			boolean outOfDate = false;
+			if(lastPublishedDateInSecurity != null && this.lastPublishDate != null) {
+				outOfDate = lastPublishedDateInSecurity.getLocalDateTime().isAfter(this.lastPublishDate.getLocalDateTime());
+				ClusterUtil.reactorPushProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
+			}
 			try {
-				if(this.republish || (enableForProject && !this.publish)) {
+				if(this.republish || outOfDate || (enableForProject && !this.publish)) {
 					Path sourcePath = Paths.get(this.projectPortalFolder);
 					Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
 		
@@ -881,7 +894,7 @@ public class Project implements IProject {
 					if(targetDirectory.exists() && targetDirectory.isDirectory()) {
 						FileUtils.deleteDirectory(targetDirectory);
 					}
-	
+					
 					// do we physically copy of link?
 					// first smss file
 					// second rdf map
@@ -906,7 +919,7 @@ public class Project implements IProject {
 					targetDirectory.deleteOnExit();
 					this.publish = true;
 					this.republish = false;
-					this.lastPublishDate = LocalDateTime.now();
+					this.lastPublishDate = new SemossDate(LocalDateTime.now());
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
@@ -924,7 +937,7 @@ public class Project implements IProject {
 	}
 	
 	@Override
-	public LocalDateTime getLastPublishDate() {
+	public SemossDate getLastPublishDate() {
 		return this.lastPublishDate;
 	}
 	
@@ -1279,7 +1292,8 @@ public class Project implements IProject {
 	 * load any existing reactor class files as is
 	 */
 	private void loadCompiledProjectReactors() {
-		String pomFile = this.projectBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER + DIR_SEPARATOR + "assets" + DIR_SEPARATOR + "java" + DIR_SEPARATOR + "pom.xml";
+		String pomFile = this.projectBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER + DIR_SEPARATOR + Constants.ASSETS_FOLDER 
+				+ DIR_SEPARATOR + "java" + DIR_SEPARATOR + "pom.xml";
 		
 		if(new File(pomFile).exists()) {
 			// this is maven
