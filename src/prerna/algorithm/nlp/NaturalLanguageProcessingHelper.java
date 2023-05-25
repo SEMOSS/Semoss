@@ -2,9 +2,9 @@ package prerna.algorithm.nlp;
 
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Vector;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -97,21 +97,21 @@ public final class NaturalLanguageProcessingHelper {
 	 * @param tdl			The type dependency list for every word in the sentence
 	 * @param nodeHash		The Hashtable to put the key-value mapping from the type dependency list
 	 */
-	public static void setTypeDependencyHash(List<TypedDependency> tdl, Hashtable <GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static void setTypeDependencyHash(List<TypedDependency> tdl, Map<GrammaticalRelation, List<TypedDependency>> nodeHash)
 	{
 		int i = 0;
 		int size = tdl.size();
 		for(; i < size; i++)
 		{
 			TypedDependency one = tdl.get(i);
-			Vector<TypedDependency> baseVector = new Vector<>();
+			List<TypedDependency> baseVector = new ArrayList<>();
 			GrammaticalRelation rel = one.reln();
 
 			//if this type of relation already exists
 			if(nodeHash.containsKey(rel)) {
 				baseVector = nodeHash.get(rel);
 			}
-			baseVector.addElement(one);
+			baseVector.add(one);
 			nodeHash.put(rel, baseVector);
 		}
 	}
@@ -122,11 +122,11 @@ public final class NaturalLanguageProcessingHelper {
 	 * @param searchString		The sentence to generate the typed dependencies list
 	 * @return					The Hashtable to put the key-value mapping from the type dependency list
 	 */
-	public static Hashtable<GrammaticalRelation, Vector<TypedDependency>> getTypeDependencyHash(LexicalizedParser lp, String searchString)
+	public static Map<GrammaticalRelation, List<TypedDependency>> getTypeDependencyHash(LexicalizedParser lp, String searchString)
 	{
 		List<TypedDependency> tdl = new ArrayList<>();
 		createDepList(lp, searchString, tdl, new ArrayList<TaggedWord>()); //create dependencies
-		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<>();
+		Map<GrammaticalRelation, List<TypedDependency>> nodeHash = new HashMap<>();
 		setTypeDependencyHash(tdl, nodeHash);
 		return nodeHash;
 	}
@@ -136,9 +136,9 @@ public final class NaturalLanguageProcessingHelper {
 	 * @param negHash		The Hashtable to add the negation modifiers to
 	 * @param nodeHash		The Hashtable containing the type dependencies
 	 */
-	public static void createNegations(Hashtable<String, String> negHash, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static void createNegations(Map<String, String> negHash, Map<GrammaticalRelation, List<TypedDependency>> nodeHash)
 	{
-		Vector <TypedDependency> negVector = nodeHash.get(EnglishGrammaticalRelations.NEGATION_MODIFIER);
+		List<TypedDependency> negVector = nodeHash.get(EnglishGrammaticalRelations.NEGATION_MODIFIER);
 		if(negVector != null)
 		{
 			// run through each of these to see if I find any negation
@@ -146,7 +146,7 @@ public final class NaturalLanguageProcessingHelper {
 			int size = negVector.size();
 			for(;i < size; i++)
 			{
-				TypedDependency neg = negVector.elementAt(i);
+				TypedDependency neg = negVector.get(i);
 				String gov = neg.gov().toString();
 				negHash.put(gov, gov);
 			}
@@ -162,7 +162,8 @@ public final class NaturalLanguageProcessingHelper {
 	 * @param objR
 	 * @return
 	 */
-	public static IndexedWord findPrepObject(Vector<TypedDependency> dobjV, Vector<TypedDependency> subjV, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, GrammaticalRelation subjR, GrammaticalRelation objR) {
+	public static IndexedWord findPrepObject(List<TypedDependency> dobjV, List<TypedDependency> subjV, Map<GrammaticalRelation, List<TypedDependency>> nodeHash, 
+			GrammaticalRelation subjR, GrammaticalRelation objR) {
 		// based on the subjects and objects now find the predicates
 		dobjV = nodeHash.get(objR);
 		subjV = nodeHash.get(subjR);
@@ -190,15 +191,15 @@ public final class NaturalLanguageProcessingHelper {
 	 * @return
 	 */
 	// finds the expanded object
-	public static IndexedWord findCompObject(IndexedWord governor, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static IndexedWord findCompObject(IndexedWord governor, Map<GrammaticalRelation, List<TypedDependency>> nodeHash)
 	{
 		IndexedWord retNode = governor;
-		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
+		List<TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
 		if(compVector != null) {
 			int i = 0;
 			int size = compVector.size();
 			for(; i < size; i++) {
-				TypedDependency td = compVector.elementAt(i);
+				TypedDependency td = compVector.get(i);
 				if(td.dep() == retNode) {
 					retNode = td.gov();
 					break;
@@ -211,7 +212,7 @@ public final class NaturalLanguageProcessingHelper {
 			int i = 0;
 			int size = compVector.size();
 			for(; i < size; i++) {
-				TypedDependency td = compVector.elementAt(i);
+				TypedDependency td = compVector.get(i);
 				if(td.dep() == retNode) {
 					retNode = td.gov();
 					break;
@@ -228,16 +229,16 @@ public final class NaturalLanguageProcessingHelper {
 	 * @return
 	 */
 	// find expanded subject
-	public static IndexedWord findCompSubject(IndexedWord subj, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static IndexedWord findCompSubject(IndexedWord subj, Map<GrammaticalRelation, List<TypedDependency>> nodeHash)
 	{
 		IndexedWord retNode = subj;
-		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
+		List<TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
 		boolean subjFound = false;
 		if(compVector != null)
 		{
 			for(int cInd = 0;cInd < compVector.size()&& !subjFound;cInd++)
 			{
-				TypedDependency td = compVector.elementAt(cInd);
+				TypedDependency td = compVector.get(cInd);
 				if(td.dep() == retNode)
 				{
 					retNode = td.gov();
@@ -250,7 +251,7 @@ public final class NaturalLanguageProcessingHelper {
 			{
 				for(int cInd = 0;cInd < compVector.size()&& !subjFound;cInd++)
 				{
-					TypedDependency td = compVector.elementAt(cInd);
+					TypedDependency td = compVector.get(cInd);
 					if(td.dep() == retNode)
 					{
 						retNode = td.gov();
@@ -262,7 +263,7 @@ public final class NaturalLanguageProcessingHelper {
 				if(compVector != null){
 					for(int cInd = 0;cInd < compVector.size()&& !subjFound;cInd++)
 					{
-						TypedDependency td = compVector.elementAt(cInd);
+						TypedDependency td = compVector.get(cInd);
 						if(td.gov() == retNode)
 						{
 							retNode = td.dep();
@@ -286,28 +287,28 @@ public final class NaturalLanguageProcessingHelper {
 	 * @return
 	 */
 	//sometimes the DAMN complement is recursive
-	public static IndexedWord findComplementNoun(IndexedWord subj, IndexedWord dep2, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, GrammaticalRelation relation) {
+	public static IndexedWord findComplementNoun(IndexedWord subj, IndexedWord dep2, Map<GrammaticalRelation, List<TypedDependency>> nodeHash, GrammaticalRelation relation) {
 
 		IndexedWord retNode = subj;
 		// find all the complements
 		// find the one where the dep is the same as dep passed through
 		// now find a nsubj based on that new gov
 		// start with CComplement
-		Vector <TypedDependency> compVector = nodeHash.get(relation);
+		List<TypedDependency> compVector = nodeHash.get(relation);
 		if(compVector != null)
 		{
 			for(int cInd = 0;cInd < compVector.size();cInd++)
 			{
-				TypedDependency td = compVector.elementAt(cInd);
+				TypedDependency td = compVector.get(cInd);
 				IndexedWord dep = td.dep();
 				IndexedWord gov = td.gov();
 				if(dep == dep2)
 				{
 					// now find the nsubj
-					Vector <TypedDependency> subjVector = nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT);
+					List<TypedDependency> subjVector = nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT);
 					for(int subIndex = 0;subIndex < subjVector.size();subIndex++)
 					{
-						TypedDependency subTd = subjVector.elementAt(subIndex);
+						TypedDependency subTd = subjVector.get(subIndex);
 						if(subTd.gov() == gov)
 							retNode = subTd.dep();
 					}
@@ -406,7 +407,7 @@ public final class NaturalLanguageProcessingHelper {
 	 * @param nodeHash
 	 * @return
 	 */
-	public static String findPrepNoun(SemanticGraph graph, IndexedWord noun, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static String findPrepNoun(SemanticGraph graph, IndexedWord noun, Map<GrammaticalRelation, List<TypedDependency>> nodeHash)
 	{
 		// given the preperator
 		// complete the string
@@ -414,11 +415,11 @@ public final class NaturalLanguageProcessingHelper {
 
 		if(!nodeHash.containsKey(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER))
 			return retString;
-		Vector <TypedDependency> prepVector = nodeHash.get(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
+		List<TypedDependency> prepVector = nodeHash.get(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
 		//prepVector.addAll(nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER));
 		for(int prepIndex = 0;prepIndex < prepVector.size();prepIndex++)
 		{
-			TypedDependency tdl = prepVector.elementAt(prepIndex);
+			TypedDependency tdl = prepVector.get(prepIndex);
 			IndexedWord gov = tdl.gov();
 			IndexedWord dep = tdl.dep();
 			if(noun == gov )
@@ -441,7 +442,7 @@ public final class NaturalLanguageProcessingHelper {
 	 * @param nodeHash
 	 * @return
 	 */
-	public static String findPrepNounForPredicate(SemanticGraph graph, IndexedWord noun, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public static String findPrepNounForPredicate(SemanticGraph graph, IndexedWord noun, Map<GrammaticalRelation, List<TypedDependency>> nodeHash)
 	{
 		// given the preperator
 		// complete the string
@@ -449,10 +450,10 @@ public final class NaturalLanguageProcessingHelper {
 
 		if(!nodeHash.containsKey(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER))
 			return retString;
-		Vector <TypedDependency> prepVector = nodeHash.get(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
+		List<TypedDependency> prepVector = nodeHash.get(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
 		for(int prepIndex = 0;prepIndex < prepVector.size();prepIndex++)
 		{
-			TypedDependency tdl = prepVector.elementAt(prepIndex);
+			TypedDependency tdl = prepVector.get(prepIndex);
 			IndexedWord gov = tdl.gov();
 			IndexedWord dep = tdl.dep();
 			if(noun == gov )
