@@ -881,7 +881,11 @@ public class Project implements IProject {
 			boolean outOfDate = false;
 			if(lastPublishedDateInSecurity != null && this.lastPublishDate != null) {
 				outOfDate = lastPublishedDateInSecurity.getLocalDateTime().isAfter(this.lastPublishDate.getLocalDateTime());
-				ClusterUtil.reactorPushProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
+			}
+			// just pull to make sure we have the latest in case project was loaded
+			// but not published
+			if(outOfDate || this.lastPublishDate == null) {
+				ClusterUtil.reactorPullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
 			}
 			try {
 				if(this.republish || outOfDate || (enableForProject && !this.publish)) {
