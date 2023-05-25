@@ -44,13 +44,14 @@ import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.ling.TaggedWord;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.trees.EnglishGrammaticalRelations;
 import edu.stanford.nlp.trees.GrammaticalRelation;
-import edu.stanford.nlp.trees.TreeGraphNode;
 import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.util.CoreMap;
 import prerna.algorithm.nlp.NLPSingletons;
@@ -97,14 +98,14 @@ public class ProcessNLP {
 			List<TypedDependency> tdl = new ArrayList<TypedDependency>();
 			List<TaggedWord> taggedWords = new ArrayList<TaggedWord>();
 
-			boolean sentenceParsable = NaturalLanguageProcessingHelper.createDepList(lp, sentence, tdl, taggedWords); //create dependencies
-			if(sentenceParsable)
+			SemanticGraph graph = NaturalLanguageProcessingHelper.createDepList(lp, sentence, tdl, taggedWords); //create dependencies
+			if(graph != null)
 			{
 				Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
 				Hashtable<String, String> negHash = new Hashtable<String, String>();
 				// fill the hashtable between the grammatical part of speech to the words in the sentence
 				NaturalLanguageProcessingHelper.setTypeDependencyHash(tdl, nodeHash);
-				generateTriples(sentence, file.substring(file.lastIndexOf(File.separator)+1), taggedWords, negHash, nodeHash);
+				generateTriples(graph, sentence, file.substring(file.lastIndexOf(File.separator)+1), taggedWords, negHash, nodeHash);
 			}
 		}
 	}
@@ -154,27 +155,29 @@ public class ProcessNLP {
 		scan.close();
 	}
 	
-	public void generateTriples(String sentence, String documentName, List<TaggedWord> taggedWords, Hashtable<String, String> negHash, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	public void generateTriples(SemanticGraph graph, String sentence, String documentName, List<TaggedWord> taggedWords, Hashtable<String, String> negHash, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
 	{
 		NaturalLanguageProcessingHelper.createNegations(negHash, nodeHash);
 		// I ate the sandwich. -> I, ate, sandwich (“the” is included in expanded object.)
-		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.DIRECT_OBJECT);
+		findTriples(graph, sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.DIRECT_OBJECT);
 		// The man has been killed by the police. -> man, killed, police (Requires Collapsed Dependencies)
-		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.AGENT, EnglishGrammaticalRelations.NOMINAL_PASSIVE_SUBJECT);
-		// TODO: this no longer exists in jar version 3.5, need to replace controlling_subject
-		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.CONTROLLING_SUBJECT, EnglishGrammaticalRelations.DIRECT_OBJECT);
+		findTriples(graph, sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.AGENT, EnglishGrammaticalRelations.NOMINAL_PASSIVE_SUBJECT);
+		// in 3.5, need to update to controlling_subject
+		// in 4.5, need to update controlling_subject to semantic_dependent
+		findTriples(graph, sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.SEMANTIC_DEPENDENT, EnglishGrammaticalRelations.DIRECT_OBJECT);
 		// I sat on the chair. -> I, sat, on (without our code)
-		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_PASSIVE_SUBJECT, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
+		findTriples(graph, sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_PASSIVE_SUBJECT, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
 		// He is tall. -> He, tall, is (without our code)
-		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.COPULA);
+		findTriples(graph, sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.COPULA);
 		// She looks beautiful. -> She, looks, beautiful
-		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.ADJECTIVAL_COMPLEMENT);
+		findTriples(graph, sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.ADJECTIVAL_COMPLEMENT);
 		// I will sit on the chair. -> I, sit, on (without our code)
-		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
+		findTriples(graph, sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
 	}
 
 	/**
 	 * 
+	 * @param graph
 	 * @param sentence
 	 * @param documentName
 	 * @param taggedWords
@@ -184,6 +187,7 @@ public class ProcessNLP {
 	 * @param objR
 	 */
 	public void findTriples(
+			SemanticGraph graph,
 			String sentence,
 			String documentName,
 			List<TaggedWord> taggedWords, 
@@ -202,8 +206,8 @@ public class ProcessNLP {
 			int dobjVSize = dobjV.size();
 			for(; i < dobjVSize; i++)
 			{
-				TreeGraphNode obj = dobjV.get(i).dep();
-				TreeGraphNode pred = dobjV.get(i).gov();
+				IndexedWord obj = dobjV.get(i).dep();
+				IndexedWord pred = dobjV.get(i).gov();
 				String predicate = pred.value(); // Note: value doesn't return the number, while toString does
 				 
 				String preposition = null;
@@ -220,15 +224,15 @@ public class ProcessNLP {
 				int subjVSize = subjV.size();
 				for(; j < subjVSize; j++)
 				{
-					TreeGraphNode subj = subjV.get(j).dep();
-					TreeGraphNode dep2 = subjV.get(j).gov();
+					IndexedWord subj = subjV.get(j).dep();
+					IndexedWord dep2 = subjV.get(j).gov();
 					// Test to make sure both words have the same governor -> i.e. they are connected in the sentence
 					if((dep2.toString()).equalsIgnoreCase(pred.toString()))
 					{
 						// JJ = adjective
 						// If predicate gets stored as adjective (usually occurs for adjectivial), gets stored as predicate while verb gets stored as obj -> switch the two
-						if (subj.label().tag().contains("JJ")) {
-							TreeGraphNode tempNode = pred;
+						if (subj.backingLabel().tag().contains("JJ")) {
+							IndexedWord tempNode = pred;
 							pred = obj;
 							obj = tempNode;
 						}
@@ -243,18 +247,18 @@ public class ProcessNLP {
 						// find if complemented
 						// need to do this only if the subj is not a noun
 						// final subject
-						TreeGraphNode altPredicate = NaturalLanguageProcessingHelper.findCompObject(dep2, nodeHash);
-						if(!subj.label().tag().contains("NN") && ( nodeHash.containsKey(EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT) || nodeHash.containsKey(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT)))
+						IndexedWord altPredicate = NaturalLanguageProcessingHelper.findCompObject(dep2, nodeHash);
+						if(!subj.backingLabel().tag().contains("NN") && ( nodeHash.containsKey(EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT) || nodeHash.containsKey(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT)))
 						{
 							subj = NaturalLanguageProcessingHelper.findComplementNoun(subj, dep2, nodeHash, EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT);
-							if(!subj.label().tag().contains("NN")){
+							if(!subj.backingLabel().tag().contains("NN")){
 								subj = NaturalLanguageProcessingHelper.findCompSubject(dep2, nodeHash);
 							}
 						}		
 
-						String finalSubject = NaturalLanguageProcessingHelper.getFullNoun(subj);
-						String finalObject = NaturalLanguageProcessingHelper.getFullNoun(obj);
-						finalObject = finalObject + NaturalLanguageProcessingHelper.findPrepNounForPredicate(pred, nodeHash);
+						String finalSubject = NaturalLanguageProcessingHelper.getFullNoun(graph, subj);
+						String finalObject = NaturalLanguageProcessingHelper.getFullNoun(graph, obj);
+						finalObject = finalObject + NaturalLanguageProcessingHelper.findPrepNounForPredicate(graph, pred, nodeHash);
 
 						//FINDING EXTENSION OF PREDICATE****
 						// find the negators for the predicates next
