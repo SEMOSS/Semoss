@@ -96,7 +96,7 @@ public class SemossClassloader extends ClassLoader {
 		}
 
 		if (retClass == null) {
-			classLogger.info("App Specific Class " + name);
+			classLogger.info("Project Specific Class " + name);
 			retClass = getClass(name);
 		}
 		return retClass;

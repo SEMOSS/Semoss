@@ -136,7 +136,7 @@ public class PipelineTranslation extends LazyTranslation {
         		postProcess(e.toString().trim());
         	}
         	long end = System.currentTimeMillis();
-            System.out.println("Time to process = " + (end-start) + " for " + e.toString());
+            logger.debug("Time to process = " + (end-start) + " for " + e.toString());
         }
 	}
 	
