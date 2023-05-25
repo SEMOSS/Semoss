@@ -134,13 +134,14 @@ public class Project implements IProject {
 	private JarClassLoader mvnClassLoader = null;
 	// maven not set
 	private boolean mvnDefined = false;
+	private SemossDate lastReactorCompilationDate = null;
 	
 	// publish portals
 	private boolean hasPortal = false;
 	private String portalName = null;
-	private SemossDate lastPublishDate = null;
-	private boolean publish = false;
-	private boolean republish = false;
+	private SemossDate lastPortalPublishDate = null;
+	private boolean publishPortal = false;
+	private boolean republishPortal = false;
 
 	// project specific analytics thread
 	private transient Process tcpServerProcess;
@@ -704,11 +705,99 @@ public class Project implements IProject {
 //			
 //		return retReac;
 //	}
-
+	
 	/**
 	 * 
 	 */
-	public IReactor getReactor(String className, SemossClassloader customLoader) {	
+	public void compileReactors(SemossClassloader customLoader) {
+		File javaDirectory = new File(this.projectAssetFolder + DIR_SEPARATOR + "java");
+		
+		// if there is no java.. dont even bother with this
+		// no need to spend time on any of this
+		if( !javaDirectory.exists() ) {
+			return;
+		}
+		
+		File[] jars = javaDirectory.listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".jar");
+			}
+		});
+		File pomFile = new File(javaDirectory.getAbsolutePath() + DIR_SEPARATOR + "pom.xml");
+
+		boolean loadJars = jars != null && jars.length > 0;
+		boolean hasPom = pomFile.exists() && pomFile.isFile();
+		
+		if(loadJars) {
+			compileReactorFromJars(jars);
+		} else if(hasPom) {
+			compileReactorsFromPom(pomFile);
+		}
+		// keep the old processing
+		else {
+			compileReactorsFromJavaFiles(customLoader);
+		}
+		
+		this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
+	}
+	
+	private void compileReactorsFromJavaFiles(SemossClassloader customLoader) {
+		String classesFolder = this.projectAssetFolder + "/classes";
+		File classesDir = new File(classesFolder);
+		if(classesDir.exists() && classesDir.isDirectory()) {
+			try {
+				//FileUtils.cleanDirectory(classesDir);
+				//classesDir.mkdir();
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
+		SemossClassloader cl = projectClassLoader;
+		if(customLoader != null) {
+			cl = customLoader;
+		}
+		cl.setFolder(classesFolder);
+		
+		// have the classes been loaded already?
+		if(ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
+			projectClassLoader = new SemossClassloader(this.getClass().getClassLoader());
+			cl = projectClassLoader;
+			cl.uncommitEngine(this.projectId);
+
+			int status = Utility.compileJava(this.projectAssetFolder, getCP());
+			if(status == 0) {
+				ProjectCustomReactorCompilator.setCompiled(this.projectId);
+			} else {
+				ProjectCustomReactorCompilator.setFailed(this.projectId);
+			}
+		}
+		
+		if(!cl.isCommitted(this.projectId)) {
+			//compileJava(insightDirector.getParentFile().getAbsolutePath());
+			// delete the classes directory first
+			projectSpecificHash = Utility.loadReactors(this.projectAssetFolder, cl);
+			cl.commitEngine(this.projectId);
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	public IReactor getReactor(String className, SemossClassloader customLoader) {
+		SemossDate lastCompiledDateInSecurity = SecurityProjectUtils.getReactorCompilationTimestamp(this.projectId);
+		boolean outOfDate = false;
+		if(lastCompiledDateInSecurity != null && this.lastReactorCompilationDate != null) {
+			outOfDate = lastCompiledDateInSecurity.getLocalDateTime().isAfter(this.lastReactorCompilationDate.getLocalDateTime());
+		}
+		// just pull to make sure we have the latest in case project was loaded
+		// but not published
+		if(outOfDate || this.lastReactorCompilationDate == null) {
+			ClusterUtil.reactorPullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
+			this.clearClassCache();
+		}
+		
 		IReactor retReac = null;
 		File javaDirectory = new File(this.projectAssetFolder + DIR_SEPARATOR + "java");
 		
@@ -734,46 +823,9 @@ public class Project implements IProject {
 		} else if(hasPom) {
 			retReac = getReactorsFromPom(className, pomFile);
 		}
-		else // keep the old processing
-		{
-			String classesFolder = this.projectAssetFolder + "/classes";
-			File classesDir = new File(classesFolder);
-			if(classesDir.exists() && classesDir.isDirectory()) {
-				try {
-					//FileUtils.cleanDirectory(classesDir);
-					//classesDir.mkdir();
-				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			
-			SemossClassloader cl = projectClassLoader;
-			if(customLoader != null) {
-				cl = customLoader;
-			}
-			cl.setFolder(classesFolder);
-			
-			// have the classes been loaded already?
-			if(ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
-				projectClassLoader = new SemossClassloader(this.getClass().getClassLoader());
-				cl = projectClassLoader;
-				cl.uncommitEngine(this.projectId);
-
-				int status = Utility.compileJava(this.projectAssetFolder, getCP());
-				if(status == 0) {
-					ProjectCustomReactorCompilator.setCompiled(this.projectId);
-				} else {
-					ProjectCustomReactorCompilator.setFailed(this.projectId);
-				}
-			}
-			
-			if(!cl.isCommitted(this.projectId)) {
-				//compileJava(insightDirector.getParentFile().getAbsolutePath());
-				// delete the classes directory first
-				projectSpecificHash = Utility.loadReactors(this.projectAssetFolder, cl);
-				cl.commitEngine(this.projectId);
-			}
-			
+		// keep the old processing
+		else {
+			compileReactorsFromJavaFiles(customLoader);
 			try {
 				if(projectSpecificHash.containsKey(className.toUpperCase())) {
 					Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
@@ -785,6 +837,8 @@ public class Project implements IProject {
 				logger.error(Constants.STACKTRACE, e);
 			}
 		}
+
+		this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
 		
 		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
 				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
@@ -879,16 +933,16 @@ public class Project implements IProject {
 			boolean enableForProject = (prop != null && Boolean.parseBoolean(prop.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
 			SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
 			boolean outOfDate = false;
-			if(lastPublishedDateInSecurity != null && this.lastPublishDate != null) {
-				outOfDate = lastPublishedDateInSecurity.getLocalDateTime().isAfter(this.lastPublishDate.getLocalDateTime());
+			if(lastPublishedDateInSecurity != null && this.lastPortalPublishDate != null) {
+				outOfDate = lastPublishedDateInSecurity.getLocalDateTime().isAfter(this.lastPortalPublishDate.getLocalDateTime());
 			}
 			// just pull to make sure we have the latest in case project was loaded
 			// but not published
-			if(outOfDate || this.lastPublishDate == null) {
+			if(outOfDate || this.lastPortalPublishDate == null) {
 				ClusterUtil.reactorPullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
 			}
 			try {
-				if(this.republish || outOfDate || (enableForProject && !this.publish)) {
+				if(this.republishPortal || outOfDate || (enableForProject && !this.publishPortal)) {
 					Path sourcePath = Paths.get(this.projectPortalFolder);
 					Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
 		
@@ -921,28 +975,48 @@ public class Project implements IProject {
 						Files.createSymbolicLink(targetPath, sourcePath);
 					}
 					targetDirectory.deleteOnExit();
-					this.publish = true;
-					this.republish = false;
-					this.lastPublishDate = new SemossDate(LocalDateTime.now());
+					this.publishPortal = true;
+					this.republishPortal = false;
+					this.lastPortalPublishDate = new SemossDate(LocalDateTime.now());
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				this.publish = false;
-				this.lastPublishDate = null;
+				this.publishPortal = false;
+				this.lastPortalPublishDate = null;
 			}
 		}
 		
-		return this.publish;
+		return this.publishPortal;
 	}
 	
 	@Override
 	public void setRepublish(boolean republish) {
-		this.republish = republish;
+		this.republishPortal = republish;
 	}
 	
 	@Override
 	public SemossDate getLastPublishDate() {
-		return this.lastPublishDate;
+		return this.lastPortalPublishDate;
+	}
+	
+	/**
+	 * 
+	 * @param pomFile
+	 */
+	private void compileReactorsFromPom(File pomFile) {
+		if(mvnClassLoader == null || evalMvnReload()) {
+			mvnClassLoader = null;
+			makeMvnClassloader(pomFile);
+			if(!mvnDefined) {
+				// no point none of the stuff is set anyways
+				return;
+			}
+			// try to load it directly from assets
+			String targetFolder = getTargetFolder(pomFile);
+			targetFolder = targetFolder + DIR_SEPARATOR + "classes"; // target folder is relative to java folder for the main assets
+			projectSpecificHash = Utility.loadReactorsFromPom(pomFile.getParent(), mvnClassLoader, targetFolder);
+			ProjectCustomReactorCompilator.setCompiled(this.projectId);
+		}
 	}
 	
 	/**
@@ -952,25 +1026,8 @@ public class Project implements IProject {
 	 * @return
 	 */
 	private IReactor getReactorsFromPom(String className, File pomFile) {
+		compileReactorsFromPom(pomFile);
 		IReactor retReac = null;
-		
-		if(mvnClassLoader == null || evalMvnReload())
-		{
-			mvnClassLoader = null;
-			makeMvnClassloader(pomFile);
-			if(!mvnDefined) {
-				// no point none of the stuff is set anyways
-				return null;
-			}
-			// try to load it directly from assets
-			String targetFolder = getTargetFolder(pomFile);
-			targetFolder = targetFolder + DIR_SEPARATOR + "classes"; // target folder is relative to java folder for the main assets
-			projectSpecificHash = Utility.loadReactorsFromPom(pomFile.getParent(), mvnClassLoader, targetFolder);
-			ProjectCustomReactorCompilator.setCompiled(this.projectId);
-		}
-
-		// now that you have the reactor
-		// create the reactor
 		try
 		{
 			if(projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) 
@@ -989,13 +1046,9 @@ public class Project implements IProject {
 	
 	/**
 	 * 
-	 * @param className
 	 * @param jars
-	 * @return
 	 */
-	private IReactor getReactorFromJars(String className, File[] jars) {	
-		IReactor retReac = null;
-
+	private void compileReactorFromJars(File[] jars) {
 		// have the classes been loaded already?
 		if(ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
 			projectClassLoader = new SemossClassloader(this.getClass().getClassLoader());
@@ -1011,7 +1064,18 @@ public class Project implements IProject {
 			projectSpecificHash = Utility.loadReactorsFromJars(urls);
 			ProjectCustomReactorCompilator.setCompiled(this.projectId);
 		}
+	}
+	
+	/**
+	 * 
+	 * @param className
+	 * @param jars
+	 * @return
+	 */
+	private IReactor getReactorFromJars(String className, File[] jars) {	
+		compileReactorFromJars(jars);
 		
+		IReactor retReac = null;
 		try {
 			if(projectSpecificHash.containsKey(className.toUpperCase())) {
 				Class<IReactor> thisReactorClass = projectSpecificHash.get(className.toUpperCase());

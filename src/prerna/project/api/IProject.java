@@ -120,7 +120,12 @@ public interface IProject {
 	void deleteProject();
 	
 	/**
-	 * Get engine specific reactor
+	 * Compile the project specific reactors
+	 */
+	void compileReactors(SemossClassloader loader);
+	
+	/**
+	 * Get project specific reactor
 	 * @param reactorName
 	 * @param loader
 	 * @return
