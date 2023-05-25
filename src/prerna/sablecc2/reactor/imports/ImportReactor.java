@@ -76,8 +76,8 @@ public class ImportReactor extends AbstractReactor {
 				&& frame.getFrameType() == DataFrameTypeEnum.NATIVE) {
 			NativeFrame queryFrame = (NativeFrame) qs.getFrame();
 			// make sure it is RDBMSNativeEngine
-			IEngine app = queryFrame.getQueryStruct().retrieveQueryStructEngine();
-			if(app instanceof IRDBMSEngine) {
+			IEngine engine = queryFrame.getQueryStruct().retrieveQueryStructEngine();
+			if(engine instanceof IRDBMSEngine) {
 				NativeFrame newFrame = SQLQueryUtils.subQueryNativeFrame(queryFrame.prepQsForExecution(qs));
 				newFrame.setName(frame.getName());
 				newFrame.setLogger(logger);
@@ -183,6 +183,9 @@ public class ImportReactor extends AbstractReactor {
 			// always clean up the iterator
 			if(it != null) {
 				it.cleanUp();
+			}
+			if(task != null) {
+				task.cleanUp();
 			}
 		}
 	}
