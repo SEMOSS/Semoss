@@ -171,7 +171,7 @@ public class AssetUtility {
 	
 	public static String getProjectAssetFolder(String projectName, String projectId) {
 		String projectVersionBaseFolder = getProjectVersionFolder(projectName, projectId);
-		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + "assets";
+		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + Constants.ASSETS_FOLDER;
 
 		// if this folder does not exist create it
 		File file = new File(projectFolder);
@@ -222,7 +222,7 @@ public class AssetUtility {
 			// user space or asset app
 			// asset app - no relative space ?
 			relativePath = "";
-			//relativePath = "assets";
+			//relativePath = Constants.ASSETS_FOLDER;
 		}	
 		return relativePath;
 	}
@@ -313,7 +313,7 @@ public class AssetUtility {
 	 */
 	public static String getUserAssetAndWorkspaceAssetFolder(String projectName, String projectId) {
 		String projectVersionBaseFolder = getUserAssetAndWorkspaceVersionFolder(projectName, projectId);
-		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + "assets";
+		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + Constants.ASSETS_FOLDER;
 
 		// if this folder does not exist create it
 		File file = new File(projectFolder);
