@@ -4092,7 +4092,6 @@ public class Utility {
 				for(int classIndex = 0;classIndex < classes.size();classIndex++) {
 					ClassInfo classObject = classes.get(classIndex);
 					String className = classObject.getName();
-					System.out.println(className);
 
 					if(!classObject.isInterface() 
 							&& !classObject.isAbstract() 
