@@ -168,10 +168,7 @@ public class SecurityOwlCreator {
 			}
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PROJECT");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CATALOGNAME/PROJECT")) {
-				return true;
-			}
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PORTALPUBLISHED/PROJECT")) {
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/REACTORSCOMPILED/PROJECT")) {
 				return true;
 			}
 			
@@ -282,7 +279,10 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECT", "PORTALPUBLISHED", "TIMESTAMP");
 		owler.addProp("PROJECT", "PORTALPUBLISHEDUSER", "VARCHAR(255)");
 		owler.addProp("PROJECT", "PORTALPUBLISHEDTYPE", "VARCHAR(255)");
-
+		owler.addProp("PROJECT", "REACTORSCOMPILED", "TIMESTAMP");
+		owler.addProp("PROJECT", "REACTORSCOMPILEDUSER", "VARCHAR(255)");
+		owler.addProp("PROJECT", "REACTORSCOMPILEDTYPE", "VARCHAR(255)");
+		
 		//PROJECTPERMISSION
 		owler.addConcept("PROJECTPERMISSION", null, null);
 		owler.addProp("PROJECTPERMISSION", "PROJECTID", "VARCHAR(255)");
@@ -290,7 +290,6 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "PERMISSION", "INT");
 		owler.addProp("PROJECTPERMISSION", "VISIBILITY", "BOOLEAN");
 		owler.addProp("PROJECTPERMISSION", "FAVORITE", "BOOLEAN");
-
 		
 		//PROJECTMETA
 		owler.addConcept("PROJECTMETA", null, null);
