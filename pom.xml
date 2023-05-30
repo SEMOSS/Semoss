@@ -232,16 +232,6 @@
 			</snapshots>
 		</repository>
 		<repository>
-			<id>boilerpipe</id>
-			<url>http://boilerpipe.googlecode.com/svn/repo/</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
 			<id>3rdPartyJARs</id>
 			<name>Maven repository</name>
 			<url>https://maven.semoss.org/repository/3rdPartyJARs</url>
