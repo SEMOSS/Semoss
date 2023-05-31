@@ -35,9 +35,11 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaRserveTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaUserRserveTranslator;
@@ -238,6 +240,18 @@ public class RFrameBuilder {
 			// update the headers to be cleaned
 			if(it instanceof IRawSelectWrapper) {
 				String[] headers = ((IRawSelectWrapper) it).getHeaders();
+				String[] cleanHeaders = HeadersException.getInstance().getCleanHeaders(headers);
+				String modHeaders = RSyntaxHelper.alterColumnNames(tableName, headers, cleanHeaders);
+				evalR(modHeaders);
+			} else if(it instanceof BasicIteratorTask) {
+				List<Map<String, Object>> taskHeaders = ((BasicIteratorTask) it).getHeaderInfo();
+				int numHeaders = taskHeaders.size();
+				String[] headers = new String[numHeaders];
+				for(int i = 0; i < numHeaders; i++) {
+					Map<String, Object> headerInfo = taskHeaders.get(i);
+					String alias = (String) headerInfo.get("alias");
+					headers[i] = alias;
+				}
 				String[] cleanHeaders = HeadersException.getInstance().getCleanHeaders(headers);
 				String modHeaders = RSyntaxHelper.alterColumnNames(tableName, headers, cleanHeaders);
 				evalR(modHeaders);
