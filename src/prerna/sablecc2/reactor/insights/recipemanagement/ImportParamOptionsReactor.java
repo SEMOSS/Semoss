@@ -132,8 +132,10 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			// we assume the latest level which may not be true
 			// but let us see
 			String query = qs.getCustomFrom();
-			if(query == null && qs instanceof HardSelectQueryStruct)
+			if(query == null && qs instanceof HardSelectQueryStruct) {
 				query = ((HardSelectQueryStruct)qs).getQuery();
+			}
+			
 			SqlParser2 sqp2 = new SqlParser2();
 			sqp2.parameterize = false;
 			try {
