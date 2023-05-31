@@ -39,6 +39,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
@@ -1362,6 +1363,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		//grab the order by and get the corresponding display name for that order by column
 		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
 		List<StringBuilder> validOrderBys = new ArrayList<>();
+
 		for(IQuerySort orderBy : orderByList) {
 			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
 				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
@@ -1378,7 +1380,6 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 
 				StringBuilder thisOrderBy = new StringBuilder();
-
 
 				// might want to order by a derived column being returned
 				if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
@@ -1433,6 +1434,82 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					thisOrderBy.append(" DESC ");
 				}
 				validOrderBys.add(thisOrderBy);
+				
+			} else if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
+				QueryCustomOrderBy customSort = (QueryCustomOrderBy) orderBy;
+				List<Object> customOrder = customSort.getCustomOrder();
+				if(customOrder == null || customOrder.isEmpty()) {
+					continue;
+				}
+				
+				QueryColumnSelector orderBySelector = customSort.getColumnToSort();
+				String tableConceptualName = orderBySelector.getTable();
+				String columnConceptualName = orderBySelector.getColumn();
+
+				boolean origPrim = false;
+				if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+					origPrim = true;
+					columnConceptualName = getPrimKey4Table(tableConceptualName);
+				} else if(this.customFromAliasName==null || this.customFromAliasName.isEmpty()){
+					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+				}
+
+				String oTableName = null;
+				String oColumnName = null;
+				// might want to order by a derived column being returned
+				if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
+					// either instantiate the string builder or add a comma for multi sort
+					if(queryUtil.isSelectorKeyword(tableConceptualName)) {
+						oTableName = queryUtil.getEscapeKeyword(tableConceptualName);
+					} else {
+						oTableName = queryUtil.escapeReferencedAlias(tableConceptualName);
+					}
+				}
+				// account for custom from + sort is a valid column being returned
+				else if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
+					String orderByTable = this.customFromAliasName;
+					String orderByColumn = queryUtil.escapeReferencedAlias(columnConceptualName);
+
+					if(this.retTableToCols.get(orderByTable).contains(orderByColumn)) {
+						oTableName = orderByTable;
+						oColumnName = orderByColumn;
+					} else {
+						continue;
+					}
+				}
+				// account for sort being on table/column being returned
+				else if(this.retTableToCols.containsKey(tableConceptualName) && 
+						this.retTableToCols.get(tableConceptualName).contains(columnConceptualName)) 
+				{
+					// these are the physical names
+					String orderByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
+					String orderByColumn = columnConceptualName;
+
+//					if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+//						orderByColumn = getPrimKey4Table(tableConceptualName);
+//					} else {
+//						orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+//					}
+
+					if(queryUtil.isSelectorKeyword(orderByTable)) {
+						orderByTable = queryUtil.getEscapeKeyword(orderByTable);
+					}
+					if(queryUtil.isSelectorKeyword(orderByColumn)) {
+						orderByColumn = queryUtil.getEscapeKeyword(orderByColumn);
+					}
+					oTableName = orderByTable;
+					oColumnName = orderByColumn;
+				}
+				// well, this is not a valid order by to add
+				else {
+					continue;
+				}
+				
+				String identifier = oTableName;
+				if(oColumnName != null) {
+					identifier += "." + oColumnName;
+				}
+				validOrderBys.add(createCustomOrderBy(identifier, customOrder));
 			}
 		}
 
@@ -1446,6 +1523,31 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			query.append(validOrderBys.get(i).toString());
 		}
 		return query;
+	}
+	
+	/**
+	 * Append a custom order by via a CASE WHEN statement
+	 * @param identifier
+	 * @param values
+	 * @return
+	 */
+	private StringBuilder createCustomOrderBy(String identifier, List<Object> values) {
+		int counter = 0;
+		StringBuilder builder = new StringBuilder("CASE");
+		for(Object val : values) {
+			builder.append(" WHEN ").append(identifier);
+			if(val == null) {
+				builder.append(" IS NULL");
+			} else if(val instanceof Number) {
+				builder.append("=").append(val);
+			} else {
+				builder.append("=").append("'").append(AbstractSqlQueryUtil.escapeForSQLStatement(val+"")).append("'");
+			}
+			
+			builder.append(" THEN ").append(counter++);
+		}
+		builder.append(" END ASC");
+		return builder;
 	}
 	
 	//////////////////////////////////////end append order by////////////////////////////////////////////

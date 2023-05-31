@@ -41,12 +41,9 @@ public class SetMultiTypePanelSortReactor extends AbstractPanelSortReactor {
 		for(int sortIdx = 0; sortIdx < numSorts; sortIdx++) {
 			Map<String, Object> sortMap = sortConfig.get(sortIdx);
 			
-			IQuerySort thisSort = null;
 			// first get the type
 			String type = sortMap.get("type").toString().toLowerCase();
 			if(type.equals("column")) {
-				thisSort = new QueryColumnOrderBySelector();
-				
 				// this has 2 inputs
 				// columns and sorts 
 				
@@ -79,8 +76,6 @@ public class SetMultiTypePanelSortReactor extends AbstractPanelSortReactor {
 				}
 				
 			} else if(type.equals("custom")) {
-				thisSort = new QueryCustomOrderBy();
-				
 				// this has 2 inputs
 				// column and values
 				
