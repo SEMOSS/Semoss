@@ -1172,9 +1172,9 @@ public class InsightUtility {
 			LAYER_LOOP : for(String layerId : layers) {
 				SelectQueryStruct qs = lQs.get(layerId);
 				// reset the panel specific objects so we can pick up the latest state
-				qs.setPanelList(new Vector<InsightPanel>());
-				qs.setPanelIdList(new Vector<String>());
-				qs.setPanelOrderBy(new Vector<IQuerySort>());
+				qs.setPanelList(new ArrayList<InsightPanel>());
+				qs.setPanelIdList(new ArrayList<String>());
+				qs.setPanelOrderBy(new ArrayList<IQuerySort>());
 				// add the panel
 				qs.addPanel(panel);
 				qs.resetPanelState();

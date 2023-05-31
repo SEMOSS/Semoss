@@ -1191,7 +1191,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					.append(RSyntaxHelper.createRColVec(customSort.getCustomOrder(), SemossDataType.STRING, null)).append(";");
 				
 				builderOrdering.append("match(").append(tempTableName).append("$").append(orderByName)
-					.append(" , ").append(randomSortMatchVar).append(")");;
+					.append(" , ").append(randomSortMatchVar).append(")");
 			}
 		}
 		
