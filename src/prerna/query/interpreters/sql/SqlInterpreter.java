@@ -99,6 +99,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected SqlJoinStructList joinStructList = new SqlJoinStructList();
 	protected List<String> subQsAliasNames = new ArrayList<>();
 	
+	// if we have distinct
+	// then custom order bys must be added in
+	protected List<StringBuilder> orderBys = new ArrayList<>();
+	protected List<StringBuilder> orderBySelectors = new ArrayList<>();
+	
 	public SqlInterpreter() {
 		
 	}
@@ -143,7 +148,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		addSelectors();
 		addFilters();
 		addHavingFilters();
-
+		addOrderBys();
+		addOrderBySelector();
+		
 		StringBuilder query = new StringBuilder("SELECT ");
 		String distinct = "";
 		if(((SelectQueryStruct) this.qs).isDistinct()) {
@@ -158,7 +165,6 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		} else {
 			// logic for adding the selectors + the from statement + the joins
 			query.append(distinct).append(selectors);
-			
 			// if there is a join
 			// can only have one table in from in general sql case 
 			// thus, the order matters 
@@ -244,6 +250,21 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		selectorList.add(newSelector);
 		selectorAliases.add(alias);
+	}
+	
+	protected void addOrderBySelector() {
+		int counter = 0;
+		for(StringBuilder orderBySelector : this.orderBySelectors) {
+			String alias = "o"+counter++;
+			String newSelector = "("+orderBySelector+") AS " + "\""+alias+"\"";
+			if(selectors.length() == 0) {
+				selectors = newSelector;
+			} else {
+				selectors += " , " + newSelector;
+			}
+			selectorList.add(newSelector);
+			selectorAliases.add(alias);
+		}
 	}
 	
 	/**
@@ -1359,10 +1380,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	//////////////////////////////////////append order by  ////////////////////////////////////////////
 	
-	public StringBuilder appendOrderBy(StringBuilder query) {
+	public void addOrderBys() {
 		//grab the order by and get the corresponding display name for that order by column
 		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
-		List<StringBuilder> validOrderBys = new ArrayList<>();
 
 		for(IQuerySort orderBy : orderByList) {
 			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
@@ -1409,11 +1429,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					String orderByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
 					String orderByColumn = columnConceptualName;
 
-//					if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-//						orderByColumn = getPrimKey4Table(tableConceptualName);
-//					} else {
-//						orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-//					}
+//							if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+//								orderByColumn = getPrimKey4Table(tableConceptualName);
+//							} else {
+//								orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+//							}
 
 					if(queryUtil.isSelectorKeyword(orderByTable)) {
 						orderByTable = queryUtil.getEscapeKeyword(orderByTable);
@@ -1433,7 +1453,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				} else {
 					thisOrderBy.append(" DESC ");
 				}
-				validOrderBys.add(thisOrderBy);
+				this.orderBys.add(thisOrderBy);
 				
 			} else if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
 				QueryCustomOrderBy customSort = (QueryCustomOrderBy) orderBy;
@@ -1485,11 +1505,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					String orderByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
 					String orderByColumn = columnConceptualName;
 
-//					if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-//						orderByColumn = getPrimKey4Table(tableConceptualName);
-//					} else {
-//						orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-//					}
+//							if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+//								orderByColumn = getPrimKey4Table(tableConceptualName);
+//							} else {
+//								orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+//							}
 
 					if(queryUtil.isSelectorKeyword(orderByTable)) {
 						orderByTable = queryUtil.getEscapeKeyword(orderByTable);
@@ -1509,18 +1529,25 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				if(oColumnName != null) {
 					identifier += "." + oColumnName;
 				}
-				validOrderBys.add(createCustomOrderBy(identifier, customOrder));
+				
+				StringBuilder thisSort = createCustomOrderBy(identifier, customOrder);
+				this.orderBys.add(thisSort);
+				if(((SelectQueryStruct) this.qs).isDistinct()) {
+					this.orderBySelectors.add(thisSort);
+				}
 			}
 		}
-
-		int size = validOrderBys.size();
+	}
+	
+	public StringBuilder appendOrderBy(StringBuilder query) {
+		int size = this.orderBys.size();
 		for(int i = 0; i < size; i++) {
 			if(i == 0) {
 				query.append(" ORDER BY ");
 			} else {
 				query.append(", ");
 			}
-			query.append(validOrderBys.get(i).toString());
+			query.append(this.orderBys.get(i).toString());
 		}
 		return query;
 	}
@@ -1546,7 +1573,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			
 			builder.append(" THEN ").append(counter++);
 		}
-		builder.append(" END ASC");
+		builder.append(" END");
 		return builder;
 	}
 	
