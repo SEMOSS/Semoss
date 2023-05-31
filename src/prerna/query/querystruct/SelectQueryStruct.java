@@ -1,5 +1,6 @@
 package prerna.query.querystruct;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -88,7 +89,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	}
 	
 	public List<IQuerySort> getCombinedOrderBy() {
-		List<IQuerySort> combinedSorts = new Vector<>();
+		List<IQuerySort> combinedSorts = new ArrayList<>();
 		combinedSorts.addAll(this.orderByOperations);
 		combinedSorts.addAll(this.panelOrderByOperations);
 		return combinedSorts;
@@ -106,7 +107,10 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	@Override
 	public void addPanel(InsightPanel panel) {
 		super.addPanel(panel);
-		this.panelOrderByOperations.addAll(panel.getPanelOrderBys());
+		if(!this.panelList.contains(panel)) {
+			// also add in the current panel state
+			this.panelOrderByOperations.addAll(panel.getPanelOrderBys());
+		}
 	}
 	
 	@Override

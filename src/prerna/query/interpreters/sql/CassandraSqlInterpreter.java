@@ -53,6 +53,8 @@ public class CassandraSqlInterpreter extends SqlInterpreter {
 		addSelectors();
 		addFilters();
 		addHavingFilters();
+		addOrderBys();
+		addOrderBySelector();
 		
 		//other wise us the standard logic
 		if(this.qs.getBigDataEngine()){

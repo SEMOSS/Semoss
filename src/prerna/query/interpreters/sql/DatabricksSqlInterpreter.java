@@ -43,6 +43,22 @@ public class DatabricksSqlInterpreter extends SqlInterpreter {
 		
 		this.qsSelectorToAlias.put(selector.getQueryStructName(), alias);
 	}
+	
+	@Override
+	protected void addOrderBySelector() {
+		int counter = 0;
+		for(StringBuilder orderBySelector : this.orderBySelectors) {
+			String alias = "o"+counter++;
+			String newSelector = "("+orderBySelector+") AS " + "\""+alias+"\"";
+			if(selectors.length() == 0) {
+				selectors = newSelector;
+			} else {
+				selectors += " , " + newSelector;
+			}
+			selectorList.add(newSelector);
+			selectorAliases.add(alias);
+		}
+	}
 
 	@Override
 	public StringBuilder appendOrderBy(StringBuilder query) {

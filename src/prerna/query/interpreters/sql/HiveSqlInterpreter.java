@@ -51,7 +51,9 @@ public class HiveSqlInterpreter extends SqlInterpreter {
 		addSelectors();
 		addFilters();
 		addHavingFilters();
-
+		addOrderBys();
+		addOrderBySelector();
+		
 		StringBuilder query = new StringBuilder("SELECT ");
 		String distinct = "";
 		if(((SelectQueryStruct) this.qs).isDistinct()) {
@@ -171,5 +173,21 @@ public class HiveSqlInterpreter extends SqlInterpreter {
 		}
 		selectorList.add(newSelector);
 		selectorAliases.add(alias);
+	}
+	
+	@Override
+	protected void addOrderBySelector() {
+		int counter = 0;
+		for(StringBuilder orderBySelector : this.orderBySelectors) {
+			String alias = "o"+counter++;
+			String newSelector = "("+orderBySelector+") AS " + "\""+alias+"\"";
+			if(selectors.length() == 0) {
+				selectors = newSelector;
+			} else {
+				selectors += " , " + newSelector;
+			}
+			selectorList.add(newSelector);
+			selectorAliases.add(alias);
+		}
 	}
 }
