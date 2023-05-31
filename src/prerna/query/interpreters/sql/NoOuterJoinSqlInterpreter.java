@@ -106,6 +106,8 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		addSelectors();
 		addFilters();
 		addHavingFilters();
+		addOrderBys();
+		addOrderBySelector();
 		
 		String derivedTableName = "";
 		String jQueryStr = "";
