@@ -707,8 +707,11 @@ public class PyTranslator {
 
 	protected String convertArrayToString(String... script) {
 		StringBuilder retString = new StringBuilder("");
-		for (int lineIndex = 0; lineIndex < script.length; lineIndex++)
-			retString.append(script[lineIndex]).append("\n");
+		for (int lineIndex = 0; lineIndex < script.length; lineIndex++) {
+			if(script[lineIndex] != null) {
+				retString.append(script[lineIndex]).append("\n");
+			}
+		}
 		return retString.toString();
 	}
 
