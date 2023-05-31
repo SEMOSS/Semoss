@@ -11,7 +11,6 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.crypto.Cipher;
@@ -40,6 +39,7 @@ import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.ParquetQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
@@ -223,12 +223,31 @@ public class PandasFrame extends AbstractTableDataFrame {
 				loadS = loadS + "[:" + rowLimits + "]";
 			}
 			
+			String modHeaders = null;
+			// update the headers to be cleaned
+			if(it instanceof IRawSelectWrapper) {
+				String[] headers = ((IRawSelectWrapper) it).getHeaders();
+				String[] cleanHeaders = HeadersException.getInstance().getCleanHeaders(headers);
+				modHeaders = PandasSyntaxHelper.alterColumnNames(tableName, headers, cleanHeaders);
+			} else if(it instanceof BasicIteratorTask) {
+				List<Map<String, Object>> taskHeaders = ((BasicIteratorTask) it).getHeaderInfo();
+				int numHeaders = taskHeaders.size();
+				String[] headers = new String[numHeaders];
+				for(int i = 0; i < numHeaders; i++) {
+					Map<String, Object> headerInfo = taskHeaders.get(i);
+					String alias = (String) headerInfo.get("alias");
+					headers[i] = alias;
+				}
+				String[] cleanHeaders = HeadersException.getInstance().getCleanHeaders(headers);
+				modHeaders = PandasSyntaxHelper.alterColumnNames(tableName, headers, cleanHeaders);
+			}
+			
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(tableName), tableName);
 			// execute the script
 			//pyt.runScript(importS, loadS);
 			//pyt.runScript(makeWrapper);
-
-			pyt.runEmptyPy(importPandasS, importNumpyS, loadS, makeWrapper);
+			
+			pyt.runEmptyPy(importPandasS, importNumpyS, loadS, modHeaders, makeWrapper);
 			// delete the generated file
 			
 			// dont delete.. we probably need to test the file py
