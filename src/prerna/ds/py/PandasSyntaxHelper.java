@@ -2,6 +2,7 @@ package prerna.ds.py;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -489,13 +490,22 @@ public class PandasSyntaxHelper {
 		return tableName + ".rename(columns={'" + oldHeader + "':'" + newHeader + "'}, inplace=True)";
 	}
 	
-	public static String alterColumnName(String tableName, Map<String, String>  oldNewHeaders) {
+	public static String alterColumnNames(String tableName, String[] oldHeaders, String[] newHeaders) {
+		// create loop to generate key value pair
+		Map<String, String> headerMapping = new HashMap<>();
+		for(int i = 0; i < oldHeaders.length; i++) {
+			headerMapping.put(oldHeaders[i], newHeaders[i]);
+		}
+		return alterColumnNames(tableName, headerMapping);
+	}
+	
+	public static String alterColumnNames(String tableName, Map<String, String>  oldNewHeaders) {
 		// create loop to generate key value pair
 		int numRenames = oldNewHeaders.size();
 		StringBuilder keyValues = new StringBuilder();
 		int i = 1;
-		for (String newHeader : oldNewHeaders.keySet()) {
-			String oldHeader = oldNewHeaders.get(newHeader);
+		for (String oldHeader : oldNewHeaders.keySet()) {
+			String newHeader = oldNewHeaders.get(oldHeader);
 			if (i == numRenames) {
 				keyValues.append("'" + oldHeader + "':'" + newHeader + "'");
 				break;
