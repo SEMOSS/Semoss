@@ -68,7 +68,9 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 		addSelectors();
 		addFilters();
 		addHavingFilters();
-
+		addOrderBys();
+		addOrderBySelector();
+		
 		//if there it is a big data engine, dont put distinct onto qs's with task options
 		//other wise us the standard logic
 		if(this.qs.getBigDataEngine()){
