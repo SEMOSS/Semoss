@@ -84,7 +84,7 @@ public class InsertReactor extends AbstractReactor {
 				
 				// If security is enabled, then check that the user can edit the engine
 				if (AbstractSecurityUtils.securityEnabled() && !SecurityDatabaseUtils.userCanEditDatabase(user, engine.getEngineId())) {
-					throw new IllegalArgumentException("User does not have permission to insert query for this app");
+					throw new IllegalArgumentException("User does not have permission to insert query for this database");
 				}
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();
