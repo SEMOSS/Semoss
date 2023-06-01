@@ -2963,7 +2963,9 @@ public class MasterDatabaseUtility {
         } catch(Exception e) {
         	logger.error(Constants.STACKTRACE, e);
         	try {
-				conn.rollback(savepoint);
+        		if(savepoint != null) {
+        			conn.rollback(savepoint);
+        		}
 			} catch (SQLException e1) {
 	        	logger.error(Constants.STACKTRACE, e);
 			}
