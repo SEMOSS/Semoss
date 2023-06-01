@@ -2953,7 +2953,9 @@ public class MasterDatabaseUtility {
         Savepoint savepoint = null;
         try {
         	conn = engine.getConnection();
-        	savepoint = conn.setSavepoint("mm_position_" + Utility.getRandomString(5));
+        	if(!conn.getAutoCommit()) {
+        		savepoint = conn.setSavepoint("mm_position_" + Utility.getRandomString(5));
+        	}
         	saveMetamodelPositions(databaseId, positions, conn);
         	if(!conn.getAutoCommit()) {
         		conn.commit();
