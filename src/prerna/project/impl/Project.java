@@ -740,6 +740,7 @@ public class Project implements IProject {
 		}
 		
 		this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
+		logger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
 	}
 	
 	private void compileReactorsFromJavaFiles(SemossClassloader customLoader) {
@@ -794,6 +795,7 @@ public class Project implements IProject {
 		// just pull to make sure we have the latest in case project was loaded
 		// but not published
 		if(outOfDate || this.lastReactorCompilationDate == null) {
+			logger.info("Pulling Java folder for project = " + this.projectId + ". Current reactors out of date = " + outOfDate + ". Last compilation date = " + this.lastReactorCompilationDate);
 			ClusterUtil.reactorPullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
 			this.clearClassCache();
 		}
@@ -839,7 +841,8 @@ public class Project implements IProject {
 		}
 
 		this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
-		
+		logger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
+
 		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
 				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
 
@@ -939,6 +942,7 @@ public class Project implements IProject {
 			// just pull to make sure we have the latest in case project was loaded
 			// but not published
 			if(outOfDate || this.lastPortalPublishDate == null) {
+				logger.info("Pulling Portals folder for project = " + this.projectId + ". Current portal out of date = " + outOfDate + ". Last portal publish date = " + this.lastPortalPublishDate);
 				ClusterUtil.reactorPullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
 			}
 			try {
@@ -978,6 +982,7 @@ public class Project implements IProject {
 					this.publishPortal = true;
 					this.republishPortal = false;
 					this.lastPortalPublishDate = new SemossDate(LocalDateTime.now());
+					logger.info("Project '" + projectId + "' has new last portal published date = " + this.lastPortalPublishDate);
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
