@@ -806,8 +806,11 @@ public class Project implements IProject {
 		// if there is no java.. dont even bother with this
 		// no need to spend time on any of this
 		if( !javaDirectory.exists() ) {
-			this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
-			logger.info("Project '" + projectId + "' does not have a Java folder. Will still set the last compilation date = " + this.lastReactorCompilationDate);
+			// dont need to keep setting this 
+			if(this.lastReactorCompilationDate == null) {
+				this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
+				logger.info("Project '" + projectId + "' does not have a Java folder. Will still set the last compilation date = " + this.lastReactorCompilationDate);
+			}
 			return null;
 		}
 		
