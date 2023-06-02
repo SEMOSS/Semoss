@@ -95,7 +95,6 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	private HikariDataSource dataSource = null;
 	private Connection engineConn = null;
 	private boolean useConnectionPooling = false;
-	private boolean autoCommit = false;
 
 	public PersistentHash conceptIdHash = null;
 
@@ -113,6 +112,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	private int poolMinSize = 1;
 	private int poolMaxSize = 16;
 	private int queryTimeout = -1;
+	private Boolean autoCommit = null;
 	
 	private long leakDetectionThresholdMilliseconds = 30_000;
 	private long idelTimeout = 60_000;
@@ -131,7 +131,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 				try{
 					this.engineConn = getConnection();
 					this.engineConnected = true;
-					this.autoCommit = this.engineConn.getAutoCommit();
+					if(this.autoCommit != null) {
+						this.engineConn.setAutoCommit(this.autoCommit);
+					}
 				} catch (Exception e){
 					logger.error("error RDBMS opening database", e);
 				}
@@ -214,7 +216,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
-			// connection timeout
+			// connection query timeout
 			if(prop.getProperty(Constants.CONNECTION_QUERY_TIMEOUT) != null) {
 				String queryTimeoutStr = prop.getProperty(Constants.CONNECTION_QUERY_TIMEOUT);
 				try {
@@ -223,6 +225,10 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					System.out.println("Error occurred trying to parse and get the query timeout");
 					logger.error(Constants.STACKTRACE, e);
 				}
+			}
+			// auto commit connection 
+			if(prop.getProperty(Constants.AUTO_COMMIT) != null) {
+				this.autoCommit = Boolean.parseBoolean(prop.getProperty(Constants.AUTO_COMMIT)+"");
 			}
 			// leak detection threshold
 			if(prop.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
@@ -307,7 +313,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				} else {
 					this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.prop);
-					this.autoCommit = this.engineConn.getAutoCommit();
+					if(this.autoCommit != null) {
+						this.engineConn.setAutoCommit(this.autoCommit);
+					}
 					this.queryUtil.enhanceConnection(this.engineConn);
 					logger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				}
@@ -406,7 +414,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 				stmt.execute(createString);
 			}
 			this.engineConnected = true;
-			this.autoCommit = this.engineConn.getAutoCommit();
+			if(this.autoCommit != null) {
+				this.engineConn.setAutoCommit(this.autoCommit);
+			}
 			this.queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
 			this.queryUtil.setConnectionUrl(this.connectionURL);
 			this.queryUtil.setUsername(this.userName);
@@ -461,7 +471,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 			// return/generate a connection object
 			Connection conn = dataSource.getConnection();
-			this.autoCommit = conn.getAutoCommit();
+			if(this.autoCommit != null) {
+				conn.setAutoCommit(this.autoCommit);
+			}
 			this.queryUtil.enhanceConnection(conn);
 			return conn;
 		}
@@ -481,11 +493,12 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 				logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.prop);
-				this.autoCommit = this.engineConn.getAutoCommit();
 				logger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 			this.queryUtil.enhanceConnection(this.engineConn);
-			this.autoCommit = this.engineConn.getAutoCommit();
+			if(this.autoCommit != null) {
+				this.engineConn.setAutoCommit(this.autoCommit);
+			}
 			this.engineConnected = true;
 		}
 
@@ -862,8 +875,17 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	@Override
 	public void commit() {
 		try {
-			if(!autoCommit) {
-				getConnection().commit();
+			if(this.datasourceConnected && this.dataSource != null) {
+				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				return;
+			}
+			Connection conn = getConnection();
+			if(!conn.getAutoCommit()) {
+				conn.commit();
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -956,14 +978,11 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
-			//			this.insightRdbms.getConnection().close();
 			closeDB();
-
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
-
 		// Clean up SMSS and DB files/folder
 		super.deleteDB();
 	}
@@ -975,8 +994,8 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	public void setAutoCommit(boolean autoCommit) {
 		if(engineConn != null) {
 			try {
-				engineConn.setAutoCommit(autoCommit);
 				this.autoCommit = autoCommit;
+				engineConn.setAutoCommit(autoCommit);
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
