@@ -324,7 +324,7 @@ def chat_gpt_3(nl_query, max_tokens_value):
   print (query)
   return query
 
-def run_alpaca(nl_query, max_tokens_value, api_base):
+def run_alpaca(nl_query, max_tokens_value, api_base, model_name="alpaca-13b-lora-int4"):
   #import os
   import openai
   # forcing the api_key to a dummy value
@@ -332,11 +332,29 @@ def run_alpaca(nl_query, max_tokens_value, api_base):
     openai.api_key = "Non Existent API Key"
   openai.api_base = api_base
   #response = openai.Completion.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
-  response = openai.Completion.create(model="alpaca-13b-lora-int4", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  response = openai.Completion.create(model=model_name, prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   #response = openai.Completion.create(model="alpaca-lora-7b", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
   query=response.choices[0].text
   print (query)
   return query
+
+def chat_alpaca(nl_query, max_tokens_value, api_base, model_name="guanaco-33b"):
+  #import os
+  import openai
+  # forcing the api_key to a dummy value
+  if openai.api_key is None:
+    openai.api_key = "Non Existent API Key"
+  openai.api_base = api_base
+  query = f"Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction: {nl_query}\n\n### Response:"
+  print(query)
+  
+  #response = openai.Completion.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  response = openai.Completion.create(model=model_name, prompt=query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  #response = openai.Completion.create(model="alpaca-lora-7b", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
+  query=response.choices[0].text
+  print (query)
+  return query
+
 
 def convert_pdf_to_text(document_location):
   import PyPDF2
