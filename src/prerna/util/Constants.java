@@ -472,7 +472,8 @@ public class Constants {
 	public static final String LEAK_DETECTION_THRESHOLD_MILLISECONDS = "LEAK_DETECTION_THRESHOLD_MILLISECONDS";
 	public static final String IDLE_TIMEOUT = "IDLE_TIMEOUT";
 	public static final String CONNECTION_QUERY_TIMEOUT = "CONNECTION_QUERY_TIMEOUT";
-
+	public static final String AUTO_COMMIT = "AUTO_COMMIT";
+	
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
 	
