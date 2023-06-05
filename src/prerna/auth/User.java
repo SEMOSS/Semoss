@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -72,12 +73,17 @@ public class User implements Serializable {
 	private transient Object assetSyncObject = null;
 	private transient Object workspaceSyncObject = null;
 
-	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
-	List<AuthProvider> loggedInProfiles = new Vector<>();
+	// main object storing the users access tokens
+	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
+	private List<AuthProvider> loggedInProfiles = new Vector<>();
+	
+	// storing the timezone the user is in
+	private TimeZone timeZone;
+
 	// keeps the secret for every insight
-	Hashtable <String, InsightToken> insightSecret = new Hashtable <>();
+	private Hashtable <String, InsightToken> insightSecret = new Hashtable <>();
 	// shared sessions
-	List<String> sharedSessions = new Vector<>();
+	private List<String> sharedSessions = new Vector<>();
 	
 	private Map<String, String> projectIdMap = new HashMap<>();
 	private Map<String, String> engineIdMap = new HashMap<>();
@@ -453,6 +459,14 @@ public class User implements Serializable {
 	 */
 	public Map<String, List<String>> getOpenInsights() {
 		return openInsights;
+	}
+	
+	/**
+	 * 
+	 * @param timeZone
+	 */
+	public void setTimeZone(TimeZone timeZone) {
+		this.timeZone = timeZone;
 	}
 	
 	/////////////////////////////////////////////////////
@@ -1124,13 +1138,11 @@ public class User implements Serializable {
 		return new String[] {"anonymous", "anonymous@not_logged_in.com"};
 	}
 	
-	public void setInsightSerialization(String insightId, Boolean serialize)
-	{
+	public void setInsightSerialization(String insightId, Boolean serialize) {
 		insightSerializedMap.put(insightId, serialize);
 	}
 	
-	public Boolean getInsightSerialization(String insightId)
-	{
+	public Boolean getInsightSerialization(String insightId) {
 		return insightSerializedMap.containsKey(insightId) && insightSerializedMap.get(insightId);
 	}
 	
@@ -1141,5 +1153,5 @@ public class User implements Serializable {
 	
 		return userEmail;
 	}
-	
+
 }
