@@ -338,14 +338,20 @@ def run_alpaca(nl_query, max_tokens_value, api_base, model_name="alpaca-13b-lora
   print (query)
   return query
 
-def chat_alpaca(nl_query, max_tokens_value, api_base, model_name="guanaco-33b"):
+def chat_alpaca(context, nl_query, max_tokens_value, api_base, model_name="guanaco-33b", long=False):
   #import os
   import openai
   # forcing the api_key to a dummy value
   if openai.api_key is None:
     openai.api_key = "Non Existent API Key"
   openai.api_base = api_base
-  query = f"Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction: {nl_query}\n\n### Response:"
+  query = ""
+  if context is None:
+    context = ""
+  if not long:
+    query = f"Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction: {nl_query}\n\n### Response:"
+  else:
+    query = f"A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. Based on the following paragraphs, answer the human's question:\n\n{context}.\n\n### Questions:\n\n{nl_query}\n\n### Response:"
   print(query)
   
   #response = openai.Completion.create(model="alpaca-30b-lora", prompt=nl_query, temperature=0, max_tokens=max_tokens_value, top_p=1, frequency_penalty=0, presence_penalty=0,stop=["#", ";"])
