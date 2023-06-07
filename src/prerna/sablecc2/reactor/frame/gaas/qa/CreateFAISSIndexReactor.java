@@ -191,10 +191,10 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 				baseVarName + "_faiss = fa.FAISSSearcher(ds=" + baseVarName + "_ds)", 
 				baseVarName + "_faiss.custom_faiss_index()",
 				baseVarName + "_faiss.save_index('" + indexFile + "')",
-				"del " + baseVarName + "_faiss",
-				"del " + baseVarName + "_ds",
-				"del " + baseVarName + " fa",
-				"del " + baseVarName + " Dataset"
+				//"del " + baseVarName + "_faiss",
+				//"del " + baseVarName + "_ds",
+				//"del " + baseVarName + " fa",
+				//"del " + baseVarName + " Dataset"
 		};
 		
 		pyt.runPyAndReturnOutput(commands);
