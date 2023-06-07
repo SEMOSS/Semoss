@@ -370,7 +370,7 @@ def compose_prompt(context=None, question=None):
   print(query)
   return query
 
-def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200, stop_sequences=["#", ";", "\n\n"], **kwargs):
+def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200, stop_sequences=["#", ";"], **kwargs):
   text = ""
   #for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
   for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, stop_sequences=stop_sequences, **kwargs):
