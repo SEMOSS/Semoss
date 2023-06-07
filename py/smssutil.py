@@ -361,6 +361,23 @@ def chat_alpaca(context, nl_query, max_tokens_value, api_base, model_name="guana
   print (query)
   return query
 
+def compose_prompt(context=None, question=None):
+  assert question is not None
+  if context is None:
+    query = f"Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction: {question}\n\n### Response:"
+  else:
+    query = f"A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. Based on the following paragraphs, answer the human's question:\n\n{context}.\n\n### Questions:\n\n{question}\n\n### Response:"
+  print(query)
+  return query
+
+def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200, stop_sequences=["#", ";", "\n\n"], **kwargs):
+  text = ""
+  #for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
+  for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, stop_sequences=stop_sequences, **kwargs):
+    if not response.token.special:
+        text += response.token.text
+  print(text)
+  return text
 
 def convert_pdf_to_text(document_location):
   import PyPDF2
