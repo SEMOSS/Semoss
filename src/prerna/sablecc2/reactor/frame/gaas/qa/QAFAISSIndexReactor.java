@@ -118,6 +118,8 @@ public class QAFAISSIndexReactor extends GaasBaseReactor
 		projectId = projectId.replace("-", "_");
 		baseFolder = baseFolder.replace("-", "_");
 		baseFolder = baseFolder.replace("/", "_");
+		baseFolder = baseFolder.replace(" ", "_");
+		indexName=indexName.replace(" ","_");
 		
 		PyTranslator pyt = project.getProjectPyTranslator();
 
