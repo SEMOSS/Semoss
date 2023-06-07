@@ -804,5 +804,7 @@ public class Constants {
 	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
 	
 	public static final String WHITE_LIST_DOMAINS =  "WHITE_LIST_DOMAINS";
+	
+	public static final String GUANACO_ENDPOINT = "GUANACO_ENDPOINT";
 
 }
