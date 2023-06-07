@@ -178,9 +178,10 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 		// f1.save_index(faiss_index)
 		// delete everything
 		projectId = projectId.replace("-", "_");
-		
 		baseFolder = baseFolder.replace("-", "_");
 		baseFolder = baseFolder.replace("/", "_");
+		baseFolder = baseFolder.replace(" ", "_");
+		indexName=indexName.replace(" ","_");
 
 		PyTranslator pyt = insight.getPyTranslator();
 		String baseVarName = "a_" + projectId + "_" + baseFolder + "_" + indexName; 

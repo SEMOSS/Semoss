@@ -133,7 +133,7 @@ class FAISSSearcher():
     distances, ann = index.search(_vector, k=results)
     #print("results.. ")
     samples_df = pd.DataFrame({'distances': distances[0], 'ann': ann[0]})
-    samples_df.sort_values("ann", ascending=False, inplace=True)
+    samples_df.sort_values("distances", ascending=False, inplace=True)
     #print(samples_df)
     
     final_output = []
