@@ -94,7 +94,7 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 		}
 
 		
-		String model = DIHelper.getInstance().getProperty(Constants.MOOSE_MODEL);
+		String model = DIHelper.getInstance().getProperty(Constants.SQL_MOOSE_MODEL);
 		if(model == null || model.trim().isEmpty()) {
 			model = "gpt_3";
 		}
