@@ -53,6 +53,7 @@ public class CSVWriter
 		this.contentLength = tokenLength;
 	}
 	
+	
 	private void writeHeader()
 	{
 		StringBuffer row = new StringBuffer();
