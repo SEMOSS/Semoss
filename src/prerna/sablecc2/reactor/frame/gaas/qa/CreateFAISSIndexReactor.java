@@ -43,9 +43,10 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 										ReactorKeysEnum.NAME.getKey(),
 										ReactorKeysEnum.PROJECT.getKey(),
 										ReactorKeysEnum.BASE_URL.getKey(),
-										ReactorKeysEnum.DESCRIPTION.getKey()
+										ReactorKeysEnum.DESCRIPTION.getKey(),
+										ReactorKeysEnum.CONTENT_LENGTH.getKey()
 										};
-		this.keyRequired = new int[] {1,1,1,1};
+		this.keyRequired = new int[] {1,1,1,1, 0};
 	}
 	
 	@Override
@@ -99,7 +100,12 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 		String configFile = indexingFolder + "/" + configName + ".json";
 		String faiss_index = indexingFolder + "/" + configName + "_faiss.index";
 		
+		int contentLength = 512;
+		if(this.store.getNoun(keysToGet[5]) != null)
+			contentLength = Integer.parseInt(this.store.getNoun(keysToGet[5]).get(0) + "");
+		
 		CSVWriter writer = new CSVWriter(csvFileName);
+		writer.setTokenLength(contentLength);
 		logger.info("Starting file conversions ");
 		
 		// pick up the files and convert them to CSV
