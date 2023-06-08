@@ -607,8 +607,10 @@ public class Constants {
 	
 	// moose configurations
 	public static final String MOOSE_MODEL = "MOOSE_MODEL";
+	public static final String SQL_MOOSE_MODEL = "SQL_MOOSE_MODEL";
 	public static final String MOOSE_ENDPOINT = "MOOSE_ENDPOINT";
-	
+	public static final String GUANACO_ENDPOINT = "GUANACO_ENDPOINT";
+
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
 	public static final String PY_WORKER_CP = "PY_WORKER_CP";
@@ -804,7 +806,4 @@ public class Constants {
 	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
 	
 	public static final String WHITE_LIST_DOMAINS =  "WHITE_LIST_DOMAINS";
-	
-	public static final String GUANACO_ENDPOINT = "GUANACO_ENDPOINT";
-
 }
