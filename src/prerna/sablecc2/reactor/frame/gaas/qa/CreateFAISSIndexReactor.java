@@ -16,7 +16,9 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 
 import net.snowflake.client.jdbc.internal.apache.commons.io.FileUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PyTranslator;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -26,6 +28,7 @@ import prerna.sablecc2.reactor.frame.gaas.processors.DocProcessor;
 import prerna.sablecc2.reactor.frame.gaas.processors.PDFProcessor;
 import prerna.sablecc2.reactor.frame.gaas.processors.PPTProcessor;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 public class CreateFAISSIndexReactor extends GaasBaseReactor 
 {
@@ -160,6 +163,17 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+		
+		
+		//push to cloud
+		
+		if (ClusterUtil.IS_CLUSTER) {
+	
+		IProject project = Utility.getProject(projectId);
+		String projectFolderPath = AssetUtility.getProjectBaseFolder(project.getProjectName(), projectId).replace("\\", "/");
+		ClusterUtil.reactorPushProjectFolder(project, projectFolderPath);
+
 		}
 		
 		return new NounMetadata(configMap, PixelDataType.MAP);
