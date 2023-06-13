@@ -219,40 +219,40 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				} 
 				output = insight.getPyTranslator().runScript("smssutil.run_guanaco(\"" + finalDbString + "\", " + maxTokens + " ,\""  + endpoint.trim() + "\")");
 			}
-			else if(model.equalsIgnoreCase("guanaco")) {
-				String endpoint = DIHelper.getInstance().getProperty(Constants.GUANACO_ENDPOINT);
-				if(endpoint == null || endpoint.trim().isEmpty()) {
-					throw new IllegalArgumentException("Must define endpoint to run custom models");
-				} 
-				maxTokens=500;
-				// create the client class
-				insight.getPyTranslator().runScript("from text_generation import Client");
-				
-				//String loginName = insight.getUser().getSingleLogginName(insight.getUser());
-				
-				String clientName = model + "_client";
-				String hasClientName = "false";
-				hasClientName = insight.getPyTranslator().runPyAndReturnOutput("print('" + clientName + "' in locals())");
-				if(hasClientName.equalsIgnoreCase("false"))
-				{
-					insight.getPyTranslator().runScript(clientName + " = Client('" + endpoint + "')");				
-					insight.getPyTranslator().runScript(clientName + ".timeout = 60");	
-				}
-				
-				String command = "smssutil.chat_guanaco_code(context=\"" + finalDbString + "\", "
-						  + "question=\"" + finalQuery + "\","
-						  + "max_new_tokens="+ maxTokens + ","
-						  + "client="  + clientName + ")";
-				
-				output = insight.getPyTranslator().runScript(command);
-				
-				if(output instanceof HashMap)
-					output = ((HashMap)output).get("response");
-				
-				// replace the sql if there
-				output = output.toString().replace("sql", "");
-				//insight.getPyTranslator().runScript("del " + client_name);
-			}
+//			else if(model.equalsIgnoreCase("guanaco")) {
+//				String endpoint = DIHelper.getInstance().getProperty(Constants.GUANACO_ENDPOINT);
+//				if(endpoint == null || endpoint.trim().isEmpty()) {
+//					throw new IllegalArgumentException("Must define endpoint to run custom models");
+//				} 
+//				maxTokens=500;
+//				// create the client class
+//				insight.getPyTranslator().runScript("from text_generation import Client");
+//				
+//				//String loginName = insight.getUser().getSingleLogginName(insight.getUser());
+//				
+//				String clientName = model + "_client";
+//				String hasClientName = "false";
+//				hasClientName = insight.getPyTranslator().runPyAndReturnOutput("print('" + clientName + "' in locals())");
+//				if(hasClientName.equalsIgnoreCase("false"))
+//				{
+//					insight.getPyTranslator().runScript(clientName + " = Client('" + endpoint + "')");				
+//					insight.getPyTranslator().runScript(clientName + ".timeout = 60");	
+//				}
+//				
+//				String command = "smssutil.chat_guanaco_code(context=\"" + finalDbString + "\", "
+//						  + "question=\"" + finalQuery + "\","
+//						  + "max_new_tokens="+ maxTokens + ","
+//						  + "client="  + clientName + ")";
+//				
+//				output = insight.getPyTranslator().runScript(command);
+//				
+//				if(output instanceof HashMap)
+//					output = ((HashMap)output).get("response");
+//				
+//				// replace the sql if there
+//				output = output.toString().replace("sql", "");
+//				//insight.getPyTranslator().runScript("del " + client_name);
+//			}
 			else {
 				output = insight.getPyTranslator().runScript("smssutil.run_gpt_3(\"" + finalDbString + "\", " + maxTokens + ")");
 			}
