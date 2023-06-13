@@ -391,21 +391,36 @@ def compose_prompt_qa(context=None, question=None):
   prompt = f"Context information is below. \n---------------------\n{context}\n---------------------\nGiven the context information and not prior knowledge, answer the question: {question}\n"
   return prompt
 
-def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200, stop_sequences=["###", ";"], **kwargs):
+def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200, prev_response=None, stop_sequences=["###", "#", ";"], **kwargs):
   text = ""
+  finish_reason = ""
+  input_text = compose_prompt(context, question)
+  final_output = {}
+  if prev_response is not None:
+    input_text = f"{input_text} {prev_response}"
   #for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
   for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, stop_sequences=stop_sequences, **kwargs):
   #for response in client.generate_stream(compose_prompt_qa(context, question), max_new_tokens=max_new_tokens, stop_sequences=stop_sequences, **kwargs):
     if not response.token.special:
-        text += response.token.text
+      text += response.token.text
+    if response.details is not None:
+      detail = response.details
+      from text_generation.types import FinishReason
+      print(f"Finished with {detail.finish_reason}")
+      if detail.finish_reason != "stop_sequence" and detail.finish_reason != "eos_token":
+        finish_reason = f"... <Unable to complete request, please try by increasing token size from {max_new_tokens}>"
+        final_output.update({"meta": finish_reason})
   #print(client.generated_stream.finish_reason)
   #print(text)
-  return text
+  final_output.update({"response": f"{text}"})
+  return final_output
 
-def chat_guanaco_code(context=None, question = None, client=None, max_new_tokens=100, stop_sequences=["###", ";"], incremental=False,  **kwargs):
+def chat_guanaco_code(context=None, question = None, client=None, prev_response=None, max_new_tokens=100, stop_sequences=["###", ";"], incremental=False,  **kwargs):
   text = ""
   # code starts with ``` and ends with ```
   input_text = compose_prompt(context, question)
+  if(prev_response is not None):
+    input_text = f"{input_text} {prev_response}"
   print(input_text)
   response_available = False
   str_start = -1
@@ -414,6 +429,8 @@ def chat_guanaco_code(context=None, question = None, client=None, max_new_tokens
   total_tokens=100
   response_so_far = ""
   final_answer = ""
+  finish_reason = ""
+  final_output = {}
   while not response_available and total_tokens < max_new_tokens:
     #for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
     #print("running while loop")
@@ -421,12 +438,11 @@ def chat_guanaco_code(context=None, question = None, client=None, max_new_tokens
     #for response in client.generate_stream(compose_prompt_qa(context, question), max_new_tokens=max_new_tokens, stop_sequences=stop_sequences, **kwargs):
       #print("in for loop")
       if not response.token.special:
-          text += response.token.text
+        text += response.token.text
     
     #if(len(response_so_far) == 0):
     #print(f"text is >>>> {text} <<<<<")
     #response_so_far = text
-
 
     if str_start < 0:
       str_start = text.find('```')
@@ -438,6 +454,7 @@ def chat_guanaco_code(context=None, question = None, client=None, max_new_tokens
       response_available = True
       #print("found both start and end")
       final_answer = text[str_start + 3:str_end]
+      final_output.update({"response": f"{final_answer}"})
       #print(f" Response so far {response_so_far}")
     else:
       input_text = f"{compose_prompt(context, question)} {text}"
@@ -449,50 +466,19 @@ def chat_guanaco_code(context=None, question = None, client=None, max_new_tokens
 
     #print(f"Start : {str_start}, End : {str_end}")    
     #print(f"Response available ? {response_available}")
-  
-
+  if str_start < 0:
+    final_answer = text
+    finish_reason = ".. <Unable to complete request>"
+    final_output.update({"meta": finish_reason})
+    final_output.update({"response": f"{final_answer}"})
+  elif str_start > 0 and str_end < 0:
+    final_answer = text
+    finish_reason = "... <Unable to get the full data. Please try by increasing max_tokens or resubmit the request>"
+    final_output.update({"meta": finish_reason})
+    final_output.update({"response": f"{final_answer}"})
   print(f"{final_answer}")
   #print(f"{text}")
-  return f"{final_answer}"
-
-def chat_guanaco_with_stop(context=None, question = None, prev_response=None, client=None, max_new_tokens=500, stopper=None, stop_sequences=["###", ";"], **kwargs):
-  if stopper is None:
-    stopper = False
-    max_new_tokens = 200
-  text = ""
-  # code starts with ``` and ends with ```
-  input_text = compose_prompt(context, question)
-  #print(input_text)
-  cur_new_tokens=100
-  total_tokens=100
-  response_so_far = ""
-  final_answer = ""
-  while not stopper and total_tokens < max_new_tokens:
-    for response in client.generate_stream(input_text, max_new_tokens=cur_new_tokens, stop_sequences=stop_sequences, **kwargs):
-    #for response in client.generate_stream(compose_prompt_qa(context, question), max_new_tokens=max_new_tokens, stop_sequences=stop_sequences, **kwargs):
-      #print("in for loop")
-      if not response.token.special:
-          text += response.token.text
-    
-    if(str_start > 0 and str_end > 0):
-      response_available = True
-      #print("found both start and end")
-      final_answer = text[str_start + 3:str_end]
-      #print(f" Response so far {response_so_far}")
-    else:
-      input_text = f"{compose_prompt(context, question)} {text}"
-      total_tokens = total_tokens + 100
-      #print(f" Response so far {response_so_far}")
-      #print(f"{input_text}")
-
-    #print(f"Start : {str_start}, End : {str_end}")    
-    #print(f"Response available ? {response_available}")
-  
-
-  print(f"{final_answer}")
-  #print(f"{text}")
-  return f"{final_answer}"
-
+  return final_output
 
 
 def convert_pdf_to_text(document_location):
