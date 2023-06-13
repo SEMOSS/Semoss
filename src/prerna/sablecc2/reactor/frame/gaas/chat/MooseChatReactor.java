@@ -20,6 +20,7 @@ public class MooseChatReactor extends GaasBaseReactor {
 									  ReactorKeysEnum.MODEL.getKey(), 
 									  Constants.MOOSE_ENDPOINT, 
 									  ReactorKeysEnum.CONTEXT.getKey(), 
+									  ReactorKeysEnum.CONTENT_LENGTH.getKey(),
 									  ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
 		this.keyRequired = new int[] {1,0,0,0,0};
 	}
@@ -48,6 +49,10 @@ public class MooseChatReactor extends GaasBaseReactor {
 		Map paramMap = processParamMap();
 		if(paramMap != null)
 			paramString = ", " + processMapToString(paramMap);
+		
+		int contentLength = 512;
+		if(this.store.getNoun(keysToGet[5]) != null)
+			contentLength = Integer.parseInt(this.store.getNoun(keysToGet[5]).get(0) + "");
 		
 		// commenting out for now
 		projectId = null;
@@ -85,8 +90,14 @@ public class MooseChatReactor extends GaasBaseReactor {
 				String client_name = "client_" + Utility.getRandomString(6);
 				insight.getPyTranslator().runScript(client_name + " = Client('" + endpoint + "')");
 				
-				int maxTokens = template.length() + 100;
-				String pyCommand = "smssutil.chat_guanaco(context= " + context + ", "
+				int maxTokens = contentLength;
+				String function = "smssutil.chat_guanaco";
+				if(template.startsWith("code:"))
+				{
+					template = template.substring(template.indexOf("code:"));
+					function = "smssutil.chat_guanaco_code";
+				}
+				String pyCommand = function + "(context= " + context + ", "
 									+ "question=\"" + template + "\", "
 									+ "max_new_tokens=" + maxTokens + ","
 									+ "client=" + client_name
