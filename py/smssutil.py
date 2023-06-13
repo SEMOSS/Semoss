@@ -338,16 +338,16 @@ def run_alpaca(nl_query, max_tokens_value, api_base, model_name="alpaca-13b-lora
   print (query)
   return query
 
-# def run_guanaco(nl_query, max_tokens_value,api_base, stop_sequences=["#", ";"], temperature_val=0.01, top_p_val=0.5, **kwargs):
-#   from text_generation import Client
-#   client = Client(api_base)
-#   text = ""
-#   #for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
-#   for response in client.generate_stream(compose_sql_prompt(nl_query), temperature=temperature_val,top_p=top_p_val, max_new_tokens=max_tokens_value, stop_sequences=stop_sequences, **kwargs):
-#     if not response.token.special:
-#         text += response.token.text
-#   print(text)
-#   return text
+def run_guanaco(nl_query, max_tokens_value,api_base, stop_sequences=["#", ";"], temperature_val=0.01, top_p_val=0.5, **kwargs):
+  from text_generation import Client
+  client = Client(api_base)
+  text = ""
+  #for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
+  for response in client.generate_stream(compose_sql_prompt(nl_query), temperature=temperature_val,top_p=top_p_val, max_new_tokens=max_tokens_value, stop_sequences=stop_sequences, **kwargs):
+    if not response.token.special:
+        text += response.token.text
+  print(text)
+  return text
 
 def chat_alpaca(context, nl_query, max_tokens_value, api_base, model_name="guanaco-33b", long=False):
   #import os
