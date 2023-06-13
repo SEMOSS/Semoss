@@ -123,9 +123,12 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 
 		List<NounMetadata> retListForFrames = new ArrayList<>();
 
-		for(ITableDataFrame thisFrame : theseFrames) {
+		for(ITableDataFrame thisFrame : theseFrames) 
+		{
 			StringBuffer finalDbString = new StringBuffer();
-			if(model.equalsIgnoreCase("alpaca")) {
+			StringBuffer finalQuery = new StringBuffer();
+			if(model.equalsIgnoreCase("alpaca")) 
+			{
 
 				finalDbString.append("Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\\n\\n### Instruction:\\n");
 
@@ -143,7 +146,23 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				finalDbString.append("\\n\\nWhat is the SQL to ").append(query);
 				finalDbString.append("\\n\\n### Response:");
 			}
-			else{
+			else if(model.equalsIgnoreCase("guanaco"))
+			{
+				finalDbString.append("You are given the following tables and columns");
+				finalDbString.append("\\n\\nTABLE:::").append(thisFrame.getName());
+				finalDbString.append("\\n\\nCOLUMNS::: ");
+				String [] columns = thisFrame.getColumnHeaders();
+				for(int columnIndex = 0;columnIndex < columns.length;columnIndex++) {
+					if(columnIndex == 0) {
+						finalDbString.append(columns[columnIndex]);
+					} else { 
+						finalDbString.append(" , ").append(columns[columnIndex]);
+					}
+				}
+				finalQuery.append("Provide as markdown. SQL to list ").append(query);				
+			}
+			else
+			{
 				finalDbString.append("### "+dialect+" SQL Tables, with their properties:");
 				finalDbString.append("\\n#\\n");
 
@@ -175,6 +194,40 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 					throw new IllegalArgumentException("Must define endpoint to run custom models");
 				} 
 				output = insight.getPyTranslator().runScript("smssutil.run_alpaca(\"" + finalDbString + "\", " + maxTokens + " ,\" "  + endpoint.trim() + "\")");
+			}
+			else if(model.equalsIgnoreCase("guanaco")) {
+				String endpoint = DIHelper.getInstance().getProperty(Constants.GUANACO_ENDPOINT);
+				if(endpoint == null || endpoint.trim().isEmpty()) {
+					throw new IllegalArgumentException("Must define endpoint to run custom models");
+				} 
+				maxTokens=500;
+				// create the client class
+				insight.getPyTranslator().runScript("from text_generation import Client");
+				
+				//String loginName = insight.getUser().getSingleLogginName(insight.getUser());
+				
+				String clientName = model + "_client";
+				String hasClientName = "false";
+				hasClientName = insight.getPyTranslator().runPyAndReturnOutput("print('" + clientName + "' in locals())");
+				if(hasClientName.equalsIgnoreCase("false"))
+				{
+					insight.getPyTranslator().runScript(clientName + " = Client('" + endpoint + "')");				
+					insight.getPyTranslator().runScript(clientName + ".timeout = 60");	
+				}
+				
+				String command = "smssutil.chat_guanaco_code(context=\"" + finalDbString + "\", "
+						  + "question=\"" + finalQuery + "\","
+						  + "max_new_tokens="+ maxTokens + ","
+						  + "client="  + clientName + ")";
+				
+				output = insight.getPyTranslator().runScript(command);
+				
+				if(output instanceof HashMap)
+					output = ((HashMap)output).get("response");
+				
+				// replace the sql if there
+				output = output.toString().replace("sql", "");
+				//insight.getPyTranslator().runScript("del " + client_name);
 			}
 			else {
 				output = insight.getPyTranslator().runScript("smssutil.run_gpt_3(\"" + finalDbString + "\", " + maxTokens + ")");
