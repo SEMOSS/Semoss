@@ -145,6 +145,20 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 				}
 				finalDbString.append("\\n\\nWhat is the SQL to ").append(query);
 				finalDbString.append("\\n\\n### Response:");
+			} else if(model.equalsIgnoreCase("guanaco"))
+			{
+				finalDbString.append(dialect+" SQL Tables, with their properties: \\n\\nTABLE Name ::: ");
+				finalDbString.append(thisFrame.getName());
+				finalDbString.append("\\n\\nCOLUMNS ::: ");
+				String [] columns = thisFrame.getColumnHeaders();
+				for(int columnIndex = 0;columnIndex < columns.length;columnIndex++) {
+					if(columnIndex == 0) {
+						finalDbString.append(columns[columnIndex]);
+					} else { 
+						finalDbString.append(" , ").append(columns[columnIndex]);
+					}
+				}
+				finalDbString.append("\\n\\nWhat is the SQL to ").append(query);
 			}
 			else if(model.equalsIgnoreCase("guanaco"))
 			{
@@ -194,6 +208,16 @@ public class NLPQuery2Reactor extends AbstractFrameReactor {
 					throw new IllegalArgumentException("Must define endpoint to run custom models");
 				} 
 				output = insight.getPyTranslator().runScript("smssutil.run_alpaca(\"" + finalDbString + "\", " + maxTokens + " ,\" "  + endpoint.trim() + "\")");
+			} else if(model.equalsIgnoreCase("guanaco"))
+			{
+				// create the client first
+				
+				// create instruction and get response back
+				String endpoint = DIHelper.getInstance().getProperty(Constants.GUANACO_ENDPOINT);
+				if(endpoint == null || endpoint.trim().isEmpty()) {
+					throw new IllegalArgumentException("Must define endpoint to run custom models");
+				} 
+				output = insight.getPyTranslator().runScript("smssutil.run_guanaco(\"" + finalDbString + "\", " + maxTokens + " ,\""  + endpoint.trim() + "\")");
 			}
 			else if(model.equalsIgnoreCase("guanaco")) {
 				String endpoint = DIHelper.getInstance().getProperty(Constants.GUANACO_ENDPOINT);
