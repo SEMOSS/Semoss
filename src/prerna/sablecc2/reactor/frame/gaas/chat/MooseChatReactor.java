@@ -104,7 +104,11 @@ public class MooseChatReactor extends GaasBaseReactor {
 									+ paramString
 									+ ")";
 				//System.err.println("Command being Executed " + pyCommand);
-				String answer = (String)insight.getPyTranslator().runScript(pyCommand);
+				Object answer = (HashMap)insight.getPyTranslator().runScript(pyCommand);
+				
+				if(answer instanceof HashMap)
+					answer = ((HashMap)answer).get("response");
+
 				
 				output.put("answer", answer);
 			}
