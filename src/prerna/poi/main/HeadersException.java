@@ -472,19 +472,18 @@ public class HeadersException {
      * @param headers
     * @return
     */
-    public String[] getCleanHeaders(String[] headers) {        
-          int numCols = headers.length; 
-          List<String> newUniqueHeaders = new Vector<String>(numCols);
+	public String[] getCleanHeaders(String[] headers) {        
+		int numCols = headers.length; 
+		List<String> newUniqueHeaders = new Vector<String>(numCols);
 
-          for(int colIdx = 0; colIdx < numCols; colIdx++) {
-                 String origHeader = headers[colIdx];
-                 // validate header against other clean headers
-                 String newHeader = recursivelyFixHeaders(origHeader, newUniqueHeaders);
-                 // add it to the unique headers list so it can be used to validate others
-                 newUniqueHeaders.add(newHeader);
-          }            
-          return newUniqueHeaders.toArray(new String[newUniqueHeaders.size()]);
-    }
-
+		for(int colIdx = 0; colIdx < numCols; colIdx++) {
+			String origHeader = headers[colIdx];
+			// validate header against other clean headers
+			String newHeader = recursivelyFixHeaders(origHeader, newUniqueHeaders);
+			// add it to the unique headers list so it can be used to validate others
+			newUniqueHeaders.add(newHeader);
+		}            
+		return newUniqueHeaders.toArray(new String[newUniqueHeaders.size()]);
+	}
 
 }
