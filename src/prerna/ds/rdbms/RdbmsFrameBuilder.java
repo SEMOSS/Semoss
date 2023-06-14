@@ -26,6 +26,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.HeadersException;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -125,6 +126,27 @@ public class RdbmsFrameBuilder {
 			// already present
 			// this will also create a new table if the table currently
 			// doesn't exist
+			alterTableNewColumns(tableName, headers, strTypes);
+			
+			createdTable = true;
+		} else if(iterator instanceof BasicIteratorTask) {
+			List<Map<String, Object>> taskHeaders = ((BasicIteratorTask) iterator).getHeaderInfo();
+			int numHeaders = taskHeaders.size();
+			// grab the headers and the types
+			headers = new String[numHeaders];
+			types = new SemossDataType[headers.length];
+			types = new SemossDataType[headers.length];
+			strTypes = new String[headers.length];
+			for(int i = 0; i < numHeaders; i++) {
+				Map<String, Object> headerInfo = taskHeaders.get(i);
+				String alias = (String) headerInfo.get("alias");
+				headers[i] = alias;
+				types[i] = typesMap.get(headers[i]);
+				strTypes[i] = types[i].toString();
+			}
+			// clean the headers
+			headers = HeadersException.getInstance().getCleanHeaders(headers);
+
 			alterTableNewColumns(tableName, headers, strTypes);
 			
 			createdTable = true;
