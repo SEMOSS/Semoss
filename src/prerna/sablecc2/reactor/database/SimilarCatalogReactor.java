@@ -80,8 +80,8 @@ public class SimilarCatalogReactor extends AbstractReactor {
 				continue;
 			}
 			Map<String, String> dbMap = new HashMap<>();
-			dbMap.put("id", ids.get(0));
-			dbMap.put("alias", alias);
+			dbMap.put("database_id", ids.get(0));
+			dbMap.put("database_name", alias);
 			dbs.add(dbMap);
 		}
 		
