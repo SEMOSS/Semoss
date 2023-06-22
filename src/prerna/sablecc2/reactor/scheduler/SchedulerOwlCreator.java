@@ -11,6 +11,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CALENDAR_NAME
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CHECKIN_INTERVAL;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CLOB;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CRON_EXPRESSION;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CRON_TIMEZONE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.DEC_PROP_1;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.DEC_PROP_2;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.DESCRIPTION;
@@ -178,6 +179,10 @@ public class SchedulerOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/UI_STATE/SMSS_JOB_RECIPES")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CRON_TIMEZONE/SMSS_JOB_RECIPES")) {
+				return true;
+			}
+			
 		}
 		return !check1;
 	}
@@ -340,6 +345,7 @@ public class SchedulerOwlCreator {
 		owler.addProp(SMSS_JOB_RECIPES, JOB_NAME, VARCHAR_200);
 		owler.addProp(SMSS_JOB_RECIPES, JOB_GROUP, VARCHAR_200);
 		owler.addProp(SMSS_JOB_RECIPES, CRON_EXPRESSION, VARCHAR_250);
+		owler.addProp(SMSS_JOB_RECIPES, CRON_TIMEZONE, VARCHAR_120);
 		owler.addProp(SMSS_JOB_RECIPES, PIXEL_RECIPE, BLOB);
 		owler.addProp(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB);
 		owler.addProp(SMSS_JOB_RECIPES, JOB_CATEGORY, VARCHAR_200);
