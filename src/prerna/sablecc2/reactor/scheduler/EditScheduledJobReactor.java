@@ -45,8 +45,10 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 	public EditScheduledJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
-				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), 
-				TRIGGER_ON_LOAD, TRIGGER_NOW, UI_STATE, CURRENT_JOB_NAME, CURRENT_JOB_GROUP, ReactorKeysEnum.JOB_TAGS.getKey()};
+				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.CRON_TZ.getKey(), 
+				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), 
+				TRIGGER_ON_LOAD, TRIGGER_NOW, UI_STATE, CURRENT_JOB_NAME, CURRENT_JOB_GROUP, 
+				ReactorKeysEnum.JOB_TAGS.getKey()};
 	}
 
 	@Override
@@ -61,11 +63,22 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		organizeKeys();
 
 		// Get inputs
-		String jobId = this.keyValue.get(this.keysToGet[0]);
-		String jobName = this.keyValue.get(this.keysToGet[1]);
-		String jobGroup = this.keyValue.get(this.keysToGet[2]);
-		String cronExpression = this.keyValue.get(this.keysToGet[3]);
-
+		String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
+		String jobName = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());
+		String jobGroup = this.keyValue.get(ReactorKeysEnum.JOB_GROUP.getKey());
+		String cronExpression = this.keyValue.get(ReactorKeysEnum.CRON_EXPRESSION.getKey());
+		TimeZone cronTimeZone = null;
+		String cronTz = this.keyValue.get(ReactorKeysEnum.CRON_TZ.getKey());
+		if(cronTz == null || (cronTz=cronTz.trim()).isEmpty()) {
+			cronTz = Utility.getApplicationTimeZoneId();
+		}
+		try {
+			cronTimeZone = TimeZone.getTimeZone(cronTz);
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
+		}
+		
 		List<String> jobTags = getJobTags();
 
 		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
@@ -78,10 +91,10 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 
-		String recipe = this.keyValue.get(this.keysToGet[4]);
+		String recipe = this.keyValue.get(ReactorKeysEnum.RECIPE.getKey());
 		recipe = SchedulerDatabaseUtility.validateAndDecodeRecipe(recipe);
 
-		String recipeParameters = this.keyValue.get(this.keysToGet[5]);
+		String recipeParameters = this.keyValue.get(ReactorKeysEnum.RECIPE_PARAMETERS.getKey());
 		recipeParameters = SchedulerDatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
 		if(recipeParameters == null) {
 			recipeParameters = "";
@@ -91,7 +104,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
-		String uiState = this.keyValue.get(this.keysToGet[8]);
+		String uiState = this.keyValue.get(UI_STATE);
 		if(uiState == null) {
 			throw new NullPointerException("UI State is null and needs to be passed");
 		}
@@ -121,7 +134,9 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			}
 
 			// create json object for later use
-			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters,
+			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, 
+					cronExpression, cronTimeZone, 
+					recipe, recipeParameters,
 					triggerOnLoad, uiState, providerInfo.toString());
 			JobConfig jobConfig = JobConfig.initialize(jsonObject);
 
@@ -144,8 +159,12 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				scheduler.addJob(currentJobDetail, true);
 				
 				// edit the current recipe
-				SchedulerDatabaseUtility.updateJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default",
-						triggerOnLoad, uiState, curJobName, curJobGroup, jobTags);
+				SchedulerDatabaseUtility.updateJobRecipesTable(userId, jobId, 
+						jobName, jobGroup, 
+						cronExpression, cronTimeZone,
+						recipe, recipeParameters, 
+						"Default", triggerOnLoad, uiState, 
+						curJobName, curJobGroup, jobTags);
 
 				// update the trigger
 				String triggerName = jobId.concat("Trigger");

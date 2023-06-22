@@ -119,6 +119,10 @@ public abstract class JobConfig {
 		return getString(JobConfigKeys.JOB_CRON_EXPRESSION);
 	}
 	
+	public String getTimeZone() throws ParseConfigException {
+		return getString(JobConfigKeys.JOB_CRON_TIMEZONE);
+	}
+	
 	public boolean getTriggerOnLoad() throws ParseConfigException {
 		boolean triggerOnLoad = false;
 		if (jobDefinition.get(JobConfigKeys.TRIGGER_ON_LOAD) != null) {

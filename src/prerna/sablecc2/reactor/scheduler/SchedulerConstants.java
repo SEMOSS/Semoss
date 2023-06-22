@@ -30,6 +30,7 @@ public final class SchedulerConstants {
 	public static final String TRIGGER_NAME = "TRIGGER_NAME";
 	public static final String TRIGGER_GROUP = "TRIGGER_GROUP";
 	public static final String CRON_EXPRESSION = "CRON_EXPRESSION";
+	public static final String CRON_TIMEZONE = "CRON_TIMEZONE";
 	public static final String TIME_ZONE_ID = "TIME_ZONE_ID";
 	public static final String ENTRY_ID = "ENTRY_ID";
 	public static final String INSTANCE_NAME = "INSTANCE_NAME";

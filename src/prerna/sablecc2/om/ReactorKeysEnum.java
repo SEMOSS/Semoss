@@ -44,6 +44,7 @@ public enum ReactorKeysEnum {
 	CREATE_INDEX("createIndex", 								"Boolean if indicies should be generated."),
 	CRITERIA("criteria", 										"Criteria to be evaluated"),
 	CRON_EXPRESSION("cronExpression",							"The cron expression"),
+	CRON_TZ("cronTz",     	                              		"The timezone for the cron expression"),
 	DATABASE("database",										"Name of the datasource"),
 	DEDUPLICATE("deduplicate",								    "Boolean if we should remove duplicate."),
 	DATA_TYPE("dataType", 										"Data type of the column (STRING, NUMBER, DATE)"),
