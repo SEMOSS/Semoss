@@ -8,6 +8,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CALENDAR;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CALENDAR_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CHECKIN_INTERVAL;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CRON_EXPRESSION;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CRON_TIMEZONE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.DEC_PROP_1;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.DEC_PROP_2;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.DESCRIPTION;
@@ -147,6 +148,7 @@ public class SchedulerDatabaseUtility {
 			+ "SMSS_JOB_RECIPES.JOB_NAME, "
 			+ "SMSS_JOB_RECIPES.JOB_GROUP, "
 			+ "SMSS_JOB_RECIPES.CRON_EXPRESSION, "
+			+ "SMSS_JOB_RECIPES.CRON_TIMEZONE, "
 			+ "SMSS_JOB_RECIPES.PIXEL_RECIPE, "
 			+ "SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, "
 			+ "SMSS_JOB_RECIPES.UI_STATE, "
@@ -251,6 +253,13 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param execId
+	 * @param jobId
+	 * @param jobGroup
+	 * @return
+	 */
 	public static boolean insertIntoExecutionTable(String execId, String jobId, String jobGroup) {
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn
@@ -275,6 +284,11 @@ public class SchedulerDatabaseUtility {
 		return true;
 	}
 	
+	/**
+	 * 
+	 * @param execId
+	 * @return
+	 */
 	public static String[] executionIdExists(String execId) {
 		Connection conn = connectToScheduler();
 		ResultSet rs = null;
@@ -310,6 +324,11 @@ public class SchedulerDatabaseUtility {
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @param execId
+	 * @return
+	 */
 	public static boolean removeExecutionId(String execId) {
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn
@@ -332,6 +351,16 @@ public class SchedulerDatabaseUtility {
 		return true;
 	}
 
+	/**
+	 * 
+	 * @param jobId
+	 * @param jobGroup
+	 * @param start
+	 * @param end
+	 * @param success
+	 * @param schedulerOutput
+	 * @return
+	 */
 	public static boolean insertIntoAuditTrailTable(String jobId, String jobGroup, Long start, Long end, boolean success, String schedulerOutput) {
 		Connection conn = connectToScheduler();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -380,18 +409,38 @@ public class SchedulerDatabaseUtility {
 		return true;
 	}
 
-	public static boolean insertIntoJobRecipesTable(String userId, String jobId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters,
+	/**
+	 * 
+	 * @param userId
+	 * @param jobId
+	 * @param jobName
+	 * @param jobGroup
+	 * @param cronExpression
+	 * @param cronTimezone
+	 * @param recipe
+	 * @param recipeParameters
+	 * @param jobCategory
+	 * @param triggerOnLoad
+	 * @param uiState
+	 * @param jobTags
+	 * @return
+	 */
+	public static boolean insertIntoJobRecipesTable(String userId, String jobId, 
+			String jobName, String jobGroup, 
+			String cronExpression, TimeZone cronTimeZone,
+			String recipe, String recipeParameters,
 			String jobCategory, boolean triggerOnLoad, String uiState, List<String> jobTags ) {
 		
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn
-				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE) VALUES (?,?,?,?,?,?,?,?,?,?)")) {
+				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE) VALUES (?,?,?,?,?,?,?,?,?,?,?)")) {
 			int index = 1;
 			statement.setString(index++, userId);
 			statement.setString(index++, jobId);
 			statement.setString(index++, jobName);
 			statement.setString(index++, jobGroup);
 			statement.setString(index++, cronExpression);
+			statement.setString(index++, cronTimeZone.getDisplayName());
 			queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
 			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
 			statement.setString(index++, jobCategory);
@@ -464,18 +513,42 @@ public class SchedulerDatabaseUtility {
 		return true;
 	}
 	
-	public static boolean updateJobRecipesTable(String userId, String jobId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters,
-			String jobCategory, boolean triggerOnLoad, String uiState, String existingJobName, String existingJobGroup, List<String> jobTags) {
+	/**
+	 * 
+	 * @param userId
+	 * @param jobId
+	 * @param jobName
+	 * @param jobGroup
+	 * @param cronExpression
+	 * @param cronTimeZone
+	 * @param recipe
+	 * @param recipeParameters
+	 * @param jobCategory
+	 * @param triggerOnLoad
+	 * @param uiState
+	 * @param existingJobName
+	 * @param existingJobGroup
+	 * @param jobTags
+	 * @return
+	 */
+	public static boolean updateJobRecipesTable(String userId, String jobId, 
+			String jobName, String jobGroup, 
+			String cronExpression, TimeZone cronTimeZone, 
+			String recipe, String recipeParameters,
+			String jobCategory, boolean triggerOnLoad, 
+			String uiState, String existingJobName, String existingJobGroup, 
+			List<String> jobTags) {
 		
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn
-				.prepareStatement("UPDATE SMSS_JOB_RECIPES SET USER_ID = ?, JOB_NAME = ?, JOB_GROUP = ?, CRON_EXPRESSION = ?, PIXEL_RECIPE = ?, "
+				.prepareStatement("UPDATE SMSS_JOB_RECIPES SET USER_ID = ?, JOB_NAME = ?, JOB_GROUP = ?, CRON_EXPRESSION = ?, CRON_TIMEZONE= ?, PIXEL_RECIPE = ?, "
 						+ "PIXEL_RECIPE_PARAMETERS = ?, JOB_CATEGORY = ?, TRIGGER_ON_LOAD = ?, UI_STATE = ? WHERE JOB_ID = ? AND JOB_GROUP = ?")) {
 			int index = 1;
 			statement.setString(index++, userId);
 			statement.setString(index++, jobName);
 			statement.setString(index++, jobGroup);
 			statement.setString(index++, cronExpression);
+			statement.setString(index++, cronTimeZone.getDisplayName());
 			queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
 			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
 			statement.setString(index++, jobCategory);
@@ -503,6 +576,12 @@ public class SchedulerDatabaseUtility {
 		return updateJobTags(jobId, jobTags);
 	}
 
+	/**
+	 * 
+	 * @param jobId
+	 * @param jobGroup
+	 * @return
+	 */
 	public static boolean removeFromJobRecipesTable(String jobId , String jobGroup) {
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn
@@ -579,6 +658,12 @@ public class SchedulerDatabaseUtility {
 //		return true;
 //	}
 
+	/**
+	 * 
+	 * @param appId
+	 * @param jobTags
+	 * @return
+	 */
 	public static Map<String, Map<String, String>> retrieveJobsForProject(String appId, List<String> jobTags ) {
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
@@ -609,6 +694,13 @@ public class SchedulerDatabaseUtility {
 		return jobMap;
 	}
 
+	/**
+	 * 
+	 * @param appId
+	 * @param userId
+	 * @param jobTags
+	 * @return
+	 */
 	public static Map<String, Map<String, String>> retrieveUsersJobsForProject(String appId, String userId, List<String> jobTags) {
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
@@ -639,6 +731,12 @@ public class SchedulerDatabaseUtility {
 		return jobMap;
 	}
 
+	/**
+	 * 
+	 * @param userId
+	 * @param jobTags
+	 * @return
+	 */
 	public static Map<String, Map<String, String>> retrieveUsersJobs(String userId, List<String> jobTags) {
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
@@ -713,6 +811,11 @@ public class SchedulerDatabaseUtility {
 		return queryBuilder.toString();
 	}
 
+	/**
+	 * 
+	 * @param jobTags
+	 * @return
+	 */
 	public static Map<String, Map<String, String>> retrieveAllJobs(List<String> jobTags) {
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
@@ -749,6 +852,7 @@ public class SchedulerDatabaseUtility {
 		String jobName = result.getString(JOB_NAME);
 		String jobGroup = result.getString(JOB_GROUP);
 		String cronExpression = result.getString(CRON_EXPRESSION);
+		String cronTimeZone = result.getString(CRON_TIMEZONE);
 		String recipe = null;
 		String recipeParameters = null;
 		String uiState = null;
@@ -785,6 +889,7 @@ public class SchedulerDatabaseUtility {
 		jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
 		jobDetailsMap.put(ReactorKeysEnum.JOB_TAGS.getKey(), jobTags );
 		jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
+		jobDetailsMap.put(ReactorKeysEnum.CRON_TZ.getKey(), cronTimeZone);
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), recipeParameters);
 		jobDetailsMap.put(ScheduleJobReactor.UI_STATE, uiState);
@@ -812,6 +917,9 @@ public class SchedulerDatabaseUtility {
 		jobMap.put(jobKey.toString(), jobDetailsMap);
 	}
 
+	/**
+	 * 
+	 */
 	public static void executeAllTriggerOnLoads() {
 		if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
 			return;
@@ -858,6 +966,10 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 
+	/**
+	 * 
+	 * @param scheduler
+	 */
 	public static void startScheduler(Scheduler scheduler) {
 		try {
 			logger.info("Scheduler starting up...");
@@ -871,6 +983,12 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 
+	/**
+	 * 
+	 * @param jobName
+	 * @param jobGroup
+	 * @param cronExpression
+	 */
 	public static void validateInput(String jobName, String jobGroup, String cronExpression) {
 		if (jobName == null || jobName.length() <= 0) {
 			throw new IllegalArgumentException("Must provide job name");
@@ -885,6 +1003,11 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 
+	/**
+	 * 
+	 * @param recipe
+	 * @return
+	 */
 	public static String validateAndDecodeRecipe(String recipe) {
 		if (recipe == null || recipe.length() <= 0) {
 			throw new IllegalArgumentException("Must provide a recipe");
@@ -893,6 +1016,11 @@ public class SchedulerDatabaseUtility {
 		return Utility.decodeURIComponent(recipe);
 	}
 	
+	/**
+	 * 
+	 * @param recipeParameters
+	 * @return
+	 */
 	public static String validateAndDecodeRecipeParameters(String recipeParameters) {
 		if(recipeParameters == null || recipeParameters.isEmpty()) {
 			return null;
@@ -901,6 +1029,12 @@ public class SchedulerDatabaseUtility {
 		return Utility.decodeURIComponent(recipeParameters);
 	}
 
+	/**
+	 * 
+	 * @param connection
+	 * @param database
+	 * @param schema
+	 */
 	private static void createQuartzTables(Connection connection, String database, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
@@ -1117,6 +1251,12 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 
+	/**
+	 * 
+	 * @param connection
+	 * @param database
+	 * @param schema
+	 */
 	private static void createSemossTables(Connection connection, String database, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
@@ -1132,11 +1272,11 @@ public class SchedulerDatabaseUtility {
 
 		try {
 			// SMSS_JOB_RECIPES
-			colNames = new String[] { USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, 
+			colNames = new String[] { USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, 
 					JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE };
-			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB_DATATYPE, BLOB_DATATYPE, 
+			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, VARCHAR_120, BLOB_DATATYPE, BLOB_DATATYPE, 
 					VARCHAR_200, BOOLEAN_DATATYPE, BLOB_DATATYPE };
-			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null };
+			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null, null };
 
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(
