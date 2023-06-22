@@ -60,7 +60,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 	public ScheduleJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
-				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(),
+				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.CRON_TZ.getKey(), 
+				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(),
 				TRIGGER_ON_LOAD, TRIGGER_NOW, UI_STATE, ReactorKeysEnum.JOB_TAGS.getKey() };
 	}
 
@@ -77,10 +78,20 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 		// Get inputs
         String jobId = UUID.randomUUID().toString();
-		String jobName = this.keyValue.get(this.keysToGet[0]);
-		String jobGroup = this.keyValue.get(this.keysToGet[1]);
-		String cronExpression = this.keyValue.get(this.keysToGet[2]);
-
+		String jobName = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());
+		String jobGroup = this.keyValue.get(ReactorKeysEnum.JOB_GROUP.getKey());
+		String cronExpression = this.keyValue.get(ReactorKeysEnum.CRON_EXPRESSION.getKey());
+		TimeZone cronTimeZone = null;
+		String cronTz = this.keyValue.get(ReactorKeysEnum.CRON_TZ.getKey());
+		if(cronTz == null || (cronTz=cronTz.trim()).isEmpty()) {
+			cronTz = Utility.getApplicationTimeZoneId();
+		}
+		try {
+			cronTimeZone = TimeZone.getTimeZone(cronTz);
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
+		}
 		List<String> jobTags = getJobTags();
 
 		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
@@ -93,11 +104,11 @@ public class ScheduleJobReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 		
-		String recipe = this.keyValue.get(this.keysToGet[3]);
+		String recipe = this.keyValue.get(ReactorKeysEnum.RECIPE.getKey());
 		recipe = SchedulerDatabaseUtility.validateAndDecodeRecipe(recipe);
 		recipe = recipe.trim();
 		
-		String recipeParameters = this.keyValue.get(this.keysToGet[4]);
+		String recipeParameters = this.keyValue.get(ReactorKeysEnum.RECIPE_PARAMETERS.getKey());
 		recipeParameters = SchedulerDatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
 		if(recipeParameters == null) {
 			recipeParameters = "";
@@ -109,7 +120,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
-		String uiState = this.keyValue.get(this.keysToGet[7]);
+		String uiState = this.keyValue.get(UI_STATE);
 		if(uiState == null) {
 			throw new NullPointerException("UI State is null and needs to be passed");
 		}
@@ -135,7 +146,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 			}
 
 			// create json object for later use
-			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters,
+			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, 
+					cronExpression, cronTimeZone, 
+					recipe, recipeParameters,
 					triggerOnLoad, uiState, providerInfo.toString());
 
 			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
@@ -157,8 +170,11 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 			// insert into SMOSS_JOB_RECIPES table
 			logger.info("Saving JobId to database: "+jobId);
-			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, 
-					recipe, recipeParameters, "Default", triggerOnLoad, uiState, jobTags);
+			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, 
+					jobName, jobGroup, 
+					cronExpression, cronTimeZone,
+					recipe, recipeParameters, 
+					"Default", triggerOnLoad, uiState, jobTags);
 
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -186,6 +202,14 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * 
+	 * @param jsonObject
+	 * @return
+	 * @throws ParseConfigException
+	 * @throws IllegalConfigException
+	 * @throws SchedulerException
+	 */
 	protected JobKey scheduleJob(JsonObject jsonObject) throws ParseConfigException, IllegalConfigException, SchedulerException {
 		// Get the job's properties
 		JobConfig jobConfig = JobConfig.initialize(jsonObject);
@@ -194,6 +218,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		String jobName = jobConfig.getJobName();
 		String jobGroup = jobConfig.getJobGroup();
 		String cronExpression = jobConfig.getCronExpression();
+		TimeZone cronTimeZone = TimeZone.getTimeZone(jobConfig.getTimeZone());
 
 		// Get the job's data map
 		JobDataMap jobDataMap;
@@ -208,7 +233,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobId, jobGroup).usingJobData(jobDataMap).storeDurably().build();
 		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup + "TriggerGroup")
 				.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)
-						.inTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()))).build();
+				.inTimeZone(cronTimeZone)).build();
 
 		scheduler.scheduleJob(job, trigger);
 
@@ -218,13 +243,29 @@ public class ScheduleJobReactor extends AbstractReactor {
 		return job.getKey();
 	}
 
-	public static JsonObject createJsonObject(String jobId, String jobName, String jobGroup, String cronExpression, String recipe,
-			String recipeParameters, boolean triggerOnLoad, String uiState, String providerInfo) {
+	/**
+	 * 
+	 * @param jobId
+	 * @param jobName
+	 * @param jobGroup
+	 * @param cronExpression
+	 * @param cronTimeZone
+	 * @param recipe
+	 * @param recipeParameters
+	 * @param triggerOnLoad
+	 * @param uiState
+	 * @param providerInfo
+	 * @return
+	 */
+	public static JsonObject createJsonObject(String jobId, String jobName, String jobGroup, 
+			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, 
+			boolean triggerOnLoad, String uiState, String providerInfo) {
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty(JobConfigKeys.JOB_ID, jobId);
 		jsonObject.addProperty(JobConfigKeys.JOB_NAME, jobName);
 		jsonObject.addProperty(JobConfigKeys.JOB_GROUP, jobGroup);
 		jsonObject.addProperty(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
+		jsonObject.addProperty(JobConfigKeys.JOB_CRON_TIMEZONE, cronTimeZone.getDisplayName());
 		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
 		jsonObject.addProperty(JobConfigKeys.UI_STATE, uiState);
 		jsonObject.addProperty(JobConfigKeys.USER_ACCESS, providerInfo);
