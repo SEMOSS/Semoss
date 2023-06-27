@@ -346,6 +346,7 @@ def run_guanaco(nl_query, max_tokens_value,api_base, stop_sequences=["#", ";"], 
   for response in client.generate_stream(compose_sql_prompt(nl_query), temperature=temperature_val,top_p=top_p_val, max_new_tokens=max_tokens_value, stop_sequences=stop_sequences, **kwargs):
     if not response.token.special:
         text += response.token.text
+  text = text.replace('\r', ' ').replace('\n', ' ').replace('`', '')
   print(text)
   return text
 
@@ -391,7 +392,9 @@ def compose_prompt_qa(context=None, question=None):
   prompt = f"Context information is below. \n---------------------\n{context}\n---------------------\nGiven the context information and not prior knowledge, answer the question: {question}\n"
   return prompt
 
-def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200, prev_response=None, stop_sequences=["###", "#", ";"], **kwargs):
+def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200, prev_response=None, stop_sequences=["###"], **kwargs):
+  if context == "":
+    context=None
   text = ""
   finish_reason = ""
   input_text = compose_prompt(context, question)
@@ -418,6 +421,8 @@ def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200,
 def chat_guanaco_code(context=None, question = None, client=None, prev_response=None, max_new_tokens=100, stop_sequences=["###", ";"], incremental=False,  **kwargs):
   text = ""
   # code starts with ``` and ends with ```
+  if context == "":
+    context=None
   input_text = compose_prompt(context, question)
   if(prev_response is not None):
     input_text = f"{input_text} {prev_response}"
