@@ -1594,135 +1594,135 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
 	}
 	
-	/**
-	 * Get all databases for setting options that the user has access to
-	 * @param user
-	 * @return
-	 */
-	public static List<Map<String, Object>> getUserDatabaseSettings(User user) {
-		return getUserDatabaseSettings(user, null);
-	}
+//	/**
+//	 * Get all databases for setting options that the user has access to
+//	 * @param user
+//	 * @return
+//	 */
+//	public static List<Map<String, Object>> getUserDatabaseSettings(User user) {
+//		return getUserDatabaseSettings(user, null);
+//	}
 	
-	/**
-	 * Get database settings - if databaseFitler passed will filter to that db otherwise returns all
-	 * @param user
-	 * @param dbFilter
-	 * @return
-	 */
-	public static List<Map<String, Object>> getUserDatabaseSettings(User user, String databaseFilter) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		// correct alias names
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
-		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "database_visibility"));
-		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "database_permission"));
-		// legacy alias names
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
-		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "app_visibility"));
-		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "app_permission"));
-		// filter to user permissions
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		if(databaseFilter != null && !databaseFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
-		}
-		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
-		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "left.outer.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-
-		Set<String> dbIdsIncluded = new HashSet<String>();
-		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while (wrapper.hasNext()) {
-				IHeadersDataRow headerRow = wrapper.next();
-				String[] headers = headerRow.getHeaders();
-				Object[] values = headerRow.getValues();
-				
-				// store the database ids
-				// we will exclude these later
-				// database id is the first one to be returned
-				dbIdsIncluded.add(values[0].toString());
-				
-				Map<String, Object> map = new HashMap<String, Object>();
-				for (int i = 0; i < headers.length; i++) {
-					map.put(headers[i], values[i]);
-				}
-				result.add(map);
-			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
-			}
-		}
-		
-		// we dont need to run 2nd query if we are filtering to one db and already have it
-		if(databaseFilter != null && !databaseFilter.isEmpty() && !result.isEmpty()) {
-			qs = new SelectQueryStruct();
-			// correct alias names
-			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-			qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
-			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "database_visibility"));
-			// legacy alias names
-			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "app_visibility"));
-			// filter to global
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-			// since some rdbms do not allow "not in ()" - we will only add if necessary
-			if (!dbIdsIncluded.isEmpty()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(dbIdsIncluded)));
-			}
-			if(databaseFilter != null && !databaseFilter.isEmpty()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
-			}
-			qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-				while(wrapper.hasNext()) {
-					IHeadersDataRow headerRow = wrapper.next();
-					String[] headers = headerRow.getHeaders();
-					Object[] values = headerRow.getValues();
-					
-					Map<String, Object> map = new HashMap<String, Object>();
-					for(int i = 0; i < headers.length; i++) {
-						map.put(headers[i], values[i]);
-					}
-					// add the others which we know
-					map.put("database_global", true);
-					map.put("database_permission", "READ_ONLY");
-					map.put("app_global", true);
-					map.put("app_permission", "READ_ONLY");
-					result.add(map);
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(wrapper != null) {
-					wrapper.cleanUp();
-				}
-			}
-			
-			// now we need to loop through and order the results
-			Collections.sort(result, new Comparator<Map<String, Object>>() {
-				@Override
-				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-					String appName1 = o1.get("low_database_name").toString();
-					String appName2 = o2.get("low_database_name").toString();
-					return appName1.compareTo(appName2);
-				}
-			});
-		}
-		
-		return result;
-	}
+//	/**
+//	 * Get database settings - if databaseFitler passed will filter to that db otherwise returns all
+//	 * @param user
+//	 * @param dbFilter
+//	 * @return
+//	 */
+//	public static List<Map<String, Object>> getUserDatabaseSettings(User user, String databaseFilter) {
+//		SelectQueryStruct qs = new SelectQueryStruct();
+//		// correct alias names
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+//		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
+//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "database_visibility"));
+//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "database_permission"));
+//		// legacy alias names
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
+//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "app_visibility"));
+//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "app_permission"));
+//		// filter to user permissions
+//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+//		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
+//		}
+//		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
+//		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "left.outer.join");
+//		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+//
+//		Set<String> dbIdsIncluded = new HashSet<String>();
+//		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
+//		IRawSelectWrapper wrapper = null;
+//		try {
+//			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+//			while (wrapper.hasNext()) {
+//				IHeadersDataRow headerRow = wrapper.next();
+//				String[] headers = headerRow.getHeaders();
+//				Object[] values = headerRow.getValues();
+//				
+//				// store the database ids
+//				// we will exclude these later
+//				// database id is the first one to be returned
+//				dbIdsIncluded.add(values[0].toString());
+//				
+//				Map<String, Object> map = new HashMap<String, Object>();
+//				for (int i = 0; i < headers.length; i++) {
+//					map.put(headers[i], values[i]);
+//				}
+//				result.add(map);
+//			}
+//		} catch (Exception e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		} finally {
+//			if(wrapper != null) {
+//				wrapper.cleanUp();
+//			}
+//		}
+//		
+//		// we dont need to run 2nd query if we are filtering to one db and already have it
+//		if(databaseFilter != null && !databaseFilter.isEmpty() && !result.isEmpty()) {
+//			qs = new SelectQueryStruct();
+//			// correct alias names
+//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+//			qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
+//			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "database_visibility"));
+//			// legacy alias names
+//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+//			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "app_visibility"));
+//			// filter to global
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+//			// since some rdbms do not allow "not in ()" - we will only add if necessary
+//			if (!dbIdsIncluded.isEmpty()) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(dbIdsIncluded)));
+//			}
+//			if(databaseFilter != null && !databaseFilter.isEmpty()) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
+//			}
+//			qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+//			try {
+//				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+//				while(wrapper.hasNext()) {
+//					IHeadersDataRow headerRow = wrapper.next();
+//					String[] headers = headerRow.getHeaders();
+//					Object[] values = headerRow.getValues();
+//					
+//					Map<String, Object> map = new HashMap<String, Object>();
+//					for(int i = 0; i < headers.length; i++) {
+//						map.put(headers[i], values[i]);
+//					}
+//					// add the others which we know
+//					map.put("database_global", true);
+//					map.put("database_permission", "READ_ONLY");
+//					map.put("app_global", true);
+//					map.put("app_permission", "READ_ONLY");
+//					result.add(map);
+//				}
+//			} catch (Exception e) {
+//				logger.error(Constants.STACKTRACE, e);
+//			} finally {
+//				if(wrapper != null) {
+//					wrapper.cleanUp();
+//				}
+//			}
+//			
+//			// now we need to loop through and order the results
+//			Collections.sort(result, new Comparator<Map<String, Object>>() {
+//				@Override
+//				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+//					String appName1 = o1.get("low_database_name").toString();
+//					String appName2 = o2.get("low_database_name").toString();
+//					return appName1.compareTo(appName2);
+//				}
+//			});
+//		}
+//		
+//		return result;
+//	}
 
 
 	/**

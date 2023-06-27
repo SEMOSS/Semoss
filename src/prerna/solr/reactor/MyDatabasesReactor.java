@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,11 +41,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 		List<String> databaseFilter = getDatabaseFilters();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 
-		List<Map<String, Object>> dbInfo = new Vector<>();
+		List<Map<String, Object>> dbInfo = new ArrayList<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseFilter, favoritesOnly, 
-					engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseFilter, favoritesOnly, engineMetadataFilter, searchTerm, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setEngines(dbInfo);
 			}
