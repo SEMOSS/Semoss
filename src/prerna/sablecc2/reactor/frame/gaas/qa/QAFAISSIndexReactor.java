@@ -17,6 +17,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.gaas.GaasBaseReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class QAFAISSIndexReactor extends GaasBaseReactor 
@@ -33,7 +35,8 @@ public class QAFAISSIndexReactor extends GaasBaseReactor
 										ReactorKeysEnum.PROJECT.getKey(),
 										ReactorKeysEnum.BASE_URL.getKey(),
 										ReactorKeysEnum.COMMAND.getKey(),
-										ReactorKeysEnum.ROW_COUNT.getKey()
+										ReactorKeysEnum.ROW_COUNT.getKey(),
+										"useLLM"
 										};
 		this.keyRequired = new int[] {1,1,1};
 	}
@@ -82,6 +85,11 @@ public class QAFAISSIndexReactor extends GaasBaseReactor
 			count = Integer.parseInt(this.store.getNoun(keysToGet[4]).get(0) + "");
 		}
 		
+		Boolean useLLM = false;
+		if(this.store.getNoun(keysToGet[5]) != null)
+		{
+			useLLM = (boolean) (this.store.getNoun(keysToGet[5]).get(0));
+		}
 		
 		String indexingFolder = basePath + baseURL;
 
@@ -97,14 +105,14 @@ public class QAFAISSIndexReactor extends GaasBaseReactor
 		if(!csv_file.exists())
 			return NounMetadata.getErrorNounMessage("No data file present, please check again ");
 
-		String output = searchData(projectId, baseURL, csvFileName, faiss_index, configName, command, count);
+		String output = searchData(projectId, baseURL, csvFileName, faiss_index, configName, command, count,useLLM);
 		
 		return new NounMetadata(output, PixelDataType.CONST_STRING);
 	}
 	
 	// base folder is relative to the project
 	
-	private String searchData(String projectId, String baseFolder, String inputFile, String indexFile, String indexName, String command, int count)
+	private String searchData(String projectId, String baseFolder, String inputFile, String indexFile, String indexName, String command, int count, Boolean useLLM)
 	{
 		// import gaas_simple_faiss as fa
 		// import faiss
@@ -133,13 +141,30 @@ public class QAFAISSIndexReactor extends GaasBaseReactor
 				baseVarName + "_index = faiss.read_index('" + indexFile + "')"
 		};
 		
-		String [] searchCommands = new String [] {				
-				 "print(a_" + projectId + "_faiss.qa('" + command + "', "
-				  + "results=" + count + ", "
-				  + "ds=" + baseVarName + "_ds, "
-				  + "index=" + baseVarName + "_index))" //6
-		};
-		
+		String [] searchCommands;
+		if(useLLM) {
+			
+			String endpoint = DIHelper.getInstance().getProperty(Constants.GUANACO_ENDPOINT);
+			if(endpoint == null || endpoint.trim().isEmpty()) {
+				throw new IllegalArgumentException("Must define endpoint to run custom models");
+			} 
+
+			 searchCommands = new String [] {				
+					 "print(a_" + projectId + "_faiss.qaLLM('" + command + "', "
+					  + "results=" + count + ", "
+					  + "ds=" + baseVarName + "_ds, "
+					  + "index=" + baseVarName + "_index,"
+					  +"endpoint='" + endpoint + "'))"
+			};
+			
+		} else {
+			searchCommands = new String [] {				
+					 "print(a_" + projectId + "_faiss.qa('" + command + "', "
+					  + "results=" + count + ", "
+					  + "ds=" + baseVarName + "_ds, "
+					  + "index=" + baseVarName + "_index))" //6
+			};
+		}
 		// check to see if the faiss index exists if so no load it
 		boolean hasIndex = (Boolean)pyt.runScript("'" + baseVarName + "_index' in locals()");
 		if(hasIndex)
