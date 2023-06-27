@@ -1961,122 +1961,122 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param usersId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getAllUserProjectSettings(User user) {
-		return getAllUserProjectSettings(user, null);
-	}
+//	public static List<Map<String, Object>> getAllUserProjectSettings(User user) {
+//		return getAllUserProjectSettings(user, null);
+//	}
 	
-	/**
-	 * Get project settings - if projectFilter passed will filter to that project otherwise returns all
-	 * @param user
-	 * @param projectFilter
-	 * @return
-	 */
-	public static List<Map<String, Object>> getAllUserProjectSettings(User user, String projectFilter) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
-		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PROJECTPERMISSION__VISIBILITY", true, "project_visibility"));
-		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "project_permission"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		if(projectFilter != null && !projectFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
-		}
-		qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
-		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "left.outer.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+//	/**
+//	 * Get project settings - if projectFilter passed will filter to that project otherwise returns all
+//	 * @param user
+//	 * @param projectFilter
+//	 * @return
+//	 */
+//	public static List<Map<String, Object>> getAllUserProjectSettings(User user, String projectFilter) {
+//		SelectQueryStruct qs = new SelectQueryStruct();
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+//		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
+//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PROJECTPERMISSION__VISIBILITY", true, "project_visibility"));
+//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "project_permission"));
+//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+//		if(projectFilter != null && !projectFilter.isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
+//		}
+//		qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
+//		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "left.outer.join");
+//		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+//
+//		Set<String> engineIdsIncluded = new HashSet<String>();
+//		
+//		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
+//
+//		IRawSelectWrapper wrapper = null;
+//		try {
+//			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+//			while(wrapper.hasNext()) {
+//				IHeadersDataRow headerRow = wrapper.next();
+//				String[] headers = headerRow.getHeaders();
+//				Object[] values = headerRow.getValues();
+//				
+//				// store the engine ids
+//				// we will exclude these later
+//				// engine id is the first one to be returned
+//				engineIdsIncluded.add(values[0].toString());
+//				
+//				Map<String, Object> map = new HashMap<String, Object>();
+//				for(int i = 0; i < headers.length; i++) {
+//					map.put(headers[i], values[i]);
+//				}
+//				result.add(map);
+//			}
+//		} catch (Exception e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		} finally {
+//			if(wrapper != null) {
+//				wrapper.cleanUp();
+//			}
+//		}
+//		
+//		// we dont need to run 2nd query if we are filtering to one db and already have it
+//		if(projectFilter != null && !projectFilter.isEmpty() && !result.isEmpty()) {
+//			qs = new SelectQueryStruct();
+//			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
+//			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+//			qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
+//			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PROJECTPERMISSION__VISIBILITY", true, "project_visibility"));
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+//			// since some rdbms do not allow "not in ()" - we will only add if necessary
+//			if(!engineIdsIncluded.isEmpty()) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "!=", new Vector<String>(engineIdsIncluded)));
+//			}
+//			if(projectFilter != null && !projectFilter.isEmpty()) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
+//			}
+//			qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+//			try {
+//				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+//				while(wrapper.hasNext()) {
+//					IHeadersDataRow headerRow = wrapper.next();
+//					String[] headers = headerRow.getHeaders();
+//					Object[] values = headerRow.getValues();
+//					
+//					Map<String, Object> map = new HashMap<String, Object>();
+//					for(int i = 0; i < headers.length; i++) {
+//						map.put(headers[i], values[i]);
+//					}
+//					// add the others which we know
+//					map.put("project_global", true);
+//					map.put("project_permission", "READ_ONLY");
+//					result.add(map);
+//				}
+//			} catch (Exception e) {
+//				logger.error(Constants.STACKTRACE, e);
+//			} finally {
+//				if(wrapper != null) {
+//					wrapper.cleanUp();
+//				}
+//			}
+//			
+//			// now we need to loop through and order the results
+//			Collections.sort(result, new Comparator<Map<String, Object>>() {
+//	
+//				@Override
+//				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+//					String appName1 = o1.get("low_project_name").toString();
+//					String appName2 = o2.get("low_project_name").toString();
+//					return appName1.compareTo(appName2);
+//				}
+//			
+//			});
+//		}
+//		
+//		return result;
+//	}
 
-		Set<String> engineIdsIncluded = new HashSet<String>();
-		
-		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
-
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while(wrapper.hasNext()) {
-				IHeadersDataRow headerRow = wrapper.next();
-				String[] headers = headerRow.getHeaders();
-				Object[] values = headerRow.getValues();
-				
-				// store the engine ids
-				// we will exclude these later
-				// engine id is the first one to be returned
-				engineIdsIncluded.add(values[0].toString());
-				
-				Map<String, Object> map = new HashMap<String, Object>();
-				for(int i = 0; i < headers.length; i++) {
-					map.put(headers[i], values[i]);
-				}
-				result.add(map);
-			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
-			}
-		}
-		
-		// we dont need to run 2nd query if we are filtering to one db and already have it
-		if(projectFilter != null && !projectFilter.isEmpty() && !result.isEmpty()) {
-			qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-			qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
-			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PROJECTPERMISSION__VISIBILITY", true, "project_visibility"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-			// since some rdbms do not allow "not in ()" - we will only add if necessary
-			if(!engineIdsIncluded.isEmpty()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "!=", new Vector<String>(engineIdsIncluded)));
-			}
-			if(projectFilter != null && !projectFilter.isEmpty()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
-			}
-			qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-				while(wrapper.hasNext()) {
-					IHeadersDataRow headerRow = wrapper.next();
-					String[] headers = headerRow.getHeaders();
-					Object[] values = headerRow.getValues();
-					
-					Map<String, Object> map = new HashMap<String, Object>();
-					for(int i = 0; i < headers.length; i++) {
-						map.put(headers[i], values[i]);
-					}
-					// add the others which we know
-					map.put("project_global", true);
-					map.put("project_permission", "READ_ONLY");
-					result.add(map);
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(wrapper != null) {
-					wrapper.cleanUp();
-				}
-			}
-			
-			// now we need to loop through and order the results
-			Collections.sort(result, new Comparator<Map<String, Object>>() {
-	
-				@Override
-				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-					String appName1 = o1.get("low_project_name").toString();
-					String appName2 = o2.get("low_project_name").toString();
-					return appName1.compareTo(appName2);
-				}
-			
-			});
-		}
-		
-		return result;
-	}
-
-///////////////////////////////////////////////
-///////////////////////////////////////////////
-/////////////////PROJECTS//////////////////////
+	///////////////////////////////////////////////
+	///////////////////////////////////////////////
+	/////////////////PROJECTS//////////////////////
 
 	/**
 	 * Return the projects the user has explicit access to
