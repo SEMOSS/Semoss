@@ -5,6 +5,7 @@ import faiss
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModel, AutoModelForSeq2SeqLM, AutoModelForQuestionAnswering, pipeline
 import numpy as np
+import smssutil
 
 # https://raw.githubusercontent.com/yashprakash13/datasets/master/arxiv_short.csv
 #from transformers import DPRContextEncoder, DPRContextEncoderTokenizer
@@ -257,7 +258,36 @@ class FAISSSearcher():
     print(answers)
     return outputs
     
+
+  # trying to make this stateless
+  def qaLLM(self, question, results=3, print_result=False, pattern=None, index=None, ds=None, endpoint=None):
+    if index is None:
+      index = self.index
+    if ds is None:
+      ds = self.ds
+    docs = self.get_result_faiss(question, results=results, json=True, print_result=print_result, index=index, ds=ds)
+    prompt=self.generate_prompt(docs, question)
+    # print(prompt)
+    from text_generation import Client
+    summaryClient = Client(endpoint)
+    summaryClient.timeout=60
+    summary=smssutil.chat_guanaco(context=None, question=prompt, client=summaryClient, max_new_tokens=2000)
+    print(summary['response'])
+    return summary['response']
   
+  def generate_prompt(self,docs, question):
+      prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+      {Content}
+
+      Question: {Question}
+      Helpful Answer:"""
+      prompt = ""
+      content = ""
+      for doc in docs:
+          content += doc['Content'] + '\n\n'
+      prompt = prompt_template.format(Content=content.strip(), Question=question)
+      return prompt
   
   #Need a way to keep the configuration - I dont know how to do multiple files
   # but all in good times
