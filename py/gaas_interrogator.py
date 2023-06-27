@@ -1,15 +1,24 @@
 
-from transformers import AutoModel, AutoTokenizer, TextStreamer
+from transformers import AutoModel, AutoTokenizer, TextStreamer, AutoModelForCausalLM
 
 #import gaas_interrogator as gi
 # i = gi.Interrogator()
 
 class Interrogator():
   
+  
+  def __init__(self, model_path=None, **kwargs):
+    print("loading tokenizer.. ", end="")
+    self.load_tokenizer(model_path)
+    print("..done")
+    print("loading model...", end="")
+    self.load_model(model_path, **kwargs)
+    print("..done")
   # mosaicml/mpt-7b-chat
   # EleutherAI/gpt-neox-20b
   #i2.load_model(model_path="mosaicml/mpt-7b-chat", model_loader=AutoModelForCausalLM, trust_remote_code=True)
-  def load_model(self, model_path=None, model_loader=AutoModel, **kwargs):
+  # orca mini-3b - "psmathur/orca_mini_3b",
+  def load_model(self, model_path=None, model_loader=AutoModelForCausalLM, **kwargs):
     assert model_path is not None
     self.model = model_loader.from_pretrained(model_path, **kwargs)
     
@@ -26,7 +35,7 @@ class Interrogator():
     assert tokenizer is not None
     self.tokenizer = tokenizer
     self.console_streamer = TextStreamer(self.tokenizer)
-    print(self.console_streamer)
+    #print(self.console_streamer)
 
   def overlay_lora(self, model=None, lora=None):
     from peft import PeftModel
@@ -54,12 +63,13 @@ class Interrogator():
     
   def ask(self, text=None, **kwargs):
     assert text is not None
-    print(self.model.device)
+    #print(self.model.device)
     tok_input = self.tokenizer(text, return_tensors="pt").to(self.model.device)
     input_ids = tok_input.input_ids.to(self.model.device)
     tok_input.attention_mask.to(self.model.device)
     new_kwargs = self.configure_params(input_ids, **kwargs)
-    print(new_kwargs)
+    #print(new_kwargs)
     
     self.model.generate(**new_kwargs)
 
+  
