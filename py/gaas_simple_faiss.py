@@ -272,16 +272,15 @@ class FAISSSearcher():
     summaryClient = Client(endpoint)
     summaryClient.timeout=60
     summary=smssutil.chat_guanaco(context=None, question=prompt, client=summaryClient, max_new_tokens=2000)
-    print(summary['response'])
-    return summary['response']
+    returnString=summary['response'].strip()
+    return returnString
   
   def generate_prompt(self,docs, question):
       prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
       {Content}
 
-      Question: {Question}
-      Helpful Answer:"""
+      Question: {Question} """
       prompt = ""
       content = ""
       for doc in docs:
