@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.gaas.qa;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,6 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.activation.MimetypesFileTypeMap;
+
+import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -44,7 +48,8 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 										ReactorKeysEnum.PROJECT.getKey(),
 										ReactorKeysEnum.BASE_URL.getKey(),
 										ReactorKeysEnum.DESCRIPTION.getKey(),
-										ReactorKeysEnum.CONTENT_LENGTH.getKey()
+										ReactorKeysEnum.CONTENT_LENGTH.getKey(),
+										ReactorKeysEnum.CONTENT_OVERLAP.getKey()
 										};
 		this.keyRequired = new int[] {1,1,1,1, 0};
 	}
@@ -104,8 +109,14 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 		if(this.store.getNoun(keysToGet[5]) != null)
 			contentLength = Integer.parseInt(this.store.getNoun(keysToGet[5]).get(0) + "");
 		
+		int contentOverlap = 0;
+		if(this.store.getNoun(keysToGet[6]) != null)
+			contentLength = Integer.parseInt(this.store.getNoun(keysToGet[6]).get(0) + "");
+		
 		CSVWriter writer = new CSVWriter(csvFileName);
 		writer.setTokenLength(contentLength);
+		writer.overlapLength(contentOverlap);
+
 		logger.info("Starting file conversions ");
 		
 		// pick up the files and convert them to CSV
@@ -232,8 +243,16 @@ public class CreateFAISSIndexReactor extends GaasBaseReactor
 			fileMap.put("last_modified_time", attr.lastModifiedTime());
 			fileMap.put("last_access_time", attr.lastAccessTime());
 			fileMap.put("size", attr.size());
-			String mimeType = Files.probeContentType(path);
+			String mimeType = null;
+			if (SystemUtils.IS_OS_MAC) {
+			     mimeType = URLConnection.guessContentTypeFromName(path.toFile().getName());
+
+			} else {
+				 mimeType = Files.probeContentType(path);
+			}
+	
 			fileMap.put("mime_type", mimeType);
+			
 			fileMap.put("name", path.getFileName() +"");
 			//fileMap.put("location", path); // need to remove the reference to project
 		}catch(Exception ex)
