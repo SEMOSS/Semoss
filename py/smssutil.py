@@ -409,7 +409,7 @@ def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200,
     if response.details is not None:
       detail = response.details
       from text_generation.types import FinishReason
-      print(f"Finished with {detail.finish_reason}")
+      # print(f"Finished with {detail.finish_reason}")
       if detail.finish_reason != "stop_sequence" and detail.finish_reason != "eos_token":
         finish_reason = f"... <Unable to complete request, please try by increasing token size from {max_new_tokens}>"
         final_output.update({"meta": finish_reason})
@@ -426,7 +426,7 @@ def chat_guanaco_code(context=None, question = None, client=None, prev_response=
   input_text = compose_prompt(context, question)
   if(prev_response is not None):
     input_text = f"{input_text} {prev_response}"
-  print(input_text)
+  # print(input_text)
   response_available = False
   str_start = -1
   str_end = -1
