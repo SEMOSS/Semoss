@@ -88,7 +88,7 @@ public class MooseChatReactor extends GaasBaseReactor {
 				} 
 				insight.getPyTranslator().runScript("from text_generation import Client");
 				String client_name = "client_" + Utility.getRandomString(6);
-				insight.getPyTranslator().runScript(client_name + " = Client('" + endpoint + "')");
+				insight.getPyTranslator().runScript(client_name + " = Client('" + endpoint + "', timeout=60)");
 				
 				int maxTokens = contentLength;
 				String function = "smssutil.chat_guanaco";
@@ -104,7 +104,7 @@ public class MooseChatReactor extends GaasBaseReactor {
 									+ paramString
 									+ ")";
 				//System.err.println("Command being Executed " + pyCommand);
-				Object answer = (HashMap)insight.getPyTranslator().runScript(pyCommand);
+				Object answer = insight.getPyTranslator().runScript(pyCommand);
 				
 				if(answer instanceof HashMap)
 					answer = ((HashMap)answer).get("response");
