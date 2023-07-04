@@ -1,5 +1,8 @@
 
-from transformers import AutoModel, AutoTokenizer, TextStreamer, AutoModelForCausalLM
+from transformers import AutoModel, AutoTokenizer, TextStreamer, AutoModelForCausalLM, TextIteratorStreamer
+from threading import Thread
+
+from gaas_streamer import SemossStreamer
 
 #import gaas_interrogator as gi
 # i = gi.Interrogator()
@@ -8,6 +11,10 @@ class Interrogator():
   
   
   def __init__(self, model_path=None, **kwargs):
+    self.output_prefix = ""
+
+    if "output_prefix" in kwargs:
+      self.output_prefix = kwargs.pop("output_prefix")
     print("loading tokenizer.. ", end="")
     self.load_tokenizer(model_path)
     print("..done")
@@ -31,10 +38,13 @@ class Interrogator():
     assert model is not None
     self.model = model
 
-  def set_tokenizer(self, tokenizer=None):
+  def set_tokenizer(self, tokenizer=None, remove_prompt=True):
     assert tokenizer is not None
     self.tokenizer = tokenizer
-    self.console_streamer = TextStreamer(self.tokenizer)
+    #self.console_streamer = TextStreamer(self.tokenizer, skip_prompt=remove_prompt)
+    #self.console_streamer = SemossStreamer(self.tokenizer, skip_prompt=remove_prompt)
+    #self.console_streamer.set_output_prefix(self.output_prefix)
+    #self.console_streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=remove_prompt)
     #print(self.console_streamer)
 
   def overlay_lora(self, model=None, lora=None):
@@ -47,8 +57,8 @@ class Interrogator():
     return self.model
   
   def configure_params(self, input_ids, temperature=0.0, max_new_tokens = 100, do_sample=True, top_p=0, top_k=0, repetition_penalty=1.1, streamer=None):
-    if streamer is None:
-      streamer = self.console_streamer # print out to the output      
+    #if streamer is None:
+    #  streamer = self.console_streamer # print out to the output      
     kwarg_dict = dict(
         input_ids=input_ids,
         max_new_tokens=max_new_tokens,
@@ -69,7 +79,15 @@ class Interrogator():
     tok_input.attention_mask.to(self.model.device)
     new_kwargs = self.configure_params(input_ids, **kwargs)
     #print(new_kwargs)
-    
+    #print("starting thread")
+    #t = Thread(target=self.model.generate, kwargs=new_kwargs)
+    #t.start()
     self.model.generate(**new_kwargs)
+    model_output = ""
+    #for new_text in self.console_streamer:
+    #  model_output += new_text
+    #  #print(new_text, end="")
+    #  yield model_output
+    #return model_output
 
   
