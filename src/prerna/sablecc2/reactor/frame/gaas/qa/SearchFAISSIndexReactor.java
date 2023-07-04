@@ -113,6 +113,8 @@ public class SearchFAISSIndexReactor extends GaasBaseReactor
 		// ds = Dataset.from_csv(csvFileName, encoding='iso-8859-1')
 		// index = faiss.read_index(faiss_index)
 		// f1.get_result_faiss(ds=ds, index=index, results=count)
+		Logger logger = getLogger(this.getClass().getName());
+
 		
 		IProject project = Utility.getProject(projectId);
 		projectId = projectId.replace("-", "_");
@@ -124,6 +126,7 @@ public class SearchFAISSIndexReactor extends GaasBaseReactor
 		PyTranslator pyt = project.getProjectPyTranslator();
 
 		String baseVarName = "a_" + projectId + "_" + baseFolder + "_" + indexName; 
+		logger.info("Loading the index.. ");
 		String [] commands = new String[] {
 				"import gaas_simple_faiss as fa", //0
 				"from datasets import Dataset", //1
@@ -132,6 +135,9 @@ public class SearchFAISSIndexReactor extends GaasBaseReactor
 				"a_" + projectId+ "_faiss = fa.FAISSSearcher()", //4
 				baseVarName + "_index = faiss.read_index('" + indexFile + "')"
 		};
+		logger.info("Loading index complete..");
+
+		logger.info("Searching.. ");
 		
 		String [] searchCommands = new String [] {				
 				 "print(a_" + projectId + "_faiss.get_result_faiss('" + command + "', "

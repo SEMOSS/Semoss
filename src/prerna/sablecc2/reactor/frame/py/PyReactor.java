@@ -15,6 +15,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution {
@@ -27,6 +28,9 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 	@Override
 	public NounMetadata execute() {
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
+				&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
+
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			if(Boolean.parseBoolean(disable_terminal)) {
 				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
@@ -61,7 +65,10 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			//if(tokens > 1) 
 			{
-				output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
+				if(nativePyServer)
+					output = pyTranslator.runScript(code) + "";
+				else
+					output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
 			} 
 			/*else {
 				//output = pyTranslator.runScript(code) + "";
