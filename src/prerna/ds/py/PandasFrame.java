@@ -748,10 +748,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 					response.add(val);
 					
 				} 
-				else if(output instanceof HashMap) // this is our main map
+				//else if(output instanceof HashMap) // this is our main map
+				else if(output instanceof Map) // this is our main map
 				{
 					
-					HashMap map = (HashMap) output;
+					Map map = (Map) output;
 					response = (List<Object>)map.get("data");
 					
 					// get the columns
