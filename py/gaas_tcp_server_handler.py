@@ -1,0 +1,189 @@
+import socket
+import sys
+import socketserver
+import json
+import logging
+import smssutil
+import traceback as tb
+from clean import PyFrame
+
+
+class TCPServerHandler(socketserver.BaseRequestHandler):
+  
+  def setup(self):
+    self.message = None
+    self.residue = None
+    self.msg_index = 0
+    self.stop = False
+    self.size = 0
+    self.my_var = {}
+    self.prefix = self.server.prefix
+    self.insight_folder = self.server.insight_folder
+    self.log_file = None
+    if self.insight_folder is not None:
+      #print(f"starting to log in location {self.insight_folder}/log.txt")
+      self.log_file = open(f"{self.insight_folder}/log.txt", "a")
+    print("Ready to start server")  
+    print(f"Server is {self.server}")
+  
+  def handle(self):
+    while not self.stop:
+      #print("listening")
+      try:
+        data = self.request.recv(4)
+        size = int.from_bytes(data, "big")
+        #print(f"receiving data {size}")
+        data = self.request.recv(size)
+        #print(f"process the data ---- {data.decode('utf-8')}")
+        self.get_final_output(data)
+        if not data: 
+          break
+          self.request.sendall(data)
+      except Exception as e:
+        print(e)
+        print("connection closed.. closing this socket")
+        self.stop_request()
+        #self.server.stop_it()
+      #print("all processing has finished !!")
+    #self.get_final_output(data)
+  
+  def get_final_output(self, data):
+    payload = ""
+    try:
+      payload = data.decode('utf-8')      
+      print(f"PAYLOAD.. {payload}")
+      # do payload manipulation here 
+      payload = json.loads(payload)
+
+      command_list = payload['payload']
+      command = ''
+      output_file = ''
+      err_file = ''
+      
+      # command, output_file, error_file
+      if(len(command_list) > 0):
+        command = command_list[0]
+      if(len(command_list) > 1):
+        output_file = command_list[1]
+      if(len(command_list) > 2):
+        err_file = command_list[2]
+
+      #print("command set to " + command)
+      #print(command_list)
+
+      if command == 'stop':
+        self.stop_request()
+      elif command == 'prefix':
+        self.prefix = output_file
+        print("set the prefix to .. " + self.prefix)
+        self.send_output("prefix set", payload, response=True)
+      
+      elif payload['operation'] == 'PYTHON':
+        print(f"Executing command {command}")
+        # old smss calls
+        if command.endswith(".py") or command.startswith('smssutil'):
+          print("executing smssutil")
+          try:
+            output = eval(command, globals(), self.my_var)
+          except Exception as e:
+            try:
+              exec(command, globals(), self.my_var)
+              output = f"executed command {command}"
+            except Exception as e:
+              print(e)
+              output = str(e)
+          print(f"executing file.. {command}")
+          output = str(output)
+          self.send_output(output, payload, operation=payload["operation"], response=True)
+
+        # all new
+        else:
+          # same trick - try to eval if it fails run as exec
+          import semoss_console as console
+          console = console.SemossConsole(socket_handler=self, payload=payload)
+          import contextlib
+          with contextlib.redirect_stdout(console), contextlib.redirect_stderr(console):
+            try:
+              output = eval(command, globals(), self.my_var)
+              #print(f"Eval output {output}")
+            except Exception as e:
+              try:
+                exec(command, globals(), self.my_var)
+                output = f"executed command {command}"
+              except Exception as e:
+                #print(e)
+                output =  ''.join(tb.format_exception(None, e, e.__traceback__))
+          output = str(output)
+          self.send_output(output, payload, operation=payload["operation"], response=True)
+      else:
+        output = f"This is a python only instance. Command {command} is not supported"
+        output = str(output)
+        print(f"{command} = {output}")
+        #output = "Response.. " + data.decode("utf-8")
+        self.send_output(output, payload, operation=payload["operation"], response=True)
+    except Exception as e:
+      output = ''.join(tb.format_exception(None, e, e.__traceback__))
+      self.send_output(output, payload, response=True, exception=True)
+      
+  def send_output(self, output, orig_payload, operation = "STDOUT", response=False, interim=False, exception=False):
+    # Do not write any prints here
+    # since the console is captured it will go into recursion
+        
+    #print("sending output " + output)
+    # make it back into payload just for epoch
+    # if this comes with prefix. it is part of the response
+    if self.prefix != "" and str(output).startswith(self.prefix):
+      output.replace(self.prefix, "")
+      operation=orig_payload["operation"]
+      response=True
+
+    if(str(output).endswith("D.O.N.E")):
+      str(output).replace("D.O.N.E", "")
+      interim = False
+
+    payload = {
+      "epoc": orig_payload['epoc'],
+      "payload": [output],
+      "response": response,
+      "operation": operation,
+      "interim": interim
+    }
+
+    if exception:
+      payload.update({"ex":output})
+
+    output = json.dumps(payload)
+    # write response back
+    size = len(output)
+    size_byte = size.to_bytes(4, 'big')
+    ret_array = bytearray(size)
+    # pack the size upfront 
+    ret_array[0:4] = size_byte
+    # pack the message next
+    ret_array[4:] = output.encode('utf-8')
+    
+    if self.log_file is not None:
+      self.log_file.write(f"{orig_payload} === {size}")
+      self.log_file.write("\n")
+      self.log_file.write(f"OUTPUT === {payload}")
+      self.log_file.flush()
+      if response and not interim:
+        self.log_file.write("\n")
+
+    
+    # send it out
+    self.request.sendall(ret_array)
+    
+  def stop_request(self):
+    if not self.stop:
+      self.server.remove_handler()
+      self.server.stop_it()
+      self.request.close()
+      import sys
+      sys.exit("Connection has been closed")
+      self.stop = True
+
+
+  def close_request(self):
+    print("close request called")
+    
