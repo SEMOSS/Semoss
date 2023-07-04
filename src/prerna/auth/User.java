@@ -108,6 +108,10 @@ public class User implements Serializable {
 	// since on reconnect we need to redo serialization. 
 	private Map<String, Boolean> insightSerializedMap = new HashMap<String, Boolean>();
 	
+	// this is the prefix used for streamers in transformers
+	// this is what will distinguish between output vs. stdout
+	public String prefix = "";
+	
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
@@ -1011,7 +1015,12 @@ public class User implements Serializable {
 					else {
 						pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 					}
-					pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
+					boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
+							&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
+					if(nativePyServer)
+						pyTupleSpace = PyUtils.getInstance().startTCPServeNativePy(this, pyTupleSpace, port);
+					else
+						pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
 				}
 			}
 			
