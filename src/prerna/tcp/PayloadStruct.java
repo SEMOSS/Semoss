@@ -19,6 +19,7 @@ public class PayloadStruct implements Serializable{
 	public boolean processed = false;
 	public boolean longRunning = false;
 	public String env = null;
+	public boolean interim = false;
 	
 	// this is a little bit of a complex logic
 	// the idea here is say you hve something that is not serializable
