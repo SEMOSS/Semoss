@@ -392,7 +392,7 @@ def compose_prompt_qa(context=None, question=None):
   prompt = f"Context information is below. \n---------------------\n{context}\n---------------------\nGiven the context information and not prior knowledge, answer the question: {question}\n"
   return prompt
 
-def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200, prev_response=None, stop_sequences=["###"], **kwargs):
+def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200, prev_response=None, stop_sequences=["###", "#", ";"], **kwargs):
   if context == "":
     context=None
   text = ""
