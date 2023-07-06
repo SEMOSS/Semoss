@@ -259,6 +259,12 @@ class FAISSSearcher():
     return outputs
     
 
+  def remove_non_ascii(self, string):
+    # Encode the string as ASCII and ignore any characters that can't be represented
+    # Decode the resulting bytes back into a string
+    string = string.encode('ascii', 'ignore').decode('ascii')
+    return string
+
   # trying to make this stateless
   def qaLLM(self, question, results=3, print_result=False, pattern=None, index=None, ds=None, endpoint=None):
     if index is None:
@@ -268,10 +274,11 @@ class FAISSSearcher():
     docs = self.get_result_faiss(question, results=results, json=True, print_result=print_result, index=index, ds=ds)
     prompt=self.generate_prompt(docs, question)
     # print(prompt)
+    prompt=self.remove_non_ascii(prompt)
     from text_generation import Client
     summaryClient = Client(endpoint)
     summaryClient.timeout=60
-    summary=smssutil.chat_guanaco(context=None, question=prompt, client=summaryClient, max_new_tokens=2000)
+    summary=smssutil.chat_guanaco(context=None, question=prompt, client=summaryClient, max_new_tokens=300)
     returnString=summary['response'].strip()
     return returnString
   
@@ -285,7 +292,7 @@ class FAISSSearcher():
       content = ""
       for doc in docs:
           content += doc['Content'] + '\n\n'
-      prompt = prompt_template.format(Content=content.strip(), Question=question)
+      prompt = prompt_template.format(Content=content.lstrip(), Question=question.strip())
       return prompt
   
   #Need a way to keep the configuration - I dont know how to do multiple files
