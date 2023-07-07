@@ -268,7 +268,10 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void setInsightFavorite(User user, String projectId, String insightId, boolean isFavorite) throws SQLException, IllegalAccessException {
-		if(!SecurityUserInsightUtils.userCanViewInsight(user, projectId, insightId)) {
+		// must have ability to edit the project
+		if(!SecurityProjectUtils.projectIsGlobal(projectId)
+				&& !SecurityUserProjectUtils.userCanEditProject(user, projectId)
+				&& !SecurityUserInsightUtils.userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify this insight");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
@@ -297,8 +300,8 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				
 				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
 				String updateQuery = updateInterp.composeQuery();
+				// this will commit the query as well
 				securityDb.insertData(updateQuery);
-				
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO USERINSIGHTPERMISSION "
@@ -320,6 +323,8 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 						ps.addBatch();
 					}
 					ps.executeBatch();
+					// commit the insertion
+					ps.getConnection().commit();
 				} catch(Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw e;
@@ -340,9 +345,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					}
 				}
 			}
-			
-			// commit regardless of insert or update
-			securityDb.commit();
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
