@@ -1004,6 +1004,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	@Override
 	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException {
+		if(this.datasourceConnected && this.dataSource != null) {
+			logger.warn("You are using bulkInsertPreparedStatement with connection pooling - this method creates a connection that must be closed");
+		}
 		// if a table name and a column name are not specified, do nothing
 		// not enough information to be meaningful
 		if(args.length < 2) {
@@ -1040,6 +1043,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	@Override
 	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
+		if(this.datasourceConnected && this.dataSource != null) {
+			logger.warn("You are using getPreparedStatement with connection pooling - this method creates a connection that must be closed");
+		}
 		boolean error = false;
 		Connection conn = null;
 		try {
@@ -1051,7 +1057,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			throw e;
 		} finally {
 			if(error) {
-				if(conn != null) {
+				if(this.datasourceConnected && this.dataSource != null && conn != null) {
 					conn.close();
 				}
 			}
@@ -1060,6 +1066,9 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	@Override
 	public DatabaseMetaData getConnectionMetadata() {
+		if(this.datasourceConnected && this.dataSource != null) {
+			logger.warn("You are using getConnectionMetadata with connection pooling - this method creates a connection that must be closed");
+		}
 		boolean error = false;
 		Connection conn = null;
 		try {
@@ -1070,7 +1079,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(error) {
-				if(conn != null) {
+				if(this.datasourceConnected && this.dataSource != null && conn != null) {
 					try {
 						conn.close();
 					} catch (SQLException e) {
