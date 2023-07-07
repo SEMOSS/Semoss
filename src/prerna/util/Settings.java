@@ -20,7 +20,9 @@ public class Settings {
 	public static final String LOAD_DB_ON_SOCKET = "LOAD_DB_ON_SOCKET"; // load the db again on the socket side or give it as engine wrapper	
 	public static final String FORCE_PORT = "FORCE_PORT"; // the port to force the connection on
 	public static final String CUSTOM_REACTOR_EXECUTION = "CUSTOM_REACTOR_EXECUTION";
+	@Deprecated
 	public static final String PY_HOME = "PY_HOME";
+	public static final String PYTHONHOME = "PYTHONHOME";
 	public static final String NATIVE_PY_SERVER = "NATIVE_PY_SERVER";
 }
 
