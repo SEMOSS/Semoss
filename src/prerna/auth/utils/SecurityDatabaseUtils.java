@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +25,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -35,11 +32,14 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.SubqueryRelationship;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
@@ -1005,6 +1005,172 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			}
 		}
 		return true;
+	}
+	
+	/**
+	 * Change the user visibility (show/hide) for a database. Without removing its permissions.
+	 * @param user
+	 * @param databaseId
+	 * @param visibility
+	 * @throws SQLException 
+	 * @throws IllegalAccessException 
+	 */
+	public static void setDbVisibility(User user, String databaseId, boolean visibility) throws SQLException, IllegalAccessException {
+		if(!SecurityUserDatabaseUtils.userCanViewDatabase(user, databaseId)) {
+			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this app.");
+		}
+		Collection<String> userIdFilters = getUserFiltersQs(user);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()){
+				UpdateQueryStruct uqs = new UpdateQueryStruct();
+				uqs.setEngine(securityDb);
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
+
+				List<IQuerySelector> selectors = new Vector<>();
+				selectors.add(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
+				List<Object> values = new Vector<>();
+				values.add(visibility);
+				uqs.setSelectors(selectors);
+				uqs.setValues(values);
+				
+				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
+				String updateQuery = updateInterp.composeQuery();
+				securityDb.insertData(updateQuery);
+				
+			} else {
+				// need to insert
+				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
+						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set app visibility");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, databaseId);
+						ps.setBoolean(parameterIndex++, visibility);
+						// default favorite as false
+						ps.setBoolean(parameterIndex++, false);
+						ps.setInt(parameterIndex++, 3);
+	
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					ps.getConnection().commit();
+				} catch(Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					if(ps != null) {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							ps.getConnection().close();
+						}
+					}
+				}
+			}
+			
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+	}
+	
+	/**
+	 * Change the user favorite (is favorite / not favorite) for a database. Without removing its permissions.
+	 * @param user
+	 * @param databaseId
+	 * @param visibility
+	 * @throws SQLException 
+	 * @throws IllegalAccessException 
+	 */
+	public static void setDbFavorite(User user, String databaseId, boolean isFavorite) throws SQLException, IllegalAccessException {
+		if (!databaseIsGlobal(databaseId)
+				&& !userCanViewDatabase(user, databaseId)) {
+			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this database.");
+		}
+		Collection<String> userIdFilters = getUserFiltersQs(user);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()){
+				UpdateQueryStruct uqs = new UpdateQueryStruct();
+				uqs.setEngine(securityDb);
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
+
+				List<IQuerySelector> selectors = new Vector<>();
+				selectors.add(new QueryColumnSelector("ENGINEPERMISSION__FAVORITE"));
+				List<Object> values = new Vector<>();
+				values.add(isFavorite);
+				uqs.setSelectors(selectors);
+				uqs.setValues(values);
+				
+				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
+				String updateQuery = updateInterp.composeQuery();
+				securityDb.insertData(updateQuery);
+				
+			} else {
+				// need to insert
+				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
+						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set app visibility");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, databaseId);
+						// default visibility as true
+						ps.setBoolean(parameterIndex++, true);
+						ps.setBoolean(parameterIndex++, isFavorite);
+						ps.setInt(parameterIndex++, 3);
+	
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					ps.getConnection().commit();
+				} catch(Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					if(ps != null) {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							ps.getConnection().close();
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
 	}
 	
 	/**
