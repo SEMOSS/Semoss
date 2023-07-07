@@ -4690,11 +4690,19 @@ public class Utility {
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
-			String py = System.getenv(Settings.PY_HOME);
+			String py = System.getenv(Settings.PYTHONHOME);
+			if(py == null) {
+				py = DIHelper.getInstance().getProperty(Settings.PYTHONHOME);
+			}
+			if(py == null) {
+				System.getenv(Settings.PY_HOME);
+			}
 			if (py == null) {
 				py = DIHelper.getInstance().getProperty(Settings.PY_HOME);
 			}
-			
+			if(py == null) {
+				throw new NullPointerException("Must define python home");
+			}
 			py = py + "/python.exe";
 			py = py.replace("\\", "/");
 
