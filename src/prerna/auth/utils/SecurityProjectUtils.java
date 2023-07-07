@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +28,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -1884,7 +1881,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void setProjectFavorite(User user, String projectId, boolean isFavorite) throws SQLException, IllegalAccessException {
-		if(!userCanViewProject(user, projectId)) {
+		if(!projectIsGlobal(projectId)
+				&& !userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this project.");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
