@@ -34,7 +34,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractEngine;
@@ -127,7 +126,7 @@ public class UploadUtilities {
 	 */
 	public static void updateMetadata(String databaseId) throws Exception {
 		Utility.synchronizeEngineMetadata(databaseId);
-		SecurityUpdateUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled());
+		SecurityDatabaseUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled());
 	}
 
 	

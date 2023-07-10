@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.engine.api.IEngine;
@@ -102,13 +101,13 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 			//////////////////////////////////////////////////////////////////////////////////////////
 			//////////////////////////////////// Cleanup Apps ////////////////////////////////////////
 			Map<String, Object> removedAppsMap = new HashMap<>();
-			List<String> appIds = SecurityDatabaseUtils.getAllDatabaseIds();
-			for (String appId : appIds) {
-				String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
-				String key = alias + "__" + appId; 
+			List<String> databaseIds = SecurityDatabaseUtils.getAllDatabaseIds();
+			for (String databaseId : databaseIds) {
+				String alias = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
+				String key = alias + "__" + databaseId; 
 				IEngine engine = null;
 				try {
-					engine = Utility.getEngine(appId);
+					engine = Utility.getEngine(databaseId);
 				} catch (Exception e) {
 					logger.error(STACKTRACE, e);
 				}
@@ -121,12 +120,12 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 						
 						// Delete from master db
 						DeleteFromMasterDB remover = new DeleteFromMasterDB();
-						remover.deleteEngineRDBMS(appId);
-						SecurityUpdateUtils.deleteDatabase(appId);
+						remover.deleteEngineRDBMS(databaseId);
+						SecurityDatabaseUtils.deleteDatabase(databaseId);
 						
 						// Delete from cluster
 						try {
-							AbstractCloudClient.getClient().deleteApp(appId);
+							AbstractCloudClient.getClient().deleteApp(databaseId);
 							
 							// Successful cleanup
 							removedAppsMap.put(key, "removed");
@@ -159,7 +158,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 						if(ClusterUtil.CONFIGURATION_BLOBS.contains(cleanedContainerName)){
 							continue;
 						}
-						if (!appIds.contains(cleanedContainerName)) {
+						if (!databaseIds.contains(cleanedContainerName)) {
 							// Cleanup the container
 							if (!dryRun) {
 								// Actually remove
