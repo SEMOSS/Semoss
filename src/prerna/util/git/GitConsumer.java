@@ -21,7 +21,7 @@ import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -341,7 +341,7 @@ public class GitConsumer {
 			logger.info("Start synchronizing project metadata...");
 			IProject engine = Utility.loadProject(smssLocation, prop);
 			logger.info("Done synchronizing project metadata");
-			SecurityUpdateUtils.setProjectCompletelyGlobal(prop.getProperty(Constants.PROJECT));
+			SecurityProjectUtils.setProjectCompletelyGlobal(prop.getProperty(Constants.PROJECT));
 			return engine;
 		} catch(IOException e) {
 			e.printStackTrace();

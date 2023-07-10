@@ -16,8 +16,8 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -197,7 +197,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 			DIHelper.getInstance().setDbProperty(databaseId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
 			logger.info(step + ") Grabbing database structure");
 			Utility.synchronizeEngineMetadata(databaseId);
-			SecurityUpdateUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled());
+			SecurityDatabaseUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled());
 			logger.info(step + ") Done");
 		} catch(Exception e) {
 			error = true;
@@ -213,7 +213,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
 				lmDeleter.deleteEngineRDBMS(databaseId);
 				// delete from security
-				SecurityUpdateUtils.deleteDatabase(databaseId);
+				SecurityDatabaseUtils.deleteDatabase(databaseId);
 			}
 		}
 		
@@ -221,7 +221,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
-				SecurityUpdateUtils.addDatabaseOwner(databaseId, user.getAccessToken(ap).getId());
+				SecurityDatabaseUtils.addDatabaseOwner(databaseId, user.getAccessToken(ap).getId());
 			}
 		}
 

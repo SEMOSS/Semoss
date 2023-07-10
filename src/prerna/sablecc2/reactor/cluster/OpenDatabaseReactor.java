@@ -6,7 +6,6 @@ import java.util.Map;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -59,7 +58,7 @@ public class OpenDatabaseReactor extends AbstractReactor {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("database_name", engine.getEngineName());
 		returnMap.put("database_id", engine.getEngineId());
-		String[] typeAndCost = SecurityUpdateUtils.getDatabaseTypeAndCost(engine.getProp());
+		String[] typeAndCost = SecurityDatabaseUtils.getDatabaseTypeAndCost(engine.getProp());
 		returnMap.put("database_type", typeAndCost[0]);	
 		returnMap.put("database_cost", typeAndCost[1]);	
 
