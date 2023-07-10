@@ -39,7 +39,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.OwlPrettyPrintFixer;
@@ -190,7 +189,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				if(!engineTypeString.equals("REMOTE") && !ignoreSmssList.contains(engineId)) {
 					// sync up the engine metadata now
 					Utility.synchronizeEngineMetadata(engineId);
-					SecurityUpdateUtils.addDatabase(engineId);
+					SecurityDatabaseUtils.addDatabase(engineId);
 				} else {
 					logger.info("Ignoring engine ... " + Utility.cleanLogString(prop.getProperty(Constants.ENGINE_ALIAS)) + " >>> " + engineId );
 				}
@@ -355,7 +354,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
 					logger.info("Deleting the engine from security..... " + Utility.cleanLogString(engine));
-					SecurityUpdateUtils.deleteDatabase(engine);
+					SecurityDatabaseUtils.deleteDatabase(engine);
 				}
 			}
 		}

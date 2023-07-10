@@ -265,8 +265,12 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// ENGINE
-		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", "TYPE", "COST" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
+				"CREATEDBY", "DATECREATED", 
+				"TYPE", "COST" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
+				"VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
+				"VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
@@ -276,16 +280,14 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("ENGINE", colNames, types));
 			}
 		}
-		// TEMPORARY CHECK! - ADDED 05/09/2022
+		// UPDATE TO CHECK ALL COLUMNS! - ADDED 07/07/2023
 		{
 			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINE", database, schema);
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(!allCols.contains("DISCOVERABLE") && !allCols.contains("discoverable")) {
-				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
-					securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("ENGINE", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
-				} else {
-					securityDb.insertData(queryUtil.alterTableAddColumn("ENGINE", "DISCOVERABLE", BOOLEAN_DATATYPE_NAME));
+			for (int i = 0; i < colNames.length; i++) {
+				String col = colNames[i];
+				if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+					String addColumnSql = queryUtil.alterTableAddColumn("ENGINE", col, types[i]);
+					securityDb.insertData(addColumnSql);
 				}
 			}
 		}
@@ -407,11 +409,15 @@ public abstract class AbstractSecurityUtils {
 		// PROJECT
 		// Type and cost are the main questions - 
 		boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
-		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", "TYPE", "COST", "CATALOGNAME", 
+		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", 
+				"CREATEDBY", "DATECREATED", 
+				"TYPE", "COST", "CATALOGNAME", 
 				"HASPORTAL", "PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
 				"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE"
 				};
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
+				"VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
+				"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
 				BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
 				TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
