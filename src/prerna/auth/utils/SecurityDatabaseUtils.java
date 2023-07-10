@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -26,6 +27,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.SmssUtilities;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -43,6 +45,7 @@ import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -50,6 +53,232 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 
 	private static final Logger logger = LogManager.getLogger(SecurityDatabaseUtils.class);
+	
+	/**
+	 * Add an entire database into the security db
+	 * @param databaseId
+	 */
+	public static void addDatabase(String databaseId) {
+		if(ignoreDatabase(databaseId)) {
+			// dont add local master or security db to security db
+			return;
+		}
+		String smssFile = DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE) + "";
+		Properties prop = Utility.loadProperties(smssFile);
+		
+		boolean global = true;
+		if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
+			global = false;
+		}
+		
+		addDatabase(databaseId, global);
+	}
+	
+	/**
+	 * Add an entire database into the security db
+	 * @param databaseId
+	 */
+	public static void addDatabase(String databaseId, boolean global) {
+		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
+		if(ignoreDatabase(databaseId)) {
+			// dont add local master or security db to security db
+			return;
+		}
+		String smssFile = DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE) + "";
+		Properties prop = Utility.loadProperties(smssFile);
+
+		String databaseName = prop.getProperty(Constants.ENGINE_ALIAS);
+		if(databaseName == null) {
+			databaseName = databaseId;
+		}
+		
+		String[] typeAndCost = getDatabaseTypeAndCost(prop);
+		boolean engineExists = containsDatabaseId(databaseId);
+		if(engineExists) {
+			logger.info("Security database already contains database with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
+			return;
+		} else {
+			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
+		} 
+		
+		// TODO: need to see when we should be updating the database metadata
+//		if(engineExists) {
+//			// update database properties anyway ... in case global was shifted for example
+//			updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
+//		}
+		
+		logger.info("Finished adding database = " + Utility.cleanLogString(databaseId));
+	}
+	
+	/**
+	 * Utility method to get the database type and cost for storage
+	 * @param prop
+	 * @return
+	 */
+	public static String[] getDatabaseTypeAndCost(Properties prop) {
+		String appType = null;
+		String appCost = null;
+		// the whole app cost stuff is completely made up...
+		// but it will look cool so we are doing it
+		String eType = prop.getProperty(Constants.ENGINE_TYPE);
+		if(eType.equals("prerna.engine.impl.rdbms.RDBMSNativeEngine")) {
+			String rdbmsType = prop.getProperty(Constants.RDBMS_TYPE);
+			if(rdbmsType == null) {
+				rdbmsType = "H2_DB";
+			}
+			rdbmsType = rdbmsType.toUpperCase();
+			appType = rdbmsType;
+			if(rdbmsType.equals("TERADATA") || rdbmsType.equals("DB2")) {
+				appCost = "$$";
+			} else {
+				appCost = "";
+			}
+		} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
+			appType = "IMPALA";
+			appCost = "$$$";
+		} else if(eType.equals("prerna.engine.impl.rdf.BigDataEngine")) {
+			appType = "RDF";
+			appCost = "";
+		} else if(eType.equals("prerna.engine.impl.rdf.RDFFileSesameEngine")) {
+			appType = "RDF";
+			appCost = "";
+		} else if(eType.equals("prerna.ds.datastax.DataStaxGraphEngine")) {
+			appType = "DATASTAX";
+			appCost = "$$$";
+		} else if(eType.equals("prerna.engine.impl.solr.SolrEngine")) {
+			appType = "SOLR";
+			appCost = "$$";
+		} else if(eType.equals("prerna.engine.impl.tinker.TinkerEngine")) {
+			String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
+			if(tinkerDriver.equalsIgnoreCase("neo4j")) {
+				appType = "NEO4J";
+				appCost = "";
+			} else {
+				appType = "TINKER";
+				appCost = "";
+			}
+		} else if(eType.equals("prerna.engine.impl.json.JsonAPIEngine") || eType.equals("prerna.engine.impl.json.JsonAPIEngine2")) {
+			appType = "JSON";
+			appCost = "";
+		} else if(eType.equals("prerna.engine.impl.app.AppEngine")) {
+			appType = "APP";
+			appCost = "$";
+		}
+		
+		return new String[]{appType, appCost};
+	}
+	
+	/**
+	 * Add a database into the security database
+	 * Default to set as not global
+	 */
+	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost) {
+		addDatabase(databaseId, databaseName, dbType, dbCost, !securityEnabled);
+	}
+	
+	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global) {
+		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL, DISCOVERABLE) "
+				+ "VALUES (?,?,?,?,?,?)";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, databaseName);
+			ps.setString(parameterIndex++, databaseId);
+			ps.setString(parameterIndex++, dbType);
+			ps.setString(parameterIndex++, dbCost);
+			ps.setBoolean(parameterIndex++, global);
+			ps.setBoolean(parameterIndex++, false);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	public static void updateDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global, boolean discoverable) {
+		String query = "UPDATE ENGINE SET ENGINENAME=?, TYPE=?, COST=?, GLOBAL=?, DISCOVERABLE=? WHERE ENGINEID=?";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, databaseName);
+			ps.setString(parameterIndex++, dbType);
+			ps.setString(parameterIndex++, dbCost);
+			ps.setBoolean(parameterIndex++, global);
+			ps.setBoolean(parameterIndex++, discoverable);
+			ps.setString(parameterIndex++, databaseId);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	public static void addDatabaseOwner(String databaseId, String userId) {
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES (?,?,?,?)";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, userId);
+			ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
+			ps.setString(parameterIndex++, databaseId);
+			ps.setBoolean(parameterIndex++, true);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
 	
 	/**
 	 * Get the database alias for a id
@@ -805,6 +1034,47 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Delete all values
+	 * @param databaseId
+	 */
+	public static void deleteDatabase(String databaseId) {
+		List<String> deletes = new Vector<>();
+		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
+//		deletes.add("DELETE FROM INSIGHT WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
+//		deletes.add("DELETE FROM WORKSPACEENGINE WHERE ENGINEID=?");
+//		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
+
+		for(String deleteQuery : deletes) {
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(deleteQuery);
+				ps.setString(1, databaseId);
+				ps.execute();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		securityDb.commit();
+	}
+	
+	/**
 	 * 
 	 * @param user
 	 * @param editedUserId
@@ -964,6 +1234,42 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			}
 		}
 		return true;
+	}
+	
+	/**
+	 * Set a database to be global
+	 * @param databaseId
+	 */
+	public static void setDatabaseCompletelyGlobal(String databaseId) {
+		{
+			String update1 = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(update1);
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, databaseId);
+				ps.execute();
+				securityDb.commit();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
 	}
 	
 	/**

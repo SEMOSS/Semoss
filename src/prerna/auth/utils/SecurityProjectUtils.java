@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -28,10 +30,13 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -52,6 +57,7 @@ import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.parser.ParserException;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.ProjectUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
@@ -62,6 +68,488 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	private static final Logger logger = LogManager.getLogger(SecurityProjectUtils.class);
 
+	/**
+	 * Add an entire project into the security db - Expectation is not to call this method but addProject(projectId, boolean global = true)
+	 * @param projectId
+	 */
+	public static void addProject(String projectId) {
+		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
+		Properties prop = Utility.loadProperties(smssFile);
+		
+		boolean global = true;
+		if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
+			global = false;
+		}
+		
+		addProject(projectId, global);
+	}
+	
+	/**
+	 * Add an entire project into the security db
+	 * @param appId
+	 */
+	public static void addProject(String projectId, boolean global) {
+		projectId = RdbmsQueryBuilder.escapeForSQLStatement(projectId);
+		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
+		Properties prop = Utility.loadProperties(smssFile);
+
+		String projectName = prop.getProperty(Constants.PROJECT_ALIAS);
+		if(projectName == null) {
+			projectName = projectId;
+		}
+		
+		boolean reloadInsights = false;
+		if(prop.containsKey(Constants.RELOAD_INSIGHTS)) {
+			String booleanStr = prop.get(Constants.RELOAD_INSIGHTS).toString();
+			reloadInsights = Boolean.parseBoolean(booleanStr);
+		}
+		
+		// TODO: we do not need type and cost for project
+		String[] typeAndCost = new String[] {"",""};
+		boolean projectExists = containsProjectId(projectId);
+ 		if(projectExists && !reloadInsights) {
+			logger.info("Security database already contains project with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
+			return;
+		} else if(!projectExists) {
+			addProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global);
+		} else if(projectExists) {
+			// delete values if currently present
+			deleteInsightsFromProjectForRecreation(projectId);
+			// update project properties anyway ... in case global was shifted for example
+			updateProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global);
+		}
+		
+		logger.info("Security database going to add project with alias = " + Utility.cleanLogString(projectName));
+		
+		// load just the insights database
+		// first see if engine is already loaded
+		boolean projectLoaded = false;
+		RDBMSNativeEngine rne = null;
+		if(Utility.projectLoaded(projectId)) {
+			rne = Utility.getProject(projectId).getInsightDatabase();
+		} else {
+			rne  = ProjectHelper.loadInsightsEngine(prop, logger);
+		}
+		
+		// i need to delete any current insights for the project
+		// before i start to insert new insights
+		String deleteQuery = "DELETE FROM INSIGHT WHERE PROJECTID='" + projectId + "'";
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		// if we are doing a reload
+		// we will want to remove unnecessary insights
+		// from the insight permissions
+		boolean existingInsightPermissions = true;
+		Set<String> insightPermissionIds = null;
+		if(reloadInsights) {
+			// need to flush out the current insights w/ permissions
+			// will keep the same permissions
+			// and perform a delta
+			logger.info("Reloading app. Retrieving existing insights with permissions");
+			String insightsWPer = "SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE PROJECTID='" + projectId + "'";
+			insightPermissionIds = QueryExecutionUtility.flushToSetString(securityDb, insightsWPer, false);
+			if(insightPermissionIds.isEmpty()) {
+				existingInsightPermissions = true;
+			}
+		}
+		
+		AbstractSqlQueryUtil securityQueryUtil = securityDb.getQueryUtil();
+		// make a prepared statement
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.bulkInsertPreparedStatement(
+					new String[]{
+							// table name
+							"INSIGHT", 
+							// column names
+							"PROJECTID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON",
+							"LASTMODIFIEDON","LAYOUT",
+							"CACHEABLE","CACHEMINUTES","CACHECRON","CACHEDON","CACHEENCRYPT",
+							"RECIPE", 
+							"SCHEMANAME"});
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		// keep a batch size so we dont get heapspace
+		final int batchSize = 5000;
+		int count = 0;
+		
+		LocalDateTime now = LocalDateTime.now();
+		Timestamp timeStamp = java.sql.Timestamp.valueOf(now);
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+
+//		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_ID_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_NAME_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_LAYOUT_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.HIDDEN_INSIGHT_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHEABLE_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHE_MINUTES_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHE_CRON_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHED_ON_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.CACHE_ENCRYPT_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_PKQL_COL));
+		qs.addSelector(new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.SCHEMA_NAME_COL));
+//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				try {
+					// grab the insight rdbms values
+					int index = 0;
+					String insightId = row[index++].toString();
+					String insightName = row[index++].toString();
+					String insightLayout = row[index++].toString();
+					Boolean isPrivate = (Boolean) row[index++];
+					if(isPrivate == null) {
+						isPrivate = false;
+					}
+					Boolean cacheable = (Boolean) row[index++];
+					if(cacheable == null) {
+						cacheable = true;
+					}
+					Integer cacheMinutes = (Integer) row[index++];
+					if(cacheMinutes == null) {
+						cacheMinutes = -1;
+					}
+					String cacheCron = (String) row[index++];
+					SemossDate cachedOn = (SemossDate) row[index++];
+					Boolean cacheEncrypt = (Boolean) row[index++];
+					if(cacheEncrypt == null) {
+						cacheEncrypt = false;
+					}
+					Object pixelObject = row[index++];
+					String schemaName = (String) row[index++];
+
+					// insert prepared statement into security db
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, insightId);
+					ps.setString(parameterIndex++, insightName);
+					ps.setBoolean(parameterIndex++, !isPrivate);
+					ps.setLong(parameterIndex++, 0);
+					ps.setTimestamp(parameterIndex++, timeStamp, cal);
+					ps.setTimestamp(parameterIndex++, timeStamp, cal);
+					ps.setString(parameterIndex++, insightLayout);
+					ps.setBoolean(parameterIndex++, cacheable);
+					ps.setInt(parameterIndex++, cacheMinutes);
+					if(cacheCron == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, cacheCron);
+					}
+					if(cachedOn == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+					} else {
+						ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(cachedOn.getLocalDateTime()), cal);
+					}
+
+					ps.setBoolean(parameterIndex++, cacheEncrypt);
+
+					// **** WITH RECENT UPDATES - THE RAW WRAPPER SHOULD NOT BE GIVING US BACK A CLOB
+					// need to determine if our input is a clob
+					// and if the database allows a clob data type
+					// use the utility method generated
+//					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, pixelObject, securityGson);
+					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, pixelObject, parameterIndex++, securityGson);
+					
+					
+					if(schemaName == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(parameterIndex++, schemaName);
+					}
+					
+					// add to ps
+					ps.addBatch();
+					// batch commit based on size
+					if (++count % batchSize == 0) {
+						logger.info("Executing batch .... row num = " + count);
+						ps.executeBatch();
+					}
+					
+					if(reloadInsights && insightPermissionIds != null && existingInsightPermissions) {
+						insightPermissionIds.remove(insightId);
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		// well, we are done looping through now
+		logger.info("Executing final batch .... row num = " + count);
+		try {
+			ps.executeBatch();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} // insert any remaining records
+		try {
+			ps.close();
+			if(securityDb.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		count = 0;
+		// same for insight meta
+		// i need to delete any current insights for the app
+		// before i start to insert new insights
+		deleteQuery = "DELETE FROM INSIGHTMETA WHERE PROJECTID='" + projectId + "'";
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		try {
+			ps = securityDb.bulkInsertPreparedStatement(
+					new String[]{"INSIGHTMETA","PROJECTID","INSIGHTID","METAKEY","METAVALUE","METAORDER"});
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
+		
+		qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow data = wrapper.next();
+				Object[] row = data.getValues();
+				Object[] raw = data.getRawValues();
+				try {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, row[0].toString());
+					ps.setString(parameterIndex++, row[1].toString());
+
+					// need to determine if our input is a clob
+					// and if the database allows a clob data type
+					// use the utility method generated
+					Object metaValue = raw[2];
+//					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, metaValue, securityGson);
+					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, metaValue, parameterIndex++, securityGson);
+					
+					// add the order
+					ps.setInt(parameterIndex++, ((Number) row[3]).intValue());
+					
+					// add to ps
+					ps.addBatch();
+					// batch commit based on size
+					if (++count % batchSize == 0) {
+						logger.info("Executing batch .... row num = " + count);
+						ps.executeBatch();
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		// well, we are done looping through now
+		logger.info("Executing final batch .... row num = " + count);
+		try {
+			ps.executeBatch();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} // insert any remaining records
+		try {
+			ps.close();
+			if(securityDb.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		// close the connection to the insights
+		// if the engine is not already loaded 
+		// since the openDb method will load it
+		if(!projectLoaded && rne != null) {
+			rne.closeDB();
+		}
+		
+		if(reloadInsights) {
+			logger.info("Modifying force reload to false");
+			Utility.changePropMapFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");	
+			
+			// need to remove existing insights w/ permissions that do not exist anymore
+			if(existingInsightPermissions && !insightPermissionIds.isEmpty()) {
+				logger.info("Removing insights with permissions that no longer exist");
+				String deleteInsightPermissionQuery = "DELETE FROM USERINSIGHTPERMISSION "
+					+ "WHERE PROJECTID='" + projectId + "'"
+					+ " AND INSIGHTID " + createFilter(insightPermissionIds);
+				try {
+					securityDb.removeData(deleteInsightPermissionQuery);
+					securityDb.commit();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		logger.info("Finished adding project = " + Utility.cleanLogString(projectId));
+	}
+	
+	/**
+	 * Add a project into the security database
+	 * Default to set as not global
+	 */
+	public static void addProject(String projectId, String projectName, String projectType, String projectCost) {
+		addProject(projectId, projectName, projectType, projectCost, !securityEnabled);
+	}
+	
+	public static void addProject(String projectID, String projectName, String projectType, String projectCost, boolean global) {
+		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL, DISCOVERABLE) "
+				+ "VALUES (?,?,?,?,?,?)";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, projectName);
+			ps.setString(parameterIndex++, projectID);
+			ps.setString(parameterIndex++, projectType);
+			ps.setString(parameterIndex++, projectCost);
+			ps.setBoolean(parameterIndex++, global);
+			ps.setBoolean(parameterIndex++, false);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	public static void addProjectOwner(String projectId, String userId) {
+		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, VISIBILITY) VALUES (?,?,?,?)";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, userId);
+			ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
+			ps.setString(parameterIndex++, projectId);
+			ps.setBoolean(parameterIndex++, true);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	public static void updateProject(String projectID, String projectName, String projectType, String projectCost, boolean global) {
+		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=? WHERE PROJECTID=?";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, projectName);
+			ps.setString(parameterIndex++, projectType);
+			ps.setString(parameterIndex++, projectCost);
+			ps.setBoolean(parameterIndex++, global);
+			ps.setString(parameterIndex++, projectID);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Delete just the insights for a project
+	 * @param appId
+	 */
+	public static void deleteInsightsFromProjectForRecreation(String projectId) {
+		projectId = RdbmsQueryBuilder.escapeForSQLStatement(projectId);
+		String deleteQuery = "DELETE FROM INSIGHT WHERE PROJECTID='" + projectId + "'";
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+	}
+	
 	/**
 	 * 
 	 * @param projectId
@@ -889,6 +1377,49 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}	
 	}
+	
+	/**
+	 * Delete all values
+	 * @param projectId
+	 */
+	public static void deleteProject(String projectId) {
+		List<String> deletes = new Vector<>();
+		deletes.add("DELETE FROM PROJECT WHERE PROJECTID=?");
+		deletes.add("DELETE FROM INSIGHT WHERE PROJECTID=?");
+		deletes.add("DELETE FROM PROJECTPERMISSION WHERE PROJECTID=?");
+		deletes.add("DELETE FROM PROJECTMETA WHERE PROJECTID=?");
+		deletes.add("DELETE FROM WORKSPACEENGINE WHERE PROJECTID=?");
+		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
+		// TODO: add the other tables...
+
+		for(String deleteQuery : deletes) {
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(deleteQuery);
+				ps.setString(1, projectId);
+				ps.execute();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		securityDb.commit();
+	}
+
 
 
 	/**
@@ -984,6 +1515,72 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 		return true;
+	}
+	
+	/**
+	 * Set a project and all its insights to be global
+	 * @param projectId
+	 */
+	public static void setProjectCompletelyGlobal(String projectId) {
+		{
+			String update1 = "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?";
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(update1);
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, projectId);
+				ps.execute();
+				securityDb.commit();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		
+		{
+			String update1 = "UPDATE INSIGHT SET GLOBAL=? WHERE PROJECTID=?";
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(update1);
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, projectId);
+				ps.execute();
+				securityDb.commit();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
 	}
 	
 	/**
