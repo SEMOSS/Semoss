@@ -10,7 +10,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 
 public class ProjectWatcher extends AbstractFileWatcher {
@@ -45,7 +44,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
 			for(String project : projects) {
 				if(!ArrayUtilityMethods.arrayContainsValue(projectIds, project)) {
-					SecurityUpdateUtils.deleteProject(project);
+					SecurityProjectUtils.deleteProject(project);
 				}
 			}
 		}
@@ -80,7 +79,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectNames);
 				}
 				
-				SecurityUpdateUtils.addProject(projectId);
+				SecurityProjectUtils.addProject(projectId);
 			}
 		} catch(Exception e){
 			logger.error(Constants.STACKTRACE, e);

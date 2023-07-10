@@ -8,7 +8,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteAppRunner;
@@ -97,7 +96,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(databaseId);
-		SecurityUpdateUtils.deleteDatabase(databaseId);
+		SecurityDatabaseUtils.deleteDatabase(databaseId);
 		return true;
 	}
 

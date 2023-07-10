@@ -14,7 +14,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -205,7 +204,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
-					SecurityUpdateUtils.addDatabaseOwner(this.databaseId, user.getAccessToken(ap).getId());
+					SecurityDatabaseUtils.addDatabaseOwner(this.databaseId, user.getAccessToken(ap).getId());
 				}
 			}
 		}

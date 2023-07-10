@@ -16,8 +16,9 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
@@ -247,7 +248,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		try {
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
-			SecurityUpdateUtils.addProject(projectId, !AbstractSecurityUtils.securityEnabled());
+			SecurityProjectUtils.addProject(projectId, !AbstractSecurityUtils.securityEnabled());
 			logger.info(step + ") Done");
 		} catch (Exception e) {
 			error = true;
@@ -264,7 +265,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
 				lmDeleter.deleteEngineRDBMS(projectId);
 				// delete from security
-				SecurityUpdateUtils.deleteDatabase(projectId);
+				SecurityDatabaseUtils.deleteDatabase(projectId);
 			}
 		}
 
@@ -272,7 +273,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
-				SecurityUpdateUtils.addProjectOwner(projectId, user.getAccessToken(ap).getId());
+				SecurityProjectUtils.addProjectOwner(projectId, user.getAccessToken(ap).getId());
 			}
 		}
 

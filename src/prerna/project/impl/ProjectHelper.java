@@ -15,8 +15,8 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.engine.api.IRawSelectWrapper;
@@ -120,11 +120,11 @@ public class ProjectHelper {
 				AbstractCloudClient.getClient().pushProject(projectId);
 			}
 
-			SecurityUpdateUtils.addProject(projectId);
+			SecurityProjectUtils.addProject(projectId);
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
-					SecurityUpdateUtils.addProjectOwner(projectId, user.getAccessToken(ap).getId());
+					SecurityProjectUtils.addProjectOwner(projectId, user.getAccessToken(ap).getId());
 				}
 			}
 
