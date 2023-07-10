@@ -143,7 +143,8 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.NotFoundException;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.cluster.util.clients.AbstractCloudClient;
@@ -2380,7 +2381,7 @@ public class Utility {
 				synchronizeEngineMetadata(engineId);
 				// need to do a check to see if this is socket side here
 				if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
-					SecurityUpdateUtils.addDatabase(engineId);
+					SecurityDatabaseUtils.addDatabase(engineId);
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);
@@ -2432,7 +2433,7 @@ public class Utility {
 			
 			// add the project if not an asset
 			if(!project.isAsset()) {
-				SecurityUpdateUtils.addProject(projectId);
+				SecurityProjectUtils.addProject(projectId);
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);

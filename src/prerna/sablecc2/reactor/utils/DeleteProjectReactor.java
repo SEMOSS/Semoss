@@ -7,7 +7,6 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
@@ -84,7 +83,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 		projectIds = projectIds.replace(projectId + ";", "");
 		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectIds);
 
-		SecurityUpdateUtils.deleteProject(projectId);
+		SecurityProjectUtils.deleteProject(projectId);
 		UserTrackingUtils.deleteProject(projectId);
 		return true;
 	}

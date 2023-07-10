@@ -32,6 +32,9 @@ public class MyProjectsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		// add creator, upvotes, total views
+		// sort by name, date created, views, upvotes, trending
+		
 		organizeKeys();
 		String limit = this.keyValue.get(this.keysToGet[0]);
 		String offset = this.keyValue.get(this.keysToGet[1]);
