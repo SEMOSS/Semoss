@@ -124,9 +124,9 @@ public class UploadUtilities {
 	 * @param databaseId
 	 * @throws Exception 
 	 */
-	public static void updateMetadata(String databaseId) throws Exception {
+	public static void updateMetadata(String databaseId, User user) throws Exception {
 		Utility.synchronizeEngineMetadata(databaseId);
-		SecurityDatabaseUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled());
+		SecurityDatabaseUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled(), user);
 	}
 
 	

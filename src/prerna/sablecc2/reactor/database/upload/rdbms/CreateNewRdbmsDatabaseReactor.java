@@ -122,7 +122,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 			// sync metadata
 			this.logger.info("Process database metadata to allow for traversing across databases");
-			UploadUtilities.updateMetadata(this.databaseId);
+			UploadUtilities.updateMetadata(this.databaseId, user);
 			this.logger.info("Complete");
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

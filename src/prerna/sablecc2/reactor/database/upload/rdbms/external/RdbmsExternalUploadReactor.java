@@ -191,7 +191,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				this.logger.info("Start generating database folder");
 				this.databaseFolder = UploadUtilities.generateDatabaseFolder(this.databaseId, this.databaseName);
 				this.logger.info("Complete");
-				generateNewDatabase();
+				generateNewDatabase(user);
 				// and rename .temp to .smss
 				this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 				FileUtils.copyFile(this.tempSmss, this.smssFile);
@@ -200,7 +200,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 				// sync metadata
 				this.logger.info("Process database metadata to allow for traversing across databases");
-				UploadUtilities.updateMetadata(this.databaseId);
+				UploadUtilities.updateMetadata(this.databaseId, user);
 
 				// adding all the git here
 				// make a version folder if one doesn't exist
@@ -248,7 +248,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	
-	private void generateNewDatabase() throws Exception {
+	private void generateNewDatabase(User user) throws Exception {
 		Logger logger = getLogger(CLASS_NAME);
 		
 		Map<String, Object> connectionDetails = getConDetails();
@@ -349,7 +349,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Process database metadata to allow for traversing across databases	");
-		UploadUtilities.updateMetadata(this.databaseId);
+		UploadUtilities.updateMetadata(this.databaseId, user);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 	}

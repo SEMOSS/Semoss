@@ -120,7 +120,7 @@ public class ProjectHelper {
 				AbstractCloudClient.getClient().pushProject(projectId);
 			}
 
-			SecurityProjectUtils.addProject(projectId);
+			SecurityProjectUtils.addProject(projectId, user);
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
