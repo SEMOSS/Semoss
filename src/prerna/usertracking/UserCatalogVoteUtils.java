@@ -6,13 +6,16 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -109,6 +112,52 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		return val;
 	}
 
+	public static Map<String, Integer> getAllVotes(List<String> databaseIds) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
+		QueryFunctionSelector sum = new QueryFunctionSelector();
+		sum.addInnerSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
+		sum.setAlias("total");
+		sum.setFunction(QueryFunctionHelper.SUM);
+		qs.addSelector(sum);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", databaseIds));
+		qs.addGroupBy(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
+		
+		Map<String, Integer> votes = new HashMap<>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				Object[] values = headerRow.getValues();
+				votes.put((String) values[0], ((Number) values[0]).intValue());
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return votes;
+	}
+	
+	public static IRawSelectWrapper getAllVotesWrapper(Collection<String> databaseIds) throws Exception {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
+		QueryFunctionSelector sum = new QueryFunctionSelector();
+		sum.addInnerSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
+		sum.setAlias("total");
+		sum.setFunction(QueryFunctionHelper.SUM);
+		qs.addSelector(sum);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", databaseIds));
+		qs.addGroupBy(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
+		return wrapper;
+	}
+	
 	public static void vote(List<Pair<String, String>> creds, String catalogId, int vote) {
 		Map<Pair<String, String>, Integer> votes = getVote(creds, catalogId);
 
