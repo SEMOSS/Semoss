@@ -79,7 +79,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectNames);
 				}
 				
-				SecurityProjectUtils.addProject(projectId);
+				SecurityProjectUtils.addProject(projectId, null);
 			}
 		} catch(Exception e){
 			logger.error(Constants.STACKTRACE, e);
