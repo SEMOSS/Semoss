@@ -133,6 +133,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 		return new NounMetadata(dbInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	private List<String> getDatabaseFilters() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
 		if(grs != null && !grs.isEmpty()) {
@@ -142,6 +146,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	private List<String> getMetaKeys() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
 		if(grs != null && !grs.isEmpty()) {
@@ -151,6 +159,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	private Map<String, Object> getMetaMap() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
@@ -166,6 +178,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 		return null;
 	}
 
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
