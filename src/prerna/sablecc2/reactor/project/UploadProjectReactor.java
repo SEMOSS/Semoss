@@ -248,7 +248,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		try {
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
-			SecurityProjectUtils.addProject(projectId, !AbstractSecurityUtils.securityEnabled());
+			SecurityProjectUtils.addProject(projectId, !AbstractSecurityUtils.securityEnabled(), user);
 			logger.info(step + ") Done");
 		} catch (Exception e) {
 			error = true;

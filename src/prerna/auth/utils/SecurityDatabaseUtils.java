@@ -58,7 +58,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * Add an entire database into the security db
 	 * @param databaseId
 	 */
-	public static void addDatabase(String databaseId) {
+	public static void addDatabase(String databaseId, User user) {
 		if(ignoreDatabase(databaseId)) {
 			// dont add local master or security db to security db
 			return;
@@ -71,14 +71,14 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			global = false;
 		}
 		
-		addDatabase(databaseId, global);
+		addDatabase(databaseId, global, user);
 	}
 	
 	/**
 	 * Add an entire database into the security db
 	 * @param databaseId
 	 */
-	public static void addDatabase(String databaseId, boolean global) {
+	public static void addDatabase(String databaseId, boolean global, User user) {
 		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
 		if(ignoreDatabase(databaseId)) {
 			// dont add local master or security db to security db
@@ -98,7 +98,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			logger.info("Security database already contains database with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
-			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
+			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global, user);
 		} 
 		
 		// TODO: need to see when we should be updating the database metadata
@@ -172,13 +172,13 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 * Add a database into the security database
 	 * Default to set as not global
 	 */
-	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost) {
-		addDatabase(databaseId, databaseName, dbType, dbCost, !securityEnabled);
+	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost, User user) {
+		addDatabase(databaseId, databaseName, dbType, dbCost, !securityEnabled, user);
 	}
 	
-	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global) {
-		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL, DISCOVERABLE) "
-				+ "VALUES (?,?,?,?,?,?)";
+	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global, User user) {
+		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -190,8 +190,20 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, dbCost);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
+			if(user != null) {
+				AuthProvider ap = user.getPrimaryLogin();
+				AccessToken token = user.getAccessToken(ap);
+				ps.setString(parameterIndex++, token.getId());
+				ps.setString(parameterIndex++, ap.toString());
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			}
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
