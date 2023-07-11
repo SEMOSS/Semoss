@@ -266,10 +266,10 @@ public abstract class AbstractSecurityUtils {
 		
 		// ENGINE
 		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
-				"CREATEDBY", "DATECREATED", 
+				"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
 				"TYPE", "COST" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
-				"VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
+				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
 				"VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
@@ -410,13 +410,13 @@ public abstract class AbstractSecurityUtils {
 		// Type and cost are the main questions - 
 		boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
 		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", 
-				"CREATEDBY", "DATECREATED", 
+				"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
 				"TYPE", "COST", "CATALOGNAME", 
 				"HASPORTAL", "PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
 				"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE"
 				};
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
-				"VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
+				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
 				"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
 				BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
 				TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
