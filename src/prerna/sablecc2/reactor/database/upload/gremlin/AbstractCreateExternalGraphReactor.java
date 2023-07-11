@@ -277,7 +277,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 		logger.info("5. Process database metadata to allow for traversing across databases	");
 		try {
-			UploadUtilities.updateMetadata(this.newDatabaseId);
+			UploadUtilities.updateMetadata(this.newDatabaseId, user);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
