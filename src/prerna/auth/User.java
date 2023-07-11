@@ -231,6 +231,13 @@ public class User implements Serializable {
 		return this.primaryLogin;
 	}
 	
+	public AccessToken getPrimaryLoginToken() {
+		if(this.primaryLogin == null && isLoggedIn()) {
+			this.primaryLogin = this.loggedInProfiles.get(0);
+		}
+		return accessTokens.get(primaryLogin);
+	}
+	
 	public void setPrimaryLogin(AuthProvider primaryLogin) {
 		this.primaryLogin = primaryLogin;
 	}

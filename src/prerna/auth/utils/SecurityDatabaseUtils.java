@@ -2241,6 +2241,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
@@ -2600,6 +2603,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
 		if(databaseFilters != null && !databaseFilters.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilters));
@@ -2665,6 +2671,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -2746,6 +2755,9 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
