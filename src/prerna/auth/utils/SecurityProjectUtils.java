@@ -72,7 +72,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Add an entire project into the security db - Expectation is not to call this method but addProject(projectId, boolean global = true)
 	 * @param projectId
 	 */
-	public static void addProject(String projectId) {
+	public static void addProject(String projectId, User user) {
 		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 		
@@ -81,14 +81,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			global = false;
 		}
 		
-		addProject(projectId, global);
+		addProject(projectId, global, user);
 	}
 	
 	/**
 	 * Add an entire project into the security db
 	 * @param appId
 	 */
-	public static void addProject(String projectId, boolean global) {
+	public static void addProject(String projectId, boolean global, User user) {
 		projectId = RdbmsQueryBuilder.escapeForSQLStatement(projectId);
 		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
@@ -111,7 +111,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.info("Security database already contains project with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else if(!projectExists) {
-			addProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global);
+			addProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global, user);
 		} else if(projectExists) {
 			// delete values if currently present
 			deleteInsightsFromProjectForRecreation(projectId);
@@ -429,13 +429,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Add a project into the security database
 	 * Default to set as not global
 	 */
-	public static void addProject(String projectId, String projectName, String projectType, String projectCost) {
-		addProject(projectId, projectName, projectType, projectCost, !securityEnabled);
+	public static void addProject(String projectId, String projectName, String projectType, String projectCost, User user) {
+		addProject(projectId, projectName, projectType, projectCost, !securityEnabled, user);
 	}
 	
-	public static void addProject(String projectID, String projectName, String projectType, String projectCost, boolean global) {
-		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL, DISCOVERABLE) "
-				+ "VALUES (?,?,?,?,?,?)";
+	public static void addProject(String projectID, String projectName, String projectType, String projectCost, boolean global, User user) {
+		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -447,8 +447,20 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectCost);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
+			if(user != null) {
+				AuthProvider ap = user.getPrimaryLogin();
+				AccessToken token = user.getAccessToken(ap);
+				ps.setString(parameterIndex++, token.getId());
+				ps.setString(parameterIndex++, ap.toString());
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			}
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {

@@ -120,7 +120,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				addToExistingDatabase(filePath);
 				// sync metadata
 				this.logger.info("Process database metadata to allow for traversing across databases");
-				UploadUtilities.updateMetadata(this.database.getEngineId());
+				UploadUtilities.updateMetadata(this.database.getEngineId(), user);
 				this.logger.info("Complete");
 				this.logger.info("Delete OWL position map");
 				File owlF = this.database.getOwlPositionFile();
@@ -167,7 +167,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 				// sync metadata
 				this.logger.info("Process database metadata to allow for traversing across databases");
-				UploadUtilities.updateMetadata(this.databaseId);
+				UploadUtilities.updateMetadata(this.databaseId, user);
 				
 				// adding all the git here
 				// make a version folder if one doesn't exist

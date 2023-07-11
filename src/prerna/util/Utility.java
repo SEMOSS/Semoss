@@ -2381,7 +2381,7 @@ public class Utility {
 				synchronizeEngineMetadata(engineId);
 				// need to do a check to see if this is socket side here
 				if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
-					SecurityDatabaseUtils.addDatabase(engineId);
+					SecurityDatabaseUtils.addDatabase(engineId, null);
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);
@@ -2433,7 +2433,7 @@ public class Utility {
 			
 			// add the project if not an asset
 			if(!project.isAsset()) {
-				SecurityProjectUtils.addProject(projectId);
+				SecurityProjectUtils.addProject(projectId, null);
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);

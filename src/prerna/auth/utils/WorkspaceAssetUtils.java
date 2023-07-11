@@ -41,60 +41,42 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////
 	
 	/**
-	 * Create the user workspace project for the provided access token
-	 * @param token
-	 * @return
-	 * @throws Exception 
-	 */
-	public static String createUserWorkspaceProject(AccessToken token) throws Exception {
-		String projectId = createEmptyProject(token, WORKSPACE_APP_NAME, false);
-		registerUserWorkspaceProject(token, projectId);
-		return projectId;
-	}
-	
-	/**
 	 * Create the user workspace project for the provided user and auth token
 	 * @param user
-	 * @param token
+	 * @param provider
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public static String createUserWorkspaceProject(User user, AuthProvider token) throws Exception {
-		return createUserWorkspaceProject(user.getAccessToken(token));
-	}
-	
-	/**
-	 * Create the user asset project for the provided access token
-	 * @param token
-	 * @return
-	 * @throws Exception 
-	 */
-	public static String createUserAssetProject(AccessToken token) throws Exception {
-		String projectId = createEmptyProject(token, ASSET_APP_NAME, true);
-		registerUserAssetProject(token, projectId);
+	public static String createUserWorkspaceProject(User user, AuthProvider provider) throws Exception {
+		String projectId = createEmptyProject(user, provider, WORKSPACE_APP_NAME, false);
+		registerUserWorkspaceProject(user.getAccessToken(provider), projectId);
 		return projectId;
 	}
 	
 	/**
 	 * Create the user asset project for the provided user and auth token
 	 * @param user
-	 * @param token
+	 * @param provider
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public static String createUserAssetProject(User user, AuthProvider token) throws Exception {
-		return createUserAssetProject(user.getAccessToken(token));
+	public static String createUserAssetProject(User user, AuthProvider provider) throws Exception {
+		String projectId = createEmptyProject(user, provider, ASSET_APP_NAME, true);
+		registerUserAssetProject(user.getAccessToken(provider), projectId);
+		return projectId;
 	}
 	
 	/**
-	 * Generate 
-	 * @param token
+	 * Generate empty project that is for asset/workspace
+	 * @param user
+	 * @param provider
 	 * @param projectName
 	 * @param isAsset
 	 * @return
 	 * @throws Exception
 	 */
-	private static String createEmptyProject(AccessToken token, String projectName, boolean isAsset) throws Exception {
+	private static String createEmptyProject(User user, AuthProvider provider, String projectName, boolean isAsset) throws Exception {
+		AccessToken token = user.getAccessToken(provider);
 		// Create a new project id
 		String projectId = UUID.randomUUID().toString();
 
@@ -108,7 +90,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		
 		// Add the project to security db
 		if(!isAsset) {
-			SecurityProjectUtils.addProject(projectId, false);
+			SecurityProjectUtils.addProject(projectId, false, user);
 			SecurityProjectUtils.addProjectOwner(projectId, token.getId());
 		}
 		
