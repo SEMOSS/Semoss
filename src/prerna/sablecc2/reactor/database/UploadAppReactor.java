@@ -203,7 +203,7 @@ public class UploadAppReactor extends AbstractInsightReactor {
 			logger.info(step + ") Grabbing app structure");
 			Utility.synchronizeEngineMetadata(appId);
 			logger.info(step + ") Done");
-			SecurityDatabaseUtils.addDatabase(appId, !AbstractSecurityUtils.securityEnabled());
+			SecurityDatabaseUtils.addDatabase(appId, !AbstractSecurityUtils.securityEnabled(), user);
 		} catch(Exception e) {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);

@@ -189,7 +189,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				if(!engineTypeString.equals("REMOTE") && !ignoreSmssList.contains(engineId)) {
 					// sync up the engine metadata now
 					Utility.synchronizeEngineMetadata(engineId);
-					SecurityDatabaseUtils.addDatabase(engineId);
+					SecurityDatabaseUtils.addDatabase(engineId, null);
 				} else {
 					logger.info("Ignoring engine ... " + Utility.cleanLogString(prop.getProperty(Constants.ENGINE_ALIAS)) + " >>> " + engineId );
 				}
