@@ -92,6 +92,7 @@ public enum ReactorKeysEnum {
 	IMAGE("image",		 										"The location of the image file or the encoding of the image as a png"),
 	IMAGE_WAIT_TIME("imageWaitTime",		 					"Time in ms to wait for the image to be generated on the BE before operations like screenshots"),
 	INCLUDE_META_KEY("meta", 									"Boolean indication (true or false) of whether to retrieve metadata"),
+	INCLUDE_USERTRACKING_KEY("userT", 							"Boolean indication (true or false) of whether to retrieve user tracking metrics"),
 	INDEX("index", 												"A specified index for an object (e.g., the frame filter)"),
 	INSIGHT_NAME("insightName", 								"Name of the insight"),
 	INSIGHT_ORNAMENT("insightOrnament", 						"Insight ornament map"),
