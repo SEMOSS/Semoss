@@ -161,6 +161,9 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/DISCOVERABLE/ENGINE")) {
 				return true;
 			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CREATEDBY/ENGINE")) {
+				return true;
+			}
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ID/DATABASEACCESSREQUEST")) {
@@ -169,6 +172,9 @@ public class SecurityOwlCreator {
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PROJECT");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/REACTORSCOMPILED/PROJECT")) {
+				return true;
+			}
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CREATEDBY/PROJECT")) {
 				return true;
 			}
 			
@@ -249,7 +255,10 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINE", "DISCOVERABLE", "BOOLEAN");
 		owler.addProp("ENGINE", "TYPE", "VARCHAR(255)");
 		owler.addProp("ENGINE", "COST", "VARCHAR(255)");
-		
+		owler.addProp("ENGINE", "CREATEDBY", "VARCHAR(255)");
+		owler.addProp("ENGINE", "CREATEDBYTYPE", "VARCHAR(255)");
+		owler.addProp("ENGINE", "DATECREATED", "TIMESTAMP");
+
 		// ENGINEMETA
 		owler.addConcept("ENGINEMETA", null, null);
 		owler.addProp("ENGINEMETA", "ENGINEID", "VARCHAR(255)");
@@ -282,6 +291,9 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECT", "REACTORSCOMPILED", "TIMESTAMP");
 		owler.addProp("PROJECT", "REACTORSCOMPILEDUSER", "VARCHAR(255)");
 		owler.addProp("PROJECT", "REACTORSCOMPILEDTYPE", "VARCHAR(255)");
+		owler.addProp("PROJECT", "CREATEDBY", "VARCHAR(255)");
+		owler.addProp("PROJECT", "CREATEDBYTYPE", "VARCHAR(255)");
+		owler.addProp("PROJECT", "DATECREATED", "TIMESTAMP");
 		
 		//PROJECTPERMISSION
 		owler.addConcept("PROJECTPERMISSION", null, null);
