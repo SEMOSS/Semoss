@@ -37,6 +37,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	private static String VOTE_TN = "USER_CATALOG_VOTES";
 	private static String VOTE_PRE = "USER_CATALOG_VOTES__";
 	
+	/**
+	 * 
+	 * @param creds
+	 * @param catalogId
+	 * @return
+	 */
 	public static Map<Pair<String, String>, Integer> getVote(List<Pair<String, String>> creds, String catalogId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "USERID"));
@@ -80,6 +86,11 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		return votes;
 	}
 
+	/**
+	 * 
+	 * @param databaseId
+	 * @return
+	 */
 	public static int getAllVotes(String databaseId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector sum = new QueryFunctionSelector();
@@ -112,6 +123,11 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		return val;
 	}
 
+	/**
+	 * 
+	 * @param databaseIds
+	 * @return
+	 */
 	public static Map<String, Integer> getAllVotes(List<String> databaseIds) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
@@ -143,6 +159,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		return votes;
 	}
 	
+	/**
+	 * 
+	 * @param databaseIds
+	 * @return
+	 * @throws Exception
+	 */
 	public static IRawSelectWrapper getAllVotesWrapper(Collection<String> databaseIds) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
@@ -158,6 +180,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		return wrapper;
 	}
 	
+	/**
+	 * 
+	 * @param creds
+	 * @param catalogId
+	 * @param vote
+	 */
 	public static void vote(List<Pair<String, String>> creds, String catalogId, int vote) {
 		Map<Pair<String, String>, Integer> votes = getVote(creds, catalogId);
 
@@ -184,6 +212,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param creds
+	 * @param catalogId
+	 * @param vote
+	 */
 	private static void update(List<Pair<String, String>> creds, String catalogId, int vote) {
 		String query = "UPDATE " + VOTE_TN + " SET VOTE = ?, LAST_MODIFIED = ? WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
 		
@@ -222,6 +256,11 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		}	
 	}
 
+	/**
+	 * 
+	 * @param creds
+	 * @param catalogId
+	 */
 	public static void delete(List<Pair<String, String>> creds, String catalogId) {
 		 String query = "DELETE FROM " + VOTE_TN + " WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
 		 PreparedStatement ps = null;
@@ -255,6 +294,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 			}
 	}
 
+	/**
+	 * 
+	 * @param creds
+	 * @param cid
+	 * @param vote
+	 */
 	private static void insert(List<Pair<String, String>> creds, String cid, int vote) {
 		String query = "INSERT INTO " + VOTE_TN + " (USERID, TYPE, ENGINEID, VOTE, LAST_MODIFIED) VALUES (?, ?, ?, ?, ?)";
 		
@@ -294,9 +339,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		}
 	}
 
-	
-	
-	
+	/**
+	 * 
+	 * @param limit
+	 * @param accessibleDbs
+	 * @return
+	 */
 	public static List<String> getRecommendedDatabases(int limit, List<String> accessibleDbs) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
