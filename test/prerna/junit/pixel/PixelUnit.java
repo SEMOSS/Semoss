@@ -64,7 +64,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.configure.Me;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyUtils;
@@ -375,7 +375,7 @@ public class PixelUnit {
 
 				// Else, its just metadata hanging around
 				remover.deleteEngineRDBMS(appId);
-				SecurityUpdateUtils.deleteDatabase(appId);
+				SecurityDatabaseUtils.deleteDatabase(appId);
 			}
 		}
 
