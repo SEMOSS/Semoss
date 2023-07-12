@@ -612,6 +612,19 @@ public abstract class AbstractReactor implements IReactor {
 		return LogManager.getLogger(className);
 	}
 	
+	@Override
+	public Logger getLogger(String className, boolean partial) {
+		String jobId = ThreadStore.getJobId();
+		if(jobId != null) {
+			this.jobId = jobId;
+			InMemoryConsole retLogger = new InMemoryConsole(className, this.jobId);
+			retLogger.setPartial(true);
+			return retLogger;
+		}
+		
+		return LogManager.getLogger(className);
+	}
+	
 	/**
 	 * Get the session id set in the job
 	 * @return
