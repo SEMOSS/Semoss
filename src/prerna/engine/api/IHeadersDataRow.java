@@ -1,12 +1,10 @@
 package prerna.engine.api;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import com.google.gson.TypeAdapter;
 
 import prerna.util.gson.HeadersDataRowAdapter;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public interface IHeadersDataRow{
 
