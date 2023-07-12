@@ -14,6 +14,7 @@ public class InMemoryConsole extends Logger {
 	private LOG_LEVEL level = LOG_LEVEL.BASIC;
 
 	private String jobID;
+	private boolean partial;
 	
 	public InMemoryConsole(String name, String jobId) {
 		super((LoggerContext) LogManager.getContext(false), name, null);
@@ -39,6 +40,14 @@ public class InMemoryConsole extends Logger {
 //		//add appender to the logger
 //		addAppender(console);
 //	}
+	
+	/**
+	 * 
+	 * @param partial
+	 */
+	public void setPartial(boolean partial) {
+		this.partial = partial;
+	}
 
 	public void setJobID(String jobID) {
 		this.jobID = jobID;
@@ -63,7 +72,11 @@ public class InMemoryConsole extends Logger {
 	{
 		super.info(this.jobID + " >> " + Utility.cleanLogString(message.toString()));
 		if(level == LOG_LEVEL.INFO || level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
-			JobManager.getManager().addStdOut(jobID, message + "");
+			if(partial) {
+				JobManager.getManager().addPartialOut(jobID, message + "");
+			} else {
+				JobManager.getManager().addStdOut(jobID, message + "");
+			}
 		}
 	}
 	

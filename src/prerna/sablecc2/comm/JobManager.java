@@ -1,8 +1,10 @@
 package prerna.sablecc2.comm;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -35,6 +37,12 @@ public class JobManager {
 	
 	// keeps the job to thread
 	private Hashtable <String, JobThread> threadPool = new Hashtable<String, JobThread>();
+	
+	// hashtable of job id to stdOut messages
+	private Hashtable <String, StringBuilder> jobPartialOut = new Hashtable <String, StringBuilder>();
+	
+	//hashtable of job id to offset
+	private Hashtable <String, Integer> jobPartialOutOffset = new Hashtable<String, Integer>();
 	
 	private JobManager() {
 		
@@ -140,6 +148,45 @@ public class JobManager {
 		}
 	}
 	
+	public void addPartialOut(String jobId, String stdOut)	{
+		StringBuilder builder = null;
+		if(jobPartialOut.containsKey(jobId)) {
+			builder = jobPartialOut.get(jobId);
+		} else {
+			builder = new StringBuilder();
+			jobPartialOut.put(jobId, builder);
+		}
+		synchronized(builder) {
+			builder.append(stdOut);
+		}
+	}
+	
+	public Map<String, String> getPartial(String jobId) {
+		int curOffset = 0;
+		if(jobPartialOutOffset.containsKey(jobId)) {
+			curOffset = jobPartialOutOffset.get(jobId);
+		}
+		return getPartial(jobId, curOffset);
+	}
+	
+	public Map<String, String> getPartial(String jobId, int offset) {
+		StringBuilder builder = jobPartialOut.get(jobId);
+		if(builder == null || builder.length() == 0) {
+			return new HashMap<>();
+		}
+		synchronized(builder) {
+			Map<String, String> retMap = new HashMap<>();
+			int size = builder.length();
+			retMap.put("total", builder.toString());
+			String newMessage = builder.substring(offset, size);
+			retMap.put("new", newMessage);
+			// update the offset
+			int newOffset = size;
+			jobPartialOutOffset.put(jobId, newOffset);
+			return retMap;
+		}
+	}
+	
 	public String getStatus(String jobId) {
 		return threadPool.get(jobId).getStatus();
 	}
@@ -168,12 +215,16 @@ public class JobManager {
 		}
 	}
 	
-	public void flushJob(String jobId) {
+	public void clearJob(String jobId) {
 		jobStatus.remove(jobId);
 		jobError.remove(jobId);
 		stdOutOffset.remove(jobId);
 		errorOffset.remove(jobId);
 		jobStdOut.remove(jobId);
+		
+		// partial as well
+		jobPartialOut.remove(jobId);
+		jobPartialOutOffset.remove(jobId);
 	}
 	
 	public void flagStatus(String jobId, JobStatus status) {
