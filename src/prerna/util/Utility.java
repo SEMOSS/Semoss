@@ -120,6 +120,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.json.JSONObject;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 import org.owasp.encoder.Encode;
@@ -3307,6 +3308,179 @@ public class Utility {
 				}
 				// write row to file
 				bufferedWriter.write(builder.append("\n").toString());
+			}
+
+		} catch (IOException ioe) {
+			logger.error(Constants.STACKTRACE, ioe);
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+			} catch (IOException ioe) {
+				logger.error(Constants.STACKTRACE, ioe);
+			}
+			try {
+				if (osw != null) {
+					osw.close();
+				}
+			} catch (IOException ioe) {
+				logger.error(Constants.STACKTRACE, ioe);
+			}
+			try {
+				if (fos != null) {
+					fos.close();
+				}
+			} catch (IOException ioe) {
+				logger.error(Constants.STACKTRACE, ioe);
+			}
+		}
+
+		long end = System.currentTimeMillis();
+		logger.info("Time to output file = " + (end - start) + " ms. File written to:" + Utility.normalizePath(fileLocation));
+
+		return f;
+	}
+	
+	public static File writeResultToJson(String fileLocation, Iterator<IHeadersDataRow> it,
+			Map<String, SemossDataType> typesMap, IStringExportProcessor... exportProcessors) {
+		long start = System.currentTimeMillis();
+
+		// make sure file is empty so we are only inserting the new values
+		File f = new File(fileLocation);
+		if (f.exists()) {
+			logger.debug("File currently exists.. deleting file");
+			f.delete();
+		}
+		try {
+			f.createNewFile();
+		} catch (IOException ioe) {
+			logger.error(Constants.STACKTRACE, ioe);
+		}
+
+		FileOutputStream fos = null;
+		OutputStreamWriter osw = null;
+		BufferedWriter bufferedWriter = null;
+
+		try {
+			fos = new FileOutputStream(f);
+			osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+			bufferedWriter = new BufferedWriter(osw);
+			bufferedWriter.write("[");
+			// store some variables and just reset
+			// should be faster than creating new ones each time
+			int i = 0;
+			int size = 0;
+			// create typesArr as an array for faster searching
+			String[] headers = null;
+			SemossDataType[] typesArr = null;
+
+			// we need to iterate and write the headers during the first time
+			if (it.hasNext()) {
+				IHeadersDataRow row = it.next();
+
+				// generate the header row
+				// and define constants used throughout like size, and types
+				i = 0;
+				headers = row.getHeaders();
+				size = headers.length;
+				typesArr = new SemossDataType[size];
+				for (; i < size; i++) {
+					if (typesMap == null) {
+						typesArr[i] = SemossDataType.STRING;
+					} else {
+						typesArr[i] = typesMap.get(headers[i]);
+						if (typesArr[i] == null) {
+							typesArr[i] = SemossDataType.STRING;
+						}
+					}
+				}
+
+				// generate the data row
+				Object[] dataRow = row.getValues();
+				i = 0;
+				JSONObject json = new JSONObject();
+				for (; i < size; i++) {
+					if (typesArr[i] == SemossDataType.STRING) {
+						// use empty quotes
+						if(dataRow[i] == null) {
+							json.put(headers[i], "");
+						} else {
+							String thisStringVal = null;
+							if(dataRow[i] instanceof Object[]) {
+								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
+							} else {
+								thisStringVal = dataRow[i] + "";
+							}
+							if(exportProcessors != null) {
+								for(IStringExportProcessor process : exportProcessors) {
+									thisStringVal = process.processString(thisStringVal);
+								}
+							}
+							json.put(headers[i], thisStringVal);
+						}
+					} else {
+						// print out null
+						if(dataRow[i] == null) {
+							json.put(headers[i], "null");
+						} else {
+							json.put(headers[i], dataRow[i]);
+						}
+					}
+				}
+				bufferedWriter.write(json.toString());
+				bufferedWriter.flush();
+			} else {
+				// we have no rows... can we at least export an empty file with headers?
+				// we have no rows... can we at least export an empty file with headers?
+				// we have no rows... can we at least export an empty file with headers?
+				// we have no rows... can we at least export an empty file with headers?
+				// we have no rows... can we at least export an empty file with headers?
+
+				
+				
+			}
+
+			// now loop through all the data
+			while (it.hasNext()) {
+				IHeadersDataRow row = it.next();
+				// generate the data row
+				Object[] dataRow = row.getValues();
+				i = 0;
+				
+				JSONObject json = new JSONObject();
+				for (; i < size; i++) {
+					if (typesArr[i] == SemossDataType.STRING) {
+						// use empty quotes
+						if(dataRow[i] == null) {
+							json.put(headers[i], "");
+						} else {
+							String thisStringVal = null;
+							if(dataRow[i] instanceof Object[]) {
+								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
+							} else {
+								thisStringVal = dataRow[i] + "";
+							}
+							if(exportProcessors != null) {
+								for(IStringExportProcessor process : exportProcessors) {
+									thisStringVal = process.processString(thisStringVal);
+								}
+							}
+							json.put(headers[i], thisStringVal);
+						}
+					} else {
+						// print out null
+						if(dataRow[i] == null) {
+							json.put(headers[i], "null");
+						} else {
+							json.put(headers[i], dataRow[i]);
+						}
+					}
+				}
+				// write row to file
+				bufferedWriter.write(",");
+				bufferedWriter.write(json.toString());
+				bufferedWriter.flush();
 			}
 
 		} catch (IOException ioe) {
