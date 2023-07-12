@@ -152,8 +152,22 @@ public interface IReactor {
 
 	void setInsight(Insight insight);
 	
+	/**
+	 * 
+	 * @param name
+	 * @return
+	 */
 	Logger getLogger(String name);
 
+	/**
+	 * 
+	 * @param name
+	 * @param partial
+	 * @return
+	 */
+	Logger getLogger(String name, boolean partial);
+
+	
 	String getHelp();
 	
 	String getReactorDescription();
