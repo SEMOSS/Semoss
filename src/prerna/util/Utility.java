@@ -3430,15 +3430,6 @@ public class Utility {
 				}
 				bufferedWriter.write(json.toString());
 				bufferedWriter.flush();
-			} else {
-				// we have no rows... can we at least export an empty file with headers?
-				// we have no rows... can we at least export an empty file with headers?
-				// we have no rows... can we at least export an empty file with headers?
-				// we have no rows... can we at least export an empty file with headers?
-				// we have no rows... can we at least export an empty file with headers?
-
-				
-				
 			}
 
 			// now loop through all the data
@@ -3483,6 +3474,10 @@ public class Utility {
 				bufferedWriter.flush();
 			}
 
+			// close the array
+			bufferedWriter.write("]");
+			bufferedWriter.flush();
+			
 		} catch (IOException ioe) {
 			logger.error(Constants.STACKTRACE, ioe);
 		} finally {
