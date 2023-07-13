@@ -278,15 +278,13 @@ class FAISSSearcher():
     from text_generation import Client
     summaryClient = Client(endpoint)
     summaryClient.timeout=60
-    summary=smssutil.chat_guanaco(context=None, question=prompt, client=summaryClient, max_new_tokens=300)
+    summary=smssutil.chat_guanaco(context=None, question=prompt, client=summaryClient, max_new_tokens=300, temperature=0.001)
     returnString=summary['response'].strip()
     return returnString
   
   def generate_prompt(self,docs, question):
-      prompt_template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
-INSTRUCTION ::: Use the following paragraphs as context to answer the question presented below at the end. As an AI assistant, you must only use the information present in the context to answer. If the answer to the question is not present in the paragraph contexts, do not use outside knowledge. Instead, simply reply with "The answer to the question could not be determined from the context provided." and nothing more.
-
+      prompt_template = """Below is information that a user is asking a question about. Use the information below as context to answer the question presented at the end. As an AI assistant, you must only use the information present in the context to answer and no other outside knowledge.  Carefully determine if the user's question can be answered from the context and with reasoning provide a response to the user's question. If the question is not relevant to the information or cannot be answered from the context, provide reasoning as why the question cannot be answered.
+      
 CONTEXT :::
 
 {Content}
@@ -297,7 +295,7 @@ QUESTION ::: {Question} """
       for doc in docs:
           content += doc['Content'] + '\n\n'
       prompt = prompt_template.format(Content=content.lstrip(), Question=question.strip())
-      # print(prompt)
+      #print(prompt)
       return prompt
   
   #Need a way to keep the configuration - I dont know how to do multiple files
