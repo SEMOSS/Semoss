@@ -283,16 +283,21 @@ class FAISSSearcher():
     return returnString
   
   def generate_prompt(self,docs, question):
-      prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+      prompt_template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
-      {Content}
+INSTRUCTION ::: Use the following paragraphs as context to answer the question presented below at the end. As an AI assistant, you must only use the information present in the context to answer. If the answer to the question is not present in the paragraph contexts, do not use outside knowledge. Instead, simply reply with "The answer to the question could not be determined from the context provided." and nothing more.
 
-      Question: {Question} """
+CONTEXT :::
+
+{Content}
+
+QUESTION ::: {Question} """
       prompt = ""
       content = ""
       for doc in docs:
           content += doc['Content'] + '\n\n'
       prompt = prompt_template.format(Content=content.lstrip(), Question=question.strip())
+      # print(prompt)
       return prompt
   
   #Need a way to keep the configuration - I dont know how to do multiple files
