@@ -283,20 +283,37 @@ class FAISSSearcher():
     return returnString
   
   def generate_prompt(self,docs, question):
-      prompt_template = """Below is information that a user is asking a question about. Use the information below as context to answer the question presented at the end. As an AI assistant, you must only use the information present in the context to answer and no other outside knowledge.  Carefully determine if the user's question can be answered from the context and with reasoning provide a response to the user's question. If the question is not relevant to the information or cannot be answered from the context, provide reasoning as why the question cannot be answered.
-      
-CONTEXT :::
+      prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+Context: 
 
 {Content}
 
-QUESTION ::: {Question} """
+Question: {Question} """
       prompt = ""
       content = ""
       for doc in docs:
           content += doc['Content'] + '\n\n'
       prompt = prompt_template.format(Content=content.lstrip(), Question=question.strip())
-      #print(prompt)
       return prompt
+
+
+## update the below to be less restrictive
+#   def generate_prompt(self,docs, question):
+#       prompt_template = """Below is information that a user is asking a question about. Use the information below as context to answer the question presented at the end. As an AI assistant, you must only use the information present in the context to answer and no other outside knowledge.  Carefully determine if the user's question can be answered from the context and with reasoning provide a response to the user's question. If the question is not relevant to the information or cannot be answered from the context, provide reasoning as why the question cannot be answered.
+      
+# CONTEXT :::
+
+# {Content}
+
+# QUESTION ::: {Question} """
+#       prompt = ""
+#       content = ""
+#       for doc in docs:
+#           content += doc['Content'] + '\n\n'
+#       prompt = prompt_template.format(Content=content.lstrip(), Question=question.strip())
+#       #print(prompt)
+#       return prompt
   
   #Need a way to keep the configuration - I dont know how to do multiple files
   # but all in good times
