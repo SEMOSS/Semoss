@@ -18,6 +18,7 @@ import com.google.gson.Gson;
 
 import io.netty.channel.ChannelFuture;
 import prerna.auth.User;
+import prerna.sablecc2.comm.JobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
@@ -147,11 +148,15 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				String message = new String(msg);
 	    				System.err.print(message);
 	    				PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
-	    				
+
+	    				PayloadStruct lock = (PayloadStruct)requestMap.get(ps.epoc);
+
 	    				if(ps.operation == ps.operation.STDOUT && ps.payload != null)
 	    				{
 	    					logger.info(ps.payload[0]);
 	    					outputAssimilator.append(ps.payload[0]);
+	    					if(lock != null)
+	    						exposeLog((String)ps.payload[0], lock.insightId);
 	    				}
 	       				// need some way to say this is the output from the actual python vs. something that is a logger
 	    				// this is done through interim and operations
@@ -163,6 +168,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				else if(ps.response)// interim is over
 	    				{
 	    					// we are going to force the output since that is they may have requested
+		    				lock = (PayloadStruct)requestMap.remove(ps.epoc);
 	    					if(outputAssimilator.length() > 0 && ((String)ps.payload[0]).equalsIgnoreCase("NONE")) 
 	    						ps.payload[0] = outputAssimilator;
 	    					
@@ -180,7 +186,6 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					// re-initialize it
 	    					outputAssimilator = new StringBuffer("");
 
-	    					PayloadStruct lock = (PayloadStruct)requestMap.remove(ps.epoc);
 	    					// put it in response
 	    					responseMap.put(ps.epoc, ps);
 	    					if(lock != null)
@@ -199,16 +204,23 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     				}
     			} catch (Exception ex) {
     				ex.printStackTrace();
-    				//killall = true;
-    				//connected=false;
-    				//break;
+    				killall = true;
+    				connected=false;
+    				break;
     			}
     		}
     		connected = false;
     		System.err.println("outside the run loop");
     	}
     }	
-
+    
+    // this is the method that pushes to the front end
+    // when output happens
+    private void exposeLog(String data, String insightId)
+    {
+    	if(insightId != null && data != null)
+    		JobManager.getManager().addStdOut(insightId, data);
+    }
     
     public Object executeCommand(PayloadStruct ps)
     {
