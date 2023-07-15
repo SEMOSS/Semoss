@@ -4855,6 +4855,7 @@ public class Utility {
 		// do I need this insight folder anymore ?
 		
 		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
+		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
 		String prefix = "";
 		Process thisProcess = null;
 		String finalDir = insightFolder.replace("\\", "/");
@@ -4883,6 +4884,8 @@ public class Utility {
 			prefix = Utility.getRandomString(5);
 			prefix = "p_"+ prefix;
 			
+			String outputFile = finalDir + "/console.txt";
+			
 			String[] commands = new String[] {py, gaasServer, port, "1", pyBase, finalDir, prefix};
 
 			// need to make sure we are not windows cause ulimit will not work
@@ -4899,7 +4902,9 @@ public class Utility {
 			// do I need this ?
 			//String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(commands);
-			pb.redirectError();
+			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+			pb.redirectError(redirector);
+			pb.redirectOutput(redirector);
 			Process p = pb.start();
 			try {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
