@@ -66,7 +66,14 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 //		MinioStorageEngine engine = new MinioStorageEngine();
 //		engine.connect(mockSmss);
 //		
-//		List<String> list = engine.list("test1");
-//		System.out.println(list);
+//		{
+//			List<String> list = engine.list("test1");
+//			System.out.println(list);
+//		}
+//		{
+//			engine.moveToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "test1");
+//		}
 //	}
+	
+	
 }
