@@ -78,14 +78,23 @@ public abstract class AbstractRCloneStorageEngine {
 	public abstract List<String> list(String path) throws IOException, InterruptedException;
 	
 	/**
-	 * Move (without deleting) the file to the storage engine
+	 * Copy (without deleting) the file to the storage engine
 	 * @param localFilePath
 	 * @param storagePath
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public abstract void moveToStorage(String localFilePath, String storagePath) throws IOException, InterruptedException;
+	public abstract void copyToStorage(String localFilePath, String storageFolderPath) throws IOException, InterruptedException;
 	
+	/**
+	 * Copy (without deleting) the file to a local location
+	 * @param storageFilePath
+	 * @param localFolderPath
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public abstract void copyToLocal(String storageFilePath, String localFolderPath) throws IOException, InterruptedException;
+
 	
 	/**
 	 * Init the values for the rclone storage engine
