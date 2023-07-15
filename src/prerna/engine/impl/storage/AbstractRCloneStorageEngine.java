@@ -68,6 +68,18 @@ public abstract class AbstractRCloneStorageEngine {
 	public abstract String createRcloneConfig() throws IOException, InterruptedException;
 	
 	/**
+	 * Lists the folders and files for the relative path provided
+	 * Note - not recursive
+	 * @param path
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public abstract List<String> list(String path) throws IOException, InterruptedException;
+	
+	
+	
+	/**
 	 * Init the values for the rclone storage engine
 	 * @param builder
 	 */
