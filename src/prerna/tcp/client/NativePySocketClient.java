@@ -2,8 +2,6 @@ package prerna.tcp.client;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -23,7 +21,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.FstUtil;
 import prerna.util.Utility;
 
 public class NativePySocketClient extends SocketClient implements Runnable  {

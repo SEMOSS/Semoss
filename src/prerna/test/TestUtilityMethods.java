@@ -60,13 +60,13 @@ public final class TestUtilityMethods {
 		IEngine coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("LocalMasterDatabase");
 		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setDbProperty("LocalMasterDatabase", coreEngine);
+		DIHelper.getInstance().setEngineProperty("LocalMasterDatabase", coreEngine);
 
 		engineProp = baseFolder + "\\db\\security.smss";
 		coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("security");
 		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setDbProperty("security", coreEngine);
+		DIHelper.getInstance().setEngineProperty("security", coreEngine);
 		try {
 			AbstractSecurityUtils.loadSecurityDatabase();
 		} catch (SQLException e) {

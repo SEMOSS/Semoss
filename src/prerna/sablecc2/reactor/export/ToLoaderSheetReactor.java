@@ -73,7 +73,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		if(engine == null) {
 			throw new IllegalArgumentException("Cannot find the specified app");
 		}
-		String propFileLoc = (String) DIHelper.getInstance().getDbProperty(appId + "_" + Constants.STORE);
+		String propFileLoc = (String) DIHelper.getInstance().getEngineProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(propFileLoc);
 		
 		Date date = new Date();
