@@ -663,21 +663,21 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		coreEngine.setEngineId("TAP_Core_Data");
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineId("TAP_Core_Data");
-		DIHelper.getInstance().setDbProperty("TAP_Core_Data", coreEngine);
+		DIHelper.getInstance().setEngineProperty("TAP_Core_Data", coreEngine);
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineId("TAP_Site_Data");
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineId("TAP_Site_Data");
-		DIHelper.getInstance().setDbProperty("TAP_Site_Data", coreEngine);
+		DIHelper.getInstance().setEngineProperty("TAP_Site_Data", coreEngine);
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineId("TAP_Portfolio");
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineId("TAP_Portfolio");
-		DIHelper.getInstance().setDbProperty("TAP_Portfolio", coreEngine);
+		DIHelper.getInstance().setEngineProperty("TAP_Portfolio", coreEngine);
 
 		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();
 		MhsGenesisSystemDeploymentSavingsPlaySheet ps = new MhsGenesisSystemDeploymentSavingsPlaySheet(processor);

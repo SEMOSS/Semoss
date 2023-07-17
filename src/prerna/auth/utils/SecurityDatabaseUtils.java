@@ -63,7 +63,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return;
 		}
-		String smssFile = DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE) + "";
+		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 		
 		boolean global = true;
@@ -84,7 +84,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return;
 		}
-		String smssFile = DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE) + "";
+		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 
 		String databaseName = prop.getProperty(Constants.ENGINE_ALIAS);

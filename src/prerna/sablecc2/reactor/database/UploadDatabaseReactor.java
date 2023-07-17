@@ -133,7 +133,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 		}
 
 		//String engines = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		String engines = (String) DIHelper.getInstance().getDbProperty(Constants.ENGINES);
+		String engines = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
 		String databaseId = null;
 		String databseName = null;
 		File tempSmss = null;
@@ -159,7 +159,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 			// need to ignore file watcher
 			if (!(engines.startsWith(databaseId) || engines.contains(";" + databaseId + ";") || engines.endsWith(";" + databaseId))) {
 				String newEngines = engines + ";" + databaseId;
-				DIHelper.getInstance().setDbProperty(Constants.ENGINES, newEngines);
+				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, newEngines);
 			} else {
 				SemossPixelException exception = new SemossPixelException(
 						NounMetadata.getErrorNounMessage("Database id already exists"));
@@ -185,7 +185,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
 			if(error) {
-				DIHelper.getInstance().setDbProperty(Constants.ENGINES, engines);
+				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
 				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempDbFolder, logger);
 			} else {
 				// just delete the temp db folder
@@ -194,7 +194,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setDbProperty(databaseId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
+			DIHelper.getInstance().setEngineProperty(databaseId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
 			logger.info(step + ") Grabbing database structure");
 			Utility.synchronizeEngineMetadata(databaseId);
 			SecurityDatabaseUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled(), user);
@@ -208,7 +208,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 				// delete all the resources
 				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempDbFolder, logger);
 				// remove from DIHelper
-				DIHelper.getInstance().setDbProperty(Constants.ENGINES, engines);
+				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
 				// delete from local master
 				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
 				lmDeleter.deleteEngineRDBMS(databaseId);

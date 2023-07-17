@@ -6,11 +6,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
+@Deprecated // this is replaced by projects
 public class AppEngine extends AbstractEngine {
 
 	private static final Logger LOGGER = LogManager.getLogger(AppEngine.class);

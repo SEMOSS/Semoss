@@ -68,8 +68,10 @@ public class DIHelper {
 
 	// core properties file
 	Properties coreProp = null;
-	Properties dbProp = null;
+	Properties engineProp = null;
 	Properties projectProp = null;
+//	Properties storageProp = null;
+//	Properties llmProp = null;
 	
 	// Hashtable of local properties
 	// will have the following keys
@@ -104,8 +106,10 @@ public class DIHelper {
 		{
 			helper = new DIHelper();
 			helper.coreProp = new Properties();
-			helper.dbProp = new Properties();
+			helper.engineProp = new Properties();
 			helper.projectProp = new Properties();
+//			helper.storageProp = new Properties();
+//			helper.llmProp = new Properties();
 			
 			// need to set up the shapes here
 			//Shape square = new Rectangle2D.Double(-5,-5,10, 10);
@@ -524,20 +528,20 @@ public class DIHelper {
 		return this.rdfMapFileLocation;
 	}
 	
-	public Properties getDbProp() {
-		return this.dbProp;
+	public Properties getEngineProp() {
+		return this.engineProp;
 	}
 	
-	public void setDbProperty(Object key, Object value) {
-		this.dbProp.put(key, value);
+	public void setEngineProperty(Object key, Object value) {
+		this.engineProp.put(key, value);
 	}
 	
-	public Object getDbProperty(Object key) {
-		return this.dbProp.get(key);
+	public Object getEngineProperty(Object key) {
+		return this.engineProp.get(key);
 	}
 	
-	public Object removeDbProperty(Object key) {
-		return this.dbProp.remove(key);
+	public Object removeEngineProperty(Object key) {
+		return this.engineProp.remove(key);
 	}
 	
 	public Properties getProjectProp() {
@@ -555,4 +559,36 @@ public class DIHelper {
 	public Object removeProjectProperty(Object key) {
 		return this.projectProp.remove(key);
 	}
+	
+//	public Properties getStorageProp() {
+//		return this.storageProp;
+//	}
+//	
+//	public void setStorageProperty(Object key, Object value) {
+//		this.storageProp.put(key, value);
+//	}
+//	
+//	public Object getStorageProperty(Object key) {
+//		return this.storageProp.get(key);
+//	}
+//	
+//	public Object removeStorageProperty(Object key) {
+//		return this.storageProp.remove(key);
+//	}
+//	
+//	public Properties getLlmProp() {
+//		return this.llmProp;
+//	}
+//	
+//	public void setLLmProperty(Object key, Object value) {
+//		this.llmProp.put(key, value);
+//	}
+//	
+//	public Object getLlmProperty(Object key) {
+//		return this.llmProp.get(key);
+//	}
+//	
+//	public Object removeLlmProperty(Object key) {
+//		return this.llmProp.remove(key);
+//	}
 }
