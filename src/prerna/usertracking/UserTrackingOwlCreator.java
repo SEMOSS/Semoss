@@ -93,7 +93,7 @@ public class UserTrackingOwlCreator {
 				Pair.of("TO", CLOB_DATATYPE_NAME),
 				Pair.of("CC", CLOB_DATATYPE_NAME),
 				Pair.of("BCC", CLOB_DATATYPE_NAME),
-				Pair.of("SUBJECT", CLOB_DATATYPE_NAME),
+				Pair.of("SUBJECT", "VARCHAR(1000)"),
 				Pair.of("BODY", CLOB_DATATYPE_NAME),
 				Pair.of("ATTACHMENTS", CLOB_DATATYPE_NAME),
 				Pair.of("IS_HTML", BOOLEAN_DATATYPE_NAME)
