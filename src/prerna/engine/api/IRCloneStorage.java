@@ -10,7 +10,15 @@ public interface IRCloneStorage extends IStorage {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	String createRcloneConfig() throws IOException, InterruptedException;
+	String createRCloneConfig() throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param rCloneConfig
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void deleteRcloneConfig(String rCloneConfig) throws IOException, InterruptedException;
 	
 	/**
 	 * Lists the folders and files for the relative path provided
