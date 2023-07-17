@@ -1028,7 +1028,7 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		// TOKENS
+		// TOKEN
 		colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)" };
 		if(allowIfExistsTable) {

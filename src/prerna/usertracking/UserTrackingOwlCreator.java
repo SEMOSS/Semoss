@@ -147,7 +147,7 @@ public class UserTrackingOwlCreator {
 		for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
 			String tableName = tableWithColumns.getLeft();
 			String[] columnNames = tableWithColumns.getRight().stream()
-					.map(Pair::getRight).toArray(String[]::new);
+					.map(Pair::getLeft).toArray(String[]::new);
 
 			for (String columnName : columnNames) {
 				if (columnChecks(tableName, columnName)) {
