@@ -24,7 +24,7 @@ public abstract class AbstractBaseConfigRCloneStorageEngine extends AbstractRClo
 	 */
 	public List<String> list(String path, String rCloneConfig) throws IOException, InterruptedException {
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRcloneConfig();
+			rCloneConfig = createRCloneConfig();
 		}
 		String rClonePath = rCloneConfig+":";
 		if(BUCKET != null) {
@@ -48,7 +48,7 @@ public abstract class AbstractBaseConfigRCloneStorageEngine extends AbstractRClo
 	
 	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException {
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRcloneConfig();
+			rCloneConfig = createRCloneConfig();
 		}
 		String rClonePath = rCloneConfig+":";
 		if(BUCKET != null) {
@@ -82,7 +82,7 @@ public abstract class AbstractBaseConfigRCloneStorageEngine extends AbstractRClo
 	
 	public void copyToLocal(String storageFilePath, String localFolderPath, String rCloneConfig) throws IOException, InterruptedException {
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRcloneConfig();
+			rCloneConfig = createRCloneConfig();
 		}
 		String rClonePath = rCloneConfig+":";
 		if(BUCKET != null) {
@@ -116,7 +116,7 @@ public abstract class AbstractBaseConfigRCloneStorageEngine extends AbstractRClo
 	
 	public void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure, String rCloneConfig) throws IOException, InterruptedException {
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRcloneConfig();
+			rCloneConfig = createRCloneConfig();
 		}
 		String rClonePath = rCloneConfig+":";
 		if(BUCKET != null) {
