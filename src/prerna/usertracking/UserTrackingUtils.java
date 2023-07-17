@@ -8,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -100,19 +99,15 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			closeResources(userTrackingDb, null, ps, null);
 		}		
 		
 	}
 
 	private static void doTrackEmail(String[] toRecipients, String[] ccRecipients, String[] bccRecipients, String from,
 			String subject, String emailMessage, boolean isHtml, String[] attachments, boolean successful) {
+		boolean allowClob = userTrackingDb.getQueryUtil().allowClobJavaObject();
+
 		String query = "INSERT INTO EMAIL_TRACKING VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
@@ -124,49 +119,71 @@ public class UserTrackingUtils {
 			ps.setString(index++, from);
 			
 			if (toRecipients != null) {
-				Clob toclob = userTrackingDb.getConnection().createClob();
-				toclob.setString(1, Strings.join(toRecipients, ", "));
-				ps.setClob(index++, toclob);
+				String toStr = Strings.join(toRecipients, ", ");
+				if(allowClob) {
+					Clob toclob = userTrackingDb.getConnection().createClob();
+					toclob.setString(1, toStr);
+					ps.setClob(index++, toclob);
+				} else {
+					ps.setString(index++, toStr);
+				}
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			
 			if (ccRecipients != null) {
-				Clob ccclob = userTrackingDb.getConnection().createClob();
-				ccclob.setString(1, Strings.join(ccRecipients, ", "));
-				ps.setClob(index++, ccclob);
+				String ccStr = Strings.join(ccRecipients, ", ");
+				if(allowClob) {
+					Clob ccclob = userTrackingDb.getConnection().createClob();
+					ccclob.setString(1, ccStr);
+					ps.setClob(index++, ccclob);
+				} else {
+					ps.setString(index++, ccStr);
+				}
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			
 			if (bccRecipients != null) {
-				Clob bccclob = userTrackingDb.getConnection().createClob();
-				bccclob.setString(1, Strings.join(bccRecipients, ", "));
-				ps.setClob(index++, bccclob);
+				String bccStr = Strings.join(bccRecipients, ", ");
+				if(allowClob) {
+					Clob bccclob = userTrackingDb.getConnection().createClob();
+					bccclob.setString(1, bccStr);
+					ps.setClob(index++, bccclob);
+				} else {
+					ps.setString(index++, bccStr);
+				}
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			
 			if (subject != null) {
-				Clob subjectClob = userTrackingDb.getConnection().createClob();
-				subjectClob.setString(1, subject);
-				ps.setClob(index++, subjectClob);
+				ps.setString(index++, subject);
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 
 			if (emailMessage != null) {
-				Clob bodyClob = userTrackingDb.getConnection().createClob();
-				bodyClob.setString(1, emailMessage);
-				ps.setClob(index++, bodyClob);
+				if(allowClob) {
+					Clob bodyClob = userTrackingDb.getConnection().createClob();
+					bodyClob.setString(1, emailMessage);
+					ps.setClob(index++, bodyClob);
+				} else {
+					ps.setString(index++, emailMessage);
+				}
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			
 			if (attachments != null) {
-				Clob attachmentClob = userTrackingDb.getConnection().createClob();
-				attachmentClob.setString(1, Strings.join(attachments, ", "));
-				ps.setClob(index++, attachmentClob);
+				String attachmentStr = Strings.join(attachments, ", ");
+				if(allowClob) {
+					Clob attachmentClob = userTrackingDb.getConnection().createClob();
+					attachmentClob.setString(1, attachmentStr);
+					ps.setClob(index++, attachmentClob);
+				} else {
+					ps.setString(index++, attachmentStr);
+				}
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
@@ -180,13 +197,7 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			closeResources(userTrackingDb, null, ps, null);
 		}		
 	}
 
@@ -216,13 +227,7 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			closeResources(userTrackingDb, null, ps, null);
 		}
 	}
 
@@ -242,13 +247,7 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			closeResources(userTrackingDb, null, ps, null);
 		}
 	}
 
@@ -269,13 +268,7 @@ public class UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			closeResources(userTrackingDb, null, ps, null);
 		}
 	}
 
@@ -335,7 +328,6 @@ public class UserTrackingUtils {
 		OwlSeparatePixelFromConceptual.fixOwl(userTrackingDb.getProp());
 
 		Connection conn = null;
-
 		try {
 			conn = userTrackingDb.makeConnection();
 			executeInitUserTracker(userTrackingDb, conn, utoc.getDBSchema());
@@ -400,8 +392,12 @@ public class UserTrackingUtils {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		try {
-			if (engine != null && engine.isConnectionPooling() && conn != null) {
-				conn.close();
+			if (engine != null && engine.isConnectionPooling()) {
+				if(conn != null) {
+					conn.close();
+				} else if(stmt != null) {
+					stmt.getConnection().close();
+				}
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
