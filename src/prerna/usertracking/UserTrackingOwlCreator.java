@@ -22,6 +22,8 @@ public class UserTrackingOwlCreator {
 	private List<Pair<String, String>> engineViewsColumns = null;
 	private List<Pair<String, String>> engineUsesColumns = null;
 	private List<Pair<String, String>> userCatalogVotes = null;
+	private List<Pair<String, String>> emailTracking = null;
+	private List<Pair<String, String>> insightOpens = null;
 	// Pairs table name with its respective columns
 	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
 	
@@ -33,6 +35,8 @@ public class UserTrackingOwlCreator {
 		conceptsRequired.add("ENGINE_VIEWS");
 		conceptsRequired.add("ENGINE_USES");
 		conceptsRequired.add("USER_CATALOG_VOTES");
+		conceptsRequired.add("EMAIL_TRACKING");
+		conceptsRequired.add("INSIGHT_OPENS");
 	}
 	
 	private IRDBMSEngine sessionDb;
@@ -81,11 +85,34 @@ public class UserTrackingOwlCreator {
 				Pair.of("LAST_MODIFIED", TIMESTAMP_DATATYPE_NAME)
 			);
 		
+		this.emailTracking = Arrays.asList(
+				Pair.of("ID", "VARCHAR(255)"),
+				Pair.of("SENT", TIMESTAMP_DATATYPE_NAME),
+				Pair.of("SUCCESSFUL", BOOLEAN_DATATYPE_NAME),
+				Pair.of("FROM", "VARCHAR(255)"),
+				Pair.of("TO", CLOB_DATATYPE_NAME),
+				Pair.of("CC", CLOB_DATATYPE_NAME),
+				Pair.of("BCC", CLOB_DATATYPE_NAME),
+				Pair.of("SUBJECT", CLOB_DATATYPE_NAME),
+				Pair.of("BODY", CLOB_DATATYPE_NAME),
+				Pair.of("ATTACHMENTS", CLOB_DATATYPE_NAME),
+				Pair.of("IS_HTML", BOOLEAN_DATATYPE_NAME)
+			);
+		
+		this.insightOpens = Arrays.asList(
+				Pair.of("INSIGHTID", "VARCHAR(255)"),
+				Pair.of("USERID", "VARCHAR(255)"),
+				Pair.of("OPENED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.of("ORIGIN", "VARCHAR(2000)")
+				);
+		
 		allSchemas = Arrays.asList(
 				Pair.of("USER_TRACKING", userTrackingColumns),
 				Pair.of("ENGINE_VIEWS", engineViewsColumns),
 				Pair.of("ENGINE_USES", engineUsesColumns),
-				Pair.of("USER_CATALOG_VOTES", userCatalogVotes)
+				Pair.of("USER_CATALOG_VOTES", userCatalogVotes),
+				Pair.of("EMAIL_TRACKING", emailTracking),
+				Pair.of("INSIGHT_OPENS", insightOpens)
 			);
 	}
 	
@@ -194,22 +221,6 @@ public class UserTrackingOwlCreator {
 		
 		owler.commit();
 		owler.export();
-	}
-	
-	public List<Pair<String, String>> getUserTrackingColumns() {
-		return this.userTrackingColumns;
-	}
-	
-	public List<Pair<String, String>> getEngineViewsColumns() {
-		return this.engineViewsColumns;
-	}
-	
-	public List<Pair<String, String>> getEngineUsesColumns() {
-		return this.engineUsesColumns;
-	}
-	
-	public List<Pair<String, String>> getUserCatalogVotesSchema() {
-		return this.userCatalogVotes;
 	}
 	
 	public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -33,11 +33,11 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if(SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				// user has access!
-				baseInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseId);
-			} else if(SecurityDatabaseUtils.databaseIsDiscoverable(databaseId)) {
-				baseInfo = SecurityDatabaseUtils.getDiscoverableDatabaseList(databaseId);
+				baseInfo = SecurityEngineUtils.getUserDatabaseList(this.insight.getUser(), databaseId);
+			} else if(SecurityEngineUtils.databaseIsDiscoverable(databaseId)) {
+				baseInfo = SecurityEngineUtils.getDiscoverableDatabaseList(databaseId);
 			} else {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
@@ -45,7 +45,7 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		} else {
 			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 			// just grab the info
-			baseInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseId);
+			baseInfo = SecurityEngineUtils.getAllDatabaseList(databaseId);
 		}
 		
 		if(baseInfo == null || baseInfo.isEmpty()) {
@@ -54,7 +54,7 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
-		databaseInfo.putAll(SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), true));
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), true));
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	

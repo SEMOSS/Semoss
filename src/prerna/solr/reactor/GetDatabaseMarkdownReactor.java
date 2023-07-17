@@ -1,7 +1,7 @@
 package prerna.solr.reactor;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,7 +24,7 @@ public class GetDatabaseMarkdownReactor extends AbstractReactor {
 		
 		String databaseMarkdown;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseMarkdown = SecurityDatabaseUtils.getDatabaseMarkdown(this.insight.getUser(), databaseId);
+			databaseMarkdown = SecurityEngineUtils.getDatabaseMarkdown(this.insight.getUser(), databaseId);
 		} else {
 			databaseMarkdown = null;
 		}

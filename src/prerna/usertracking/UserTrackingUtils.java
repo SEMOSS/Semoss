@@ -1,17 +1,22 @@
 package prerna.usertracking;
 
 import java.io.IOException;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.parquet.Strings;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -61,6 +66,128 @@ public class UserTrackingUtils {
 		if (Utility.isUserTrackingEnabled()) {
 			doDeleteInsight(projectId, insightId);
 		}
+	}
+	
+	public static void trackEmail(String[] toRecipients, String[] ccRecipients, String[] bccRecipients, 
+			String from, String subject, String emailMessage, boolean isHtml, String[] attachments, boolean successful) {
+		if (Utility.isUserTrackingEnabled()) {
+			doTrackEmail(toRecipients, ccRecipients, bccRecipients, from, subject, emailMessage, isHtml, attachments, successful);
+		}
+	}
+	
+	public static void trackInsightOpen(String insightId, String userId, String origin) {
+		if (Utility.isUserTrackingEnabled()) {
+			doTrackInsightOpen(insightId, userId, origin);
+		}
+	}
+
+	private static void doTrackInsightOpen(String insightId, String userId, String origin) {
+		String query = "INSERT INTO INSIGHT_OPENS VALUES (?, ?, ?, ?)";
+		PreparedStatement ps = null;
+		try {
+			ps = userTrackingDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, insightId);
+			ps.setString(index++, userId);
+			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setString(index++, origin);
+
+			// execute
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}		
+		
+	}
+
+	private static void doTrackEmail(String[] toRecipients, String[] ccRecipients, String[] bccRecipients, String from,
+			String subject, String emailMessage, boolean isHtml, String[] attachments, boolean successful) {
+		String query = "INSERT INTO EMAIL_TRACKING VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		PreparedStatement ps = null;
+		try {
+			ps = userTrackingDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, UUID.randomUUID().toString());
+			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setBoolean(index++, successful);
+			ps.setString(index++, from);
+			
+			if (toRecipients != null) {
+				Clob toclob = userTrackingDb.getConnection().createClob();
+				toclob.setString(1, Strings.join(toRecipients, ", "));
+				ps.setClob(index++, toclob);
+			} else {
+				ps.setNull(index++, java.sql.Types.NULL);
+			}
+			
+			if (ccRecipients != null) {
+				Clob ccclob = userTrackingDb.getConnection().createClob();
+				ccclob.setString(1, Strings.join(ccRecipients, ", "));
+				ps.setClob(index++, ccclob);
+			} else {
+				ps.setNull(index++, java.sql.Types.NULL);
+			}
+			
+			if (bccRecipients != null) {
+				Clob bccclob = userTrackingDb.getConnection().createClob();
+				bccclob.setString(1, Strings.join(bccRecipients, ", "));
+				ps.setClob(index++, bccclob);
+			} else {
+				ps.setNull(index++, java.sql.Types.NULL);
+			}
+			
+			if (subject != null) {
+				Clob subjectClob = userTrackingDb.getConnection().createClob();
+				subjectClob.setString(1, subject);
+				ps.setClob(index++, subjectClob);
+			} else {
+				ps.setNull(index++, java.sql.Types.NULL);
+			}
+
+			if (emailMessage != null) {
+				Clob bodyClob = userTrackingDb.getConnection().createClob();
+				bodyClob.setString(1, emailMessage);
+				ps.setClob(index++, bodyClob);
+			} else {
+				ps.setNull(index++, java.sql.Types.NULL);
+			}
+			
+			if (attachments != null) {
+				Clob attachmentClob = userTrackingDb.getConnection().createClob();
+				attachmentClob.setString(1, Strings.join(attachments, ", "));
+				ps.setClob(index++, attachmentClob);
+			} else {
+				ps.setNull(index++, java.sql.Types.NULL);
+			}
+			
+			ps.setBoolean(index++, isHtml);
+
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}		
 	}
 
 	private static void doDeleteDatabase(String databaseId) {

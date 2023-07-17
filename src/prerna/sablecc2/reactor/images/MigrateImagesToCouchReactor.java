@@ -18,7 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.clients.AbstractCloudClient;
@@ -64,7 +64,7 @@ public class MigrateImagesToCouchReactor extends AbstractReactor {
 		
 		List<String> outcomes = new Vector<>();
 		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases",
-				SecurityDatabaseUtils.getAllDatabaseIds(), CouchUtil.DATABASE, outcomes);
+				SecurityEngineUtils.getAllDatabaseIds(), CouchUtil.DATABASE, outcomes);
 		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects",
 				SecurityProjectUtils.getAllProjectIds(), CouchUtil.PROJECT, outcomes);
 		

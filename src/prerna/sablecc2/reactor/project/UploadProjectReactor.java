@@ -16,13 +16,11 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.DeleteFromMasterDB;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -261,11 +259,8 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempProjectFolder, logger);
 				// remove from DIHelper
 				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
-				// delete from local master
-				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
-				lmDeleter.deleteEngineRDBMS(projectId);
 				// delete from security
-				SecurityDatabaseUtils.deleteDatabase(projectId);
+				SecurityProjectUtils.deleteProject(projectId);
 			}
 		}
 
