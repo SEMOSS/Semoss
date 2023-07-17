@@ -1,6 +1,7 @@
 package prerna.engine.impl.storage;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 
 import prerna.util.Utility;
@@ -74,6 +75,9 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 //		}
 //		{
 //			engine.copyToLocal("test1/MooseAI Logo.png", "C:\\Users\\mahkhalil");
+//		}
+//		{
+//			engine.deleteFromStorage("test1/MooseAI Logo.png");
 //		}
 //	}
 	

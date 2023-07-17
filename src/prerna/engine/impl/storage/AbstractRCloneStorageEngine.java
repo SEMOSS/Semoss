@@ -95,6 +95,26 @@ public abstract class AbstractRCloneStorageEngine {
 	 */
 	public abstract void copyToLocal(String storageFilePath, String localFolderPath) throws IOException, InterruptedException;
 
+	/**
+	 * Delete the folder or file from the storage engine
+	 * Will delete the directory structure 
+	 * @param storageFilePath
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public void deleteFromStorage(String storageFilePath) throws IOException, InterruptedException {
+		deleteFromStorage(storageFilePath, false);
+	}
+	
+	/**
+	 * Delete the folder or file from the storage engine
+	 * @param storageFilePath
+	 * @param leaveFolderStructure
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public abstract void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure) throws IOException, InterruptedException;
+
 	
 	/**
 	 * Init the values for the rclone storage engine
