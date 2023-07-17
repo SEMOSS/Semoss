@@ -13,11 +13,15 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.engine.api.IRCloneStorage;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public abstract class AbstractRCloneStorageEngine {
+public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 
 	/*
 	 * 
@@ -47,8 +51,12 @@ public abstract class AbstractRCloneStorageEngine {
 	 * 
 	 */
 	
+	private static final Logger classLogger = LogManager.getLogger(AbstractRCloneStorageEngine.class);
+
 	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
+	protected String engineId = null;
+	protected String engineName = null;
 	protected Properties smssProp = null;
 	
 	// the path to rclone executable - default assumes in path
@@ -67,59 +75,57 @@ public abstract class AbstractRCloneStorageEngine {
 	 */
 	public abstract String createRcloneConfig() throws IOException, InterruptedException;
 	
-	/**
-	 * Lists the folders and files for the relative path provided
-	 * Note - not recursive
-	 * @param path
-	 * @param rCloneConfig
-	 * @return
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public abstract List<String> list(String path, String rCloneConfig) throws IOException, InterruptedException;
 	
-	/**
-	 * Copy (without deleting) the file to the storage engine
-	 * @param localFilePath
-	 * @param storageFolderPath
-	 * @param rCloneConfig
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public abstract void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException;
 	
-	/**
-	 * Copy (without deleting) the file to a local location
-	 * @param storageFilePath
-	 * @param localFolderPath
-	 * @param rCloneConfig
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public abstract void copyToLocal(String storageFilePath, String localFolderPath, String rCloneConfig) throws IOException, InterruptedException;
+	@Override
+	public void setEngineId(String engineId) {
+		this.engineId = engineId;
+	}
 
-	/**
-	 * Delete the folder or file from the storage engine
-	 * Will delete the directory structure 
-	 * @param storageFilePath
-	 * @param rCloneConfig
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
+	@Override
+	public String getEngineId() {
+		return this.engineId;
+	}
+
+	@Override
+	public void setEngineName(String engineName) {
+		this.engineName = engineName;
+	}
+
+	@Override
+	public String getEngineName() {
+		return this.engineName;
+	}
+
+	@Override
+	public List<String> list(String path) throws IOException, InterruptedException {
+		return list(path, null);
+	}
+
+	@Override
+	public void copyToStorage(String localFilePath, String storageFolderPath) throws Exception {
+		copyToStorage(localFilePath, storageFolderPath, null);
+	}
+
+	@Override
+	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
+		copyToLocal(storageFilePath, localFolderPath, null);
+	}
+
+	@Override
+	public void deleteFromStorage(String storageFilePath) throws Exception {
+		deleteFromStorage(storageFilePath, false, null);
+	}
+	
+	@Override
 	public void deleteFromStorage(String storageFilePath, String rCloneConfig) throws IOException, InterruptedException {
 		deleteFromStorage(storageFilePath, false, rCloneConfig);
 	}
-	
-	/**
-	 * Delete the folder or file from the storage engine
-	 * @param storageFilePath
-	 * @param leaveFolderStructure
-	 * @param rCloneConfig
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public abstract void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure, String rCloneConfig) throws IOException, InterruptedException;
 
+	@Override
+	public void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure) throws Exception {
+		deleteFromStorage(storageFilePath, leaveFolderStructure, null);
+	}
 	
 	/**
 	 * Init the values for the rclone storage engine
@@ -135,10 +141,10 @@ public abstract class AbstractRCloneStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	protected void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
-		String configPath = getConfigPath(rcloneConfig);
+	public void deleteRcloneConfig(String rCloneConfig) throws IOException, InterruptedException {
+		String configPath = getConfigPath(rCloneConfig);
 		try {
-			runRcloneProcess(rcloneConfig, "rclone", "config", "delete", rcloneConfig);
+			runRcloneProcess(rCloneConfig, "rclone", "config", "delete", rCloneConfig);
 		} finally {
 			new File(configPath).delete();
 		}
@@ -281,8 +287,10 @@ public abstract class AbstractRCloneStorageEngine {
 			List<String> lines = reader.lines().collect(Collectors.toList());
 			for(String line : lines) {
 				if (error) {
+					classLogger.warn(line);
 					System.err.println(line);
 				} else {
+					classLogger.info(line);
 					System.out.println(line);
 				}
 			}
