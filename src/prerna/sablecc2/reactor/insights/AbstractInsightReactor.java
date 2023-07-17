@@ -361,6 +361,15 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return false;
 	}
 	
+	protected String getOrigin() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ORIGIN.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return grs.get(0).toString();
+		}
+		
+		return "NO ORIGIN";
+	}
+	
 	/**
 	 * Set the new file as the image for the insight
 	 * Semoss/images/engineName_insightID.png

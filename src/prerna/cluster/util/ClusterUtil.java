@@ -22,7 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.engine.api.IEngine;
@@ -596,7 +596,7 @@ public class ClusterUtil {
 					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 					return images[0];
 				} else {
-					String alias = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
+					String alias = SecurityEngineUtils.getDatabaseAliasForId(databaseId);
 					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases" + DIR_SEPARATOR + databaseId + ".png";
 
 					if(alias != null) {

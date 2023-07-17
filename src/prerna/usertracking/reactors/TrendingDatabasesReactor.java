@@ -2,7 +2,7 @@ package prerna.usertracking.reactors;
 
 import java.util.List;
 
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -31,7 +31,7 @@ public class TrendingDatabasesReactor extends AbstractReactor {
 		}
 		Integer nd = Integer.valueOf(numDisplay);
 		
-		List<String> accessibleDbs = SecurityDatabaseUtils.getUserDatabaseIdList(this.insight.getUser(), true, true, true);
+		List<String> accessibleDbs = SecurityEngineUtils.getUserDatabaseIdList(this.insight.getUser(), true, true, true);
 		
 		List<String> dbs = EngineUsageUtils.getTrendingDatabases(nd, accessibleDbs);
 		

@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -33,7 +33,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
 		List<String> databaseFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseFilters = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+			databaseFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 			if(!databaseFilters.isEmpty()) {
 				if(databaseId != null) {
 					// need to make sure it is a valid engine id

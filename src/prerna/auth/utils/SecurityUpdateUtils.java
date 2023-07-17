@@ -2,7 +2,6 @@ package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Calendar;
@@ -10,7 +9,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -19,20 +17,13 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.InsightAdministrator;
-import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.project.impl.ProjectHelper;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -42,9 +33,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
@@ -577,7 +566,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean makeRequest(User user, String databaseId, int requestedPermission) throws SQLException {
 		// make sure this person isn't requesting multiple times
-		if(!SecurityDatabaseUtils.getGlobalDatabaseIds().contains(databaseId)) {
+		if(!SecurityEngineUtils.getGlobalDatabaseIds().contains(databaseId)) {
 			throw new IllegalArgumentException("Cannot request access to an app that is not public");
 		}
 		

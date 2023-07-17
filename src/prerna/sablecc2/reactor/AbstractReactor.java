@@ -17,7 +17,7 @@ import org.codehaus.plexus.util.StringUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -649,12 +649,12 @@ public abstract class AbstractReactor implements IReactor {
 			testId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), testId);
 			if(edit) {
 				// need edit permission
-				if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), testId)) {
+				if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), testId)) {
 					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
 				}
 			} else {
 				// just need read access
-				if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), testId)) {
+				if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), testId)) {
 					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
 				}
 			}

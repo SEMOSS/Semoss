@@ -1225,7 +1225,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	@Deprecated
 	public List<Map<String, Object>> getAppUsers(String databaseId) {
-		return SecurityDatabaseUtils.getFullDatabaseOwnersAndEditors(databaseId);
+		return SecurityEngineUtils.getFullDatabaseOwnersAndEditors(databaseId);
 	}
 
 	/**
@@ -1238,7 +1238,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getDatabaseUsers(String databaseId, String userId, String permission, long limit, long offset) {
-		return SecurityDatabaseUtils.getFullDatabaseOwnersAndEditors(databaseId, userId, permission, limit, offset);
+		return SecurityEngineUtils.getFullDatabaseOwnersAndEditors(databaseId, userId, permission, limit, offset);
 	}
 	
 	public static long getDatabaseUsersCount(String databaseId, String userId, String permission) {
@@ -1731,7 +1731,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void grantAllDatabases(String userId, String permission, boolean isAddNew) {
 		if(isAddNew) {
 			List<String> currentDatabaseAccess = getDatabasesUserHasExplicitAccess(userId);
-			List<String> databaseIds = SecurityDatabaseUtils.getAllDatabaseIds();
+			List<String> databaseIds = SecurityEngineUtils.getAllDatabaseIds();
 			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
 			int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 			boolean visible = true;

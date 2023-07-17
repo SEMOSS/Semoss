@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -28,7 +28,7 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to edit");
 			}
 		} else {
@@ -37,12 +37,12 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 		
 		Map<String, Object> metadata = getMetaMap();
 		// check for invalid metakeys
-		List<String> validMetakeys = SecurityDatabaseUtils.getAllMetakeys();
+		List<String> validMetakeys = SecurityEngineUtils.getAllMetakeys();
 		if(!validMetakeys.containsAll(metadata.keySet())) {
 	    	throw new IllegalArgumentException("Unallowed metakeys. Can only use: "+String.join(", ", validMetakeys));
 		}
 		
-		SecurityDatabaseUtils.updateDatabaseMetadata(databaseId, metadata);
+		SecurityEngineUtils.updateDatabaseMetadata(databaseId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the database"));
 		return noun;

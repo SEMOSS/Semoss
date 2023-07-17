@@ -13,6 +13,7 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.neo4j.helpers.ThisShouldNotHappenError;
 
 import com.google.gson.JsonSyntaxException;
 
@@ -43,6 +44,7 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.InsightEncryptionException;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserTrackingUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -63,7 +65,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				ReactorKeysEnum.ADDITIONAL_PIXELS.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
 				CACHEABLE,
-				USE_EXISTING_OPEN};
+				USE_EXISTING_OPEN,
+				ReactorKeysEnum.ORIGIN.getKey()};
 	}
 
 	@Override
@@ -121,6 +124,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Cannot find project = " + projectId);
 		}
 		
+		
 		// we have to pull the insight assets in case those changed since we last opened the insight
 		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId), rdbmsId);
 		Insight newInsight = null;
@@ -147,6 +151,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				throw err;
 			}
 		}
+		
+		
+		UserTrackingUtils.trackInsightOpen(rdbmsId, this.insight.getUserId(), getOrigin());
 		
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 		

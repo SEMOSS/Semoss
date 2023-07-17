@@ -50,9 +50,9 @@ import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class SecurityDatabaseUtils extends AbstractSecurityUtils {
+public class SecurityEngineUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityDatabaseUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityEngineUtils.class);
 	
 	/**
 	 * Add an entire database into the security db
@@ -661,7 +661,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userIsOwner(User user, String databaseId) {
 		return SecurityUserDatabaseUtils.userIsOwner(getUserFiltersQs(user), databaseId)
-				|| SecurityGroupDatabaseUtils.userGroupIsOwner(user, databaseId);
+				|| SecurityGroupEngineUtils.userGroupIsOwner(user, databaseId);
 	}
 	
 	/**
@@ -672,7 +672,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanEditDatabase(User user, String databaseId) {
 		return SecurityUserDatabaseUtils.userCanEditDatabase(user, databaseId)
-				|| SecurityGroupDatabaseUtils.userGroupCanEditDatabase(user, databaseId);
+				|| SecurityGroupEngineUtils.userGroupCanEditDatabase(user, databaseId);
 	}
 	
 	/**
@@ -683,7 +683,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanViewDatabase(User user, String databaseId) {
 		return SecurityUserDatabaseUtils.userCanViewDatabase(user, databaseId)
-				|| SecurityGroupDatabaseUtils.userGroupCanViewDatabase(user, databaseId);
+				|| SecurityGroupEngineUtils.userGroupCanViewDatabase(user, databaseId);
 	}
 	
 	/**
@@ -2879,7 +2879,7 @@ public class SecurityDatabaseUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		List<String> databaseList = QueryExecutionUtility.flushToListString(securityDb, qs);
-		databaseList.addAll(SecurityDatabaseUtils.getGlobalDatabaseIds());
+		databaseList.addAll(SecurityEngineUtils.getGlobalDatabaseIds());
 		return databaseList.stream().distinct().sorted().collect(Collectors.toList());
 	}
 	

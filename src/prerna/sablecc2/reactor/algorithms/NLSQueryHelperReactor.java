@@ -10,7 +10,7 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -70,7 +70,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		// need to validate that the user has access to these ids
 		if (dbFilters.size() > 0) {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				List<String> databaseIds = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+				List<String> databaseIds = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 				// make sure our ids are a complete subset of the user ids
 				// user defined list must always be a subset of all the engine ids
 				if (!databaseIds.containsAll(dbFilters)) {
@@ -85,7 +85,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			}
 		} else {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				dbFilters = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+				dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 			} else {
 				dbFilters = MasterDatabaseUtility.getAllDatabaseIds();
 			}

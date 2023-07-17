@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -39,7 +39,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 		
 		List<String> engineFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineFilters = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+			engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 		}
 		
 		if(logicals != null && !logicals.isEmpty()) {
