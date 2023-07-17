@@ -1667,7 +1667,7 @@ public abstract class AbstractSecurityUtils {
 			return true;
 		}
 		// so that way all those Asset apps do not appear a bunch of times
-		String smssFile = DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE) + "";
+		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";
 		File smssF = new File(smssFile);
 		if(smssFile != null && smssF.exists() && smssF.isFile()) {
 			Properties prop = Utility.loadProperties(smssFile);

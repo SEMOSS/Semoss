@@ -2330,7 +2330,7 @@ public class Utility {
 	public static IEngine loadEngine(String smssFilePath, Properties prop) {
 		IEngine engine = null;
 		try {
-			String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
+			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 			String engineId = prop.getProperty(Constants.ENGINE);
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
 
@@ -2340,17 +2340,17 @@ public class Utility {
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
 				// so check to see this
-				if (DIHelper.getInstance().getDbProperty(engineId) instanceof IEngine) {
-					return (IEngine) DIHelper.getInstance().getDbProperty(engineId);
+				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IEngine) {
+					return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 				}
 			}
 
 			// we store the smss location in DIHelper
 			if(smssFilePath != null)
-				DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.STORE, smssFilePath);
+				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
 			// we also store the OWL location
 			if (prop.containsKey(Constants.OWL)) {
-				DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
+				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 			}
 
 			// create and open the class
@@ -2362,13 +2362,13 @@ public class Utility {
 			engine.openDB(smssFilePath);
 
 			// set the engine in DIHelper
-			DIHelper.getInstance().setDbProperty(engineId, engine);
+			DIHelper.getInstance().setEngineProperty(engineId, engine);
 
 			// Append the engine name to engines if not already present
 			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
 					|| engines.endsWith(";" + engineId))) {
 				engines = engines + ";" + engineId;
-				DIHelper.getInstance().setDbProperty(Constants.ENGINES, engines);
+				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
 			}
 
 			boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
@@ -2377,12 +2377,13 @@ public class Utility {
 			boolean isThemes = engineId.equals(Constants.THEMING_DB);
 			boolean isUserTracking = engineId.equals(Constants.USER_TRACKING_DB);
 			if (!isLocal && !isSecurity && !isScheduler && !isThemes && !isUserTracking) {
-				
 				// sync up the engine metadata now
 				synchronizeEngineMetadata(engineId);
 				// need to do a check to see if this is socket side here
-				if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
+				if((DIHelper.getInstance().getLocalProp("core") == null || 
+						DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
 					SecurityDatabaseUtils.addDatabase(engineId, null);
+				}
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);
@@ -2468,7 +2469,7 @@ public class Utility {
 		 */
 
 		// grab the local master engine
-		IEngine localMaster = (IEngine) DIHelper.getInstance().getDbProperty(Constants.LOCAL_MASTER_DB_NAME);
+		IEngine localMaster = (IEngine) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB_NAME);
 		if (localMaster == null) {
 			logger.info(">>>>>>>> Unable to find local master database in DIHelper.");
 			return;
@@ -2476,7 +2477,7 @@ public class Utility {
 
 		// generate the appropriate query to execute on the local master engine to get
 		// the time stamp
-		String smssFile = DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE) + "";
+		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
 
 		// this has all the details
 		// the engine file is primarily the SMSS that is going to be utilized for the
@@ -2755,7 +2756,7 @@ public class Utility {
 		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
 		{
 			// not sure why we need this after the first time but hey
-			smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
+			smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
 		}
 		else // this is happening on the socket side
 		{
@@ -2765,7 +2766,7 @@ public class Utility {
 			// once reloaded it will be present in the DI Helper
 			// check DI Helper to see if this is needed
 			// if not try to figure if reload is required
-			if(DIHelper.getInstance().getDbProperty(engineId) == null) // if already loaded.. no need to load again
+			if(DIHelper.getInstance().getEngineProperty(engineId) == null) // if already loaded.. no need to load again
 			{
 				prop = getEngineDetails(engineId);
 				if(prop != null)
@@ -2787,8 +2788,8 @@ public class Utility {
 		{
 			// If the engine has already been loaded, then return it
 			// Don't acquire the lock here, because that would slow things down
-			if (DIHelper.getInstance().getDbProperty(engineId) != null) {
-				engine = (IEngine) DIHelper.getInstance().getDbProperty(engineId);
+			if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
+				engine = (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 			} else {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
@@ -2803,8 +2804,8 @@ public class Utility {
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
 					// it doesn't go through this process again
-					if (DIHelper.getInstance().getDbProperty(engineId) != null) {
-						return (IEngine) DIHelper.getInstance().getDbProperty(engineId);
+					if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
+						return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 					}
 					
 					// If in a clustered environment, then pull the app first
@@ -2820,7 +2821,7 @@ public class Utility {
 					}
 					
 					// Now that the database has been pulled, grab the smss file
-					smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
+					smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
 					
 					// Start up the engine using the details in the smss
 					if (smssFile != null) {
@@ -2886,7 +2887,7 @@ public class Utility {
 	}
 	
 	public static boolean isEngineLoaded(String engineId) {
-		return DIHelper.getInstance().getDbProperty(engineId) != null;
+		return DIHelper.getInstance().getEngineProperty(engineId) != null;
 	}
 	
 	public static Properties getEngineDetails(String engineId)

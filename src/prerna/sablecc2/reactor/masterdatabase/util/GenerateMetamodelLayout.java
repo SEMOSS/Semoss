@@ -37,7 +37,7 @@ public class GenerateMetamodelLayout {
 	private static final Logger classLogger = LogManager.getLogger(GenerateMetamodelLayout.class);
 	
 	public static void generateLayout(String appId) {
-		String smssFile = (String) DIHelper.getInstance().getDbProperty(appId + "_" + Constants.STORE);
+		String smssFile = (String) DIHelper.getInstance().getEngineProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
 		String owlFileLocation = SmssUtilities.getOwlFile(prop).getAbsolutePath();
 		File owlF = new File(owlFileLocation);

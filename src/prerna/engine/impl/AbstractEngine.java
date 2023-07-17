@@ -642,12 +642,12 @@ public abstract class AbstractEngine implements IEngine {
 		}
 
 		// remove from DIHelper
-		String engineIds = (String)DIHelper.getInstance().getDbProperty(Constants.ENGINES);
+		String engineIds = (String)DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
 		engineIds = engineIds.replace(";" + this.engineId, "");
 		// in case we are at the start
 		engineIds = engineIds.replace(this.engineId + ";", "");
-		DIHelper.getInstance().setDbProperty(Constants.ENGINES, engineIds);
-		DIHelper.getInstance().removeDbProperty(this.engineId);
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+		DIHelper.getInstance().removeEngineProperty(this.engineId);
 	}
 	
 	@Override

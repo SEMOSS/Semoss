@@ -199,7 +199,7 @@ public class UploadAppReactor extends AbstractInsightReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setDbProperty(appId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
+			DIHelper.getInstance().setEngineProperty(appId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
 			logger.info(step + ") Grabbing app structure");
 			Utility.synchronizeEngineMetadata(appId);
 			logger.info(step + ") Done");
