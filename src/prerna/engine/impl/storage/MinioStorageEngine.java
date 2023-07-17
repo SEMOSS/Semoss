@@ -35,7 +35,7 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 	}
 	
 	@Override
-	public String createRcloneConfig() throws IOException, InterruptedException {
+	public String createRCloneConfig() throws IOException, InterruptedException {
 		String rcloneConfig = Utility.getRandomString(10);
 
 		runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "access_key_id",
