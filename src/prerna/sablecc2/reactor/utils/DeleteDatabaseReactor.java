@@ -88,11 +88,11 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 		database.deleteDB();
 
 		// remove from dihelper... this is absurd
-		String databaseIds = (String) DIHelper.getInstance().getDbProperty(Constants.ENGINES);
+		String databaseIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
 		databaseIds = databaseIds.replace(";" + databaseId, "");
 		// in case it was the first databases loaded
 		databaseIds = databaseIds.replace(databaseId + ";", "");
-		DIHelper.getInstance().setDbProperty(Constants.ENGINES, databaseIds);
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, databaseIds);
 
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(databaseId);

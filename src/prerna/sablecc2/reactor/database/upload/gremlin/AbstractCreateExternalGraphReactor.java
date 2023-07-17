@@ -92,7 +92,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			generateNewDatabase(user);
 			
 			// this handles the other metadata aspects
-			DIHelper.getInstance().setDbProperty(this.newDatabaseId + "_" + Constants.STORE, this.smssFile.getAbsolutePath());
+			DIHelper.getInstance().setEngineProperty(this.newDatabaseId + "_" + Constants.STORE, this.smssFile.getAbsolutePath());
 			Utility.synchronizeEngineMetadata(this.newDatabaseId);
 
 			// generate the actual engine
@@ -235,7 +235,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		this.tempSmss = null;
 		try {
 			this.tempSmss = generateTempSmss(owlFile);
-			DIHelper.getInstance().setDbProperty(this.newDatabaseId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			DIHelper.getInstance().setEngineProperty(this.newDatabaseId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());

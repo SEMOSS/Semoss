@@ -40,7 +40,6 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.datastax.DataStaxGraphEngine;
 import prerna.engine.impl.neo4j.Neo4jEngine;
 import prerna.engine.impl.r.RNativeEngine;
@@ -112,11 +111,11 @@ public class UploadUtilities {
 	 * @param smssFile
 	 */
 	public static void updateDIHelper(String newDatabaseId, String newDatabaseName, IEngine database, File smssFile) {
-		DIHelper.getInstance().setDbProperty(newDatabaseId + "_" + Constants.STORE, smssFile.getAbsolutePath());
-		DIHelper.getInstance().setDbProperty(newDatabaseId, database);
-		String engineIds = (String) DIHelper.getInstance().getDbProperty(Constants.ENGINES);
+		DIHelper.getInstance().setEngineProperty(newDatabaseId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		DIHelper.getInstance().setEngineProperty(newDatabaseId, database);
+		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
 		engineIds = engineIds + ";" + newDatabaseId;
-		DIHelper.getInstance().setDbProperty(Constants.ENGINES, engineIds);
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
 	}
 	
 	/**
@@ -400,61 +399,61 @@ public class UploadUtilities {
 		return dbTempSmss;
 	}
 	
-	/**
-	 * Generate the SMSS for the empty database
-	 * 
-	 * @param databaseId
-	 * @param databaseName
-	 * @return
-	 * @throws IOException
-	 */
-	public static File createTemporaryDatabaseSmss(String databaseId, String databaseName, boolean isAssetApp) throws IOException {
-		String appTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
-		
-		// i am okay with deleting the .temp if it exists
-		// we dont leave this around 
-		// and they should be deleted after loading
-		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if(appTempSmss.exists()) {
-			appTempSmss.delete();
-		}
-		
-		final String newLine = "\n";
-		final String tab = "\t";
-		
-		// also write the base properties
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			File newFile = new File(appTempSmssLoc);
-			writer = new FileWriter(newFile);
-			bufferedWriter = new BufferedWriter(writer);
-			bufferedWriter.write("#Base Properties" +  newLine);
-			bufferedWriter.write(Constants.ENGINE + tab + databaseId + newLine);
-			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + databaseName + newLine);
-			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
-			if(isAssetApp) {
-				bufferedWriter.write(Constants.IS_ASSET_APP + tab + true + newLine);
-			}
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			throw new IOException("Could not generate database smss file");
-		} finally {
-			try {
-				if(bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if(writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
-		return appTempSmss;
-	}
+//	/**
+//	 * Generate the SMSS for the empty database
+//	 * 
+//	 * @param databaseId
+//	 * @param databaseName
+//	 * @return
+//	 * @throws IOException
+//	 */
+//	public static File createTemporaryDatabaseSmss(String databaseId, String databaseName, boolean isAssetApp) throws IOException {
+//		String appTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
+//		
+//		// i am okay with deleting the .temp if it exists
+//		// we dont leave this around 
+//		// and they should be deleted after loading
+//		// so ideally this would never happen...
+//		File appTempSmss = new File(appTempSmssLoc);
+//		if(appTempSmss.exists()) {
+//			appTempSmss.delete();
+//		}
+//		
+//		final String newLine = "\n";
+//		final String tab = "\t";
+//		
+//		// also write the base properties
+//		FileWriter writer = null;
+//		BufferedWriter bufferedWriter = null;
+//		try {
+//			File newFile = new File(appTempSmssLoc);
+//			writer = new FileWriter(newFile);
+//			bufferedWriter = new BufferedWriter(writer);
+//			bufferedWriter.write("#Base Properties" +  newLine);
+//			bufferedWriter.write(Constants.ENGINE + tab + databaseId + newLine);
+//			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + databaseName + newLine);
+//			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
+//			if(isAssetApp) {
+//				bufferedWriter.write(Constants.IS_ASSET_APP + tab + true + newLine);
+//			}
+//		} catch (IOException ex) {
+//			ex.printStackTrace();
+//			throw new IOException("Could not generate database smss file");
+//		} finally {
+//			try {
+//				if(bufferedWriter != null) {
+//					bufferedWriter.close();
+//				}
+//				if(writer != null) {
+//					writer.close();
+//				}
+//			} catch (IOException e) {
+//				classLogger.error(Constants.STACKTRACE, e);
+//			}
+//		}
+//		
+//		return appTempSmss;
+//	}
 	
 	/**
 	 * Create a temporary smss file for a tinker database
