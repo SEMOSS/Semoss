@@ -30,9 +30,9 @@ package prerna.util;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,13 +40,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.IStorage;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.OwlPrettyPrintFixer;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
-import prerna.engine.impl.app.AppEngine;
-import prerna.engine.impl.remotesemoss.RemoteSemossEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
@@ -58,8 +54,7 @@ import prerna.usertracking.UserTrackingUtils;
  */
 public class SMSSWebWatcher extends AbstractFileWatcher {
 
-	private static List<String> ignoreSmssList = new Vector<>();
-
+	private static List<String> ignoreSmssList = new ArrayList<>();
 	static {
 		ignoreSmssList.add(Constants.LOCAL_MASTER_DB_NAME);
 		ignoreSmssList.add(Constants.SECURITY_DB);
@@ -108,8 +103,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
 				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
-				String fileName = folderToWatch + "/" + newFile;
-				Utility.loadEngine(fileName, prop);
+//				String fileName = folderToWatch + "/" + newFile;
+//				Utility.loadEngine(fileName, prop);
+				String filePath = folderToWatch + "/" + newFile;
+				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -142,67 +139,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
 				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
-				String fileName = folderToWatch + "/" + newFile;
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, fileName);
-				String engineTypeString = null;
-				String rawType = prop.get(Constants.ENGINE_TYPE).toString();
-				try {
-					Object emptyClass = Class.forName(rawType).newInstance();
-					if(emptyClass instanceof IRDBMSEngine) {
-						engineTypeString = "RDBMS";
-					} else if(emptyClass instanceof IStorage) {
-						engineTypeString = "STORAGE";
-					} else if(emptyClass instanceof AppEngine) {
-						engineTypeString = "APP";
-					} else if(emptyClass instanceof RemoteSemossEngine) {
-						engineTypeString = "REMOTE";
-					} else {
-						// default is some RDF
-						engineTypeString = "RDF";
-					}
-				} catch(Exception e) {
-					logger.warn("Unknown class name = " + rawType + " in smss file " + newFile);
-				}
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineTypeString);
-				
-				String engineNames = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-				if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) {
-					engineNames = engineNames + ";" + engineId;
-					DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineNames);
-				}
-
-				// the issue with remote engines is it needs to be loaded to get the insights and the owl file
-				// TODO need something that will modify this for the remote engines
-				// if the db folder exsits.. nothing to do
-				// else this needs to be open db
-				// and then register this engine
-//				if(prop.containsKey(Constants.ENGINE_TYPE) && prop.get(Constants.ENGINE_TYPE).toString().toUpperCase().contains("REMOTE"))
-//				{
-//					// this is a remote engine which needs to be registered
-//					// but need to see if I need to open DB or not
-//					// may be this logic is sitting within open DB
-//					// or not
-//					try {
-//						engine = (IEngine) Class.forName(prop.get(Constants.ENGINE_TYPE)+"").newInstance();
-//						engine.openDB(newFile);
-//						engine.closeDB();
-//					} catch (Exception e) {
-//						// TODO Auto-generated catch block
-//						logger.error(Constants.STACKTRACE, e);
-//					}
-//				}
-				
-				//TODO: need to account for remote!!!!
-				//TODO: need to account for remote!!!!
-				//TODO: need to account for remote!!!!
-				//TODO: need to account for remote!!!!
-				if(!engineTypeString.equals("REMOTE") && !ignoreSmssList.contains(engineId)) {
-					// sync up the engine metadata now
-					Utility.synchronizeEngineMetadata(engineId);
-					SecurityDatabaseUtils.addDatabase(engineId, null);
-				} else {
-					logger.info("Ignoring engine ... " + Utility.cleanLogString(prop.getProperty(Constants.ENGINE_ALIAS)) + " >>> " + engineId );
-				}
+				String filePath = folderToWatch + "/" + newFile;
+				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch(Exception e){
 			logger.error(Constants.STACKTRACE, e);
