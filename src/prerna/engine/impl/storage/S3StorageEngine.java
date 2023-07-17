@@ -37,7 +37,7 @@ public class S3StorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 	}
 	
 	@Override
-	public String createRcloneConfig() throws IOException, InterruptedException {
+	public String createRCloneConfig() throws IOException, InterruptedException {
 		String rcloneConfig = Utility.getRandomString(10);
 
 		if (keysProvided) {
