@@ -1050,7 +1050,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 */
 	public static void deleteDatabase(String databaseId) {
-		List<String> deletes = new Vector<>();
+		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
 //		deletes.add("DELETE FROM INSIGHT WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
@@ -1064,6 +1064,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps = securityDb.getPreparedStatement(deleteQuery);
 				ps.setString(1, databaseId);
 				ps.execute();
+				if(!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
@@ -1083,7 +1086,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		securityDb.commit();
 	}
 	
 	/**
