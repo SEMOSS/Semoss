@@ -28,6 +28,7 @@
 package prerna.project.api;
 
 import java.util.Properties;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import prerna.auth.AuthProvider;
@@ -131,6 +132,12 @@ public interface IProject {
 	 * @return
 	 */
 	IReactor getReactor(String reactorName, SemossClassloader loader);
+	
+	/**
+	 * Get an ordered set of the reactor names
+	 * @return
+	 */
+	TreeSet<String> getAvailableReactors();
 	
 	// publish the engine assets to a specific location
 	// once published the assets in this app are available as a public_home from the browser

@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -874,6 +875,15 @@ public class Project implements IProject {
 		} else {
 			return retReac;
 		}
+	}
+	
+	@Override
+	public TreeSet<String> getAvailableReactors() {
+		if(this.projectSpecificHash == null) {
+			return new TreeSet<>();
+		}
+		
+		return new TreeSet<>(this.projectSpecificHash.keySet());
 	}
 	
 	private boolean executeReactorOnSocket()
