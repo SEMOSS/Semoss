@@ -84,10 +84,10 @@ public class RequestDatabaseReactor extends AbstractReactor {
 			String userType = token.getProvider().toString();
 			SecurityDatabaseUtils.setUserAccessRequest(userId, userType, databaseId, requestPermission);
 			sendEmail(user, databaseId, permission);
-			return NounMetadata.getSuccessNounMessage("Successfully requested the database");
-		} else {
-			return NounMetadata.getErrorNounMessage("Unable to request the database");
+			return NounMetadata.getSuccessNounMessage("Successfully requested database '" + databaseId + "'");
 		}
+
+		return NounMetadata.getErrorNounMessage("Database '" + databaseId + "' is not requestable");
 	}
 
 	/**
