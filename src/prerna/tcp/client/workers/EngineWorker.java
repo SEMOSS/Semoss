@@ -11,7 +11,7 @@ import java.util.Map;
 import com.sun.rowset.CachedRowSetImpl;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.tcp.PayloadStruct;
@@ -45,9 +45,9 @@ public class EngineWorker implements Runnable {
 			
 			// TODO: *****************need to do a security check *************
 			User user = sc.getUser();
-			boolean canAccess = SecurityDatabaseUtils.userIsOwner(user, engineId) 
-								|| SecurityDatabaseUtils.userCanEditDatabase(user, engineId)
-								|| SecurityDatabaseUtils.userCanViewDatabase(user, engineId); 
+			boolean canAccess = SecurityEngineUtils.userIsOwner(user, engineId) 
+								|| SecurityEngineUtils.userCanEditDatabase(user, engineId)
+								|| SecurityEngineUtils.userCanViewDatabase(user, engineId); 
 			
 			if(canAccess)
 			{

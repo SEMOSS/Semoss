@@ -144,7 +144,7 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.NotFoundException;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
@@ -2373,7 +2373,7 @@ public class Utility {
 			logger.info("Loading database engine = " + engineId);
 			// sync up the engine metadata now
 			Utility.synchronizeEngineMetadata(engineId);
-			SecurityDatabaseUtils.addDatabase(engineId, null);
+			SecurityEngineUtils.addDatabase(engineId, null);
 		} else if(loadStorage) {
 			logger.info("Loading storage engine = " + engineId);
 
@@ -2444,7 +2444,7 @@ public class Utility {
 				// need to do a check to see if this is socket side here
 				if((DIHelper.getInstance().getLocalProp("core") == null || 
 						DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
-					SecurityDatabaseUtils.addDatabase(engineId, null);
+					SecurityEngineUtils.addDatabase(engineId, null);
 				}
 			}
 		} catch (InstantiationException ie) {

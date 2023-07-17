@@ -56,7 +56,7 @@ import cz.vutbr.web.css.TermLength;
 import cz.vutbr.web.css.TermPercent;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
@@ -1288,7 +1288,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	private Object resolveQueryFromDB(String queryToResolve, String placeholderLabel, String databaseId) {
 		String resolvedVal = "";
 		if (AbstractSecurityUtils.securityEnabled()) {
-			if (!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if (!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException(
 						"Database " + databaseId + " does not exist or user does not have access to database");
 			}

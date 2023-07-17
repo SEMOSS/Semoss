@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.cluster;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -26,7 +26,7 @@ public class PullDatabaseFromCloudReactor extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			if(!SecurityDatabaseUtils.userIsOwner(this.insight.getUser(), databaseId)) {
+			if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), databaseId)) {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user is not an owner to force pulling from cloud storage");
 			}

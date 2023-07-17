@@ -21,7 +21,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
@@ -58,7 +58,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 			throw new NullPointerException("Must provide an app id");
 		}
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityDatabaseUtils.userIsOwner(this.insight.getUser(), appId)) {
+			if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("Database " + appId + " does not exist or user is not an owner to the database");
 			}
 		}

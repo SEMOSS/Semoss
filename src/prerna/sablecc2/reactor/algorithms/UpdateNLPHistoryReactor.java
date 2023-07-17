@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,7 +49,7 @@ public class UpdateNLPHistoryReactor extends AbstractRFrameReactor {
 		// get all id's of a user
 		List<String> allIds = null;
 		if (AbstractSecurityUtils.securityEnabled()) {
-			allIds = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+			allIds = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 		} else {
 			allIds = MasterDatabaseUtility.getAllDatabaseIds();
 		}

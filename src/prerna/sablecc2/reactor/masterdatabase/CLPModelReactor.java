@@ -7,7 +7,7 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -37,7 +37,7 @@ public class CLPModelReactor extends AbstractReactor {
 		
 		List<String> engineFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineFilters = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+			engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 		}
 		
 		logger.info("Querying to retrieve conceptual to physical to logical model");

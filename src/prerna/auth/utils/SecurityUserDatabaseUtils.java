@@ -62,7 +62,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 		}
 		
 		// see if database is public
-		if(SecurityDatabaseUtils.databaseIsGlobal(databaseId)) {
+		if(SecurityEngineUtils.databaseIsGlobal(databaseId)) {
 			return AccessPermissionEnum.READ_ONLY.getPermission();
 		}
 		
@@ -344,7 +344,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getDisplayDatabaseOwnersAndEditors(String databaseId) {
 		List<Map<String, Object>> users = null;
-		if(SecurityDatabaseUtils.getGlobalDatabaseIds().contains(databaseId)) {
+		if(SecurityEngineUtils.getGlobalDatabaseIds().contains(databaseId)) {
 //			String query = "SELECT DISTINCT "
 //					+ "SMSS_USER.NAME AS \"name\", "
 //					+ "PERMISSION.NAME as \"permission\" "

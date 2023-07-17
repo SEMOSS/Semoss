@@ -11,7 +11,7 @@ import org.jasypt.encryption.pbe.StandardPBEByteEncryptor;
 import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Pixel;
@@ -76,7 +76,7 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 	public void resolvePayloadVariables(List<Map<String, Object>> paramList, List<Object> exportVariables) {
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		if (AbstractSecurityUtils.securityEnabled()) {
-			if (!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if (!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException(
 						"Database " + databaseId + " does not exist or user does not have access to database");
 			}
