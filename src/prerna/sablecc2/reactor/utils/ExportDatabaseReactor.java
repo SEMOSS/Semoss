@@ -70,7 +70,7 @@ public class ExportDatabaseReactor extends AbstractReactor {
 		lock.lock();
 		try {
 			IEngine database = Utility.getEngine(databaseId);
-			DIHelper.getInstance().removeDbProperty(databaseId);
+			DIHelper.getInstance().removeEngineProperty(databaseId);
 			database.closeDB();
 			
 			String databaseName = database.getEngineName();

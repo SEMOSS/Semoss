@@ -157,7 +157,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 			logger.info("Finished removing exisitng metadata");
 
 			logger.info("Starting to add metadata");
-			String smssFile = (String) DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE);
+			String smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
 			Properties prop = Utility.loadProperties(smssFile);
 			AddToMasterDB adder = new AddToMasterDB();
 			adder.registerEngineLocal(prop);
