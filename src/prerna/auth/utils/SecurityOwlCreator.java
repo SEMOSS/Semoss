@@ -52,7 +52,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add(Constants.INSIGHT_METAKEYS);
 		
 		// trusted token security
-		conceptsRequired.add("TOKENS");
+		conceptsRequired.add("TOKEN");
 	}
 	
 	private static List<String[]> relationshipsRequired = new Vector<String[]>();
@@ -386,13 +386,13 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "PHONEEXTENSION", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "COUNTRYCODE", "VARCHAR(255)");
 		
-		// TOKENS
-		owler.addConcept("TOKENS", null, null);
-		owler.addProp("TOKENS", "IPADDR", "VARCHAR(255)");
-		owler.addProp("TOKENS", "VAL", "VARCHAR(255)");
-		owler.addProp("TOKENS", "DATEADDED", "TIMESTAMP");
-		owler.addProp("TOKENS", "CLIENTID", "VARCHAR(255)");
-
+		// TOKEN
+		owler.addConcept("TOKEN", null, null);
+		owler.addProp("TOKEN", "IPADDR", "VARCHAR(255)");
+		owler.addProp("TOKEN", "VAL", "VARCHAR(255)");
+		owler.addProp("TOKEN", "DATEADDED", "TIMESTAMP");
+		owler.addProp("TOKEN", "CLIENTID", "VARCHAR(255)");
+		
 		// PERMISSION
 		owler.addConcept("PERMISSION", null, null);
 		owler.addProp("PERMISSION", "ID", "INT");
@@ -549,12 +549,6 @@ public class SecurityOwlCreator {
 		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.TYPE.GROUPINSIGHTPERMISSION.TYPE");
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID");
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID");
-
-		// TOKEN
-		owler.addConcept("TOKEN", null, null);
-		owler.addProp("TOKEN", "IPADDR", "VARCHAR(255)");
-		owler.addProp("TOKEN", "VAL", "VARCHAR(255)");
-		owler.addProp("TOKEN", "DATEADDED", "TIMESTAMP");
 		
 		owler.commit();
 		owler.export();
