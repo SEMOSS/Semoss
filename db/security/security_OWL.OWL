@@ -1501,66 +1501,66 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">COUNTRYCODE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKENS">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
 	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TOKENS"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TOKENS</Conceptual>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TOKEN"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TOKEN</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKENS">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKEN">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKENS">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKENS"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKEN"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKENS">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKEN">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKENS"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKEN"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IPADDR</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VAL/TOKENS">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VAL/TOKEN">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKENS">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VAL/TOKENS"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VAL/TOKEN"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VAL/TOKENS">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VAL/TOKEN">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VAL/TOKENS"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VAL/TOKEN"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">VAL</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKENS">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKEN">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKENS">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKENS"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKEN"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKENS">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKEN">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKENS"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKEN"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATEADDED</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKENS">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKEN">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKENS">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKENS"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKEN"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKENS">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKEN">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKENS"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/CLIENTID/TOKEN"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">CLIENTID</Conceptual>
 </rdf:Description>
 
@@ -3050,57 +3050,8 @@
 	<INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/GROUPINSIGHTPERMISSION"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
-	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TOKEN"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TOKEN</Conceptual>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKEN">
-	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKEN"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKEN">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IPADDR/TOKEN"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IPADDR</Conceptual>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VAL/TOKEN">
-	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VAL/TOKEN"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VAL/TOKEN">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VAL/TOKEN"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">VAL</Conceptual>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKEN">
-	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TOKEN">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKEN"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKEN">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/DATEADDED/TOKEN"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATEADDED</Conceptual>
-</rdf:Description>
-
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:07:11 10:42:44</TIME>
+	<TIME xmlns="ENGINE:">2023:07:17 17:54:42</TIME>
 </rdf:Description>
 
 </rdf:RDF>
