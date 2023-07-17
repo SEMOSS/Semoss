@@ -68,15 +68,6 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 	// this must be set in the implementing class
 	protected String PROVIDER = null;
 
-	/**
-	 * This method is responsible for creating the specific r clone configuration object for this storage type
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public abstract String createRcloneConfig() throws IOException, InterruptedException;
-	
-	
-	
 	@Override
 	public void setEngineId(String engineId) {
 		this.engineId = engineId;
