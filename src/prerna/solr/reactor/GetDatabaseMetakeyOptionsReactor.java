@@ -3,7 +3,7 @@ package prerna.solr.reactor;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -19,7 +19,7 @@ public class GetDatabaseMetakeyOptionsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String metakey = this.keyValue.get(this.keysToGet[0]);
-		List<Map<String, Object>> ret = SecurityDatabaseUtils.getMetakeyOptions(metakey);
+		List<Map<String, Object>> ret = SecurityEngineUtils.getMetakeyOptions(metakey);
 		NounMetadata noun = new NounMetadata(ret, PixelDataType.PIXEL_OBJECT);
 		return noun;
 	}

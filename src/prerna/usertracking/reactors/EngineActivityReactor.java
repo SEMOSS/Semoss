@@ -6,13 +6,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.commons.lang3.tuple.Pair;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -63,7 +63,7 @@ public class EngineActivityReactor extends AbstractReactor {
 	private void checkDatabaseId(String databaseId) {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 			}
 		} else {

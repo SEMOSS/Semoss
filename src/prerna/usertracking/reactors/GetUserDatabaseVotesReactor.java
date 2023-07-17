@@ -7,7 +7,7 @@ import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -35,7 +35,7 @@ public class GetUserDatabaseVotesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Database Id cannot be null.");
 		}
 
-		if (!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+		if (!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 			throw new IllegalArgumentException("Database cannot be viewed by user.");
 		}
 

@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -38,7 +38,7 @@ public class GetDatabaseSMSSReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			if(!isAdmin) {
-				boolean isOwner = SecurityDatabaseUtils.userIsOwner(user, databaseId);
+				boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
 				if(!isOwner) {
 					throw new IllegalArgumentException("Catalog " + databaseId + " does not exist or user does not have permissions to update the smss of the catalog. User must be the owner to perform this function.");
 				}

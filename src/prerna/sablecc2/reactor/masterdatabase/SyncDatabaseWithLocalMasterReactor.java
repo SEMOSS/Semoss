@@ -5,7 +5,7 @@ import java.util.Properties;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -34,7 +34,7 @@ public class SyncDatabaseWithLocalMasterReactor extends AbstractReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to app");
 			}
 		} else {

@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -40,23 +40,23 @@ public class CopyDatabasePermissionsReactor extends AbstractReactor {
 		String targetDatabaseId = this.keyValue.get(this.keysToGet[1]);
 
 		// must be an editor for both to run this
-		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), sourceDatabaseId)) {
+		if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), sourceDatabaseId)) {
 			throw new IllegalArgumentException("You do not have edit access to the source database");
 		}
-		if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), targetDatabaseId)) {
+		if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), targetDatabaseId)) {
 			throw new IllegalArgumentException("You do not have edit access to the target database");
 		}
 		
 		// now perform the operation
 		try {
-			SecurityDatabaseUtils.copyDatabasePermissions(sourceDatabaseId, targetDatabaseId);
+			SecurityEngineUtils.copyDatabasePermissions(sourceDatabaseId, targetDatabaseId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred copying the app permissions.  Detailed error: " + e.getMessage());
 		}
 
-		String sourceDatabase = SecurityDatabaseUtils.getDatabaseAliasForId(sourceDatabaseId);
-		String targetDatabase = SecurityDatabaseUtils.getDatabaseAliasForId(targetDatabaseId);
+		String sourceDatabase = SecurityEngineUtils.getDatabaseAliasForId(sourceDatabaseId);
+		String targetDatabase = SecurityEngineUtils.getDatabaseAliasForId(targetDatabaseId);
 
 		return new NounMetadata("Copied permissions from database " 
 				+ sourceDatabase  + "__" + sourceDatabaseId + " to " + targetDatabase + "__" + targetDatabaseId, 

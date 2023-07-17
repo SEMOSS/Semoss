@@ -12,7 +12,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -93,7 +93,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			if (security) {
 				// check if input is alias since we are adding ot existing
 				databaseIdOrName = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseIdOrName);
-				if (!SecurityDatabaseUtils.userCanEditDatabase(user, databaseIdOrName)) {
+				if (!SecurityEngineUtils.userCanEditDatabase(user, databaseIdOrName)) {
 					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 					SemossPixelException err = new SemossPixelException(noun);
 					err.setContinueThreadOfExecution(false);
@@ -204,7 +204,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
-					SecurityDatabaseUtils.addDatabaseOwner(this.databaseId, user.getAccessToken(ap).getId());
+					SecurityEngineUtils.addDatabaseOwner(this.databaseId, user.getAccessToken(ap).getId());
 				}
 			}
 		}

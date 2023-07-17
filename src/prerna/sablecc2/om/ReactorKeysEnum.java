@@ -135,6 +135,7 @@ public enum ReactorKeysEnum {
 	OPERATOR("operator", 										"The operator to use for identifying this filter such as > , < = != etc. "),
 	OPERATORU("operatoru", 										"Unique operator to use for identifying this filter such as > , < = != etc. For instance this can be a = 1 AND a = 2 in which case the first = would be and.left.="),
 	OPTIONS("options", 											"Map of option values"),
+	ORIGIN("origin",											"Where user came from when accessing insight"),						
 	ORNAMENTS_KEY("ornaments", 									"Panel ornaments"),
 	OUTPUT_FILE_PATH("outputFilePath", 							"Output file path to be used to destinguish if a reactor already has filePath passed in for an input file"),
 	OVERRIDE("override", 										"Indicates if the existing value will be overridden or if a new value will be created"),
