@@ -14,7 +14,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -69,20 +69,20 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
 		// check user permission for the database
-		Integer currentUserPermission = SecurityDatabaseUtils.getUserDatabasePermission(userId, databaseId);
+		Integer currentUserPermission = SecurityEngineUtils.getUserDatabasePermission(userId, databaseId);
 		if(currentUserPermission != null && requestPermission == currentUserPermission) {
 			throw new IllegalArgumentException("This user already has access to this database with the given permission level");
 		}
 		//check user pending permission for database
-		Integer currentPendingUserPermission = SecurityDatabaseUtils.getUserAccessRequestDatabasePermission(userId, databaseId);
+		Integer currentPendingUserPermission = SecurityEngineUtils.getUserAccessRequestDatabasePermission(userId, databaseId);
 		if(currentPendingUserPermission != null && requestPermission == currentPendingUserPermission) {
 			throw new IllegalArgumentException("This user has already requested access to this database with the given permission level");
 		}
 		// checking to make sure database is discoverable
-		boolean canRequest = SecurityDatabaseUtils.databaseIsDiscoverable(databaseId);
+		boolean canRequest = SecurityEngineUtils.databaseIsDiscoverable(databaseId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
-			SecurityDatabaseUtils.setUserAccessRequest(userId, userType, databaseId, requestPermission);
+			SecurityEngineUtils.setUserAccessRequest(userId, userType, databaseId, requestPermission);
 			sendEmail(user, databaseId, permission);
 			return NounMetadata.getSuccessNounMessage("Successfully requested database '" + databaseId + "'");
 		}
@@ -99,7 +99,7 @@ public class RequestDatabaseReactor extends AbstractReactor {
 	private void sendEmail(User user, String databaseId, String permission) {
 		String template = getTemplateString();
 		if (template !=null && !template.isEmpty()) {
-			List<String> databaseOwners = SecurityDatabaseUtils.getDatabaseOwners(databaseId);
+			List<String> databaseOwners = SecurityEngineUtils.getDatabaseOwners(databaseId);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userName = token.getName() != null ? token.getName(): "";	
 			String userEmail = token.getEmail() != null ? token.getEmail(): "";	
@@ -108,7 +108,7 @@ public class RequestDatabaseReactor extends AbstractReactor {
 				permission = AccessPermissionEnum.getPermissionValueById(permission);
 			}
 			if (databaseOwners != null && !databaseOwners.isEmpty()) {
-				String databaseName = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
+				String databaseName = SecurityEngineUtils.getDatabaseAliasForId(databaseId);
 				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 				final String DATABASE_NAME_REPLACEMENT = "$databaseName$";
 				final String PERMISSION_REPLACEMENT = "$permission$";

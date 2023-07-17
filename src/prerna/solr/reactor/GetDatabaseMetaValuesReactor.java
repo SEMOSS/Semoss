@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -22,14 +22,14 @@ public class GetDatabaseMetaValuesReactor extends AbstractReactor {
     public NounMetadata execute() {
         List<String> dbList = null;
         if(AbstractSecurityUtils.securityEnabled()) {
-            dbList = SecurityDatabaseUtils.getUserDatabaseIdList(this.insight.getUser(), true, false, true);
+            dbList = SecurityEngineUtils.getUserDatabaseIdList(this.insight.getUser(), true, false, true);
         } else {
-        	dbList = SecurityDatabaseUtils.getAllDatabaseIds();
+        	dbList = SecurityEngineUtils.getAllDatabaseIds();
         }
         if(dbList != null && dbList.isEmpty()) {
         	return new NounMetadata(new ArrayList<>(), PixelDataType.CUSTOM_DATA_STRUCTURE);
         }
-        List<Map<String, Object>> ret = SecurityDatabaseUtils.getAvailableMetaValues(dbList, getMetaKeys());
+        List<Map<String, Object>> ret = SecurityEngineUtils.getAvailableMetaValues(dbList, getMetaKeys());
         return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
     }
     

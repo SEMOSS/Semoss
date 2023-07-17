@@ -8,7 +8,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -77,7 +77,7 @@ public class CopyAppRepo extends AbstractReactor {
 			if(user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for(AuthProvider ap : logins) {
-					SecurityDatabaseUtils.addDatabaseOwner(databaseId, user.getAccessToken(ap).getId());
+					SecurityEngineUtils.addDatabaseOwner(databaseId, user.getAccessToken(ap).getId());
 				}
 			}
 			logger.info("Congratulations! Downloading your new database has been completed");

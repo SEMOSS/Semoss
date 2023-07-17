@@ -7,7 +7,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
 import prerna.ds.r.RSyntaxHelper;
@@ -81,7 +81,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 			if (marginInput != null && !marginInput.isEmpty()) {
 				margin = marginInput;
 			}
-			List<String> enginesWithAccess = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> enginesWithAccess = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 			// source scripts and run find_db
 			sb.append(RSyntaxHelper.loadPackages(packages));
 			sb.append("setwd(\"" + DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\");");

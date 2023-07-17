@@ -31,7 +31,7 @@ import com.google.gson.GsonBuilder;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
@@ -125,7 +125,7 @@ public class UploadUtilities {
 	 */
 	public static void updateMetadata(String databaseId, User user) throws Exception {
 		Utility.synchronizeEngineMetadata(databaseId);
-		SecurityDatabaseUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled(), user);
+		SecurityEngineUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled(), user);
 	}
 
 	
@@ -2029,7 +2029,7 @@ public class UploadUtilities {
 	 * @return
 	 */
 	public static Map<String, Object> getDatabaseReturnData(User user, String databaseId) {
-		List<Map<String, Object>> baseInfo = SecurityDatabaseUtils.getUserDatabaseList(user, databaseId);
+		List<Map<String, Object>> baseInfo = SecurityEngineUtils.getUserDatabaseList(user, databaseId);
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}

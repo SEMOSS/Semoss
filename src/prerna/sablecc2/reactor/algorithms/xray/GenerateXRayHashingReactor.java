@@ -10,7 +10,7 @@ import java.util.Map;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -83,7 +83,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		List<String> databaseIds = getDatabases();
 		for(String dbId : databaseIds) {
 			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), dbId)) {
+				if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), dbId)) {
 					throw new IllegalArgumentException("User does not have permission to view this database or database does not exist");
 				}
 			}

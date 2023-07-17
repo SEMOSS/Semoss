@@ -9,7 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -50,12 +50,12 @@ public class MyDatabasesReactor extends AbstractReactor {
 		List<Map<String, Object>> dbInfo = new ArrayList<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), databaseFilter, favoritesOnly, engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityEngineUtils.getUserDatabaseList(this.insight.getUser(), databaseFilter, favoritesOnly, engineMetadataFilter, searchTerm, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setEngines(dbInfo);
 			}
 		} else {
-			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityEngineUtils.getAllDatabaseList(databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
 		if(!dbInfo.isEmpty() && (!noMeta || includeUserT)) {
@@ -71,7 +71,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 			if(!noMeta) {
 				IRawSelectWrapper wrapper = null;
 				try {
-					wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), getMetaKeys(), true);
+					wrapper = SecurityEngineUtils.getDatabaseMetadataWrapper(index.keySet(), getMetaKeys(), true);
 					while(wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String databaseId = (String) data[0];

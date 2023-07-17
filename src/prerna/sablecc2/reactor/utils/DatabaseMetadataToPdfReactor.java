@@ -23,7 +23,7 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.nameserver.utility.MetamodelVertex;
@@ -57,7 +57,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			if (!isAdmin) {
-				boolean isOwner = SecurityDatabaseUtils.userIsOwner(user, databaseId);
+				boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
 				if (!isOwner) {
 					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
 				}
@@ -69,8 +69,8 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 			}
 		}
 		
-		Map<String, Object> databaseInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseId).get(0);
-		databaseInfo.putAll(SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, null, true));
+		Map<String, Object> databaseInfo = SecurityEngineUtils.getAllDatabaseList(databaseId).get(0);
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateDatabaseMetadata(databaseId, null, true));
 		databaseInfo.putIfAbsent("description", "");
 		databaseInfo.putIfAbsent("tags", new Vector<String>());
 		

@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.database;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,7 +24,7 @@ public class ReloadDatabaseReactor extends AbstractReactor {
 		// make sure user has at least edit access
 		if (AbstractSecurityUtils.securityEnabled()) {
 			if(!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-				if (!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+				if (!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
 					throw new IllegalArgumentException("User does not have permission to reload the database");
 				}
 			}

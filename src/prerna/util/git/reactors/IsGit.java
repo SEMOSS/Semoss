@@ -3,7 +3,7 @@ package prerna.util.git.reactors;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.om.PixelDataType;
@@ -33,7 +33,7 @@ public class IsGit extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityDatabaseUtils.userCanEditDatabase(this.insight.getUser(), projectId)) {
+			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
 			}
 			databaseName = SecurityProjectUtils.getProjectAliasForId(projectId);
