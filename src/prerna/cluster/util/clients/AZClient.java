@@ -410,7 +410,7 @@ public class AZClient extends AbstractCloudClient {
 		classLogger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
-			DIHelper.getInstance().removeDbProperty(appId);
+			DIHelper.getInstance().removeEngineProperty(appId);
 			engine.closeDB();
 
 			classLogger.info("Pushing database for " + alias + " from remote=" + appId);
@@ -1477,7 +1477,7 @@ public class AZClient extends AbstractCloudClient {
 
 			// Close the database, so that we can push without file locks (also ensures that the db doesn't change mid push)
 			try {
-				DIHelper.getInstance().removeDbProperty(appId);
+				DIHelper.getInstance().removeEngineProperty(appId);
 				engine.closeDB();
 
 				// Push the app folder
@@ -1596,7 +1596,7 @@ public class AZClient extends AbstractCloudClient {
 			// Close the database (if an existing app), so that we can pull without file locks
 			try {
 				if (appAlreadyLoaded) {
-					DIHelper.getInstance().removeDbProperty(appId);
+					DIHelper.getInstance().removeEngineProperty(appId);
 					engine.closeDB();
 				}
 

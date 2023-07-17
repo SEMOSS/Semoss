@@ -40,9 +40,13 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityDatabaseUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IStorage;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.OwlPrettyPrintFixer;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
+import prerna.engine.impl.app.AppEngine;
+import prerna.engine.impl.remotesemoss.RemoteSemossEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
@@ -87,7 +91,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * @param 	Specifies properties to load 
 	 */
 	public static String loadNewDB(String newFile, String folderToWatch) {
-		String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
+		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 		String engineId = null;
 		try{
 			Properties prop = Utility.loadProperties(Utility.normalizePath(folderToWatch) + "/"  + Utility.normalizePath(newFile));
@@ -121,7 +125,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * @param 	Specifies properties to load 
 	 */	
 	public static String catalogDB(String newFile, String folderToWatch) {
-		String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
+		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 		String engineId = null;
 		try{
 			Properties prop = Utility.loadProperties(Utility.normalizePath(folderToWatch) + "/"  + Utility.normalizePath(newFile));
@@ -139,26 +143,32 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
-				DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.STORE, fileName);
+				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, fileName);
 				String engineTypeString = null;
 				String rawType = prop.get(Constants.ENGINE_TYPE).toString();
-				if(rawType.contains("RDBMS")) {
-					engineTypeString = "RDBMS";
-				} else if(rawType.contains("AppEngine")) {
-					engineTypeString = "APP";
-				} else if(rawType.contains("RemoteSemossEngine")) {
-					engineTypeString = "REMOTE";
+				try {
+					Object emptyClass = Class.forName(rawType).newInstance();
+					if(emptyClass instanceof IRDBMSEngine) {
+						engineTypeString = "RDBMS";
+					} else if(emptyClass instanceof IStorage) {
+						engineTypeString = "STORAGE";
+					} else if(emptyClass instanceof AppEngine) {
+						engineTypeString = "APP";
+					} else if(emptyClass instanceof RemoteSemossEngine) {
+						engineTypeString = "REMOTE";
+					} else {
+						// default is some RDF
+						engineTypeString = "RDF";
+					}
+				} catch(Exception e) {
+					logger.warn("Unknown class name = " + rawType + " in smss file " + newFile);
 				}
-				// default is some rdf
-				else {
-					engineTypeString = "RDF";
-				}
-				DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.TYPE, engineTypeString);
+				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineTypeString);
 				
-				String engineNames = (String)DIHelper.getInstance().getDbProperty(Constants.ENGINES);
+				String engineNames = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
 				if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) {
 					engineNames = engineNames + ";" + engineId;
-					DIHelper.getInstance().setDbProperty(Constants.ENGINES, engineNames);
+					DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineNames);
 				}
 
 				// the issue with remote engines is it needs to be loaded to get the insights and the owl file
@@ -218,7 +228,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		} catch (Exception e) {
 			// we couldn't initialize the db
 			// remove it from DIHelper
-			DIHelper.getInstance().removeDbProperty(Constants.LOCAL_MASTER_DB_NAME);
+			DIHelper.getInstance().removeEngineProperty(Constants.LOCAL_MASTER_DB_NAME);
 			logger.error(Constants.STACKTRACE, e);
 			return;
 		}
@@ -233,7 +243,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		} catch (Exception e) {
 			// we couldn't initialize the db
 			// remove it from DIHelper
-			DIHelper.getInstance().removeDbProperty(Constants.SECURITY_DB);
+			DIHelper.getInstance().removeEngineProperty(Constants.SECURITY_DB);
 			logger.error(Constants.STACKTRACE, e);
 			return;
 		}
@@ -248,7 +258,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			} catch (SQLException e) {
 				// we couldn't initialize the db
 				// remove it from DIHelper
-				DIHelper.getInstance().removeDbProperty(Constants.THEMING_DB);
+				DIHelper.getInstance().removeEngineProperty(Constants.THEMING_DB);
 				logger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -264,10 +274,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SchedulerDatabaseUtility.startServer();
 				} catch (SQLException sqe) {
 					// we couldn't initialize the db remove it from DIHelper
-					DIHelper.getInstance().removeDbProperty(Constants.SCHEDULER_DB);
+					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
 					logger.error(Constants.STACKTRACE, sqe);
 				} catch (IOException e) {
-					DIHelper.getInstance().removeDbProperty(Constants.SCHEDULER_DB);
+					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}	
@@ -285,7 +295,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				} catch (Exception e) {
 					// we couldn't initialize the db
 					// remove it from DIHelper
-					DIHelper.getInstance().removeDbProperty(Constants.USER_TRACKING_DB);
+					DIHelper.getInstance().removeEngineProperty(Constants.USER_TRACKING_DB);
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}

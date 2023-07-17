@@ -47,7 +47,7 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 		this.insight.addQueriedDatabasesese(databaseId);
 		
 		//checking if it is a big data engine
-		String smssFile = (String) DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE);
+		String smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
 		Object bigDataProp = Utility.loadProperties(smssFile).get(Constants.BIG_DATA_ENGINE);
 		if(bigDataProp!= null){
 			 if(Boolean.parseBoolean(bigDataProp.toString())){
