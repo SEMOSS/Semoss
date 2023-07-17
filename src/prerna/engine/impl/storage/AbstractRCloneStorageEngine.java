@@ -71,49 +71,54 @@ public abstract class AbstractRCloneStorageEngine {
 	 * Lists the folders and files for the relative path provided
 	 * Note - not recursive
 	 * @param path
+	 * @param rCloneConfig
 	 * @return
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public abstract List<String> list(String path) throws IOException, InterruptedException;
+	public abstract List<String> list(String path, String rCloneConfig) throws IOException, InterruptedException;
 	
 	/**
 	 * Copy (without deleting) the file to the storage engine
 	 * @param localFilePath
-	 * @param storagePath
+	 * @param storageFolderPath
+	 * @param rCloneConfig
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public abstract void copyToStorage(String localFilePath, String storageFolderPath) throws IOException, InterruptedException;
+	public abstract void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException;
 	
 	/**
 	 * Copy (without deleting) the file to a local location
 	 * @param storageFilePath
 	 * @param localFolderPath
+	 * @param rCloneConfig
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public abstract void copyToLocal(String storageFilePath, String localFolderPath) throws IOException, InterruptedException;
+	public abstract void copyToLocal(String storageFilePath, String localFolderPath, String rCloneConfig) throws IOException, InterruptedException;
 
 	/**
 	 * Delete the folder or file from the storage engine
 	 * Will delete the directory structure 
 	 * @param storageFilePath
+	 * @param rCloneConfig
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void deleteFromStorage(String storageFilePath) throws IOException, InterruptedException {
-		deleteFromStorage(storageFilePath, false);
+	public void deleteFromStorage(String storageFilePath, String rCloneConfig) throws IOException, InterruptedException {
+		deleteFromStorage(storageFilePath, false, rCloneConfig);
 	}
 	
 	/**
 	 * Delete the folder or file from the storage engine
 	 * @param storageFilePath
 	 * @param leaveFolderStructure
+	 * @param rCloneConfig
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public abstract void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure) throws IOException, InterruptedException;
+	public abstract void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure, String rCloneConfig) throws IOException, InterruptedException;
 
 	
 	/**
