@@ -54,32 +54,34 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	
-//	public static void main(String[] args) throws IOException, InterruptedException {
-//		// docker run -p 9000:9000 -p 9001:9001 quay.io/minio/minio server /data --console-address ":9001"
-//
-//		Properties mockSmss = new Properties();
-//		mockSmss.put(S3_REGION_KEY, "us-east-1");
-//		mockSmss.put(S3_ACCESS_KEY, "aq7eJfuoYwDrtOVeWoGb");
-//		mockSmss.put(S3_SECRET_KEY, "14A9uh4eXwJYvBxBzcY32p4aYufzv6Sn7Ogkq7p2");
-//		mockSmss.put(S3_ENDPOINT_KEY, "http://localhost:9000");
-//		
-//		MinioStorageEngine engine = new MinioStorageEngine();
-//		engine.connect(mockSmss);
-//		
-//		{
-//			List<String> list = engine.list("test1");
-//			System.out.println(list);
-//		}
-//		{
-//			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "test1");
-//		}
-//		{
-//			engine.copyToLocal("test1/MooseAI Logo.png", "C:\\Users\\mahkhalil");
-//		}
-//		{
-//			engine.deleteFromStorage("test1/MooseAI Logo.png");
-//		}
-//	}
+	public static void main(String[] args) throws IOException, InterruptedException {
+		// docker run -p 9000:9000 -p 9001:9001 quay.io/minio/minio server /data --console-address ":9001"
+		
+		// these are not real/import access/secret - only for local docker
+		Properties mockSmss = new Properties();
+		mockSmss.put(S3_REGION_KEY, "us-east-1");
+		mockSmss.put(S3_ACCESS_KEY, "aq7eJfuoYwDrtOVeWoGb");
+		mockSmss.put(S3_SECRET_KEY, "14A9uh4eXwJYvBxBzcY32p4aYufzv6Sn7Ogkq7p2");
+		mockSmss.put(S3_ENDPOINT_KEY, "http://localhost:9000");
+		
+		MinioStorageEngine engine = new MinioStorageEngine();
+		engine.connect(mockSmss);
+		String rCloneConfig = engine.createRcloneConfig();
+		
+		{
+			List<String> list = engine.list("test1", rCloneConfig);
+			System.out.println(list);
+		}
+		{
+			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "test1", rCloneConfig);
+		}
+		{
+			engine.copyToLocal("test1/MooseAI Logo.png", "C:\\Users\\mahkhalil", rCloneConfig);
+		}
+		{
+			engine.deleteFromStorage("test1/MooseAI Logo.png", rCloneConfig);
+		}
+	}
 	
 	
 }
