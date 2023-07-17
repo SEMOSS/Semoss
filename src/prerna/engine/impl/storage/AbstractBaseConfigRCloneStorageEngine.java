@@ -108,4 +108,32 @@ public abstract class AbstractBaseConfigRCloneStorageEngine extends AbstractRClo
 		runRcloneProcess(rCloneConfig, "rclone", "copy", rClonePath, localFolderPath);
 	}
 	
+	public void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure) throws IOException, InterruptedException {
+		String rCloneConfig = createRcloneConfig();
+		String rClonePath = rCloneConfig+":";
+		if(BUCKET != null) {
+			rClonePath += BUCKET;
+		}
+		if(storageFilePath == null || storageFilePath.isEmpty()) {
+			throw new NullPointerException("Must define the storage location of the file to download");
+		}
+		
+		storageFilePath = storageFilePath.replace("\\", "/");
+		
+		if(!storageFilePath.startsWith("/")) {
+			storageFilePath = "/"+storageFilePath;
+		}
+		rClonePath += storageFilePath;
+
+		// wrap in quotes just in case of spaces, etc.
+		if(!rClonePath.startsWith("\"")) {
+			rClonePath = "\""+rClonePath+"\"";
+		}
+		if(leaveFolderStructure) {
+			runRcloneProcess(rCloneConfig, "rclone", "delete", rClonePath);
+		} else {
+			runRcloneProcess(rCloneConfig, "rclone", "purge", rClonePath);
+		}
+	}
+	
 }
