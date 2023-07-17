@@ -210,15 +210,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
-					if(securityDb.isConnectionPooling()) {
-						try {
-							ps.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -245,15 +245,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
-					if(securityDb.isConnectionPooling()) {
-						try {
-							ps.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -278,15 +278,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
-					if(securityDb.isConnectionPooling()) {
-						try {
-							ps.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
