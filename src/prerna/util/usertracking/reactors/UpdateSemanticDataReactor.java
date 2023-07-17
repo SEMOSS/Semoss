@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -59,7 +59,7 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 				extension += parsed[0] + ";";
 			}
 			
-			List<String> enginesWithAccess = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> enginesWithAccess = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 			for (String row : enginesWithAccess) {
 				extension+= row + ";";
 			}

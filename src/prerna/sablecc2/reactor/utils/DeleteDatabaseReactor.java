@@ -6,7 +6,7 @@ import java.util.Vector;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -50,7 +50,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 						throwFunctionalityOnlyExposedForAdminsError();
 					}
 					
-					boolean isOwner = SecurityDatabaseUtils.userIsOwner(user, databaseId);
+					boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
 					if(!isOwner) {
 						throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");
 					}
@@ -96,7 +96,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(databaseId);
-		SecurityDatabaseUtils.deleteDatabase(databaseId);
+		SecurityEngineUtils.deleteDatabase(databaseId);
 		return true;
 	}
 

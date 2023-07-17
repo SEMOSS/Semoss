@@ -10,7 +10,7 @@ import com.google.common.io.Files;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -74,7 +74,7 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseId);
 
 			// throw error is user is not owner
-			if (!SecurityDatabaseUtils.userIsOwner(user, databaseId)) {
+			if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
 				NounMetadata noun = new NounMetadata("User must be the owner in order to replace all the data in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);

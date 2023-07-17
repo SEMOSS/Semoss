@@ -10,7 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -44,10 +44,10 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 		List<Map<String, Object>> dbInfo = new Vector<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityDatabaseUtils.getUserDiscoverableDatabaseList(this.insight.getUser(), 
+			dbInfo = SecurityEngineUtils.getUserDiscoverableDatabaseList(this.insight.getUser(), 
 					databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
 		} else {
-			dbInfo = SecurityDatabaseUtils.getAllDatabaseList(databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityEngineUtils.getAllDatabaseList(databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
 		if(!dbInfo.isEmpty() && !noMeta) {
@@ -63,7 +63,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 			
 			IRawSelectWrapper wrapper = null;
 			try {
-				wrapper = SecurityDatabaseUtils.getDatabaseMetadataWrapper(index.keySet(), getMetaKeys(), true);
+				wrapper = SecurityEngineUtils.getDatabaseMetadataWrapper(index.keySet(), getMetaKeys(), true);
 				while(wrapper.hasNext()) {
 					Object[] data = wrapper.next().getValues();
 					String databaseId = (String) data[0];

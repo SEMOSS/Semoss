@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -21,7 +21,7 @@ public class AllConceptualNamesReactor extends AbstractReactor {
 		// need to take into consideration security
 		Collection<String> conceptualNames = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			List<String> engineFilters = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 			conceptualNames = MasterDatabaseUtility.getAllConceptualNames(engineFilters);
 		} else {
 			conceptualNames = MasterDatabaseUtility.getAllConceptualNames(null);

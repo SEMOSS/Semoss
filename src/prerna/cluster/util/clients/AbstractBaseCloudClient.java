@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.common.io.Files;
 
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -61,7 +61,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 		File owlFile = null;
-		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityEngineUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		String rCloneConfig = null;
@@ -114,7 +114,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 		File owlFile = null;
-		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityEngineUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		String rCloneConfig = null;
@@ -413,7 +413,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		if (engineType == ENGINE_TYPE.APP) {
 			alias = engine.getEngineName();
 		} else {
-			alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
+			alias = SecurityEngineUtils.getDatabaseAliasForId(appId);
 		}
 
 		String normalizedAlias = Utility.normalizePath(alias);
@@ -488,7 +488,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	@Override
 	public void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException {
 		// We need to push the file alias__appId.smss
-		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
+		String alias = SecurityEngineUtils.getDatabaseAliasForId(databaseId);
 		String smss = alias + "__" + databaseId + ".smss";
 		String smssFile = Utility.normalizePath(dbFolder + FILE_SEPARATOR + smss);
 
@@ -1060,7 +1060,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 		String rCloneConfig = null;
-		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(appId);
+		String alias = SecurityEngineUtils.getDatabaseAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
@@ -1110,7 +1110,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			throw new IllegalArgumentException("Database not found...");
 		}
 		String rCloneConfig = null;
-		String alias = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
+		String alias = SecurityEngineUtils.getDatabaseAliasForId(databaseId);
 		String aliasAppId = alias + "__" + databaseId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 

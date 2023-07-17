@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -37,7 +37,7 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
-			List<String> dbFilters = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 			if(!dbFilters.contains(engineId)) {
 				throw new IllegalArgumentException("Databases " + engineId + " does not exist or user does not have access");
 			}

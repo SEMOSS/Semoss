@@ -6,7 +6,7 @@ import java.util.Map;
 import org.apache.commons.math3.util.Precision;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -62,8 +62,8 @@ public class UsabilityScoreReactor extends AbstractReactor {
 	private double calculateSecurityScore(String databaseId) {
 		double calc = 0.0;
 
-		List<String> keys = SecurityDatabaseUtils.getAllMetakeys();
-		Map<String, Object> keyVals = SecurityDatabaseUtils.getAggregateDatabaseMetadata(databaseId, keys, false);
+		List<String> keys = SecurityEngineUtils.getAllMetakeys();
+		Map<String, Object> keyVals = SecurityEngineUtils.getAggregateDatabaseMetadata(databaseId, keys, false);
 
 		int keysAccounted = 0;
 		if (keyVals.containsKey(Constants.MARKDOWN)) {
@@ -125,7 +125,7 @@ public class UsabilityScoreReactor extends AbstractReactor {
 	private String checkDatabaseId(String databaseId) {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 			}
 		} else {

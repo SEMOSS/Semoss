@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.engine.api.IEngine;
@@ -101,9 +101,9 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 			//////////////////////////////////////////////////////////////////////////////////////////
 			//////////////////////////////////// Cleanup Apps ////////////////////////////////////////
 			Map<String, Object> removedAppsMap = new HashMap<>();
-			List<String> databaseIds = SecurityDatabaseUtils.getAllDatabaseIds();
+			List<String> databaseIds = SecurityEngineUtils.getAllDatabaseIds();
 			for (String databaseId : databaseIds) {
-				String alias = SecurityDatabaseUtils.getDatabaseAliasForId(databaseId);
+				String alias = SecurityEngineUtils.getDatabaseAliasForId(databaseId);
 				String key = alias + "__" + databaseId; 
 				IEngine engine = null;
 				try {
@@ -121,7 +121,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 						// Delete from master db
 						DeleteFromMasterDB remover = new DeleteFromMasterDB();
 						remover.deleteEngineRDBMS(databaseId);
-						SecurityDatabaseUtils.deleteDatabase(databaseId);
+						SecurityEngineUtils.deleteDatabase(databaseId);
 						
 						// Delete from cluster
 						try {

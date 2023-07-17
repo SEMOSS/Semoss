@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -32,7 +32,7 @@ public class DatabaseUsersReactor extends AbstractReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
@@ -40,7 +40,7 @@ public class DatabaseUsersReactor extends AbstractReactor {
 			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 		}
 		
-		baseInfo = SecurityDatabaseUtils.getDisplayDatabaseOwnersAndEditors(databaseId);
+		baseInfo = SecurityEngineUtils.getDisplayDatabaseOwnersAndEditors(databaseId);
 		return new NounMetadata(baseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_USERS);
 	}
 

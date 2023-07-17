@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.sablecc2.om.PixelDataType;
@@ -33,15 +33,15 @@ public class UpdateDatabaseReactor extends AbstractReactor {
 		List<Map<String, Object>> baseInfo = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			if(!SecurityDatabaseUtils.userCanViewDatabase(this.insight.getUser(), appId)) {
+			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), appId)) {
 				// you dont have access
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
 			// user has access!
-			baseInfo = SecurityDatabaseUtils.getUserDatabaseList(this.insight.getUser(), appId);
+			baseInfo = SecurityEngineUtils.getUserDatabaseList(this.insight.getUser(), appId);
 		} else {
 			// just grab the info
-			baseInfo = SecurityDatabaseUtils.getAllDatabaseList();
+			baseInfo = SecurityEngineUtils.getAllDatabaseList();
 		}
 		
 		if(baseInfo.isEmpty()) {

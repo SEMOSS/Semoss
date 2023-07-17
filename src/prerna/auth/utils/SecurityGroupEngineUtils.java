@@ -22,9 +22,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 
-public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
+public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	
-	private static final Logger logger = LogManager.getLogger(SecurityGroupDatabaseUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityGroupEngineUtils.class);
 	
 	/**
 	 * Determine if a group can view a database
@@ -297,7 +297,7 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 		}
 		
 		if(bestGroupDatabasePermission == null && bestUserDatabasePermission == null) {
-			if(SecurityDatabaseUtils.databaseIsGlobal(databaseId)) {
+			if(SecurityEngineUtils.databaseIsGlobal(databaseId)) {
 				return AccessPermissionEnum.READ_ONLY.getId();
 			}
 			return null;
@@ -319,7 +319,7 @@ public class SecurityGroupDatabaseUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void addDatabaseGroupPermission(User user, String groupId, String groupType, String databaseId, String permission) throws IllegalAccessException {
-		if(!SecurityDatabaseUtils.userCanEditDatabase(user, databaseId)) {
+		if(!SecurityEngineUtils.userCanEditDatabase(user, databaseId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		

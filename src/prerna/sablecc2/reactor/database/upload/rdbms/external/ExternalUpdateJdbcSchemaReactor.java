@@ -16,7 +16,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
@@ -55,7 +55,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
 			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseId);
-			if(!SecurityDatabaseUtils.userCanEditDatabase(user, databaseId)) {
+			if(!SecurityEngineUtils.userCanEditDatabase(user, databaseId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this database schema");
 			}
 		}

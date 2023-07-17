@@ -9,25 +9,64 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.mail.Flags;
+import jakarta.mail.Folder;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
-import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.SendFailedException;
 import jakarta.mail.Session;
+import jakarta.mail.Store;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.search.FlagTerm;
+import prerna.usertracking.UserTrackingUtils;
 
 public class EmailUtility {
 
 	private static final Logger logger = LogManager.getLogger(EmailUtility.class);
-	
+
+	/**
+	 * 
+	 * @param emailSession
+	 * @param toRecipients
+	 * @param ccRecipients
+	 * @param bccRecipients
+	 * @param from
+	 * @param subject
+	 * @param emailMessage
+	 * @param isHtml
+	 * @param attachments
+	 * @return
+	 */
 	public static boolean sendEmail(Session emailSession, String[] toRecipients, String[] ccRecipients, String[] bccRecipients, 
 			String from, String subject, String emailMessage, boolean isHtml, String[] attachments) {
 		
+		boolean successful = doSendEmail(emailSession, toRecipients, ccRecipients, bccRecipients, from, subject, emailMessage, isHtml, attachments);
+		UserTrackingUtils.trackEmail(toRecipients, ccRecipients, bccRecipients, from, subject, emailMessage, isHtml, attachments, successful);
+		return successful;
+	}
+
+	/**
+	 * 
+	 * @param emailSession
+	 * @param toRecipients
+	 * @param ccRecipients
+	 * @param bccRecipients
+	 * @param from
+	 * @param subject
+	 * @param emailMessage
+	 * @param isHtml
+	 * @param attachments
+	 * @return
+	 */
+	private static boolean doSendEmail(Session emailSession, String[] toRecipients, String[] ccRecipients,
+			String[] bccRecipients, String from, String subject, String emailMessage, boolean isHtml,
+			String[] attachments) {
 		if ( (toRecipients == null || toRecipients.length == 0)
 				&& (ccRecipients == null || ccRecipients.length == 0)
 				&& (bccRecipients == null || bccRecipients.length == 0)
@@ -35,7 +74,7 @@ public class EmailUtility {
 			logger.info("No receipients to send an email to");
 			return false;
 		}
-		
+
 		try {
 			// Create an email message we will add multiple parts to this
 			Message email = new MimeMessage(emailSession);
@@ -75,7 +114,7 @@ public class EmailUtility {
 			}
 			// set email message
 			multipart.addBodyPart(messageBodyPart);
-			
+
 			// add attachments
 			if (attachments != null) {
 				for (String filePath : attachments) {
@@ -107,7 +146,7 @@ public class EmailUtility {
 				logMessage.append("bcc ").append(Arrays.toString(bccRecipients)).append(". ");
 			}
 			logger.info(logMessage.toString());
-			
+
 			return true;
 		} catch (SendFailedException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -133,82 +172,185 @@ public class EmailUtility {
 				emailTemplate = emailTemplate.replace(key, replacementValue);
 			}
 		}
-		
+
 		return emailTemplate;
 	}
-	
-	public static void main(String[] args) {
 
-//		// GMAIL
-//		String smtpHost = "smtp.gmail.com";
-//		String smtpPort = "465";
-//		String username = "***REMOVED***";
-//		String password = "***REMOVED***";
+	/**
+	 * @throws MessagingException 
+	 * 
+	 */
+	public static void readEmailPOP3() throws MessagingException {
+		try {
+
+			//create properties field
+			Properties properties = new Properties();
+			properties.put("mail.pop3.host", "pop.gmail.com");
+			properties.put("mail.pop3.port", "995");
+			properties.put("mail.pop3.starttls.enable", "true");
+			Session emailSession = Session.getDefaultInstance(properties);
+
+			//create the POP3 store object and connect with the pop server
+			Store store = emailSession.getStore("pop3s");
+
+			store.connect("pop.gmail.com", "***REMOVED***", "");
+
+			//create the folder object and open it
+			Folder emailFolder = store.getFolder("INBOX");
+			emailFolder.open(Folder.READ_ONLY);
+
+			// retrieve the messages from the folder in an array and print it
+			Message[] messages = emailFolder.getMessages();
+			System.out.println("messages.length---" + messages.length);
+
+			for (int i = 0, n = messages.length; i < n; i++) {
+				Message message = messages[i];
+				System.out.println("---------------------------------");
+				System.out.println("Email Number " + (i + 1));
+				System.out.println("Subject: " + message.getSubject());
+				System.out.println("From: " + message.getFrom()[0]);
+				System.out.println("Text: " + message.getContent().toString());
+
+			}
+
+			//close the store and folder objects
+			emailFolder.close(false);
+			store.close();
+
+		} catch (NoSuchProviderException e) {
+			e.printStackTrace();
+		} catch (MessagingException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+
+
+	}
+	
+	/**
+	 * @throws MessagingException 
+	 * 
+	 */
+	public static void readEmailIMAP() throws MessagingException {
+		Properties props = System.getProperties();
+		props.setProperty("mail.store.protocol", "imaps");
+		try {
+			Session session = Session.getDefaultInstance(props, null);
+			Store store = session.getStore("imaps");
+			store.connect("imap.gmail.com", "***REMOVED***", "");
+
+			Folder inbox = store.getFolder("Inbox");
+			// setting it seen is considered a write operation
+			inbox.open(Folder.READ_WRITE);
+			//Message messages[] = inbox.getMessages();
+			FlagTerm ft = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
+			Message messages[] = inbox.search(ft);
+
+			for (int i = 0, n = messages.length; i < n; i++) {
+				Message message = messages[i];
+				System.out.println("---------------------------------");
+				System.out.println("Email Number " + (i + 1));
+				System.out.println("Subject: " + message.getSubject());
+				System.out.println("From: " + message.getFrom()[0]);
+				System.out.println("Text: " + message.getContent().toString());
+				
+				// this will mark as seen
+				message.setFlag(Flags.Flag.SEEN, true);
+			}
+			
+			//close the store and folder objects
+			inbox.close(false);
+			store.close();
+		} catch (NoSuchProviderException e) {
+			e.printStackTrace();
+			System.exit(1);
+		} catch (MessagingException e) {
+			e.printStackTrace();
+			System.exit(2);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	
+
+	public static void main(String[] args) throws Exception {
+		readEmailPOP3();
+		readEmailIMAP();
+		//		// GMAIL
+		//		String smtpHost = "smtp.gmail.com";
+		//		String smtpPort = "465";
+		//		String username = "***REMOVED***";
+		//		String password = "***REMOVED***";
+		//
+		//		Properties props = new Properties();
+		//		props.put("mail.smtp.host", smtpHost);
+		//		props.put("mail.smtp.port", smtpPort);
+		//		props.put("mail.smtp.socketFactory.port", smtpPort);
+		//		props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+		//		Session emailSession = null;
+		//		if (username != null && password != null) {
+		//			props.put("mail.smtp.auth", true);
+		//			props.put("mail.smtp.starttls.enable", true);
+		//			System.out.println("Making connection");
+		//			emailSession  = Session.getInstance(props, new javax.mail.Authenticator() {
+		//				protected PasswordAuthentication getPasswordAuthentication() {
+		//					return new PasswordAuthentication(username, password);
+		//				}
+		//			});
+		//		} else {
+		//			System.out.println("Making connection");
+		//			emailSession = Session.getInstance(props);
+		//		}
+		//
+		//		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
+		//		boolean isHtml = true;
+		//
+		//		System.out.println("Connection Made");
+		//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
+		//		if(success) {
+		//			System.out.println("Email Sent");
+		//		} else {
+		//			System.out.println("Email Failed");
+		//		}
+
+//		Properties prop = Utility.loadProperties("P:/emailProperties.properties");
+//		String username = prop.getProperty("username");
+//		//		if(username == null) {
+//		//			username = "***REMOVED***";
+//		//		}
+//		String password = prop.getProperty("password");
+//		//		if(password == null) {
+//		//			password = "***REMOVED***"; 
+//		//		}
 //
-//		Properties props = new Properties();
-//		props.put("mail.smtp.host", smtpHost);
-//		props.put("mail.smtp.port", smtpPort);
-//		props.put("mail.smtp.socketFactory.port", smtpPort);
-//		props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
 //		Session emailSession = null;
 //		if (username != null && password != null) {
-//			props.put("mail.smtp.auth", true);
-//			props.put("mail.smtp.starttls.enable", true);
 //			System.out.println("Making connection");
-//			emailSession  = Session.getInstance(props, new javax.mail.Authenticator() {
+//			emailSession  = Session.getInstance(prop, new jakarta.mail.Authenticator() {
 //				protected PasswordAuthentication getPasswordAuthentication() {
 //					return new PasswordAuthentication(username, password);
 //				}
 //			});
 //		} else {
 //			System.out.println("Making connection");
-//			emailSession = Session.getInstance(props);
+//			emailSession = Session.getInstance(prop);
 //		}
 //
 //		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
 //		boolean isHtml = true;
 //
 //		System.out.println("Connection Made");
-//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
+//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, null, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
 //		if(success) {
 //			System.out.println("Email Sent");
 //		} else {
 //			System.out.println("Email Failed");
 //		}
-		
-		Properties prop = Utility.loadProperties("P:/emailProperties.properties");
-		String username = prop.getProperty("username");
-//		if(username == null) {
-//			username = "***REMOVED***";
-//		}
-		String password = prop.getProperty("password");
-//		if(password == null) {
-//			password = "***REMOVED***"; 
-//		}
-		
-		Session emailSession = null;
-		if (username != null && password != null) {
-			System.out.println("Making connection");
-			emailSession  = Session.getInstance(prop, new jakarta.mail.Authenticator() {
-				protected PasswordAuthentication getPasswordAuthentication() {
-					return new PasswordAuthentication(username, password);
-				}
-			});
-		} else {
-			System.out.println("Making connection");
-			emailSession = Session.getInstance(prop);
-		}
-
-		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
-		boolean isHtml = true;
-
-		System.out.println("Connection Made");
-		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, null, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
-		if(success) {
-			System.out.println("Email Sent");
-		} else {
-			System.out.println("Email Failed");
-		}
 	}
 
 }

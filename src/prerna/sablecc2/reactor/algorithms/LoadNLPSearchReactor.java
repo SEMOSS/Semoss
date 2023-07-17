@@ -5,7 +5,7 @@ import java.util.List;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityDatabaseUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -118,7 +118,7 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 		// use all the databases
 		List<String> engineFilters = null;
 		if (AbstractSecurityUtils.securityEnabled()) {
-			engineFilters = SecurityDatabaseUtils.getFullUserDatabaseIds(this.insight.getUser());
+			engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 		} else {
 			engineFilters = MasterDatabaseUtility.getAllDatabaseIds();
 		}
