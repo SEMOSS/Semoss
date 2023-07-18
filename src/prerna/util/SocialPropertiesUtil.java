@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.Session;
+import jakarta.mail.Store;
 import prerna.util.ldap.ILdapAuthenticator;
 import prerna.util.ldap.LdapAuthenticationFactory;
 
@@ -89,8 +90,18 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.getSamlAttributeNames();
 	}
 	
+	@Deprecated
 	public boolean emailEnabled() {
-		return SocialPropertiesUtil.processor.emailEnabled();
+		classLogger.warn("METHOD DEPRECATED - PLEASE USE smtpEmailEnabled()");
+		classLogger.warn("METHOD DEPRECATED - PLEASE USE smtpEmailEnabled()");
+		classLogger.warn("METHOD DEPRECATED - PLEASE USE smtpEmailEnabled()");
+		classLogger.warn("METHOD DEPRECATED - PLEASE USE smtpEmailEnabled()");
+		return smtpEmailEnabled();
+	}
+	
+	// smtp email
+	public boolean smtpEmailEnabled() {
+		return SocialPropertiesUtil.processor.smtpEmailEnabled();
 	}
 	
 	public String getSmtpUsername() {
@@ -106,16 +117,59 @@ public class SocialPropertiesUtil {
 	}
 	
 	public Session getEmailSession() {
-		return SocialPropertiesUtil.processor.getEmailSession();
+		return SocialPropertiesUtil.processor.getSmtpEmailSession();
 	}
 	
 	public Properties getEmailProps() {
-		return SocialPropertiesUtil.processor.getEmailProps();
+		return SocialPropertiesUtil.processor.getSmtpEmailProps();
 	}
 	
 	public Map<String, String> getEmailStaticProps() {
-		return SocialPropertiesUtil.processor.getEmailStaticProps();
+		return SocialPropertiesUtil.processor.getSmtpEmailStaticProps();
 	}
+	
+	// pop3 email
+	public boolean pop3EmailEnabled() {
+		return SocialPropertiesUtil.processor.pop3EmailEnabled();
+	}
+	
+	public String getPop3Username() {
+		return SocialPropertiesUtil.processor.getPop3Username();
+	}
+	
+	public String getPop3Password() {
+		return SocialPropertiesUtil.processor.getPop3Password();
+	}
+	
+	public Store getPop3EmailStore() {
+		return SocialPropertiesUtil.processor.getPop3EmailStore();
+	}
+	
+	public Properties getPop3EmailProps() {
+		return SocialPropertiesUtil.processor.getPop3EmailProps();
+	}
+	
+	// imap email
+	public boolean imapEmailEnabled() {
+		return SocialPropertiesUtil.processor.imapEmailEnabled();
+	}
+	
+	public String getImapUsername() {
+		return SocialPropertiesUtil.processor.getImapUsername();
+	}
+	
+	public String getImapPassword() {
+		return SocialPropertiesUtil.processor.getImapPassword();
+	}
+	
+	public Store getImapStore() {
+		return SocialPropertiesUtil.processor.getImapEmailStore();
+	}
+	
+	public Properties getImapEmailProps() {
+		return SocialPropertiesUtil.processor.getImapEmailProps();
+	}
+	
 	
 	public void reloadProps() {
 		SocialPropertiesUtil.processor.reloadProps();
@@ -127,4 +181,5 @@ public class SocialPropertiesUtil {
 		ldapAuthenticator.load();
 		return ldapAuthenticator;
 	}
+
 }
