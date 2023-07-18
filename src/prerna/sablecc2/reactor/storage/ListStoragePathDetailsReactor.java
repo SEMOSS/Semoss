@@ -19,14 +19,14 @@ public class ListStoragePathDetailsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(ListStoragePathDetailsReactor.class);
 	
 	public ListStoragePathDetailsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		IStorage storage = getStorage();
-		String path = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+		String path = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
 		try {
 			List<Map<String, Object>> storageList = storage.listDetails(path);
 			return new NounMetadata(storageList, PixelDataType.VECTOR);
