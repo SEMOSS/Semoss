@@ -24,159 +24,199 @@ public abstract class AbstractBaseConfigRCloneStorageEngine extends AbstractRClo
 	 * List the folders/files in the path
 	 */
 	public List<String> list(String path, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
+			delete = true;
 		}
-		String rClonePath = rCloneConfig+":";
-		if(BUCKET != null) {
-			rClonePath += BUCKET;
-		}
-		if(path != null) {
-			path = path.replace("\\", "/");
-			if(!path.startsWith("/")) {
-				rClonePath += "/"+path;
-			} else {
-				rClonePath += path;
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(path != null) {
+				path = path.replace("\\", "/");
+				if(!path.startsWith("/")) {
+					rClonePath += "/"+path;
+				} else {
+					rClonePath += path;
+				}
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+			return results;
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
 			}
 		}
-		// wrap in quotes just in case of spaces, etc.
-		if(!rClonePath.startsWith("\"")) {
-			rClonePath = "\""+rClonePath+"\"";
-		}
-		List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
-		return results;
 	}
 	
 	/**
 	 * List the folders/files in the path
 	 */
 	public List<Map<String, Object>> listDetails(String path, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
+			delete = true;
 		}
-		String rClonePath = rCloneConfig+":";
-		if(BUCKET != null) {
-			rClonePath += BUCKET;
-		}
-		if(path != null) {
-			path = path.replace("\\", "/");
-			if(!path.startsWith("/")) {
-				rClonePath += "/"+path;
-			} else {
-				rClonePath += path;
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(path != null) {
+				path = path.replace("\\", "/");
+				if(!path.startsWith("/")) {
+					rClonePath += "/"+path;
+				} else {
+					rClonePath += path;
+				}
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, "rclone", "lsjson", rClonePath, "--max-depth=1");
+			return results;
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
 			}
 		}
-		// wrap in quotes just in case of spaces, etc.
-		if(!rClonePath.startsWith("\"")) {
-			rClonePath = "\""+rClonePath+"\"";
-		}
-		List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, "rclone", "lsjson", rClonePath, "--max-depth=1");
-		return results;
 	}
 	
 	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
+			delete = true;
 		}
-		String rClonePath = rCloneConfig+":";
-		if(BUCKET != null) {
-			rClonePath += BUCKET;
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(localFilePath == null || localFilePath.isEmpty()) {
+				throw new NullPointerException("Must define the local location of the file to push");
+			}
+			if(storageFolderPath == null || storageFolderPath.isEmpty()) {
+				throw new NullPointerException("Must define the location of the storage folder to move to");
+			}
+	
+			storageFolderPath = storageFolderPath.replace("\\", "/");
+			localFilePath = localFilePath.replace("\\", "/");
+	
+			if(!storageFolderPath.startsWith("/")) {
+				storageFolderPath = "/"+storageFolderPath;
+			}
+			rClonePath += storageFolderPath;
+			
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!localFilePath.startsWith("\"")) {
+				localFilePath = "\""+localFilePath+"\"";
+			}
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", localFilePath, rClonePath);
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
 		}
-		if(localFilePath == null || localFilePath.isEmpty()) {
-			throw new NullPointerException("Must define the local location of the file to push");
-		}
-		if(storageFolderPath == null || storageFolderPath.isEmpty()) {
-			throw new NullPointerException("Must define the location of the storage folder to move to");
-		}
-
-		storageFolderPath = storageFolderPath.replace("\\", "/");
-		localFilePath = localFilePath.replace("\\", "/");
-
-		if(!storageFolderPath.startsWith("/")) {
-			storageFolderPath = "/"+storageFolderPath;
-		}
-		rClonePath += storageFolderPath;
-		
-		// wrap in quotes just in case of spaces, etc.
-		if(!rClonePath.startsWith("\"")) {
-			rClonePath = "\""+rClonePath+"\"";
-		}
-		// wrap in quotes just in case of spaces, etc.
-		if(!localFilePath.startsWith("\"")) {
-			localFilePath = "\""+localFilePath+"\"";
-		}
-		runRcloneTransferProcess(rCloneConfig, "rclone", "copy", localFilePath, rClonePath);
 	}
 	
 	public void copyToLocal(String storageFilePath, String localFolderPath, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
+			delete = true;
 		}
-		String rClonePath = rCloneConfig+":";
-		if(BUCKET != null) {
-			rClonePath += BUCKET;
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(storageFilePath == null || storageFilePath.isEmpty()) {
+				throw new NullPointerException("Must define the storage location of the file to download");
+			}
+			if(localFolderPath == null || localFolderPath.isEmpty()) {
+				throw new NullPointerException("Must define the location of the local folder to move to");
+			}
+			
+			storageFilePath = storageFilePath.replace("\\", "/");
+			localFolderPath = localFolderPath.replace("\\", "/");
+			
+			if(!storageFilePath.startsWith("/")) {
+				storageFilePath = "/"+storageFilePath;
+			}
+			rClonePath += storageFilePath;
+	
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!localFolderPath.startsWith("\"")) {
+				localFolderPath = "\""+localFolderPath+"\"";
+			}
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rClonePath, localFolderPath);
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
 		}
-		if(storageFilePath == null || storageFilePath.isEmpty()) {
-			throw new NullPointerException("Must define the storage location of the file to download");
-		}
-		if(localFolderPath == null || localFolderPath.isEmpty()) {
-			throw new NullPointerException("Must define the location of the local folder to move to");
-		}
-		
-		storageFilePath = storageFilePath.replace("\\", "/");
-		localFolderPath = localFolderPath.replace("\\", "/");
-		
-		if(!storageFilePath.startsWith("/")) {
-			storageFilePath = "/"+storageFilePath;
-		}
-		rClonePath += storageFilePath;
-
-		// wrap in quotes just in case of spaces, etc.
-		if(!rClonePath.startsWith("\"")) {
-			rClonePath = "\""+rClonePath+"\"";
-		}
-		// wrap in quotes just in case of spaces, etc.
-		if(!localFolderPath.startsWith("\"")) {
-			localFolderPath = "\""+localFolderPath+"\"";
-		}
-		runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rClonePath, localFolderPath);
 	}
 	
 	public void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
+			delete = true;
 		}
-		String rClonePath = rCloneConfig+":";
-		if(BUCKET != null) {
-			rClonePath += BUCKET;
-		}
-		if(storageFilePath == null || storageFilePath.isEmpty()) {
-			throw new NullPointerException("Must define the storage location of the file to download");
-		}
-		
-		storageFilePath = storageFilePath.replace("\\", "/");
-		
-		if(!storageFilePath.startsWith("/")) {
-			storageFilePath = "/"+storageFilePath;
-		}
-		rClonePath += storageFilePath;
-
-		// wrap in quotes just in case of spaces, etc.
-		if(!rClonePath.startsWith("\"")) {
-			rClonePath = "\""+rClonePath+"\"";
-		}
-		
-		if(leaveFolderStructure) {
-			// always do delete
-			runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
-		} else {
-			// we can only do purge on a folder
-			// so need to check
-			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
-			if(results.size() == 1 && !results.get(0).endsWith("/")) {
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(storageFilePath == null || storageFilePath.isEmpty()) {
+				throw new NullPointerException("Must define the storage location of the file to download");
+			}
+			
+			storageFilePath = storageFilePath.replace("\\", "/");
+			
+			if(!storageFilePath.startsWith("/")) {
+				storageFilePath = "/"+storageFilePath;
+			}
+			rClonePath += storageFilePath;
+	
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			
+			if(leaveFolderStructure) {
+				// always do delete
 				runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
 			} else {
-				runRcloneDeleteFileProcess(rCloneConfig, "rclone", "purge", rClonePath);
+				// we can only do purge on a folder
+				// so need to check
+				List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+				if(results.size() == 1 && !results.get(0).endsWith("/")) {
+					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
+				} else {
+					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "purge", rClonePath);
+				}
+			}
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
 			}
 		}
 	}
