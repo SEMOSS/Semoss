@@ -2,6 +2,7 @@ package prerna.engine.api;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public interface IRCloneStorage extends IStorage {
 
@@ -30,6 +31,15 @@ public interface IRCloneStorage extends IStorage {
 	 * @throws InterruptedException
 	 */
 	List<String> list(String path, String rCloneConfig) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param path
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	List<Map<String, Object>> listDetails(String path, String rCloneConfig) throws IOException, InterruptedException;
 	
 	/**
 	 * Copy (without deleting) the file to the storage engine

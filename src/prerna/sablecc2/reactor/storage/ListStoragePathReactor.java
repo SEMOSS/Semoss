@@ -13,11 +13,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 
-public class ListStorageReactor extends AbstractReactor {
+public class ListStoragePathReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ListStorageReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ListStoragePathReactor.class);
 	
-	public ListStorageReactor() {
+	public ListStoragePathReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
 	}
 	
