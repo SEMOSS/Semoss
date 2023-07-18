@@ -1,6 +1,8 @@
 package prerna.engine.api;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 public interface IStorage {
@@ -27,7 +29,6 @@ public interface IStorage {
 	 */
 	void connect(Properties smssProp);
 
-	
 	/**
 	 * 
 	 * @param engineId
@@ -71,6 +72,15 @@ public interface IStorage {
 	 * @throws Exception 
 	 */
 	List<String> list(String path) throws Exception;
+	
+	/**
+	 * 
+	 * @param path
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	List<Map<String, Object>> listDetails(String path) throws Exception;
 	
 	/**
 	 * 
