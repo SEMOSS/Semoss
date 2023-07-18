@@ -10,11 +10,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IRCloneStorage;
 import prerna.util.Constants;
@@ -105,6 +109,11 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 	}
 
 	@Override
+	public List<Map<String, Object>> listDetails(String path) throws IOException, InterruptedException {
+		return listDetails(path, null);
+	}
+	
+	@Override
 	public void copyToStorage(String localFilePath, String storageFolderPath) throws Exception {
 		copyToStorage(localFilePath, storageFolderPath, null);
 	}
@@ -148,7 +157,7 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 	public void deleteRcloneConfig(String rCloneConfig) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rCloneConfig);
 		try {
-			runRcloneProcess(rCloneConfig, "rclone", "config", "delete", rCloneConfig);
+			runRcloneDeleteFileProcess(rCloneConfig, "rclone", "config", "delete", rCloneConfig);
 		} finally {
 			new File(configPath).delete();
 		}
@@ -215,6 +224,24 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 	/**
 	 * 
 	 * @param rcloneConfig
+	 * @param command
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	protected List<Map<String, Object>> runRcloneListJsonProcess(String rcloneConfig, String... command) throws IOException, InterruptedException {
+		String configPath = getConfigPath(rcloneConfig);
+		List<String> commandList = new ArrayList<>();
+		commandList.addAll(Arrays.asList(command));
+		commandList.add("--config");
+		commandList.add(configPath);
+		String[] newCommand = commandList.toArray(new String[] {});
+		return runProcessListJsonOutput(newCommand);	
+	}
+	
+	/**
+	 * 
+	 * @param rcloneConfig
 	 * @return
 	 */
 	protected String getConfigPath(String rcloneConfig) {
@@ -247,6 +274,72 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 				p = pb.start();
 				p.waitFor();
 				List<String> results = streamOutput(p.getInputStream());
+				streamError(p.getErrorStream());
+				return results;
+			} finally {
+				if (p != null) {
+					p.destroyForcibly();
+				}
+			}
+		} finally {
+			System.setSecurityManager(priorManager);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param command
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	protected static Map<String, Object> runProcessJsonOutput(String... command) throws IOException, InterruptedException {
+		// Need to allow this process to execute the below commands
+		SecurityManager priorManager = System.getSecurityManager();
+		System.setSecurityManager(null);
+		try {
+			Process p = null;
+			try {
+				ProcessBuilder pb = new ProcessBuilder(command);
+				pb.directory(new File(Utility.normalizePath(System.getProperty("user.home"))));
+				pb.redirectOutput(Redirect.PIPE);
+				pb.redirectError(Redirect.PIPE);
+				p = pb.start();
+				p.waitFor();
+				Map<String, Object> results = streamJsonOutput(p.getInputStream());
+				streamError(p.getErrorStream());
+				return results;
+			} finally {
+				if (p != null) {
+					p.destroyForcibly();
+				}
+			}
+		} finally {
+			System.setSecurityManager(priorManager);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param command
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	protected static List<Map<String, Object>> runProcessListJsonOutput(String... command) throws IOException, InterruptedException {
+		// Need to allow this process to execute the below commands
+		SecurityManager priorManager = System.getSecurityManager();
+		System.setSecurityManager(null);
+		try {
+			Process p = null;
+			try {
+				ProcessBuilder pb = new ProcessBuilder(command);
+				pb.directory(new File(Utility.normalizePath(System.getProperty("user.home"))));
+				pb.redirectOutput(Redirect.PIPE);
+				pb.redirectError(Redirect.PIPE);
+				p = pb.start();
+				p.waitFor();
+				List<Map<String, Object>> results = streamListJsonOutput(p.getInputStream());
 				streamError(p.getErrorStream());
 				return results;
 			} finally {
@@ -299,6 +392,38 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 				}
 			}
 			return lines;
+		}
+	}
+	
+	/**
+	 * 
+	 * @param stream
+	 * @return
+	 * @throws IOException
+	 */
+	protected static Map<String, Object> streamJsonOutput(InputStream stream) throws IOException {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+			StringBuilder builder = new StringBuilder();
+			reader.lines().forEach(line -> builder.append(line));
+			classLogger.info(builder.toString());
+			System.out.println(builder.toString());
+			return new Gson().fromJson(builder.toString(), new TypeToken<Map<String, Object>>(){}.getType());
+		}
+	}
+	
+	/**
+	 * 
+	 * @param stream
+	 * @return
+	 * @throws IOException
+	 */
+	protected static List<Map<String, Object>> streamListJsonOutput(InputStream stream) throws IOException {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+			StringBuilder builder = new StringBuilder();
+			reader.lines().forEach(line -> builder.append(line));
+			classLogger.info(builder.toString());
+			System.out.println(builder.toString());
+			return new Gson().fromJson(builder.toString(), new TypeToken<List<Map<String, Object>>>(){}.getType());
 		}
 	}
 
