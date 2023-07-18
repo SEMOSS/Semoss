@@ -93,7 +93,12 @@ public class SecurityOwlCreator {
 		
 		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
 		if(check1) {
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEMETA");
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINE");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ENGINESUBTYPE/ENGINE")) {
+				return true;
+			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEMETA");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/METAORDER/ENGINEMETA")) {
 				return true;
 			}
@@ -253,7 +258,8 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINE", "ENGINENAME", "VARCHAR(255)");
 		owler.addProp("ENGINE", "GLOBAL", "BOOLEAN");
 		owler.addProp("ENGINE", "DISCOVERABLE", "BOOLEAN");
-		owler.addProp("ENGINE", "TYPE", "VARCHAR(255)");
+		owler.addProp("ENGINE", "ENGINETYPE", "VARCHAR(255)");
+		owler.addProp("ENGINE", "ENGINESUBTYPE", "VARCHAR(255)");
 		owler.addProp("ENGINE", "COST", "VARCHAR(255)");
 		owler.addProp("ENGINE", "CREATEDBY", "VARCHAR(255)");
 		owler.addProp("ENGINE", "CREATEDBYTYPE", "VARCHAR(255)");

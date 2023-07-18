@@ -50,5 +50,9 @@ public class S3StorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 		return rcloneConfig;
 	}
 	
+	@Override
+	public STORAGE_TYPE getStorageType() {
+		return STORAGE_TYPE.AMAZON_S3;
+	}
 	
 }

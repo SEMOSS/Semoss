@@ -100,13 +100,18 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			OwlSeparatePixelFromConceptual.fixOwl(prop);
 			
 			engineId = prop.getProperty(Constants.ENGINE);
-			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
-				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
-			} else {
-//				String fileName = folderToWatch + "/" + newFile;
-//				Utility.loadEngine(fileName, prop);
+			if(ignoreSmssList.contains(engineId)) {
 				String filePath = folderToWatch + "/" + newFile;
-				Utility.catalogEngineByType(filePath, prop, engineId);
+				Utility.loadEngine(filePath, prop);
+			} else {
+				if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
+					logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+				} else {
+	//				String fileName = folderToWatch + "/" + newFile;
+	//				Utility.loadEngine(fileName, prop);
+					String filePath = folderToWatch + "/" + newFile;
+					Utility.catalogEngineByType(filePath, prop, engineId);
+				}
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
