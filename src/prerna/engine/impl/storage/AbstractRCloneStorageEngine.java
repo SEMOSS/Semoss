@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -25,7 +24,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
+public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine implements IRCloneStorage {
 
 	/*
 	 * 
@@ -57,13 +56,6 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 	
 	private static final Logger classLogger = LogManager.getLogger(AbstractRCloneStorageEngine.class);
 
-	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	
-	protected String engineId = null;
-	protected String engineName = null;
-	protected Properties smssProp = null;
-	protected String smssFilePath = null;
-	
 	// the path to rclone executable - default assumes in path
 	protected String RCLONE = "rclone";
 	
@@ -74,33 +66,9 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 	protected String PROVIDER = null;
 
 	@Override
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
-	}
-
-	@Override
-	public String getEngineId() {
-		return this.engineId;
-	}
-
-	@Override
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
-
-	@Override
-	public String getEngineName() {
-		return this.engineName;
-	}
-
-	@Override
-	public void setSmssFilePath(String smssFilePath) {
-		this.smssFilePath = smssFilePath;
-	}
-	
-	@Override
-	public String getSmssFilePath() {
-		return this.smssFilePath;
+	public void disconnect() {
+		// since we start and delete rclone configs based on the call
+		// there is no disconnect logic
 	}
 	
 	@Override
@@ -136,16 +104,6 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 	@Override
 	public void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure) throws Exception {
 		deleteFromStorage(storageFilePath, leaveFolderStructure, null);
-	}
-	
-	/**
-	 * Init the values for the rclone storage engine
-	 * @param builder
-	 */
-	public void connect(Properties smssProp) {
-		this.smssProp = smssProp;
-		this.engineId = smssProp.getProperty(Constants.ENGINE);
-		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 	}
 	
 	/**

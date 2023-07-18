@@ -2,15 +2,10 @@ package prerna.cluster.util.clients;
 
 import java.io.IOException;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.cluster.util.ClusterUtil;
 import prerna.util.Utility;
 
 public class S3Client extends AbstractBaseCloudClient {
-
-	private static Logger classLogger = LogManager.getLogger(S3Client.class);
 
 	public boolean keysProvided = false;
 

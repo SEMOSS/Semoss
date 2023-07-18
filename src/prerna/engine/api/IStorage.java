@@ -27,8 +27,13 @@ public interface IStorage {
 	 * 
 	 * @param smssProp
 	 */
-	void connect(Properties smssProp);
+	void connect(Properties smssProp) throws Exception;
 
+	/**
+	 * 
+	 */
+	void disconnect();
+	
 	/**
 	 * 
 	 * @param engineId
