@@ -79,6 +79,8 @@ public enum PixelDataType {
 	R_CONNECTION("R_CONNECTION", null),
 	R_ENGINE("R_ENGINE", null),
 	
+	STORAGE("STORAGE", ReactorKeysEnum.STORAGE),
+
 	EMAIL_SESSION("EMAIL_SESSION", ReactorKeysEnum.EMAIL_SESSION),
 	
 	PIXEL_OBJECT("PIXEL_OBJECT", null),

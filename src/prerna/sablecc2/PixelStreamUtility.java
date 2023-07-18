@@ -28,6 +28,7 @@ import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.IStorage;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -343,6 +344,22 @@ public class PixelStreamUtility {
 									PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
 				}
 			}
+			
+		} else if(nounT == PixelDataType.STORAGE) {
+			// if we have a frame
+			// return the table name of the frame
+			// FE needs this to create proper QS
+			// this has no meaning for graphs
+			Map<String, String> storageData = new HashMap<>();
+			IStorage storage = (IStorage) noun.getValue();
+			storageData.put("storageId", storage.getEngineId());
+			storageData.put("storageName", storage.getEngineName());
+
+			ps.print("\"output\":");
+			ps.print(gson.toJson(storageData));
+			ps.print(",\"operationType\":");
+			List<PixelOperationType> opTypes = noun.getOpType();
+			ps.print(gson.toJson(noun.getOpType()));
 			
 		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST) {
 			// code is a tough one to process

@@ -9,7 +9,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.BaseJavaRuntime;
 import prerna.sablecc2.reactor.PixelPlanner;
-import prerna.sablecc2.reactor.storage.TaxUtility;
+import prerna.sablecc2.reactor.tax.TaxUtility;
 
 public class UpdateGraphPlannerReactor2 extends AbstractPlannerReactor {
 
