@@ -119,7 +119,7 @@ public class SendEmailReactor extends AbstractReactor {
 			emailSession = getEmailSessionFromCall();
 			if(emailSession == null) {
 				// use the default for the application defined in social.properties
-				if(!SocialPropertiesUtil.getInstance().emailEnabled()) {
+				if(!SocialPropertiesUtil.getInstance().smtpEmailEnabled()) {
 					throw new IllegalArgumentException("Need to define an smtp server to utilize this function");
 				}
 				emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
