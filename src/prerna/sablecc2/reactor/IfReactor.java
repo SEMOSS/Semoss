@@ -8,7 +8,7 @@ import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.storage.StoreValue;
+import prerna.sablecc2.reactor.tax.StoreValue;
 
 public class IfReactor extends AbstractReactor implements JavaExecutable {
 
