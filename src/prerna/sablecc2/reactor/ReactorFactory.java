@@ -294,9 +294,6 @@ import prerna.sablecc2.reactor.panel.sort.AddPanelSortReactor;
 import prerna.sablecc2.reactor.panel.sort.SetPanelSortReactor;
 import prerna.sablecc2.reactor.panel.sort.UnsortPanelReactor;
 import prerna.sablecc2.reactor.planner.GraphPlanReactor;
-import prerna.sablecc2.reactor.planner.graph.LoadClientReactor;
-import prerna.sablecc2.reactor.planner.graph.RunPlanReactor;
-import prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor2;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.DistinctReactor;
 import prerna.sablecc2.reactor.qs.ExecQueryReactor;
@@ -355,10 +352,6 @@ import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
 import prerna.sablecc2.reactor.scheduler.PauseJobTriggerReactor;
 import prerna.sablecc2.reactor.scheduler.ResumeJobTriggerReactor;
 import prerna.sablecc2.reactor.scheduler.ScheduleJobReactor;
-import prerna.sablecc2.reactor.storage.RetrieveValue;
-import prerna.sablecc2.reactor.storage.SaveTaxScenarioReactor;
-import prerna.sablecc2.reactor.storage.StoreValue;
-import prerna.sablecc2.reactor.storage.TaxRetrieveValue2;
 import prerna.sablecc2.reactor.task.AutoTaskOptionsReactor;
 import prerna.sablecc2.reactor.task.CollectMetaReactor;
 import prerna.sablecc2.reactor.task.FormatReactor;
@@ -375,8 +368,9 @@ import prerna.sablecc2.reactor.task.modifiers.FlatMapLambdaReactor;
 import prerna.sablecc2.reactor.task.modifiers.ToNumericTypeReactor;
 import prerna.sablecc2.reactor.task.modifiers.ToUrlTypeReactor;
 import prerna.sablecc2.reactor.task.modifiers.TransposeRowsReactor;
+import prerna.sablecc2.reactor.tax.RetrieveValue;
+import prerna.sablecc2.reactor.tax.StoreValue;
 import prerna.sablecc2.reactor.test.LSASpaceColumnLearnedReactor;
-import prerna.sablecc2.reactor.test.RunAliasMatchReactor;
 import prerna.sablecc2.reactor.test.RunLSILearnedReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
 import prerna.sablecc2.reactor.utils.BDelReactor;
@@ -1180,12 +1174,12 @@ public class ReactorFactory {
 		reactorHash.put("GetNumTable", GetNumTableReactor.class);
 		
 		// Tax specific handles
-		reactorHash.put("LoadClient", LoadClientReactor.class);
-		reactorHash.put("RunPlan", RunPlanReactor.class);
-		reactorHash.put("UpdatePlan", UpdateGraphPlannerReactor2.class);
-		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
-		reactorHash.put("RunAliasMatch", RunAliasMatchReactor.class);
-		reactorHash.put("SaveTaxScenario", SaveTaxScenarioReactor.class);
+//		reactorHash.put("LoadClient", LoadClientReactor.class);
+//		reactorHash.put("RunPlan", RunPlanReactor.class);
+//		reactorHash.put("UpdatePlan", UpdateGraphPlannerReactor2.class);
+//		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
+//		reactorHash.put("RunAliasMatch", RunAliasMatchReactor.class);
+//		reactorHash.put("SaveTaxScenario", SaveTaxScenarioReactor.class);
 		
 		// bitly
 		reactorHash.put("badd", BaddReactor.class);

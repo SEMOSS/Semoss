@@ -16,6 +16,7 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 	private static final String S3_SECRET_KEY = "S3_SECRET_KEY";
 	private static final String S3_ENDPOINT_KEY = "S3_ENDPOINT";
 	
+	// this is not really needed
 	private static final String S3_BUCKET_KEY = "S3_BUCKET";
 
 	private String ENDPOINT = null;
