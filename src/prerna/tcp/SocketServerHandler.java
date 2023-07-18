@@ -91,265 +91,263 @@ public class SocketServerHandler implements Runnable {
 	// this is where the processing happens
 	public PayloadStruct getFinalOutput(PayloadStruct ps)
 	{
-		{
-			try
-			{				
-				//System.err.println("Received For Processing " + ps.methodName +  "  bytes : " + totalBytes + " Epoc " + ps.epoc);
-				//classLogger.info("Received For Processing " + ps.methodName +  "  bytes : " + totalBytes + " Epoc " + ps.epoc);
-				//unprocessed.put(ps.epoc, ps);
-				//attemptCount.put(ps.epoc, 1);
+		try
+		{				
+			//System.err.println("Received For Processing " + ps.methodName +  "  bytes : " + totalBytes + " Epoc " + ps.epoc);
+			//classLogger.info("Received For Processing " + ps.methodName +  "  bytes : " + totalBytes + " Epoc " + ps.epoc);
+			//unprocessed.put(ps.epoc, ps);
+			//attemptCount.put(ps.epoc, 1);
 
-				incoming.put(ps.epoc, ps);
-				ps.response = true;
-				outgoing.put(ps.epoc, ps);
-				
-				//System.out.println("Getting final output for " + ps.methodName);
-				classLogger.info("Getting final output for " + ps.methodName);
-				
-				////System.err.println("Payload set to " + ps);
-				if(ps.methodName.equalsIgnoreCase("EMPTYEMPTYEMPTY")) { // trigger message ignore
-					return ps;
+			incoming.put(ps.epoc, ps);
+			ps.response = true;
+			outgoing.put(ps.epoc, ps);
+			
+			//System.out.println("Getting final output for " + ps.methodName);
+			classLogger.info("Getting final output for " + ps.methodName);
+			
+			////System.err.println("Payload set to " + ps);
+			if(ps.methodName.equalsIgnoreCase("EMPTYEMPTYEMPTY")) { // trigger message ignore
+				return ps;
+			}
+			if(ps.methodName.equalsIgnoreCase("CLOSE_ALL_LOGOUT<o>")) { // we are done kill everything
+				cleanUp();
+			}
+			if(ps.methodName.equalsIgnoreCase("RELEASE_ALL")) { // we are done kill everything
+				releaseAll();
+				return ps;
+			}
+			
+			if(ps.operation == PayloadStruct.OPERATION.R)
+			{
+				try {
+					Method method = findRMethod(getTranslator(ps.env), ps.methodName, ps.payloadClasses);
+					Object output = runMethodR(getTranslator(ps.env), method, ps.payload);
+					if(output != null) {
+						//System.out.println("Output is not null - R");
+						classLogger.info("Output is not null - R");
+					}
+					Object [] retObject = new Object[1];
+					retObject[0] = output;
+					ps.payload = retObject;
+					ps.processed = true;
+					ps.response = true;
+				} catch(InvocationTargetException ex) {
+					classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.info(ex + ps.methodName);
+					ex.printStackTrace();
+					//System.err.println("Method.. " + ps.methodName);
+					ps.ex = ExceptionUtils.getStackTrace(ex);						
+				} catch(Exception ex ) {
+					classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.info(ex + ps.methodName);
+					ex.printStackTrace();
+					//System.err.println("Method.. " + ps.methodName);
+					ps.ex = ExceptionUtils.getStackTrace(ex);						
 				}
-				if(ps.methodName.equalsIgnoreCase("CLOSE_ALL_LOGOUT<o>")) { // we are done kill everything
-					cleanUp();
+				return ps;
+			}
+			if(ps.operation == PayloadStruct.OPERATION.PYTHON)
+			{
+				// get the py translator for the first time
+				getPyTranslator();
+
+				try {
+					
+					Method method = findPyMethod(ps.methodName, ps.payloadClasses);
+					
+					Object output = runMethodPy(method, ps.payload);
+					Object [] retObject = new Object[1];
+					retObject[0] = output;
+					ps.payload = retObject;
+					ps.processed = true;
+					//ps.operation = ps.operation.PYTHON;
+					// remove this item
+				} catch(Exception ex) {
+					ex.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, ex);
+					//System.err.println("Method.. " + ps.methodName);
+					ps.ex = ExceptionUtils.getStackTrace(ex);						
 				}
-				if(ps.methodName.equalsIgnoreCase("RELEASE_ALL")) { // we are done kill everything
-					releaseAll();
-					return ps;
+				return ps;
+			}
+			else if(ps.operation == PayloadStruct.OPERATION.CHROME)
+			{
+				try {
+					Method method = findChromeMethod(ps.methodName, ps.payloadClasses);
+					Object output = runMethodChrome(method, ps.payload);
+					if(output != null)
+						classLogger.info("Output is not null - CHROME");
+					if(output instanceof ChromeDriver)
+						output = new Object();
+					if(output instanceof String)
+						classLogger.info("Output is >>>>>>>>>>>>>>>  " + output);
+					Object [] retObject = new Object[1];
+					retObject[0] = output;
+					ps.payload = retObject;
+					ps.processed = true;
+				} catch(Exception ex) {
+					classLogger.error(Constants.STACKTRACE, ex);
+					//System.err.println("Method.. " + ps.methodName);
+					ps.ex = ExceptionUtils.getStackTrace(ex);						
+					//TCPChromeDriverUtility.quit("stop");
 				}
-				
-				if(ps.operation == PayloadStruct.OPERATION.R)
-				{
-					try {
-						Method method = findRMethod(getTranslator(ps.env), ps.methodName, ps.payloadClasses);
-						Object output = runMethodR(getTranslator(ps.env), method, ps.payload);
-						if(output != null) {
-							//System.out.println("Output is not null - R");
-							classLogger.info("Output is not null - R");
-						}
-						Object [] retObject = new Object[1];
-						retObject[0] = output;
-						ps.payload = retObject;
+				return ps;
+			}
+			else if(ps.operation == PayloadStruct.OPERATION.ECHO)
+			{
+				try {
+					Method method = findChromeMethod(ps.methodName, ps.payloadClasses);
+					Object output = ps.payload[0];
+					Object [] retObject = new Object[1];
+					retObject[0] = output;
+					ps.payload = retObject;
+					ps.processed = true;
+				} catch(Exception ex) {
+					classLogger.error(Constants.STACKTRACE, ex);
+					//ex.printStackTrace();
+					//System.err.println("Method.. " + ps.methodName);
+					ps.ex = ExceptionUtils.getStackTrace(ex);						
+					//TCPChromeDriverUtility.quit("stop");
+				}
+				return ps;
+			}
+			else if(ps.operation == PayloadStruct.OPERATION.INSIGHT)
+			{
+				try {
+					Insight output = (Insight)ps.payload[0];
+					output.setPyTranslator(pyt);
+					if(output.getREnv() != null)
+						output.setRJavaTranslator(rtMap.get(output.getREnv()));
+					ps.payload = new Object[] {"Set insight successfully"};
+					ps.payloadClasses = new Class[] {String.class};
+					ps.processed = true;
+					ps.response = true;
+					insightMap.put(output.getInsightId(), output);
+				} catch(Exception ex) {
+					classLogger.error(Constants.STACKTRACE, ex);
+					//ex.printStackTrace();
+					//System.err.println("Method.. " + ps.methodName);
+					ps.ex = ExceptionUtils.getStackTrace(ex);						
+					//TCPChromeDriverUtility.quit("stop");
+				}
+				return ps;
+			}
+			else if(ps.operation == PayloadStruct.OPERATION.REACTOR)
+			{
+				try {
+					Insight insight = insightMap.get(ps.insightId);
+					// no need for another thread
+					// you are already in a thread
+					String reactorName = ps.objId;
+					ps.response = true;
+					
+					// get the project
+					// Project serves no purpose other than just giving me the reactor
+					
+					//TODO: on tomcat side, when context changes needs to be told
+					//TODO: on tomcat side, when context changes needs to be told
+					//TODO: on tomcat side, when context changes needs to be told
+					//TODO: on tomcat side, when context changes needs to be told
+
+					// 1) we need to check insight context project
+					// 2) then we need to check the project the insight is saved in
+					// note for 2 - this can be null
+					
+					IReactor reactor = null;
+					String contextProjectId = insight.getContextProjectId();
+					if(contextProjectId != null) {
+						reactor = getProjectReactor(contextProjectId, insight.getContextProjectName(), reactorName);
+					}
+					if(reactor == null && insight.getProjectId() != null) {
+						reactor = getProjectReactor(insight.getProjectId(), insight.getProjectName(), reactorName);
+					}
+					if(reactor == null) {
+						throw new NullPointerException("Could not find reactor with name " + reactorName);
+					}
+					reactor.setInsight(insight);
+					reactor.setNounStore((NounStore)ps.payload[0]);
+					classLogger.info("Set the nounstore on reactor");
+					
+					// execute
+					reactor.In();
+					NounMetadata nmd = reactor.execute();
+					classLogger.info("Execution of reactor complete");
+					// return the response
+					ps.payload = new Object[] {nmd};
+					ps.payloadClasses = new Class[] {NounMetadata.class};
+				} catch(Exception ex) {
+					classLogger.error(Constants.STACKTRACE, ex);
+					//ex.printStackTrace();
+					//System.err.println("Method.. " + ps.methodName);
+					ps.ex = ExceptionUtils.getStackTrace(ex);						
+					//TCPChromeDriverUtility.quit("stop");
+				}
+				return ps;
+			}
+			else if(ps.operation == PayloadStruct.OPERATION.PROJECT)
+			{
+				// make a method call
+				try {
+					Project project = projectMap.get(ps.projectId);
+					if(project == null)
+						project = makeProject(ps.projectId, ps.projectName);
+					
+					if(project != null)
+					{
+						Method method = findProjectMethod(project, ps.methodName, ps.payloadClasses);
+				    	Object retObject = null;					    	
+						retObject = method.invoke(project, ps.payload);
 						ps.processed = true;
 						ps.response = true;
-					} catch(InvocationTargetException ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
-						classLogger.info(ex + ps.methodName);
-						ex.printStackTrace();
-						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ExceptionUtils.getStackTrace(ex);						
-					} catch(Exception ex ) {
-						classLogger.error(Constants.STACKTRACE, ex);
-						classLogger.info(ex + ps.methodName);
-						ex.printStackTrace();
-						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ExceptionUtils.getStackTrace(ex);						
 					}
-					return ps;
+					ps.payload = new Object [] {"method "+ ps.methodName + " execution complete"};
+					ps.payloadClasses = new Class [] {String.class};
+				} catch(Exception ex) {
+					classLogger.error(Constants.STACKTRACE, ex);
+					//ex.printStackTrace();
+					//System.err.println("Method.. " + ps.methodName);
+					ps.ex = ExceptionUtils.getStackTrace(ex);						
+					//TCPChromeDriverUtility.quit("stop");
 				}
-				if(ps.operation == PayloadStruct.OPERATION.PYTHON)
-				{
-					// get the py translator for the first time
-					getPyTranslator();
-
-					try {
-						
-						Method method = findPyMethod(ps.methodName, ps.payloadClasses);
-						
-						Object output = runMethodPy(method, ps.payload);
-						Object [] retObject = new Object[1];
-						retObject[0] = output;
-						ps.payload = retObject;
-						ps.processed = true;
-						//ps.operation = ps.operation.PYTHON;
-						// remove this item
-					} catch(Exception ex) {
-						ex.printStackTrace();
-						classLogger.error(Constants.STACKTRACE, ex);
-						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ExceptionUtils.getStackTrace(ex);						
-					}
-					return ps;
-				}
-				else if(ps.operation == PayloadStruct.OPERATION.CHROME)
-				{
-					try {
-						Method method = findChromeMethod(ps.methodName, ps.payloadClasses);
-						Object output = runMethodChrome(method, ps.payload);
-						if(output != null)
-							classLogger.info("Output is not null - CHROME");
-						if(output instanceof ChromeDriver)
-							output = new Object();
-						if(output instanceof String)
-							classLogger.info("Output is >>>>>>>>>>>>>>>  " + output);
-						Object [] retObject = new Object[1];
-						retObject[0] = output;
-						ps.payload = retObject;
-						ps.processed = true;
-					} catch(Exception ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
-						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ExceptionUtils.getStackTrace(ex);						
-						//TCPChromeDriverUtility.quit("stop");
-					}
-					return ps;
-				}
-				else if(ps.operation == PayloadStruct.OPERATION.ECHO)
-				{
-					try {
-						Method method = findChromeMethod(ps.methodName, ps.payloadClasses);
-						Object output = ps.payload[0];
-						Object [] retObject = new Object[1];
-						retObject[0] = output;
-						ps.payload = retObject;
-						ps.processed = true;
-					} catch(Exception ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
-						//ex.printStackTrace();
-						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ExceptionUtils.getStackTrace(ex);						
-						//TCPChromeDriverUtility.quit("stop");
-					}
-					return ps;
-				}
-				else if(ps.operation == PayloadStruct.OPERATION.INSIGHT)
-				{
-					try {
-						Insight output = (Insight)ps.payload[0];
-						output.setPyTranslator(pyt);
-						if(output.getREnv() != null)
-							output.setRJavaTranslator(rtMap.get(output.getREnv()));
-						ps.payload = new Object[] {"Set insight successfully"};
-						ps.payloadClasses = new Class[] {String.class};
-						ps.processed = true;
-						ps.response = true;
-						insightMap.put(output.getInsightId(), output);
-					} catch(Exception ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
-						//ex.printStackTrace();
-						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ExceptionUtils.getStackTrace(ex);						
-						//TCPChromeDriverUtility.quit("stop");
-					}
-					return ps;
-				}
-				else if(ps.operation == PayloadStruct.OPERATION.REACTOR)
-				{
-					try {
-						Insight insight = insightMap.get(ps.insightId);
-						// no need for another thread
-						// you are already in a thread
-						String reactorName = ps.objId;
-						ps.response = true;
-						
-						// get the project
-						// Project serves no purpose other than just giving me the reactor
-						
-						//TODO: on tomcat side, when context changes needs to be told
-						//TODO: on tomcat side, when context changes needs to be told
-						//TODO: on tomcat side, when context changes needs to be told
-						//TODO: on tomcat side, when context changes needs to be told
-
-						// 1) we need to check insight context project
-						// 2) then we need to check the project the insight is saved in
-						// note for 2 - this can be null
-						
-						IReactor reactor = null;
-						String contextProjectId = insight.getContextProjectId();
-						if(contextProjectId != null) {
-							reactor = getProjectReactor(contextProjectId, insight.getContextProjectName(), reactorName);
-						}
-						if(reactor == null && insight.getProjectId() != null) {
-							reactor = getProjectReactor(insight.getProjectId(), insight.getProjectName(), reactorName);
-						}
-						if(reactor == null) {
-							throw new NullPointerException("Could not find reactor with name " + reactorName);
-						}
-						reactor.setInsight(insight);
-						reactor.setNounStore((NounStore)ps.payload[0]);
-						classLogger.info("Set the nounstore on reactor");
-						
-						// execute
-						reactor.In();
-						NounMetadata nmd = reactor.execute();
-						classLogger.info("Execution of reactor complete");
-						// return the response
-						ps.payload = new Object[] {nmd};
-						ps.payloadClasses = new Class[] {NounMetadata.class};
-					} catch(Exception ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
-						//ex.printStackTrace();
-						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ExceptionUtils.getStackTrace(ex);						
-						//TCPChromeDriverUtility.quit("stop");
-					}
-					return ps;
-				}
-				else if(ps.operation == PayloadStruct.OPERATION.PROJECT)
-				{
-					// make a method call
-					try {
-						Project project = projectMap.get(ps.projectId);
-						if(project == null)
-							project = makeProject(ps.projectId, ps.projectName);
-						
-						if(project != null)
+				return ps;
+			}else if(ps.operation == PayloadStruct.OPERATION.CMD)
+			{
+				// make a method call
+				try {
+					if(ps.methodName.equalsIgnoreCase("constructor")) {
+						String mountName = ""+ ps.payload[0];
+						String dir = "" + ps.payload[1];
+						if(!cmdMap.containsKey(mountName + "__" + dir))
 						{
-							Method method = findProjectMethod(project, ps.methodName, ps.payloadClasses);
-					    	Object retObject = null;					    	
-							retObject = method.invoke(project, ps.payload);
+							CmdExecUtil cmd = new CmdExecUtil(mountName, dir, null);
+							cmdMap.put(mountName + "__" + dir, cmd);
+						}
+						ps.payload = new Object [] {"constructor execution complete"};
+						ps.payloadClasses = new Class [] {String.class};
+					} else {
+						CmdExecUtil thisCmd = cmdMap.get(ps.insightId);
+						if(thisCmd != null)
+						{
+							String output = thisCmd.executeCommand(""+ps.payload[0]);
 							ps.processed = true;
 							ps.response = true;
+							ps.payload = new Object[] {output};
 						}
-						ps.payload = new Object [] {"method "+ ps.methodName + " execution complete"};
-						ps.payloadClasses = new Class [] {String.class};
-					} catch(Exception ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
-						//ex.printStackTrace();
-						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ExceptionUtils.getStackTrace(ex);						
-						//TCPChromeDriverUtility.quit("stop");
 					}
-					return ps;
-				}else if(ps.operation == PayloadStruct.OPERATION.CMD)
-				{
-					// make a method call
-					try {
-						if(ps.methodName.equalsIgnoreCase("constructor")) {
-							String mountName = ""+ ps.payload[0];
-							String dir = "" + ps.payload[1];
-							if(!cmdMap.containsKey(mountName + "__" + dir))
-							{
-								CmdExecUtil cmd = new CmdExecUtil(mountName, dir, null);
-								cmdMap.put(mountName + "__" + dir, cmd);
-							}
-							ps.payload = new Object [] {"constructor execution complete"};
-							ps.payloadClasses = new Class [] {String.class};
-						} else {
-							CmdExecUtil thisCmd = cmdMap.get(ps.insightId);
-							if(thisCmd != null)
-							{
-								String output = thisCmd.executeCommand(""+ps.payload[0]);
-								ps.processed = true;
-								ps.response = true;
-								ps.payload = new Object[] {output};
-							}
-						}
-					} catch(Exception ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
-						ps.ex = ExceptionUtils.getStackTrace(ex);						
-						//TCPChromeDriverUtility.quit("stop");
-					}
-
-					return ps;
+				} catch(Exception ex) {
+					classLogger.error(Constants.STACKTRACE, ex);
+					ps.ex = ExceptionUtils.getStackTrace(ex);						
+					//TCPChromeDriverUtility.quit("stop");
 				}
-			} catch(Exception ex) {
-				ex.printStackTrace();
-				classLogger.error(Constants.STACKTRACE, ex);
-				ps.ex = ex.getMessage();
+
+				return ps;
 			}
-			return null;
+		} catch(Exception ex) {
+			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
+			ps.ex = ex.getMessage();
 		}
+		return null;
 	}
 
 	/**
@@ -520,7 +518,7 @@ public class SocketServerHandler implements Runnable {
 				}
 	
 				// we should also close all the dbs that were opened
-				String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
+				String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 				if(engines != null)
 				{
 					String [] engineList = engines.split(";");
@@ -832,7 +830,7 @@ public class SocketServerHandler implements Runnable {
 			}
 			classLogger.info("PyThread Started");
 			setPyExecutorThread(this.pt);
-			System.err.println("Got the py thread");
+//			System.err.println("Got the py thread");
 		}
 	}	
 
@@ -933,7 +931,7 @@ public class SocketServerHandler implements Runnable {
 			} catch (IOException e) {
 				e.printStackTrace();
 				classLogger.error(Constants.STACKTRACE, e);
-				System.err.println("Client socket has been closed !");
+//				System.err.println("Client socket has been closed !");
 				synchronized(server.crash)
 				{
 					try {
