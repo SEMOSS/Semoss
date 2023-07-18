@@ -14,11 +14,11 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.MapHeaderDataRowIterator;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.storage.MapHeaderDataRowIterator;
 
 public class VarStore implements InMemStore<String, NounMetadata> {
 

@@ -54,6 +54,18 @@ public interface IStorage {
 
 	/**
 	 * 
+	 * @param smssFilePath
+	 */
+	void setSmssFilePath(String smssFilePath);
+	
+	/**
+	 * 
+	 * @return
+	 */
+	String getSmssFilePath();
+	
+	/**
+	 * 
 	 * @param path
 	 * @return
 	 * @throws Exception 
@@ -90,5 +102,6 @@ public interface IStorage {
 	 * @throws Exception
 	 */
 	void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure) throws Exception;
+
 	
 }

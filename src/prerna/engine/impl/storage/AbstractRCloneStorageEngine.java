@@ -58,6 +58,7 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 	protected String engineId = null;
 	protected String engineName = null;
 	protected Properties smssProp = null;
+	protected String smssFilePath = null;
 	
 	// the path to rclone executable - default assumes in path
 	protected String RCLONE = "rclone";
@@ -88,6 +89,16 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 		return this.engineName;
 	}
 
+	@Override
+	public void setSmssFilePath(String smssFilePath) {
+		this.smssFilePath = smssFilePath;
+	}
+	
+	@Override
+	public String getSmssFilePath() {
+		return this.smssFilePath;
+	}
+	
 	@Override
 	public List<String> list(String path) throws IOException, InterruptedException {
 		return list(path, null);
@@ -124,6 +135,8 @@ public abstract class AbstractRCloneStorageEngine implements IRCloneStorage {
 	 */
 	public void connect(Properties smssProp) {
 		this.smssProp = smssProp;
+		this.engineId = smssProp.getProperty(Constants.ENGINE);
+		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 	}
 	
 	/**
