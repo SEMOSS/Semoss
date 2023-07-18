@@ -15,6 +15,7 @@ import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
 import jakarta.mail.NoSuchProviderException;
+import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.SendFailedException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
@@ -176,25 +177,69 @@ public class EmailUtility {
 		return emailTemplate;
 	}
 
+	
+	
+	
+	
+	
+	
+	
+	
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+
 	/**
 	 * @throws MessagingException 
 	 * 
 	 */
 	public static void readEmailPOP3() throws MessagingException {
 		try {
+			Properties pop3EmailProps = new Properties();
+			pop3EmailProps.put("mail.pop3.host", "pop.gmail.com");
+			pop3EmailProps.put("mail.pop3.port", "995");
+			pop3EmailProps.put("mail.pop3.starttls.enable", "true");
+			pop3EmailProps.put("mail.store.protocol", "pop3");
 
-			//create properties field
-			Properties properties = new Properties();
-			properties.put("mail.pop3.host", "pop.gmail.com");
-			properties.put("mail.pop3.port", "995");
-			properties.put("mail.pop3.starttls.enable", "true");
-			Session emailSession = Session.getDefaultInstance(properties);
+			String username = "ncrt.test.email@gmail.com";
+			String password = "";
+			
+			Session emailSession = null;
+			try {
+				if (username != null && password != null) {
+					logger.info("Making secured connection to the email server");
+					emailSession = Session.getInstance(pop3EmailProps, new jakarta.mail.Authenticator() {
+						protected PasswordAuthentication getPasswordAuthentication() {
+							return new PasswordAuthentication(username, password);
+						}
+					});
+				} else {
+					logger.info("Making connection to the email server");
+					emailSession = Session.getInstance(pop3EmailProps);
+				}
+			} catch(Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
+			}
 
-			//create the POP3 store object and connect with the pop server
-			Store store = emailSession.getStore("pop3s");
-
-			store.connect("pop.gmail.com", "ncrt.test.email@gmail.com", "");
-
+			Store store = null;
+			try {
+				//create the POP3 store object and connect with the pop server
+				store = emailSession.getStore("pop3s");
+				store.connect();
+			} catch(Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
+			}
+			
 			//create the folder object and open it
 			Folder emailFolder = store.getFolder("INBOX");
 			emailFolder.open(Folder.READ_ONLY);
@@ -280,7 +325,7 @@ public class EmailUtility {
 
 	public static void main(String[] args) throws Exception {
 		readEmailPOP3();
-		readEmailIMAP();
+//		readEmailIMAP();
 		//		// GMAIL
 		//		String smtpHost = "smtp.gmail.com";
 		//		String smtpPort = "465";

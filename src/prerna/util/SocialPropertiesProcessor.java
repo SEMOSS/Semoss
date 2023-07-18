@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
+import jakarta.mail.Store;
 import prerna.auth.AuthProvider;
 
 public class SocialPropertiesProcessor {
@@ -22,6 +23,14 @@ public class SocialPropertiesProcessor {
 	public static final String SMTP_USERNAME = "smtp_username";
 	public static final String SMTP_PASSWORD = "smtp_password";
 	public static final String SMTP_SENDER = "smtp_sender";
+	
+	public static final String POP3_ENABLED = "pop3_enabled";
+	public static final String POP3_USERNAME = "pop3_username";
+	public static final String POP3_PASSWORD = "pop3_password";
+
+	public static final String IMAP_ENABLED = "imap_enabled";
+	public static final String IMAP_USERNAME = "imap_username";
+	public static final String IMAP_PASSWORD = "imap_password";
 
 	private static final Logger logger = LogManager.getLogger(SocialPropertiesProcessor.class);
 
@@ -31,12 +40,22 @@ public class SocialPropertiesProcessor {
 	private Properties socialData = null;
 	private Map<String, Boolean> loginsAllowedMap;
 	
-	// email properties
-	private Session emailSession = null;
+	// smtp
+	private Session smtpEmailSession = null;
 	// pulling out email properties for performance
-	private Properties emailProps = null;
-	private Map<String, String> emailStaticProps = null;
+	private Properties smtpEmailProps = null;
+	private Map<String, String> smtpEmailStaticProps = null;
 
+	// pop3
+	private Store pop3EmailStore = null;
+	// pulling out email properties for performance
+	private Properties pop3EmailProps = null;
+	
+	// imap
+	private Store imapEmailStore = null;
+	// pulling out email properties for performance
+	private Properties imapEmailProps = null;
+	
 	/**
 	 * Constructor
 	 * @param socialPropFile
@@ -121,9 +140,15 @@ public class SocialPropertiesProcessor {
 	public void reloadProps() {
 		// null out values to be reset
 		this.loadSocialProperties();
-		this.emailSession = null;
-		this.emailProps = null;
-		this.emailStaticProps = null;
+		this.smtpEmailSession = null;
+		this.smtpEmailProps = null;
+		this.smtpEmailStaticProps = null;
+		
+		this.pop3EmailProps = null;
+		this.pop3EmailStore = null;
+		
+		this.imapEmailProps = null;
+		this.imapEmailStore = null;
 	}
 	
 	public Map<String, Boolean> getLoginsAllowed() {
@@ -216,15 +241,23 @@ public class SocialPropertiesProcessor {
 		return samlAttrMap;
 	}
 	
-	public boolean emailEnabled() {
+	public boolean smtpEmailEnabled() {
 		return Boolean.parseBoolean(this.socialData.getProperty(SMTP_ENABLED, "false"));
+	}
+	
+	public boolean pop3EmailEnabled() {
+		return Boolean.parseBoolean(this.socialData.getProperty(POP3_ENABLED, "false"));
+	}
+	
+	public boolean imapEmailEnabled() {
+		return Boolean.parseBoolean(this.socialData.getProperty(IMAP_ENABLED, "false"));
 	}
 	
 	/**
 	 * Return a properties object with the details of the application central SMTP server
 	 * @return
 	 */
-	public Properties loadEmailProperties() {
+	public Properties loadSmtpEmailProperties() {
 		final String prefix = "smtp_";
 		Properties smtpProp = new Properties();
 	    Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str->str.startsWith(prefix)).collect(Collectors.toSet());
@@ -244,10 +277,56 @@ public class SocialPropertiesProcessor {
 	}
 	
 	/**
+	 * Return a properties object with the details of the application central POP3 server
+	 * @return
+	 */
+	public Properties loadPop3EmailProperties() {
+		final String prefix = "pop3_";
+		Properties pop3Prop = new Properties();
+	    Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str->str.startsWith(prefix)).collect(Collectors.toSet());
+	    for(String key : smtpKeys) {
+	    	Object smtpValue = socialData.get(key);
+	    	if(smtpValue == null) {
+	    		continue;
+	    	}
+	    	// clean up key
+	    	String smtpKey = key.replaceFirst(prefix, "");
+	    	pop3Prop.put(smtpKey, smtpValue);
+	    }
+	    if(pop3Prop.isEmpty()) {
+	    	return null;
+	    }
+		return pop3Prop;
+	}
+	
+	/**
+	 * Return a properties object with the details of the application central POP3 server
+	 * @return
+	 */
+	public Properties loadImapEmailProperties() {
+		final String prefix = "imap_";
+		Properties imapProp = new Properties();
+	    Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str->str.startsWith(prefix)).collect(Collectors.toSet());
+	    for(String key : smtpKeys) {
+	    	Object smtpValue = socialData.get(key);
+	    	if(smtpValue == null) {
+	    		continue;
+	    	}
+	    	// clean up key
+	    	String smtpKey = key.replaceFirst(prefix, "");
+	    	imapProp.put(smtpKey, smtpValue);
+	    }
+	    if(imapProp.isEmpty()) {
+	    	return null;
+	    }
+		return imapProp;
+	}
+	
+	/**
 	 * Return static properties that can be used to fill in for email templates
 	 * @return
 	 */
-	public Map<String, String> loadEmailStaticProps() {
+	public Map<String, String> loadSmtpEmailStaticProps() {
 		final String prefix = "smtpprop_";
 		Map<String, String> emailStaticProps = new HashMap<>();
 		Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str->str.startsWith(prefix)).collect(Collectors.toSet());
@@ -263,17 +342,17 @@ public class SocialPropertiesProcessor {
 		return emailStaticProps;
 	}
 	
-	public void loadEmailSession() {
-		if(this.socialData == null || !emailEnabled()) {
+	public void loadSmtpEmailSession() {
+		if(this.socialData == null || !smtpEmailEnabled()) {
 			return;
 		}
-		if(this.emailProps == null || this.emailProps.isEmpty()) {
-			this.emailProps = loadEmailProperties();
+		if(this.smtpEmailProps == null || this.smtpEmailProps.isEmpty()) {
+			this.smtpEmailProps = loadSmtpEmailProperties();
 		}
-		if(this.emailProps == null || this.emailProps.isEmpty()) {
+		if(this.smtpEmailProps == null || this.smtpEmailProps.isEmpty()) {
 			throw new IllegalArgumentException("SMTP properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
 		}
-		this.emailStaticProps = getEmailStaticProps();
+		this.smtpEmailStaticProps = getSmtpEmailStaticProps();
 		
 		String username = getSmtpUsername();
 		String password = getSmtpPassword();
@@ -281,18 +360,106 @@ public class SocialPropertiesProcessor {
 		try {
 			if (username != null && password != null) {
 				logger.info("Making secured connection to the email server");
-				this.emailSession  = Session.getInstance(this.emailProps, new jakarta.mail.Authenticator() {
+				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps, new jakarta.mail.Authenticator() {
 					protected PasswordAuthentication getPasswordAuthentication() {
 						return new PasswordAuthentication(username, password);
 					}
 				});
 			} else {
 				logger.info("Making connection to the email server");
-				this.emailSession = Session.getInstance(this.emailProps);
+				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps);
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
+		}
+	}
+
+	public void loadPop3EmailSession() {
+		if(this.socialData == null || !pop3EmailEnabled()) {
+			return;
+		}
+		if(this.pop3EmailProps == null || this.pop3EmailProps.isEmpty()) {
+			this.pop3EmailProps = loadPop3EmailProperties();
+		}
+		if(this.pop3EmailProps == null || this.pop3EmailProps.isEmpty()) {
+			throw new IllegalArgumentException("POP3 properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
+		}
+		this.pop3EmailProps.setProperty("mail.store.protocol", "pop3");
+
+		String host = this.pop3EmailProps.getProperty("mail.pop3.host");
+		String username = getPop3Username();
+		String password = getPop3Password();
+
+		Session emailSession = null;
+		try {
+			if (username != null && password != null) {
+				logger.info("Making secured connection to the email server");
+				emailSession = Session.getInstance(this.pop3EmailProps, new jakarta.mail.Authenticator() {
+					protected PasswordAuthentication getPasswordAuthentication() {
+						return new PasswordAuthentication(username, password);
+					}
+				});
+			} else {
+				logger.info("Making connection to the email server");
+				emailSession = Session.getInstance(this.pop3EmailProps);
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
+		}
+
+		try {
+			//create the POP3 store object and connect with the pop server
+			this.pop3EmailStore = emailSession.getStore("pop3s");
+			this.pop3EmailStore.connect(host, username, password);
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
+		}
+	}
+	
+	public void loadImapEmailSession() {
+		if(this.socialData == null || !imapEmailEnabled()) {
+			return;
+		}
+		if(this.imapEmailProps == null || this.imapEmailProps.isEmpty()) {
+			this.imapEmailProps = loadImapEmailProperties();
+		}
+		if(this.imapEmailProps == null || this.imapEmailProps.isEmpty()) {
+			throw new IllegalArgumentException("IMAP properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
+		}
+		this.imapEmailProps.setProperty("mail.store.protocol", "imaps");
+
+		String host = this.pop3EmailProps.getProperty("mail.imap.host");
+		String username = getImapUsername();
+		String password = getImapPassword();
+
+		Session emailSession = null;
+		try {
+			if (username != null && password != null) {
+				logger.info("Making secured connection to the email server");
+				emailSession  = Session.getInstance(this.imapEmailProps, new jakarta.mail.Authenticator() {
+					protected PasswordAuthentication getPasswordAuthentication() {
+						return new PasswordAuthentication(username, password);
+					}
+				});
+			} else {
+				logger.info("Making connection to the email server");
+				emailSession = Session.getInstance(this.imapEmailProps);
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
+		}
+		
+		try {
+			//create the POP3 store object and connect with the pop server
+			this.imapEmailStore = emailSession.getStore("imaps");
+			this.imapEmailStore.connect(host, username, password);
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: " + e.getMessage(), e);
 		}
 	}
 	
@@ -308,30 +475,81 @@ public class SocialPropertiesProcessor {
 		return this.socialData.getProperty(SMTP_SENDER);
 	}
 	
-	public Session getEmailSession() {
-		if(this.emailSession == null) {
-			loadEmailSession();
-		}
-		return this.emailSession;
+	public String getPop3Username() {
+		return this.socialData.getProperty(POP3_USERNAME);
 	}
 	
-	public Properties getEmailProps() {
-		if(this.emailProps == null) {
-			this.emailProps = loadEmailProperties();
-		}
-		if(this.emailProps == null) {
-			return null;
-		}
-		return new Properties(this.emailProps);
+	public String getPop3Password() {
+		return this.socialData.getProperty(POP3_PASSWORD);
 	}
 	
-	public Map<String, String> getEmailStaticProps() {
-		if(this.emailStaticProps == null) {
-			this.emailStaticProps = loadEmailStaticProps();
+	public String getImapUsername() {
+		return this.socialData.getProperty(IMAP_USERNAME);
+	}
+	
+	public String getImapPassword() {
+		return this.socialData.getProperty(IMAP_PASSWORD);
+	}
+
+
+	public Session getSmtpEmailSession() {
+		if(this.smtpEmailSession == null) {
+			loadSmtpEmailSession();
 		}
-		if(this.emailStaticProps == null) {
+		return this.smtpEmailSession;
+	}
+	
+	public Store getPop3EmailStore() {
+		if(this.pop3EmailStore == null) {
+			loadPop3EmailSession();
+		}
+		return this.pop3EmailStore;
+	}
+	
+	public Store getImapEmailStore() {
+		if(this.imapEmailStore == null) {
+			loadImapEmailSession();
+		}
+		return this.imapEmailStore;
+	}
+	
+	public Properties getSmtpEmailProps() {
+		if(this.smtpEmailProps == null) {
+			this.smtpEmailProps = loadSmtpEmailProperties();
+		}
+		if(this.smtpEmailProps == null) {
 			return null;
 		}
-		return new HashMap<>(this.emailStaticProps);
+		return new Properties(this.smtpEmailProps);
+	}
+	
+	public Properties getPop3EmailProps() {
+		if(this.pop3EmailProps == null) {
+			this.pop3EmailProps = loadPop3EmailProperties();
+		}
+		if(this.pop3EmailProps == null) {
+			return null;
+		}
+		return new Properties(this.pop3EmailProps);
+	}
+	
+	public Properties getImapEmailProps() {
+		if(this.imapEmailProps == null) {
+			this.imapEmailProps = loadImapEmailProperties();
+		}
+		if(this.imapEmailProps == null) {
+			return null;
+		}
+		return new Properties(this.imapEmailProps);
+	}
+	
+	public Map<String, String> getSmtpEmailStaticProps() {
+		if(this.smtpEmailStaticProps == null) {
+			this.smtpEmailStaticProps = loadSmtpEmailStaticProps();
+		}
+		if(this.smtpEmailStaticProps == null) {
+			return null;
+		}
+		return new HashMap<>(this.smtpEmailStaticProps);
 	}
 }
