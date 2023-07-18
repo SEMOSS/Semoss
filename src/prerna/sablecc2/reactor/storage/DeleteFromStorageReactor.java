@@ -13,11 +13,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 
-public class ListStoragePathReactor extends AbstractReactor {
+public class DeleteFromStorageReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ListStoragePathReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(DeleteFromStorageReactor.class);
 	
-	public ListStoragePathReactor() {
+	public DeleteFromStorageReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey()};
 	}
 	
@@ -25,13 +25,14 @@ public class ListStoragePathReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		IStorage storage = getStorage();
-		String path = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+		
 		try {
-			List<String> storageList = storage.list(path);
-			return new NounMetadata(storageList, PixelDataType.CONST_STRING);
+			storage.deleteFromStorage(storagePath);
+			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error listing storage details at path " + path);
+			throw new IllegalArgumentException("Error occurred delete file from storage");
 		}
 	}
 	

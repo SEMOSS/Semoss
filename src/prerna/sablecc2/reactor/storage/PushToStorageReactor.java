@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.storage;
 
+import java.io.File;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -12,26 +13,34 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
+import prerna.util.Utility;
+import prerna.util.upload.UploadInputUtility;
 
-public class ListStoragePathReactor extends AbstractReactor {
+public class PushToStorageReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ListStoragePathReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(PushToStorageReactor.class);
 	
-	public ListStoragePathReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey()};
+	public PushToStorageReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
+				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		IStorage storage = getStorage();
-		String path = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+		String storageFolderPath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+		if(!new File(fileLocation).exists()) {
+			throw new IllegalArgumentException("Unable to locate file");
+		}
+		
 		try {
-			List<String> storageList = storage.list(path);
-			return new NounMetadata(storageList, PixelDataType.CONST_STRING);
+			storage.copyToStorage(fileLocation, storageFolderPath);
+			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error listing storage details at path " + path);
+			throw new IllegalArgumentException("Error occurred uploading local file to storage");
 		}
 	}
 	
