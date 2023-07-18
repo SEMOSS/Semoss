@@ -43,7 +43,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.datastax.DataStaxGraphEngine;
 import prerna.engine.impl.neo4j.Neo4jEngine;
 import prerna.engine.impl.r.RNativeEngine;
-import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -362,11 +361,11 @@ public class UploadUtilities {
 			bufferedWriter = new BufferedWriter(writer);
 			
 			String dbClassName = "";
-			if(rdbmsType == RdbmsTypeEnum.IMPALA) {
-				dbClassName = ImpalaEngine.class.getName();
-			} else {
+//			if(rdbmsType == RdbmsTypeEnum.IMPALA) {
+//				dbClassName = ImpalaEngine.class.getName();
+//			} else {
 				dbClassName = RDBMSNativeEngine.class.getName();
-			}
+//			}
 			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 
 			// write the rdbms type
