@@ -9,12 +9,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.Session;
+import jakarta.mail.Store;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesProcessor;
 
 public class ProjectProperties {
 	
-	private static final Logger logger = LogManager.getLogger(ProjectProperties.class);
+	private static final Logger classLogger = LogManager.getLogger(ProjectProperties.class);
 	private static final String ADMIN_DIRECTORY = ".admin";
 	
 	private String projectDirString = null;
@@ -35,7 +36,7 @@ public class ProjectProperties {
 			try {
 				this.socialProp.createNewFile();
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		this.processor = new SocialPropertiesProcessor(socialPropertiesFileLoc);
@@ -74,19 +75,44 @@ public class ProjectProperties {
 	}
 	
 	public boolean emailEnabled() {
-		return this.processor.emailEnabled();
+		return this.processor.smtpEmailEnabled();
+	}
+	
+	public boolean pop3EmailEnabled() {
+		return this.processor.pop3EmailEnabled();
+	}
+	
+	public boolean imapEmailEnabled() {
+		return this.processor.imapEmailEnabled();
 	}
 	
 	public String getSmtpSender() {
 		return this.processor.getSmtpSender();
 	}
 	
+	@Deprecated
 	public Session getEmailSession() {
-		return this.processor.getEmailSession();
+		classLogger.warn("METHOD DEPRECATED - PLEASE USE getSmtpEmailSession()");
+		classLogger.warn("METHOD DEPRECATED - PLEASE USE getSmtpEmailSession()");
+		classLogger.warn("METHOD DEPRECATED - PLEASE USE getSmtpEmailSession()");
+		classLogger.warn("METHOD DEPRECATED - PLEASE USE getSmtpEmailSession()");
+		return getSmtpEmailSession();
+	}
+	
+	public Session getSmtpEmailSession() {
+		return this.processor.getSmtpEmailSession();
+	}
+	
+	public Store getPop3EmailStore() {
+		return this.processor.getPop3EmailStore();
+	}
+	
+	public Store getImapEmailStore() {
+		return this.processor.getImapEmailStore();
 	}
 	
 	public Map<String, String> getEmailStaticProps() {
-		return this.processor.getEmailStaticProps();
+		return this.processor.getSmtpEmailStaticProps();
 	}
 	
 	public void reloadProps() {
@@ -96,5 +122,5 @@ public class ProjectProperties {
 	public File getSocialProp() {
 		return socialProp;
 	}
-	
+
 }
