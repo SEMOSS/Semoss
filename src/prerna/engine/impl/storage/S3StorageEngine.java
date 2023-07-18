@@ -18,7 +18,7 @@ public class S3StorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 		
 	}
 	
-	public void connect(Properties smssProp) {
+	public void connect(Properties smssProp) throws Exception {
 		super.connect(smssProp);
 		
 		// set this to be the db engine folder

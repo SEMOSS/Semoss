@@ -1,6 +1,7 @@
 package prerna.engine.impl.storage;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 
 import prerna.util.Utility;
@@ -21,7 +22,7 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 
 	private String ENDPOINT = null;
 	
-	public void connect(Properties smssProp) {
+	public void connect(Properties smssProp) throws Exception {
 		super.connect(smssProp);
 		
 		// set this to be the db engine folder
@@ -59,7 +60,7 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	
-//	public static void main(String[] args) throws IOException, InterruptedException {
+//	public static void main(String[] args) throws Exception {
 //		// docker run -p 9000:9000 -p 9001:9001 quay.io/minio/minio server /data --console-address ":9001"
 //		
 //		// these are not real/import access/secret - only for local docker
@@ -71,7 +72,7 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 //		
 //		MinioStorageEngine engine = new MinioStorageEngine();
 //		engine.connect(mockSmss);
-//		String rCloneConfig = engine.createRcloneConfig();
+//		String rCloneConfig = engine.createRCloneConfig();
 //		
 //		{
 //			List<String> list = engine.list("test1", rCloneConfig);
