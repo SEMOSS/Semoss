@@ -46,7 +46,7 @@ public enum ReactorKeysEnum {
 	CRITERIA("criteria", 										"Criteria to be evaluated"),
 	CRON_EXPRESSION("cronExpression",							"The cron expression"),
 	CRON_TZ("cronTz",     	                              		"The timezone for the cron expression"),
-	DATABASE("database",										"Name of the datasource"),
+	DATABASE("database",										"Id/Name of the datasource"),
 	DEDUPLICATE("deduplicate",								    "Boolean if we should remove duplicate."),
 	DATA_TYPE("dataType", 										"Data type of the column (STRING, NUMBER, DATE)"),
 	DATA_TYPE_MAP("dataTypeMap", 								"Map of column name to the column data types"),
@@ -175,6 +175,7 @@ public enum ReactorKeysEnum {
 	RECIPE("recipe", 											"Recipe that shows the sequence of pixels resulting in the insight"),
 	RECIPE_PARAMETERS("recipeParameters", 						"Parameters for the recipe to execute on the insight recipe"),
 	REGEX("regex", 												"Regular expression (sequence of characters)"),
+	@Deprecated
 	RELATIVE_PATH("relativePath", 								"Relative file path for user assets"),
 	RELEASE("release", 											"Boolean to confirm the operation should be released across containers"),
 	RELOAD("reload", 											"Reload an object or connection"),
@@ -202,6 +203,7 @@ public enum ReactorKeysEnum {
 	START("start",												"Start value for a between reactor"),
 	START_ROW("startRow",										"The starting row number to import from a file."),
 	STATEMENT("statement", 										"Statement to be evaluated"),
+	STORAGE("storage",											"Id/Name of the storage engine"),
 	SUBTOTALS("subtotals",										"All the columns in a pivot that you need subtotal for. Default is all. "),	
 	SUM_RANGE("sumRange", 										"Range that values to sum over"),
 	SYNC_PULL("dual", 											"True/False value to determine if the sync should also pull the latest updates from the repository"),
@@ -234,7 +236,7 @@ public enum ReactorKeysEnum {
 	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
-	WIDTH("width", 											    "The width to use for screenshot capture.");
+	WIDTH("width", 											    "The width to use for screenshot capture");
 
 	private String key;
 	private String description;
