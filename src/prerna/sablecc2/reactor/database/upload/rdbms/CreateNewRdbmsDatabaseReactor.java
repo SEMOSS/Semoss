@@ -26,7 +26,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -209,10 +208,10 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		// Create default RDBMS database or Impala
 		String databaseClassName = RDBMSNativeEngine.class.getName();
 		this.database = new RDBMSNativeEngine();
-		if (driverEnum == RdbmsTypeEnum.IMPALA) {
-			databaseClassName = ImpalaEngine.class.getName();
-			database = new ImpalaEngine();
-		}
+//		if (driverEnum == RdbmsTypeEnum.IMPALA) {
+//			databaseClassName = ImpalaEngine.class.getName();
+//			database = new ImpalaEngine();
+//		}
 		
 		Map<String, Object> jdbcPropertiesMap = validateJDBCProperties(connectionDetails);	
 

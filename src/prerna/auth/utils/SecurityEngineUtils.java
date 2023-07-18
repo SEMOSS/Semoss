@@ -26,7 +26,10 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.IStorage;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -49,6 +52,7 @@ import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class SecurityEngineUtils extends AbstractSecurityUtils {
 
@@ -92,13 +96,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			databaseName = databaseId;
 		}
 		
-		String[] typeAndCost = getDatabaseTypeAndCost(prop);
+		String[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
 		boolean engineExists = containsDatabaseId(databaseId);
 		if(engineExists) {
 			logger.info("Security database already contains database with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
-			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global, user);
+			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], typeAndCost[2], global, user);
 		} 
 		
 		// TODO: need to see when we should be updating the database metadata
@@ -115,70 +119,52 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param prop
 	 * @return
 	 */
-	public static String[] getDatabaseTypeAndCost(Properties prop) {
-		String appType = null;
-		String appCost = null;
-		// the whole app cost stuff is completely made up...
-		// but it will look cool so we are doing it
-		String eType = prop.getProperty(Constants.ENGINE_TYPE);
-		if(eType.equals("prerna.engine.impl.rdbms.RDBMSNativeEngine")) {
-			String rdbmsType = prop.getProperty(Constants.RDBMS_TYPE);
-			if(rdbmsType == null) {
-				rdbmsType = "H2_DB";
-			}
-			rdbmsType = rdbmsType.toUpperCase();
-			appType = rdbmsType;
-			if(rdbmsType.equals("TERADATA") || rdbmsType.equals("DB2")) {
-				appCost = "$$";
+	public static String[] getEngineTypeAndSubTypeAndCost(Properties prop) {
+		String engineType = null;
+		String engineSubType = null;
+		String engineCost = "$";
+		
+		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
+		try {
+			Object emptyClass = Class.forName(rawType).newInstance();
+			if(emptyClass instanceof IEngine) {
+				engineType = "DATABASE";
+				if(emptyClass instanceof IRDBMSEngine) {
+					String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+					if(dbTypeString == null) {
+						dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
+					}
+					String driver = prop.getProperty(Constants.DRIVER);
+					// get the dbType from the input or from the driver itself
+					RdbmsTypeEnum dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
+					engineSubType = dbType.getLabel();
+				} else {
+					engineSubType = ((IEngine) emptyClass).getEngineType().toString();
+				}
+			} else if(emptyClass instanceof IStorage) {
+				engineType = "STORAGE";
+				engineSubType = ((IStorage) emptyClass).getStorageType().toString();
 			} else {
-				appCost = "";
+				logger.warn("Unknown engine type to process = " + rawType);
 			}
-		} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
-			appType = "IMPALA";
-			appCost = "$$$";
-		} else if(eType.equals("prerna.engine.impl.rdf.BigDataEngine")) {
-			appType = "RDF";
-			appCost = "";
-		} else if(eType.equals("prerna.engine.impl.rdf.RDFFileSesameEngine")) {
-			appType = "RDF";
-			appCost = "";
-		} else if(eType.equals("prerna.ds.datastax.DataStaxGraphEngine")) {
-			appType = "DATASTAX";
-			appCost = "$$$";
-		} else if(eType.equals("prerna.engine.impl.solr.SolrEngine")) {
-			appType = "SOLR";
-			appCost = "$$";
-		} else if(eType.equals("prerna.engine.impl.tinker.TinkerEngine")) {
-			String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
-			if(tinkerDriver.equalsIgnoreCase("neo4j")) {
-				appType = "NEO4J";
-				appCost = "";
-			} else {
-				appType = "TINKER";
-				appCost = "";
-			}
-		} else if(eType.equals("prerna.engine.impl.json.JsonAPIEngine") || eType.equals("prerna.engine.impl.json.JsonAPIEngine2")) {
-			appType = "JSON";
-			appCost = "";
-		} else if(eType.equals("prerna.engine.impl.app.AppEngine")) {
-			appType = "APP";
-			appCost = "$";
+		} catch(Exception e) {
+			logger.warn("Unknown class name = " + rawType);
 		}
 		
-		return new String[]{appType, appCost};
+		return new String[]{engineType, engineSubType, engineCost};
 	}
 	
 	/**
 	 * Add a database into the security database
 	 * Default to set as not global
 	 */
-	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost, User user) {
-		addDatabase(databaseId, databaseName, dbType, dbCost, !securityEnabled, user);
+	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbSubType, String dbCost, User user) {
+		addDatabase(databaseId, databaseName, dbType, dbSubType, dbCost, !securityEnabled, user);
 	}
 	
-	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global, User user) {
-		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?)";
+	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbSubType, String dbCost, boolean global, User user) {
+		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -187,6 +173,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, databaseName);
 			ps.setString(parameterIndex++, databaseId);
 			ps.setString(parameterIndex++, dbType);
+			ps.setString(parameterIndex++, dbSubType);
 			ps.setString(parameterIndex++, dbCost);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
@@ -2235,11 +2222,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// selectors
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
@@ -2533,7 +2523,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		List<Map<String, Object>> allGlobalEnginesMap = QueryExecutionUtility.flushRsToMap(securityDb, qs);
@@ -2541,7 +2532,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs2 = new SelectQueryStruct();
 		qs2.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs2.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs2.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs2.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
+		qs2.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
 		qs2.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
 		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs2.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
@@ -2599,11 +2591,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
@@ -2669,7 +2664,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
@@ -2709,11 +2705,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
@@ -2721,7 +2719,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
 		if(dbTypeFilter != null && !dbTypeFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", dbTypeFilter));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", dbTypeFilter));
 		}
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
@@ -2755,7 +2753,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
@@ -2795,7 +2794,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// selectors
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));

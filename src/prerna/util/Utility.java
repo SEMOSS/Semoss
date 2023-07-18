@@ -152,15 +152,12 @@ import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.IStorage;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.app.AppEngine;
-import prerna.engine.impl.remotesemoss.RemoteSemossEngine;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -2338,31 +2335,22 @@ public class Utility {
 		boolean loadModel = false;
 		
 		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
-		String engineTypeString = null;
+		String engineType = null;
 		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
 		try {
 			Object emptyClass = Class.forName(rawType).newInstance();
-			if(emptyClass instanceof IRDBMSEngine) {
-				engineTypeString = "RDBMS";
+			if(emptyClass instanceof IEngine) {
+				engineType = "DATABASE";
 				loadDb = true;
 			} else if(emptyClass instanceof IStorage) {
-				engineTypeString = "STORAGE";
+				engineType = "STORAGE";
 				loadStorage = true;
-			} else if(emptyClass instanceof AppEngine) {
-				// we shouldn't really hit here at all...
-				engineTypeString = "APP";
-			} else if(emptyClass instanceof RemoteSemossEngine) {
-				engineTypeString = "REMOTE";
-			} else {
-				loadDb = true;
-				// default is some RDF
-				engineTypeString = "RDF";
 			}
 		} catch(Exception e) {
 			logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
 		}
 		
-		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineTypeString);
+		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineType);
 		String engineNames = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
 		if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) {
 			engineNames = engineNames + ";" + engineId;
@@ -2376,7 +2364,7 @@ public class Utility {
 			SecurityEngineUtils.addDatabase(engineId, null);
 		} else if(loadStorage) {
 			logger.info("Loading storage engine = " + engineId);
-
+			SecurityEngineUtils.addDatabase(engineId, null);
 		} else {
 			logger.info("Ignoring engine ... " + Utility.cleanLogString(prop.getProperty(Constants.ENGINE_ALIAS)) + " >>> " + engineId );
 		}

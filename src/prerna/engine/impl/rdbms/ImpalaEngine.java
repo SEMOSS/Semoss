@@ -4,8 +4,15 @@ import prerna.engine.api.IEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.ImpalaSqlInterpreter;
 
+@Deprecated
 public class ImpalaEngine extends RDBMSNativeEngine {
 
+
+	/*
+	 * Reviewed 2023-07-18
+	 * We do not need this class anymore, we have moved this to the query util class in RDBMSNativeEngine
+	 */
+	
 	/*
 	 * WE ONLY HAVE THIS CLASS BECAUSE OF THE QUEYR WRAPPER
 	 * WEIRD WORD LOWER CASEING HAPPENS FROM THE RESUTL SET METADATA

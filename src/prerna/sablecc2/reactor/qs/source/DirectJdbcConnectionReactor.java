@@ -5,7 +5,6 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -63,11 +62,11 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		}
 		
 		RDBMSNativeEngine temporalEngine = null;
-		if(driver.toLowerCase().contains("impala")) {
-			temporalEngine = new ImpalaEngine();
-		} else {
+//		if(driver.toLowerCase().contains("impala")) {
+//			temporalEngine = new ImpalaEngine();
+//		} else {
 			temporalEngine = new RDBMSNativeEngine();
-		}
+//		}
 		temporalEngine.setEngineId("FAKE_ENGINE");
 		temporalEngine.setConnection(con);
 		temporalEngine.setBasic(true);
