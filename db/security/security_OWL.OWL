@@ -73,18 +73,32 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DISCOVERABLE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TYPE/ENGINE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINETYPE/ENGINE">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINE">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/ENGINE"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINETYPE/ENGINE"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/TYPE/ENGINE">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINETYPE/ENGINE">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/TYPE/ENGINE"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">TYPE</Conceptual>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINETYPE/ENGINE"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINETYPE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINESUBTYPE/ENGINE">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINE">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINESUBTYPE/ENGINE"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINESUBTYPE/ENGINE">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINESUBTYPE/ENGINE"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINESUBTYPE</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/COST/ENGINE">
@@ -3051,7 +3065,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:07:17 17:54:42</TIME>
+	<TIME xmlns="ENGINE:">2023:07:18 11:10:09</TIME>
 </rdf:Description>
 
 </rdf:RDF>

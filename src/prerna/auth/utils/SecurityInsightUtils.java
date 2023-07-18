@@ -1611,7 +1611,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				+ "WHERE PROJECTID='" + projectId + "' AND INSIGHTID='" + insightId + "'";
 		try {
 			securityDb.insertData(updateQuery);
-			securityDb.commit();
+			// the above does a commit if necessary
+//			securityDb.commit();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}

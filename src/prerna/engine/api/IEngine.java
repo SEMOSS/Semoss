@@ -40,12 +40,18 @@ import prerna.engine.impl.MetaHelper;
  */
 public interface IEngine extends IExplorable {
 	
+	//TODO: this should switch to IDatabase now
+	//TODO: this should switch to IDatabase now
+	//TODO: this should switch to IDatabase now
+	//TODO: this should switch to IDatabase now
+
 	enum ENGINE_TYPE {
 		@Deprecated
 		APP, // this is now just an IProject
 		JENA, 
 		SESAME, 
 		RDBMS, 
+		@Deprecated
 		IMPALA, 
 		R, 
 		TINKER, 
@@ -201,7 +207,6 @@ public interface IEngine extends IExplorable {
 	 */
 	CaseInsensitiveProperties getOrigProp();
 
-	
 	/**
 	 * Gets the UDF - user defined functions in this data catalog
 	 * @return
@@ -214,7 +219,10 @@ public interface IEngine extends IExplorable {
 	 */
 	MetaHelper getMetaHelper();
 	
-	// get the owl file
+	/**
+	 * 
+	 * @return
+	 */
 	String getOwl();
 
 }
