@@ -43,6 +43,11 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 
 		return rcloneConfig;
 	}
+
+	@Override
+	public STORAGE_TYPE getStorageType() {
+		return STORAGE_TYPE.MINIO;
+	}
 	
 	
 	

@@ -5,6 +5,22 @@ import java.util.Properties;
 
 public interface IStorage {
 
+	enum STORAGE_TYPE
+	{
+		AMAZON_S3,
+		GOOGLE_CLOUD_STORAGE,
+		GOOGLE_DRIVE,
+		MICROSOFT_AZURE_BLOB_STORAGE,
+		MINIO,
+		SFTP,
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	STORAGE_TYPE getStorageType();
+	
 	/**
 	 * 
 	 * @param smssProp

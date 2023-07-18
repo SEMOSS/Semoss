@@ -267,10 +267,10 @@ public abstract class AbstractSecurityUtils {
 		// ENGINE
 		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
 				"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
-				"TYPE", "COST" };
+				"ENGINETYPE", "ENGINESUBTYPE", "COST" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
 				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
-				"VARCHAR(255)", "VARCHAR(255)" };
+				"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
@@ -288,6 +288,14 @@ public abstract class AbstractSecurityUtils {
 				if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 					String addColumnSql = queryUtil.alterTableAddColumn("ENGINE", col, types[i]);
 					securityDb.insertData(addColumnSql);
+				}
+			}
+			
+			// if type columns exist, remove it - ADDED 07/18/2023
+			{
+				if(allCols.contains("TYPE") || allCols.contains("type")) {
+					String dropTypeColumn = queryUtil.alterTableDropColumn("ENGINE", "TYPE");
+					securityDb.insertData(dropTypeColumn);
 				}
 			}
 		}
