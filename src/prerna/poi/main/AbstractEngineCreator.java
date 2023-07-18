@@ -14,7 +14,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.r.RNativeEngine;
-import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -143,11 +142,12 @@ public class AbstractEngineCreator {
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
-	//added for connect to external Impala workflow
-	protected void generateEngineFromImpalaConnection(String schema, String dbName, String appID) throws Exception {
-		connectToExternalImpalaEngine(schema,dbName, appID);
-		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.IMPALA, this.customBaseURI);
-	}
+//	//added for connect to external Impala workflow
+//	protected void generateEngineFromImpalaConnection(String schema, String dbName, String appID) throws Exception {
+//		connectToExternalImpalaEngine(schema,dbName, appID);
+//		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.IMPALA, this.customBaseURI);
+//	}
+	
 	//added for connect to external RDBMS workflow
 	private void connectToExternalRDBMSEngine(String schema, String appName, String appID) throws Exception {
 		engine = new RDBMSNativeEngine();
@@ -175,32 +175,31 @@ public class AbstractEngineCreator {
 		
 	}
 
-	//added for connect to external Impala workflow
-	private void connectToExternalImpalaEngine(String schema, String appName, String appID) throws Exception {
-		engine = new ImpalaEngine();
-		engine.setEngineId(appID);
-		engine.setEngineName(appName);
-		Properties prop = new Properties();
-//		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
-		// grab from the query util directly
-		prop.put(Constants.CONNECTION_URL, this.queryUtil.getConnectionUrl());
-		prop.put(Constants.ENGINE, appID);
-		prop.put(Constants.ENGINE_ALIAS, appName);
-		prop.put(Constants.USERNAME, queryUtil.getUsername());
-		prop.put(Constants.PASSWORD, queryUtil.getPassword());
-		prop.put(Constants.DRIVER,queryUtil.getDriver());
-		prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
-
-		// setting as a parameter for engine
-		//prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
-		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database");
-		prop.put("TEMP", "TRUE");
-		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
-		((AbstractEngine) engine).setProp(prop);
-		engine.openDB(null);
-
-	}
+//	//added for connect to external Impala workflow
+//	private void connectToExternalImpalaEngine(String schema, String appName, String appID) throws Exception {
+//		engine = new ImpalaEngine();
+//		engine.setEngineId(appID);
+//		engine.setEngineName(appName);
+//		Properties prop = new Properties();
+////		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+////		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
+//		// grab from the query util directly
+//		prop.put(Constants.CONNECTION_URL, this.queryUtil.getConnectionUrl());
+//		prop.put(Constants.ENGINE, appID);
+//		prop.put(Constants.ENGINE_ALIAS, appName);
+//		prop.put(Constants.USERNAME, queryUtil.getUsername());
+//		prop.put(Constants.PASSWORD, queryUtil.getPassword());
+//		prop.put(Constants.DRIVER,queryUtil.getDriver());
+//		prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
+//
+//		// setting as a parameter for engine
+//		//prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
+//		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database");
+//		prop.put("TEMP", "TRUE");
+//		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
+//		((AbstractEngine) engine).setProp(prop);
+//		engine.openDB(null);
+//	}
 
 	protected void openEngineWithConnection(String engineId) {
 		engine = Utility.getEngine(engineId);
