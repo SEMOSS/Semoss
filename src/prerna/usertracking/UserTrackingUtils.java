@@ -81,7 +81,8 @@ public class UserTrackingUtils {
 	}
 
 	private static void doTrackInsightOpen(String insightId, String userId, String origin) {
-		String query = "INSERT INTO INSIGHT_OPENS VALUES (?, ?, ?, ?)";
+		String query = "INSERT INTO INSIGHT_OPENS (INSIGHTID, USERID, OPENED_ON, ORIGIN) "
+				+ "VALUES (?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -108,7 +109,8 @@ public class UserTrackingUtils {
 			String subject, String emailMessage, boolean isHtml, String[] attachments, boolean successful) {
 		boolean allowClob = userTrackingDb.getQueryUtil().allowClobJavaObject();
 
-		String query = "INSERT INTO EMAIL_TRACKING VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		String query = "INSERT INTO EMAIL_TRACKING (ID, SENT_TIME, SUCCESSFUL, E_FROM, E_TO, E_CC, E_BCC, E_SUBJECT, BODY, ATTACHMENTS, IS_HTML) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -360,10 +362,12 @@ public class UserTrackingUtils {
 			String[] types = tableSchema.getRight().stream().map(Pair::getRight).toArray(String[]::new);
 
 			if (allowIfExistsTable) {
-				executeSql(conn, queryUtil.createTableIfNotExists(tableName, colNames, types));
+				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
+				executeSql(conn, sql);
 			} else {
 				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
-					executeSql(conn, queryUtil.createTable(tableName, colNames, types));
+					String sql = queryUtil.createTable(tableName, colNames, types);
+					executeSql(conn, sql);
 				}
 			}
 		}
