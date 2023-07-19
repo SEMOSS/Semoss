@@ -54,7 +54,7 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 		
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
-		databaseInfo.putAll(SecurityEngineUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), false));
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, getMetaKeys(), false));
 		// append last engine update
 		databaseInfo.put("last_updated", MasterDatabaseUtility.getEngineDate(databaseId));
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
