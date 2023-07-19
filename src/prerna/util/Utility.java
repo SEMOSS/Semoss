@@ -2340,11 +2340,16 @@ public class Utility {
 		try {
 			Object emptyClass = Class.forName(rawType).newInstance();
 			if(emptyClass instanceof IEngine) {
-				engineType = "DATABASE";
+				engineType = IEngine.CATALOG_TYPE;
 				loadDb = true;
 			} else if(emptyClass instanceof IStorage) {
-				engineType = "STORAGE";
+				engineType = IStorage.CATALOG_TYPE;
 				loadStorage = true;
+			} else {
+				logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+				logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+				logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+				logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
 			}
 		} catch(Exception e) {
 			logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
