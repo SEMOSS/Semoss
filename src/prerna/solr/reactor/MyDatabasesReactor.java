@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -39,6 +40,10 @@ public class MyDatabasesReactor extends AbstractReactor {
 		// sort by name, date created, views, upvotes, trending
 		
 		organizeKeys();
+		
+		List<String> engineTypes = new ArrayList<>();
+		engineTypes.add(IEngine.CATALOG_TYPE);
+		
 		String searchTerm = this.keyValue.get(this.keysToGet[0]);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
@@ -50,12 +55,12 @@ public class MyDatabasesReactor extends AbstractReactor {
 		List<Map<String, Object>> dbInfo = new ArrayList<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityEngineUtils.getUserDatabaseList(this.insight.getUser(), databaseFilter, favoritesOnly, engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, databaseFilter, favoritesOnly, engineMetadataFilter, searchTerm, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setEngines(dbInfo);
 			}
 		} else {
-			dbInfo = SecurityEngineUtils.getAllDatabaseList(databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityEngineUtils.getAllEngineList(engineTypes, databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
 		if(!dbInfo.isEmpty() && (!noMeta || includeUserT)) {

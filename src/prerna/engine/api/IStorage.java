@@ -7,6 +7,8 @@ import java.util.Properties;
 
 public interface IStorage {
 
+	String CATALOG_TYPE = "STORAGE";
+
 	enum STORAGE_TYPE
 	{
 		AMAZON_S3,
