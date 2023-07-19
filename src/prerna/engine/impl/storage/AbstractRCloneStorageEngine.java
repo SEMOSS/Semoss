@@ -92,18 +92,18 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void deleteFromStorage(String storageFilePath) throws Exception {
-		deleteFromStorage(storageFilePath, false, null);
+	public void deleteFromStorage(String storagePath) throws Exception {
+		deleteFromStorage(storagePath, false, null);
 	}
 	
 	@Override
-	public void deleteFromStorage(String storageFilePath, String rCloneConfig) throws IOException, InterruptedException {
-		deleteFromStorage(storageFilePath, false, rCloneConfig);
+	public void deleteFromStorage(String storagePath, String rCloneConfig) throws IOException, InterruptedException {
+		deleteFromStorage(storagePath, false, rCloneConfig);
 	}
 
 	@Override
-	public void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure) throws Exception {
-		deleteFromStorage(storageFilePath, leaveFolderStructure, null);
+	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
+		deleteFromStorage(storagePath, leaveFolderStructure, null);
 	}
 	
 	/**

@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.sftp.FileAttributes;
+import net.schmizz.sshj.sftp.FileMode;
 import net.schmizz.sshj.sftp.FileMode.Type;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.SFTPClient;
@@ -163,18 +164,48 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void deleteFromStorage(String storageFilePath) throws Exception {
-		// TODO Auto-generated method stub
-
+	public void deleteFromStorage(String storagePath) throws Exception {
+		deleteFromStorage(storagePath, false);
 	}
 
 	@Override
-	public void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure) throws Exception {
-		// TODO Auto-generated method stub
+	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
+		if(storagePath == null || storagePath.isEmpty()) {
+			throw new NullPointerException("Must define the storage location of the file to download");
+		}
+		storagePath = storagePath.replace("\\", "/");
 
+		if(!storagePath.startsWith("/")) {
+			storagePath = "/"+storagePath;
+		}
+		
+		FileAttributes attributes = sftpClient.statExistence(storagePath);
+		if(attributes == null) {
+			throw new IllegalArgumentException("Storage file/folder " + storagePath + " does not exist");
+		}
+		
+		if(attributes.getType() == FileMode.Type.DIRECTORY) {
+			if(leaveFolderStructure) {
+				recursivelyDeleteFiles(storagePath);
+			} else {
+				sftpClient.rmdir(storagePath);
+			}
+		} else {
+			sftpClient.rm(storagePath);
+		}
 	}
 
-
+	private void recursivelyDeleteFiles(String storageDirectory) throws IOException {
+		List<RemoteResourceInfo> ls = sftpClient.ls(storageDirectory);
+		for(RemoteResourceInfo f : ls) {
+			if(f.getAttributes().getType() == FileMode.Type.DIRECTORY) {
+				recursivelyDeleteFiles(f.getPath());
+			} else {
+				sftpClient.rm(f.getPath());
+			}
+		}
+	}
+	
 
 	////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////
@@ -214,13 +245,13 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 //			System.out.println(list);
 //		}
 //		{
-//			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "upload");
+//			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "upload/test1");
 //		}
 //		{
 //			engine.copyToLocal("upload/MooseAI Logo.png", "C:\\Users\\mahkhalil");
 //		}
 //		{
-//			engine.deleteFromStorage("test1/MooseAI Logo.png");
+//			engine.deleteFromStorage("upload/test1/MooseAI Logo.png");
 //		}
 //		
 //		engine.disconnect();
