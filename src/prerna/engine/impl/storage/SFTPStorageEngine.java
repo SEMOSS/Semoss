@@ -1,19 +1,27 @@
 package prerna.engine.impl.storage;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.FileMode.Type;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import net.schmizz.sshj.xfer.FileSystemFile;
+import net.schmizz.sshj.xfer.LocalDestFile;
+import net.schmizz.sshj.xfer.LocalSourceFile;
 import prerna.util.Constants;
 
 public class SFTPStorageEngine extends AbstractStorageEngine {
@@ -91,20 +99,67 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public List<Map<String, Object>> listDetails(String path) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		// [
+		// {Path=Uber Eats July 17.pdf, Name=Uber Eats July 17.pdf, Size=51049.0, MimeType=application/pdf, ModTime=2023-07-17T20:54:33.767000000Z, IsDir=false, Tier=STANDARD}, 
+		// {Path=college.csv, Name=college.csv, Size=1698156.0, MimeType=text/csv, ModTime=2023-07-15T17:30:38.574000000Z, IsDir=false, Tier=STANDARD}, 
+		// {Path=testFolder, Name=testFolder, Size=0.0, MimeType=inode/directory, ModTime=2023-07-18T17:46:11.358608500-04:00, IsDir=true}
+		// ]
+
+		List<RemoteResourceInfo> info = this.sftpClient.ls(path);
+		List<Map<String, Object>> names = new ArrayList<>(info.size());
+		for(RemoteResourceInfo remoteInfo : info) {
+			Map<String, Object> item = new HashMap<>();
+			item.put("Name", remoteInfo.getName());
+			item.put("Path", remoteInfo.getPath());
+			FileAttributes attributes = remoteInfo.getAttributes();
+			item.put("Size", attributes.getSize());
+			item.put("IsDir", attributes.getType() == Type.DIRECTORY);
+			item.put("ModTime", ZonedDateTime.ofInstant(
+					Instant.ofEpochMilli(attributes.getMtime()*1000L), TimeZone.getDefault().toZoneId())
+					);
+			names.add(item);
+		}
+		return names;
 	}
 
 	@Override
 	public void copyToStorage(String localFilePath, String storageFolderPath) throws Exception {
-		// TODO Auto-generated method stub
+		if(localFilePath == null || localFilePath.isEmpty()) {
+			throw new NullPointerException("Must define the local location of the file to push");
+		}
+		if(storageFolderPath == null || storageFolderPath.isEmpty()) {
+			throw new NullPointerException("Must define the location of the storage folder to move to");
+		}
 
+		storageFolderPath = storageFolderPath.replace("\\", "/");
+		localFilePath = localFilePath.replace("\\", "/");
+
+		if(!storageFolderPath.startsWith("/")) {
+			storageFolderPath = "/"+storageFolderPath;
+		}
+		
+		LocalSourceFile lsf = new FileSystemFile(localFilePath);
+		sftpClient.put(lsf, storageFolderPath);
 	}
 
 	@Override
 	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
-		// TODO Auto-generated method stub
+		if(storageFilePath == null || storageFilePath.isEmpty()) {
+			throw new NullPointerException("Must define the storage location of the file to download");
+		}
+		if(localFolderPath == null || localFolderPath.isEmpty()) {
+			throw new NullPointerException("Must define the location of the local folder to move to");
+		}
+		
+		storageFilePath = storageFilePath.replace("\\", "/");
+		localFolderPath = localFolderPath.replace("\\", "/");
 
+		if(!storageFilePath.startsWith("/")) {
+			storageFilePath = "/"+storageFilePath;
+		}
+		
+		LocalDestFile ldf = new FileSystemFile(localFolderPath);
+		sftpClient.get(storageFilePath, ldf);
 	}
 
 	@Override
@@ -155,18 +210,20 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 //			System.out.println(list);
 //		}
 //		{
-//			List<String> list = engine.list("/upload/");
+//			List<Map<String, Object>> list = engine.listDetails("/upload/");
 //			System.out.println(list);
 //		}
 //		{
-//			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "test1");
+//			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "upload");
 //		}
 //		{
-//			engine.copyToLocal("test1/MooseAI Logo.png", "C:\\Users\\mahkhalil");
+//			engine.copyToLocal("upload/MooseAI Logo.png", "C:\\Users\\mahkhalil");
 //		}
 //		{
 //			engine.deleteFromStorage("test1/MooseAI Logo.png");
 //		}
+//		
+//		engine.disconnect();
 //	}
 
 
