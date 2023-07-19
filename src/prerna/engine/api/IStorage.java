@@ -108,7 +108,7 @@ public interface IStorage {
 	 * @param storageFilePath
 	 * @throws Exception
 	 */
-	void deleteFromStorage(String storageFilePath) throws Exception;
+	void deleteFromStorage(String storagePath) throws Exception;
 
 	/**
 	 * 
@@ -116,7 +116,7 @@ public interface IStorage {
 	 * @param leaveFolderStructure
 	 * @throws Exception
 	 */
-	void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure) throws Exception;
+	void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception;
 
 	
 }
