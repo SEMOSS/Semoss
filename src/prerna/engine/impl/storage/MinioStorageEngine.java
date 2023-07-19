@@ -1,7 +1,6 @@
 package prerna.engine.impl.storage;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Properties;
 
 import prerna.util.Utility;
@@ -76,6 +75,10 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 //		
 //		{
 //			List<String> list = engine.list("test1", rCloneConfig);
+//			System.out.println(list);
+//		}
+//		{
+//			List<Map<String, Object>> list = engine.listDetails("test1", rCloneConfig);
 //			System.out.println(list);
 //		}
 //		{

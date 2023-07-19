@@ -54,7 +54,7 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
-		databaseInfo.putAll(SecurityEngineUtils.getAggregateDatabaseMetadata(databaseId, getMetaKeys(), true));
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, getMetaKeys(), true));
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	
