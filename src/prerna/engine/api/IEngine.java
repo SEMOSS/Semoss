@@ -40,6 +40,8 @@ import prerna.engine.impl.MetaHelper;
  */
 public interface IEngine extends IExplorable {
 	
+	String CATALOG_TYPE = "DATABASE";
+	
 	//TODO: this should switch to IDatabase now
 	//TODO: this should switch to IDatabase now
 	//TODO: this should switch to IDatabase now

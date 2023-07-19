@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -35,19 +35,23 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		
+		List<String> engineTypes = new ArrayList<>();
+		engineTypes.add(IEngine.CATALOG_TYPE);
+		
 		String searchTerm = this.keyValue.get(this.keysToGet[0]);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
 		List<String> databaseFilter = getDatabaseFilters();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 
-		List<Map<String, Object>> dbInfo = new Vector<>();
+		List<Map<String, Object>> dbInfo = new ArrayList<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityEngineUtils.getUserDiscoverableDatabaseList(this.insight.getUser(), 
-					databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityEngineUtils.getUserDiscoverableEngineList(this.insight.getUser(), 
+					engineTypes, databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
 		} else {
-			dbInfo = SecurityEngineUtils.getAllDatabaseList(databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityEngineUtils.getAllEngineList(engineTypes, databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
 		if(!dbInfo.isEmpty() && !noMeta) {

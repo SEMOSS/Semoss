@@ -2200,8 +2200,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get the list of the database information that the user has access to
+	 * 
 	 * @param user
-	 * @param databaseFilters
+	 * @param engineTypes
+	 * @param engineIdFilters
 	 * @param favoritesOnly
 	 * @param engineMetadataFilter
 	 * @param searchTerm
@@ -2209,9 +2211,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> databaseFilters,
-			Boolean favoritesOnly, Map<String, Object> engineMetadataFilter, 
-			String searchTerm, String limit, String offset) {
+	public static List<Map<String, Object>> getUserEngineList(User user, 
+			List<String> engineTypes,
+			List<String> engineIdFilters,
+			Boolean favoritesOnly, 
+			Map<String, Object> engineMetadataFilter, 
+			String searchTerm, 
+			String limit, 
+			String offset) {
 
 		String enginePrefix = "ENGINE__";
 		String groupEnginePermission = "GROUPENGINEPERMISSION__";
@@ -2342,9 +2349,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		
 		// filters
-		if(databaseFilters != null && !databaseFilters.isEmpty()) {
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilters));
+		if(engineIdFilters != null && !engineIdFilters.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineIdFilters));
 		}
+		if(engineTypes != null && !engineTypes.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+		}
+		
 		OrQueryFilter orFilter = new OrQueryFilter();
 		{
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
@@ -2544,14 +2555,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @return
-	 */
-	public static List<Map<String, Object>> getAllDatabaseList() {
-		return getAllDatabaseList(null, null, null, null, null);
-	}
-	
-	/**
 	 * Get the database information
 	 * @param databaseFilter
 	 * @return
@@ -2562,7 +2565,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			filters = new ArrayList<>();
 			filters.add(databaseFilter);
 		}
-		return getAllDatabaseList(filters, null, null, null, null);
+		return getAllDatabaseList(filters);
 	}
 	
 	/**
@@ -2571,7 +2574,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
-		return getAllDatabaseList(databaseFilters, null, null, null, null);
+		List<String> engineTypes = new ArrayList<>();
+		engineTypes.add(IEngine.CATALOG_TYPE);
+		return getAllEngineList(engineTypes, databaseFilters, null, null, null, null);
 	}
 	
 	/**
@@ -2583,7 +2588,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters, Map<String, Object> engineMetadataFilter,
+	public static List<Map<String, Object>> getAllEngineList(List<String> engineType, List<String> engineIdFilters, Map<String, Object> engineMetadataFilter,
 			String searchTerm, String limit, String offset) {
 		
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
@@ -2604,8 +2609,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
-		if(databaseFilters != null && !databaseFilters.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilters));
+		if(engineType != null && !engineType.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineType));
+		}
+		if(engineIdFilters != null && !engineIdFilters.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineIdFilters));
 		}
 		// optional word filter on the engine name
 		if(hasSearchTerm) {
@@ -2774,7 +2782,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get the list of the database information that the user does not have access to, but is discoverable
+	 * 
 	 * @param user
+	 * @param engineTypes
 	 * @param databaseFilters
 	 * @param engineMetadataFilter
 	 * @param searchTerm
@@ -2782,8 +2792,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDiscoverableDatabaseList(User user, 
-			 List<String> databaseFilters,
+	public static List<Map<String, Object>> getUserDiscoverableEngineList(User user,
+			List<String> engineTypes,
+			List<String> databaseFilters,
 			Map<String, Object> engineMetadataFilter, 
 			String searchTerm, String limit, String offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -2834,6 +2845,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if(databaseFilters != null && !databaseFilters.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilters));
 		}
+		if(engineTypes != null && !engineTypes.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+		}
+		
 		// optional word filter on the engine name
 		if(hasSearchTerm) {
 			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, "ENGINE__ENGINENAME", searchTerm);
