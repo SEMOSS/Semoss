@@ -83,6 +83,8 @@ public enum PixelOperationType {
 	OPEN_TAB,
 	
 	// META DATA INFORMATION
+	ENGINE_INFO,
+	@Deprecated
 	DATABASE_INFO,
 	DATABASE_USERS,
 	APP_INSIGHTS,
