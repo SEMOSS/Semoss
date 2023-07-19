@@ -63,7 +63,7 @@ public class UsabilityScoreReactor extends AbstractReactor {
 		double calc = 0.0;
 
 		List<String> keys = SecurityEngineUtils.getAllMetakeys();
-		Map<String, Object> keyVals = SecurityEngineUtils.getAggregateDatabaseMetadata(databaseId, keys, false);
+		Map<String, Object> keyVals = SecurityEngineUtils.getAggregateEngineMetadata(databaseId, keys, false);
 
 		int keysAccounted = 0;
 		if (keyVals.containsKey(Constants.MARKDOWN)) {

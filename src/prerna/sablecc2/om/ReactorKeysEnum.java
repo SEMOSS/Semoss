@@ -63,6 +63,8 @@ public enum ReactorKeysEnum {
 	ENCODED("encoded",											"Boolean if the input is encoded using <encode></encode> and must be decoded. To be used when the reactor allows encoded and unencoded input based on the complexity of the input"),
 	END("end",	 									            "Ending value for a between reactor"),
 	END_ROW("endRow",	 									    "The ending row number to import from a file."),
+	ENGINE("engine",											"Id/Name of the engine"),
+	ENGINE_TYPE("engineTypes",									"The type of engine to filter into (DATABASE, STORAGE, MODEL, etc.)"),
 	EXPIRES_ON("expires",	 									"The date when the api expires"),
 	EXPORT_AUDIT("exportAudit",	                             	"Boolean to include an audit sheet for parameters to excel exports"),
 	EXPORT_TEMPLATE("export_template",					    	"Template file to use for the export of this data"),
