@@ -1712,13 +1712,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get the wrapper for additional database metadata
-	 * @param databaseIds
+	 * @param engineIds
 	 * @param metaKeys
 	 * @param ignoreMarkdown
 	 * @return
 	 * @throws Exception
 	 */
-	public static IRawSelectWrapper getDatabaseMetadataWrapper(Collection<String> databaseIds, List<String> metaKeys, boolean ignoreMarkdown) throws Exception {
+	public static IRawSelectWrapper getEngineMetadataWrapper(Collection<String> engineIds, List<String> metaKeys, boolean ignoreMarkdown) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
@@ -1726,8 +1726,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAORDER"));
 		// filters
-		if(databaseIds != null && !databaseIds.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", databaseIds));
+		if(engineIds != null && !engineIds.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineIds));
 		}
 		if(metaKeys != null && !metaKeys.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metaKeys));
@@ -1744,20 +1744,20 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get the metadata for a specific database
-	 * @param databaseId
+	 * @param engineId
 	 * @param metaKeys
 	 * @param ignoreMarkdown
 	 * @return
 	 */
-	public static Map<String, Object> getAggregateDatabaseMetadata(String databaseId, List<String> metaKeys, boolean ignoreMarkdown) {
+	public static Map<String, Object> getAggregateEngineMetadata(String engineId, List<String> metaKeys, boolean ignoreMarkdown) {
 		Map<String, Object> retMap = new HashMap<String, Object>();
 
-		List<String> databaseIds = new ArrayList<>();
-		databaseIds.add(databaseId);
+		List<String> engineIds = new ArrayList<>();
+		engineIds.add(engineId);
 
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = getDatabaseMetadataWrapper(databaseIds, metaKeys, ignoreMarkdown);
+			wrapper = getEngineMetadataWrapper(engineIds, metaKeys, ignoreMarkdown);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String metaKey = (String) data[1];

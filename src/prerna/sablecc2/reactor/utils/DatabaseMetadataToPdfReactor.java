@@ -70,7 +70,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		}
 		
 		Map<String, Object> databaseInfo = SecurityEngineUtils.getAllDatabaseList(databaseId).get(0);
-		databaseInfo.putAll(SecurityEngineUtils.getAggregateDatabaseMetadata(databaseId, null, true));
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, null, true));
 		databaseInfo.putIfAbsent("description", "");
 		databaseInfo.putIfAbsent("tags", new Vector<String>());
 		

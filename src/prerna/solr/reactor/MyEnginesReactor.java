@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,14 +20,15 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.util.Constants;
 
-public class MyDatabasesReactor extends AbstractReactor {
+public class MyEnginesReactor extends AbstractReactor {
 	
-	private static final Logger logger = LogManager.getLogger(MyDatabasesReactor.class);
+	private static final Logger logger = LogManager.getLogger(MyEnginesReactor.class);
 
-	public MyDatabasesReactor() {
+	public MyEnginesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.DATABASE.getKey(),
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), 
+				ReactorKeysEnum.ENGINE_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
 				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()
 			};
@@ -41,36 +41,34 @@ public class MyDatabasesReactor extends AbstractReactor {
 		
 		organizeKeys();
 		
-		List<String> engineTypes = new ArrayList<>();
-		engineTypes.add(IEngine.CATALOG_TYPE);
-		
 		String searchTerm = this.keyValue.get(this.keysToGet[0]);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
-		List<String> databaseFilter = getDatabaseFilters();
+		List<String> engineTypes = getEngineTypeFilters();
+		List<String> engineIdFilters = getEngineIdFilters();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 		Boolean includeUserT = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
 		
-		List<Map<String, Object>> dbInfo = new ArrayList<>();
+		List<Map<String, Object>> engineInfo = new ArrayList<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, databaseFilter, favoritesOnly, engineMetadataFilter, searchTerm, limit, offset);
+			engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, searchTerm, limit, offset);
 			if(!favoritesOnly) {
-				this.insight.getUser().setEngines(dbInfo);
+				this.insight.getUser().setEngines(engineInfo);
 			}
 		} else {
-			dbInfo = SecurityEngineUtils.getAllEngineList(engineTypes, databaseFilter, engineMetadataFilter, searchTerm, limit, offset);
+			engineInfo = SecurityEngineUtils.getAllEngineList(engineTypes, engineIdFilters, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
-		if(!dbInfo.isEmpty() && (!noMeta || includeUserT)) {
-			Map<String, Integer> index = new HashMap<>(dbInfo.size());
-			int size = dbInfo.size();
+		if(!engineInfo.isEmpty() && (!noMeta || includeUserT)) {
+			Map<String, Integer> index = new HashMap<>(engineInfo.size());
+			int size = engineInfo.size();
 			for(int i = 0; i < size; i++) {
-				Map<String, Object> database = dbInfo.get(i);
-				String databaseId = database.get("database_id").toString();
+				Map<String, Object> engine = engineInfo.get(i);
+				String engineId = engine.get("database_id").toString();
 				// keep list of database ids to get the index
-				index.put(databaseId, Integer.valueOf(i));
+				index.put(engineId, Integer.valueOf(i));
 			}
 			
 			if(!noMeta) {
@@ -88,7 +86,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 						}
 		
 						int indexToFind = index.get(databaseId);
-						Map<String, Object> res = dbInfo.get(indexToFind);
+						Map<String, Object> res = engineInfo.get(indexToFind);
 						// whatever it is, if it is single send a single value, if it is multi send as array
 						if(res.containsKey(metaKey)) {
 							Object obj = res.get(metaKey);
@@ -122,7 +120,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 						int upvotes = ((Number) data[1]).intValue();
 		
 						int indexToFind = index.get(databaseId);
-						Map<String, Object> res = dbInfo.get(indexToFind);
+						Map<String, Object> res = engineInfo.get(indexToFind);
 						res.put("upvotes", upvotes);
 					}
 				} catch (Exception e) {
@@ -135,15 +133,28 @@ public class MyDatabasesReactor extends AbstractReactor {
 			}
 		}
 		
-		return new NounMetadata(dbInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		return new NounMetadata(engineInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	
 	/**
 	 * 
 	 * @return
 	 */
-	private List<String> getDatabaseFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
+	private List<String> getEngineIdFilters() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	private List<String> getEngineTypeFilters() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE_TYPE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
