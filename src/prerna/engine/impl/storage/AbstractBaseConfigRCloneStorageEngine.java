@@ -174,7 +174,7 @@ public abstract class AbstractBaseConfigRCloneStorageEngine extends AbstractRClo
 		}
 	}
 	
-	public void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure, String rCloneConfig) throws IOException, InterruptedException {
+	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure, String rCloneConfig) throws IOException, InterruptedException {
 		boolean delete = false;
 		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
@@ -185,16 +185,16 @@ public abstract class AbstractBaseConfigRCloneStorageEngine extends AbstractRClo
 			if(BUCKET != null) {
 				rClonePath += BUCKET;
 			}
-			if(storageFilePath == null || storageFilePath.isEmpty()) {
+			if(storagePath == null || storagePath.isEmpty()) {
 				throw new NullPointerException("Must define the storage location of the file to download");
 			}
 			
-			storageFilePath = storageFilePath.replace("\\", "/");
+			storagePath = storagePath.replace("\\", "/");
 			
-			if(!storageFilePath.startsWith("/")) {
-				storageFilePath = "/"+storageFilePath;
+			if(!storagePath.startsWith("/")) {
+				storagePath = "/"+storagePath;
 			}
-			rClonePath += storageFilePath;
+			rClonePath += storagePath;
 	
 			// wrap in quotes just in case of spaces, etc.
 			if(!rClonePath.startsWith("\"")) {
