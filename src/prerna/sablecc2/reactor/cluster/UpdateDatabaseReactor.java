@@ -1,8 +1,6 @@
 package prerna.sablecc2.reactor.cluster;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -30,22 +28,12 @@ public class UpdateDatabaseReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an app id");
 		}
 		
-		List<Map<String, Object>> baseInfo = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
 			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), appId)) {
 				// you dont have access
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
-			// user has access!
-			baseInfo = SecurityEngineUtils.getUserDatabaseList(this.insight.getUser(), appId);
-		} else {
-			// just grab the info
-			baseInfo = SecurityEngineUtils.getAllDatabaseList();
-		}
-		
-		if(baseInfo.isEmpty()) {
-			throw new IllegalArgumentException("Could not find any app data");
 		}
 		
 		boolean update = false;
