@@ -141,7 +141,7 @@ public class Project implements IProject {
 	private boolean hasPortal = false;
 	private String portalName = null;
 	private SemossDate lastPortalPublishDate = null;
-	private boolean publishPortal = false;
+	private boolean publishedPortal = false;
 	private boolean republishPortal = false;
 
 	// project specific analytics thread
@@ -961,7 +961,7 @@ public class Project implements IProject {
 				ClusterUtil.reactorPullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
 			}
 			try {
-				if(this.republishPortal || outOfDate || (enableForProject && !this.publishPortal)) {
+				if(this.republishPortal || outOfDate || (enableForProject && !this.publishedPortal)) {
 					Path sourcePath = Paths.get(this.projectPortalFolder);
 					Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
 		
@@ -994,24 +994,29 @@ public class Project implements IProject {
 						Files.createSymbolicLink(targetPath, sourcePath);
 					}
 					targetDirectory.deleteOnExit();
-					this.publishPortal = true;
+					this.publishedPortal = true;
 					this.republishPortal = false;
 					this.lastPortalPublishDate = new SemossDate(LocalDateTime.now());
 					logger.info("Project '" + projectId + "' has new last portal published date = " + this.lastPortalPublishDate);
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				this.publishPortal = false;
+				this.publishedPortal = false;
 				this.lastPortalPublishDate = null;
 			}
 		}
 		
-		return this.publishPortal;
+		return this.publishedPortal;
 	}
 	
 	@Override
 	public void setRepublish(boolean republish) {
 		this.republishPortal = republish;
+	}
+	
+	@Override
+	public boolean isPublished() {
+		return this.publishedPortal;
 	}
 	
 	@Override

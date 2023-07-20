@@ -161,6 +161,12 @@ public interface IProject {
 	 * 
 	 * @return
 	 */
+	boolean isPublished();
+	
+	/**
+	 * 
+	 * @return
+	 */
 	SemossDate getLastPublishDate();
 	
 	/**

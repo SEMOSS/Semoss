@@ -42,21 +42,21 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 		List<String> engineIdFilters = getEngineIdFilters();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 
-		List<Map<String, Object>> dbInfo = new ArrayList<>();
+		List<Map<String, Object>> engineInfo = new ArrayList<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityEngineUtils.getUserDiscoverableEngineList(this.insight.getUser(), 
+			engineInfo = SecurityEngineUtils.getUserDiscoverableEngineList(this.insight.getUser(), 
 					engineTypes, engineIdFilters, engineMetadataFilter, searchTerm, limit, offset);
 		} else {
-			dbInfo = SecurityEngineUtils.getAllEngineList(engineTypes, engineIdFilters, engineMetadataFilter, searchTerm, limit, offset);
+			engineInfo = SecurityEngineUtils.getAllEngineList(engineTypes, engineIdFilters, engineMetadataFilter, searchTerm, limit, offset);
 		}
 
-		if(!dbInfo.isEmpty() && !noMeta) {
-			Map<String, Integer> index = new HashMap<>(dbInfo.size());
-			int size = dbInfo.size();
+		if(!engineInfo.isEmpty() && !noMeta) {
+			Map<String, Integer> index = new HashMap<>(engineInfo.size());
+			int size = engineInfo.size();
 			// now we want to add most executed insights
 			for(int i = 0; i < size; i++) {
-				Map<String, Object> database = dbInfo.get(i);
+				Map<String, Object> database = engineInfo.get(i);
 				String databaseId = database.get("database_id").toString();
 				// keep list of database ids to get the index
 				index.put(databaseId, Integer.valueOf(i));
@@ -75,7 +75,7 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 					}
 	
 					int indexToFind = index.get(databaseId);
-					Map<String, Object> res = dbInfo.get(indexToFind);
+					Map<String, Object> res = engineInfo.get(indexToFind);
 					// whatever it is, if it is single send a single value, if it is multi send as array
 					if(res.containsKey(metaKey)) {
 						Object obj = res.get(metaKey);
@@ -100,7 +100,7 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 			}
 		}
 		
-		return new NounMetadata(dbInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		return new NounMetadata(engineInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 	
 	/**
