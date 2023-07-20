@@ -529,6 +529,7 @@ public class Constants {
 //	public static final String WIDGET_TAB_EXPORT_DASHBOARD = "WIDGET_TAB_EXPORT_DASHBOARD";
 	
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
+	public static final String PORTAL_PREFIX_URL_KEY = "PORTAL_PREFIX_URL_KEY";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
 	
 	// Theming
