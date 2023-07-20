@@ -1279,13 +1279,16 @@ public class SchedulerDatabaseUtility {
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null, null };
 
 			if (allowIfExistsTable) {
-				schedulerDb.insertData(
-						queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
+				String sql = queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints);
+				logger.info("Running sql: " + sql);
+				schedulerDb.insertData(sql);
 			} else {
 				// see if table exists
 				if (!queryUtil.tableExists(connection, SMSS_JOB_RECIPES, database, schema)) {
 					// make the table
-					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
+					String sql = queryUtil.createTableWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints);
+					logger.info("Running sql: " + sql);
+					schedulerDb.insertData(sql);
 				}
 			}
 			
@@ -1296,11 +1299,17 @@ public class SchedulerDatabaseUtility {
 				// since we added the pixel recipe parameters at a later point...
 				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(UI_STATE)) {
 					// alter table to add the column
-					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, UI_STATE, BLOB_DATATYPE));
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, UI_STATE, BLOB_DATATYPE);
+					logger.info("Running sql: " + sql);
+					schedulerDb.insertData(sql);
 					// set it to the value of the previous name "PARAMETER"
-					schedulerDb.insertData("UPDATE " + SMSS_JOB_RECIPES + " SET " + UI_STATE + "=PARAMETERS");
+					sql = "UPDATE " + SMSS_JOB_RECIPES + " SET " + UI_STATE + "=PARAMETERS";
+					logger.info("Running sql: " + sql);
+					schedulerDb.insertData(sql);
 					// now delete
-					schedulerDb.removeData(queryUtil.alterTableDropColumn(SMSS_JOB_RECIPES, "PARAMETERS"));
+					sql = queryUtil.alterTableDropColumn(SMSS_JOB_RECIPES, "PARAMETERS");
+					logger.info("Running sql: " + sql);
+					schedulerDb.removeData(sql);
 				}
 			}
 
@@ -1311,7 +1320,9 @@ public class SchedulerDatabaseUtility {
 				// since we added the pixel recipe parameters at a later point...
 				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(PIXEL_RECIPE_PARAMETERS)) {
 					// alter table to add the column
-					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB_DATATYPE));
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB_DATATYPE);
+					logger.info("Running sql: " + sql);
+					schedulerDb.insertData(sql);
 				}
 			}
 
@@ -1322,12 +1333,21 @@ public class SchedulerDatabaseUtility {
 				// need to add new JobId
 				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(JOB_ID)) {
 					// alter table to add the column
-					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.alterTableAddColumnWithDefault("SMSS_JOB_RECIPES", "JOB_ID", "VARCHAR(200)", "PLACEHOLDER"), true);
+					String sql = queryUtil.alterTableAddColumnWithDefault("SMSS_JOB_RECIPES", "JOB_ID", "VARCHAR(200)", "PLACEHOLDER");
+					logger.info("Running sql: " + sql);
+					schedulerDb.execUpdateAndRetrieveStatement(sql, true);
 					// make the JOB_ID the JOB_NAME for LEGACY recipes
-					schedulerDb.execUpdateAndRetrieveStatement("UPDATE SMSS_JOB_RECIPES SET JOB_ID=JOB_NAME", true);
-					// add constraints on job id column
-					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.modColumnNotNull("SMSS_JOB_RECIPES", "JOB_ID", "VARCHAR(2000)"), true);
-					schedulerDb.execUpdateAndRetrieveStatement("ALTER TABLE SMSS_JOB_RECIPES ADD CONSTRAINT SMSS_JOB_RECIPES_PK PRIMARY KEY (JOB_ID)", true);
+					sql = "UPDATE SMSS_JOB_RECIPES SET JOB_ID=JOB_NAME";
+					logger.info("Running sql: " + sql);
+					schedulerDb.execUpdateAndRetrieveStatement(sql, true);
+					// make column not null
+					sql = queryUtil.modColumnNotNull("SMSS_JOB_RECIPES", "JOB_ID", "VARCHAR(2000)");
+					logger.info("Running sql: " + sql);
+					schedulerDb.execUpdateAndRetrieveStatement(sql, true);
+					// add PK constraints on job id column
+					sql = "ALTER TABLE SMSS_JOB_RECIPES ADD CONSTRAINT SMSS_JOB_RECIPES_PK PRIMARY KEY (JOB_ID)";
+					logger.info("Running sql: " + sql);
+					schedulerDb.execUpdateAndRetrieveStatement(sql, true);
 				}
 			}
 			
@@ -1339,6 +1359,7 @@ public class SchedulerDatabaseUtility {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 						String addColumnSql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, col, types[i]);
+						logger.info("Running sql: " + addColumnSql);
 						schedulerDb.insertData(addColumnSql);
 					}
 				}
@@ -1349,12 +1370,16 @@ public class SchedulerDatabaseUtility {
 			types = new String[]{VARCHAR_200, VARCHAR_200};
 			constraints = new String[] { NOT_NULL, NOT_NULL };
 			if (allowIfExistsTable) {
-				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_TAGS, colNames, types, constraints));
+				String sql = queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_TAGS, colNames, types, constraints);
+				logger.info("Running sql: " + sql);
+				schedulerDb.insertData(sql);
 			} else {
 				// see if table exists
 				if (!queryUtil.tableExists(connection, SMSS_JOB_TAGS, database, schema)) {
 					// make the table
-					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_JOB_TAGS, colNames, types, constraints));
+					String sql = queryUtil.createTableWithCustomConstraints(SMSS_JOB_TAGS, colNames, types, constraints);
+					logger.info("Running sql: " + sql);
+					schedulerDb.insertData(sql);
 				}
 			}
 			
@@ -1366,6 +1391,7 @@ public class SchedulerDatabaseUtility {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 						String addColumnSql = queryUtil.alterTableAddColumn(SMSS_JOB_TAGS, col, types[i]);
+						logger.info("Running sql: " + addColumnSql);
 						schedulerDb.insertData(addColumnSql);
 					}
 				}
@@ -1378,13 +1404,16 @@ public class SchedulerDatabaseUtility {
 			if(!dateTimeType.equals(TIMESTAMP)) { types = cleanUpDataType(types, TIMESTAMP, dateTimeType); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
-				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames,
-						types, constraints));
+				String sql = queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types, constraints);
+				logger.info("Running sql: " + sql);
+				schedulerDb.insertData(sql);
 			} else {
 				// see if table exists
 				if (!queryUtil.tableExists(connection, SMSS_AUDIT_TRAIL, database, schema)) {
 					// make the table
-					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types, constraints));
+					String sql = queryUtil.createTableWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types, constraints);
+					logger.info("Running sql: " + sql);
+					schedulerDb.insertData(sql);
 				}
 			}
 			
@@ -1395,7 +1424,9 @@ public class SchedulerDatabaseUtility {
 				// need to add new JobId
 				if(!queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, database, schema).contains(JOB_ID)) {
 					// change JOB_NAME to JOB_ID
-					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.modColumnName("SMSS_AUDIT_TRAIL", "JOB_NAME", "JOB_ID"), true);
+					String sql = queryUtil.modColumnName("SMSS_AUDIT_TRAIL", "JOB_NAME", "JOB_ID");
+					logger.info("Running sql: " + sql);
+					schedulerDb.execUpdateAndRetrieveStatement(sql, true);
 				}
 			}
 			// ADDED 2021-02-11
@@ -1426,6 +1457,7 @@ public class SchedulerDatabaseUtility {
 					String col = colNames[i];
 					if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 						String addColumnSql = queryUtil.alterTableAddColumn(SMSS_AUDIT_TRAIL, col, types[i]);
+						logger.info("Running sql: " + addColumnSql);
 						schedulerDb.insertData(addColumnSql);
 					}
 				}
@@ -1440,7 +1472,9 @@ public class SchedulerDatabaseUtility {
 						String type = nameAndType[1];
 						if(!CLOB_DATATYPE.equalsIgnoreCase(type)) {
 							// we alter
-							schedulerDb.insertData(queryUtil.modColumnType(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, CLOB_DATATYPE));
+							String sql = queryUtil.modColumnType(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, CLOB_DATATYPE);
+							logger.info("Running sql: " + sql);
+							schedulerDb.insertData(sql);
 						}
 					}
 				} catch (SQLException e) {
@@ -1459,7 +1493,9 @@ public class SchedulerDatabaseUtility {
 				// see if table exists
 				if (!queryUtil.tableExists(connection, SMSS_EXECUTION, database, schema)) {
 					// make the table
-					schedulerDb.insertData(queryUtil.createTable(SMSS_EXECUTION, colNames, types));
+					String sql = queryUtil.createTable(SMSS_EXECUTION, colNames, types);
+					logger.info("Running sql: " + sql);
+					schedulerDb.insertData(sql);
 				}
 			}
 
@@ -1470,7 +1506,9 @@ public class SchedulerDatabaseUtility {
 				// need to add new JobId
 				if(!queryUtil.getTableColumns(connection, SMSS_EXECUTION, database, schema).contains(JOB_ID)) {
 					// change JOB_NAME to JOB_ID
-					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.modColumnName("SMSS_EXECUTION", "JOB_NAME", "JOB_ID"), true);
+					String sql = queryUtil.modColumnName("SMSS_EXECUTION", "JOB_NAME", "JOB_ID");
+					logger.info("Running sql: " + sql);
+					schedulerDb.execUpdateAndRetrieveStatement(sql, true);
 				}
 			}
 		} catch (SQLException se) {
