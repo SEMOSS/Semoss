@@ -30,6 +30,7 @@ package prerna.nameserver;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -46,6 +47,8 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
@@ -60,6 +63,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AddToMasterDB {
 
@@ -165,7 +169,8 @@ public class AddToMasterDB {
             String engineConceptPsQuery = "INSERT INTO ENGINECONCEPT (ENGINE, PARENTSEMOSSNAME, SEMOSSNAME, PARENTPHYSICALNAME, "
             		+ "PARENTPHYSICALNAMEID, PARENTLOCALCONCEPTID, PHYSICALNAME, PHYSICALNAMEID, LOCALCONCEPTID, "
             		+ "IGNORE_DATA, PK, ORIGINAL_TYPE, PROPERTY_TYPE, ADDITIONAL_TYPE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            String conceptMetadataPsQuery = "INSERT INTO CONCEPTMETADATA (PHYSICALNAMEID, KEY, VALUE) VALUES (?,?,?)";
+            String conceptMetadataPsQuery = "INSERT INTO CONCEPTMETADATA ("+Constants.LM_PHYSICAL_NAME_ID
+            		+", "+Constants.LM_META_KEY+", "+Constants.LM_META_VALUE + ") VALUES (?,?,?)";
     		
             PreparedStatement conceptPs = conn.prepareStatement(conceptPsQuery);
             PreparedStatement engineConceptPs = conn.prepareStatement(engineConceptPsQuery);
@@ -756,12 +761,11 @@ public class AddToMasterDB {
 	public boolean addMetadata(String engineId, String concept, String key, String value) {
 		boolean valid = false;
 		String tableName = Constants.CONCEPT_METADATA_TABLE;
-		String[] colNames = new String[]{Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE};
-//		String[] types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
-
+		String[] colNames = new String[]{Constants.LM_PHYSICAL_NAME_ID, Constants.LM_META_KEY, Constants.LM_META_VALUE};
 		String localConceptID = MasterDatabaseUtility.getPhysicalConceptId(engineId, concept);
 		
 		IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		AbstractSqlQueryUtil queryUtil = localMaster.getQueryUtil();
         Connection conn = null;
         PreparedStatement stmt = null;
         try {
@@ -777,20 +781,20 @@ public class AddToMasterDB {
 				stmt = conn.prepareStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
 				stmt.setString(1, localConceptID);
 				stmt.setString(2, key);
-				stmt.setString(3, value);
+				queryUtil.handleInsertionOfClob(conn, stmt, value, 3, new Gson());
 				valid = stmt.execute();
 			} // update
 			else {
 //				String update = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = \'"
 //						+ value + "\' WHERE " + Constants.PHYSICAL_NAME_ID + " = \'" + localConceptID + "\' and "
 //						+ Constants.KEY + " = \'" + key + "\'";
-				String updateSql = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = ? "
-						+ " WHERE " + Constants.PHYSICAL_NAME_ID + " = ? " + " AND " + Constants.KEY
+				String updateSql = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.LM_META_VALUE + " = ? "
+						+ " WHERE " + Constants.LM_PHYSICAL_NAME_ID + " = ? " + " AND " + Constants.LM_META_KEY
 						+ " = ? ";
 				stmt = conn.prepareStatement(updateSql);
-				stmt.setString(1, value);
+				queryUtil.handleInsertionOfClob(conn, stmt, value, 1, new Gson());
 				stmt.setString(2, localConceptID);
-				stmt.setString(3, Constants.KEY);
+				stmt.setString(3, key);
 				//int validInsert = conn.createStatement().executeUpdate(update + ";");
 				int validInsert = stmt.executeUpdate();
 				if (validInsert > 0) {
@@ -799,7 +803,9 @@ public class AddToMasterDB {
 			}
         } catch (SQLException e) {
         	logger.error(Constants.STACKTRACE, e);
-        } finally {
+        } catch (UnsupportedEncodingException e) {
+        	logger.error(Constants.STACKTRACE, e);
+		} finally {
         	try {
         		if(stmt != null) {
         			stmt.close();
