@@ -20,6 +20,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IRCloneStorage;
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -204,7 +205,9 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	protected String getConfigPath(String rcloneConfig) {
 		if( rcloneConfigFolder == null) {
-			rcloneConfigFolder =  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "rcloneConfig";
+			rcloneConfigFolder =  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+					+ FILE_SEPARATOR + Constants.DB_FOLDER + FILE_SEPARATOR + 
+					SmssUtilities.getUniqueName(this.engineName, this.engineId);
 			new File(rcloneConfig).mkdirs();
 		}
 		

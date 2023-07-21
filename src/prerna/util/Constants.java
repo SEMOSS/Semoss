@@ -564,6 +564,7 @@ public class Constants {
 //	public static final String SOLR_URL = "SOLR_BASE_URL";
 //	public static final String SOLR_CORE_NAME = "SOLR_CORE_NAME";
 	
+	@Deprecated
 	public static final String VALUE = "VALUE";
 	public static final String NAME = "NAME";
 	
@@ -735,8 +736,11 @@ public class Constants {
 	
 	// Concept Metadata Table
 	public static final String CONCEPT_METADATA_TABLE = "CONCEPTMETADATA";
+	@Deprecated
 	public static final String KEY = "KEY";	
-	public static final String PHYSICAL_NAME_ID = "PHYSICALNAMEID";
+	public static final String LM_META_KEY = "METAKEY";
+	public static final String LM_META_VALUE = "METAVALUE";
+	public static final String LM_PHYSICAL_NAME_ID = "PHYSICALNAMEID";
 	public static final String DESCRIPTION = "description";
 	public static final String TAG = "tag";
 	public static final String MARKDOWN = "markdown";
