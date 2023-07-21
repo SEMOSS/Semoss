@@ -410,6 +410,7 @@ public class UserTrackingUtils {
 
 	private static void executeSql(Connection conn, String sql) throws SQLException {
 		try (Statement stmt = conn.createStatement()) {
+			logger.info("Running sql " + sql);
 			stmt.execute(sql);
 		}
 	}
