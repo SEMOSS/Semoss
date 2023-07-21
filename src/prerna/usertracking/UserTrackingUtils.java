@@ -345,7 +345,9 @@ public class UserTrackingUtils {
 	 * @param columnNamesAndTypes
 	 * @throws SQLException
 	 */
-	private static void executeInitUserTracker(IRDBMSEngine engine, Connection conn,
+	private static void executeInitUserTracker(
+			IRDBMSEngine engine, 
+			Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
 
 		String database = engine.getDatabase();
@@ -356,11 +358,8 @@ public class UserTrackingUtils {
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getLeft();
-
 			String[] colNames = tableSchema.getRight().stream().map(Pair::getLeft).toArray(String[]::new);
-
 			String[] types = tableSchema.getRight().stream().map(Pair::getRight).toArray(String[]::new);
-
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
 				executeSql(conn, sql);
@@ -368,6 +367,15 @@ public class UserTrackingUtils {
 				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
 					String sql = queryUtil.createTable(tableName, colNames, types);
 					executeSql(conn, sql);
+				}
+			}
+			
+			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
+			for (int i = 0; i < colNames.length; i++) {
+				String col = colNames[i];
+				if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+					executeSql(conn, addColumnSql);
 				}
 			}
 		}
