@@ -1471,10 +1471,13 @@ public class SchedulerDatabaseUtility {
 						String name = nameAndType[0];
 						String type = nameAndType[1];
 						if(!CLOB_DATATYPE.equalsIgnoreCase(type)) {
-							// we alter
-							String sql = queryUtil.modColumnType(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, CLOB_DATATYPE);
-							logger.info("Running sql: " + sql);
-							schedulerDb.insertData(sql);
+							// add one more check
+							if( !(CLOB_DATATYPE.matches("(?i)varchar\\(.*\\)") && type.equalsIgnoreCase("varchar")) ) {
+								// we alter
+								String sql = queryUtil.modColumnType(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, CLOB_DATATYPE);
+								logger.info("Running sql: " + sql);
+								schedulerDb.insertData(sql);
+							}
 						}
 					}
 				} catch (SQLException e) {
