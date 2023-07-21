@@ -344,28 +344,28 @@ public class MasterDatabaseUtility {
 				executeSql(conn, queryUtil.dropTableIfExists("KVSTORE"));
 				executeSql(conn, queryUtil.dropTableIfExists("METAMODELPOSITION"));
 			} else {
-				if(!queryUtil.tableExists(engine, "ENGINE", database, schema)) {
+				if(queryUtil.tableExists(engine, "ENGINE", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINE"));
 				}
-				if(!queryUtil.tableExists(engine, "ENGINECONCEPT", database, schema)) {
+				if(queryUtil.tableExists(engine, "ENGINECONCEPT", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINECONCEPT"));
 				}
-				if(!queryUtil.tableExists(engine, "CONCEPT", database, schema)) {
+				if(queryUtil.tableExists(engine, "CONCEPT", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("CONCEPT"));
 				}
-				if(!queryUtil.tableExists(engine, "CONCEPTMETADATA", database, schema)) {
+				if(queryUtil.tableExists(engine, "CONCEPTMETADATA", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("CONCEPTMETADATA"));
 				}
-				if(!queryUtil.tableExists(engine, "ENGINERELATION", database, schema)) {
+				if(queryUtil.tableExists(engine, "ENGINERELATION", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINERELATION"));
 				}
-				if(!queryUtil.tableExists(engine, "RELATION", database, schema)) {
+				if(queryUtil.tableExists(engine, "RELATION", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("RELATION"));
 				}
-				if(!queryUtil.tableExists(engine, "KVSTORE", database, schema)) {
+				if(queryUtil.tableExists(engine, "KVSTORE", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("KVSTORE"));
 				}
-				if(!queryUtil.tableExists(engine, "METAMODELPOSITION", database, schema)) {
+				if(queryUtil.tableExists(engine, "METAMODELPOSITION", database, schema)) {
 					executeSql(conn, queryUtil.dropTable("METAMODELPOSITION"));
 				}
 			}
