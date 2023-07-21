@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -42,7 +41,8 @@ public class MyDatabasesReactor extends AbstractReactor {
 		organizeKeys();
 		
 		List<String> engineTypes = new ArrayList<>();
-		engineTypes.add(IEngine.CATALOG_TYPE);
+		// keep empty cause security db is likely blank for this
+//		engineTypes.add(IEngine.CATALOG_TYPE);
 		
 		String searchTerm = this.keyValue.get(this.keysToGet[0]);
 		String limit = this.keyValue.get(this.keysToGet[1]);
