@@ -1,9 +1,12 @@
 package prerna.util.sql;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -220,6 +223,11 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public boolean allowIfExistsModifyColumnSyntax() {
+		return false;
+	}
+	
+	@Override
 	public boolean allowIfExistsIndexSyntax() {
 		return false;
 	}
@@ -251,6 +259,22 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
 		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema 
 				+ "' AND TABLE_NAME='" + tableName +"' AND COLUMN_NAME='" + columnName.toUpperCase() + "'";
+	}
+	
+	@Override
+	public String getIndexDetails(String indexName, String tableName, String database, String schema) {
+		return "SELECT ix.name as IndexName, tab.name as TableName, COL_NAME(ix.object_id, ixc.column_id) as ColumnName, "
+				+ "ix.type_desc, ix.is_disabled FROM sys.indexes ix " 
+				+ "INNER JOIN sys.index_columns ixc ON  ix.object_id = ixc.object_id and ix.index_id = ixc.index_id "
+				+ "INNER JOIN sys.tables tab ON ix.object_id = tab.object_id "
+				+ "WHERE "
+				+ "ix.is_primary_key = 0 "            /* Remove Primary Keys */
+				+ "AND ix.is_unique = 0 "             /* Remove Unique Keys */
+				+ "AND ix.is_unique_constraint = 0 "  /* Remove Unique Constraints */
+				+ "AND tab.is_ms_shipped = 0"         /* Remove SQL Server Default Tables */
+				+ "AND ix.name='" + indexName + "' "
+				+ "AND tab.name='" + tableName + "'"
+				;
 	}
 	
 	@Override
@@ -438,6 +462,99 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 			oldTableName = getEscapeKeyword(oldTableName);
 		}
 		return "SELECT * INTO " + newTableName + " FROM " + oldTableName;
+	}
+	
+	@Override
+	public String insertIntoTable(String tableName, String[] columnNames, String[] types, Object[] values) {
+		if(columnNames.length !=  types.length) {
+			throw new UnsupportedOperationException("Headers and types must have the same length");
+		}
+		if(columnNames.length != values.length) {
+			throw new UnsupportedOperationException("Headers and values must have the same length");
+		}
+
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+
+		// only loop 1 time around both arrays since length must always match
+		StringBuilder inserter = new StringBuilder("INSERT INTO " + tableName + " (");
+		StringBuilder template = new StringBuilder();
+
+		for (int colIndex = 0; colIndex < columnNames.length; colIndex++) {
+			String columnName = columnNames[colIndex];
+			String type = types[colIndex];
+			Object value = values[colIndex];
+
+			if(colIndex > 0) {
+				inserter.append(", ");
+				template.append(", ");
+			}
+
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
+			}
+
+			// always jsut append the column name
+			inserter.append(columnName);
+
+			if(value == null) {
+				// append null without quotes
+				template.append("null");
+				continue;
+			}
+
+			// we do not have a null
+			// now we care how we insert based on the type of the value
+			SemossDataType dataType = SemossDataType.convertStringToDataType(type);
+			if(dataType == SemossDataType.INT ||
+					dataType == SemossDataType.DOUBLE) {
+				// append as is
+				template.append(value);
+			} else if(dataType == SemossDataType.BOOLEAN || 
+					dataType == SemossDataType.STRING || dataType == SemossDataType.FACTOR) {
+				template.append("'").append(escapeForSQLStatement(value + "")).append("'");
+			} else if(dataType == SemossDataType.DATE) {
+				if(value instanceof SemossDate) {
+					Date d = ((SemossDate) value).getDate();
+					if(d == null) {
+						template.append(null + "");
+					} else {
+						template.append("'").append(((SemossDate) value).getFormatted("yyyy-MM-dd")).append("'");
+					}
+				} else if(value instanceof java.sql.Date) {
+					template.append("'").append(value.toString()).append("'");
+				} else {
+					SemossDate dateValue = SemossDate.genDateObj(value + "");
+					if(dateValue == null) {
+						template.append(null + "");
+					} else {
+						template.append("'").append(dateValue.getFormatted("yyyy-MM-dd")).append("'");
+					}
+				}
+			} else if(dataType == SemossDataType.TIMESTAMP) {
+				if(value instanceof SemossDate) {
+					Date d = ((SemossDate) value).getDate();
+					if(d == null) {
+						template.append(null + "");
+					} else {
+						template.append("'").append(((SemossDate) value).getFormatted("yyyy-MM-dd HH:mm:ss")).append("'");
+					}
+				} else if(value instanceof java.sql.Timestamp) {
+					template.append("'").append(value.toString()).append("'");
+				} else {
+					SemossDate dateValue = SemossDate.genTimeStampDateObj(value + "");
+					if(dateValue == null) {
+						template.append(null + "");
+					} else {
+						template.append("'").append(dateValue.getFormatted("yyyy-MM-dd HH:mm:ss")).append("'");
+					}
+				}
+			}
+		}
+
+		inserter.append(")  VALUES (").append(template).append(")");
+		return inserter.toString();
 	}
 	
 	@Override

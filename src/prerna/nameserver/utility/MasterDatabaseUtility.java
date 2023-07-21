@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -63,6 +62,9 @@ public class MasterDatabaseUtility {
 		try {
 			conn = database.makeConnection();
 			executeInitLocalMaster(database, conn);
+		} catch(SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
 			closeResources(database, conn, null, null);
 		}
@@ -78,70 +80,104 @@ public class MasterDatabaseUtility {
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		
+		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
+		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
+		
 		// since i have major changes
 		requireRemakeAndAlter(engine, conn, queryUtil, database, schema, allowIfExistsTable);
 		
 		// engine table
 		colNames = new String[]{"ID", "ENGINENAME", "MODIFIEDDATE", "TYPE"};
-		types = new String[]{"varchar(255)", "varchar(255)", "timestamp", "varchar(255)"};
+		types = new String[]{"varchar(255)", "varchar(255)", TIMESTAMP_DATATYPE, "varchar(255)"};
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists("ENGINE", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, "ENGINE", database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable("ENGINE", colNames, types));
+				String sql = queryUtil.createTable("ENGINE", colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 		// add index
 		if(allowIfExistsIndexs) {
-			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID"));
+			String sql = queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID");
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(engine, "ENGINE_ID_INDEX", "ENGINE", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("ENGINE_ID_INDEX", "ENGINE", "ID"));
+				String sql =  queryUtil.createIndex("ENGINE_ID_INDEX", "ENGINE", "ID");
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 
 		// engine concept table
-		colNames = new String[]{"ENGINE", "PARENTSEMOSSNAME", "SEMOSSNAME", "PARENTPHYSICALNAME", "PARENTPHYSICALNAMEID", "PHYSICALNAME", "PHYSICALNAMEID", "PARENTLOCALCONCEPTID", "LOCALCONCEPTID", "IGNORE_DATA", "PK", "ORIGINAL_TYPE", "PROPERTY_TYPE", "ADDITIONAL_TYPE"};
-		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "boolean", "varchar(255)", "varchar(255)", "varchar(255)"};
+		colNames = new String[]{"ENGINE", "PARENTSEMOSSNAME", "SEMOSSNAME", "PARENTPHYSICALNAME", "PARENTPHYSICALNAMEID", "PHYSICALNAME", 
+				"PHYSICALNAMEID", "PARENTLOCALCONCEPTID", "LOCALCONCEPTID", "IGNORE_DATA", "PK", "ORIGINAL_TYPE", 
+				"PROPERTY_TYPE", "ADDITIONAL_TYPE"};
+		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", 
+				"varchar(255)", "varchar(255)", "varchar(255)", BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, "varchar(255)", 
+				"varchar(255)", "varchar(255)"};
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types));
+			String sql =  queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, "ENGINECONCEPT", database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable("ENGINECONCEPT", colNames, types));
+				String sql =  queryUtil.createTable("ENGINECONCEPT", colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 		// add index
 		{
 			// 2021-08-11
 			if(allowIfExistsIndexs) {
-				executeSql(conn, queryUtil.dropIndexIfExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT"));
+				String sql = queryUtil.dropIndexIfExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT");
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			} else {
 				if(queryUtil.indexExists(engine, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", database, schema)) {
-					executeSql(conn, queryUtil.dropIndexIfExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT"));
+					String sql = queryUtil.dropIndex("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT");
+					logger.info("Running sql " + sql);
+					executeSql(conn, sql);
 				}
 			}
 		}
 		if(allowIfExistsIndexs) {
-			List<String> iCols = new Vector<>();
+			List<String> iCols = new ArrayList<>();
 			iCols.add("ENGINE");
 			iCols.add("LOCALCONCEPTID");
-			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols));
-			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
+			
+			String sql = queryUtil.createIndexIfNotExists("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
+			sql = queryUtil.createIndexIfNotExists("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID");
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(engine, "ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", database, schema)) {
-				List<String> iCols = new Vector<>();
+				List<String> iCols = new ArrayList<>();
 				iCols.add("ENGINE");
 				iCols.add("LOCALCONCEPTID");
-				executeSql(conn, queryUtil.createIndex("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols));
+				
+				String sql = queryUtil.createIndex("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 			if(!queryUtil.indexExists(engine, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
+				String sql = queryUtil.createIndex("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID");
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 
@@ -149,21 +185,29 @@ public class MasterDatabaseUtility {
 		colNames = new String[]{"LOCALCONCEPTID", "CONCEPTUALNAME", "LOGICALNAME", "DOMAINNAME", "GLOBALID"};
 		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)"};
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists("CONCEPT", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("CONCEPT", colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, "CONCEPT", database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable("CONCEPT", colNames, types));
+				String sql = queryUtil.createTable("CONCEPT", colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 		// add index
 		if(allowIfExistsIndexs) {
-			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
+			String sql = queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID");
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(engine, "CONCEPT_ID_INDEX", "CONCEPT", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
+				String sql = queryUtil.createIndex("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID");
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 
@@ -171,25 +215,38 @@ public class MasterDatabaseUtility {
 		colNames = new String[]{"ID", "SOURCEID", "TARGETID", "GLOBALID"};
 		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)"};
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists("RELATION", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("RELATION", colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, "RELATION", database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable("RELATION", colNames, types));
+				String sql = queryUtil.createTable("RELATION", colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 		// add index
 		if(allowIfExistsIndexs) {
-			executeSql(conn, queryUtil.createIndexIfNotExists("RELATION_TARGETID_INDEX", "RELATION", "TARGETID"));
-			executeSql(conn, queryUtil.createIndexIfNotExists("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID"));
+			String sql = queryUtil.createIndexIfNotExists("RELATION_TARGETID_INDEX", "RELATION", "TARGETID");
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID");
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(engine, "RELATION_TARGETID_INDEX", "RELATION", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("RELATION_TARGETID_INDEX", "RELATION", "TARGETID"));
+				String sql = queryUtil.createIndex("RELATION_TARGETID_INDEX", "RELATION", "TARGETID");
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 			if(!queryUtil.indexExists(engine, "RELATION_SOURCEID_INDEX", "RELATION", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID"));
+				String sql = queryUtil.createIndex("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID");
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 
@@ -197,29 +254,47 @@ public class MasterDatabaseUtility {
 		colNames = new String[]{"ENGINE", "RELATIONID", "INSTANCERELATIONID", "SOURCECONCEPTID", "TARGETCONCEPTID", "SOURCEPROPERTY", "TARGETPROPERTY", "RELATIONNAME"};
 		types = new String[]{"varchar(255)", "varchar(255)","varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)"};
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists("ENGINERELATION", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("ENGINERELATION", colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, "ENGINERELATION", database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable("ENGINERELATION", colNames, types));
+				String sql = queryUtil.createTable("ENGINERELATION", colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 		// add index
 		if(allowIfExistsIndexs) {
-			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE"));
-			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", "TARGETCONCEPTID"));
-			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID"));
+			String sql = queryUtil.createIndexIfNotExists("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE");
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", "TARGETCONCEPTID");
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID");
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(engine, "ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE"));
+				String sql = queryUtil.createIndex("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE");
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 			if(!queryUtil.indexExists(engine, "ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", "TARGETCONCEPTID"));
+				String sql = queryUtil.createIndex("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", "TARGETCONCEPTID");
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 			if(!queryUtil.indexExists(engine, "ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID"));
+				String sql = queryUtil.createIndex("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID");
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 
@@ -227,65 +302,90 @@ public class MasterDatabaseUtility {
 		colNames = new String[]{"K","V"};
 		types = new String[]{"varchar(800)", "varchar(800)"};
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists("KVSTORE", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("KVSTORE", colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, "KVSTORE", database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable("KVSTORE", colNames, types));
+				String sql = queryUtil.createTable("KVSTORE", colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 
 		// concept metadata
 		updateMetadataTable(engine, conn, queryUtil, Constants.CONCEPT_METADATA_TABLE, database, schema);
-		colNames = new String[] {Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE };
-		types = new String[] { "varchar(255)", "varchar(800)", "varchar(20000)" };
+		colNames = new String[] {Constants.LM_PHYSICAL_NAME_ID, Constants.LM_META_KEY, Constants.LM_META_VALUE };
+		types = new String[] { "varchar(255)", "varchar(800)", CLOB_DATATYPE };
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists(Constants.CONCEPT_METADATA_TABLE, colNames, types));
+			String sql = queryUtil.createTableIfNotExists(Constants.CONCEPT_METADATA_TABLE, colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, Constants.CONCEPT_METADATA_TABLE, database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable(Constants.CONCEPT_METADATA_TABLE, colNames, types));
+				String sql = queryUtil.createTable(Constants.CONCEPT_METADATA_TABLE, colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 		// add index
 		if(allowIfExistsIndexs) {
-			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
-			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", "CONCEPTMETADATA", "PHYSICALNAMEID"));
+			String sql = queryUtil.createIndexIfNotExists("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE, Constants.LM_META_KEY);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
+			
+			sql = queryUtil.createIndexIfNotExists("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", Constants.CONCEPT_METADATA_TABLE, Constants.LM_PHYSICAL_NAME_ID);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
+			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE, database, schema)) {
+				String sql = queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE, Constants.LM_META_KEY );
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
-			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_PHYSICAL_NAME_ID_INDEX", "CONCEPTMETADATA", database, schema)) {
-				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", "CONCEPTMETADATA", "PHYSICALNAMEID"));
+			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_PHYSICALNAMEID_INDEX", Constants.CONCEPT_METADATA_TABLE,  database, schema)) {
+				String sql = queryUtil.createIndex("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", Constants.CONCEPT_METADATA_TABLE, Constants.LM_PHYSICAL_NAME_ID);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 
 		// x-ray config
 		colNames = new String[]{"FILENAME", "CONFIG" };
-		types = new String[]{"varchar(800)", "varchar(20000)" };
+		types = new String[]{"varchar(800)", CLOB_DATATYPE };
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, "XRAYCONFIGS", database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable("XRAYCONFIGS", colNames, types));
+				String sql = queryUtil.createTable("XRAYCONFIGS", colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 
 		// bitly
 		colNames = new String[]{"FANCY", "EMBED"};
-		types = new String[]{"varchar(255)", "varchar(20000)" };
+		types = new String[]{"varchar(255)", "varchar(8000)" };
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists("BITLY", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("BITLY", colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, "BITLY", database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable("BITLY", colNames, types));
+				String sql = queryUtil.createTable("BITLY", colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 		
@@ -294,12 +394,16 @@ public class MasterDatabaseUtility {
 		colNames = new String[] {"ENGINEID", "TABLENAME", "XPOS", "YPOS"};
 		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "FLOAT", "FLOAT"};
 		if(allowIfExistsTable) {
-			executeSql(conn, queryUtil.createTableIfNotExists("METAMODELPOSITION", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("METAMODELPOSITION", colNames, types);
+			logger.info("Running sql " + sql);
+			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(engine, "METAMODELPOSITION", database, schema)) {
 				// make the table
-				executeSql(conn, queryUtil.createTable("METAMODELPOSITION", colNames, types));
+				String sql = queryUtil.createTable("METAMODELPOSITION", colNames, types);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
 			}
 		}
 		
@@ -317,18 +421,12 @@ public class MasterDatabaseUtility {
 			String schema, 
 			boolean allowIfExistsTable) throws SQLException {
 		boolean require = false;
-		String q = "select parentsemossname from engineconcept limit 1";
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, q);
-			if(!wrapper.hasNext()) {
-				require = true;
-			}
-		} catch(Exception e) {
+		if(!queryUtil.tableExists(conn, "ENGINECONCEPT", database, schema)) {
 			require = true;
-		} finally {
-			if (wrapper != null) {
-				wrapper.cleanUp();
+		} else {
+			List<String> allColumns = queryUtil.getTableColumns(conn, "ENGINECONCEPT", database, schema);
+			if( !(allColumns.contains("PARENTSEMOSSNAME") || allColumns.contains("parentsemossname")) ) {
+				require = true;
 			}
 		}
 		
@@ -375,13 +473,36 @@ public class MasterDatabaseUtility {
 	@Deprecated
 	private static void updateMetadataTable(IRDBMSEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil, String tableName, String database, String schema) throws SQLException {
 		if(queryUtil.tableExists(engine, tableName, database, schema)) {
+			// rename key to metakey and value to metavalue
+			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
+			if(allCols.contains(Constants.KEY) || allCols.contains(Constants.KEY.toLowerCase())) {
+				String sql = queryUtil.modColumnName(tableName, Constants.KEY, Constants.LM_META_KEY);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
+			}
+			if(allCols.contains(Constants.VALUE) || allCols.contains(Constants.VALUE.toLowerCase())) {
+				String sql = queryUtil.modColumnName(tableName, Constants.VALUE, Constants.LM_META_VALUE);
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
+				
+				sql = queryUtil.modColumnType(tableName, Constants.LM_META_VALUE, queryUtil.getClobDataTypeName());
+				logger.info("Running sql " + sql);
+				executeSql(conn, sql);
+			}
+			
 			boolean allowIfExists = queryUtil.allowIfExistsModifyColumnSyntax();
 			if(queryUtil.allowDropColumn()) {
 				if(allowIfExists) {
-					executeSql(conn, queryUtil.alterTableDropColumnIfExists(tableName, "LOCALCONCEPTID"));
+					String sql = queryUtil.alterTableDropColumnIfExists(tableName, "LOCALCONCEPTID");
+					logger.info("Running sql " + sql);
+					executeSql(conn, sql);
 				} else {
 					// check column exists in table
-
+					if(allCols.contains("LOCALCONCEPTID") || allCols.contains("LOCALCONCEPTID".toLowerCase())) {
+						String sql = queryUtil.alterTableDropColumnIfExists(tableName, "LOCALCONCEPTID");
+						logger.info("Running sql " + sql);
+						executeSql(conn, sql);
+					}
 				}
 			}
 			if(queryUtil.allowAddColumn()) {
@@ -389,12 +510,12 @@ public class MasterDatabaseUtility {
 					executeSql(conn, queryUtil.alterTableAddColumnIfNotExists(tableName, "PHYSICALNAMEID", "varchar(255)"));
 				} else {
 					// check column exists in table
-
+					if(!allCols.contains("PHYSICALNAMEID") && !allCols.contains("PHYSICALNAMEID".toLowerCase())) {
+						String sql = queryUtil.alterTableAddColumn(tableName, "PHYSICALNAMEID", "varchar(255)");
+						logger.info("Running sql " + sql);
+						executeSql(conn, sql);
+					}
 				}
-			}
-			
-			if(!conn.getAutoCommit()) {
-				conn.commit();
 			}
 		}
 	}
@@ -610,7 +731,7 @@ public class MasterDatabaseUtility {
 	public static List<Map<String, Object>> getDatabaseConnections(List<String> localConceptIds, List<String> databaseFilter) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
-		List<Map<String, Object>> returnData = new Vector<>();
+		List<Map<String, Object>> returnData = new ArrayList<>();
 		
 		/*
 		 * Grab all the matching tables and columns based on the logical names
@@ -623,8 +744,8 @@ public class MasterDatabaseUtility {
 		// that is a possible join
 		Map<String, Object[]> parentEquivMap = new HashMap<>();
 		Set<String> parentIds = new HashSet<String>();
-		List<String> idsForRelationships = new Vector<>();
-		List<String> idsForProperties = new Vector<>();
+		List<String> idsForRelationships = new ArrayList<>();
+		List<String> idsForProperties = new ArrayList<>();
 		
 		// this will give me all the tables that have the logical name or 
 		// have a column with the logical name 
@@ -1947,7 +2068,7 @@ public class MasterDatabaseUtility {
 				if(engineLogicalNames.containsKey(uniqueName)) {
 					logicalNames = engineLogicalNames.get(uniqueName);
 				} else {
-					logicalNames = new Vector<>();
+					logicalNames = new ArrayList<>();
 					// store in the map
 					engineLogicalNames.put(uniqueName, logicalNames);
 				}
@@ -2062,7 +2183,7 @@ public class MasterDatabaseUtility {
 		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
 		
-		List<String> retArr = new Vector<>();
+		List<String> retArr = new ArrayList<>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -2314,7 +2435,7 @@ public class MasterDatabaseUtility {
 	public static List<String[]> getConceptualConnections(List<String> conceptualNames, Collection<String> dbFilters) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
-		List<String[]> results = new Vector<>();
+		List<String[]> results = new ArrayList<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
@@ -2364,7 +2485,7 @@ public class MasterDatabaseUtility {
 	public static List<String[]> getConceptualToLogicalToPhysicalModel(List<String> conceptualNames, Collection<String> databaseFilters) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
-		List<String[]> results = new Vector<>();
+		List<String[]> results = new ArrayList<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
@@ -2452,7 +2573,7 @@ public class MasterDatabaseUtility {
 				String targetConceptual = rs.getString(6);
 				String targetPhysical = rs.getString(7);
 
-				List<String> targetPhysicals = new Vector<>();
+				List<String> targetPhysicals = new ArrayList<>();
 				if (map.containsKey(sourcePhysical)) {
 					targetPhysicals = map.get(sourcePhysical);
 				}
