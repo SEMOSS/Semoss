@@ -60,6 +60,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.ProjectUtils;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -98,6 +99,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			projectName = projectId;
 		}
 		
+		boolean hasPortal = Boolean.parseBoolean(prop.getProperty(Settings.PUBLIC_HOME_ENABLE));
+		String portalName = prop.getProperty(Settings.PORTAL_NAME);
+		
 		boolean reloadInsights = false;
 		if(prop.containsKey(Constants.RELOAD_INSIGHTS)) {
 			String booleanStr = prop.get(Constants.RELOAD_INSIGHTS).toString();
@@ -111,12 +115,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.info("Security database already contains project with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else if(!projectExists) {
-			addProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global, user);
+			addProject(projectId, projectName, typeAndCost[0], typeAndCost[1], hasPortal, portalName, global, user);
 		} else if(projectExists) {
 			// delete values if currently present
 			deleteInsightsFromProjectForRecreation(projectId);
 			// update project properties anyway ... in case global was shifted for example
-			updateProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global);
+			updateProject(projectId, projectName, typeAndCost[0], typeAndCost[1], hasPortal, portalName, global);
 		}
 		
 		logger.info("Security database going to add project with alias = " + Utility.cleanLogString(projectName));
@@ -426,15 +430,21 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Add a project into the security database
-	 * Default to set as not global
+	 * 
+	 * @param projectID
+	 * @param projectName
+	 * @param projectType
+	 * @param projectCost
+	 * @param hasPortal
+	 * @param portalName
+	 * @param global
+	 * @param user
 	 */
-	public static void addProject(String projectId, String projectName, String projectType, String projectCost, User user) {
-		addProject(projectId, projectName, projectType, projectCost, !securityEnabled, user);
-	}
-	
-	public static void addProject(String projectID, String projectName, String projectType, String projectCost, boolean global, User user) {
-		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
+	public static void addProject(String projectID, String projectName, 
+			String projectType, String projectCost, 
+			boolean hasPortal, String portalName,
+			boolean global, User user) {
+		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, HASPORTAL, PORTALNAME) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
@@ -457,6 +467,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
 			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setBoolean(parameterIndex++, hasPortal);
+			if(portalName != null) {
+				ps.setString(parameterIndex++, portalName);
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			}
 			ps.execute();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -514,8 +530,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public static void updateProject(String projectID, String projectName, String projectType, String projectCost, boolean global) {
-		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=? WHERE PROJECTID=?";
+	public static void updateProject(String projectID, String projectName, String projectType, String projectCost, boolean hasPortal, String portalName, boolean global) {
+		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=?, HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
 
 		PreparedStatement ps = null;
 		try {
@@ -525,6 +541,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectType);
 			ps.setString(parameterIndex++, projectCost);
 			ps.setBoolean(parameterIndex++, global);
+			ps.setBoolean(parameterIndex++, hasPortal);
+			if(portalName != null) {
+				ps.setString(parameterIndex++, portalName);
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			}
 			ps.setString(parameterIndex++, projectID);
 			ps.execute();
 			securityDb.commit();

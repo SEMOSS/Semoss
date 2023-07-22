@@ -10,6 +10,7 @@ public class Settings {
 	public static final String RESERVED_JAVA_MEM = "RESERVED_JAVA_MEM";
 	public static final String PUBLIC_HOME = "PUBLIC_HOME";
 	public static final String PUBLIC_HOME_ENABLE = "PUBLIC_HOME_ENABLE";
+	public static final String PORTAL_NAME = "PORTAL_NAME";
 	public static final String COPY_PROJECT = "COPY_PROJECT";
 	public static final String JAVA_HOME = "JAVA_HOME";
 	public static final String MVN_HOME = "MVN_HOME";

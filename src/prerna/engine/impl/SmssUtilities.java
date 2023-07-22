@@ -17,6 +17,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -432,12 +433,20 @@ public class SmssUtilities {
 	/**
 	 * Generate the SMSS for the project
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param projectId
+	 * @param projectName
+	 * @param hasPortal
+	 * @param portalName
+	 * @param gitProvider
+	 * @param gitCloneUrl
+	 * @param forceInsightDatabaseType
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryProjectSmss(String projectId, String projectName, String gitProvider, String gitCloneUrl, RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
+	public static File createTemporaryProjectSmss(String projectId, String projectName, 
+			boolean hasPortal, String portalName,
+			String gitProvider, String gitCloneUrl, 
+			RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
 		String projectTempSmssLoc = Utility.normalizePath( getProjectTempSmssLoc(projectId, projectName));
 
 		// i am okay with deleting the .temp if it exists
@@ -463,13 +472,19 @@ public class SmssUtilities {
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
 			bufferedWriter.write(Constants.PROJECT_TYPE + tab + prerna.project.impl.Project.class.getName() + newLine);
+			// git details
 			if(gitProvider != null && !(gitProvider=gitProvider.trim()).isEmpty()) {
 				bufferedWriter.write(Constants.PROJECT_GIT_PROVIDER + tab + gitProvider + newLine);
 			}
 			if(gitCloneUrl != null && !(gitCloneUrl=gitCloneUrl.trim()).isEmpty()) {
 				bufferedWriter.write(Constants.PROJECT_GIT_CLONE + tab + gitCloneUrl + newLine);
 			}
-			
+			// portal details
+			bufferedWriter.write(Settings.PUBLIC_HOME_ENABLE + tab + hasPortal + newLine);
+			if(portalName != null && !portalName.isEmpty()) {
+				bufferedWriter.write(Settings.PORTAL_NAME + tab + portalName + newLine);
+			}
+
 			String rdbmsTypeStr = null;
 			RdbmsTypeEnum rdbmsType = null;
 			if(forceInsightDatabaseType != null) {

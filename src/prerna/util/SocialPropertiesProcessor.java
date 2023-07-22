@@ -137,6 +137,15 @@ public class SocialPropertiesProcessor {
 		}
 	}
 	
+	public void updateAllProperties(String newFileContents) {
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+
+	}
+	
 	public void reloadProps() {
 		// null out values to be reset
 		this.loadSocialProperties();
