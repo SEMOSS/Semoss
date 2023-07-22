@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -21,6 +24,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
@@ -37,6 +41,8 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractSecurityUtils {
 
+	private static final Logger logger = LogManager.getLogger(AbstractSecurityUtils.class);
+	
 	static RDBMSNativeEngine securityDb;
 	static boolean securityEnabled = false;
 	@Deprecated
@@ -225,19 +231,31 @@ public abstract class AbstractSecurityUtils {
 		// on h2 when you renmae a column it doens't update/change anything on the index name
 		// also had some invalid indexes on certain tables
 		if(allowIfExistsIndexs) {
-			securityDb.removeData(queryUtil.dropIndexIfExists("INSIGHT_ENGINEID_INDEX", "INSIGHT"));
-			securityDb.removeData(queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT"));
-			securityDb.removeData(queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA"));
-			securityDb.removeData(queryUtil.dropIndexIfExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION"));
+			String sql = queryUtil.dropIndexIfExists("INSIGHT_ENGINEID_INDEX", "INSIGHT");
+			logger.info("Running sql " + sql);
+			securityDb.removeData(sql);
+			sql = queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT");
+			logger.info("Running sql " + sql);
+			securityDb.removeData(sql);
+			sql = queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA");
+			logger.info("Running sql " + sql);
+			securityDb.removeData(sql);
+			sql = queryUtil.dropIndexIfExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION");
+			logger.info("Running sql " + sql);
+			securityDb.removeData(sql);
 
 			// these are right name - but were added to wrong table
 			// so will do an exists check anyway
 			try {
 				if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", database, schema)) {
-					securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT"));
+					sql = queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT");
+					logger.info("Running sql " + sql);
+					securityDb.removeData(sql);
 				}
 				if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
-					securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT"));
+					sql = queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT");
+					logger.info("Running sql " + sql);
+					securityDb.removeData(sql);
 				}
 			} catch(UnsupportedOperationException ignore) {
 				// ignore
@@ -245,22 +263,34 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			// see if index exists
 			if(queryUtil.indexExists(securityDb, "INSIGHT_ENGINEID_INDEX", "INSIGHT", database, schema)) {
-				securityDb.removeData(queryUtil.dropIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT"));
+				String sql = queryUtil.dropIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
 			}
 			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", database, schema)) {
-				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT"));
+				String sql = queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
 			}
 			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA", database, schema)) {
-				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA"));
+				String sql = queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
 			}
 			if(queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", database, schema)) {
-				securityDb.removeData(queryUtil.dropIndex("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION"));
+				String sql = queryUtil.dropIndex("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
 			}
 			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", database, schema)) {
-				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT"));
+				String sql = queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
 			}
 			if(queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", database, schema)) {
-				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT"));
+				String sql = queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT");
+				logger.info("Running sql " + sql);
+				securityDb.removeData(sql);
 			}
 		}
 		
@@ -272,12 +302,16 @@ public abstract class AbstractSecurityUtils {
 				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
 				"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(conn, "ENGINE", database, schema)) {
 				// make the table
-				securityDb.insertData(queryUtil.createTable("ENGINE", colNames, types));
+				String sql = queryUtil.createTable("ENGINE", colNames, types);
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 		}
 		// UPDATE TO CHECK ALL COLUMNS! - ADDED 07/07/2023
@@ -287,6 +321,7 @@ public abstract class AbstractSecurityUtils {
 				String col = colNames[i];
 				if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 					String addColumnSql = queryUtil.alterTableAddColumn("ENGINE", col, types[i]);
+					logger.info("Running sql " + addColumnSql);
 					securityDb.insertData(addColumnSql);
 				}
 			}
@@ -295,28 +330,50 @@ public abstract class AbstractSecurityUtils {
 			{
 				if(allCols.contains("TYPE") || allCols.contains("type")) {
 					String dropTypeColumn = queryUtil.alterTableDropColumn("ENGINE", "TYPE");
+					logger.info("Running sql " + dropTypeColumn);
 					securityDb.insertData(dropTypeColumn);
 				}
 			}
+			
+			securityDb.insertData("UPDATE ENGINE SET ENGINETYPE='"+IEngine.CATALOG_TYPE+"' WHERE ENGINETYPE IS NULL");
 		}
 		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID"));
+			String sql = queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "ENGINE_GLOBAL_INDEX", "ENGINE", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL"));
+				String sql = queryUtil.createIndex("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINE_DISCOVERABLE_INDEX", "ENGINE", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE"));
+				String sql = queryUtil.createIndex("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINENAME_INDEX", "ENGINE", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME"));
+				String sql = queryUtil.createIndex("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINEID_INDEX", "ENGINE", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID"));
+				String sql = queryUtil.createIndex("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 		}
 		
@@ -329,29 +386,41 @@ public abstract class AbstractSecurityUtils {
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("METAORDER") && !allCols.contains("metaorder")) {
 				if(allowIfExistsTable) {
-					securityDb.removeData(queryUtil.dropTableIfExists("ENGINEMETA"));
+					String sql = queryUtil.dropTableIfExists("ENGINEMETA");
+					logger.info("Running sql " + sql);
+					securityDb.removeData(sql);
 				} else if(queryUtil.tableExists(conn, "ENGINEMETA", database, schema)) {
-					securityDb.removeData(queryUtil.dropTable("ENGINEMETA"));
+					String sql = queryUtil.dropTable("ENGINEMETA");
+					logger.info("Running sql " + sql);
+					securityDb.removeData(sql);
 				}
 			}
 		}
 		colNames = new String[] { "ENGINEID", "METAKEY", "METAVALUE", "METAORDER" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
 		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types));
+			String sql = queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types);
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(conn, "ENGINEMETA", database, schema)) {
 				// make the table
-				securityDb.insertData(queryUtil.createTable("ENGINEMETA", colNames, types));
+				String sql = queryUtil.createTable("ENGINEMETA", colNames, types);
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 		}
 		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID"));
+			String sql = queryUtil.createIndexIfNotExists("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID"));
+				String sql = queryUtil.createIndex("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 		}
 		
@@ -360,12 +429,16 @@ public abstract class AbstractSecurityUtils {
 		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
 		defaultValues = new Object[]{null, null, null, true, false};
 		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues));
+			String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues);
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
 		} else {
 			// see if table exists
 			if(!queryUtil.tableExists(conn, "ENGINEPERMISSION", database, schema)) {
 				// make the table
-				securityDb.insertData(queryUtil.createTable("ENGINEPERMISSION", colNames, types));
+				String sql = queryUtil.createTable("ENGINEPERMISSION", colNames, types);
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 		}
 		// TEMPORARY CHECK! - ADDED 03/17/2021
@@ -375,34 +448,62 @@ public abstract class AbstractSecurityUtils {
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
 				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
-					securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
+					String sql = queryUtil.alterTableAddColumnIfNotExists("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME);
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
 				} else {
-					securityDb.insertData(queryUtil.alterTableAddColumn("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
+					String sql = queryUtil.alterTableAddColumn("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME);
+					logger.info("Running sql " + sql);
+					securityDb.insertData(sql);
 				}
 			}
 		}
 		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID"));
+			String sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
+			
+			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID");
+			logger.info("Running sql " + sql);
+			securityDb.insertData(sql);
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION"));
+				String sql = queryUtil.createIndex("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY"));
+				String sql = queryUtil.createIndex("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
+				String sql = queryUtil.createIndex("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE"));
+				String sql = queryUtil.createIndex("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", database, schema)) {
-				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID"));
+				String sql = queryUtil.createIndex("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID");
+				logger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			}
 		}
 
