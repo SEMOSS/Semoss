@@ -164,6 +164,8 @@ public enum ReactorKeysEnum {
 	PLACE_HOLDER_DATA("placeHolderData",						"Updated place holder information of the template"),
 	PLANNER("planner", 											"The planner"),
 	PORT("port",												"The connection port."),
+	PORTAL("portal", 											"Boolean value if this project has a portal"),
+	PORTAL_NAME("portalName", 									"Name of the portal within a project"),
 	POSITION_MAP("positionMap", 								"Map containing positions for elements"),
 	PRAGMA("pragma",											"Directives that can be provided with the query like cache"),
 	PREDEFINED_PARAM_STRUCT("preDefinedParamStruct",			"Map containing the details for a predefined paramter"),	
