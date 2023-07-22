@@ -445,7 +445,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			boolean hasPortal, String portalName,
 			boolean global, User user) {
 		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, HASPORTAL, PORTALNAME) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?)";
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
