@@ -58,6 +58,10 @@ public class SocialPropertiesUtil {
 		SocialPropertiesUtil.processor.updateProviderProperties(provider, mods);
 	}
 	
+	public void updateAllProperties(String newFileContents) {
+		SocialPropertiesUtil.processor.updateAllProperties(newFileContents);
+	}
+	
 	public Map<String, Boolean> getLoginsAllowed() {
 		return SocialPropertiesUtil.processor.getLoginsAllowed();
 	}
