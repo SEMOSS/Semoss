@@ -155,13 +155,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Add a database into the security database
-	 * Default to set as not global
+	 * 
+	 * @param databaseId
+	 * @param databaseName
+	 * @param dbType
+	 * @param dbSubType
+	 * @param dbCost
+	 * @param global
+	 * @param user
 	 */
-	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbSubType, String dbCost, User user) {
-		addDatabase(databaseId, databaseName, dbType, dbSubType, dbCost, !securityEnabled, user);
-	}
-	
 	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbSubType, String dbCost, boolean global, User user) {
 		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";

@@ -45,12 +45,39 @@ public class ProjectHelper {
 
 	}
 
-	public static IProject generateNewProject(String projectName, String gitProvider, String gitCloneUrl, User user, Logger logger) {
+	/**
+	 * 
+	 * @param projectName
+	 * @param hasPortal
+	 * @param portalName
+	 * @param gitProvider
+	 * @param gitCloneUrl
+	 * @param user
+	 * @param logger
+	 * @return
+	 */
+	public static IProject generateNewProject(String projectName, 
+			boolean hasPortal, String portalName,
+			String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		String projectId = UUID.randomUUID().toString();
-		return generateNewProject(projectId, projectName, gitProvider, gitCloneUrl, user, logger);
+		return generateNewProject(projectId, projectName, hasPortal, portalName, gitProvider, gitCloneUrl, user, logger);
 	}
 
-	public static IProject generateNewProject(String projectId, String projectName, String gitProvider, String gitCloneUrl, User user, Logger logger) {
+	/**
+	 * 
+	 * @param projectId
+	 * @param projectName
+	 * @param hasPortal
+	 * @param portalName
+	 * @param gitProvider
+	 * @param gitCloneUrl
+	 * @param user
+	 * @param logger
+	 * @return
+	 */
+	public static IProject generateNewProject(String projectId, String projectName, 
+			boolean hasPortal, String portalName, 
+			String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		if(projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
@@ -96,7 +123,7 @@ public class ProjectHelper {
 		try {
 			logger.info("Creating project workspace");
 			// Add database into DIHelper so that the web watcher doesn't try to load as well
-			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, gitProvider, gitCloneUrl, null);
+			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, hasPortal, portalName, gitProvider, gitCloneUrl, null);
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 
 			// Only at end do we add to DIHelper

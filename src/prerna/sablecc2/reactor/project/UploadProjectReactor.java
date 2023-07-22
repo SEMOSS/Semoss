@@ -30,6 +30,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 import prerna.util.upload.UploadInputUtility;
@@ -49,8 +50,8 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		organizeKeys();
 		Logger logger = this.getLogger(CLASS_NAME);
 		int step = 1;
-		 String zipFilePath = UploadInputUtility.getFilePath(this.store,this.insight);
-		
+		String zipFilePath = UploadInputUtility.getFilePath(this.store,this.insight);
+
 		// check security
 		// Need to check this, will the same methods work/enhanced to check the
 		// permissions on project?
@@ -76,7 +77,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
 				throwUserNotPublisherError();
 			}
-			
+
 			if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 				AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 			}
@@ -141,8 +142,11 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		String projectId = null;
 		String projectName = null;
 		String projectType = null;
+		boolean hasPortal = false;
+		String portalName = null;
 		String projectGitProvider = null;
 		String projectGitCloneUrl = null;
+		
 		
 		File tempSmss = null;
 		File tempEngFolder = null;
@@ -158,16 +162,16 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 					|| prop.getProperty(Constants.ENGINE_TYPE) != null) {
 				isLegacy = true;
 			}
-			if (isLegacy) {
-				projectId = prop.getProperty(Constants.ENGINE);
-				projectName = prop.getProperty(Constants.ENGINE_ALIAS);
-				projectType = prop.getProperty(Constants.ENGINE_TYPE);
+			
+			// pull some properties out for creating an smss if legacy format
+			projectId = prop.getProperty(Constants.ENGINE);
+			projectName = prop.getProperty(Constants.ENGINE_ALIAS);
+			projectType = prop.getProperty(Constants.ENGINE_TYPE);
+			hasPortal = Boolean.parseBoolean(prop.getProperty(Settings.PUBLIC_HOME_ENABLE));
+			portalName = prop.getProperty(Settings.PORTAL_NAME);
+			projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
+			projectGitCloneUrl = prop.getProperty(Constants.PROJECT_GIT_CLONE);
 
-			} else {
-				projectId = prop.getProperty(Constants.PROJECT);
-				projectName = prop.getProperty(Constants.PROJECT_ALIAS);
-				projectGitCloneUrl = prop.getProperty(Constants.PROJECT_GIT_CLONE);
-			}
 			logger.info(step + ") Done");
 			step++;
 
@@ -209,7 +213,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 				step++;
 
 				// move smss file
-				tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectGitProvider, projectGitCloneUrl, null);
+				tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, hasPortal, portalName, projectGitProvider, projectGitCloneUrl, null);
 				FileUtils.copyFile(tempSmss, finalSmss);
 				tempSmss.delete();
 				logger.info(step + ") Done");

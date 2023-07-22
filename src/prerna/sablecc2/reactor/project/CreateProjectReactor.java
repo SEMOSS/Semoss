@@ -23,17 +23,22 @@ public class CreateProjectReactor extends AbstractReactor {
 	 */
 
 	public CreateProjectReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), 
+				ReactorKeysEnum.PORTAL.getKey(), ReactorKeysEnum.PORTAL_NAME.getKey(),
+				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		this.organizeKeys();
-		String projectName = this.keyValue.get(this.keysToGet[0]);
-		String gitProvider = this.keyValue.get(this.keysToGet[1]);
-		String gitCloneUrl = this.keyValue.get(this.keysToGet[2]);
-		IProject project = ProjectHelper.generateNewProject(projectName, gitProvider, gitCloneUrl, this.insight.getUser(), logger);
+		int index = 0;
+		String projectName = this.keyValue.get(this.keysToGet[index++]);
+		boolean hasPortal = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]));
+		String portalName = this.keyValue.get(this.keysToGet[index++]);
+		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
+		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
+		IProject project = ProjectHelper.generateNewProject(projectName, hasPortal, portalName, gitProvider, gitCloneUrl, this.insight.getUser(), logger);
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), project.getProjectId());
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
