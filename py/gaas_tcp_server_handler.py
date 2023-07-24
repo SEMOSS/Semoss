@@ -20,6 +20,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     self.prefix = self.server.prefix
     self.insight_folder = self.server.insight_folder
     self.log_file = None
+    # need to set timeout here also
+    self.request.settimeout(self.server.timeout*60)
     if self.insight_folder is not None:
       #print(f"starting to log in location {self.insight_folder}/log.txt")
       self.log_file = open(f"{self.insight_folder}/log.txt", "a")
@@ -186,4 +188,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
   def close_request(self):
     print("close request called")
+    
+  def handle_timeout(self):
+    print("handler timeout.. ")
     
