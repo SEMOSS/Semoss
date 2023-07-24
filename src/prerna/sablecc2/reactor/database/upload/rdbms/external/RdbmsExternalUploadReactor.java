@@ -27,11 +27,10 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ACTION_TYPE;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -71,7 +70,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	protected transient Logger logger;
 	protected transient String databaseId;
 	protected transient String databaseName;
-	protected transient IEngine database;
+	protected transient IDatabase database;
 	protected transient File databaseFolder;
 	protected transient File tempSmss;
 	protected transient File smssFile;
@@ -125,7 +124,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		if (databaseId != null && userPassedExisting != null) {
 			existingDatabase = Boolean.parseBoolean(userPassedExisting);
 			
-			IEngine database = Utility.getEngine(databaseId);
+			IDatabase database = Utility.getEngine(databaseId);
 			if(database instanceof IRDBMSEngine) {
 				nativeDatabase = (IRDBMSEngine) database;
 			} else {
@@ -319,7 +318,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		database.setOWL(owlFile.getAbsolutePath());
 		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
 		prop.put("TEMP", "TRUE");
-		((AbstractEngine) database).setProp(prop);
+		database.setProp(prop);
 		database.openDB(null);
 		if (!database.isConnected()) {
 			throw new IllegalArgumentException("Unable to connect to external database");
@@ -469,7 +468,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 	}
 
-	private List<String[]> getPhysicalRelationships(IEngine database) {
+	private List<String[]> getPhysicalRelationships(IDatabase database) {
 		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
 				+ "{?start <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?end <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"

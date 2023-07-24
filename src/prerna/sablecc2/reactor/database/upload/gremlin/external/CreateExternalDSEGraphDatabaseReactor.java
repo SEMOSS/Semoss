@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.upload.gremlin.external;
 import java.io.File;
 import java.io.IOException;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.datastax.DataStaxGraphEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -56,7 +56,7 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 	}
 
 	@Override
-	protected IEngine generateEngine() {
+	protected IDatabase generateEngine() {
 		DataStaxGraphEngine dseEngine = new DataStaxGraphEngine();
 		dseEngine.setEngineId(this.newDatabaseId);
 		dseEngine.setEngineName(this.newDatabaseName);

@@ -32,7 +32,7 @@ import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 /**
@@ -97,7 +97,7 @@ public interface IPlaySheet extends Runnable{
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
-	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IEngine)}, and {@link #setTitle(String)} so that the play 
+	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabase)}, and {@link #setTitle(String)} so that the play 
 	 * sheet is displayed correctly when the view is first created.  It generally creates the model for visualization from 
 	 * the specified engine, then creates the visualization, and finally displays it on the specified desktop pane
 	 * 
@@ -131,7 +131,7 @@ public interface IPlaySheet extends Runnable{
 	 * model was augmented.
 	 * 
 	 * TODO: Uncomment when exposing to other playsheets. Currently just graphs have the functionality in the UI
-	 * @param engine IEngine
+	 * @param engine IDatabase
 	 */
 //	public void undoView();
 	
@@ -151,15 +151,15 @@ public interface IPlaySheet extends Runnable{
 	 * @param engine the active engine for the play sheet to run its query against.
 	 */
 	@Deprecated
-	public void setRDFEngine(IEngine engine);
+	public void setRDFEngine(IDatabase engine);
 
 	/**
 	 * Gets the RDF engine for the play sheet to run its query against.  Can be any of the active engines, all of which are 
 	 * stored in DIHelper
 	
 	
-	 * @return IEngine */
-//	public IEngine getRDFEngine();
+	 * @return IDatabase */
+//	public IDatabase getRDFEngine();
 	
 	/**
 	 * Sets the title of the play sheet.  The title is displayed as the text on top of the internal frame that is the play sheet.

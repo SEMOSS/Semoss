@@ -2,7 +2,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.Map;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 
 public abstract class AbstractFutureInterfaceCostProcessor {
 
@@ -26,7 +26,7 @@ public abstract class AbstractFutureInterfaceCostProcessor {
 	 * Define required engines
 	 * @param engines
 	 */
-	public abstract void setCostEngines(IEngine[] engines);
+	public abstract void setCostEngines(IDatabase[] engines);
 
 	/**
 	 * Set the cost framework

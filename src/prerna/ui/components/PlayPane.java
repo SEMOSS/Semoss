@@ -106,7 +106,7 @@ import com.ibm.icu.util.StringTokenizer;
 import aurelienribon.ui.components.Button;
 import aurelienribon.ui.css.Style;
 import aurelienribon.ui.css.swing.SwingStyle;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.ServiceSelectPanel;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
@@ -471,7 +471,7 @@ public class PlayPane extends JFrame {
 		DefaultListModel listModel = new DefaultListModel();
 		while (tokens.hasMoreTokens()) {
 			String engineName = tokens.nextToken();
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 			if (engine.isConnected())
 				listModel.addElement(engineName);
 		}

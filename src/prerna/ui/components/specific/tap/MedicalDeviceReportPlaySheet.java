@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.IndividualSystemTransitionReportWriter;
@@ -59,7 +59,7 @@ public class MedicalDeviceReportPlaySheet extends TablePlaySheet{
 
 		//instantiates the engines to 
 		try{
-			IEngine tapCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			IDatabase tapCore = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(tapCore==null)
 				throw new NullPointerException();
 		} catch(RuntimeException e) {
@@ -68,7 +68,7 @@ public class MedicalDeviceReportPlaySheet extends TablePlaySheet{
 		}
 
 		try{
-			IEngine tapDevice = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
+			IDatabase tapDevice = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
 			if(tapDevice==null)
 				throw new NullPointerException();
 		} catch(RuntimeException e) {
@@ -150,7 +150,7 @@ public class MedicalDeviceReportPlaySheet extends TablePlaySheet{
 	//Method that runs the query for determining the interfacing nameplates and returns them to a HashMap. Uses the tap device engine to do so.
 	public void createInterfaceList() {
 
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
 		ISelectWrapper wrapper = Utility.processQuery(engine, InterfaceQuery);
 		String[] row = wrapper.getVariables(); 	   
 
@@ -216,7 +216,7 @@ public class MedicalDeviceReportPlaySheet extends TablePlaySheet{
 	public void createCernerApprovedList(){
 
 
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
 		ISelectWrapper wrapper = Utility.processQuery(engine, CernerApprovedQuery);
 		String[] row = wrapper.getVariables();
 
@@ -243,7 +243,7 @@ public class MedicalDeviceReportPlaySheet extends TablePlaySheet{
 	//Method that runs the query for determining the RTM required nameplates and returns them to a HashMap. Uses the tap device engine to do so.
 	public void createRTMList(){
 
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
 		ISelectWrapper wrapper = Utility.processQuery(engine, RTMMandatedQuery);
 		String[] row = wrapper.getVariables();
 
@@ -373,7 +373,7 @@ public class MedicalDeviceReportPlaySheet extends TablePlaySheet{
 
 	public void createMTFList() {
 
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Device_Data");
 		ISelectWrapper wrapper = Utility.processQuery(engine, MTFQuery);
 		String[] row = wrapper.getVariables();
 

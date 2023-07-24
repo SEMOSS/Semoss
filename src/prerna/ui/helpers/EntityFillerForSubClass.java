@@ -36,8 +36,8 @@ import java.util.Vector;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -48,7 +48,7 @@ import prerna.util.Utility;
 public class EntityFillerForSubClass implements Runnable {
 	public ArrayList<JComboBox> boxes;
 	public String parent;
-	public IEngine engine;
+	public IDatabase engine;
 	public String engineName;
 	String sparqlQuery = "SELECT ?entity WHERE {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <"; 
 	
@@ -63,8 +63,8 @@ public class EntityFillerForSubClass implements Runnable {
 		if (entityNS != null) {
 			sparqlQuery = sparqlQuery + entityNS + "/" + parent + "> ;}";
 			names = Utility.getVectorOfReturn(sparqlQuery, engine, true);
-			if(engine instanceof AbstractEngine){
-				Vector<String> baseNames = Utility.getVectorOfReturn(sparqlQuery, ((AbstractEngine)engine).getBaseDataEngine(), true);
+			if(engine instanceof AbstractDatabase){
+				Vector<String> baseNames = Utility.getVectorOfReturn(sparqlQuery, engine.getBaseDataEngine(), true);
 				for(String name: baseNames) 
 					if(!names.contains(name)) 
 						names.addAll(baseNames);

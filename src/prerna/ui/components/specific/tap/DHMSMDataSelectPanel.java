@@ -40,7 +40,7 @@ import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
 import aurelienribon.ui.css.Style;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.main.listener.specific.tap.DataCheckBoxSelectorListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.SelectScrollList;
@@ -52,7 +52,7 @@ public class DHMSMDataSelectPanel extends JPanel {
 	public JCheckBox allDataCheck, hsdCheck, hssCheck, fhpCheck, dhmsmCheck;
 	JButton updateProvideDataButton, updateConsumeDataButton;
 
-	public DHMSMDataSelectPanel(IEngine engine, DHMSMSystemSelectPanel systemSelectPanel) {
+	public DHMSMDataSelectPanel(IDatabase engine, DHMSMSystemSelectPanel systemSelectPanel) {
 		SysOptCheckboxListUpdater checkboxListUpdater = new SysOptCheckboxListUpdater(engine);
 		createView(checkboxListUpdater, systemSelectPanel);
 	}

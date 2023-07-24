@@ -30,18 +30,18 @@ package prerna.ui.components.specific.tap;
 import java.io.IOException;
 import java.util.Map;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.poi.specific.TAPLegacySystemDispositionReportWriter;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 
 public class AllLegacySystemsDispositionProcessor {
 
-	private IEngine TAP_Core_Data;
+	private IDatabase TAP_Core_Data;
 
 	public void processReports() throws IOException
 	{
-		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(TAP_Core_Data == null) {
 			throw new IOException("Could not find TAP_Core_Data db");
 		}

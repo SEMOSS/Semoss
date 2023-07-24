@@ -12,7 +12,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.util.QueryStructConverter;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -26,7 +26,7 @@ public class DataMakerComponent {
 	private String dataFrameLocation;
 	private QueryStruct qs; // this is now a formal object! :)
 	private String engineName;
-	private IEngine engine;
+	private IDatabase engine;
 	private List<ISEMOSSTransformation> preTrans = new ArrayList<ISEMOSSTransformation>();
 	private List<ISEMOSSTransformation> postTrans = new ArrayList<ISEMOSSTransformation>();
 	private List<ISEMOSSAction> actions = new ArrayList<ISEMOSSAction>();
@@ -49,7 +49,7 @@ public class DataMakerComponent {
 	 * @param engine					The engine object
 	 * @param query						The query corresponding to the data maker component to be run on the engine
 	 */
-	public DataMakerComponent(IEngine engine, String query){
+	public DataMakerComponent(IDatabase engine, String query){
 		this.engine = engine;
 		this.engineName = engine.getEngineId();
 		this.query = query;
@@ -70,7 +70,7 @@ public class DataMakerComponent {
 	 * @param engine					The engine object
 	 * @param metamodelData				The map to build the query based on the OWL
 	 */
-	public DataMakerComponent(IEngine engine, QueryStruct qs){
+	public DataMakerComponent(IDatabase engine, QueryStruct qs){
 		this.engine = engine;
 		this.engineName = engine.getEngineId();
 		this.qs = qs;
@@ -120,7 +120,7 @@ public class DataMakerComponent {
 	 * Getter for the engine of the component
 	 * @return
 	 */
-	public IEngine getEngine() {
+	public IDatabase getEngine() {
 		if(this.engine == null) {
 			this.engine = Utility.getEngine(this.engineName);
 		}

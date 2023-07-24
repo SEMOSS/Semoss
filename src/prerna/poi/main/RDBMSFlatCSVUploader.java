@@ -16,8 +16,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
 import cern.colt.Arrays;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ACTION_TYPE;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.test.TestUtilityMethods;
@@ -67,7 +67,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	 * @return									The new engine created
 	 * @throws IOException 
 	 */
-	public IEngine importFileWithOutConnection(ImportOptions options) throws IOException {
+	public IDatabase importFileWithOutConnection(ImportOptions options) throws IOException {
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
 		String appID = options.getEngineID();

@@ -56,7 +56,7 @@ import com.google.gson.reflect.TypeToken;
 
 import aurelienribon.ui.css.Style;
 import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.SysSiteOptBtnListener;
@@ -436,7 +436,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	public List<Map<String,String>> runDefaultOpt(Map<String, Object> webDataHash) {
 
 		//check to make sure site engine is loaded
-		IEngine siteEngine = (IEngine) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(siteEngineName));
+		IDatabase siteEngine = (IDatabase) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(siteEngineName));
 		if(siteEngine == null) {
 			LOGGER.error("Missing databases. Please make sure you have: TAP_Core_Data_Data and TAP_Site_Data");
 			return new ArrayList<Map<String,String>>();
@@ -483,7 +483,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		//TODO edit what is being sent in from web to remove optimization and number of points
 
 		//check to make sure site engine is loaded
-		IEngine siteEngine = (IEngine) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(siteEngineName));
+		IDatabase siteEngine = (IDatabase) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(siteEngineName));
 		if(siteEngine == null) {
 			LOGGER.error("Missing databases. Please make sure you have: TAP_Core_Data_Data and TAP_Site_Data");
 			return new ArrayList<Map<String,String>>();
@@ -530,7 +530,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	 * @param capOrBPURI		String representing the capability or business process URI to limit to.
 	 * @return					Boolean representing whether the optimizer could be set up
 	 */
-	private boolean setUpOpt(IEngine siteEngine, double yearBudget, int years, double infl, double disc, double centralPctOfBudget, double trainingPctOfBudget, int hourlyCost, String optType, boolean useDHMSMCap, String capOrBPURI) {
+	private boolean setUpOpt(IDatabase siteEngine, double yearBudget, int years, double infl, double disc, double centralPctOfBudget, double trainingPctOfBudget, int hourlyCost, String optType, boolean useDHMSMCap, String capOrBPURI) {
 		opt = new SysSiteOptimizer();
 		if(!opt.setOptimizationType(optType)) //savings, roi, or irr
 			return false;

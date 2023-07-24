@@ -33,13 +33,13 @@ import java.util.Vector;
 
 import javax.swing.JCheckBox;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.swing.custom.SelectScrollList;
 
 public class HighSystemCheckBoxSelectorListener implements ActionListener {
 
-	protected IEngine engine;
+	protected IDatabase engine;
 	protected JCheckBox allElemCheckBox;
 	protected SelectScrollList scrollList;
 	protected String type;
@@ -47,7 +47,7 @@ public class HighSystemCheckBoxSelectorListener implements ActionListener {
 	JCheckBox ehrCoreCheckBox;
 	Vector<String> ehrCoreSysList;
 	
-	public HighSystemCheckBoxSelectorListener(IEngine engine, SelectScrollList scrollList,JCheckBox allElemCheckBox,JCheckBox ehrCoreCheckBox) {
+	public HighSystemCheckBoxSelectorListener(IDatabase engine, SelectScrollList scrollList,JCheckBox allElemCheckBox,JCheckBox ehrCoreCheckBox) {
 		this.engine = engine;
 		this.scrollList = scrollList;
 		this.allElemCheckBox = allElemCheckBox;
@@ -106,7 +106,7 @@ public class HighSystemCheckBoxSelectorListener implements ActionListener {
 	 * @param sparqlQuery 		String containing the query to get all capabilities for a selected functional area
 	 * @return capabilities		Vector<String> containing list of all capabilities for a selected functional area
 	 */
-	public Vector<String> getList(IEngine engine, String type, String sparqlQuery)
+	public Vector<String> getList(IDatabase engine, String type, String sparqlQuery)
 	{
 		Vector<String> retList=new Vector<String>();
 		try{

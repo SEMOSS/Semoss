@@ -35,7 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.bigdata.rdf.model.BigdataURIImpl;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -48,12 +48,12 @@ import prerna.util.Utility;
 public class SystemTransitionReport extends TablePlaySheet{
 
 	static final Logger logger = LogManager.getLogger(SystemTransitionReport.class);
-	private IEngine TAP_Core_Data;
+	private IDatabase TAP_Core_Data;
 
 	@Override
 	public void createData() {
 		try{
-			TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(TAP_Core_Data==null)
 				throw new NullPointerException();
 		} catch(RuntimeException e) {
@@ -94,7 +94,7 @@ public class SystemTransitionReport extends TablePlaySheet{
 		Utility.showMessage("System Transition Reports Finished! Files located in:\n" +fileLoc);
 	}
 
-	private ISelectWrapper processQuery(IEngine engine, String query){
+	private ISelectWrapper processQuery(IDatabase engine, String query){
 		logger.info("PROCESSING QUERY: " + query);
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

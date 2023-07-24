@@ -38,7 +38,7 @@ import java.util.Iterator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.FactSheetProcessor;
@@ -68,11 +68,11 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 	
 	private double percentDataCreatedDHMSMProvide = 0.0, percentBLUCreatedDHMSMProvide = 0.0;
 	
-	private IEngine TAP_Core_Data;
-	private IEngine TAP_Cost_Data;
-	private IEngine TAP_Site_Data;
-	private IEngine FutureDB;
-	private IEngine FutureCostDB;
+	private IDatabase TAP_Core_Data;
+	private IDatabase TAP_Cost_Data;
+	private IDatabase TAP_Site_Data;
+	private IDatabase FutureDB;
+	private IDatabase FutureCostDB;
 	
 	ArrayList<String> systemList = new ArrayList<String>();
 	ArrayList<String> lpiSystemList = new ArrayList<String>();
@@ -80,19 +80,19 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 	ArrayList<String> highSystemList = new ArrayList<String>();	
 
 	public DHMSMDispositionFactSheetProcessor() throws IOException{
-		TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		TAP_Cost_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(TAP_Cost_Data==null) {
 			throw new IOException("TAP_Cost_Data database not found");
 		}
-		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(TAP_Core_Data==null) {
 				throw new IOException("TAP_Core_Data database not found");
 		}
-		FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+		FutureDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(FutureDB==null) {
 			throw new IOException("FutureDB database not found");
 		}
-		FutureCostDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureCostDB");
+		FutureCostDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureCostDB");
 		if(FutureCostDB==null) {
 				throw new IOException("FutureCostDB database not found");
 		}
@@ -102,7 +102,7 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 	public boolean retrieveDatabases() {
 		boolean success = true;
 		try{
-			TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(TAP_Core_Data==null)
 				throw new IOException("Database not found");
 		} catch(IOException e) {
@@ -111,7 +111,7 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		}
 		
 		try{
-			FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+			FutureDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureDB");
 			if(FutureDB==null)
 				throw new IOException("Database not found");
 		} catch(IOException e) {
@@ -310,7 +310,7 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		writer.exportFactSheets(fileLoc, systemDataHash, devICDList.size(), decomICDList.size(), sustainICDList.size());
 	}
 	
-	private HashMap<String, Object> getQueryDataWithHeaders(IEngine engine, String query){
+	private HashMap<String, Object> getQueryDataWithHeaders(IDatabase engine, String query){
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);

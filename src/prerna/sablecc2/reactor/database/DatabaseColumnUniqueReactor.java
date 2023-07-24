@@ -8,7 +8,7 @@ import java.util.Vector;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -46,7 +46,7 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 			}
 		}
 		
-		IEngine engine = Utility.getEngine(engineId);
+		IDatabase engine = Utility.getEngine(engineId);
 		
 		long nRow = 0;
 		long uniqueNRow = 0;

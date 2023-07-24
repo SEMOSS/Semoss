@@ -51,9 +51,8 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.util.FileManager;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -61,7 +60,7 @@ import prerna.util.Utility;
 /**
  * References the RDF source and uses the Jena API to query a database stored in an RDF file (.jnl file).
  */
-public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
+public class RDFFileJenaEngine extends AbstractDatabase {
 	
 	Model jenaModel = null;
 	static final Logger logger = LogManager.getLogger(RDFFileJenaEngine.class.getName());
@@ -126,7 +125,7 @@ public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 	 * @return the type of the engine */
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return IEngine.ENGINE_TYPE.JENA;
+		return IDatabase.ENGINE_TYPE.JENA;
 	}
 
 	/**

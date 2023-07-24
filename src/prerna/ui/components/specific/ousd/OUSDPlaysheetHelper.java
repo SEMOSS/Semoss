@@ -11,11 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
-import prerna.om.OldInsight;
-import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.Constants;
@@ -205,11 +201,11 @@ public final class OUSDPlaysheetHelper {
 		return granularReturnMap;
 	}
 
-	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
+	public static OUSDTimeline buildTimeline(IDatabase engine, String timelineName) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
 		return buildTimeline(engine, timelineName, null);
 	}
 
-	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName, String owner) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
+	public static OUSDTimeline buildTimeline(IDatabase engine, String timelineName, String owner) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
 
 		timelineName = timelineName.toUpperCase().replace(" ", "_");
 
@@ -233,7 +229,7 @@ public final class OUSDPlaysheetHelper {
 		return timeline;
 	}
 
-	private static OUSDTimeline fillTimeline(OUSDTimeline timeline, IEngine engine, String owner){
+	private static OUSDTimeline fillTimeline(OUSDTimeline timeline, IDatabase engine, String owner){
 
 		List<String> systemList = new ArrayList<>();
 
@@ -296,7 +292,7 @@ public final class OUSDPlaysheetHelper {
 		return timeline;
 	}
 
-	public static void buildRiskList(OUSDTimeline timeline, String[] sysList, String systemBindings, IEngine roadmapEngine){
+	public static void buildRiskList(OUSDTimeline timeline, String[] sysList, String systemBindings, IDatabase roadmapEngine){
 		ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
 		String cleanActInsightString = "What clean groups can activities supporting a given E2E be put into?";
 		double failureRate = 0.001;
@@ -383,10 +379,10 @@ public final class OUSDPlaysheetHelper {
 		return combinedMap;
 	}
 	
-	public static IPlaySheet getPlaySheetFromName(String insightName, IEngine mainEngine){
+	public static IPlaySheet getPlaySheetFromName(String insightName, IDatabase mainEngine){
 		return null;
 		
-//		IEngine qEng = mainEngine.getInsightDatabase();
+//		IDatabase qEng = mainEngine.getInsightDatabase();
 //		String query = "SELECT ID FROM QUESTION_ID WHERE QUESTION_NAME = '"+insightName+"'";
 //		ISelectWrapper it = WrapperManager.getInstance().getSWrapper(qEng, query);
 ////		Integer qID = (Integer) frame.getAllData().get(0)[0];

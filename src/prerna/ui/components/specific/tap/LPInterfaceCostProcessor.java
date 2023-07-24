@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -21,21 +21,21 @@ import prerna.util.DIHelper;
 public class LPInterfaceCostProcessor extends AbstractLPInterfaceProcessor {
 
 	private FutureInterfaceCostProcessor processor;
-	private IEngine tapCost;
-	private IEngine futureDB;
+	private IDatabase tapCost;
+	private IDatabase futureDB;
 	
 	//TODO: move enigne definitions outside class to keep reusable
 	public LPInterfaceCostProcessor() throws IOException {
-		tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		tapCost = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(tapCost == null) {
 			throw new IOException("TAP Cost Data not found.");
 		}
-		futureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+		futureDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(futureDB == null) {
 			throw new IOException("FutureDB engine not found");
 		}
 		processor = new FutureInterfaceCostProcessor();
-		processor.setCostEngines(new IEngine[]{tapCost});
+		processor.setCostEngines(new IDatabase[]{tapCost});
 		processor.setCostFramework(COST_FRAMEWORK.P2P); // should define this via parameter
 		processor.getCostInfo();
 	}

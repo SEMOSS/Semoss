@@ -29,7 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.HashMap;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 
 public interface IAggregationHelper {
 
@@ -39,21 +39,21 @@ public interface IAggregationHelper {
 	
 	// processing and aggregating methods
 	
-	void processData(IEngine engine, HashMap<String, HashMap<String, Object>> data);
+	void processData(IDatabase engine, HashMap<String, HashMap<String, Object>> data);
 	
-	void deleteData(IEngine engine, HashMap<String, HashMap<String, Object>> data);
+	void deleteData(IDatabase engine, HashMap<String, HashMap<String, Object>> data);
 	
-	void processAllRelationshipSubpropTriples(IEngine engine);
+	void processAllRelationshipSubpropTriples(IDatabase engine);
 	
-	void processAllConceptTypeTriples(IEngine engine);
+	void processAllConceptTypeTriples(IDatabase engine);
 	
-	void processNewConcepts(IEngine engine, String newConceptType);
+	void processNewConcepts(IDatabase engine, String newConceptType);
 	
-	void processNewRelationships(IEngine engine, String newRelationshipType);
+	void processNewRelationships(IDatabase engine, String newRelationshipType);
 	
-	void processNewConceptsAtInstanceLevel(IEngine engine, String subject, String object);
+	void processNewConceptsAtInstanceLevel(IDatabase engine, String subject, String object);
 	
-	void processNewRelationshipsAtInstanceLevel(IEngine engine, String subject, String object); 
+	void processNewRelationshipsAtInstanceLevel(IDatabase engine, String subject, String object); 
 	
 	void addToDataHash(Object[] returnTriple);
 	
@@ -63,7 +63,7 @@ public interface IAggregationHelper {
 	
 	void addToAllRelationships(String uri);
 	
-	void writeToOWL(IEngine engine);
+	void writeToOWL(IDatabase engine);
 	
 	// utility methods
 	Object[] processSumValues(String sub, String prop, Object value);

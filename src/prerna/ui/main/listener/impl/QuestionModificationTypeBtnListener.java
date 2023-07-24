@@ -47,7 +47,7 @@ import javax.swing.JTextPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.project.api.IProject;
@@ -199,7 +199,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		editParameterQueryButton.setEnabled(true);
 		deleteParameterQueryButton.setEnabled(true);
 		
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 		Map qMap = (Map) questionModSelector.getSelectedItem();
 		String question = (String) qMap.get(MapComboBoxRenderer.VALUE);
 		String id = (String) qMap.get(MapComboBoxRenderer.KEY);

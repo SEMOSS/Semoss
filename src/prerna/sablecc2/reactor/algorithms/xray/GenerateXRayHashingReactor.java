@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -112,7 +112,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 
 		// go through and write the database
 		for(String databaseId : databaseIds) {
-			IEngine engine = Utility.getEngine(databaseId);
+			IDatabase engine = Utility.getEngine(databaseId);
 			Collection<String> pixelSelectors = MasterDatabaseUtility.getSelectorsWithinDatabaseRDBMS(databaseId);
 			
 			List<String> selectorFilters = null;

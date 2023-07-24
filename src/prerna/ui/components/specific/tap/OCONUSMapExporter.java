@@ -37,7 +37,7 @@ import javax.swing.JDesktopPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.InsightStore;
@@ -71,7 +71,7 @@ public class OCONUSMapExporter {
 	public ArrayList<String> systemsInSiteDB()
 	{
 		ArrayList<String> systemsInSite = new ArrayList<String>();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}} ORDER BY ?System";		
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
@@ -105,7 +105,7 @@ public class OCONUSMapExporter {
 	{
 		String fileLoc = "";
 
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		String id = "OCONUS_Map";
 //		String question = InsightStore.idCount + ". "+ id;
 //		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
@@ -129,7 +129,7 @@ public class OCONUSMapExporter {
 
 					OCONUSMapPlaySheet playSheet = new OCONUSMapPlaySheet();					
 					playSheet.setQuery(query);
-					playSheet.setRDFEngine((IEngine) engine);
+					playSheet.setRDFEngine((IDatabase) engine);
 					playSheet.setQuestionID(id);
 					JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 					playSheet.setJDesktopPane(pane);

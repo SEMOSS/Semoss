@@ -13,9 +13,9 @@ import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -287,7 +287,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 	 * @param logger
 	 * @throws IOException
 	 */
-	private void bulkInsertFile(IEngine database, CSVFileHelper helper, final String TABLE_NAME,
+	private void bulkInsertFile(IDatabase database, CSVFileHelper helper, final String TABLE_NAME,
 			String[] headers, SemossDataType[] types, String[] additionalTypes, 
 			boolean clean) throws IOException {
 
@@ -491,7 +491,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 //	public static void main(String[] args) throws Exception {
 //		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 //		String databaseProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-//		IEngine coreDatabase = new RDBMSNativeEngine();
+//		IDatabase coreDatabase = new RDBMSNativeEngine();
 //		coreDatabase.setEngineId("LocalMasterDatabase");
 //		coreDatabase.openDB(engineProp);
 //		coreDatabase.setEngineId("LocalMasterDatabase");

@@ -150,7 +150,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
@@ -407,8 +407,8 @@ public class Utility {
 		}
 	}
 
-	public static String getFQNodeName(IEngine engine, String URI) {
-		if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+	public static String getFQNodeName(IDatabase engine, String URI) {
+		if (engine.getEngineType().equals(IDatabase.ENGINE_TYPE.RDBMS)) {
 			return getInstanceName(URI) + "__" + getPrimaryKeyFromURI(URI);
 		} else {
 			return getInstanceName(URI);
@@ -455,7 +455,7 @@ public class Utility {
 		
 		// get the selected repository
 		Object [] repos = (Object [])list.getSelectedValues();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[0]+"");
 		// loads all of the labels
 		// http://www.w3.org/2000/01/rdf-schema#label
 		String labelQuery = "";
@@ -464,20 +464,20 @@ public class Utility {
 		StringBuffer bindingStr = new StringBuffer("");
 		for (int i = 0; i<uri.size();i++)
 		{
-			if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+			if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
 				bindingStr = bindingStr.append("(<").append(uri.get(i)).append(">)");
 			else
 				bindingStr = bindingStr.append("<").append(uri.get(i)).append(">");
 		}
 		Hashtable paramHash = new Hashtable();
 		paramHash.put("FILTER_VALUES",  bindingStr.toString());
-		if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+		if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
 		{			
 			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
 					"{{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
 					"}" +"BINDINGS ?Entity {@FILTER_VALUES@}";
 		}
-		else if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
+		else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
 		{
 			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
 					"{{VALUES ?Entity {@FILTER_VALUES@}"+
@@ -532,7 +532,7 @@ public class Utility {
 	 * 
 	 * @return Concept URI.
 	 */
-	public static String getConceptType(IEngine engine, String subjectURI) {
+	public static String getConceptType(IDatabase engine, String subjectURI) {
 		if (!subjectURI.startsWith("http://")) {
 			return "";
 		}
@@ -698,7 +698,7 @@ public class Utility {
 
 		// SesameJenaSelectWrapper selectWrapper = null;
 		for (String s : repos) {
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(s);
+			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(s);
 			selectWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 			/*selectWrapper = new SesameJenaSelectWrapper();
@@ -1252,7 +1252,7 @@ public class Utility {
 		return null;
 	}
 
-	public static ISelectWrapper processQuery(IEngine engine, String query) {
+	public static ISelectWrapper processQuery(IDatabase engine, String query) {
 		logger.debug("PROCESSING QUERY: " + query);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
@@ -1355,7 +1355,7 @@ public class Utility {
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
 	 */
-	public static Vector<String> getVectorOfReturn(String query, IEngine engine, Boolean raw) {
+	public static Vector<String> getVectorOfReturn(String query, IDatabase engine, Boolean raw) {
 		Vector<String> retArray = new Vector<>();
 		IRawSelectWrapper wrap = null;
 		try {
@@ -1393,7 +1393,7 @@ public class Utility {
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
 	 */
-	public static Vector<String[]> getVectorArrayOfReturn(String query, IEngine engine, Boolean raw) {
+	public static Vector<String[]> getVectorArrayOfReturn(String query, IDatabase engine, Boolean raw) {
 		Vector<String[]> retArray = new Vector<>();
 		IRawSelectWrapper wrap = null;
 		try {
@@ -1432,7 +1432,7 @@ public class Utility {
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
 	 */
-	public static Vector<String[]> getVectorObjectOfReturn(String query, IEngine engine) {
+	public static Vector<String[]> getVectorObjectOfReturn(String query, IDatabase engine) {
 		Vector<String[]> retString = new Vector<>();
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -1480,7 +1480,7 @@ public class Utility {
 		return paramHash;
 	}
 
-	public static IPlaySheet getPlaySheet(IEngine engine, String psName) {
+	public static IPlaySheet getPlaySheet(IDatabase engine, String psName) {
 		logger.info("Trying to get playsheet for " + Utility.cleanLogString(psName));
 		String psClassName = null;
 		if (engine != null) {
@@ -1504,7 +1504,7 @@ public class Utility {
 		return playSheet;
 	}
 
-	public static IDataMaker getDataMaker(IEngine engine, String dataMakerName) {
+	public static IDataMaker getDataMaker(IDatabase engine, String dataMakerName) {
 		logger.info("Trying to get data maker for " + Utility.cleanLogString(dataMakerName));
 		String dmClassName = null;
 		if (engine != null) {
@@ -1528,7 +1528,7 @@ public class Utility {
 		return dm;
 	}
 
-	public static IPlaySheet preparePlaySheet(IEngine engine, String sparql, String psName, String playSheetTitle,
+	public static IPlaySheet preparePlaySheet(IDatabase engine, String sparql, String psName, String playSheetTitle,
 			String insightID) {
 		IPlaySheet playSheet = getPlaySheet(engine, psName);
 		// QuestionPlaySheetStore.getInstance().put(insightID, playSheet);
@@ -1539,7 +1539,7 @@ public class Utility {
 		return playSheet;
 	}
 
-	public static ISEMOSSTransformation getTransformation(IEngine engine, String transName) {
+	public static ISEMOSSTransformation getTransformation(IDatabase engine, String transName) {
 		logger.info("Trying to get transformation for " + Utility.cleanLogString(transName));
 		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
 		if (transClassName == null) {
@@ -1553,7 +1553,7 @@ public class Utility {
 		return transformation;
 	}
 
-	public static ISEMOSSAction getAction(IEngine engine, String actionName) {
+	public static ISEMOSSAction getAction(IDatabase engine, String actionName) {
 		logger.info("Trying to get action for " + Utility.cleanLogString(actionName));
 		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
 		if (actionClassName == null) {
@@ -1613,7 +1613,7 @@ public class Utility {
 //	 * @param getDisplayNames
 //	 * @return
 //	 */
-//	public static List getTransformedNodeNamesList(IEngine engine, List nodesList, boolean getDisplayNames){
+//	public static List getTransformedNodeNamesList(IDatabase engine, List nodesList, boolean getDisplayNames){
 //		//array, list or vector support only
 //
 //		for(int i = 0; i< nodesList.size(); i++){
@@ -1633,7 +1633,7 @@ public class Utility {
 //	 * @param getDisplayNames
 //	 * @return
 //	 */
-//	public static Map<String, List<Object>> getTransformedNodeNamesMap(IEngine engine, Map<String, List<Object>> nodeMap, boolean getDisplayNames){
+//	public static Map<String, List<Object>> getTransformedNodeNamesMap(IDatabase engine, Map<String, List<Object>> nodeMap, boolean getDisplayNames){
 //		if(nodeMap!= null && nodeMap.size()>0){
 //			for(Map.Entry<String, List<Object>> eachMap: nodeMap.entrySet()){
 //				List<Object> binding = Utility.getTransformedNodeNamesList(engine, nodeMap.get(eachMap.getKey()),false);
@@ -1654,7 +1654,7 @@ public class Utility {
 //	 * @param getDisplayNames
 //	 * @return
 //	 */
-//	public static String getTransformedNodeName(IEngine engine, String nodeUri, boolean getDisplayNames){
+//	public static String getTransformedNodeName(IDatabase engine, String nodeUri, boolean getDisplayNames){
 //		String finalUri = nodeUri;
 //		boolean getClassName = true;
 //		for(int j = 0; j < 2; j++){
@@ -2339,8 +2339,8 @@ public class Utility {
 		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
 		try {
 			Object emptyClass = Class.forName(rawType).newInstance();
-			if(emptyClass instanceof IEngine) {
-				engineType = IEngine.CATALOG_TYPE;
+			if(emptyClass instanceof IDatabase) {
+				engineType = IDatabase.CATALOG_TYPE;
 				loadDb = true;
 			} else if(emptyClass instanceof IStorage) {
 				engineType = IStorage.CATALOG_TYPE;
@@ -2382,8 +2382,8 @@ public class Utility {
 	 * @param List      of properties.
 	 * @return Loaded engine.
 	 */
-	public static IEngine loadEngine(String smssFilePath, Properties prop) {
-		IEngine engine = null;
+	public static IDatabase loadEngine(String smssFilePath, Properties prop) {
+		IDatabase engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 			String engineId = prop.getProperty(Constants.ENGINE);
@@ -2395,8 +2395,8 @@ public class Utility {
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
 				// so check to see this
-				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IEngine) {
-					return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
+				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IDatabase) {
+					return (IDatabase) DIHelper.getInstance().getEngineProperty(engineId);
 				}
 			}
 
@@ -2409,7 +2409,7 @@ public class Utility {
 			}
 
 			// create and open the class
-			engine = (IEngine) Class.forName(engineClass).newInstance();
+			engine = (IDatabase) Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
 			if(smssFilePath == null) {
 				engine.setProp(prop);
@@ -2587,7 +2587,7 @@ public class Utility {
 		 */
 
 		// grab the local master engine
-		IEngine localMaster = (IEngine) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB_NAME);
+		IDatabase localMaster = (IDatabase) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB_NAME);
 		if (localMaster == null) {
 			logger.info(">>>>>>>> Unable to find local master database in DIHelper.");
 			return;
@@ -2657,7 +2657,7 @@ public class Utility {
 	 * 
 	 * @return String Instance name.
 	 */
-	public static String getInstanceName(String uri, IEngine.ENGINE_TYPE type) {
+	public static String getInstanceName(String uri, IDatabase.ENGINE_TYPE type) {
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
 		int totalTok = tokens.countTokens();
 		String instanceName = null;
@@ -2674,7 +2674,7 @@ public class Utility {
 			}
 		}
 
-		if (type == IEngine.ENGINE_TYPE.RDBMS || type == IEngine.ENGINE_TYPE.R)
+		if (type == IDatabase.ENGINE_TYPE.RDBMS || type == IDatabase.ENGINE_TYPE.R)
 			instanceName = "Table_" + instanceName + "Column_" + secondLastToken;
 
 		return instanceName;
@@ -2852,7 +2852,7 @@ public class Utility {
 	 * @return
 	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IEngine getEngine(String engineId) {
+	public static IDatabase getEngine(String engineId) {
 		return getEngine(engineId, true);
 	}
 
@@ -2863,8 +2863,8 @@ public class Utility {
 	 * 
 	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
-		IEngine engine = null;
+	public static IDatabase getEngine(String engineId, boolean pullIfNeeded) {
+		IDatabase engine = null;
 		
 		// Now that the database has been pulled, grab the smss file
 		String smssFile = null;
@@ -2907,7 +2907,7 @@ public class Utility {
 			// If the engine has already been loaded, then return it
 			// Don't acquire the lock here, because that would slow things down
 			if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
-				engine = (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
+				engine = (IDatabase) DIHelper.getInstance().getEngineProperty(engineId);
 			} else {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
@@ -2923,7 +2923,7 @@ public class Utility {
 					// so if a different thread was waiting for the engine to load,
 					// it doesn't go through this process again
 					if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
-						return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
+						return (IDatabase) DIHelper.getInstance().getEngineProperty(engineId);
 					}
 					
 					// If in a clustered environment, then pull the app first

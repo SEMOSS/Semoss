@@ -1,14 +1,14 @@
 package prerna.ui.components.specific.ousd;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 
 public interface ITimelineGenerator {
 
 	public void createTimeline();
 	
-	public void createTimeline(IEngine engine);
+	public void createTimeline(IDatabase engine);
 	
-	public void createTimeline(IEngine engine, String owner);
+	public void createTimeline(IDatabase engine, String owner);
 	
 	public OUSDTimeline getTimeline();
 	

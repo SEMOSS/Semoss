@@ -31,7 +31,7 @@ import javax.swing.DefaultListModel;
 
 import com.ibm.icu.util.StringTokenizer;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -124,7 +124,7 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 		DefaultListModel listModel = new DefaultListModel();
 		while (tokens.hasMoreTokens()) {
 			String engineName = tokens.nextToken();
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 			if (engine.isConnected())
 				engineNameRoot = engineName;
 		}

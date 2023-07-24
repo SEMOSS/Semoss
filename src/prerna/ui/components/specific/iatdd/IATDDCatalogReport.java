@@ -30,7 +30,7 @@ package prerna.ui.components.specific.iatdd;
 import java.io.IOException;
 import java.util.HashMap;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.poi.specific.IATDDReportWriter;
 import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.DIHelper;
@@ -38,14 +38,14 @@ import prerna.util.Utility;
 
 public class IATDDCatalogReport extends TablePlaySheet {
 
-	private IEngine IATDD_DB;
+	private IDatabase IATDD_DB;
 	
 	private String selectedParam = "";
 
 	@Override
 	public void createData() {		
 		try {
-			IATDD_DB = (IEngine) DIHelper.getInstance().getLocalProp("IATDD_DB");
+			IATDD_DB = (IDatabase) DIHelper.getInstance().getLocalProp("IATDD_DB");
 			if (IATDD_DB == null)
 				throw new IOException("Database not found");
 		} catch (IOException e) {

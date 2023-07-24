@@ -47,7 +47,7 @@ import javax.swing.JToggleButton;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.project.api.IProject;
@@ -98,7 +98,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 
 		Map<String, List<Object>> paramHash = new HashMap<>();
 		OldInsight insight = null;
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 
 		// There are four options to get through here:
 		// 1. Not custom; Not overlay ---- get insight and run it
@@ -194,7 +194,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		return paramHash;
 	}
 	
-	private OldInsight getSelectedInsight(IEngine engine){
+	private OldInsight getSelectedInsight(IDatabase engine){
 		IProject project = Utility.getProject(engine.getEngineId());
 		String insightString = ((Map<String, String>) ((JComboBox<Map<String,String>>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem()).get(MapComboBoxRenderer.KEY);
 		String[] insightStringSplit = insightString.split("\\. ", 2);

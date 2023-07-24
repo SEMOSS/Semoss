@@ -39,7 +39,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.main.listener.specific.tap.SystemCheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
 
@@ -57,7 +57,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		createView(null);
 	}
 	
-	public DHMSMSystemSelectPanel(IEngine engine) {
+	public DHMSMSystemSelectPanel(IDatabase engine) {
 		SysOptCheckboxListUpdater checkboxListUpdater = new SysOptCheckboxListUpdater(engine, true, false, false);
 		createView(checkboxListUpdater);
 	}
@@ -73,7 +73,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		createView(checkboxListUpdater);
 	}
 	
-	public void changeEngine(IEngine engine) {
+	public void changeEngine(IDatabase engine) {
 		SysOptCheckboxListUpdater checkboxListUpdater = new SysOptCheckboxListUpdater(engine, true, false, false);
 		removeListeners();
 		sysSelectDropDown.resetList(checkboxListUpdater.getReceivedSysList());

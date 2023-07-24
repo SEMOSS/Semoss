@@ -183,7 +183,7 @@ public class RegressionAnalysisPlaySheet extends AbstractPlaySheet{
 		}
 		else if (engine==null && rs!=null){
 			//wrapper.setResultSet(rs);
-			//wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
+			//wrapper.setEngineType(IDatabase.ENGINE_TYPE.JENA);
 		}
 		String [] names = wrapper.getVariables();
 

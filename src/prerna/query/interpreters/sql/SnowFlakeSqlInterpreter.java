@@ -1,7 +1,7 @@
 package prerna.query.interpreters.sql;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 
 public class SnowFlakeSqlInterpreter extends SqlInterpreter {
 
@@ -9,7 +9,7 @@ public class SnowFlakeSqlInterpreter extends SqlInterpreter {
 		
 	}
 
-	public SnowFlakeSqlInterpreter(IEngine engine) {
+	public SnowFlakeSqlInterpreter(IDatabase engine) {
 		super(engine);
 	}
 	

@@ -5,7 +5,7 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -21,14 +21,14 @@ public class JsonInterpreter implements IQueryInterpreter{
 	StringBuffer filters = null;
 	// for fda this is a +
 	public String separator = "&";
-	IEngine engine = null;
+	IDatabase engine = null;
 	
 	// equalizer
 	// for FDA this is a :
 	public String equal = "=";
 	
 
-	public JsonInterpreter(IEngine engine)
+	public JsonInterpreter(IDatabase engine)
 	{
 		this.engine = engine;
 	}

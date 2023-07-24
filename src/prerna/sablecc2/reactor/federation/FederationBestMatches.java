@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -63,7 +63,7 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		final String rCol2 = matchesFrame + "col2";
 		
 		// accept input info, generate matches table
-		IEngine newColDatabase = Utility.getEngine(newDatabase);
+		IDatabase newColDatabase = Utility.getEngine(newDatabase);
 		RDataTable frame = (RDataTable) getFrame();
 		String frameName = frame.getName();
 		String rTable1 = rCol1 + " <- as.character(" + frameName + "$" + frameCol + ");";

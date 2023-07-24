@@ -6,7 +6,7 @@ import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.PixelDataType;
@@ -70,7 +70,7 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 	}
 
 	@Override
-	protected IEngine generateEngine() {
+	protected IDatabase generateEngine() {
 		TinkerEngine tinkerEng = new TinkerEngine();
 		tinkerEng.setEngineId(this.newDatabaseId);
 		tinkerEng.setEngineName(this.newDatabaseName);

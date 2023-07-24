@@ -21,7 +21,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.Insight;
 import prerna.project.impl.Project;
 import prerna.sablecc2.om.NounStore;
@@ -524,7 +524,7 @@ public class SocketServerHandler implements Runnable {
 					String [] engineList = engines.split(";");
 					for(int engineIndex = 0;engineIndex < engineList.length;engineIndex++)
 					{
-						IEngine engine = Utility.getEngine(engineList[engineIndex]);
+						IDatabase engine = Utility.getEngine(engineList[engineIndex]);
 						if(engine != null)
 							engine.closeDB();
 					}

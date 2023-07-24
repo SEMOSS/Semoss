@@ -13,7 +13,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -115,7 +115,7 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 				String dataType = meta.getHeaderTypeAsString(name);
 
 				// get unique column values
-				IEngine engine = Utility.getEngine(db);
+				IDatabase engine = Utility.getEngine(db);
 				RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 
 				// get unique values for string columns, if it doesnt exist

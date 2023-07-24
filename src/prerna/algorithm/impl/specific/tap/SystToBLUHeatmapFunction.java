@@ -40,7 +40,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.BLUSysComparison;
 import prerna.ui.components.specific.tap.SysToBLUDataGapsPlaySheet;
@@ -55,7 +55,7 @@ public class SystToBLUHeatmapFunction implements IAlgorithm {
 	private static final String STACKTRACE = "StackTrace: ";
 
 	SysToBLUDataGapsPlaySheet playSheet;
-	IEngine engine;
+	IDatabase engine;
 	String[] names; 
 
 	List<String> rowNames = new ArrayList<>();
@@ -96,7 +96,7 @@ public class SystToBLUHeatmapFunction implements IAlgorithm {
 		playSheet.HeatPanel.add(bsc);
 
 		if (bsc != null) {
-			bsc.setRDFEngine((IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
+			bsc.setRDFEngine((IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
 			bsc.setPlaySheet(playSheet);
 			bsc.createData(rowNames, colNames);
 			bsc.runAnalytics();
@@ -128,7 +128,7 @@ public class SystToBLUHeatmapFunction implements IAlgorithm {
 		return null;
 	}
 
-	public void setRDFEngine(IEngine engine) {
+	public void setRDFEngine(IDatabase engine) {
 		this.engine = engine;	
 	}
 
