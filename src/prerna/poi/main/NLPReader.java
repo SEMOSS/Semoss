@@ -33,14 +33,14 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.poi.main.helper.ImportOptions;
 
 public class NLPReader extends AbstractFileReader {
 
 	private List<TripleWrapper> triples = new ArrayList<TripleWrapper>();
 
-	public IEngine importFileWithOutConnection(ImportOptions options) 
+	public IDatabase importFileWithOutConnection(ImportOptions options) 
 			throws FileNotFoundException, IOException {	
 		
 		String smssLocation = options.getSMSSLocation();

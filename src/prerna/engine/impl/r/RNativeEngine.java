@@ -42,9 +42,8 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator;
 import prerna.ds.util.flatfile.CsvFileIterator;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -58,7 +57,7 @@ import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class RNativeEngine extends AbstractEngine {
+public class RNativeEngine extends AbstractDatabase {
 
 	private static final Logger LOGGER = LogManager.getLogger(RNativeEngine.class.getName());
 
@@ -169,7 +168,7 @@ public class RNativeEngine extends AbstractEngine {
 
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return IEngine.ENGINE_TYPE.R;
+		return IDatabase.ENGINE_TYPE.R;
 	}
 
 	@Override

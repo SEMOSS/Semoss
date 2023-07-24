@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -18,7 +18,7 @@ public class CassandraSqlInterpreter extends SqlInterpreter {
 
 	}
 
-	public CassandraSqlInterpreter(IEngine engine) {
+	public CassandraSqlInterpreter(IDatabase engine) {
 		super(engine);
 	}
 

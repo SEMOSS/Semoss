@@ -23,8 +23,8 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.helper.excel.ExcelUtility;
@@ -84,7 +84,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 		
 		List<Object[]> collection = new Vector<>();
 		
-		IEngine engine = Utility.getEngine(appId);
+		IDatabase engine = Utility.getEngine(appId);
 		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(engine, query);

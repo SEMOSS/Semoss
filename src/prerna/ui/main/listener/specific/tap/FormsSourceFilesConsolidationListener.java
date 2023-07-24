@@ -10,7 +10,7 @@ import javax.swing.JTextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.specific.tap.forms.FormsDataProcessor;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.ConstantsTAP;
@@ -38,7 +38,7 @@ public class FormsSourceFilesConsolidationListener extends AbstractListener {
 		LOGGER.info("SELECTED DATABASE ::: " + selectedFormsDb);
 		LOGGER.info("SELECTED FOLDER ::: " + Utility.cleanLogString(sourceFolder.toString()));
 
-		IEngine selectedEngine = Utility.getEngine(selectedFormsDb);
+		IDatabase selectedEngine = Utility.getEngine(selectedFormsDb);
 		
 		FormsDataProcessor processor = new FormsDataProcessor();
 		processor.processData(selectedEngine, sourceFolder);

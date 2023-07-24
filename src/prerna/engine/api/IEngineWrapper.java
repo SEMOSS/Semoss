@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import java.util.TimeZone;
-
 public interface IEngineWrapper {
 
 	/**
@@ -57,13 +55,13 @@ public interface IEngineWrapper {
 	 * Set the engine
 	 * @param engine
 	 */
-	void setEngine(IEngine engine);
+	void setEngine(IDatabase engine);
 
 	/**
 	 * Get the engine
 	 * @return
 	 */
-	public IEngine getEngine();
+	public IDatabase getEngine();
 
 //	/**
 //	 * 

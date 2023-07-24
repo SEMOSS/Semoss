@@ -10,9 +10,9 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -29,7 +29,7 @@ public class AbstractEngineCreator {
 
 	private static final Logger logger = LogManager.getLogger(AbstractEngineCreator.class.getName());
 
-	protected IEngine engine;
+	protected IDatabase engine;
 	// OWL variables
 	protected String owlFile = "";
 	protected Owler owler;
@@ -58,22 +58,22 @@ public class AbstractEngineCreator {
 	
 	protected void openRdfEngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewRdfEngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
 	protected void openRdbmsEngineWithoutConnection(String appName, String engineID) throws Exception {
 		createNewRDBMSEngine(appName, engineID);
-		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
 	protected void openTinkerEngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewTinkerEngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
 	protected void openREngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewREngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
 	private void createNewRDBMSEngine(String appName, String appID) throws Exception {
@@ -112,11 +112,11 @@ public class AbstractEngineCreator {
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
 		
 		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
 		
 	}
 	
@@ -139,13 +139,13 @@ public class AbstractEngineCreator {
 	//added for connect to external RDBMS workflow
 	protected void generateEngineFromRDBMSConnection(String schema, String appName, String appID) throws Exception {
 		connectToExternalRDBMSEngine(schema,appName, appID);
-		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
 //	//added for connect to external Impala workflow
 //	protected void generateEngineFromImpalaConnection(String schema, String dbName, String appID) throws Exception {
 //		connectToExternalImpalaEngine(schema,dbName, appID);
-//		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.IMPALA, this.customBaseURI);
+//		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.IMPALA, this.customBaseURI);
 //	}
 	
 	//added for connect to external RDBMS workflow
@@ -170,7 +170,7 @@ public class AbstractEngineCreator {
 		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
-		((AbstractEngine) engine).setProp(prop);
+		((AbstractDatabase) engine).setProp(prop);
 		engine.openDB(null);
 		
 	}
@@ -241,7 +241,7 @@ public class AbstractEngineCreator {
 	 * 
 	 * @throws EngineException
 	 */
-	protected void openOWLWithOutConnection(String owlFile, IEngine.ENGINE_TYPE type, String customBaseURI) {
+	protected void openOWLWithOutConnection(String owlFile, IDatabase.ENGINE_TYPE type, String customBaseURI) {
 		owler = new Owler(owlFile, type);
 		owler.addCustomBaseURI(customBaseURI);
 	}

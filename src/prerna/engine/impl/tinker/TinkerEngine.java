@@ -24,8 +24,8 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.ds.TinkerFrame;
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
@@ -34,7 +34,7 @@ import prerna.util.Constants;
 import prerna.util.MyGraphIoMappingBuilder;
 import prerna.util.Utility;
 
-public class TinkerEngine extends AbstractEngine {
+public class TinkerEngine extends AbstractDatabase {
 
 	private static final Logger logger = LogManager.getLogger(TinkerEngine.class);
 
@@ -128,7 +128,7 @@ public class TinkerEngine extends AbstractEngine {
 
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return IEngine.ENGINE_TYPE.TINKER;
+		return IDatabase.ENGINE_TYPE.TINKER;
 	}
 
 	@Override

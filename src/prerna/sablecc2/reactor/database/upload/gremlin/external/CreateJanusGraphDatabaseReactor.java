@@ -6,7 +6,7 @@ import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.tinker.JanusEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -60,7 +60,7 @@ public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraph
 	}
 
 	@Override
-	protected IEngine generateEngine() {
+	protected IDatabase generateEngine() {
 		JanusEngine janusEngine = new JanusEngine();
 		janusEngine.setEngineId(this.newDatabaseId);
 		janusEngine.setEngineName(this.newDatabaseName);

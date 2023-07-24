@@ -9,7 +9,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
@@ -231,7 +231,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 //		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 //		{
 //			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-//			IEngine coreEngine = new RDBMSNativeEngine();
+//			IDatabase coreEngine = new RDBMSNativeEngine();
 //			coreEngine.setEngineId("LocalMasterDatabase");
 //			coreEngine.openDB(engineProp);
 //			coreEngine.setEngineId("LocalMasterDatabase");
@@ -274,7 +274,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	}
 	
 	@Override
-	public void setEngine(IEngine engine) {
+	public void setEngine(IDatabase engine) {
 		// TODO Auto-generated method stub
 		
 	}

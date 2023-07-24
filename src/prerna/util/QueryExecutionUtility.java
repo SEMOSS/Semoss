@@ -12,7 +12,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -37,7 +37,7 @@ public class QueryExecutionUtility {
 	 * @param wrapper
 	 * @return
 	 */
-	public static String flushToString(IEngine engine, SelectQueryStruct qs) {
+	public static String flushToString(IDatabase engine, SelectQueryStruct qs) {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
@@ -61,7 +61,7 @@ public class QueryExecutionUtility {
 	 * @param wrapper
 	 * @return
 	 */
-	public static Integer flushToInteger(IEngine engine, SelectQueryStruct qs) {
+	public static Integer flushToInteger(IDatabase engine, SelectQueryStruct qs) {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
@@ -79,7 +79,7 @@ public class QueryExecutionUtility {
 		return null;
 	}
 	
-	public static Long flushToLong(IEngine engine, SelectQueryStruct qs) {
+	public static Long flushToLong(IDatabase engine, SelectQueryStruct qs) {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
@@ -103,7 +103,7 @@ public class QueryExecutionUtility {
 	 * @param wrapper
 	 * @return
 	 */
-	public static List<String> flushToListString(IEngine engine, SelectQueryStruct qs) {
+	public static List<String> flushToListString(IDatabase engine, SelectQueryStruct qs) {
 		List<String> values = new Vector<String>();
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -128,7 +128,7 @@ public class QueryExecutionUtility {
 	 * @param wrapper
 	 * @return
 	 */
-	public static Set<String> flushToSetString(IEngine engine, SelectQueryStruct qs, boolean order) {
+	public static Set<String> flushToSetString(IDatabase engine, SelectQueryStruct qs, boolean order) {
 		Set<String> values = null;
 		if(order) {
 			values = new TreeSet<String>();
@@ -158,7 +158,7 @@ public class QueryExecutionUtility {
 	 * @param wrapper
 	 * @return
 	 */
-	public static Set<String> flushToSetString(IEngine engine, String query, boolean order) {
+	public static Set<String> flushToSetString(IDatabase engine, String query, boolean order) {
 		Set<String> values = null;
 		if(order) {
 			values = new TreeSet<String>();
@@ -182,7 +182,7 @@ public class QueryExecutionUtility {
 		return values;
 	}
 	
-	public static List<String[]> flushRsToListOfStrArray(IEngine engine, SelectQueryStruct qs) {
+	public static List<String[]> flushRsToListOfStrArray(IDatabase engine, SelectQueryStruct qs) {
 		List<String[]> ret = new ArrayList<String[]>();
 		
 		IRawSelectWrapper wrapper = null;
@@ -209,7 +209,7 @@ public class QueryExecutionUtility {
 		return ret;
 	}
 	
-	public static List<Object[]> flushRsToListOfObjArray(IEngine engine, SelectQueryStruct qs) {
+	public static List<Object[]> flushRsToListOfObjArray(IDatabase engine, SelectQueryStruct qs) {
 		List<Object[]> ret = new ArrayList<Object[]>();
 		
 		IRawSelectWrapper wrapper = null;
@@ -230,7 +230,7 @@ public class QueryExecutionUtility {
 	}
 	
 	@Deprecated
-	static List<Object[]> flushRsToMatrix(IEngine engine, SelectQueryStruct qs) {
+	static List<Object[]> flushRsToMatrix(IDatabase engine, SelectQueryStruct qs) {
 		List<Object[]> ret = new ArrayList<Object[]>();
 		
 		IRawSelectWrapper wrapper = null;
@@ -250,7 +250,7 @@ public class QueryExecutionUtility {
 		return ret;
 	}
 	
-	public static List<Map<String, Object>> flushRsToMap(IEngine engine, SelectQueryStruct qs) {
+	public static List<Map<String, Object>> flushRsToMap(IDatabase engine, SelectQueryStruct qs) {
 		List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
 		
 		IRawSelectWrapper wrapper = null;

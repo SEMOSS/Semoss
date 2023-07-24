@@ -6,8 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
@@ -64,9 +64,9 @@ public class SecurityOwlCreator {
 
 	}
 	
-	private IEngine securityDb;
+	private IDatabase securityDb;
 	
-	public SecurityOwlCreator(IEngine securityDb) {
+	public SecurityOwlCreator(IDatabase securityDb) {
 		this.securityDb = securityDb;
 	}
 	

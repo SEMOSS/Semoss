@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.impl.util.Owler;
@@ -50,18 +50,18 @@ public class RDBMSEngineCreationHelper {
 	 * Create existing metamodel from owl to create insights
 	 * @param owl
 	 */
-	public static void insertAllTablesAsInsights(IProject project, IEngine rdbmsEngine, Owler owl) {
+	public static void insertAllTablesAsInsights(IProject project, IDatabase rdbmsEngine, Owler owl) {
 		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl);
 		insertNewTablesAsInsights(project, rdbmsEngine, existingMetaModel.keySet());
 	}
 	
-	public static void insertNewTablesAsInsights(IProject project, IEngine rdbmsEngine, Owler owl, Set<String> newTables) {
+	public static void insertNewTablesAsInsights(IProject project, IDatabase rdbmsEngine, Owler owl, Set<String> newTables) {
 		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl, newTables);
 		// use the keyset from the OWL to help with the upload
 		insertNewTablesAsInsights(project, rdbmsEngine, existingMetaModel.keySet());
 	}
 	
-	public static void insertNewTablesAsInsights(IProject project, IEngine rdbmsEngine, Set<String> newTables) {
+	public static void insertNewTablesAsInsights(IProject project, IDatabase rdbmsEngine, Set<String> newTables) {
 		String appId = rdbmsEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		
@@ -216,11 +216,11 @@ public class RDBMSEngineCreationHelper {
 		return existingMetaModel;
 	}
 	
-	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine) {
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IDatabase rdbmsEngine) {
 		return getExistingRDBMSStructure(rdbmsEngine, null);
 	}
 	
-	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine, Set<String> tablesToRetrieve) {
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IDatabase rdbmsEngine, Set<String> tablesToRetrieve) {
 		// get the metadata from the connection
 		IRDBMSEngine rdbms = null;
 		if(rdbmsEngine instanceof IRDBMSEngine) {
@@ -329,7 +329,7 @@ public class RDBMSEngineCreationHelper {
 		return s;
 	}
 	
-	public static boolean conceptExists(IEngine engine, String tableName, String colName, Object instanceValue) {
+	public static boolean conceptExists(IDatabase engine, String tableName, String colName, Object instanceValue) {
 		String query = "SELECT DISTINCT " + colName + " FROM " + tableName + " WHERE " + colName + "='" + RdbmsQueryBuilder.escapeForSQLStatement(instanceValue + "") + "'";
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		String[] names = wrapper.getVariables();

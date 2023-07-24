@@ -30,7 +30,7 @@ package prerna.util.sql;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SnowFlakeSqlInterpreter;
@@ -51,7 +51,7 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 		setDbType(RdbmsTypeEnum.SNOWFLAKE);
 	}
 	
-	public IQueryInterpreter getInterpreter(IEngine engine) {
+	public IQueryInterpreter getInterpreter(IDatabase engine) {
 		return new SnowFlakeSqlInterpreter(engine);
 	}
 

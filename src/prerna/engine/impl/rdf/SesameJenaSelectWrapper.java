@@ -47,7 +47,8 @@ import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
 import prerna.util.Utility;
 
@@ -55,12 +56,13 @@ import prerna.util.Utility;
  * The wrapper helps takes care of selection of the type of engine you are using (Jena/Sesame).  This wrapper processes SELECT statements. 
  */
 @Deprecated
-public class SesameJenaSelectWrapper extends AbstractWrapper{
+public class SesameJenaSelectWrapper extends AbstractWrapper {
+	
 	public transient TupleQueryResult tqr = null;
 	transient ResultSet rs = null;
-	transient Enum engineType = IEngine.ENGINE_TYPE.SESAME;
+	transient ENGINE_TYPE engineType = IDatabase.ENGINE_TYPE.SESAME;
 	transient QuerySolution curSt = null;	
-	transient public IEngine engine = null;
+	transient public IDatabase engine = null;
 	transient String query = null;
 	static final Logger logger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
 	transient SesameJenaSelectWrapper remoteWrapperProxy = null;
@@ -75,13 +77,13 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	
 	/**
 	 * Method setEngine.  Sets the engine type.
-	 * @param engine IEngine - The engine type being set.
+	 * @param engine IDatabase - The engine type being set.
 	 */
-	public void setEngine(IEngine engine)
+	public void setEngine(IDatabase engine)
 	{
 		logger.debug("Set the engine " );
 		this.engine = engine;
-		if(engine == null) engineType = IEngine.ENGINE_TYPE.JENA;
+		if(engine == null) engineType = IDatabase.ENGINE_TYPE.JENA;
 		else engineType = engine.getEngineType();
 	}
 	
@@ -101,11 +103,11 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	 */
 	public void executeQuery() throws Exception
 	{
-		if(engineType == IEngine.ENGINE_TYPE.SESAME)
+		if(engineType == IDatabase.ENGINE_TYPE.SESAME)
 			tqr = (TupleQueryResult) engine.execQuery(query);
-		else if(engineType == IEngine.ENGINE_TYPE.JENA)
+		else if(engineType == IDatabase.ENGINE_TYPE.JENA)
 			rs = (ResultSet) engine.execQuery(query);
-		else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+		else if(engineType == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			// get the actual SesameJenaConstructWrapper from the engine
 			// this is json output
@@ -126,19 +128,19 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 		try {
 			if(var == null)
 			{
-				if(engineType == IEngine.ENGINE_TYPE.SESAME)
+				if(engineType == IDatabase.ENGINE_TYPE.SESAME)
 				{
 					var = new String[tqr.getBindingNames().size()];
 					List <String> names = tqr.getBindingNames();
 					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
 				}
-				else if(engineType == IEngine.ENGINE_TYPE.JENA)
+				else if(engineType == IDatabase.ENGINE_TYPE.JENA)
 				{
 					var = new String[rs.getResultVars().size()];
 					List <String> names = rs.getResultVars();
 					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
 				}
-				else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+				else if(engineType == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 				{
 					var = remoteWrapperProxy.getVariables();
 				}
@@ -162,17 +164,17 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 		try
 		{
 			logger.debug("Checking for next " );
-			if(engineType == IEngine.ENGINE_TYPE.SESAME)
+			if(engineType == IDatabase.ENGINE_TYPE.SESAME)
 			{
 				retBool = tqr.hasNext();
 				if(!retBool)
 					tqr.close();
 			}
-			else if(engineType == IEngine.ENGINE_TYPE.JENA)
+			else if(engineType == IDatabase.ENGINE_TYPE.JENA)
 			{
 				retBool = rs.hasNext();
 			}
-			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(engineType == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				if(retSt != null) // this means they have not picked it up yet
 					return true;
@@ -224,14 +226,14 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 		SesameJenaSelectStatement thisSt = null;
 		try
 		{
-			if(engineType == IEngine.ENGINE_TYPE.SESAME)
+			if(engineType == IDatabase.ENGINE_TYPE.SESAME)
 			{
 				thisSt = new SesameJenaSelectStatement();
 				logger.debug("Adding a sesame statement ");
 				BindingSet bs = tqr.next();
 				thisSt = getSJSSfromBinding(bs);
 			}
-			else if(engineType == IEngine.ENGINE_TYPE.JENA)
+			else if(engineType == IDatabase.ENGINE_TYPE.JENA)
 			{
 				thisSt = new SesameJenaSelectStatement();
 			    QuerySolution row = rs.nextSolution();
@@ -260,7 +262,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 				}
 			    logger.debug("Adding a JENA statement ");
 			}
-			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(engineType == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				thisSt = retSt;
 				retSt = null;
@@ -340,7 +342,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 		ArrayList<String> checker = new ArrayList<String>();
 		try
 		{
-			if(engineType == IEngine.ENGINE_TYPE.SESAME)
+			if(engineType == IDatabase.ENGINE_TYPE.SESAME)
 			{
 				logger.debug("Adding a sesame statement ");
 				BindingSet bs = tqr.next();
@@ -376,7 +378,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 				//need to figure out what the checker should hold
 				//checker.add(bs.getValue(var[0])+""+ bs.getValue(var[1])+bs.getValue(var[3]));
 			}
-			else if (engineType == IEngine.ENGINE_TYPE.JENA)
+			else if (engineType == IDatabase.ENGINE_TYPE.JENA)
 			{
 			    QuerySolution row = rs.nextSolution();
 			    curSt = row;
@@ -391,7 +393,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 				}
 			    logger.debug("Adding a JENA statement ");
 			}
-			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(engineType == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				// I need to pull from remote
 				// this is just so stupid to call its own
@@ -425,7 +427,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	 * Method setEngineType. Sets the engine type.
 	 * @param engineType Enum - The type engine that this is being set to.
 	 */
-	public void setEngineType(Enum engineType)
+	public void setEngineType(ENGINE_TYPE engineType)
 	{
 		this.engineType = engineType;
 	}

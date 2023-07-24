@@ -12,7 +12,7 @@ import com.sun.rowset.CachedRowSetImpl;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
@@ -51,7 +51,7 @@ public class EngineWorker implements Runnable {
 			
 			if(canAccess)
 			{
-				IEngine engine = Utility.getEngine(engineId);
+				IDatabase engine = Utility.getEngine(engineId);
 				Method method = findEngineMethod(engine, ps.methodName, ps.payloadClasses);
 				Object retObject = method.invoke(engine, ps.payload);
 	
@@ -84,7 +84,7 @@ public class EngineWorker implements Runnable {
 		sc.executeCommand(ps);
 	}
 
-    public Method findEngineMethod(IEngine engine, String methodName, Class [] arguments)
+    public Method findEngineMethod(IDatabase engine, String methodName, Class [] arguments)
     {
     	Method retMethod = null;
     	

@@ -5,7 +5,7 @@ import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -33,7 +33,7 @@ public class OpenProjectReactor extends AbstractReactor {
 			Map<String, Object> returnMap = new HashMap<String, Object>();
 			returnMap.put("project_name", "NEWSEMOSSAPP");
 			returnMap.put("project_id", projectId);
-			returnMap.put("project_type", IEngine.ENGINE_TYPE.APP.toString());
+			returnMap.put("project_type", IDatabase.ENGINE_TYPE.APP.toString());
 			returnMap.put("project_cost", "");	
 			return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_DATABASE);
 		}

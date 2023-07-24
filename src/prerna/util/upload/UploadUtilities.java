@@ -34,9 +34,9 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
@@ -109,7 +109,7 @@ public class UploadUtilities {
 	 * @param database
 	 * @param smssFile
 	 */
-	public static void updateDIHelper(String newDatabaseId, String newDatabaseName, IEngine database, File smssFile) {
+	public static void updateDIHelper(String newDatabaseId, String newDatabaseName, IDatabase database, File smssFile) {
 		DIHelper.getInstance().setEngineProperty(newDatabaseId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 		DIHelper.getInstance().setEngineProperty(newDatabaseId, database);
 		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
@@ -1111,7 +1111,7 @@ public class UploadUtilities {
 			String engineClassName = RNativeEngine.class.getName();
 			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, engineClassName, newLine, tab);
 			String dataFile = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + fileName;
-			bufferedWriter.write(AbstractEngine.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
+			bufferedWriter.write(AbstractDatabase.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
 			// stringify maps
 			Gson gson = new GsonBuilder().create();
 			if (newHeaders != null && !newHeaders.isEmpty()) {

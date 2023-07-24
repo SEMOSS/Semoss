@@ -15,9 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.CypherInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -28,7 +27,8 @@ import prerna.util.Utility;
 /**
  * This is the connection to a remote neo4j graph database using the jdbc connection
  */
-public class Neo4jEngine extends AbstractEngine {
+public class Neo4jEngine extends AbstractDatabase {
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Neo4jEngine.class);
 	protected Map<String, String> typeMap = new HashMap<String, String>();
 	protected Map<String, String> nameMap = new HashMap<String, String>();
@@ -66,7 +66,7 @@ public class Neo4jEngine extends AbstractEngine {
 	
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return IEngine.ENGINE_TYPE.NEO4J;
+		return IDatabase.ENGINE_TYPE.NEO4J;
 	}
 	
 	@Override

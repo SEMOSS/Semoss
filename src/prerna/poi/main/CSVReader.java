@@ -40,7 +40,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -65,7 +65,7 @@ public class CSVReader extends AbstractCSVFileReader {
 	 * @throws FileWriterException 
 	 * @throws HeaderClassException 
 	 */
-	public IEngine importFileWithOutConnection(ImportOptions options) 
+	public IDatabase importFileWithOutConnection(ImportOptions options) 
 			throws FileNotFoundException, IOException {
 		
 		String smssLocation = options.getSMSSLocation();

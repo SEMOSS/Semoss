@@ -14,7 +14,7 @@ import org.openrdf.query.TupleQueryResult;
 
 import com.hp.hpl.jena.vocabulary.XSD;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AbstractListFilter;
@@ -77,13 +77,13 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	private Set<String> qsFilteredColumns;
 	private Set<String> qsFilteredColumnsToNull;
 	// store the engine
-	private IEngine engine;
+	private IDatabase engine;
 	
 	public SparqlInterpreter() {
 		
 	}
 	
-	public SparqlInterpreter(IEngine engine) {
+	public SparqlInterpreter(IDatabase engine) {
 		this.engine = engine;
 	}
 	

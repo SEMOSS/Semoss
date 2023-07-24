@@ -3,7 +3,7 @@ package prerna.query.interpreters.sql;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -15,7 +15,7 @@ public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 		
 	}
 
-	public H2SqlInterpreter(IEngine engine) {
+	public H2SqlInterpreter(IDatabase engine) {
 		super(engine);
 	}
 	

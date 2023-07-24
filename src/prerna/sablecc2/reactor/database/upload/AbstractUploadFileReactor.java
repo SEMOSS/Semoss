@@ -15,7 +15,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -43,7 +43,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 	protected transient Logger logger;
 	protected transient String databaseId;
 	protected transient String databaseName;
-	protected transient IEngine database;
+	protected transient IDatabase database;
 	protected transient IProject project;
 	protected transient File databaseFolder;
 	protected transient File tempSmss;

@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.database.metaeditor;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -30,7 +30,7 @@ public class ReloadDatabaseOwlReactor extends AbstractMetaEditorReactor {
 		// we may have the alias
 		databaseId = testDatabaseId(databaseId, true);
 
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		RDFFileSesameEngine oldOwlEngine = database.getBaseDataEngine();
 		// load a new owl engine from the file

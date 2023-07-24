@@ -17,7 +17,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -109,7 +109,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		logger.info("Replace existing table data = " + this.override);
 
 		// grab the engine
-		IEngine targetDatabase = Utility.getEngine(engineId);
+		IDatabase targetDatabase = Utility.getEngine(engineId);
 		// only for RDBMS right now
 		if(!(targetDatabase instanceof IRDBMSEngine)) {
 			throw new SemossPixelException(new NounMetadata("Can only persist data to a relational database at the moment", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
