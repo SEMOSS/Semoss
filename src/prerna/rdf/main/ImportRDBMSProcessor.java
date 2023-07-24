@@ -34,7 +34,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.poi.main.AbstractEngineCreator;
 import prerna.poi.main.helper.ImportOptions;
 
@@ -42,7 +42,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	
 	private static final Logger LOGGER = LogManager.getLogger(ImportRDBMSProcessor.class.getName());
 
-	public IEngine addNewRDBMS(ImportOptions options) throws Exception {
+	public IDatabase addNewRDBMS(ImportOptions options) throws Exception {
 		// information for connection details
 //		RdbmsTypeEnum sqlType = options.getRDBMSDriverType();
 //		String host = options.getHost();

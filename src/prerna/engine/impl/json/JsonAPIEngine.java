@@ -36,8 +36,7 @@ import com.jayway.jsonpath.PathNotFoundException;
 
 import cern.colt.Arrays;
 import net.minidev.json.JSONArray;
-import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
@@ -45,11 +44,10 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class JsonAPIEngine extends AbstractEngine {
+public class JsonAPIEngine extends AbstractDatabase {
 
 	private static final Logger logger = LogManager.getLogger(JsonAPIEngine.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
 	private static final String ARRAY = "ARRAY";
 	public static final String COUNT = "COUNT";
 	private static final String STRING = "String";
@@ -130,7 +128,7 @@ public class JsonAPIEngine extends AbstractEngine {
 			// setOWL already does this
 			//this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
 		} catch (RuntimeException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} 
 	}
 	
@@ -140,9 +138,9 @@ public class JsonAPIEngine extends AbstractEngine {
 			if(prop.containsKey(INPUT_TYPE) && ((String)prop.get(INPUT_TYPE)).equalsIgnoreCase("file"))
 				document = Configuration.defaultConfiguration().jsonProvider().parse(new FileInputStream(baseFolder + "/" + Utility.normalizePath(prop.getProperty(INPUT_URL))), "utf-8");
 		} catch (FileNotFoundException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 
 	}
@@ -276,7 +274,7 @@ public class JsonAPIEngine extends AbstractEngine {
 			try {
 				retNode = Configuration.defaultConfiguration().jsonProvider().parse(json);
 			} catch(Exception ex) {
-				logger.error(STACKTRACE, ex);
+				logger.error(Constants.STACKTRACE, ex);
 			}
 		}
 
@@ -428,7 +426,7 @@ public class JsonAPIEngine extends AbstractEngine {
 
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return prerna.engine.api.IEngine.ENGINE_TYPE.JSON;
+		return prerna.engine.api.IDatabase.ENGINE_TYPE.JSON;
 	}
 
 	@Override
@@ -479,9 +477,9 @@ public class JsonAPIEngine extends AbstractEngine {
 			
 			retString = handler.handleResponse(response);
 		} catch (ClientProtocolException cpe) {
-			logger.error(STACKTRACE, cpe);
+			logger.error(Constants.STACKTRACE, cpe);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 		          try {
@@ -552,9 +550,9 @@ public class JsonAPIEngine extends AbstractEngine {
 			
 			retString = result.toString();
 		} catch (ClientProtocolException cpe) {
-			logger.error(STACKTRACE, cpe);
+			logger.error(Constants.STACKTRACE, cpe);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 		          try {
@@ -613,9 +611,9 @@ public class JsonAPIEngine extends AbstractEngine {
 			CloseableHttpResponse response = httpclient.execute(httppost);
 			retStream = response.getEntity().getContent();
 		} catch (ClientProtocolException cpe) {
-			logger.error(STACKTRACE, cpe);
+			logger.error(Constants.STACKTRACE, cpe);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 		          try {
@@ -659,9 +657,9 @@ public class JsonAPIEngine extends AbstractEngine {
 
 			retStream = response.getEntity().getContent();
 		} catch (ClientProtocolException cpe) {
-			logger.error(STACKTRACE, cpe);
+			logger.error(Constants.STACKTRACE, cpe);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 		          try {

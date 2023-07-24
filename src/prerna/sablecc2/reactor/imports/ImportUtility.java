@@ -22,7 +22,7 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.ds.util.flatfile.ParquetFileIterator;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -939,7 +939,7 @@ public class ImportUtility {
 	 */
 	public static Map<String, Set<String>> getFlatEngineEdgeHash(SelectQueryStruct qs) {
 		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
-		IEngine engine = qs.getEngine();
+		IDatabase engine = qs.getEngine();
 
 		// non graph db
 		List<IQuerySelector> selectors = qs.getSelectors();
@@ -1159,7 +1159,7 @@ public class ImportUtility {
 		return aliasMapping;
 	}
 	
-	private static String[] getJoinInformation(IEngine engine, String fromString, String toString) {
+	private static String[] getJoinInformation(IDatabase engine, String fromString, String toString) {
 		String fromTable = null;
 		String fromCol = null;
 		String toTable = null;

@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -35,7 +35,7 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 		String size = this.keyValue.get(this.keysToGet[1]);
 		String token = this.keyValue.get(this.keysToGet[2]);
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		if (database == null) {
 			throw new IllegalArgumentException("Must define the database to pull data from");
 		}
@@ -80,7 +80,7 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 	 * @param engineFilters
 	 * @return
 	 */
-	private String getCurrentDbTable(IEngine database, StringBuilder rStr) {
+	private String getCurrentDbTable(IDatabase database, StringBuilder rStr) {
 		String rDbTable = "dbTable_" + Utility.getRandomString(10);
 
 		// first get the total number of cols

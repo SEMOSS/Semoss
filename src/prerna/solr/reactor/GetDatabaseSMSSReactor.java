@@ -14,7 +14,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -45,7 +45,7 @@ public class GetDatabaseSMSSReactor extends AbstractReactor {
 			}	
 		}
 				
-		IEngine engine = Utility.getEngine(databaseId);
+		IDatabase engine = Utility.getEngine(databaseId);
 		String currentSmssFileLocation = engine.getPropFile();
 		File currentSmssFile = new File(currentSmssFileLocation);
 		engine.closeDB();

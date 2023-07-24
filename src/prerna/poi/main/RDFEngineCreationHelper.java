@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -30,7 +30,7 @@ public class RDFEngineCreationHelper {
 	 * @param rdfEngine
 	 * @param pixelNames
 	 */
-	public static void insertSelectConceptsAsInsights(IProject project, IEngine rdfEngine, Set<String> pixelNames) {
+	public static void insertSelectConceptsAsInsights(IProject project, IDatabase rdfEngine, Set<String> pixelNames) {
 		String appId = rdfEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		
@@ -102,7 +102,7 @@ public class RDFEngineCreationHelper {
 	 * @param rdfEngine
 	 * @param pixelNames
 	 */
-	public static void insertNewSelectConceptsAsInsights(IProject project, IEngine rdfEngine, Set<String> pixelNames) {
+	public static void insertNewSelectConceptsAsInsights(IProject project, IDatabase rdfEngine, Set<String> pixelNames) {
 		String appId = rdfEngine.getEngineId();
 		RDBMSNativeEngine insightsDatabase = project.getInsightDatabase();
 		InsightAdministrator admin = new InsightAdministrator(insightsDatabase);
@@ -194,7 +194,7 @@ public class RDFEngineCreationHelper {
 	 * Insert new insights specific for NLP
 	 * @param rdfEngine
 	 */
-	public static void insertNLPDefaultQuestions(IProject project, IEngine rdfEngine) {
+	public static void insertNLPDefaultQuestions(IProject project, IDatabase rdfEngine) {
 		String engineName = rdfEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 

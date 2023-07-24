@@ -3,7 +3,7 @@ package prerna.query.interpreters.sql;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -14,7 +14,7 @@ public class HiveSqlInterpreter extends SqlInterpreter {
 
 	}
 
-	public HiveSqlInterpreter(IEngine engine) {
+	public HiveSqlInterpreter(IDatabase engine) {
 		super(engine);
 	}
 

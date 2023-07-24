@@ -17,9 +17,9 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -335,7 +335,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @throws Exception
 	 */
 	private void processExcelSheets(
-			IEngine database, 
+			IDatabase database, 
 			Owler owler, 
 			ExcelWorkbookFileHelper helper, 
 			Map<String, Map<String, Map<String, String>>> dataTypesMap, 
@@ -488,7 +488,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @param logger
 	 * @throws Exception 
 	 */
-	private void processSheet(IEngine database, Owler owler, ExcelSheetFileIterator helper, boolean singleRange, 
+	private void processSheet(IDatabase database, Owler owler, ExcelSheetFileIterator helper, boolean singleRange, 
 			Map<String, String> descriptions, Map<String, List<String>> logicalNames, 
 			String sheet, String uniqueColumnName, 
 			boolean clean, boolean replace) throws Exception {
@@ -532,7 +532,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, descriptions, logicalNames);
 	}
 
-	private void bulkInsertSheet(IEngine database, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
+	private void bulkInsertSheet(IDatabase database, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
 			SemossDataType[] types, String[] additionalTypes, boolean clean, Logger logger) throws IOException {
 
 		// now we need to loop through the excel sheet and cast to the appropriate type and insert
@@ -827,7 +827,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 //		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 //		
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-//		IEngine coreEngine = new H2EmbeddedServerEngine();
+//		IDatabase coreEngine = new H2EmbeddedServerEngine();
 //		coreEngine.openDB(engineProp);
 //		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
 //		

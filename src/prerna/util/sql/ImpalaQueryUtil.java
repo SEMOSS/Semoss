@@ -1,7 +1,7 @@
 package prerna.util.sql;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.ImpalaSqlInterpreter;
 
@@ -18,7 +18,7 @@ public class ImpalaQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public IQueryInterpreter getInterpreter(IEngine engine) {
+	public IQueryInterpreter getInterpreter(IDatabase engine) {
 		return new ImpalaSqlInterpreter(engine);
 	}
 

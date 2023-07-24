@@ -32,7 +32,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.RawGemlinSelectWrapper;
 import prerna.engine.api.IConstructWrapper;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.json.JsonWrapper;
@@ -70,11 +70,11 @@ public class WrapperManager {
 	}
 	
 	// TODO >>>timb: REST - here add another engine type REMOTE or REST
-	public IRawSelectWrapper getRawWrapper(IEngine engine, SelectQueryStruct qs) throws Exception {
+	public IRawSelectWrapper getRawWrapper(IDatabase engine, SelectQueryStruct qs) throws Exception {
 		return getRawWrapper(engine, qs, false);
 	}
 
-	public IRawSelectWrapper getRawWrapper(IEngine engine, SelectQueryStruct qs, boolean delayExecIfPossible) throws Exception {
+	public IRawSelectWrapper getRawWrapper(IDatabase engine, SelectQueryStruct qs, boolean delayExecIfPossible) throws Exception {
 		IRawSelectWrapper returnWrapper = null;
 		boolean genQueryString = true;
 		switch(engine.getEngineType()) {
@@ -248,7 +248,7 @@ public class WrapperManager {
 	}
 
 	// TODO >>>timb: REST - here add another engine type REMOTE or REST
-	public IRawSelectWrapper getRawWrapper(IEngine engine, String query) throws Exception {
+	public IRawSelectWrapper getRawWrapper(IDatabase engine, String query) throws Exception {
 		IRawSelectWrapper returnWrapper = null;
 		switch(engine.getEngineType()) {
 			case SESAME : {
@@ -327,7 +327,7 @@ public class WrapperManager {
 	 */
 
 	@Deprecated
-	public ISelectWrapper getSWrapper(IEngine engine, String query) {
+	public ISelectWrapper getSWrapper(IDatabase engine, String query) {
 		ISelectWrapper returnWrapper = null;
 		switch(engine.getEngineType()) {
 			case SESAME : {
@@ -369,7 +369,7 @@ public class WrapperManager {
 	}
 
 	@Deprecated
-	public IConstructWrapper getCWrapper(IEngine engine, String query) {
+	public IConstructWrapper getCWrapper(IDatabase engine, String query) {
 		IConstructWrapper returnWrapper = null;
 		switch(engine.getEngineType())
 		{
@@ -409,7 +409,7 @@ public class WrapperManager {
 	}
 
 	@Deprecated
-	public IConstructWrapper getChWrapper(IEngine engine, String query) {
+	public IConstructWrapper getChWrapper(IDatabase engine, String query) {
 		IConstructWrapper returnWrapper = null;
 		switch(engine.getEngineType())
 		{

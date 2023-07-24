@@ -51,7 +51,7 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -74,7 +74,7 @@ import prerna.util.Utility;
  * An Abstract Engine that sets up the base constructs needed to create an
  * engine.
  */
-public abstract class AbstractEngine implements IEngine {
+public abstract class AbstractDatabase implements IDatabase {
 
 	/**
 	 * Static members
@@ -86,7 +86,7 @@ public abstract class AbstractEngine implements IEngine {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	private static final Logger logger = LogManager.getLogger(AbstractEngine.class);
+	private static final Logger logger = LogManager.getLogger(AbstractDatabase.class);
 	
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
@@ -528,7 +528,7 @@ public abstract class AbstractEngine implements IEngine {
 		return this.baseDataEngine.execQuery(query);
 	}
 
-	public String getMethodName(IEngine.ACTION_TYPE actionType){
+	public String getMethodName(IDatabase.ACTION_TYPE actionType){
 		String retString = "";
 		switch(actionType) {
 		case ADD_STATEMENT: {
@@ -560,7 +560,7 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 
-	public Object doAction(IEngine.ACTION_TYPE actionType, Object[] args){
+	public Object doAction(IDatabase.ACTION_TYPE actionType, Object[] args){
 		// Iterate through methods on the engine -- do this on startup
 		// Find the method on the engine that matches the action type passed in
 		// pass the arguments and let it run
@@ -652,7 +652,7 @@ public abstract class AbstractEngine implements IEngine {
 	
 	@Override
 	public Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery) {
-		IEngine engine = this;
+		IDatabase engine = this;
 		if(!isDbQuery){
 			engine = this.baseDataEngine;
 		} 
@@ -820,7 +820,7 @@ public abstract class AbstractEngine implements IEngine {
 		// put in same location
 		File owlF = new File(owlFileLocation);
 		String baseFolder = owlF.getParent();
-		String positionJson = baseFolder + DIR_SEPARATOR + AbstractEngine.OWL_POSITION_FILENAME;
+		String positionJson = baseFolder + DIR_SEPARATOR + AbstractDatabase.OWL_POSITION_FILENAME;
 		File positionFile = new File(positionJson);
 		return positionFile;
 	}
@@ -1105,7 +1105,7 @@ public abstract class AbstractEngine implements IEngine {
 //				e.printStackTrace();
 //			}
 //		}
-//		IEngine eng = (IEngine) DIHelper.getInstance().getLocalProp("Movie_Test");
+//		IDatabase eng = (IDatabase) DIHelper.getInstance().getLocalProp("Movie_Test");
 //		List<String> props = eng.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/Title");
 //		while(!props.isEmpty()){
 //			System.out.println(props.remove(0));

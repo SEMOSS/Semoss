@@ -39,7 +39,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.util.Utility;
 
 public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
@@ -76,7 +76,7 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 	public BaseFormsICDDataProcessor(){
 	}
 	
-	public void processICDFile(IEngine engine, File sourceFolder, ArrayList<String> systemsList){
+	public void processICDFile(IDatabase engine, File sourceFolder, ArrayList<String> systemsList){
 		try{
 			LOGGER.info("********** Querying for System Interfaces");
 			HashMap<String, HashMap<String, HashMap<String,String>>> map = getDataForTables(SYSTEM_INTERFACE_QUERY, systemsList, engine);

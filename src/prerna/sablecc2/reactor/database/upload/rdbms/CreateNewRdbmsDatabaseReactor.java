@@ -22,10 +22,9 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -59,7 +58,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 	protected transient Logger logger;
 	protected transient String databaseId;
 	protected transient String databaseName;
-	protected transient IEngine database;
+	protected transient IDatabase database;
 	protected transient File databaseFolder;
 	protected transient File tempSmss;
 	protected transient File smssFile;
@@ -227,7 +226,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		database.setOWL(owlFile.getAbsolutePath());
 		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
 		prop.put("TEMP", "TRUE");
-		((AbstractEngine) database).setProp(prop);
+		database.setProp(prop);
 		database.openDB(null);
 		if (!database.isConnected()) {
 			throw new IllegalArgumentException("Unable to connect to external database");

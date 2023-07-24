@@ -9,7 +9,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -52,7 +52,7 @@ public class ExecQueryReactor extends AbstractReactor {
 			commit = Boolean.parseBoolean(commitGrs.get(0) + "");
 		}
 		
-		IEngine engine = null;
+		IDatabase engine = null;
 		ITableDataFrame frame = null;
 		AbstractQueryStruct qs = null;
 		String userId = "user not defined";

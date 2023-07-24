@@ -15,9 +15,9 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
@@ -56,7 +56,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	
 	@Override
 	public void pullOwl(String appId) throws IOException, InterruptedException{
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -84,7 +84,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			//sync will delete files that are in the destination if they aren't being synced
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_DB_PATH+appId+"/"+owlFile.getName(), appFolder);
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_DB_PATH+appId+"/"+AbstractEngine.OWL_POSITION_FILENAME, appFolder);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_DB_PATH+appId+"/"+AbstractDatabase.OWL_POSITION_FILENAME, appFolder);
 
 		}  finally {
 			try {
@@ -109,7 +109,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pushOwl(String appId) throws IOException, InterruptedException{
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -137,7 +137,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			//sync will delete files that are in the destination if they aren't being synced
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", appFolder+"/"+owlFile.getName(), rCloneConfig+RCLONE_DB_PATH+appId);			 
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", appFolder+"/"+AbstractEngine.OWL_POSITION_FILENAME, rCloneConfig+RCLONE_DB_PATH+appId);			 
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", appFolder+"/"+AbstractDatabase.OWL_POSITION_FILENAME, rCloneConfig+RCLONE_DB_PATH+appId);			 
 		}  finally {
 			try {
 				if (rCloneConfig != null) {
@@ -189,7 +189,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 				//open the insight db
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
-					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractEngine.class)));
+					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
 				} else {
 					throw new IllegalArgumentException("Insight database was not able to be found");
 				}
@@ -236,7 +236,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 				//open the insight db
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
-					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractEngine.class)));
+					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
 				} else {
 					throw new IllegalArgumentException("Insight database was not able to be found");
 				}
@@ -252,7 +252,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -286,7 +286,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -401,7 +401,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pushApp(String appId) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -548,7 +548,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException {
-		IEngine engine = null;
+		IDatabase engine = null;
 		if (appAlreadyLoaded) {
 			engine = Utility.getEngine(appId, false);
 			if (engine == null) {
@@ -1055,7 +1055,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -1105,7 +1105,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pullDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(databaseId, false);
+		IDatabase engine = Utility.getEngine(databaseId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}

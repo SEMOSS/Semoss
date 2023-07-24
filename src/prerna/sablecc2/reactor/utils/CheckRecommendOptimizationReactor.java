@@ -2,8 +2,8 @@ package prerna.sablecc2.reactor.utils;
 
 import java.util.List;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -29,7 +29,7 @@ public class CheckRecommendOptimizationReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		ENGINE_TYPE type = database.getEngineType();
 		RDFFileSesameEngine owlEngine = null;
 		if (type.equals(ENGINE_TYPE.RDBMS)) {

@@ -10,7 +10,7 @@ import java.util.Properties;
 import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.impl.util.Owler;
 import prerna.nameserver.AddToMasterDB;
@@ -74,7 +74,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		setOwlerValues(database, owler);
 		
 		long start = System.currentTimeMillis();
