@@ -32,7 +32,7 @@ import java.util.Map;
 
 import javax.swing.JDesktopPane;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class LPInterfaceReportGenerator extends GridPlaySheet {
@@ -59,7 +59,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
-	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IEngine)}, and {@link #setTitle(String)} so that the play 
+	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabase)}, and {@link #setTitle(String)} so that the play 
 	 * sheet is displayed correctly when the view is first created.  It generally creates the model for visualization from 
 	 * the specified engine, then creates the visualization, and finally displays it on the specified desktop pane
 	 * 

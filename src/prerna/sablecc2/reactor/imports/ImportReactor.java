@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.InsightFile;
@@ -76,7 +76,7 @@ public class ImportReactor extends AbstractReactor {
 				&& frame.getFrameType() == DataFrameTypeEnum.NATIVE) {
 			NativeFrame queryFrame = (NativeFrame) qs.getFrame();
 			// make sure it is RDBMSNativeEngine
-			IEngine engine = queryFrame.getQueryStruct().retrieveQueryStructEngine();
+			IDatabase engine = queryFrame.getQueryStruct().retrieveQueryStructEngine();
 			if(engine instanceof IRDBMSEngine) {
 				NativeFrame newFrame = SQLQueryUtils.subQueryNativeFrame(queryFrame.prepQsForExecution(qs));
 				newFrame.setName(frame.getName());

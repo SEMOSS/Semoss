@@ -32,8 +32,8 @@ import java.awt.event.ActionEvent;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.ui.comparison.specific.tap.GenericDBComparisonWriter;
 import prerna.ui.components.api.IChakraListener;
@@ -56,11 +56,11 @@ public class DatabaseComparisonListener implements IChakraListener
 		String oldDBName = oldDBComboBox.getSelectedItem() + "";
 		
 		// get associated engines
-		IEngine newDB = (IEngine) DIHelper.getInstance().getLocalProp(newDBName);
-		IEngine oldDB = (IEngine) DIHelper.getInstance().getLocalProp(oldDBName);
+		IDatabase newDB = (IDatabase) DIHelper.getInstance().getLocalProp(newDBName);
+		IDatabase oldDB = (IDatabase) DIHelper.getInstance().getLocalProp(oldDBName);
 		
-		RDFFileSesameEngine newMetaDB = ((AbstractEngine) newDB).getBaseDataEngine();
-		RDFFileSesameEngine oldMetaDB = ((AbstractEngine) oldDB).getBaseDataEngine();
+		RDFFileSesameEngine newMetaDB = ((AbstractDatabase) newDB).getBaseDataEngine();
+		RDFFileSesameEngine oldMetaDB = ((AbstractDatabase) oldDB).getBaseDataEngine();
 		
 		GenericDBComparisonWriter comparisonWriter = new GenericDBComparisonWriter(newDB, oldDB, newMetaDB, oldMetaDB);
 		comparisonWriter.runAllInstanceTests();

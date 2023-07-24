@@ -17,7 +17,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -168,8 +168,8 @@ public class MergeReactor extends AbstractReactor {
 				qs = ((NativeFrame)qs.getFrame()).getQueryStruct();
 				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
 
-				IEngine curEngine = curQS.getEngine();
-				IEngine thisEngine = qs.getEngine();
+				IDatabase curEngine = curQS.getEngine();
+				IDatabase thisEngine = qs.getEngine();
 				if(thisEngine == null)
 					thisEngine = qs.retrieveQueryStructEngine();
 

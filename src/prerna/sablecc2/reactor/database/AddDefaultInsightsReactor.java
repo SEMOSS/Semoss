@@ -11,8 +11,8 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.GenRowStruct;
@@ -82,7 +82,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		String databaseName = "";
 		ENGINE_TYPE eType = null;
 		if(pullDatabase) {
-			IEngine database = Utility.getEngine(databaseId);
+			IDatabase database = Utility.getEngine(databaseId);
 			databaseName = database.getEngineName();
 			eType = database.getEngineType();
 		}

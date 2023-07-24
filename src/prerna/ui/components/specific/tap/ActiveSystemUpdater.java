@@ -40,10 +40,9 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -61,7 +60,7 @@ public class ActiveSystemUpdater {
 	
 	static final Logger logger = LogManager.getLogger(ActiveSystemUpdater.class.getName());
 	
-	IEngine engine = null;
+	IDatabase engine = null;
 	// specific URIs that do not change
 	static String subclassURI = Constants.SUBCLASS_URI;
 	static String typeURI = Constants.TYPE_URI;
@@ -73,7 +72,7 @@ public class ActiveSystemUpdater {
 //		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 //
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-//		IEngine coreEngine = new RDBMSNativeEngine();
+//		IDatabase coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId("LocalMasterDatabase");
 //		coreEngine.openDB(engineProp);
 //		coreEngine.setEngineId("LocalMasterDatabase");
@@ -261,12 +260,12 @@ public class ActiveSystemUpdater {
 	 */
 	public void addToOWL(String engineName) throws RepositoryException, RDFHandlerException 
 	{
-		engine = (IEngine)DIHelper.getInstance().getEngineProperty(engineName);
+		engine = (IDatabase)DIHelper.getInstance().getEngineProperty(engineName);
 		
 		// get the path to the owlFile
 		String owlFileLocation = (String)DIHelper.getInstance().getEngineProperty(engineName +"_"+Constants.OWL);
 		
-		AbstractEngine baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
+		IDatabase baseRelEngine = engine.getBaseDataEngine();
 		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
 		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
 		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
@@ -299,7 +298,7 @@ public class ActiveSystemUpdater {
 	 * @param engineName	String containing the name of the engine
 	 */
 	public void setEngine(String engineName){
-		this.engine = (IEngine)DIHelper.getInstance().getEngineProperty(engineName);
+		this.engine = (IDatabase)DIHelper.getInstance().getEngineProperty(engineName);
 	}
 	
 	/**

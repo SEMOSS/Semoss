@@ -39,7 +39,7 @@ import prerna.util.sql.RdbmsTypeEnum;
  * An Abstract Engine that sets up the base constructs needed to create an
  * engine.
  */
-public interface IRDBMSEngine extends IEngine {
+public interface IRDBMSEngine extends IDatabase {
 
 	/**
 	 * Get the connection

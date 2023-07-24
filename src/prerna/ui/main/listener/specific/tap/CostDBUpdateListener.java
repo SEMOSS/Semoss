@@ -44,7 +44,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 //import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.helper.ImportOptions;
@@ -166,7 +166,7 @@ public class CostDBUpdateListener extends AbstractListener {
 			{
 				String deleteQuery = "";
 				UpdateProcessor proc = new UpdateProcessor();
-				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(costDB);
+				IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(costDB);
 				proc.setEngine(engine);
 
 				int numberNodes = nodes.size();

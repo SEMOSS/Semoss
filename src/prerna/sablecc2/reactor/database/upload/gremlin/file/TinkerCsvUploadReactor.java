@@ -21,8 +21,8 @@ import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -216,7 +216,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	 * 
 	 * @throws IOException
 	 */
-	private void processRelationships(IEngine database, Owler owler, CSVFileHelper csvHelper, List<String> headers, SemossDataType[] types, Map<String, Object> metamodel) {
+	private void processRelationships(IDatabase database, Owler owler, CSVFileHelper csvHelper, List<String> headers, SemossDataType[] types, Map<String, Object> metamodel) {
 		// get all the relation
 		// overwrite this value if user specified the max rows to load
 		List<String> relationList = new ArrayList<String>();
@@ -386,7 +386,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		return customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + nodeType;
 	}
 
-	public void addNodeProperties(Owler owler, IEngine database, String nodeType, String instanceName,
+	public void addNodeProperties(Owler owler, IDatabase database, String nodeType, String instanceName,
 			Hashtable<String, Object> propHash) {
 		// create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
@@ -394,7 +394,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		String semossBaseURI = owler.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-		Vertex vert = (Vertex) database.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { nodeType, instanceName });
+		Vertex vert = (Vertex) database.doAction(IDatabase.ACTION_TYPE.VERTEX_UPSERT, new Object[] { nodeType, instanceName });
 		Set<String> vertProps = vert.keys();
 		for (String key : propHash.keySet()) {
 			if (!vertProps.contains(key)) {
@@ -492,7 +492,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	public void createRelationship(IEngine database, String subjectNodeType, // Title
+	public void createRelationship(IDatabase database, String subjectNodeType, // Title
 			String objectNodeType, // Producer
 			String instanceSubjectName, // Avatar
 			String instanceObjectName, // James Cameron
@@ -507,13 +507,13 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		// upsert the subject vertex
 		Vertex startV = null;
 
-		startV = (Vertex) database.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { subjectNodeType, instanceSubjectName });
+		startV = (Vertex) database.doAction(IDatabase.ACTION_TYPE.VERTEX_UPSERT, new Object[] { subjectNodeType, instanceSubjectName });
 
 		// upsert the object vertex
-		Vertex endV = (Vertex) database.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { objectNodeType, instanceObjectName });
+		Vertex endV = (Vertex) database.doAction(IDatabase.ACTION_TYPE.VERTEX_UPSERT, new Object[] { objectNodeType, instanceObjectName });
 
 		// upsert the edge between them
-		database.doAction(IEngine.ACTION_TYPE.EDGE_UPSERT, new Object[] { startV, subjectNodeType, endV, objectNodeType, propHash });
+		database.doAction(IDatabase.ACTION_TYPE.EDGE_UPSERT, new Object[] { startV, subjectNodeType, endV, objectNodeType, propHash });
 
 	}
 

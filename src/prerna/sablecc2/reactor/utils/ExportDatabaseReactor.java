@@ -14,7 +14,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.InsightFile;
@@ -69,7 +69,7 @@ public class ExportDatabaseReactor extends AbstractReactor {
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
 		try {
-			IEngine database = Utility.getEngine(databaseId);
+			IDatabase database = Utility.getEngine(databaseId);
 			DIHelper.getInstance().removeEngineProperty(databaseId);
 			database.closeDB();
 			

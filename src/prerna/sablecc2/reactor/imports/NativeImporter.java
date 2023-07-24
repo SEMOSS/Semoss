@@ -19,7 +19,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -68,7 +68,7 @@ public class NativeImporter extends AbstractImporter {
 		// see if we can parse the query into a valid qs object
 		SemossDataType[] executedDataTypes = null;
 		String[] columnNames = null;
-		IEngine database = this.qs.retrieveQueryStructEngine();
+		IDatabase database = this.qs.retrieveQueryStructEngine();
 		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && database instanceof IRDBMSEngine) {
 			IRDBMSEngine rdbms = (IRDBMSEngine) database;
 			// if you are RDBMS

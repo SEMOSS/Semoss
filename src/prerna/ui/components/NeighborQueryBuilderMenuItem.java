@@ -33,7 +33,7 @@ import javax.swing.JMenuItem;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -48,7 +48,7 @@ import prerna.util.DIHelper;
  */
 public class NeighborQueryBuilderMenuItem extends JMenuItem{
 	DataMakerComponent data; 
-	IEngine engine = null;
+	IDatabase engine = null;
 	String name = null;
 	
 	static final Logger logger = LogManager.getLogger(NeighborQueryBuilderMenuItem.class.getName());
@@ -57,9 +57,9 @@ public class NeighborQueryBuilderMenuItem extends JMenuItem{
 	 * Constructor for NeighborMenuItem.
 	 * @param name String
 	 * @param query String
-	 * @param engine IEngine
+	 * @param engine IDatabase
 	 */
-	public NeighborQueryBuilderMenuItem(String name, DataMakerComponent data, IEngine engine)
+	public NeighborQueryBuilderMenuItem(String name, DataMakerComponent data, IDatabase engine)
 	{
 		super(name);
 		this.name = name;
@@ -92,7 +92,7 @@ public class NeighborQueryBuilderMenuItem extends JMenuItem{
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
 				
-//				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+//				IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 //				playSheet.setRDFEngine(engine);
 //				playSheet.setQuery(query);
 			

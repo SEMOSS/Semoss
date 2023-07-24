@@ -4,12 +4,12 @@ import org.janusgraph.core.JanusGraphFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Utility;
 
 public class JanusEngine extends TinkerEngine {
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(JanusEngine.class);
 
 	@Override
@@ -27,7 +27,7 @@ public class JanusEngine extends TinkerEngine {
 	
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return IEngine.ENGINE_TYPE.JANUS_GRAPH;
+		return IDatabase.ENGINE_TYPE.JANUS_GRAPH;
 	}
 
 }

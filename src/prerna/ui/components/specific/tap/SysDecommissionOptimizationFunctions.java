@@ -36,7 +36,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -255,7 +255,7 @@ public class SysDecommissionOptimizationFunctions {
 //		removeSystemsWithNoSite();
 		sortSysList();
 		
-		sysToDispositionHash = DHMSMTransitionUtility.processReportTypeQuery((IEngine) DIHelper.getInstance().getLocalProp(coreDB));
+		sysToDispositionHash = DHMSMTransitionUtility.processReportTypeQuery((IDatabase) DIHelper.getInstance().getLocalProp(coreDB));
 
 //		ArrayList <Object []> systemSustainmentCostList = createData(coreDB,systemSustainmentCostQuery);
 //		processSystemSustainmentCostHash(systemSustainmentCostList);
@@ -566,15 +566,15 @@ public class SysDecommissionOptimizationFunctions {
 	public ArrayList <Object []> createData(String engineName, String query) {
 		
 		ArrayList <Object []> list = new ArrayList<Object[]>();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.setEngineType(IEngine.ENGINE_TYPE.SESAME);
+		wrapper.setEngineType(IDatabase.ENGINE_TYPE.SESAME);
 		try{
 			wrapper.executeQuery();	
 		}

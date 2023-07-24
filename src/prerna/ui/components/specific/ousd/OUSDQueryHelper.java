@@ -8,7 +8,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -24,7 +24,7 @@ public class OUSDQueryHelper {
 	 * @param owners
 	 * @return
 	 */
-	public static List<String> getSystemsByOwners(IEngine db, List<String> owners){
+	public static List<String> getSystemsByOwners(IDatabase db, List<String> owners){
 		
 		List<String> addedOwners = new ArrayList<String>();
 		String ownerBindings = "";
@@ -58,7 +58,7 @@ public class OUSDQueryHelper {
 	 * @return
 	 */
 	private static Map<String, Double> getBudgetData(String costDbName, String budgetQuery){
-		IEngine costDb = null;
+		IDatabase costDb = null;
 
 		logger.info("Cost db " + Utility.cleanLogString(costDbName));
 
@@ -89,7 +89,7 @@ public class OUSDQueryHelper {
 	 * @param sysList
 	 * @return
 	 */
-	public static Map<String, Double> getBudgetData(IEngine engine, String[] sysList){
+	public static Map<String, Double> getBudgetData(IDatabase engine, String[] sysList){
 		String costEngineName = engine.getProperty(OUSDConstants.COST_ENGINE_NAME);
 		String budgetQuery = engine.getProperty(OUSDConstants.SYSTEM_SUSTAINMENT_BUDGET_QUERY);
 		logger.info("COST DB NAME ::::::"+Utility.cleanLogString(costEngineName));
@@ -114,7 +114,7 @@ public class OUSDQueryHelper {
 		return updatedBudgetMap;
 	}
 	
-	public static List<String> getEnduringSystems(IEngine engine){
+	public static List<String> getEnduringSystems(IDatabase engine){
 		logger.info("Cost db " + Utility.cleanLogString(engine.toString()));
 
 		String enduringQuery = engine.getProperty(OUSDConstants.ENDURING_SYSTEM_QUERY);
@@ -135,7 +135,7 @@ public class OUSDQueryHelper {
 	 * @param systemToSystemDataQuery
 	 * @return
 	 */
-	public static Map<String, List<List<String>>> getSystemToSystemData(IEngine db){
+	public static Map<String, List<List<String>>> getSystemToSystemData(IDatabase db){
 
 		String systemToSystemDataQuery = db.getProperty(OUSDConstants.SYSTEM_TO_SYSTEM_DATA_QUERY);
 
@@ -171,7 +171,7 @@ public class OUSDQueryHelper {
 	 * @param systemToSystemDataQuery
 	 * @return
 	 */
-	public static Map<String, List<String>> getSystemToSystemDataWithSystemBind(IEngine db, String systemBindingString){
+	public static Map<String, List<String>> getSystemToSystemDataWithSystemBind(IDatabase db, String systemBindingString){
 
 		String systemToSystemDataQuery = db.getProperty(OUSDConstants.SYSTEM_TO_SYSTEM_DATA_QUERY_WTIH_SYSTEM_BIND);
 		
@@ -188,7 +188,7 @@ public class OUSDQueryHelper {
 	 * @param systemBindingsString
 	 * @return
 	 */
-	public static Map<String, List<String>> getBLUtoSystem(IEngine db, String systemBindingsString){
+	public static Map<String, List<String>> getBLUtoSystem(IDatabase db, String systemBindingsString){
 		String bluSystemQuery = db.getProperty(OUSDConstants.BLU_SYSTEM_QUERY);
 		bluSystemQuery = bluSystemQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
@@ -204,7 +204,7 @@ public class OUSDQueryHelper {
 	 * @param systemBindingsString
 	 * @return
 	 */
-	public static Map<String, List<String>> getSystemToTarget(IEngine db, String systemBindingsString){
+	public static Map<String, List<String>> getSystemToTarget(IDatabase db, String systemBindingsString){
 		String systemTargetQuery = db.getProperty(OUSDConstants.SYSTEM_TO_TARGET_QUERY);
 		systemTargetQuery = systemTargetQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
@@ -220,7 +220,7 @@ public class OUSDQueryHelper {
 	 * @param bluBindingsString
 	 * @return
 	 */
-	public static List<Object[]> getDataConsumedByBLU(IEngine db, String bluBindingsString){
+	public static List<Object[]> getDataConsumedByBLU(IDatabase db, String bluBindingsString){
 		String dataBLUQuery = db.getProperty(OUSDConstants.DATA_CONSUMED_BY_BLU_QUERY);
 		dataBLUQuery = dataBLUQuery.replace("!BLU!", bluBindingsString);
 		System.out.println(bluBindingsString);
@@ -243,7 +243,7 @@ public class OUSDQueryHelper {
 		return bluData;
 	}
 	
-	public static Map<String, List<String>> getDataCreatedBySystem(IEngine db, String systemBindingsString){
+	public static Map<String, List<String>> getDataCreatedBySystem(IDatabase db, String systemBindingsString){
 		String dataSystemQuery = db.getProperty(OUSDConstants.DATA_CREATED_BY_SYSTEM_QUERY);
 		dataSystemQuery = dataSystemQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
@@ -253,7 +253,7 @@ public class OUSDQueryHelper {
 		return getSingleLevelMap(db, dataSystemQuery);
 	}
 	
-	public static Map<String, List<String>> getSystemsByRetirementType(IEngine db, String systemBindingsString){
+	public static Map<String, List<String>> getSystemsByRetirementType(IDatabase db, String systemBindingsString){
 		String retirementTypeQuery = db.getProperty(OUSDConstants.RETIREMENT_TYPE_QUERY);
 		retirementTypeQuery = retirementTypeQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
@@ -263,7 +263,7 @@ public class OUSDQueryHelper {
 		return getSingleLevelMap(db, retirementTypeQuery);
 	}
 	
-	public static Map<String, Map<String, List<String>>> getActivityBluSystemMap(IEngine db, String systemBindingsString){
+	public static Map<String, Map<String, List<String>>> getActivityBluSystemMap(IDatabase db, String systemBindingsString){
 
 		String activityBluSystemQuery = db.getProperty(OUSDConstants.ACTIVITY_BLU_SYSTEM_QUERY);
 		
@@ -275,7 +275,7 @@ public class OUSDQueryHelper {
 		return getDualLevelMap(db, activityBluSystemQuery);
 	}
 	
-	public static Map<String, Map<String, List<String>>> getActivityGranularBluSystemMap(IEngine db, String systemBindingsString){
+	public static Map<String, Map<String, List<String>>> getActivityGranularBluSystemMap(IDatabase db, String systemBindingsString){
 
 		String activityBluSystemQuery = db.getProperty(OUSDConstants.ACTIVITY_GRANULAR_BLU);
 		
@@ -287,7 +287,7 @@ public class OUSDQueryHelper {
 		return getDualLevelMap(db, activityBluSystemQuery);
 	}
 	
-	public static Map<String, Map<String, List<String>>> getActivityDataSystemMap(IEngine db, String systemBindingsString){
+	public static Map<String, Map<String, List<String>>> getActivityDataSystemMap(IDatabase db, String systemBindingsString){
 
 		String activityDataSystemQuery = db.getProperty(OUSDConstants.ACTIVITY_DATA_SYSTEM_QUERY);
 		
@@ -299,7 +299,7 @@ public class OUSDQueryHelper {
 		return getDualLevelMap(db, activityDataSystemQuery);
 	}
 	
-	private static Map<String, List<String>> getSingleLevelMap(IEngine db, String query){
+	private static Map<String, List<String>> getSingleLevelMap(IDatabase db, String query){
 		Map<String, List<String>> retirementTypeToSystemMap =  new HashMap<String, List<String>>();
 		
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(db, query);
@@ -319,7 +319,7 @@ public class OUSDQueryHelper {
 		return retirementTypeToSystemMap;
 	}
 	
-	private static Map<String, Map<String, List<String>>> getDualLevelMap(IEngine db, String query){
+	private static Map<String, Map<String, List<String>>> getDualLevelMap(IDatabase db, String query){
 		Map<String, Map<String, List<String>>> activityBluSystem =  new HashMap<String, Map<String, List<String>>>();
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(db, query);
 		String[] wNames = wrap.getVariables();

@@ -24,7 +24,7 @@ import org.openrdf.sail.SailException;
 
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.helper.ImportOptions;
@@ -86,7 +86,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	 * @throws SailException
 	 * @throws Exception
 	 */
-	public IEngine importFileWithOutConnection(ImportOptions options) 
+	public IDatabase importFileWithOutConnection(ImportOptions options) 
 			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
 		Configurator.setLevel(logger.getName(), Level.WARN);
 

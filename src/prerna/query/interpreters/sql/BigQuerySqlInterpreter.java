@@ -1,7 +1,7 @@
 package prerna.query.interpreters.sql;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.query.querystruct.selectors.IQuerySelector;
 
 public class BigQuerySqlInterpreter extends SqlInterpreter {
@@ -10,7 +10,7 @@ public class BigQuerySqlInterpreter extends SqlInterpreter {
 
 	}
 
-	public BigQuerySqlInterpreter(IEngine engine) {
+	public BigQuerySqlInterpreter(IDatabase engine) {
 		super(engine);
 	}
 

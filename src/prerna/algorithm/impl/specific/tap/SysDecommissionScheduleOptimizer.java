@@ -42,7 +42,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -226,7 +226,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		
 	    sysBudgetSheet = new SystemPropertyGridPlaySheet();
 	    sysBudgetSheet.setQuery(systemBudgetQuery);
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(tapCoreDB);
 		sysBudgetSheet.setRDFEngine(engine);
 		sysBudgetSheet.setAccountingFormat(false);
 	    sysBudgetSheet.createData();
@@ -273,7 +273,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	}
 	
 	public ISelectWrapper executeQuery(String engineName,String query) {
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 		ISelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);

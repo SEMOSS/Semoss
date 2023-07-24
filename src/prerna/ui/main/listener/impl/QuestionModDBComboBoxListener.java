@@ -37,7 +37,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JRadioButton;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.project.api.IProject;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
@@ -53,7 +53,7 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 	public void actionPerformed(ActionEvent e) {
 		JComboBox<String> questionModDBComboBox = (JComboBox<String>)e.getSource();
 		String engineName = (String) questionModDBComboBox.getSelectedItem();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(engineName);
 		JRadioButton addQuestionModType = (JRadioButton) DIHelper.getInstance().getLocalProp(Constants.ADD_QUESTION_BUTTON);
 
 		//populate layout combobox

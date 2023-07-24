@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.util.ListUtilityMethods;
 
 /**
@@ -40,7 +40,7 @@ import prerna.util.ListUtilityMethods;
 @SuppressWarnings("serial")
 public class SysOptCheckboxListUpdater {
 	
-	IEngine engine;
+	IDatabase engine;
 	
 	//lists corresponding to system checkboxes
 	private Vector<String> recdSysList, lpiSysList, lpniSysList, highSysList, theaterSysList, garrisonSysList, faaSysList, notFAASysList, mhsSpecificSysList, ehrCoreSysList;
@@ -52,14 +52,14 @@ public class SysOptCheckboxListUpdater {
 	//lists corresponding to blu checkboxes
 	private Vector<String> allBLUList, dhmsmBLUList, hsdBLUList, hssBLUList, fhpBLUList;
 
-	public SysOptCheckboxListUpdater(IEngine engine) {
+	public SysOptCheckboxListUpdater(IDatabase engine) {
 		this.engine = engine;
 		createSystemCheckBoxLists(false);
 		createCapabilityCheckBoxLists();
 		createDataAndBLUCheckBoxLists();
 	}
 	
-	public SysOptCheckboxListUpdater(IEngine engine, Boolean runSystem, Boolean runFullCap, Boolean runDataBLU) {
+	public SysOptCheckboxListUpdater(IDatabase engine, Boolean runSystem, Boolean runFullCap, Boolean runDataBLU) {
 		this.engine = engine;
 		if(runSystem)
 			createSystemCheckBoxLists(false);
@@ -71,7 +71,7 @@ public class SysOptCheckboxListUpdater {
 			createDataAndBLUCheckBoxLists();
 	}
 	
-	public SysOptCheckboxListUpdater(IEngine engine, Boolean runSystem, Boolean runCap, Boolean runDataBLU, Boolean costGreaterThanZero) {
+	public SysOptCheckboxListUpdater(IDatabase engine, Boolean runSystem, Boolean runCap, Boolean runDataBLU, Boolean costGreaterThanZero) {
 		this.engine = engine;
 		if(runSystem)
 			createSystemCheckBoxLists(costGreaterThanZero);

@@ -42,7 +42,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.main.listener.specific.tap.ServiceSelectAllListener;
 import prerna.ui.main.listener.specific.tap.ServiceSelectListener;
 import prerna.util.Constants;
@@ -54,7 +54,7 @@ import prerna.util.Utility;
  */
 @SuppressWarnings("serial")
 public class ServiceSelectPanel extends JPanel {
-	public IEngine engine;
+	public IDatabase engine;
 	public Hashtable<String, JCheckBox> checkBoxHash = new Hashtable<String, JCheckBox>();
 	public JCheckBox selectAllCheck = new JCheckBox();
 	

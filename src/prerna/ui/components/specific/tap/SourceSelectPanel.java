@@ -42,7 +42,7 @@ import java.util.Vector;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.main.listener.specific.tap.SourceSelectAllListener;
 import prerna.ui.main.listener.specific.tap.SourceSelectListener;
 import prerna.util.Constants;
@@ -56,7 +56,7 @@ import prerna.util.Utility;
 @SuppressWarnings("serial")
 public class SourceSelectPanel extends JPanel {
 	
-	public IEngine engine;
+	public IDatabase engine;
 	public Hashtable<String, JCheckBox> checkBoxHash = new Hashtable<String, JCheckBox>();
 	public JCheckBox selectAllCheck = new JCheckBox();
 //	public boolean shouldPopulateData = false;

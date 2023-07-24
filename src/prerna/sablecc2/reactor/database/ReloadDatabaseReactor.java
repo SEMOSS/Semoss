@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -30,7 +30,7 @@ public class ReloadDatabaseReactor extends AbstractReactor {
 			}
 		}
 		
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		String propFile = database.getPropFile();
 		database.closeDB();
 		database.setProp(null);

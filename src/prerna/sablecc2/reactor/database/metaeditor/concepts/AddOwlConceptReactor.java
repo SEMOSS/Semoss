@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,7 +41,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		}
 
 		// if RDBMS, we need to know the prim key of the column
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		String column = this.keyValue.get(this.keysToGet[2]);
 		if ((column == null || column.isEmpty()) && database.getEngineType() == ENGINE_TYPE.RDBMS) {

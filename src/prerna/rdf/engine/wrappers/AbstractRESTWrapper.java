@@ -51,7 +51,7 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -64,7 +64,7 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 
 	private static final Logger LOGGER = LogManager.getLogger(AbstractWrapper.class.getName());
 	
-	protected transient IEngine engine = null;
+	protected transient IDatabase engine = null;
 	protected transient String query = null;
 
 	/*
@@ -134,11 +134,11 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 	
 	// Need to to pass in engine rather than using the class variable,
 	// as setEngine is often called when the id is null.
-	private boolean wrapperIsInherentlyLocal(IEngine engine) {
+	private boolean wrapperIsInherentlyLocal(IDatabase engine) {
 		String appId = engine.getEngineId();
 		
 		// TODO >>>timb: right now, only RDBMS works for remote
-		if (engine.getEngineType() != IEngine.ENGINE_TYPE.RDBMS || appId.startsWith("security") || appId.startsWith("LocalMasterDatabase") || appId.startsWith("form_builder_engine")) {
+		if (engine.getEngineType() != IDatabase.ENGINE_TYPE.RDBMS || appId.startsWith("security") || appId.startsWith("LocalMasterDatabase") || appId.startsWith("form_builder_engine")) {
 			return true;
 		} else {
 			return false;
@@ -155,7 +155,7 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		}
 	}
 	
-	private boolean isLocal(IEngine engine) {
+	private boolean isLocal(IDatabase engine) {
 		 return wrapperIsInherentlyLocal(engine) || ClusterUtil.LOAD_ENGINES_LOCALLY;
 	}
 	
@@ -226,7 +226,7 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		return sendAction(engine, action);
 	}
 	
-	private String sendAction(IEngine engine, String action) throws Exception {
+	private String sendAction(IDatabase engine, String action) throws Exception {
 		String appId = engine.getEngineId();
 		
 		List<NameValuePair> params = new ArrayList<NameValuePair>(1);
@@ -270,7 +270,7 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 	}
 	
 	@Override
-	public void setEngine(IEngine engine) {
+	public void setEngine(IDatabase engine) {
 		this.engine = engine;
 		if (!isLocal(engine)) {
 			try {
@@ -283,7 +283,7 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 	}
 	
 	@Override
-	public IEngine getEngine() {
+	public IDatabase getEngine() {
 		return this.engine;
 	}
 	

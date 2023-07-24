@@ -46,7 +46,7 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -99,7 +99,7 @@ public class TMCalculationPerformer implements IAlgorithm{
 			ArrayList<String> technicalNamesTechStd = (ArrayList<String>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_NAMES_TECH_STD_LIST);
 			
 			//SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 
 			String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
 
@@ -267,7 +267,7 @@ public class TMCalculationPerformer implements IAlgorithm{
 	 * Populates fulfillment values based on tech standards.
 	 */
 	private boolean prepareTechStandards(){
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("Standards");
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("Standards");
 
 		if(engine!=null)
 		{

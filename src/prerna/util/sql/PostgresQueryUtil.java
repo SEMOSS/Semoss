@@ -37,7 +37,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.PostgresSqlInterpreter;
@@ -143,7 +143,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		return this.connectionUrl;
 	}
 	
-	public IQueryInterpreter getInterpreter(IEngine engine) {
+	public IQueryInterpreter getInterpreter(IDatabase engine) {
 		return new PostgresSqlInterpreter(engine);
 	}
 

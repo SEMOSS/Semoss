@@ -29,7 +29,7 @@ package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -52,7 +52,7 @@ public final class SysOptUtilityMethods {
 	 * @param engineName 	String containing the name of the database engine to be queried
 	 * @param query 		String containing the SPARQL query to run
 	 */
-	public static Object runSingleResultQuery(IEngine engine, String query){
+	public static Object runSingleResultQuery(IDatabase engine, String query){
 		if(!query.isEmpty()) {
 			ISelectWrapper wrapper = null;
 			try {
@@ -78,7 +78,7 @@ public final class SysOptUtilityMethods {
 	 * @param engineName 	String containing the name of the database engine to be queried
 	 * @param query 		String containing the SPARQL query to run
 	 */
-	public static ArrayList<String> runListQuery(IEngine engine, String query){
+	public static ArrayList<String> runListQuery(IDatabase engine, String query){
 		ArrayList<String> list = new ArrayList<String>();
 		if(!query.isEmpty()) {
 			ISelectWrapper wrapper = null;
@@ -105,7 +105,7 @@ public final class SysOptUtilityMethods {
 //	 * @param sparqlQuery 		String containing the query to get all capabilities for a selected functional area
 //	 * @return capabilities		Vector<String> containing list of all capabilities for a selected functional area
 //	 */
-//	public static Vector<String> getList(IEngine engine, String type, String sparqlQuery)
+//	public static Vector<String> getList(IDatabase engine, String type, String sparqlQuery)
 //	{
 //		Vector<String> retList=new Vector<String>();
 //		try{
@@ -130,7 +130,7 @@ public final class SysOptUtilityMethods {
 	 * @param engineName 	String containing the name of the database engine to be queried
 	 * @param query 		String containing the SPARQL query to run
 	 */
-	public static ArrayList<Object []> runQuery (IEngine engine, String query){
+	public static ArrayList<Object []> runQuery (IDatabase engine, String query){
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		ISelectWrapper wrapper = Utility.processQuery(engine, query);
 
@@ -149,7 +149,7 @@ public final class SysOptUtilityMethods {
 	}
 
 	
-	public static int[][] fillMatrixFromQuery(IEngine engine, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
+	public static int[][] fillMatrixFromQuery(IDatabase engine, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
 		ISelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);

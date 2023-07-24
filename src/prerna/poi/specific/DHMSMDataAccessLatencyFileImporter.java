@@ -36,7 +36,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.poi.main.AbstractFileReader;
 import prerna.poi.main.helper.ImportOptions;
 
@@ -126,9 +126,9 @@ public class DHMSMDataAccessLatencyFileImporter extends AbstractFileReader {
 	
 	//placeholder methods - since its subclass of AbstractFileReader
 	//need to confirm if this class is used anywhere in the entire application.
-public IEngine importFileWithOutConnection(ImportOptions options) throws Exception{
-	return null;
-}
+	public IDatabase importFileWithOutConnection(ImportOptions options) throws Exception{
+		return null;
+	}
 	
 	public void importFileWithConnection(ImportOptions options) throws Exception{
 		

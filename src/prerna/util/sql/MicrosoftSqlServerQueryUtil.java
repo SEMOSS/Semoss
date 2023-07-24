@@ -7,7 +7,7 @@ import java.util.Map;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
@@ -41,7 +41,7 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
-	public IQueryInterpreter getInterpreter(IEngine engine) {
+	public IQueryInterpreter getInterpreter(IDatabase engine) {
 		return new MicrosoftSqlServerInterpreter(engine);
 	}
 

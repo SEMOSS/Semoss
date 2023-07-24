@@ -36,7 +36,7 @@ import java.util.StringTokenizer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -52,7 +52,7 @@ public class FillCapabilityBVHash implements Runnable{
 	private static final String STACKTRACE = "StackTrace: ";
 
 	String query = null;
-	IEngine engine = null;
+	IDatabase engine = null;
 	Hashtable<String, Object> BVhash = new Hashtable<>();
 	ISelectWrapper wrapper;
 	Hashtable tempSelectHash = new Hashtable();
@@ -61,10 +61,10 @@ public class FillCapabilityBVHash implements Runnable{
 	/**
 	 * Constructor for FillBVHash.
 	 * @param query String
-	 * @param engine IEngine
+	 * @param engine IDatabase
 	 */
 	public FillCapabilityBVHash(String query,
-			IEngine engine) {
+			IDatabase engine) {
 		this.query = query;
 		this.engine = engine;
 	}

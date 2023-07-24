@@ -35,7 +35,7 @@ import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -60,14 +60,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "NativeFrame";
 
-	private static List<IEngine.ENGINE_TYPE> cacheEngines = new Vector<>();
+	private static List<IDatabase.ENGINE_TYPE> cacheEngines = new Vector<>();
 	static {
-		cacheEngines.add(IEngine.ENGINE_TYPE.SESAME);
-		cacheEngines.add(IEngine.ENGINE_TYPE.JENA);
-		cacheEngines.add(IEngine.ENGINE_TYPE.RDBMS);
-		cacheEngines.add(IEngine.ENGINE_TYPE.IMPALA);
-		cacheEngines.add(IEngine.ENGINE_TYPE.NEO4J_EMBEDDED);
-		cacheEngines.add(IEngine.ENGINE_TYPE.NEO4J);
+		cacheEngines.add(IDatabase.ENGINE_TYPE.SESAME);
+		cacheEngines.add(IDatabase.ENGINE_TYPE.JENA);
+		cacheEngines.add(IDatabase.ENGINE_TYPE.RDBMS);
+		cacheEngines.add(IDatabase.ENGINE_TYPE.IMPALA);
+		cacheEngines.add(IDatabase.ENGINE_TYPE.NEO4J_EMBEDDED);
+		cacheEngines.add(IDatabase.ENGINE_TYPE.NEO4J);
 	}
 
 	private SelectQueryStruct originalQs;
@@ -283,7 +283,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public boolean isEmpty() {
-		IEngine engine = this.queryQs.retrieveQueryStructEngine();
+		IDatabase engine = this.queryQs.retrieveQueryStructEngine();
 		if(engine == null) {
 			return true;
 		}
@@ -307,7 +307,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	public IRawSelectWrapper query(String query) throws Exception {
 		long start = System.currentTimeMillis();
-		IEngine engine = this.queryQs.retrieveQueryStructEngine();
+		IDatabase engine = this.queryQs.retrieveQueryStructEngine();
 		logger.info("Executing query on engine " + engine.getEngineId());
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.queryQs.retrieveQueryStructEngine(), query);
 		long end = System.currentTimeMillis();
@@ -347,7 +347,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// if we still dont have an iterator
 		// create it
 		if(it == null) {
-			IEngine engine = this.queryQs.retrieveQueryStructEngine();
+			IDatabase engine = this.queryQs.retrieveQueryStructEngine();
 			logger.info("Executing query on engine " + Utility.cleanLogString(engine.getEngineId()));
 			it = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			long end = System.currentTimeMillis();
@@ -359,7 +359,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 	
 	public SelectQueryStruct prepQsForExecution(SelectQueryStruct qs) {
-		IEngine engine = this.queryQs.retrieveQueryStructEngine();
+		IDatabase engine = this.queryQs.retrieveQueryStructEngine();
 		// account for potential double aggregations
 		// TODO: account for double aggregation on other DB types...
 		boolean doubleAggregation = false;
@@ -529,7 +529,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	
 	public String getEngineQuery(SelectQueryStruct qs) {
 		qs = prepQsForExecution(qs);
-		IEngine engine = this.queryQs.retrieveQueryStructEngine();
+		IDatabase engine = this.queryQs.retrieveQueryStructEngine();
 		IQueryInterpreter interpreter = engine.getQueryInterpreter();
 		interpreter.setQueryStruct(qs);
 		return interpreter.composeQuery();

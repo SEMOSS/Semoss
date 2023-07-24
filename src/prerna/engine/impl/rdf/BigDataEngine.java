@@ -65,9 +65,8 @@ import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -76,7 +75,7 @@ import prerna.util.Utility;
 /**
  * Big data engine serves to connect the .jnl files, which contain the RDF database, to the java engine.
  */
-public class BigDataEngine extends AbstractEngine implements IEngine {
+public class BigDataEngine extends AbstractDatabase {
 
 	private static final Logger logger = LogManager.getLogger(BigDataEngine.class.getName());
 	private BigdataSail bdSail = null;
@@ -191,7 +190,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 
 	 * @return the type of the engine */
 	public ENGINE_TYPE getEngineType() {
-		return IEngine.ENGINE_TYPE.SESAME;
+		return IDatabase.ENGINE_TYPE.SESAME;
 	}
 
 	/**

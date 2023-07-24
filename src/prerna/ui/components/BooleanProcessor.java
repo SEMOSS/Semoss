@@ -32,7 +32,7 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.rdf.SesameJenaBooleanWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -44,7 +44,7 @@ public class BooleanProcessor {
 
 	static final Logger logger = LogManager.getLogger(BooleanProcessor.class.getName());
 	String query;
-	IEngine engine;
+	IDatabase engine;
 	
 	/**
 	 * Constructor for BooleanProcessor.
@@ -73,7 +73,7 @@ public class BooleanProcessor {
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
 				//get specific engine
-				IEngine selectedEngine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+				IDatabase selectedEngine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 				logger.info("Selecting repository " + repos[repoIndex]);
 				
 				//create the update wrapper, set the variables, and let it run
@@ -99,7 +99,7 @@ public class BooleanProcessor {
 	 * Sets the engine for query to be executed upon.
 	 * @param e	Engine.
 	 */
-	public void setEngine(IEngine e){
+	public void setEngine(IDatabase e){
 		engine = e;
 	}
 	

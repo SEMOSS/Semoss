@@ -10,7 +10,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,7 +47,7 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 		
 		// write the json file in the database folder
 		// just put it in the same location as the OWL
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		File positionFile = database.getOwlPositionFile();
 		

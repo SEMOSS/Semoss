@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -31,7 +31,7 @@ public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String prop = getProperty();
 		String[] logicalNames = getLogicalNames();
 
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		String physicalUri = null;
 		if (prop == null || prop.isEmpty()) {

@@ -38,7 +38,7 @@ import java.util.Vector;
 
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.IndividualSystemTransitionReportWriter;
@@ -87,10 +87,10 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 		
 	private final String SYS_URI_PREFIX = "http://health.mil/ontologies/Concept/System/";
 
-	private IEngine TAP_Core_Data;
-	private IEngine TAP_Cost_Data;
-	private IEngine TAP_Site_Data;
-	private IEngine FutureDB;
+	private IDatabase TAP_Core_Data;
+	private IDatabase TAP_Cost_Data;
+	private IDatabase TAP_Site_Data;
+	private IDatabase FutureDB;
 
 	private final String[] dates = new String[]{"2016&June","2017&April","2022&July"};
 
@@ -145,7 +145,7 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 	public void createData() {
 
 		try{
-			TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(TAP_Core_Data==null)
 				throw new IllegalArgumentException("Database not found");
 		} catch(IllegalArgumentException e) {
@@ -154,7 +154,7 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 		}
 		
 		try{
-			FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+			FutureDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureDB");
 			if(FutureDB==null)
 				throw new IllegalArgumentException("Database not found");
 		} catch(IllegalArgumentException e) {
@@ -168,8 +168,8 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 		boolean includeCosts = true;
 		String exceptionError = "Could not find database:";
 		try {
-			TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-			TAP_Site_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+			TAP_Cost_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+			TAP_Site_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 			if(TAP_Cost_Data==null) {
 				exceptionError = exceptionError.concat("\nTAP_Cost_Data: Report will not include cost data"); 
 				throw new IllegalArgumentException(exceptionError);
@@ -543,7 +543,7 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 		return barHash;		
 	}
 	
-	private HashMap<String, Object> getSysSORTableWithHeaders(IEngine engine,String sysSORDataQuery,String otherSysSORDataQuery)
+	private HashMap<String, Object> getSysSORTableWithHeaders(IDatabase engine,String sysSORDataQuery,String otherSysSORDataQuery)
 	{
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
 
@@ -679,7 +679,7 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 	}
 
 
-	private HashMap<String, Object> getQueryDataWithHeaders(IEngine engine, String query){
+	private HashMap<String, Object> getQueryDataWithHeaders(IDatabase engine, String query){
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);

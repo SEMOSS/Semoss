@@ -2,7 +2,7 @@ package prerna.engine.api.impl.util;
 
 import java.util.List;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.util.Utility;
 
@@ -12,11 +12,11 @@ public class MetadataUtility {
 		
 	}
 	
-	public static boolean ignoreConceptData(IEngine.ENGINE_TYPE type) {
-		return type == IEngine.ENGINE_TYPE.RDBMS
-				|| type == IEngine.ENGINE_TYPE.IMPALA
-				|| type == IEngine.ENGINE_TYPE.R
-//				|| type == IEngine.ENGINE_TYPE.JMES_API
+	public static boolean ignoreConceptData(IDatabase.ENGINE_TYPE type) {
+		return type == IDatabase.ENGINE_TYPE.RDBMS
+				|| type == IDatabase.ENGINE_TYPE.R
+				|| type == IDatabase.ENGINE_TYPE.IMPALA
+//				|| type == IDatabase.ENGINE_TYPE.JMES_API
 				;
 	}
 	
@@ -28,7 +28,7 @@ public class MetadataUtility {
 		if(eType.equals("RDF")) {
 			eType = "SESAME";
 		}
-		return ignoreConceptData(IEngine.ENGINE_TYPE.valueOf(eType));
+		return ignoreConceptData(IDatabase.ENGINE_TYPE.valueOf(eType));
 	}
 	
 	/**
@@ -38,7 +38,7 @@ public class MetadataUtility {
 	 * @param propertyName
 	 * @return
 	 */
-	public static boolean propertyExistsForConcept(IEngine engine, String conceptPhysicalUri, String propertyName) {
+	public static boolean propertyExistsForConcept(IDatabase engine, String conceptPhysicalUri, String propertyName) {
 		List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysicalUri);
 		for(String prop : properties) {
 			if(propertyName.equalsIgnoreCase(Utility.getInstanceName(prop))) {
@@ -54,14 +54,14 @@ public class MetadataUtility {
 //	 * @param engine
 //	 * @return
 //	 */
-//	public static Owler getFilledOwler(IEngine engine) {
+//	public static Owler getFilledOwler(IDatabase engine) {
 //		Owler owler = new Owler(engine);
 //		Hashtable<String, String> conceptHash = new Hashtable<String, String>();
 //		Hashtable<String, String> propHash = new Hashtable<String, String>();
 //		Hashtable<String, String> relationHash = new Hashtable<String, String>();
 //
-//		boolean isRdbms = (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS || 
-//				engine.getEngineType() == IEngine.ENGINE_TYPE.IMPALA);
+//		boolean isRdbms = (engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS || 
+//				engine.getEngineType() == IDatabase.ENGINE_TYPE.IMPALA);
 //
 //		List<String> concepts = engine.getPhysicalConcepts();
 //		for(String c : concepts) {

@@ -42,7 +42,7 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.ui.components.MapComboBoxRenderer;
@@ -82,7 +82,7 @@ public class PerspectiveSelectionListener extends AbstractListener {
 			JList<String> list = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			List<String> selectedValuesList = list.getSelectedValuesList();
 			String selectedVal = selectedValuesList.get(selectedValuesList.size()-1).toString();
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
+			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(selectedVal);
 			
 			// grab the list of insights in the selected engine, this list is already ordered
 			IProject project = Utility.getProject(engine.getEngineId());

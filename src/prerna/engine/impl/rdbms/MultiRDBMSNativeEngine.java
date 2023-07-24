@@ -49,9 +49,9 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.ThreadStore;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -61,7 +61,7 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
+public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine {
 
 	// TODO: NEED TO ACCOUNT FOR PASSWORD ENCRYPTION
 	// TODO: NEED TO DETERMINE IF DELETE DB NEEDS ANYTHING DIFFERENT
@@ -290,7 +290,7 @@ public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngi
 
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return IEngine.ENGINE_TYPE.RDBMS;
+		return IDatabase.ENGINE_TYPE.RDBMS;
 	}
 
 	@Override

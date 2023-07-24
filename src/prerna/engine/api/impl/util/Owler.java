@@ -2,7 +2,6 @@ package prerna.engine.api.impl.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -14,8 +13,8 @@ import org.openrdf.model.vocabulary.RDFS;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -38,7 +37,7 @@ public class Owler extends AbstractOwler {
 	 * @param fileName The location of the new OWL file
 	 * @param type     The type of the engine the OWL file is being created for
 	 */
-	public Owler(String owlPath, IEngine.ENGINE_TYPE type) {
+	public Owler(String owlPath, IDatabase.ENGINE_TYPE type) {
 		super(owlPath, type);
 	}
 
@@ -47,7 +46,7 @@ public class Owler extends AbstractOwler {
 	 * 
 	 * @param existingEngine The engine we are adding to
 	 */
-	public Owler(IEngine existingEngine) {
+	public Owler(IDatabase existingEngine) {
 		super(existingEngine);
 	}
 
@@ -183,7 +182,7 @@ public class Owler extends AbstractOwler {
 
 			// create the property URI
 			String property = null;
-			if (type == IEngine.ENGINE_TYPE.SESAME) {
+			if (type == IDatabase.ENGINE_TYPE.SESAME) {
 				// THIS IS BECAUSE OF LEGACY QUERIES!!!
 				property = BASE_PROPERTY_URI + "/" + propertyCol;
 			} else {
@@ -257,7 +256,7 @@ public class Owler extends AbstractOwler {
 	 * 
 	 * @param queryEngine
 	 */
-	public void addUniqueCounts(IEngine queryEngine) {
+	public void addUniqueCounts(IDatabase queryEngine) {
 		String uniqueCountProp = SEMOSS_URI_PREFIX + DEFAULT_PROP_CLASS + "/UNIQUE";
 
 		List<String> pixelConcepts = queryEngine.getPixelConcepts();
@@ -352,7 +351,7 @@ public class Owler extends AbstractOwler {
 			// the base URI for the concept will be the baseNodeURI
 			String subject = BASE_NODE_URI + "/" + tableName;
 
-			IEngine engine = Utility.getEngine(appId);
+			IDatabase engine = Utility.getEngine(appId);
 			RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 			String conceptPhysical = engine.getPhysicalUriFromPixelSelector(tableName);
 			List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysical);
@@ -547,7 +546,7 @@ public class Owler extends AbstractOwler {
 	public NounMetadata removeProp(String tableName, String propertyCol, String dataType, String adtlDataType, String conceptual) {
 		// create the property URI
 		String property = null;
-		if (type == IEngine.ENGINE_TYPE.SESAME) {
+		if (type == IDatabase.ENGINE_TYPE.SESAME) {
 			// THIS IS BECAUSE OF LEGACY QUERIES!!!
 			property = BASE_PROPERTY_URI + "/" + propertyCol;
 		} else {
@@ -661,7 +660,7 @@ public class Owler extends AbstractOwler {
 
 		// then we need to change the property name as well to point to the new table name
 
-		IEngine engine = Utility.getEngine(appId);
+		IDatabase engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String oldConceptPhysical = engine.getPhysicalUriFromPixelSelector(oldConceptName);
 		properties = engine.getPropertyUris4PhysicalUri(oldConceptPhysical);
@@ -937,7 +936,7 @@ public class Owler extends AbstractOwler {
 		// need to grab everything downstream of the node and edit it
 		// need to grab everything upstream of the node and edit it
 		
-		IEngine engine = Utility.getEngine(appId);
+		IDatabase engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String propPhysicalUri = BASE_PROPERTY_URI + "/" + oldPropName + "/" + tableName;
 		String newPropPhysicalUri = BASE_PROPERTY_URI + "/" + newPropName + "/" + tableName;
@@ -1081,7 +1080,7 @@ public class Owler extends AbstractOwler {
 
 	////////////////////////////////// UTILITY METHODS TO REMOVE FROM OWL //////////////////////////////////
 
-	private List<String[]> getPhysicalRelationships(IEngine engine) {
+	private List<String[]> getPhysicalRelationships(IDatabase engine) {
 		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
 				+ "{?start <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?end <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
@@ -1170,7 +1169,7 @@ public class Owler extends AbstractOwler {
 	/*
 	public static void main(String[] args) {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		Owler owler = new Owler("C:\\workspace\\Semoss_Dev\\themes_OWL.OWL", IEngine.ENGINE_TYPE.RDBMS);
+		Owler owler = new Owler("C:\\workspace\\Semoss_Dev\\themes_OWL.OWL", IDatabase.ENGINE_TYPE.RDBMS);
 
 		owler.addConcept("ADMIN_THEME ", "id", "VARCHAR(255)");
 		owler.addProp("ADMIN_THEME ", "id", "theme_name", "VARCHAR(255)", null);

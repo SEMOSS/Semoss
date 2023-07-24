@@ -41,7 +41,7 @@ import java.util.Vector;
 import javax.swing.JComboBox;
 import javax.swing.JList;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.POIWriter;
@@ -70,7 +70,7 @@ public class GLItemGeneratorICDValidated {
 	ArrayList <String[]> coreTaskList = new ArrayList<String[]>();
 	ArrayList <String[]> subTaskList = new ArrayList<String[]>();
 	Hashtable<String, String> sysCompHash = new Hashtable<String, String>();
-	private IEngine coreEngine;
+	private IDatabase coreEngine;
 	private String genSpecificDProtQuery = "SELECT DISTINCT ?ser ?data ?sys (COALESCE(?dprot, (URI(\"http://health.mil/ontologies/Concept/DProt/HTTPS-SOAP\"))) AS ?Prot) WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  BIND(<http://semoss.org/ontologies/Relation/Exposes> AS ?exposes) {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?icd ?downstream ?sys ;} BIND(<http://semoss.org/ontologies/Relation/Payload> AS ?payload) {?icd ?payload ?data ;} OPTIONAL{ BIND(<http://semoss.org/ontologies/Relation/Has> AS ?has) {?dprot <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt> ;} {?icd ?has ?dprot ;}} }";
 	private String genSpecificDFormQuery = "SELECT DISTINCT ?ser ?data ?sys (COALESCE(?dform, (URI(\"http://health.mil/ontologies/Concept/DForm/XML\"))) AS ?Form) WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  BIND(<http://semoss.org/ontologies/Relation/Exposes> AS ?exposes) {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?icd ?downstream ?sys ;} BIND(<http://semoss.org/ontologies/Relation/Payload> AS ?payload) {?icd ?payload ?data ;} OPTIONAL{ BIND(<http://semoss.org/ontologies/Relation/Has> AS ?has) {?dform <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm> ;} {?icd ?has ?dform ;}} }";
 	private String providerDataQuery1 = "SELECT DISTINCT ?ser ?data ?sys WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?sys ?provide ?data ;} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm ;} {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?sys ?upstream ?icd ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?payload ?data ;} } BINDINGS ?crm {(\"C\")(\"M\")}";
@@ -1389,7 +1389,7 @@ public class GLItemGeneratorICDValidated {
 		if (coreEngine == null){
 			JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
 			String changedDB = (String) changedDBComboBox.getSelectedItem();
-			coreEngine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+			coreEngine = (IDatabase)DIHelper.getInstance().getLocalProp(changedDB);
 		}
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(coreEngine, query);
@@ -1444,7 +1444,7 @@ public class GLItemGeneratorICDValidated {
 		if (coreEngine == null){
 			JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
 			String changedDB = (String) changedDBComboBox.getSelectedItem();
-			coreEngine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+			coreEngine = (IDatabase)DIHelper.getInstance().getLocalProp(changedDB);
 		}
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(coreEngine, query);
 
@@ -1496,7 +1496,7 @@ public class GLItemGeneratorICDValidated {
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -1550,7 +1550,7 @@ public class GLItemGeneratorICDValidated {
 		if (coreEngine == null){
 			JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
 			String changedDB = (String) changedDBComboBox.getSelectedItem();
-			coreEngine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+			coreEngine = (IDatabase)DIHelper.getInstance().getLocalProp(changedDB);
 		}
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(coreEngine, query);
@@ -1614,7 +1614,7 @@ public class GLItemGeneratorICDValidated {
 		this.genSpecificDFormQuery = q;
 	}
 	
-	public void setCoreEngine(IEngine coreEngine){
+	public void setCoreEngine(IDatabase coreEngine){
 		this.coreEngine = coreEngine;
 	}
 

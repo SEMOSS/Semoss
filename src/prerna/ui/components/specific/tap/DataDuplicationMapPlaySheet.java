@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
@@ -51,8 +51,8 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 	@Override
 	public void processQueryData() {
 		// Create engines that will be queried on
-		IEngine tapCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-		IEngine tapSite = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+		IDatabase tapCore = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		IDatabase tapSite = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		
 		// Holds results from queries
 		HashMap<String, ArrayList<String>> dcSiteSystemMap = getRawOCONListMap(getDCSiteSystemQuery, tapSite);
@@ -150,7 +150,7 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 	 *            Database engine
 	 * @return ArrayList of Object Arrays representing each row from query
 	 */
-	private ArrayList<Object[]> getInitialList(String query, IEngine engine) {
+	private ArrayList<Object[]> getInitialList(String query, IDatabase engine) {
 		ArrayList<Object[]> finalList = new ArrayList<Object[]>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		// Get column headers
@@ -174,7 +174,7 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 	 *            Database engine
 	 * @return HashMap where key is String and value is ArrayList of Strings that map to the key
 	 */
-	HashMap<String, ArrayList<String>> getRawOCONListMap(String query, IEngine engine) {
+	HashMap<String, ArrayList<String>> getRawOCONListMap(String query, IDatabase engine) {
 		HashMap<String, ArrayList<String>> finalMap = new HashMap<String, ArrayList<String>>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		// Get column headers

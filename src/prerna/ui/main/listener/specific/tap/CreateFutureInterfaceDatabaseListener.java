@@ -37,7 +37,7 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.specific.tap.CreateFutureStateDHMSMDatabase;
 import prerna.ui.components.specific.tap.GLItemGeneratorSelfReportedFutureInterfaces;
 import prerna.ui.main.listener.impl.AbstractListener;
@@ -105,16 +105,16 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 		String futureCostDBName = "FutureCostDB";
 
 		//get associated engines
-		IEngine tapCoreDB = Utility.getEngine(tapCoreName);
-		IEngine futureDB = Utility.getEngine(futureDBName);
-		IEngine futureCostDB = Utility.getEngine(futureCostDBName);
+		IDatabase tapCoreDB = Utility.getEngine(tapCoreName);
+		IDatabase futureDB = Utility.getEngine(futureDBName);
+		IDatabase futureCostDB = Utility.getEngine(futureCostDBName);
 		
 		//send to processor
 		LOGGER.info("Creating " + futureDBName + " from " + tapCoreName);
 		LOGGER.info("Creating " + futureCostDBName + " from " + tapCoreName);
 		
 		try {
-			IEngine tapCost = Utility.getEngine("TAP_Cost_Data");
+			IDatabase tapCost = Utility.getEngine("TAP_Cost_Data");
 			if(tapCost == null) {
 				throw new IOException("Cost Info Not Found");
 			}

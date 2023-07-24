@@ -21,7 +21,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.Owler;
@@ -270,7 +270,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 	}
 
-	private void addOriginalIndices(IEngine database) throws Exception {
+	private void addOriginalIndices(IDatabase database) throws Exception {
 		// add back original
 		for (String query : recreateIndexList) {
 			insertData(database, query);
@@ -513,7 +513,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		return sqlDataTypes;
 	}
 
-	private void processData(boolean noExistingData, IEngine database, CSVFileHelper helper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
+	private void processData(boolean noExistingData, IDatabase database, CSVFileHelper helper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
 		// get existing data is present
 		if (!noExistingData) {
 			existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(database);
@@ -537,7 +537,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		processCSVTable(noExistingData, database, helper, sqlDataTypes, headers, metamodel);
 	}
 
-	private void processCSVTable(boolean noExistingData, IEngine database, CSVFileHelper csvHelper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
+	private void processCSVTable(boolean noExistingData, IDatabase database, CSVFileHelper csvHelper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
 		Configurator.setLevel(logger.getName(), Level.INFO);
 //		long start = System.currentTimeMillis();
 
@@ -605,14 +605,14 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		tempIndexAddedList.clear();// clear the index array text
 	}
 
-	private void dropTempIndicies(IEngine database) throws Exception {
+	private void dropTempIndicies(IDatabase database) throws Exception {
 		// drop all added indices
 		for (String query : tempIndexDropList) {
 			insertData(database, query);
 		}
 	}
 
-	private void insertData(IEngine database, String sqlQuery) throws Exception {
+	private void insertData(IDatabase database, String sqlQuery) throws Exception {
 		if (!sqlQuery.endsWith(";")) {
 			sqlQuery += ";";
 		}
@@ -670,7 +670,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		return insertQuery.toString();
 	}
 
-	private String getAlterQuery(IEngine database, String concept, String[] rowValues, String defaultInsert,
+	private String getAlterQuery(IDatabase database, String concept, String[] rowValues, String defaultInsert,
 			String[] sqlDataTypes, List<String> headers) throws Exception {
 		String cleanConcept = RDBMSEngineCreationHelper.cleanTableName(concept);
 
@@ -856,7 +856,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	private void alterTable(IEngine database, String concept) throws Exception {
+	private void alterTable(IDatabase database, String concept) throws Exception {
 		String cleanConcept = RDBMSEngineCreationHelper.cleanTableName(concept);
 		// need to determine if the existing structure needs to be altered
 		// get the current table structure
@@ -927,7 +927,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	private void createTable(IEngine database, String concept) throws Exception {
+	private void createTable(IDatabase database, String concept) throws Exception {
 		Map<String, String> propMap = concepts.get(concept);
 		String cleanConceptName = RDBMSEngineCreationHelper.cleanTableName(concept);
 		String conceptType = propMap.get(concept);
@@ -1110,7 +1110,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		return retMap;
 	}
 
-	private void cleanUpDBTables(IEngine database, boolean allowDuplicates) throws Exception {
+	private void cleanUpDBTables(IDatabase database, boolean allowDuplicates) throws Exception {
 		Configurator.setLevel(logger.getName(), Level.INFO);
 		// fill up the availableTables and availableTablesInfo maps
 		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper
@@ -1206,7 +1206,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		existingRDBMSStructure.clear();
 	}
 
-	private void createIndices(IEngine database, String cleanTableKey, String indexStr) throws Exception {
+	private void createIndices(IDatabase database, String cleanTableKey, String indexStr) throws Exception {
 		String indexOnTable = cleanTableKey + " ( " + indexStr + " ) ";
 		String indexName = "INDX_" + cleanTableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
@@ -1240,7 +1240,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	// TODO: THIS DEFINITELY DOESN'T WORK
 	// WILL NOT WORK FOR ANY DATABASE WHERE THE QUERY TO GET THE INDEX
 	// REQUIRES THE ACCURATE SCHEMA
-	private void findIndexes(IEngine database) throws Exception {
+	private void findIndexes(IDatabase database) throws Exception {
 		// this gets all the existing tables
 		String query = queryUtil.getIndexList(null, null);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(database, query);

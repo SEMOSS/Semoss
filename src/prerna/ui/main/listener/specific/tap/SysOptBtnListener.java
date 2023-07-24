@@ -42,7 +42,7 @@ import prerna.algorithm.impl.specific.tap.SysNetSavingsOptimizer;
 import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
 import prerna.algorithm.impl.specific.tap.SysROIOptimizer;
 import prerna.algorithm.impl.specific.tap.UnivariateSysOptimizer;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
@@ -82,9 +82,9 @@ public class SysOptBtnListener implements IChakraListener {
 		if (validInputs)
 		{	
 			//check to make sure site engine is loaded
-			IEngine systemEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-			IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-			IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+			IDatabase systemEngine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			IDatabase costEngine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+			IDatabase siteEngine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 			
 			if(systemEngine == null || costEngine == null || siteEngine == null) {
 				Utility.showError("Missing databases. Please make sure you have: HR_Core_Data, TAP_Cost_Data, and TAP_Site_Data");

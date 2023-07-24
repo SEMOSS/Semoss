@@ -34,7 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
@@ -48,7 +48,7 @@ public class NodeEditorNavigationListener {
 //	Browser browser = null;
 	Hashtable filterHash;
 	GraphPlaySheet gps;
-	IEngine engine;
+	IDatabase engine;
 	
 	
 	/**
@@ -61,9 +61,9 @@ public class NodeEditorNavigationListener {
 
 	/**
 	 * Method setEngine.  Sets the engine that the listener will access.
-	 * @param engine IEngine
+	 * @param engine IDatabase
 	 */
-	public void setEngine(IEngine engine) {
+	public void setEngine(IDatabase engine) {
 		this.engine = engine;
 	}
 

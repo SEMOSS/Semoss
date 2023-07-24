@@ -37,7 +37,7 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -70,7 +70,7 @@ public class TaskerGenerationProcessor {
 	public ArrayList runQuery(String engineName, String query) {
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repo = (Object[]) repoList.getSelectedValues();
-		IEngine engine = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(engineName));
+		IDatabase engine = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(engineName));
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

@@ -42,7 +42,7 @@ import javax.swing.JMenu;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.SEMOSSVertex;
@@ -176,7 +176,7 @@ public class RelationPredictPopup extends JMenu implements MouseListener{
 		// hopefully they have selected one :)
 		String repo = repos[0] +"";
 		
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
 		logger.debug("Found the engine for repository   " + repo);
 
 		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, query1);

@@ -30,7 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -43,13 +43,13 @@ public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 
 	public int resource;
 	public double time;
-	IEngine engine;
+	IDatabase engine;
 	
 	List<Object[]> list;
 	String[] names;
 	
 	
-	public void setEngine(IEngine engine){
+	public void setEngine(IDatabase engine){
 		this.engine = engine;
 	}
 	
@@ -112,7 +112,7 @@ public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 	public ArrayList<String> runListQuery(String engineName, String query) {
 		ArrayList<String> list = new ArrayList<String>();
 		try {
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 			
 			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

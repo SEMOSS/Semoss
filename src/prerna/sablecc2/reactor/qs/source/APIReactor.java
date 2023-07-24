@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.engine.impl.json.JsonAPIEngine2;
 import prerna.engine.impl.web.WebScrapeEngine;
@@ -56,7 +56,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 
 		// need some way of figuring out what api engine to use to which one
 		// for now I will just force fit
-		IEngine engine = null;
+		IDatabase engine = null;
 
 		if (apiType.equalsIgnoreCase("JSON")) {
 			engine = new JsonAPIEngine();
