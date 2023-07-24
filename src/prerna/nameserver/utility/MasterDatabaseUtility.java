@@ -2044,9 +2044,9 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
-		qs.addSelector(new QueryColumnSelector("CONCEPTMETADATA__VALUE"));
+		qs.addSelector(new QueryColumnSelector("CONCEPTMETADATA__METAVALUE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__KEY", "==", "logical"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__METAKEY", "==", "logical"));
 		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
 		IRawSelectWrapper wrapper = null;
@@ -2095,9 +2095,9 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
-		qs.addSelector(new QueryColumnSelector("CONCEPTMETADATA__VALUE"));
+		qs.addSelector(new QueryColumnSelector("CONCEPTMETADATA__METAVALUE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__KEY", "==", "description"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__METAKEY", "==", "description"));
 		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
 		IRawSelectWrapper wrapper = null;
