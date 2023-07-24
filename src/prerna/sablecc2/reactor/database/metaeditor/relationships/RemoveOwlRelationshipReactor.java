@@ -51,7 +51,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		setOwlerValues(database, owler);
 		
 		for(int i = 0; i < size; i++) {

@@ -30,7 +30,7 @@ public class ReloadDatabaseOwlReactor extends AbstractMetaEditorReactor {
 		// we may have the alias
 		databaseId = testDatabaseId(databaseId, true);
 
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		RDFFileSesameEngine oldOwlEngine = database.getBaseDataEngine();
 		// load a new owl engine from the file

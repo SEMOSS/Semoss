@@ -1297,7 +1297,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			IRawSelectWrapper wrapper = null;
 			try {
 				// triggering the query to get result set
-				wrapper = WrapperManager.getInstance().getRawWrapper(Utility.getEngine(databaseId), queryToResolve);
+				wrapper = WrapperManager.getInstance().getRawWrapper(Utility.getDatabase(databaseId), queryToResolve);
 				while (wrapper.hasNext()) {
 					Object[] values = wrapper.next().getValues();
 						if(values[0] != null) { 

@@ -29,7 +29,7 @@ public class CheckRecommendOptimizationReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ENGINE_TYPE type = database.getEngineType();
 		RDFFileSesameEngine owlEngine = null;
 		if (type.equals(ENGINE_TYPE.RDBMS)) {

@@ -102,7 +102,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			engineId = prop.getProperty(Constants.ENGINE);
 			if(ignoreSmssList.contains(engineId)) {
 				String filePath = folderToWatch + "/" + newFile;
-				Utility.loadEngine(filePath, prop);
+				Utility.loadDatabase(filePath, prop);
 			} else {
 				if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
 					logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");

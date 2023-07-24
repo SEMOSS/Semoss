@@ -63,7 +63,7 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		final String rCol2 = matchesFrame + "col2";
 		
 		// accept input info, generate matches table
-		IDatabase newColDatabase = Utility.getEngine(newDatabase);
+		IDatabase newColDatabase = Utility.getDatabase(newDatabase);
 		RDataTable frame = (RDataTable) getFrame();
 		String frameName = frame.getName();
 		String rTable1 = rCol1 + " <- as.character(" + frameName + "$" + frameCol + ");";

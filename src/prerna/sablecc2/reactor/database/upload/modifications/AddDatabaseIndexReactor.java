@@ -54,7 +54,7 @@ public class AddDatabaseIndexReactor extends AbstractReactor {
 		}
 		boolean forceIndex = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[4]));
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);
 		if(modifier == null) {
 			throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");

@@ -151,7 +151,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		List<String> valueVector = new ArrayList<String>();
 
 		// a concept (or table) in RDBMS/R has no meaning - the data is in the properties (columns)
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		boolean ignoreData = MetadataUtility.ignoreConceptData(database.getEngineType());
 		
 		// loop through each column with in the app

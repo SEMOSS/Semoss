@@ -86,7 +86,7 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			qs = SecurityInsightUtils.searchInsightsUsage(pFilters, searchTerm, tagFilters);
 		}
 		
-		IDatabase securityDb = Utility.getEngine(Constants.SECURITY_DB);
+		IDatabase securityDb = Utility.getDatabase(Constants.SECURITY_DB);
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);

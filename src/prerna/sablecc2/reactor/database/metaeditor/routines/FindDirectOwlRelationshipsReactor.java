@@ -40,7 +40,7 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		databaseId = testDatabaseId(databaseId, false);
 		List<String> filters = getTableFilters();
 
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		
 		Map<String, List<String>> tableToCol = new TreeMap<String, List<String>>();
 		// grab all the concepts

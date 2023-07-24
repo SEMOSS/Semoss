@@ -778,7 +778,7 @@ public class TableUserTracker implements IUserTracker {
 			// Not really an engineID (drag and drop...)
 			return null;
 		}
-		IDatabase engine = Utility.getEngine(engineId);
+		IDatabase engine = Utility.getDatabase(engineId);
 		if(engine != null) {
 			RDFFileSesameEngine owlEngine = ((AbstractDatabase) engine).getBaseDataEngine();
 			

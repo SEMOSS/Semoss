@@ -60,7 +60,7 @@ public class DisableInsightAPIReactor extends AbstractReactor {
 				
 		try {
 			String existingSQL = "SELECT CREATOR_ID from API_KEY where API_KEY = '" + apiKey + "'";
-			IRDBMSEngine secDB = (IRDBMSEngine)Utility.getEngine(Constants.SECURITY_DB);
+			IRDBMSEngine secDB = (IRDBMSEngine)Utility.getDatabase(Constants.SECURITY_DB);
 			
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(secDB, existingSQL);
 			boolean foundUser = false;

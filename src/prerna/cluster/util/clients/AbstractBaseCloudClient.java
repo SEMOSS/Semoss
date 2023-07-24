@@ -56,7 +56,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	
 	@Override
 	public void pullOwl(String appId) throws IOException, InterruptedException{
-		IDatabase engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getDatabase(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -109,7 +109,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pushOwl(String appId) throws IOException, InterruptedException{
-		IDatabase engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getDatabase(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -252,7 +252,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getDatabase(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -286,7 +286,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getDatabase(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -401,7 +401,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pushApp(String appId) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getDatabase(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -469,7 +469,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 				}
 
 				// Re-open the database
-				Utility.getEngine(appId, false);
+				Utility.getDatabase(appId, false);
 			}
 		} finally {
 			try {
@@ -550,7 +550,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	public void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException {
 		IDatabase engine = null;
 		if (appAlreadyLoaded) {
-			engine = Utility.getEngine(appId, false);
+			engine = Utility.getDatabase(appId, false);
 			if (engine == null) {
 				throw new IllegalArgumentException("App not found...");
 			}
@@ -631,7 +631,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			} finally {
 				// Re-open the database (if an existing app)
 				if (appAlreadyLoaded) {
-					Utility.getEngine(appId, false);
+					Utility.getDatabase(appId, false);
 				}
 			}
 		} finally {
@@ -650,7 +650,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void updateApp(String appId) throws IOException, InterruptedException {
-		if (Utility.getEngine(appId, true) == null) {
+		if (Utility.getDatabase(appId, true) == null) {
 			throw new IllegalArgumentException("App needs to be defined in order to update...");
 		}
 		pullApp(appId, false);
@@ -1055,7 +1055,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getDatabase(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -1088,7 +1088,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			}
 
 			// open the engine again
-			Utility.getEngine(appId, false);
+			Utility.getDatabase(appId, false);
 		} finally {
 			try {
 				if (rCloneConfig != null) {
@@ -1105,7 +1105,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pullDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getEngine(databaseId, false);
+		IDatabase engine = Utility.getDatabase(databaseId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -1209,7 +1209,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			String projectDir = baseFolder + LegacyToProjectRestructurerHelper.PROJECT_DIRECTORY;
 			fixer.copyDataToNewFolderStructure(aliasAppId, projectDir, dbDir);
 			
-			Utility.loadEngine(dbDir + "/" + smss, Utility.loadProperties(dbDir + "/" + smss));
+			Utility.loadDatabase(dbDir + "/" + smss, Utility.loadProperties(dbDir + "/" + smss));
 			Utility.loadProject(projectDir + "/" + smss, Utility.loadProperties(projectDir + "/" + smss));
 
 			// now push the new db and app into the right locations

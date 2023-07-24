@@ -69,7 +69,7 @@ public class ExportDatabaseReactor extends AbstractReactor {
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
 		try {
-			IDatabase database = Utility.getEngine(databaseId);
+			IDatabase database = Utility.getDatabase(databaseId);
 			DIHelper.getInstance().removeEngineProperty(databaseId);
 			database.closeDB();
 			
@@ -108,7 +108,7 @@ public class ExportDatabaseReactor extends AbstractReactor {
 		} finally {
 			// open it back up
 			logger.info("Opening the database again ... ");
-			Utility.getEngine(databaseId);
+			Utility.getDatabase(databaseId);
 			lock.unlock();
 		}
 

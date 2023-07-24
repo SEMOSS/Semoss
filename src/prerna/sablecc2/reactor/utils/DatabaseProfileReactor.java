@@ -55,7 +55,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			}
 		}
 
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		if(database == null) {
 			throw new IllegalArgumentException("Could not find database " + databaseId);
 		}
