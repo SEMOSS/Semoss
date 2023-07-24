@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
@@ -21,7 +21,7 @@ public class DatabricksSqlInterpreter extends SqlInterpreter {
 
 	}
 
-	public DatabricksSqlInterpreter(IEngine engine) {
+	public DatabricksSqlInterpreter(IDatabase engine) {
 		super(engine);
 	}
 

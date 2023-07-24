@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.upload.neo4j;
 import java.io.File;
 import java.io.IOException;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.neo4j.Neo4jEmbeddedEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.database.upload.gremlin.AbstractCreateExternalGraphReactor;
@@ -33,7 +33,7 @@ public class CreateEmbeddedNeo4jDatabaseReactor extends AbstractCreateExternalGr
 				this.newDatabaseId, this.newDatabaseName, owlFile, this.filePath, this.typeMap, this.nameMap, useLabel());	}
 
 	@Override
-	protected IEngine generateEngine() {
+	protected IDatabase generateEngine() {
 		Neo4jEmbeddedEngine neo4jDatabase = new Neo4jEmbeddedEngine();
 		neo4jDatabase.setEngineId(this.newDatabaseId);
 		neo4jDatabase.setEngineName(this.newDatabaseName);

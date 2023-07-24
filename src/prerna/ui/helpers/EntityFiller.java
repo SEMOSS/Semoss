@@ -45,8 +45,8 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
@@ -62,7 +62,7 @@ public class EntityFiller implements Runnable {
 
 	public JComboBox box;
 	public String type;
-	public IEngine engine;
+	public IDatabase engine;
 	public String engineName;
 	public Vector<String> names;
 	public String extQuery;
@@ -78,7 +78,7 @@ public class EntityFiller implements Runnable {
 	public void run() {
 //		logger.setLevel(Level.WARN);
 		logger.debug(" Engine Name is  " + engineName);
-		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
+		engine = (IDatabase)DIHelper.getInstance().getLocalProp(engineName);
 		names = new Vector<String>();
 		
 		if (box != null) {
@@ -133,7 +133,7 @@ public class EntityFiller implements Runnable {
 					if(type != null) {
 //						type = Utility.getTransformedNodeName(engine, type, false);
 						//TODO: to many effects for making this work well for rdbms params
-						if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+						if(engine.getEngineType().equals(IDatabase.ENGINE_TYPE.RDBMS)) {
 					        if(type.contains("http://semoss.org/ontologies/Concept")){
 					        	// we are dealing with the physical uri which is in the form ...Concept/Column/Table
 					        	sparqlQuery = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);

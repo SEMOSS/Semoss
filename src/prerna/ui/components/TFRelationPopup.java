@@ -42,7 +42,7 @@ import javax.swing.JMenu;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -102,10 +102,10 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 		// I am only going to get one repository
 		// hopefully they have selected one :)
 		String repo = repos[0] +"";
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
 
-		boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
-				engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+		boolean isRDF = (engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA || 
+				engine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
 
 		// execute the query
 		// add all the relationships
@@ -115,7 +115,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 		// the listener should then trigger the graph play sheet possibly
 		// and for each relationship add the listener
 		String typeQuery = "";
-		if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+		if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
 			typeQuery = DIHelper.getInstance().getProperty(this.neighborQueryJENA + prefix);
 		} else {
 			typeQuery =  DIHelper.getInstance().getProperty(this.neighborQuery + prefix);
@@ -133,7 +133,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 //			uri = Utility.getTransformedNodeName(engine, uri, false);
 
 			String query2 = "";
-			if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+			if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
 				query2 = DIHelper.getInstance().getProperty(this.mainQueryJENA + prefix);
 			} else {
 				query2 = DIHelper.getInstance().getProperty(this.mainQuery + prefix);
@@ -141,7 +141,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			String typeName = null;
 			if(isRDF)
 				typeName = Utility.getConceptType(engine, uri);
-			else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
+			else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS)
 				typeName = Utility.getQualifiedClassName(uri);
 			/*if(typeV.contains(typeName))
 			{
@@ -174,7 +174,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			if(isRDF) // valid if this guy is RDF - this needs to be replaced with the logic below for neighbors - however				
 			{
 			
-				if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+				if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
 					for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
 					{
 						if(vertIndex == 0){
@@ -218,7 +218,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 					// only one variable
 					String objClassName = stmt.getRawVar(vars[0])+"";
 					String pred = "";
-					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+					if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
 						pred = stmt.getRawVar(vars[1])+"";
 					}
 					
@@ -258,7 +258,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 							typeList.add(objClassName);
 							hash.put("SUBJECT_TYPE", typeList);
 						}
-						if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+						if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
 							List<Object> predList = new ArrayList<Object>();
 							predList.add(pred);
 							hash.put("PREDICATE", predList);
@@ -267,7 +267,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 						String nFillQuery = Utility.fillParam(typeQuery, hash);
 	
 						NeighborMenuItem nItem = new NeighborMenuItem(instance, nFillQuery, engine);
-						if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+						if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
 							nItem = new NeighborMenuItem("->" + Utility.getInstanceName(pred) + "->" + instance, nFillQuery, engine);
 						}
 						nItem.addActionListener(NeighborMenuListener.getInstance());
@@ -277,7 +277,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 					// for each of these relationship add a relationitem
 				}
 			}
-			else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
+			else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS)
 			{
 			// block to uncomment later
 				
@@ -306,7 +306,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 					}
 					
 					NeighborMenuItem nItem = new NeighborMenuItem(instance, traverseQuery, engine);
-					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+					if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
 						nItem = new NeighborMenuItem(instance, traverseQuery, engine);
 					}
 					nItem.addActionListener(NeighborMenuListener.getInstance());
@@ -343,10 +343,10 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			// I am only going to get one repository
 			// hopefully they have selected one :)
 			String repo = repos[0] +"";
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
+			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
 
-			boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
-					engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+			boolean isRDF = (engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA || 
+					engine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
 			if(isRDF)
 				addRelations("_2");
 		}

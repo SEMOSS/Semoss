@@ -51,7 +51,7 @@ import edu.uci.ics.jung.algorithms.layout.KKLayout;
 import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
 import edu.uci.ics.jung.algorithms.layout.SpringLayout;
 import edu.uci.ics.jung.algorithms.layout.TreeLayout;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 
 /**
  * DIHelper is used throughout SEMOSS to obtain property names from core propfiles and engine core propfiles.
@@ -63,7 +63,7 @@ public class DIHelper {
 
 	String rdfMapFileLocation = null;
 
-	IEngine rdfEngine = null;
+	IDatabase rdfEngine = null;
 	Properties rdfMap = null;
 
 	// core properties file
@@ -202,16 +202,16 @@ public class DIHelper {
 	/**
 	 * Obtains a specific RDF engine.
 
-	 * @return IEngine 		RDF engine. */
-	public IEngine getRdfEngine() {
+	 * @return IDatabase 		RDF engine. */
+	public IDatabase getRdfEngine() {
 		return rdfEngine;
 	}
 
 	/**
 	 * Sets the specific RDF engine.
-	 * @param IEngine		Obtained RDF engine.
+	 * @param IDatabase		Obtained RDF engine.
 	 */
-	public void setRdfEngine(IEngine rdfEngine) {
+	public void setRdfEngine(IDatabase rdfEngine) {
 		this.rdfEngine = rdfEngine;
 	}
 
@@ -253,11 +253,11 @@ public class DIHelper {
 			Object[] repos = (Object[]) list.getSelectedValues();
 			if(repos != null && repos.length > 0)
 			{
-				IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
+				IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(repos[0] + "");
 				logger.info("Engine is " + engine.getEngineId() + Utility.cleanLogString(name));
 				retName =  engine.getProperty(name);
 				logger.info("RetName " + retName);
-			}			
+			}
 		}
 
 

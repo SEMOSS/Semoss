@@ -10,7 +10,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -55,7 +55,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			}
 		}
 
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		if(database == null) {
 			throw new IllegalArgumentException("Could not find database " + databaseId);
 		}
@@ -111,7 +111,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
-	private String[] getStringProfileData(IEngine database, String selector) {
+	private String[] getStringProfileData(IDatabase database, String selector) {
 		String[] retRow = new String[9];
 		if(selector.contains("__")) {
 			String[] split = selector.split("__");
@@ -181,7 +181,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		return retRow;
 	}
 
-	private String[] getNumericalProfileData(IEngine database, String selector) {
+	private String[] getNumericalProfileData(IDatabase database, String selector) {
 		String[] retRow = new String[9];
 		if(selector.contains("__")) {
 			String[] split = selector.split("__");
@@ -291,7 +291,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		return retRow;
 	}
 
-	private Object getValue(IEngine database, String selector, String functionName, boolean distinct) {
+	private Object getValue(IDatabase database, String selector, String functionName, boolean distinct) {
 		SelectQueryStruct qs2 = new SelectQueryStruct();
 		{
 			QueryFunctionSelector funSelector = new QueryFunctionSelector();

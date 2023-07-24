@@ -64,9 +64,8 @@ import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.model.BigdataLiteralImpl;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -74,7 +73,7 @@ import prerna.util.Utility;
 /**
  * Holds the database in memory, and uses the Sesame API to facilitate querying of RDF data sources.
  */
-public class InMemorySesameEngine extends AbstractEngine {
+public class InMemorySesameEngine extends AbstractDatabase {
 
 	private static final Logger logger = LogManager.getLogger(InMemorySesameEngine.class.getName());
 	RepositoryConnection rc = null;
@@ -199,7 +198,7 @@ public class InMemorySesameEngine extends AbstractEngine {
 	 * @return the type of the engine */
 	public ENGINE_TYPE getEngineType()
 	{
-		return IEngine.ENGINE_TYPE.SESAME;
+		return IDatabase.ENGINE_TYPE.SESAME;
 	}
 
 	/**

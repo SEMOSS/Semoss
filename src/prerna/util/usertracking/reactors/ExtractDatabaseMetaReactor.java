@@ -5,8 +5,8 @@ import java.util.List;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -52,7 +52,7 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 		}
 		
 		boolean descriptions = getDescriptionsBool();
-		IEngine engine = Utility.getEngine(engineId);
+		IDatabase engine = Utility.getEngine(engineId);
 
 		// validate engine exists
 		if (engine == null) {
@@ -91,7 +91,7 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 		return false;
 	}
 
-//	private void storeColumnDescriptions(IEngine engine) {
+//	private void storeColumnDescriptions(IDatabase engine) {
 //		String[] packages = new String[] { "data.table", "WikidataR", "curl", "doParallel", "XML" };
 //		Logger logger = this.getLogger(CLASS_NAME);
 //		this.rJavaTranslator.checkPackages(packages);

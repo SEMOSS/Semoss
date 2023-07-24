@@ -18,7 +18,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -63,7 +63,7 @@ public class InsertReactor extends AbstractReactor {
 		}
 		
 		AbstractQueryStruct qs = (AbstractQueryStruct) qStruct.getValue();
-		IEngine engine = null;
+		IDatabase engine = null;
 		ITableDataFrame frame = null;
 		AbstractSqlQueryUtil queryUtil = null;
 		String userId = "user not defined";
@@ -259,7 +259,7 @@ public class InsertReactor extends AbstractReactor {
 	 * @param selectors
 	 * @param userId
 	 */
-	private void insertFileEngine(IEngine engine, AbstractSqlQueryUtil queryUtil, 
+	private void insertFileEngine(IDatabase engine, AbstractSqlQueryUtil queryUtil, 
 			String initial, List<Object[]> valueCombinations, List<IQuerySelector> selectors, String userId) {
 		synchronized(engine) {
 			ClusterUtil.reactorPullApp(engine.getEngineId());
@@ -429,7 +429,7 @@ public class InsertReactor extends AbstractReactor {
 	 * @param tableName
 	 * @return
 	 */
-	private String getPrimKey(IEngine engine, String tableName) {
+	private String getPrimKey(IDatabase engine, String tableName) {
 		String physicalUri = engine.getPhysicalUriFromPixelSelector(tableName);
 		return engine.getLegacyPrimKey4Table(physicalUri);
 	}

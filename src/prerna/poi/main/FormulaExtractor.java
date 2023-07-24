@@ -55,7 +55,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.sail.SailException;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -187,7 +187,7 @@ public class FormulaExtractor extends AbstractFileReader {
 	 * @throws InvalidUploadFormatException
 	 */
 	//	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
-	/*	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile)
+	/*	public IDatabase importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile)
 			throws FileNotFoundException, IOException {
 		boolean error = false;
 		logger.setLevel(Level.WARN);
@@ -223,7 +223,7 @@ public class FormulaExtractor extends AbstractFileReader {
 		return engine;
 	}*/
 	//Restructuring
-	public IEngine importFileWithOutConnection(ImportOptions options)
+	public IDatabase importFileWithOutConnection(ImportOptions options)
 			throws FileNotFoundException, IOException {
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
@@ -268,7 +268,7 @@ public class FormulaExtractor extends AbstractFileReader {
 		return engine;
 	}
 
-	/*public IEngine importFileWithOutConnectionRDBMS(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
+	/*public IDatabase importFileWithOutConnectionRDBMS(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
 			throws FileNotFoundException, IOException {
 
 		boolean error = false;
@@ -302,7 +302,7 @@ public class FormulaExtractor extends AbstractFileReader {
 	}*/
 
 	//Restructing
-	public IEngine importFileWithOutConnectionRDBMS(ImportOptions options)
+	public IDatabase importFileWithOutConnectionRDBMS(ImportOptions options)
 			throws FileNotFoundException, IOException {
 
 		String smssLocation = options.getSMSSLocation();
@@ -381,7 +381,7 @@ public class FormulaExtractor extends AbstractFileReader {
 			String parentURI = owler.addConcept( Utility.cleanString(row.getCell(0).toString(), true) );
 			String childURI = owler.addConcept( Utility.cleanString(row.getCell(1).toString(), true) );
 			// add triples to engine
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childURI, pred, parentURI, true});
+			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{childURI, pred, parentURI, true});
 			// add triples to OWL
 			owler.addSubclass(childNode, parentNode);
 			//			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, parentNode, true});

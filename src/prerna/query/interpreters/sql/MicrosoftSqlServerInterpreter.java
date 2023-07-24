@@ -5,7 +5,7 @@ import java.util.List;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -18,7 +18,7 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 		
 	}
 
-	public MicrosoftSqlServerInterpreter(IEngine engine) {
+	public MicrosoftSqlServerInterpreter(IDatabase engine) {
 		super(engine);
 	}
 	

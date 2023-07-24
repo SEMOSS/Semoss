@@ -39,7 +39,7 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
@@ -130,7 +130,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 		getFieldData();
 
 		if (qM != null && !perspective.equals("*NEW Perspective")) {
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 			//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
 			//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
 			IProject project = Utility.getProject(engine.getEngineId());

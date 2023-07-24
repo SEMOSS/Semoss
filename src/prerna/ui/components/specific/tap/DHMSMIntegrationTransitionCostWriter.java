@@ -41,7 +41,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.poi.specific.TAPLegacySystemDispositionReportWriter;
 import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.util.Constants;
@@ -56,10 +56,10 @@ public class DHMSMIntegrationTransitionCostWriter {
 
 	private Map<String, Map<String, Double>> sysCost = new HashMap<String, Map<String, Double>>();
 
-	private IEngine TAP_Core_Data;
-	private IEngine TAP_Cost_Data;
-	private IEngine FutureDB;
-	private IEngine FutureCostDB;
+	private IDatabase TAP_Core_Data;
+	private IDatabase TAP_Cost_Data;
+	private IDatabase FutureDB;
+	private IDatabase FutureCostDB;
 	
 	private String sysURI;
 	private String systemName;
@@ -85,19 +85,19 @@ public class DHMSMIntegrationTransitionCostWriter {
 	private Map<String, Map<String, Map<String, Double>>> selfReportedSystemCostByPhase;
 	
 	public DHMSMIntegrationTransitionCostWriter() throws IOException{
-		TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		TAP_Cost_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(TAP_Cost_Data==null) {
 			throw new IOException("TAP_Cost_Data database not found");
 		}
-		FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+		FutureDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(FutureDB==null) {
 			throw new IOException("FutureDB database not found");
 		}
-		FutureCostDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureCostDB");
+		FutureCostDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureCostDB");
 		if(FutureCostDB==null) {
 			throw new IOException("FutureCostDB database not found");
 		}
-		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(TAP_Core_Data==null) {
 			throw new IOException("TAP_Core_Data database not found");
 		}

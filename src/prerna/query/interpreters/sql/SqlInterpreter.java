@@ -15,7 +15,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.AbstractQueryInterpreter;
@@ -74,7 +74,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 	// we can create a statement without an engine... 
 	// but everything needs to be the physical schema
-	protected transient IEngine engine; 
+	protected transient IDatabase engine; 
 	protected transient ITableDataFrame frame;
 	protected AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
 
@@ -108,7 +108,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		
 	}
 
-	public SqlInterpreter(IEngine engine) {
+	public SqlInterpreter(IDatabase engine) {
 		this.engine = engine;
 		this.queryUtil = ((IRDBMSEngine) engine).getQueryUtil();
 	}

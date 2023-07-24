@@ -43,7 +43,7 @@ import javax.swing.plaf.basic.BasicInternalFrameUI;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.EditPlaySheetTitleListener;
 
@@ -57,7 +57,7 @@ public abstract class AbstractPlaySheet extends JInternalFrame implements IPlayS
 	@Deprecated
 	protected String query = null;
 	@Deprecated
-	public IEngine engine = null;
+	public IDatabase engine = null;
 	
 	protected String title = null;
 	protected String questionNum = null;
@@ -164,7 +164,7 @@ public abstract class AbstractPlaySheet extends JInternalFrame implements IPlayS
 	 * @param engine the active engine for the play sheet to run its query against.
 	 */
 //	@Override
-//	public void setRDFEngine(IEngine engine)
+//	public void setRDFEngine(IDatabase engine)
 //	{
 //		logger.info("Set the engine " );
 //		this.engine = engine;
@@ -175,9 +175,9 @@ public abstract class AbstractPlaySheet extends JInternalFrame implements IPlayS
 	 * stored in DIHelper
 	
 	
-	 * @return IEngine */
+	 * @return IDatabase */
 //	@Override
-//	public IEngine getRDFEngine()
+//	public IDatabase getRDFEngine()
 //	{
 //		return this.engine;
 //	}
@@ -320,7 +320,7 @@ public abstract class AbstractPlaySheet extends JInternalFrame implements IPlayS
 	 */
 	@Override
 	@Deprecated
-	public void setRDFEngine(IEngine engine) {
+	public void setRDFEngine(IDatabase engine) {
 		this.engine = engine;
 		
 	}

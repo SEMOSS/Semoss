@@ -37,7 +37,7 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -55,7 +55,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 	static final Logger logger = LogManager.getLogger(SourceReportTaskWeightButtonListener.class.getName());
 	ArrayList<String> outputArray = new ArrayList<String>();
 	String repo="";
-	IEngine engine;
+	IDatabase engine;
 
 	/**
 	 * Method actionPerformed.
@@ -67,7 +67,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object [] repos = (Object [])list.getSelectedValues();
 		repo = repos[0] +"";
-		engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
+		engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
 		if(!repo.toLowerCase().contains("vendor"))
 		{
 			Utility.showError("The database does not contain the required elements");
@@ -121,7 +121,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		wrapper.setQuery(vendorTasksQuery);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();*/
-		engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
+		engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, vendorTasksQuery);
 
@@ -157,7 +157,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		String query1 = "SELECT DISTINCT ?Task ?BP ?taskCount ?criticality ?transNum WHERE { {?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Task ?needs ?BP.} {?BP <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {SELECT ?BP (COUNT(DISTINCT(?Task)) AS ?taskCount) WHERE { {?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Task ?needs ?BP.} {?BP <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} } GROUP BY ?BP}  {?BP <http://semoss.org/ontologies/Relation/Contains/Wartime_Criticality> ?criticality} {?BP <http://semoss.org/ontologies/Relation/Contains/Transactions_Num> ?transNum}}";
 		String query2 = "SELECT DISTINCT ?Capability ?Task (SUM(COALESCE(?dataWeight,0) * COALESCE(?Error_Percent,0) * .583 + COALESCE(?bluWeight,0) * COALESCE(?Error_Percent1,0) * .23) AS ?Task_Effect) WHERE {{SELECT DISTINCT ?Capability ?Task ?Data_Object ?FError ?Error_Percent ?dataWeight WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Data_Object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}  {?FError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute> ;} {?FError_Needs_Data_Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Assigned <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Assigned> ;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.} {?Task <http://semoss.org/ontologies/Relation/Needs> ?Data_Object}{ ?Task <http://semoss.org/ontologies/Relation/Has> ?Attribute.}{?FError <http://semoss.org/ontologies/Relation/Supports> ?Attribute}{?FError ?FError_Needs_Data_Object ?Data_Object}{?FError_Needs_Data_Object <http://semoss.org/ontologies/Relation/Contains/weight> ?dataWeight} { ?Activity ?Assigned ?FError.}{?Assigned <http://semoss.org/ontologies/Relation/Contains/weight> ?Error_Percent}}  }UNION{SELECT DISTINCT ?Capability ?Task ?BLU ?FError ?Error_Percent1 ?bluWeight WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?FError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute> ;}{?FError_Needs_Data_Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?Assigned <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Assigned> ;}{ ?Task <http://semoss.org/ontologies/Relation/Has> ?Attribute.}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task <http://semoss.org/ontologies/Relation/Needs> ?BLU}{?FError <http://semoss.org/ontologies/Relation/Supports> ?Attribute}{?FError ?FError_Needs_Data_Object ?BLU}{?FError_Needs_Data_Object <http://semoss.org/ontologies/Relation/Contains/weight> ?bluWeight}{ ?Activity ?Assigned ?FError.}{?Assigned <http://semoss.org/ontologies/Relation/Contains/weight> ?Error_Percent1} } }} GROUP BY ?Capability ?Task ORDER BY ?Task_Effect";
 
-		engine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+		engine = (IDatabase)DIHelper.getInstance().getLocalProp(changedDB);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query1);
 
@@ -236,7 +236,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 	{
 		//delete old properties
 		String deleteQuery="DELETE {?Task ?rel ?Weight.} WHERE{BIND(<http://semoss.org/ontologies/Relation/Contains/Weight> AS ?rel){?Task ?rel ?Weight ;}}";	
-		engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
+		engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
 
 		engine.execQuery(deleteQuery);
 		engine.commit();

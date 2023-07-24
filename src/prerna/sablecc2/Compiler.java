@@ -2,7 +2,7 @@ package prerna.sablecc2;
 
 import com.google.gson.Gson;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.om.Insight;
@@ -27,7 +27,7 @@ public class Compiler
 		TestUtilityMethods.loadDIHelper();
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new BigDataEngine();
+		IDatabase coreEngine = new BigDataEngine();
 		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);

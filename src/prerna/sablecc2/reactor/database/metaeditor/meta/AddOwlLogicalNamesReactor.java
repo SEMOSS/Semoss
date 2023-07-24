@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.metaeditor.meta;
 import java.io.IOException;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,7 +30,7 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String prop = getProperty();
 		String[] logicalNames = getLogicalNames();
 		
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		String physicalUri = null;
 		if (prop == null || prop.isEmpty()) {

@@ -36,7 +36,7 @@ import javax.swing.JProgressBar;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -87,7 +87,7 @@ public class TransitionCostInsert implements Runnable {
 		logger.info("Repository is " + repos);
 		
 		for(Object obj : repos) {
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(obj.toString());
+			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(obj.toString());
 
 			SesameJenaUpdateWrapper insertWrapper = new SesameJenaUpdateWrapper();
 			insertWrapper.setEngine(engine);

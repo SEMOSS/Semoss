@@ -17,9 +17,9 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
@@ -373,7 +373,7 @@ public class TableUserTracker implements IUserTracker {
 		
 		QUERY_STRUCT_TYPE type = qs.getQsType();
 		if(type == QUERY_STRUCT_TYPE.ENGINE) {
-			IEngine engine = qs.retrieveQueryStructEngine();
+			IDatabase engine = qs.retrieveQueryStructEngine();
 			String engineId = engine.getEngineId();
 			String engineName = engine.getEngineName();
 			
@@ -578,7 +578,7 @@ public class TableUserTracker implements IUserTracker {
 			}
 			
 		} else if(type == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			IEngine engine = qs.retrieveQueryStructEngine();
+			IDatabase engine = qs.retrieveQueryStructEngine();
 			String engineId = engine.getEngineId();
 			String engineName = engine.getEngineName();
 			
@@ -778,9 +778,9 @@ public class TableUserTracker implements IUserTracker {
 			// Not really an engineID (drag and drop...)
 			return null;
 		}
-		IEngine engine = Utility.getEngine(engineId);
+		IDatabase engine = Utility.getEngine(engineId);
 		if(engine != null) {
-			RDFFileSesameEngine owlEngine = ((AbstractEngine) engine).getBaseDataEngine();
+			RDFFileSesameEngine owlEngine = ((AbstractDatabase) engine).getBaseDataEngine();
 			
 			// are we dealing with a concept or a property
 			String physicalUri = engine.getPhysicalUriFromPixelSelector(table + "__" + column);

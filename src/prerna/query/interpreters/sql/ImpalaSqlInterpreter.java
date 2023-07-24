@@ -14,7 +14,7 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.AbstractQueryInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -62,7 +62,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 
 	// we can create a statement without an engine... 
 	// but everything needs to be the physical schema
-	private IEngine engine; 
+	private IDatabase engine; 
 	private ITableDataFrame frame;
 
 	// where the wheres are all kept
@@ -89,7 +89,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 
 	}
 
-	public ImpalaSqlInterpreter(IEngine engine) {
+	public ImpalaSqlInterpreter(IDatabase engine) {
 		this.engine = engine;
 		this.queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.IMPALA);
 	}

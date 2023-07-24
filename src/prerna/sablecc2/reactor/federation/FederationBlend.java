@@ -14,7 +14,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -181,7 +181,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 
 		// update frame meta for new cols being added
 		// build qs to pull the target data
-		IEngine newColEngine = Utility.getEngine(newDb);
+		IDatabase newColEngine = Utility.getEngine(newDb);
 		Map<String, SemossDataType> typesMap = new HashMap<>();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(newColEngine);

@@ -36,7 +36,7 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JToggleButton;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -53,7 +53,7 @@ import prerna.util.Utility;
  * Also selects the complement of selected data and blu.
  */
 public class UpdateDataBLUListListener extends AbstractListener {
-	IEngine engine;
+	IDatabase engine;
 	JToggleButton showSystemSelectBtn;
 	JButton updateProvideDataBLUButton,updateConsumeDataBLUButton,updateComplementDataBLUButton;
 	
@@ -168,7 +168,7 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	 * @param engineName 	String containing the name of the database engine to be queried
 	 * @param query 		String containing the SPARQL query to run
 	 */
-	public ArrayList<String> runListQuery(IEngine engine, String query) {
+	public ArrayList<String> runListQuery(IDatabase engine, String query) {
 		ArrayList<String> list = new ArrayList<String>();
 		try {
 
@@ -192,15 +192,15 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	}
 	/**
 	 * Sets engine
-	 * @param engine 	IEngine to be queried
+	 * @param engine 	IDatabase to be queried
 	 */
-	public void setEngine(IEngine engine)
+	public void setEngine(IDatabase engine)
 	{
 		this.engine = engine;
 	}
 	/**
 	 * Sets components
-	 * @param engine 	IEngine to be queried
+	 * @param engine 	IDatabase to be queried
 	 * @param sysScrollList SelectScrollList with list of systems
 	 * @param capScrollList SelectScrollList with list of capabilities
 	 * @param dataScrollList SelectScrollList with list of data

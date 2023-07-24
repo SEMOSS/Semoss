@@ -40,8 +40,8 @@ import org.openrdf.model.URI;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
@@ -49,7 +49,7 @@ public class TinkerGraphDataModel {
 
 	private static final Logger logger = LogManager.getLogger(TinkerGraphDataModel.class.getName());
 
-	public void fillModel(String query, IEngine engine, TinkerFrame tf){
+	public void fillModel(String query, IDatabase engine, TinkerFrame tf){
 		long start = System.currentTimeMillis();
 		processData(query, engine, tf);
 		long end = System.currentTimeMillis();
@@ -57,11 +57,11 @@ public class TinkerGraphDataModel {
 		logger.info(">>>>>> TOTAL TIME: " + (end-start) + " ms");
 	}
 
-	private void processData(String query, IEngine engine, TinkerFrame tf) {
+	private void processData(String query, IDatabase engine, TinkerFrame tf) {
 		// load the base filter hash
 		// this will be used to ignore the triples
 		// that are purely metdata oriented from the tinkerframe
-		Hashtable<String, String> baseFilterHash = ((AbstractEngine)engine).getBaseHash();
+		Hashtable<String, String> baseFilterHash = ((AbstractDatabase)engine).getBaseHash();
 
 		String queryCap = query.toUpperCase().trim();
 //		// this is just to remove the limit for some of the queries i have seen
@@ -193,7 +193,7 @@ public class TinkerGraphDataModel {
 	}
 	
 	// this would be used if we are sending display names
-//	private String getDisplayName(IEngine coreEngine, String subKey){
+//	private String getDisplayName(IDatabase coreEngine, String subKey){
 //		return Utility.getTransformedNodeName(coreEngine, subKey, true);
 //	}
 	

@@ -5,16 +5,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
@@ -473,7 +471,7 @@ public class SQLQueryUtils {
 	public static NativeFrame subQueryNativeFrame(SelectQueryStruct queryStruct) {
 		NativeFrame emptyFrame = null;
 		try {
-			IEngine engine = queryStruct.retrieveQueryStructEngine();
+			IDatabase engine = queryStruct.retrieveQueryStructEngine();
 			IQueryInterpreter interp = engine.getQueryInterpreter();
 
 			SqlParser2 parser = new SqlParser2();

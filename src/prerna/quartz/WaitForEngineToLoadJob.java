@@ -4,7 +4,7 @@ import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.util.Utility;
 
 public class WaitForEngineToLoadJob implements org.quartz.Job {
@@ -20,7 +20,7 @@ public class WaitForEngineToLoadJob implements org.quartz.Job {
 		
 		// Do work
 		boolean loadingEngine = true;
-		IEngine engine = null;
+		IDatabase engine = null;
 		while (loadingEngine) {
 			engine = Utility.getEngine(engineName);
 			if (engine == null) {

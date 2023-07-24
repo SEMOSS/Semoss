@@ -31,7 +31,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.DIHelper;
@@ -53,7 +53,7 @@ public class DataCriticalityHeatMapSheet extends SimilarityHeatMapSheet {
 		
 	public void createData() {
 		SimilarityFunctions sdf = new SimilarityFunctions();
-		IEngine tapCoreEngine = (IEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
+		IDatabase tapCoreEngine = (IDatabase) DIHelper.getInstance().getLocalProp(tapCoreDB);
 		ISelectWrapper sjsw = Utility.processQuery(tapCoreEngine, dhmsmCapDataQuery);		
 		Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
 		String[] vars = sjsw.getVariables();

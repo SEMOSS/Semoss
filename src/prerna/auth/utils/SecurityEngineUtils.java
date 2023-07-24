@@ -26,7 +26,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IStorage;
@@ -96,12 +96,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			databaseName = databaseId;
 		}
 		
-		String[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
 		boolean engineExists = containsDatabaseId(databaseId);
 		if(engineExists) {
 			logger.info("Security database already contains database with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
+			String[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
 			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], typeAndCost[2], global, user);
 		} 
 		
@@ -127,7 +127,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
 		try {
 			Object emptyClass = Class.forName(rawType).newInstance();
-			if(emptyClass instanceof IEngine) {
+			if(emptyClass instanceof IDatabase) {
 				engineType = "DATABASE";
 				if(emptyClass instanceof IRDBMSEngine) {
 					String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
@@ -139,7 +139,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					RdbmsTypeEnum dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
 					engineSubType = dbType.getLabel();
 				} else {
-					engineSubType = ((IEngine) emptyClass).getEngineType().toString();
+					engineSubType = ((IDatabase) emptyClass).getEngineType().toString();
 				}
 			} else if(emptyClass instanceof IStorage) {
 				engineType = "STORAGE";
@@ -2577,7 +2577,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
 		List<String> engineTypes = new ArrayList<>();
-		engineTypes.add(IEngine.CATALOG_TYPE);
+		engineTypes.add(IDatabase.CATALOG_TYPE);
 		return getAllEngineList(engineTypes, databaseFilters, null, null, null, null);
 	}
 	

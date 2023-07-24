@@ -6,7 +6,7 @@ public interface IEngineModifier {
 	 * Set the engine for the modifier class
 	 * @param engine
 	 */
-	void setEngine(IEngine engine);
+	void setEngine(IDatabase engine);
 
 	/**
 	 * Add a property to an existing concept

@@ -37,7 +37,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -48,13 +48,13 @@ public class LPInterfaceProcessor extends AbstractLPInterfaceProcessor{
 	
 	private static final Logger LOGGER = LogManager.getLogger(LPInterfaceProcessor.class.getName());
 	
-	public void setEngine(IEngine engine) {
+	public void setEngine(IDatabase engine) {
 		this.engine = engine;
 	}
 	
 	public Map<String, Object> generateGridReport() {
 		Set<String> selfReportedSystems = new HashSet<String>();
-		IEngine futureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+		IDatabase futureDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(futureDB != null) {
 			selfReportedSystems = DHMSMTransitionUtility.getAllSelfReportedSystemNames(futureDB);
 		}

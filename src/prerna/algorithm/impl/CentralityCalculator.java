@@ -34,8 +34,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import edu.uci.ics.jung.graph.DelegateForest;
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
@@ -321,12 +321,12 @@ public final class CentralityCalculator {
 	 * @param database IEngine to create the metamodel from
 	 * @return GraphPlaySheet that displays the metamodel
 	 */
-	public static GraphPlaySheet createMetamodel(IEngine coreEngine, String query, boolean physicalMetamodel){
+	public static GraphPlaySheet createMetamodel(IDatabase coreEngine, String query, boolean physicalMetamodel){
 		String playSheetName = "Graph";
 		String dataMakerName = "GraphDataModel";
 		String title = "Metamodel";
 		String id = coreEngine.getEngineId() + "-Metamodel";
-		AbstractEngine eng = ((AbstractEngine)coreEngine).getBaseDataEngine();
+		AbstractDatabase eng = ((AbstractDatabase)coreEngine).getBaseDataEngine();
 		eng.setEngineId(id);
 		eng.setBaseData((RDFFileSesameEngine) eng);
 		Hashtable<String, String> filterHash = new Hashtable<String, String>();

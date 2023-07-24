@@ -35,7 +35,7 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -109,7 +109,7 @@ public class ServiceICDProcessor {
 			
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
-				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+				IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 				// use the layout to load the sheet later
 				//sjw.setEngine(engine);
 				//sjw.executeQuery();

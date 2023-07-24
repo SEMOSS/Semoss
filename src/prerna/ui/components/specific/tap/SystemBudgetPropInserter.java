@@ -36,7 +36,7 @@ import javax.swing.JOptionPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -79,7 +79,7 @@ public class SystemBudgetPropInserter {
 		
 		//run the insert
 		UpdateProcessor proc = new UpdateProcessor();
-		proc.setEngine((IEngine) DIHelper.getInstance().getLocalProp(tapEngineName));
+		proc.setEngine((IDatabase) DIHelper.getInstance().getLocalProp(tapEngineName));
 		System.out.println("Running Insert Query: " + insertQuery);
 		proc.setQuery(insertQuery);
 		proc.processQuery();
@@ -153,7 +153,7 @@ public class SystemBudgetPropInserter {
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
 			//get specific engine
-			IEngine selectedEngine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+			IDatabase selectedEngine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 			logger.info("Selecting repository " + repos[repoIndex]);
 			
 			wrapper = WrapperManager.getInstance().getSWrapper(selectedEngine, query);

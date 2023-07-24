@@ -33,9 +33,9 @@ import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.AZStorageListener;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
@@ -193,7 +193,7 @@ public class AZClient extends AbstractCloudClient {
 	
 	@Override
 	public void pullOwl(String appId) throws IOException, InterruptedException{
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -220,7 +220,7 @@ public class AZClient extends AbstractCloudClient {
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX +appId+"/"+ owlFile.getName(), appFolder);
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX + appId+"/"+ AbstractEngine.OWL_POSITION_FILENAME, appFolder);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX + appId+"/"+ AbstractDatabase.OWL_POSITION_FILENAME, appFolder);
 
 		}  finally {
 			try {
@@ -243,7 +243,7 @@ public class AZClient extends AbstractCloudClient {
 
 	@Override
 	public void pushOwl(String appId) throws IOException, InterruptedException{
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -271,7 +271,7 @@ public class AZClient extends AbstractCloudClient {
 			//sync will delete files that are in the destination if they aren't being synced
 
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId);			 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractEngine.OWL_POSITION_FILENAME, appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId);			 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractDatabase.OWL_POSITION_FILENAME, appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId);			 
 
 
 		}  finally {
@@ -329,7 +329,7 @@ public class AZClient extends AbstractCloudClient {
 				//open the insight db
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
-					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractEngine.class)));
+					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
 				} else {
 					throw new IllegalArgumentException("Insight database was not able to be found");
 				}
@@ -377,7 +377,7 @@ public class AZClient extends AbstractCloudClient {
 				//open the insight db
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
-					project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractEngine.class)));
+					project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
 				} else {
 					throw new IllegalArgumentException("Insight database was not able to be found");
 				}
@@ -394,7 +394,7 @@ public class AZClient extends AbstractCloudClient {
 
 	@Override
 	public void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -503,7 +503,7 @@ public class AZClient extends AbstractCloudClient {
 	
 	@Override
 	public void pullDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(databaseId, false);
+		IDatabase engine = Utility.getEngine(databaseId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -549,7 +549,7 @@ public class AZClient extends AbstractCloudClient {
 
 	@Override
 	public void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -587,7 +587,7 @@ public class AZClient extends AbstractCloudClient {
 
 	@Override
 	public void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -1405,7 +1405,7 @@ public class AZClient extends AbstractCloudClient {
 
 	//	public  Boolean syncApp(String appId) throws IOException, InterruptedException{
 	//		Boolean sync = false;
-	//		IEngine engine = Utility.getEngine(appId, false);
+	//		IDatabase engine = Utility.getEngine(appId, false);
 	//		if (engine == null) {
 	//			throw new IllegalArgumentException("App not found...");
 	//		}
@@ -1437,7 +1437,7 @@ public class AZClient extends AbstractCloudClient {
 	//////////////////////////////////////// Push ////////////////////////////////////////////
 
 	public void pushApp(String appId) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IDatabase engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -1532,7 +1532,7 @@ public class AZClient extends AbstractCloudClient {
 	}
 
 	public void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException {
-		IEngine engine = null;
+		IDatabase engine = null;
 		if (appAlreadyLoaded) {
 			engine = Utility.getEngine(appId, false);
 			if (engine == null) {

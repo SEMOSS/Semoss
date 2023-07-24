@@ -61,9 +61,8 @@ import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -71,7 +70,7 @@ import prerna.util.Utility;
 /**
  * References the RDF source from a remote engine and uses the Sesame API to query a database stored in an RDF file (.jnl file).
  */
-public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
+public class RemoteSparqlEngine extends AbstractDatabase {
 
 	private static final Logger logger = LogManager.getLogger(RemoteSparqlEngine.class.getName());
 	BigdataSail bdSail = null;
@@ -220,7 +219,7 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 	 * @return the type of the engine */
 	public ENGINE_TYPE getEngineType()
 	{
-		return IEngine.ENGINE_TYPE.SESAME;
+		return IDatabase.ENGINE_TYPE.SESAME;
 	}
 
 	/**

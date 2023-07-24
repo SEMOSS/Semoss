@@ -41,7 +41,7 @@ import org.openrdf.model.vocabulary.RDF;
 
 import com.hp.hpl.jena.vocabulary.RDFS;
 
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.PropertySpecData;
@@ -210,7 +210,7 @@ public class OWLRefreshListener implements IChakraListener {
 		String engineName = ps.engine.getEngineId();
 		// get the core properties
 		ps.exportDB();
-		((AbstractEngine)ps.engine).saveConfiguration();
+		((AbstractDatabase)ps.engine).saveConfiguration();
 	}
 	
 	/**

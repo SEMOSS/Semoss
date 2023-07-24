@@ -35,7 +35,7 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JToggleButton;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -53,7 +53,7 @@ import prerna.util.Utility;
  * Also selects the complement of selected data and blu.
  */
 public class UpdateDataListListener extends AbstractListener {
-	IEngine engine;
+	IDatabase engine;
 	JToggleButton showSystemSelectBtn;
 	JButton updateProvideDataButton,updateConsumeDataButton;
 
@@ -126,7 +126,7 @@ public class UpdateDataListListener extends AbstractListener {
 	 * @param engineId 	String containing the name of the database engine to be queried
 	 * @param query 		String containing the SPARQL query to run
 	 */
-	public ArrayList<String> runListQuery(IEngine engine, String query) {
+	public ArrayList<String> runListQuery(IDatabase engine, String query) {
 		ArrayList<String> list = new ArrayList<String>();
 		try {
 
@@ -149,9 +149,9 @@ public class UpdateDataListListener extends AbstractListener {
 	}
 	/**
 	 * Sets engine
-	 * @param engine 	IEngine to be queried
+	 * @param engine 	IDatabase to be queried
 	 */
-	public void setEngine(IEngine engine)
+	public void setEngine(IDatabase engine)
 	{
 		this.engine = engine;
 	}

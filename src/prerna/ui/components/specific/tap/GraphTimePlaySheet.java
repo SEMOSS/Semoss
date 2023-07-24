@@ -40,7 +40,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -175,7 +175,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	 * Rest of the columns are time properties to be associated with that edge or node
 	 * Go through query, getting edge or node and attaching time info
 	 */
-	protected void processTimeData(String timeQuery, IEngine timeEngine)
+	protected void processTimeData(String timeQuery, IDatabase timeEngine)
 	{
 		logger.info("Begining processTimeData with q: " + timeQuery + " on engine " + timeEngine);
 

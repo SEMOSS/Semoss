@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
-
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -35,7 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.ArrayUtilityMethods;
 
@@ -89,7 +88,7 @@ public class ConsolidatedInterfaceCostProcessor implements IAlgorithm{
 	 * @param centralSysKeptIndexArr		Array representing the indicies of the central systems that are sustained	
 	 * @param singleSiteInterfaceCostEstimate	Estimated interface cost for a single site
 	 */
-	public void setVariables(IEngine sysEngine, String sustainedSys, ArrayList<String> localSysList, ArrayList<String> centralSysList, ArrayList<String> dataList, int[] sustainedSysSiteMatrix, int[][] currentLocalSysSiteMatrix, int[][] futureLocalSysSiteMatrix, int[] sustainedCentralSysIndiciesArr, double singleSiteInterfaceCostEstimate){
+	public void setVariables(IDatabase sysEngine, String sustainedSys, ArrayList<String> localSysList, ArrayList<String> centralSysList, ArrayList<String> dataList, int[] sustainedSysSiteMatrix, int[][] currentLocalSysSiteMatrix, int[][] futureLocalSysSiteMatrix, int[] sustainedCentralSysIndiciesArr, double singleSiteInterfaceCostEstimate){
 		
 		this.sustainedSysSiteMatrix = sustainedSysSiteMatrix;
 		this.currentLocalSysSiteMatrix = currentLocalSysSiteMatrix;

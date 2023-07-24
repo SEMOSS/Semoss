@@ -40,7 +40,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.rdbms.h2.H2Frame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
 
@@ -259,7 +259,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 			}
 			else if (queryIdx == 2){
 				this.engineName2 = token;
-				this.engine2 = (IEngine) DIHelper.getInstance().getLocalProp(engineName2);
+				this.engine2 = (IDatabase) DIHelper.getInstance().getLocalProp(engineName2);
 			}
 			else if (queryIdx == 3)
 				this.query1 = token;

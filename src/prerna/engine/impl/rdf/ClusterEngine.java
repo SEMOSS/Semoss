@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
-import java.sql.SQLException;
 import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
@@ -37,16 +36,15 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
-public class ClusterEngine extends AbstractEngine {
+public class ClusterEngine extends AbstractDatabase {
 
 	private static final Logger logger = LogManager.getLogger(ClusterEngine.class.getName());
 	// for every class type and relation it tells you which
@@ -63,7 +61,7 @@ public class ClusterEngine extends AbstractEngine {
 	RepositoryConnection rc = null;
 		
 	// database names
-	Hashtable <String, IEngine> engineHash = new Hashtable<String, IEngine>();
+	Hashtable <String, IDatabase> engineHash = new Hashtable<String, IDatabase>();
 	
 	// You register a database with the name server
 	// in this case you register an engine
@@ -78,7 +76,7 @@ public class ClusterEngine extends AbstractEngine {
 	
 	
 
-	public void addEngine(AbstractEngine engine) {
+	public void addEngine(AbstractDatabase engine) {
 		// put it in the hash
 		engineHash.put(engine.getEngineId(), engine);
 		

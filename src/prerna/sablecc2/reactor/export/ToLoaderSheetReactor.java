@@ -26,8 +26,8 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -69,7 +69,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to specify the app to export");
 		}
 		String appId = MasterDatabaseUtility.testDatabaseIdIfAlias(app);
-		IEngine engine = Utility.getEngine(appId);
+		IDatabase engine = Utility.getEngine(appId);
 		if(engine == null) {
 			throw new IllegalArgumentException("Cannot find the specified app");
 		}
@@ -215,7 +215,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	}
 	
 	public static void writeNodePropSheet(
-			IEngine engine, 
+			IDatabase engine, 
 			Workbook workbook,
 			CellStyle dateCellStyle,
 			CellStyle timeStampCellStyle,
@@ -310,7 +310,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	}
 	
 	public static void writeRelationshipSheet(
-			IEngine engine, 
+			IDatabase engine, 
 			Workbook workbook, 
 			CellStyle dateCellStyle,
 			CellStyle timeStampCellStyle,
@@ -424,7 +424,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		loader.setColumnWidth(1, 5_000);
 	}
 	
-	public static String generateSparqlQuery(IEngine engine, String startNode, String endNode, String relName, List<String> edgeProps) {
+	public static String generateSparqlQuery(IDatabase engine, String startNode, String endNode, String relName, List<String> edgeProps) {
 		String query = null;
 		if(edgeProps.isEmpty()) {
 			query = "select distinct ?start ?end where { "
@@ -452,7 +452,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		return query;
 	}
 	
-	public static List<String> getEdgeProperties(IEngine engine, String startNode, String endNode, String relName) {
+	public static List<String> getEdgeProperties(IDatabase engine, String startNode, String endNode, String relName) {
 		String startQ = "select distinct ?propUri where { "
 				+ "{?start a <" + startNode + ">}"
 				+ "{?end a <" + endNode + ">}"
@@ -480,7 +480,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		return props;
 	}
 
-//	public static String getPhysicalColumnHeader(IEngine engine, String conceptPixelUri) {
+//	public static String getPhysicalColumnHeader(IDatabase engine, String conceptPixelUri) {
 //		String conceptPixelName = Utility.getInstanceName(conceptPixelUri);
 //		String physicalNodeUri = engine.getPhysicalUriFromPixelSelector(conceptPixelName);
 //		String physicalNodeName = Utility.getInstanceName(physicalNodeUri);
@@ -491,7 +491,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new RDBMSNativeEngine();
+		IDatabase coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("LocalMasterDatabase");
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineId("LocalMasterDatabase");

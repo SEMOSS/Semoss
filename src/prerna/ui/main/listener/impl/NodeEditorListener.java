@@ -33,7 +33,7 @@ import java.awt.event.ActionListener;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.GraphDataModel;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
@@ -52,7 +52,7 @@ public class NodeEditorListener implements ActionListener {
 	SEMOSSVertex node;
 	String htmlFileName= "/html/MHS-RDFNodeEditor/app/index.html#/rdfnode/";
 	String dbType;
-	IEngine engine;
+	IDatabase engine;
 	GraphPlaySheet gps;
 
 	/**
@@ -122,9 +122,9 @@ public class NodeEditorListener implements ActionListener {
 	}
 	/**
 	 * Method setEngine.  Sets the engine that the listener will access.
-	 * @param engine IEngine
+	 * @param engine IDatabase
 	 */
-	public void setEngine(IEngine engine){
+	public void setEngine(IDatabase engine){
 		this.engine = engine;
 	}
 	/**

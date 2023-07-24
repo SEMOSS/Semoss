@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.UpdateProcessor;
 import prerna.util.DIHelper;
 
@@ -28,7 +28,7 @@ public class TechnicalMaturityInserter {
 	 *            Name of property
 	 */
 	private void inserter(HashMap<String, Double> tmHash, String propName) {
-		IEngine tapCoreData = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		IDatabase tapCoreData = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		
 		// Loop through entire hashmap and create a giant insert query to be run by UpdateProcessor
 		String insertQuery = prepareInsert(tmHash, propName);

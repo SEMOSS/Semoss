@@ -17,7 +17,7 @@ import edu.uci.ics.jung.graph.DelegateForest;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -135,7 +135,7 @@ public class SQLGraphPlaysheet extends AbstractPlaySheet {
 	}
 	
 	// simple add
-	public void addMore(IEngine engine, String query)
+	public void addMore(IDatabase engine, String query)
 	{
 		// job here is really simple
 		// get the wrapper manager

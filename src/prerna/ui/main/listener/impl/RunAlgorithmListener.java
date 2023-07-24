@@ -44,7 +44,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 
@@ -84,7 +84,7 @@ public class RunAlgorithmListener extends AbstractListener {
 	private JToggleButton showDrillDownBtn;
 	private JComboBox<String> drillDownTabSelectorComboBox;
 	private ArrayList<JCheckBox> columnCheckboxes;
-	private IEngine engine;
+	private IDatabase engine;
 	private String title;
 
 	private Double[] entropyArr;
