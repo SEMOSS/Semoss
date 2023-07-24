@@ -11,7 +11,14 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
+import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	
@@ -210,6 +217,24 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getBooleanDataTypeName() {
 		return "BIT";
+	}
+	
+	@Override
+	public String getRegexLikeFunctionSyntax() {
+		return "PATINDEX";
+	}
+	
+	@Override
+	public void appendSearchRegexFilter(AbstractQueryStruct qs, String columnQs, String searchTerm) {
+		// WHERE PATINDEX ('%pattern%',expression) != 0
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction("PATINDEX");
+		fun.addInnerSelector(new QueryConstantSelector("%"+searchTerm+"%"));
+		fun.addInnerSelector(new QueryColumnSelector(columnQs));
+		NounMetadata lComparison = new NounMetadata(fun, PixelDataType.COLUMN);
+		NounMetadata rComparison = new NounMetadata(0, PixelDataType.CONST_INT);
+		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, "!=", rComparison);
+		qs.addExplicitFilter(filter);
 	}
 	
 	@Override
