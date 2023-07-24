@@ -57,7 +57,7 @@ public class DeleteDatabaseStructureReactor extends AbstractReactor {
 		// table > [column1,column2,...]
 		Map<String, List<String>> updates = getDeletions();
 		
-		IDatabase engine = Utility.getEngine(databaseId);
+		IDatabase engine = Utility.getDatabase(databaseId);
 		if(!(engine instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("This operation only works on relational databases");
 		}

@@ -22,7 +22,7 @@ public class WaitForEngineToLoadJob implements org.quartz.Job {
 		boolean loadingEngine = true;
 		IDatabase engine = null;
 		while (loadingEngine) {
-			engine = Utility.getEngine(engineName);
+			engine = Utility.getDatabase(engineName);
 			if (engine == null) {
 				try {
 					Thread.sleep(3000);

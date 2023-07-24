@@ -172,7 +172,7 @@ public class SchedulerDatabaseUtility {
 	}
 
 	public static void startServer() throws IOException, SQLException {
-		schedulerDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SCHEDULER_DB);
+		schedulerDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
 		Connection conn = schedulerDb.getConnection();
 		try {
 			queryUtil = schedulerDb.getQueryUtil();
@@ -220,7 +220,7 @@ public class SchedulerDatabaseUtility {
 		Connection connection = null;
 
 		try {
-			schedulerDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SCHEDULER_DB);
+			schedulerDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
 			connection = schedulerDb.getConnection();
 		} catch (SQLException se) {
 			logger.error(Constants.STACKTRACE, se);

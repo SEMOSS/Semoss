@@ -61,7 +61,7 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 		if(newColumn == null || newColumn.isEmpty()) {
 			throw new IllegalArgumentException("Need to add the new id column name");
 		}
-		RDBMSNativeEngine database =  (RDBMSNativeEngine) Utility.getEngine(databaseId);
+		RDBMSNativeEngine database =  (RDBMSNativeEngine) Utility.getDatabase(databaseId);
 		database.setAutoCommit(false);
 		AbstractSqlQueryUtil queryUtil = database.getQueryUtil();
 		Connection conn = null;

@@ -83,7 +83,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 	public List<Object> getParamOptions(IProject project, String parameterID) {
 		IDatabase insightRDBMS = project.getInsightDatabase();
 		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
-		IDatabase mainEngine = Utility.getEngine(project.getProjectId());
+		IDatabase mainEngine = Utility.getDatabase(project.getProjectId());
 		
 		String query = GET_INFO_FOR_PARAM.replace(PARAMETER_ID_PARAM_KEY, parameterID);
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);

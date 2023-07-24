@@ -123,7 +123,7 @@ public class OldInsight extends Insight {
 		this.mainProject = mainProject;
 		// NEED THE ID TO BE THE SAME IN THIS SITUATION!!!
 		// the main engine has the same id as the main project
-		this.mainEngine = Utility.getEngine(mainProject.getProjectId());
+		this.mainEngine = Utility.getDatabase(mainProject.getProjectId());
 		this.dataMakerName = dataMakerName;
 		this.layout = layout;
 	}

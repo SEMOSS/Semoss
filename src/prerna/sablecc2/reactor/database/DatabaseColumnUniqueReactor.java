@@ -46,7 +46,7 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 			}
 		}
 		
-		IDatabase engine = Utility.getEngine(engineId);
+		IDatabase engine = Utility.getDatabase(engineId);
 		
 		long nRow = 0;
 		long uniqueNRow = 0;

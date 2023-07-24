@@ -66,7 +66,7 @@ public class SimilarityFunctions {
 		// once created find the binding names
 		// compose a array
 		// and then create filter data and a table
-		IDatabase engine = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(dbName));
+		IDatabase engine = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias(dbName));
 		list = new ArrayList();
 		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

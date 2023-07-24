@@ -70,7 +70,7 @@ public class TaskerGenerationProcessor {
 	public ArrayList runQuery(String engineName, String query) {
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repo = (Object[]) repoList.getSelectedValues();
-		IDatabase engine = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(engineName));
+		IDatabase engine = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias(engineName));
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

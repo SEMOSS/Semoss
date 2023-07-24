@@ -35,7 +35,7 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 		String size = this.keyValue.get(this.keysToGet[1]);
 		String token = this.keyValue.get(this.keysToGet[2]);
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		if (database == null) {
 			throw new IllegalArgumentException("Must define the database to pull data from");
 		}

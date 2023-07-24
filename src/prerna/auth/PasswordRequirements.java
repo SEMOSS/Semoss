@@ -65,7 +65,7 @@ public class PasswordRequirements {
 				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT",
 				"DAYS_TO_LOCK", "DAYS_TO_LOCK_WARNING"};
 		
-		IDatabase securityDb = Utility.getEngine(Constants.SECURITY_DB);
+		IDatabase securityDb = Utility.getDatabase(Constants.SECURITY_DB);
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for(String c : colNames) {
 			qs.addSelector(new QueryColumnSelector("PASSWORD_RULES__" + c));

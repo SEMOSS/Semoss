@@ -87,7 +87,7 @@ public class InitAppRepo extends GitBaseReactor {
 		try {
 			// close the database
 			if(syncDatabase) {
-				Utility.getEngine(databaseId).closeDB();
+				Utility.getDatabase(databaseId).closeDB();
 				DIHelper.getInstance().removeLocalProperty(databaseId);
 			}
 			// make database to remote
@@ -115,7 +115,7 @@ public class InitAppRepo extends GitBaseReactor {
 		} finally {
 			// open it back up
 			if(syncDatabase) {
-				Utility.getEngine(databaseId);
+				Utility.getDatabase(databaseId);
 			}
 		}
 		

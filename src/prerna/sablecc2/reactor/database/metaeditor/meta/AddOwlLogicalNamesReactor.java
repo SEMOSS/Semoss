@@ -30,7 +30,7 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String prop = getProperty();
 		String[] logicalNames = getLogicalNames();
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		String physicalUri = null;
 		if (prop == null || prop.isEmpty()) {
