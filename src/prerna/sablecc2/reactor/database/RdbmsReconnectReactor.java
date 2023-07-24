@@ -33,7 +33,7 @@ public class RdbmsReconnectReactor extends AbstractReactor {
 			}
 		}
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		if(!(database instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("Database must be an RDBMS native engine");
 		}

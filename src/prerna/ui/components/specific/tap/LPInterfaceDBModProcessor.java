@@ -68,15 +68,15 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 	//TODO: move engine definitions outside class to keep reusable
 	public LPInterfaceDBModProcessor() throws IOException {
 		super();
-		tapCost = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Cost_Data"));
+		tapCost = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Cost_Data"));
 		if(tapCost == null) {
 			throw new IOException("TAP_Cost_Data not found.");
 		}
-		futureDB = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("FutureDB"));
+		futureDB = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("FutureDB"));
 		if(futureDB == null) {
 			throw new IOException("FutureDB engine not found");
 		}
-		tapCore = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Core_Data"));
+		tapCore = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Core_Data"));
 		if(tapCore == null) {
 			throw new IOException("TAP_Core_Data engine not found");
 		}

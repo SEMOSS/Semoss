@@ -51,7 +51,7 @@ public class OpenDatabaseReactor extends AbstractReactor {
 			}
 		}
 		
-		IDatabase engine = Utility.getEngine(databaseId);
+		IDatabase engine = Utility.getDatabase(databaseId);
 		if(engine == null) {
 			throw new IllegalArgumentException("Could not find or load database = " + databaseId);
 		}

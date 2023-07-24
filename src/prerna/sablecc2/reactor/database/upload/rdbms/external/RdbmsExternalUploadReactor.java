@@ -124,7 +124,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		if (databaseId != null && userPassedExisting != null) {
 			existingDatabase = Boolean.parseBoolean(userPassedExisting);
 			
-			IDatabase database = Utility.getEngine(databaseId);
+			IDatabase database = Utility.getDatabase(databaseId);
 			if(database instanceof IRDBMSEngine) {
 				nativeDatabase = (IRDBMSEngine) database;
 			} else {
@@ -159,7 +159,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			}
 
 			this.databaseId = databaseId;
-			this.database = Utility.getEngine(databaseId);
+			this.database = Utility.getDatabase(databaseId);
 			try {
 				this.logger.info("Updating existing database");
 				updateExistingDatabase();

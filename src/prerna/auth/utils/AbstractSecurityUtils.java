@@ -78,7 +78,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static void loadSecurityDatabase() throws Exception {
-		securityDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
+		securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		SecurityOwlCreator owlCreator = new SecurityOwlCreator(securityDb);
 		if(owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();

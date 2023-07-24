@@ -67,7 +67,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	}
 
 	protected Owler getOWLER(String appId) {
-		IDatabase app = Utility.getEngine(appId);
+		IDatabase app = Utility.getDatabase(appId);
 
 		return new Owler(app);
 	}

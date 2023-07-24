@@ -58,7 +58,7 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 		String[] packages = { "text2vec", "data.table", "lsa", "WikidataR", "XML", "RCurl", "stringr", "httr"};
 		rJavaTranslator.checkPackages(packages);
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		
 		// store 2 lists
 		// of all table names

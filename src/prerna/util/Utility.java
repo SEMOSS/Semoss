@@ -2382,7 +2382,7 @@ public class Utility {
 	 * @param List      of properties.
 	 * @return Loaded engine.
 	 */
-	public static IDatabase loadEngine(String smssFilePath, Properties prop) {
+	public static IDatabase loadDatabase(String smssFilePath, Properties prop) {
 		IDatabase engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
@@ -2852,8 +2852,8 @@ public class Utility {
 	 * @return
 	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IDatabase getEngine(String engineId) {
-		return getEngine(engineId, true);
+	public static IDatabase getDatabase(String engineId) {
+		return getDatabase(engineId, true);
 	}
 
 	/**
@@ -2863,7 +2863,7 @@ public class Utility {
 	 * 
 	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IDatabase getEngine(String engineId, boolean pullIfNeeded) {
+	public static IDatabase getDatabase(String engineId, boolean pullIfNeeded) {
 		IDatabase engine = null;
 		
 		// Now that the database has been pulled, grab the smss file
@@ -2944,11 +2944,11 @@ public class Utility {
 					// Start up the engine using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
-						engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
+						engine = Utility.loadDatabase(smssFile, Utility.loadProperties(smssFile));
 					}
 					else if(prop != null)
 					{
-						engine = Utility.loadEngine(null, prop);	
+						engine = Utility.loadDatabase(null, prop);	
 					} else {
 						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");
 						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");

@@ -115,7 +115,7 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 				String dataType = meta.getHeaderTypeAsString(name);
 
 				// get unique column values
-				IDatabase engine = Utility.getEngine(db);
+				IDatabase engine = Utility.getDatabase(db);
 				RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 
 				// get unique values for string columns, if it doesnt exist

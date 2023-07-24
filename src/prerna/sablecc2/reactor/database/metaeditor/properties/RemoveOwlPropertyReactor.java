@@ -39,7 +39,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 			throw new IllegalArgumentException("Must define the property being added to the database metadata");
 		}
 		// if RDBMS, we need to know the prime key of the column
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 		String physicalPropUri = database.getPhysicalUriFromPixelSelector(concept + "__" + column);

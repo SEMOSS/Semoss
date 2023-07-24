@@ -436,7 +436,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	public List<Map<String,String>> runDefaultOpt(Map<String, Object> webDataHash) {
 
 		//check to make sure site engine is loaded
-		IDatabase siteEngine = (IDatabase) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(siteEngineName));
+		IDatabase siteEngine = (IDatabase) Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias(siteEngineName));
 		if(siteEngine == null) {
 			LOGGER.error("Missing databases. Please make sure you have: TAP_Core_Data_Data and TAP_Site_Data");
 			return new ArrayList<Map<String,String>>();
@@ -483,7 +483,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		//TODO edit what is being sent in from web to remove optimization and number of points
 
 		//check to make sure site engine is loaded
-		IDatabase siteEngine = (IDatabase) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(siteEngineName));
+		IDatabase siteEngine = (IDatabase) Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias(siteEngineName));
 		if(siteEngine == null) {
 			LOGGER.error("Missing databases. Please make sure you have: TAP_Core_Data_Data and TAP_Site_Data");
 			return new ArrayList<Map<String,String>>();

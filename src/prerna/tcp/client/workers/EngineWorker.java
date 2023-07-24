@@ -51,7 +51,7 @@ public class EngineWorker implements Runnable {
 			
 			if(canAccess)
 			{
-				IDatabase engine = Utility.getEngine(engineId);
+				IDatabase engine = Utility.getDatabase(engineId);
 				Method method = findEngineMethod(engine, ps.methodName, ps.payloadClasses);
 				Object retObject = method.invoke(engine, ps.payload);
 	

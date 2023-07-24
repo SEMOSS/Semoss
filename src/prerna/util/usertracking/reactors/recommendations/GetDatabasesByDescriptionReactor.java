@@ -113,8 +113,8 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 				// if we have access get db details
 				if (enginesWithAccess.contains(id)) {
 					access = true;
-					dbName = Utility.getEngine(id).getEngineName();
-					type = Utility.getEngine(id).getEngineType() + "";
+					dbName = Utility.getDatabase(id).getEngineName();
+					type = Utility.getDatabase(id).getEngineType() + "";
 					lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInProject(id);
 					//insights = SecurityQueryUtils.getUserInsightsForEngine(this.insight.getUser(), id);
 				}

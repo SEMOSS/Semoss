@@ -351,7 +351,7 @@ public abstract class AbstractQueryStruct {
 	
 	public IDatabase retrieveQueryStructEngine() {
 		if(this.engine == null && this.engineId != null) {
-			this.engine = Utility.getEngine(this.engineId);
+			this.engine = Utility.getDatabase(this.engineId);
 		}
 		return this.engine;
 	}

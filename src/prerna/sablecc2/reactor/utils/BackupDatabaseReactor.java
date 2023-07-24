@@ -33,7 +33,7 @@ public class BackupDatabaseReactor extends AbstractReactor {
 		}
 		
 		// get engine details
-		IDatabase engine = Utility.getEngine(databaseId);
+		IDatabase engine = Utility.getDatabase(databaseId);
 		if (engine == null){
 			throw new IllegalArgumentException("Invalid database!");
 		}

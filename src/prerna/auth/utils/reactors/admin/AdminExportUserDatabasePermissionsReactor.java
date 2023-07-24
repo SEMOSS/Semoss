@@ -66,7 +66,7 @@ public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==", engineid));
 		}
 		
-		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
+		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		IRawSelectWrapper iterator = null;;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(database, qs);

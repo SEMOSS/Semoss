@@ -138,7 +138,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 								}
 								String type = "";
 								if (access) {
-									type = (Utility.getEngine(engId)).getEngineType() + "";
+									type = (Utility.getDatabase(engId)).getEngineType() + "";
 								}
 								engineDetail.put("appName", alias);
 								engineDetail.put("appId", engId);
@@ -185,7 +185,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 						}
 						String type = "";
 						if (access) {
-							type = (Utility.getEngine(engId)).getEngineType() + "";
+							type = (Utility.getDatabase(engId)).getEngineType() + "";
 						}
 						// only return databases the user can access
 						engineDetail.put("appName", alias);

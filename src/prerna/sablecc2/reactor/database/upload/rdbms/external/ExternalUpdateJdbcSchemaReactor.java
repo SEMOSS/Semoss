@@ -59,7 +59,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 				throw new IllegalArgumentException("User does not have permission to edit this database schema");
 			}
 		}
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		IRDBMSEngine nativeDatabase = null;
 		if(database instanceof IRDBMSEngine) {
 			nativeDatabase = (IRDBMSEngine) database;

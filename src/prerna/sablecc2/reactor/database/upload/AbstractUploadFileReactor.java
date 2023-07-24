@@ -112,7 +112,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				this.databaseName = MasterDatabaseUtility.getDatabaseAliasForId(this.databaseId);
 				// get existing database
 				this.logger.info("Get existing database");
-				this.database = Utility.getEngine(databaseId);
+				this.database = Utility.getDatabase(databaseId);
 				if (this.database == null) {
 					throw new IllegalArgumentException("Couldn't find the database " + databaseId + " to append data into");
 				}
