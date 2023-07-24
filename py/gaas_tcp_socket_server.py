@@ -2,15 +2,18 @@ import socketserver
 import logging
 import sys
 import threading
+import asyncio
 from gaas_tcp_server_handler import TCPServerHandler
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(name)s: %(message)s',
-                    )
+#logging.basicConfig(level=logging.DEBUG,
+#                    format='%(name)s: %(message)s',
+#                    )
+
+# this thread will stop after 15 min of wake time if no other sockets are there
 
 class Server(socketserver.ThreadingTCPServer):
   
-  def __init__(self, server_address=None, handler_class=TCPServerHandler, port=81, max_count=1, py_folder=".", insight_folder=".", prefix="", start=False):
+  def __init__(self, server_address=None, handler_class=TCPServerHandler, port=81, max_count=1, py_folder=".", insight_folder=".", prefix="", timeout=15, start=False):
     self.logger = logging.getLogger('SocketServer')
     self.logger.debug('__init__')
     self.stop = False    
@@ -22,6 +25,7 @@ class Server(socketserver.ThreadingTCPServer):
     self.prefix = prefix
     
     self.monitor = threading.Condition()
+    self.timed_out = False
 
     # see if the port was passed through argv
     if(self.port is None and len(sys.argv) > 0):
@@ -38,9 +42,21 @@ class Server(socketserver.ThreadingTCPServer):
     socketserver.ThreadingTCPServer.__init__(self, self.server_address, handler_class)
     # Set up a TCP/IP server
     self.logger.info("Ready to start server")
+    #self.socket.timeout = 10
+    # default time out is 15 min. set up if you want more
+    self.socket.settimeout(timeout*60)
+    self.timeout = timeout
     if start:
       self.serve_forever()
+  
+  def handle_timeout(self):
+    # no clients.. kill this server, no point keeping it
+    # give back the GPU
+    self.timed_out=True
+    if self.cur_count == 0:
+      self.stop_it()
     
+  
   def server_activate(self):
     self.logger.debug('server_activate')
     socketserver.TCPServer.server_activate(self)
@@ -54,6 +70,7 @@ class Server(socketserver.ThreadingTCPServer):
           if self.max_count > self.cur_count:
             print("listening")
             self.handle_request()
+            self.timed_out = False
             self.cur_count = self.cur_count + 1
           else:
             with self.monitor:
@@ -67,11 +84,13 @@ class Server(socketserver.ThreadingTCPServer):
       self.stop_it()
     return
   
+  
+  
   def remove_handler(self):
     self.cur_count = self.cur_count - 1
     with self.monitor:
       # Wake up thread to move forward
-      print("waking up.. ")
+      #print("waking up.. ")
       self.monitor.notify()
 
   def stop_it(self):
@@ -92,5 +111,7 @@ if __name__ == '__main__':
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], start=True)
   if len(sys.argv) == 6:
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], prefix=sys.argv[5], start=True)
+  if len(sys.argv) == 7:
+    Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], prefix=sys.argv[5], timeout=sys.argv[6], start=True)
     
  
