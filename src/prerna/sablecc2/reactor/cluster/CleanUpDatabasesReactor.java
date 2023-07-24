@@ -107,7 +107,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 				String key = alias + "__" + databaseId; 
 				IDatabase engine = null;
 				try {
-					engine = Utility.getEngine(databaseId);
+					engine = Utility.getDatabase(databaseId);
 				} catch (Exception e) {
 					logger.error(STACKTRACE, e);
 				}

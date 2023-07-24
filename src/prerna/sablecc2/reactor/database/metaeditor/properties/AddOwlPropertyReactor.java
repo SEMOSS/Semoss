@@ -55,7 +55,7 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 //			conceptual = conceptual.replaceAll("_{2,}", "_");
 //		}
 
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		// make sure the concept exists
 		String conceptPhysicalUri = database.getPhysicalUriFromPixelSelector(concept);

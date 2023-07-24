@@ -57,7 +57,7 @@ public class AddDatabaseStructureReactor extends AbstractReactor {
 		// table > column > type
 		Map<String, Map<String, String>> updates = getAdditions();
 		
-		IDatabase engine = Utility.getEngine(databaseId);
+		IDatabase engine = Utility.getDatabase(databaseId);
 		if(!(engine instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("This operation only works on relational databases");
 		}

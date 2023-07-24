@@ -105,16 +105,16 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 		String futureCostDBName = "FutureCostDB";
 
 		//get associated engines
-		IDatabase tapCoreDB = Utility.getEngine(tapCoreName);
-		IDatabase futureDB = Utility.getEngine(futureDBName);
-		IDatabase futureCostDB = Utility.getEngine(futureCostDBName);
+		IDatabase tapCoreDB = Utility.getDatabase(tapCoreName);
+		IDatabase futureDB = Utility.getDatabase(futureDBName);
+		IDatabase futureCostDB = Utility.getDatabase(futureCostDBName);
 		
 		//send to processor
 		LOGGER.info("Creating " + futureDBName + " from " + tapCoreName);
 		LOGGER.info("Creating " + futureCostDBName + " from " + tapCoreName);
 		
 		try {
-			IDatabase tapCost = Utility.getEngine("TAP_Cost_Data");
+			IDatabase tapCost = Utility.getDatabase("TAP_Cost_Data");
 			if(tapCost == null) {
 				throw new IOException("Cost Info Not Found");
 			}

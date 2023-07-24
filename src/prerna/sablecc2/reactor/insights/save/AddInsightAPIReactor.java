@@ -109,7 +109,7 @@ public class AddInsightAPIReactor extends AbstractReactor {
 			// find if this project insight consumer already exists
 			// if so throw an error
 			String existingSQL = "SELECT count(*) from API_KEY where Project_ID = '" + projectId + "\' and INSIGHT_ID = '" + insightId + "' and CONSUMER_ID = '" + consumerId + "'";
-			IRDBMSEngine secDB = (IRDBMSEngine)Utility.getEngine(Constants.SECURITY_DB);
+			IRDBMSEngine secDB = (IRDBMSEngine)Utility.getDatabase(Constants.SECURITY_DB);
 			
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(secDB, existingSQL);
 			

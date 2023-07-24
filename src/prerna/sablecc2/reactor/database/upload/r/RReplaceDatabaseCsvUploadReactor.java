@@ -94,7 +94,7 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 		try {
 			// get existing database
 			logger.info("Get existing database");
-			IDatabase database = Utility.getEngine(databaseId, true);
+			IDatabase database = Utility.getDatabase(databaseId, true);
 			if (database == null) {
 				throw new IllegalArgumentException("Couldn't find the database " + databaseId + " to append data into");
 			}

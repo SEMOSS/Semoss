@@ -25,7 +25,7 @@ public class GetOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String concept = getConcept();
 		String prop = getProperty();
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
 			physicalUri = database.getPhysicalUriFromPixelSelector(concept);

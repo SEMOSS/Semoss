@@ -59,7 +59,7 @@ public class DatabaseRenameColumnReactor extends AbstractReactor {
 		String existingColumn = this.keyValue.get(this.keysToGet[2]);
 		String newColumn = this.keyValue.get(this.keysToGet[3]);
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		Owler owler = new Owler(database);
 		boolean dbUpdate = false;
 		IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);

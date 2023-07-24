@@ -59,7 +59,7 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String concept = getConcept();
 		String prop = getProperty();
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		SemossDataType dataType = null;
 		String qsName = null;
 		if(prop == null || prop.isEmpty()) {

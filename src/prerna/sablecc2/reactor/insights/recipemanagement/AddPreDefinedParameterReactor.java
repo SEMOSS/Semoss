@@ -81,7 +81,7 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 						"Database " + databaseId + " does not exist or user does not have access to database");
 			}
 		}
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		for (Object exportVar : exportVariables) {
 			Map<String, Object> exportParam = (Map<String, Object>) exportVar;
 			if (exportParam.get("type") != null && exportParam.get("list") != null) {

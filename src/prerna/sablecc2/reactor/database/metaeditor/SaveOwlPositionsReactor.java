@@ -47,7 +47,7 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 		
 		// write the json file in the database folder
 		// just put it in the same location as the OWL
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		File positionFile = database.getOwlPositionFile();
 		

@@ -47,7 +47,7 @@ public class EditDatabasePropertyDataTypeReactor extends AbstractReactor {
 		String newColumn = this.keyValue.get(this.keysToGet[2]);
 		String newColType = this.keyValue.get(this.keysToGet[3]);
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		
 		// keep track of existing data type in case something goes wrong
 		

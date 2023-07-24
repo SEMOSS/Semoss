@@ -67,7 +67,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 //		boolean isRdbms = (engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS || 
 //				engine.getEngineType() == IDatabase.ENGINE_TYPE.IMPALA);
 		setOwlerValues(database, owler);

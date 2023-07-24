@@ -40,7 +40,7 @@ public class AdminRemoveDuplicatesReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		long start = System.currentTimeMillis();
 
-		RDBMSNativeEngine app = (RDBMSNativeEngine) Utility.getEngine(appId);
+		RDBMSNativeEngine app = (RDBMSNativeEngine) Utility.getDatabase(appId);
 		AbstractSqlQueryUtil queryUtil = app.getQueryUtil();
 		String oldTableName = "OLD_" + tableName + "_" + LocalDateTime.now();
 		oldTableName = oldTableName.replaceAll("[^A-Za-z0-9]", "_");

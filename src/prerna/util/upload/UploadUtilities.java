@@ -1545,7 +1545,7 @@ public class UploadUtilities {
 	 */
 	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		MetaHelper metaHelper = Utility.getEngine(databaseId).getMetaHelper();
+		MetaHelper metaHelper = Utility.getDatabase(databaseId).getMetaHelper();
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(metaHelper);
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();

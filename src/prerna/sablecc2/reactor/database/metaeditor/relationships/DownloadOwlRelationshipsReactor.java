@@ -61,7 +61,7 @@ public class DownloadOwlRelationshipsReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		databaseId = testDatabaseId(databaseId, true);
 
-		MetaHelper metaHelper = Utility.getEngine(databaseId).getMetaHelper();
+		MetaHelper metaHelper = Utility.getDatabase(databaseId).getMetaHelper();
 		List<String[]> output = metaHelper.getPhysicalRelationships();
 		
 		String fileLocation = null;

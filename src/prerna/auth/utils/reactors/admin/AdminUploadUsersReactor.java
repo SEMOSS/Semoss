@@ -99,7 +99,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 
 		this.logger = getLogger(CLASS_NAME);
 
-		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
+		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		Connection conn = null;
 		try {
 			conn = database.getConnection();

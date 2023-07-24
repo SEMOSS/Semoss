@@ -112,7 +112,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 
 		// go through and write the database
 		for(String databaseId : databaseIds) {
-			IDatabase engine = Utility.getEngine(databaseId);
+			IDatabase engine = Utility.getDatabase(databaseId);
 			Collection<String> pixelSelectors = MasterDatabaseUtility.getSelectorsWithinDatabaseRDBMS(databaseId);
 			
 			List<String> selectorFilters = null;

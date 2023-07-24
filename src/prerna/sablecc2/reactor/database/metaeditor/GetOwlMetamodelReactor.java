@@ -27,7 +27,7 @@ public class GetOwlMetamodelReactor extends AbstractMetaEditorReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
 		databaseId = testDatabaseId(databaseId, false);
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		Map<String, Object[]> metamodelObject = database.getMetamodel();
 		Object[] nodes = metamodelObject.get("nodes");
 		Object[] relationships = metamodelObject.get("edges");
