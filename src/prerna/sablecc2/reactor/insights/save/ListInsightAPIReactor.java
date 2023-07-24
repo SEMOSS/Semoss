@@ -57,7 +57,7 @@ public class ListInsightAPIReactor extends AbstractReactor {
 			// find if this project insight consumer already exists
 			// if so throw an error
 			String existingSQL = "SELECT CONSUMER_ID, API_KEY, DISABLED from API_KEY where Project_ID = '" + projectId + "\' and INSIGHT_ID = '" + insightId + "'";
-			IRDBMSEngine secDB = (IRDBMSEngine)Utility.getEngine(Constants.SECURITY_DB);
+			IRDBMSEngine secDB = (IRDBMSEngine)Utility.getDatabase(Constants.SECURITY_DB);
 			
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(secDB, existingSQL);
 			

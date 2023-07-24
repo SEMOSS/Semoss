@@ -43,7 +43,7 @@ public abstract class AbstractFormBuilder {
 	protected final DateFormat DATE_DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSSS");
 	
 	protected AbstractFormBuilder(IDatabase engine) {
-		this.formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
+		this.formEng = Utility.getDatabase(FORM_BUILDER_ENGINE_NAME);
 		this.engine = engine;
 		this.auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineId())).toUpperCase() + FormBuilder.AUDIT_FORM_SUFFIX;
 		generateEngineAuditLog(this.auditLogTableName);

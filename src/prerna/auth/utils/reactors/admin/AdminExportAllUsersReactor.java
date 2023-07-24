@@ -59,7 +59,7 @@ public class AdminExportAllUsersReactor extends ToExcelReactor {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PASSWORD"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__SALT"));
 
-		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
+		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		IRawSelectWrapper iterator = null;;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(database, qs);

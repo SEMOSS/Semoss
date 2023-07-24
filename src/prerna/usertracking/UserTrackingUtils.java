@@ -320,7 +320,7 @@ public class UserTrackingUtils {
 	 * @throws IOException
 	 */
 	public static void initUserTrackerDatabase() throws SQLException, IOException {
-		userTrackingDb = (IRDBMSEngine) Utility.getEngine(Constants.USER_TRACKING_DB);
+		userTrackingDb = (IRDBMSEngine) Utility.getDatabase(Constants.USER_TRACKING_DB);
 		UserTrackingOwlCreator utoc = new UserTrackingOwlCreator(userTrackingDb);
 
 		if (utoc.needsRemake()) {

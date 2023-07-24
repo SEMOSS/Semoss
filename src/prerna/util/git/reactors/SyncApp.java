@@ -77,7 +77,7 @@ public class SyncApp extends GitBaseReactor {
 				logger.info("Synchronizing Database Now... ");
 				logger.info("Stopping the database ... ");
 				// remove the app
-				Utility.getEngine(databaseId).closeDB();
+				Utility.getDatabase(databaseId).closeDB();
 				DIHelper.getInstance().removeLocalProperty(databaseId);
 				if (keyValue.size() == 6) {
 					GitSynchronizer.syncDatabases(databaseId, databaseName, repository, username, password, logger);
@@ -89,7 +89,7 @@ public class SyncApp extends GitBaseReactor {
 			} finally {
 				// open it back up
 				logger.info("Opening the database again ... ");
-				Utility.getEngine(databaseId);
+				Utility.getDatabase(databaseId);
 			}
 		}
 

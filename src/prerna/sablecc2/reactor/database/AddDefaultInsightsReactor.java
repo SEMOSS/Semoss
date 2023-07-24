@@ -82,7 +82,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		String databaseName = "";
 		ENGINE_TYPE eType = null;
 		if(pullDatabase) {
-			IDatabase database = Utility.getEngine(databaseId);
+			IDatabase database = Utility.getDatabase(databaseId);
 			databaseName = database.getEngineName();
 			eType = database.getEngineType();
 		}

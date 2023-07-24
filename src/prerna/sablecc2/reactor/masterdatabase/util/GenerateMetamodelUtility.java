@@ -57,7 +57,7 @@ public class GenerateMetamodelUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getOwlMetamodelPositions(String databaseId) {
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		Map<String, Object> positions = new HashMap<>();
 		if(database == null) {
 			classLogger.error("Could not load database '"+databaseId+"'");

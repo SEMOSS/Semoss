@@ -68,8 +68,8 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.configure.Me;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyUtils;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.forms.AbstractFormBuilder;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -288,22 +288,22 @@ public class PixelUnit {
 
 	private static void unloadDatabases() {
 
-		IEngine formBuilder = Utility.getEngine(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
+		IDatabase formBuilder = Utility.getDatabase(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
 		if (formBuilder != null) {
 			formBuilder.closeDB();
 		}
 
-		IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		IDatabase localMaster = Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
 		if (localMaster != null) {
 			localMaster.closeDB();
 		}
 
-		IEngine security = Utility.getEngine(Constants.SECURITY_DB);
+		IDatabase security = Utility.getDatabase(Constants.SECURITY_DB);
 		if (security != null) {
 			security.closeDB();
 		}
 
-		IEngine themes = Utility.getEngine(Constants.THEMING_DB);
+		IDatabase themes = Utility.getDatabase(Constants.THEMING_DB);
 		if (themes != null) {
 			themes.closeDB();
 		}
@@ -366,7 +366,7 @@ public class PixelUnit {
 			// First must catalog the db in order to call the getEngine
 			SMSSWebWatcher.catalogDB(alias + "__" + appId + ".smss", BASE_DB_DIRECTORY);
 
-			IEngine engine = Utility.getEngine(appId);
+			IDatabase engine = Utility.getDatabase(appId);
 
 			// If a full-fledged engine, then delete the entire app
 			if (engine != null) {
@@ -392,7 +392,7 @@ public class PixelUnit {
 		aliasToAppId.put(alias, appId);
 
 		// Save the original state of the database
-		IEngine engine = Utility.getEngine(appId);
+		IDatabase engine = Utility.getDatabase(appId);
 		if (isRelationalDatabase(engine)) {
 			exportDatabaseToXml(alias);
 		}
@@ -403,7 +403,7 @@ public class PixelUnit {
 		if (appId != null) {
 
 			// If relational, delete the corresponding xml file
-			IEngine engine = Utility.getEngine(appId);
+			IDatabase engine = Utility.getDatabase(appId);
 			if (isRelationalDatabase(engine)) {
 				Path xmlFile = getXMLFileForAlias(alias);
 				try {
@@ -642,7 +642,7 @@ public class PixelUnit {
 		for (String alias : cleanTestDatabases) {
 			String appId = aliasToAppId.get(alias);
 			if (appId != null) {
-				IEngine engine = Utility.getEngine(appId);
+				IDatabase engine = Utility.getDatabase(appId);
 				if (isRelationalDatabase(engine)) {
 
 					// Cast to RDBMS to grab the connection details
@@ -685,7 +685,7 @@ public class PixelUnit {
 		this.cleanTestDatabases = cleanTestDatabases;
 	}
 
-	private static boolean isRelationalDatabase(IEngine engine) {
+	private static boolean isRelationalDatabase(IDatabase engine) {
 		return engine != null && engine.getEngineType().equals(ENGINE_TYPE.RDBMS);
 	}
 

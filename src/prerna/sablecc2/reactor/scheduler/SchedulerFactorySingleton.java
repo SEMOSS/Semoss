@@ -47,7 +47,7 @@ public class SchedulerFactorySingleton {
 
 	private void init() {
 		Properties quartzProperties = null;
-		RDBMSNativeEngine schedulerDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SCHEDULER_DB);
+		RDBMSNativeEngine schedulerDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		String username = queryUtil.getUsername();
 		String password = queryUtil.getPassword();

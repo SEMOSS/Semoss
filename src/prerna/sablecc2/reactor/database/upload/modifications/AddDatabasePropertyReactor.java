@@ -60,7 +60,7 @@ public class AddDatabasePropertyReactor extends AbstractReactor {
 		owlUpdated.setNounStore(this.store);
 		owlUpdated.execute();
 
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);
 		if(modifier == null) {
 			throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");

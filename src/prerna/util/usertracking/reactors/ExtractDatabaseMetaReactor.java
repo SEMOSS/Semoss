@@ -52,7 +52,7 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 		}
 		
 		boolean descriptions = getDescriptionsBool();
-		IDatabase engine = Utility.getEngine(engineId);
+		IDatabase engine = Utility.getDatabase(engineId);
 
 		// validate engine exists
 		if (engine == null) {

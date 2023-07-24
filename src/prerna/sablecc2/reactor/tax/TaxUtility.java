@@ -29,11 +29,11 @@ public class TaxUtility {
 		try {
 			// execute the query on both databases
 			String sql = "SELECT ALIAS_1, HASHCODE FROM INPUTCSV WHERE ALIAS_1 " + filterQuery;
-			execAliasToHashCodeQuery(Utility.getEngine("MinInput"), sql, aliasHashMap);
+			execAliasToHashCodeQuery(Utility.getDatabase("MinInput"), sql, aliasHashMap);
 			sql = "SELECT ALIAS_1, HASHCODE FROM IMPACTCSV WHERE ALIAS_1 " + filterQuery;
-			execAliasToHashCodeQuery(Utility.getEngine("MinImpact"), sql, aliasHashMap);
+			execAliasToHashCodeQuery(Utility.getDatabase("MinImpact"), sql, aliasHashMap);
 			sql = "SELECT ALIAS_1, HASHCODE FROM OUTPUTCSV WHERE ALIAS_1 " + filterQuery;
-			execAliasToHashCodeQuery(Utility.getEngine("MinOutput"), sql, aliasHashMap);
+			execAliasToHashCodeQuery(Utility.getDatabase("MinOutput"), sql, aliasHashMap);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

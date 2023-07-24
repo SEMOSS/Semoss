@@ -84,7 +84,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 		
 		List<Object[]> collection = new Vector<>();
 		
-		IDatabase engine = Utility.getEngine(appId);
+		IDatabase engine = Utility.getDatabase(appId);
 		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(engine, query);

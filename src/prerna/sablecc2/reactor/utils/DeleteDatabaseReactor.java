@@ -62,7 +62,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 				}
 			}
 
-			IDatabase database = Utility.getEngine(databaseId);
+			IDatabase database = Utility.getDatabase(databaseId);
 			deleteDatabase(database);
 			EngineSyncUtility.clearEngineCache(databaseId);
 			

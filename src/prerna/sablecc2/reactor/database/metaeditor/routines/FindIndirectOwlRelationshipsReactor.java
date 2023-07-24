@@ -51,7 +51,7 @@ public class FindIndirectOwlRelationshipsReactor extends AbstractMetaEditorReact
 		String[] packages = { "stringdist", "data.table" };
 		rJavaTranslator.checkPackages(packages);
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		
 		// get 2 lists
 		// of all table names
