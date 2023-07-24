@@ -45,7 +45,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -72,7 +72,7 @@ public class NodeLoadingSheetWriter {
 	 * @param engine
 	 * @param nodeTypes
 	 */
-	public void writeNodeLoadingSheets(IEngine engine, ArrayList<String> nodeTypes) {
+	public void writeNodeLoadingSheets(IDatabase engine, ArrayList<String> nodeTypes) {
 		
 		Hashtable<String, Vector<String[]>> hash = queryData(engine, nodeTypes);
 		
@@ -119,7 +119,7 @@ public class NodeLoadingSheetWriter {
 			Utility.showMessage("Exported node properties successfully: " + fileLoc);
 	}
 	
-	private Hashtable<String, Vector<String[]>> queryData(IEngine engine, ArrayList<String> nodeTypes) {
+	private Hashtable<String, Vector<String[]>> queryData(IDatabase engine, ArrayList<String> nodeTypes) {
 		Hashtable<String, Vector<String[]>> hash = new Hashtable<String, Vector<String[]>>();
 		for(String nodeType : nodeTypes) {
 			ArrayList<Object[]> list = new ArrayList<Object[]>();

@@ -36,7 +36,7 @@ import javax.swing.JDesktopPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.ChartControlPanel;
@@ -68,7 +68,7 @@ public class HealthGridExporter {
 	 */
 	public void processData(ArrayList<String> systemList)
 	{	
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		String id = "Health_Grid";
 		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue)(COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?attm, 0.0) AS ?ArchitecturalComplexity) (COALESCE(?iatm, 0.0) AS ?InformationAssurance) (COALESCE(?nfrtm, 0.0) AS ?NonFunctionalRequirements) ?SustainmentBudget ?SystemStatus ?highlight WHERE {BIND(<http://health.mil/ontologies/Concept/System/ABACUS> AS ?highlight){?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}}  OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ArchitecturalComplecxityTM>  ?attm ;}  OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/InformationAssuranceTM>  ?iatm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/NonFunctionalRequirementsTM>  ?nfrtm ;}{?System <http://semoss.org/ontologies/Relation/Phase> ?SystemStatus }BIND(1 AS ?SustainmentBudget) } BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}";
 //		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
@@ -76,7 +76,7 @@ public class HealthGridExporter {
 		
 		HealthGridSheet playSheet = new HealthGridSheet();					
 		playSheet.setQuery(query);
-		playSheet.setRDFEngine((IEngine) engine);
+		playSheet.setRDFEngine((IDatabase) engine);
 		playSheet.setQuestionID(id);
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		playSheet.setJDesktopPane(pane);

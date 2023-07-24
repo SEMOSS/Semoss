@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.metaeditor;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -26,7 +26,7 @@ public class GetOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 		String concept = getConcept();
 		String prop = getProperty();
 		
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
 			physicalUri = database.getPhysicalUriFromPixelSelector(concept);

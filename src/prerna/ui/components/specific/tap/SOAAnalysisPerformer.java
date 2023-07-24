@@ -42,7 +42,7 @@ import javax.swing.JScrollPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.InsightStore;
@@ -131,12 +131,12 @@ public class SOAAnalysisPerformer implements Runnable {
 		newPlaySheet = new GraphPlaySheet();
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 			
 			//newPlaySheet = oldPlaySheet;
 			newPlaySheet.setTitle("SOA Transition All: "+oldPlaySheet.getTitle());
 			//newPlaySheet.setQuery(query);
-			newPlaySheet.setRDFEngine((IEngine)engine);
+			newPlaySheet.setRDFEngine((IDatabase)engine);
 //			newPlaySheet.setQuestionID(insightID);
 			newPlaySheet.setDataMaker(oldPlaySheet.getDataMaker());
 			//newPlaySheet.setJenaModel(jenaModel);
@@ -654,7 +654,7 @@ public class SOAAnalysisPerformer implements Runnable {
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

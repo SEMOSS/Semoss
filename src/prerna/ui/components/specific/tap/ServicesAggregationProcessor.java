@@ -38,7 +38,7 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -49,8 +49,8 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	private static final Logger fileLogger = LogManager.getLogger("reportsLogger");
 	private static final Logger logger = LogManager.getLogger(ServicesAggregationProcessor.class);
 
-	private IEngine servicesDB;
-	private IEngine coreDB;
+	private IDatabase servicesDB;
+	private IDatabase coreDB;
 
 	private HashSet<String> allSoftwareModules = new HashSet<>();
 	private HashSet<String> allHardwareModules = new HashSet<>();
@@ -129,7 +129,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 
 	private String TAP_CORE_CONCEPTS_LIST_QUERY = "SELECT ?concepts WHERE{{?concepts <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}}";
 
-	public ServicesAggregationProcessor(IEngine servicesDB, IEngine coreDB){
+	public ServicesAggregationProcessor(IDatabase servicesDB, IDatabase coreDB){
 		this.servicesDB = servicesDB;
 		this.coreDB = coreDB;
 	}

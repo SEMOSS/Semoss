@@ -3,7 +3,7 @@ package prerna.query.interpreters.sql;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 
 public class PostgresSqlInterpreter extends SqlInterpreter {
 
@@ -11,7 +11,7 @@ public class PostgresSqlInterpreter extends SqlInterpreter {
 		
 	}
 
-	public PostgresSqlInterpreter(IEngine engine) {
+	public PostgresSqlInterpreter(IDatabase engine) {
 		super(engine);
 	}
 	

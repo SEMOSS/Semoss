@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;

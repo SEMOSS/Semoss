@@ -24,7 +24,7 @@ import org.openrdf.sail.SailException;
 
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
@@ -79,10 +79,10 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		this.database.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		this.database.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
 		sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		this.database.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		this.database.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -146,7 +146,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public void importFile(IEngine database, Owler owler, String fileName, String baseUri) throws FileNotFoundException, IOException {
+	public void importFile(IDatabase database, Owler owler, String fileName, String baseUri) throws FileNotFoundException, IOException {
 		Workbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
@@ -244,7 +244,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @throws EngineException
 	 * @throws SailException
 	 */
-	private void createSubClassing(IEngine database, Owler owler, Sheet subclassSheet) throws IOException {
+	private void createSubClassing(IDatabase database, Owler owler, Sheet subclassSheet) throws IOException {
 		// URI for subclass
 		String pred = Constants.SUBCLASS_URI;
 		// check parent and child nodes in correct position
@@ -267,7 +267,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			String parentURI = owler.addConcept(Utility.cleanString(row.getCell(0).toString(), true), "STRING");
 			String childURI = owler.addConcept(Utility.cleanString(row.getCell(1).toString(), true), "STRING");
 			// add triples to database
-			database.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { childURI, pred, parentURI, true });
+			database.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { childURI, pred, parentURI, true });
 			// add triples to OWL
 			owler.addSubclass(childNode, parentNode);
 		}
@@ -281,7 +281,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @param workbook				XSSFWorkbook containing the sheet to load
 	 * @throws IOException
 	 */
-	public void loadSheet(IEngine database, Owler owler, String sheetToLoad, Workbook workbook, String baseUri) throws IOException {
+	public void loadSheet(IDatabase database, Owler owler, String sheetToLoad, Workbook workbook, String baseUri) throws IOException {
 		Sheet lSheet = workbook.getSheet(sheetToLoad);
 		if (lSheet == null) {
 			throw new IOException("Could not find sheet " + sheetToLoad + " in workbook.");
@@ -420,7 +420,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @param workbook					XSSFWorkbook containing the name of the excel workbook
 	 * @throws EngineException
 	 */
-	public void loadMatrixSheet(IEngine database, Owler owler, String sheetToLoad, Workbook workbook, String baseUri) {
+	public void loadMatrixSheet(IDatabase database, Owler owler, String sheetToLoad, Workbook workbook, String baseUri) {
 		Sheet lSheet = workbook.getSheet(sheetToLoad);
 		logger.info("Loading Sheet: " + sheetToLoad);
 		int lastRow = lSheet.getLastRowNum();

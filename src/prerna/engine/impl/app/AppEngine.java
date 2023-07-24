@@ -5,12 +5,13 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 @Deprecated // this is replaced by projects
-public class AppEngine extends AbstractEngine {
+public class AppEngine extends AbstractDatabase {
 
 	private static final Logger LOGGER = LogManager.getLogger(AppEngine.class);
 	

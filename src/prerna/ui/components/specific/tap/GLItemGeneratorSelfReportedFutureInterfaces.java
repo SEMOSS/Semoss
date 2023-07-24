@@ -39,7 +39,7 @@ import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -50,9 +50,9 @@ import prerna.util.Utility;
  */
 public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelper{
 
-	private IEngine tapCoreEngine;
-	private IEngine futureDB;
-	private IEngine futureCostDB;
+	private IDatabase tapCoreEngine;
+	private IDatabase futureDB;
+	private IDatabase futureCostDB;
 	private String genSpecificDProtQuery = "SELECT DISTINCT ?icd ?data ?sys (COALESCE(?dprot, (URI(\"http://health.mil/ontologies/Concept/DProt/HTTPS-SOAP\"))) AS ?Prot) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?icd ?downstream ?sys ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload> } {?icd ?payload ?data ;} OPTIONAL{ ?payload <http://semoss.org/ontologies/Relation/Contains/Protocol> ?dprot} FILTER(STR(?sys)!=\"http://health.mil/ontologies/Concept/System/MHS_GENESIS\")}";
 	private String genSpecificDFormQuery = "SELECT DISTINCT ?icd ?data ?sys (COALESCE(?dform, (URI(\"http://health.mil/ontologies/Concept/DForm/XML\"))) AS ?Form) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?icd ?downstream ?sys ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload> } {?icd ?payload ?data ;} OPTIONAL{ ?payload <http://semoss.org/ontologies/Relation/Contains/Format> ?dform} FILTER(STR(?sys)!=\"http://health.mil/ontologies/Concept/System/MHS_GENESIS\")}";
 	private String providerDataQuery1 = "SELECT DISTINCT ?icd ?data ?sys WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Provide> AS ?upstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?sys ?upstream ?icd ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload> } {?icd ?payload ?data ;}  FILTER(STR(?sys)!=\"http://health.mil/ontologies/Concept/System/MHS_GENESIS\")}";
@@ -66,7 +66,7 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 	/**
 	 * Constructor for GLItemGeneratorSelfReportedFutureInterfaces.
 	 */
-	public GLItemGeneratorSelfReportedFutureInterfaces(IEngine tapCoreEngine, IEngine futureState, IEngine futureCostDB) {
+	public GLItemGeneratorSelfReportedFutureInterfaces(IDatabase tapCoreEngine, IDatabase futureState, IDatabase futureCostDB) {
 		this.tapCoreEngine = tapCoreEngine;
 		this.futureDB = futureState;
 		this.futureCostDB = futureCostDB;

@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.H2SqlInterpreter;
@@ -58,7 +58,7 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public IQueryInterpreter getInterpreter(IEngine engine) {
+	public IQueryInterpreter getInterpreter(IDatabase engine) {
 		return new H2SqlInterpreter(engine);
 	}
 

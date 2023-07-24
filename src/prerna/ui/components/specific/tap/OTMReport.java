@@ -34,7 +34,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.OTMReportWriter;
@@ -66,23 +66,23 @@ public class OTMReport extends TablePlaySheet {
 
 	
 	//Declare database engines
-	private IEngine TAP_Core_Data;
-	private IEngine FutureDB;
-	private IEngine TAP_Site_Data;
+	private IDatabase TAP_Core_Data;
+	private IDatabase FutureDB;
+	private IDatabase TAP_Site_Data;
 	
 	private boolean showMessages = true;
 
 	//Set Tap Core Database
-	public void setTAP_Core_Data(IEngine TAP_Core_Data) {
+	public void setTAP_Core_Data(IDatabase TAP_Core_Data) {
 		this.TAP_Core_Data = TAP_Core_Data;
 	}
 	
 	//Set Future Database
-	public void setFutureDB(IEngine FutureDB) {
+	public void setFutureDB(IDatabase FutureDB) {
 		this.FutureDB = FutureDB;
 	}
 	//Set Future Database
-	public void setTAP_Site_Data(IEngine TAP_Site_Data) {
+	public void setTAP_Site_Data(IDatabase TAP_Site_Data) {
 		this.TAP_Site_Data = TAP_Site_Data;
 	}
 	
@@ -90,7 +90,7 @@ public class OTMReport extends TablePlaySheet {
 	public void createData() {
 		//Initiate Tap_Core_Data database engine
 		try{
-			TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(TAP_Core_Data==null)
 				throw new IOException("Database not found");
 		} catch(IOException e) {
@@ -99,7 +99,7 @@ public class OTMReport extends TablePlaySheet {
 		}
 		
 		try{
-			FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+			FutureDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureDB");
 			if(FutureDB==null)
 				throw new IOException("Database not found");
 		} catch(IOException e) {
@@ -108,7 +108,7 @@ public class OTMReport extends TablePlaySheet {
 		}
 		
 		try{
-			TAP_Site_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+			TAP_Site_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 			if(TAP_Site_Data==null)
 				throw new IOException("Database not found");
 		} catch(IOException e) {
@@ -160,7 +160,7 @@ public class OTMReport extends TablePlaySheet {
 	}
 	
 	// This function gets the hashmap of a grid with data headers of a query to a specific engine
-	private HashMap<String, Object> getQueryDataWithHeaders(IEngine engine, String query){
+	private HashMap<String, Object> getQueryDataWithHeaders(IDatabase engine, String query){
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);

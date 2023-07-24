@@ -25,7 +25,7 @@ import org.json.JSONObject;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.clients.AbstractCloudClient;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -337,7 +337,7 @@ public class ClusterUtil {
 		}
 	}
 
-	public static void reactorPushDatabaseFolder(IEngine engine, String absolutePath) {
+	public static void reactorPushDatabaseFolder(IDatabase engine, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
 			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
@@ -364,7 +364,7 @@ public class ClusterUtil {
 	}
 
 	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
-	public static void  reactorPullDatabaseFolder(IEngine engine, String absolutePath) {
+	public static void  reactorPullDatabaseFolder(IDatabase engine, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
 			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
@@ -735,7 +735,7 @@ public class ClusterUtil {
 		}
 	}
 
-	public static String getAppHome(IEngine engine) {
+	public static String getAppHome(IDatabase engine) {
 		return  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ DIR_SEPARATOR + "db"
 				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());

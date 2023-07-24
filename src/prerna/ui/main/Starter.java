@@ -41,7 +41,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.ibm.icu.util.StringTokenizer;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.PlayPane;
 import prerna.util.AbstractFileWatcher;
 import prerna.util.Constants;
@@ -226,7 +226,7 @@ public class Starter {
 						// hopefully :D
 						if(engineName != null && DIHelper.getInstance().getLocalProp(engineName) != null)
 						{
-							IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
+							IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(engineName);
 							watcherInstance.setEngine(engine);
 						}
 						watcherInstance.setMonitor(starter.monitor);

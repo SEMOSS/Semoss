@@ -15,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.util.Constants;
@@ -57,7 +57,7 @@ public class GenerateMetamodelUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getOwlMetamodelPositions(String databaseId) {
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		Map<String, Object> positions = new HashMap<>();
 		if(database == null) {
 			classLogger.error("Could not load database '"+databaseId+"'");

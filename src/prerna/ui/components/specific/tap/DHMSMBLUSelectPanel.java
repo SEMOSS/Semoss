@@ -38,7 +38,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.main.listener.specific.tap.BLUCheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
 
@@ -48,7 +48,7 @@ public class DHMSMBLUSelectPanel extends JPanel {
 	private SelectScrollList dataSelectDropDown;
 	private JCheckBox hsdCheck, hssCheck, fhpCheck, dhmsmCheck, allDataCheck;
 
-	public DHMSMBLUSelectPanel(IEngine engine, DHMSMSystemSelectPanel systemSelectPanel)
+	public DHMSMBLUSelectPanel(IDatabase engine, DHMSMSystemSelectPanel systemSelectPanel)
 	{
 		SysOptCheckboxListUpdater checkboxListUpdater = new SysOptCheckboxListUpdater(engine);
 		createView(checkboxListUpdater, systemSelectPanel);

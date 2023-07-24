@@ -29,7 +29,7 @@ package prerna.ui.main.listener.impl;
 
 import java.util.ArrayList;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
@@ -94,10 +94,10 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 	/**
 	 * Method processUpdate.
 	 * @param query String
-	 * @param selectedEngine IEngine
+	 * @param selectedEngine IDatabase
 	
 	 * @return boolean */
-	private boolean processUpdate(String query, IEngine selectedEngine){
+	private boolean processUpdate(String query, IDatabase selectedEngine){
 		//create the update wrapper, set the variables, and let it run
 		SesameJenaUpdateWrapper wrapper = new SesameJenaUpdateWrapper();
 		wrapper.setEngine(selectedEngine);
@@ -108,10 +108,10 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 	/**
 	 * Method processSelect.
 	 * @param query String
-	 * @param selectedEngine IEngine
+	 * @param selectedEngine IDatabase
 	
 	 * @return ArrayList<Object[]> */
-	private ArrayList<Object[]> processSelect(String query, IEngine selectedEngine){
+	private ArrayList<Object[]> processSelect(String query, IDatabase selectedEngine){
 		ArrayList<Object[]> list = new ArrayList<Object[]>();
 		
 		//create the update wrapper, set the variables, and let it run

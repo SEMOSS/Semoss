@@ -17,9 +17,9 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class JsonAPIEngine2 extends JsonAPIEngine {
@@ -36,7 +36,6 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 
 	public static final String ROOT = "root";
 	public static final String COUNT = "COUNT";
-	private static final String STACKTRACE = "StackTrace: ";
 
 	@Override
 	protected void loadDocument()
@@ -46,9 +45,9 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			if(prop.containsKey("input_type") && ((String)prop.get("input_type")).equalsIgnoreCase("file"))
 				input = mapper.readTree(new File(baseFolder + "/" + Utility.normalizePath(prop.getProperty("input_url"))));
 		} catch (FileNotFoundException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 
 	}
@@ -69,7 +68,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			try {
 				retNode = mapper.readTree(json);
 			} catch (Exception ex) {
-				logger.error(STACKTRACE, ex);
+				logger.error(Constants.STACKTRACE, ex);
 			}
 		}
 		return retNode;
@@ -260,7 +259,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return prerna.engine.api.IEngine.ENGINE_TYPE.JSON2;
+		return prerna.engine.api.IDatabase.ENGINE_TYPE.JSON2;
 	}
 
 }

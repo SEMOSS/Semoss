@@ -18,7 +18,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -59,7 +59,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 				throw new IllegalArgumentException("User does not have permission to edit this database schema");
 			}
 		}
-		IEngine database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getEngine(databaseId);
 		IRDBMSEngine nativeDatabase = null;
 		if(database instanceof IRDBMSEngine) {
 			nativeDatabase = (IRDBMSEngine) database;

@@ -24,7 +24,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
@@ -335,7 +335,7 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			
-			securityDb.insertData("UPDATE ENGINE SET ENGINETYPE='"+IEngine.CATALOG_TYPE+"' WHERE ENGINETYPE IS NULL");
+			securityDb.insertData("UPDATE ENGINE SET ENGINETYPE='"+IDatabase.CATALOG_TYPE+"' WHERE ENGINETYPE IS NULL");
 		}
 		if(allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");

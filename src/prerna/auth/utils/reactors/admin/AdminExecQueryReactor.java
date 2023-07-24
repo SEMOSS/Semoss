@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -40,7 +40,7 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			qStruct = getQueryStruct();
 		}
 
-		IEngine engine = null;
+		IDatabase engine = null;
 		AbstractQueryStruct qs = null;
 		
 		User user = this.insight.getUser();

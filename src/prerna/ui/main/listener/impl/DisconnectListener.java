@@ -36,7 +36,7 @@ import javax.swing.JTextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -72,7 +72,7 @@ public class DisconnectListener implements IChakraListener {
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
 			String repoName = repos[repoIndex] +"";
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repoName);
+			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repoName);
 			if(engine.isConnected())
 			{
 				logger.info("Attempting to disconnect " + repoName);

@@ -35,7 +35,7 @@ import java.util.Hashtable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.BasicReportWriter;
@@ -77,7 +77,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	 * @param query 		String containing the SPARQL query to run
 	 */
 	public void runQuery(String engineName, String query) {
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -125,7 +125,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	 * @param query 		String containing the SPARQL query to run
 	 */
 	public void runSystemListQuery(String engineName, String query) {
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -178,10 +178,10 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	 * Stores values in masterHash 
 	 */
 	private void processQueries() {
-		IEngine tapCoreEngine;
+		IDatabase tapCoreEngine;
 		try
 		{
-			tapCoreEngine = (IEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
+			tapCoreEngine = (IDatabase) DIHelper.getInstance().getLocalProp(tapCoreDB);
 			if(tapCoreEngine==null)
 				throw new NullPointerException();
 		} catch (NullPointerException e) {

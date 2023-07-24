@@ -13,7 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.Owler;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -32,17 +32,17 @@ public abstract class AbstractFormBuilder {
 	protected static final String REMOVE = "Removed";
 	protected static final String ADMIN_SIGN_OFF = "Certified";
 
-	protected IEngine formEng;
+	protected IDatabase formEng;
 	protected String auditLogTableName;
 	protected String user;
 	protected List<String> tagCols;
 	protected List<String> tagValues;
 	
-	protected IEngine engine;
+	protected IDatabase engine;
 	
 	protected final DateFormat DATE_DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSSS");
 	
-	protected AbstractFormBuilder(IEngine engine) {
+	protected AbstractFormBuilder(IDatabase engine) {
 		this.formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		this.engine = engine;
 		this.auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineId())).toUpperCase() + FormBuilder.AUDIT_FORM_SUFFIX;
@@ -97,7 +97,7 @@ public abstract class AbstractFormBuilder {
 	 * Utility method to generate a form user access table if it doesn't currently exist
 	 * @param formEng
 	 */
-	public static void generateFormPermissionTable(IEngine formEng) {
+	public static void generateFormPermissionTable(IDatabase formEng) {
 		// create audit table if doesn't exist
 		boolean permissionTableExists = false;
 		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='FORMS_USER_ACCESS'";

@@ -45,7 +45,7 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.impl.util.AbstractOwler;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
@@ -90,7 +90,7 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 	protected boolean autoLoad = true;
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 
-	public abstract IEngine importFileWithOutConnection(ImportOptions options) throws Exception;
+	public abstract IDatabase importFileWithOutConnection(ImportOptions options) throws Exception;
 	
 	public abstract void importFileWithConnection(ImportOptions options) throws Exception;
 	/**
@@ -127,17 +127,17 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 		Hashtable<String, String> hash = owler.getConceptHash();
 		String object = AbstractOwler.SEMOSS_URI_PREFIX + AbstractOwler.DEFAULT_NODE_CLASS;
 		for(String concept : hash.keySet()) {
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(concept), RDFS.SUBCLASSOF + "", object, true});
+			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(concept), RDFS.SUBCLASSOF + "", object, true});
 		}
 		hash = owler.getRelationHash();
 		object = AbstractOwler.SEMOSS_URI_PREFIX + AbstractOwler.DEFAULT_RELATION_CLASS;
 		for(String relation : hash.keySet()) {
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(relation), RDFS.SUBPROPERTYOF + "", object, true});
+			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(relation), RDFS.SUBPROPERTYOF + "", object, true});
 		}
 		hash = owler.getPropHash();
 		object = AbstractOwler.SEMOSS_URI_PREFIX + AbstractOwler.DEFAULT_PROP_CLASS;
 		for(String prop : hash.keySet()) {
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(prop), RDF.TYPE + "", object, true});
+			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(prop), RDF.TYPE + "", object, true});
 		}
 	}
 	
@@ -183,14 +183,14 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 		// create the full URI for the subject instance
 		// add type and label triples to database
 		String subjectNodeURI = subjectInstanceBaseURI + "/" + instanceSubjectName; 
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDF.TYPE, subjectSemossBaseURI, true });
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDFS.LABEL, instanceSubjectName, false });
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDF.TYPE, subjectSemossBaseURI, true });
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDFS.LABEL, instanceSubjectName, false });
 
 		// create the full URI for the object instance
 		// add type and label triples to database
 		String objectNodeURI = objectInstanceBaseURI + "/" + instanceObjectName; 
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { objectNodeURI, RDF.TYPE, objectSemossBaseURI, true });
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT,new Object[] { objectNodeURI, RDFS.LABEL, instanceObjectName, false });
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { objectNodeURI, RDF.TYPE, objectSemossBaseURI, true });
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT,new Object[] { objectNodeURI, RDFS.LABEL, instanceObjectName, false });
 
 		// generate URIs for the relationship
 		relName = Utility.cleanPredicateString(relName);
@@ -200,10 +200,10 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 		// create instance value of relationship and add instance relationship,
 		// subproperty, and label triples
 		String instanceRelURI = relInstanceBaseURI + "/" + instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.SUBPROPERTYOF, relSemossBaseURI, true });
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.LABEL, 
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.SUBPROPERTYOF, relSemossBaseURI, true });
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.LABEL, 
 				instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName, false });
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, instanceRelURI, objectNodeURI, true });
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, instanceRelURI, objectNodeURI, true });
 
 		addProperties("", instanceRelURI, propHash);
 	}
@@ -215,8 +215,8 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 		String semossBaseURI = owler.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
 
 		addProperties(nodeType, subjectNodeURI, propHash);
 	}
@@ -233,25 +233,25 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 			String key = propKeys.nextElement().toString();
 			String propURI = basePropURI + "/" + Utility.cleanString(key, true);
 			// logger.info("Processing Property " + key + " for " + instanceURI);
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { propURI, RDF.TYPE, basePropURI, true });
+			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { propURI, RDF.TYPE, basePropURI, true });
 			if (propHash.get(key) instanceof Number) {
 				Double value = ((Number) propHash.get(key)).doubleValue();
 				// logger.info("Processing Double value " + value);
-				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.doubleValue(), false });
+				engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.doubleValue(), false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "DOUBLE");
 				}
 			} else if (propHash.get(key) instanceof Date) {
 				Date value = (Date) propHash.get(key);
 				// logger.info("Processing Date value " + value);
-				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value, false });
+				engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value, false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "DATE");
 				}
 			} else if (propHash.get(key) instanceof Boolean) {
 				Boolean value = (Boolean) propHash.get(key);
 				// logger.info("Processing Boolean value " + value);
-				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.booleanValue(), false });
+				engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.booleanValue(), false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "BOOLEAN");
 				}
@@ -266,7 +266,7 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 				} else {
 					String cleanValue = Utility.cleanString(value, true, false, true);
 					// logger.info("Processing String value " + cleanValue);
-					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, cleanValue, false });
+					engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, cleanValue, false });
 				}
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "STRING");
@@ -283,8 +283,8 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 	 */
 	private void insertCurrentUser(String propURI, String basePropURI, String subjectNodeURI) {
 		String cleanValue = System.getProperty("user.name");
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
+		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
 	}
 
 	/**
@@ -300,8 +300,8 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 		Date dateFormatted;
 		try {
 			dateFormatted = df.parse(date);
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propInstanceURI, RDF.TYPE, basePropURI, true});
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propInstanceURI, dateFormatted, false});
+			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propInstanceURI, RDF.TYPE, basePropURI, true});
+			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propInstanceURI, dateFormatted, false});
 		} catch (ParseException e) {
 			logger.error("ERROR: could not parse date: " + date);
 		}

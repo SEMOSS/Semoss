@@ -40,7 +40,7 @@ import java.nio.file.WatchService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 
 /**
  * Interface that provides a common protocol for objects that wish to execute code while they are active. 
@@ -59,7 +59,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	// processes the files with the given extension
 	protected String folderToWatch = null;
 	protected String extension = null;
-	protected IEngine engine = null;
+	protected IDatabase engine = null;
 	Object monitor = null;
 	
 	// this is used for us to determine how to stop the thread
@@ -83,9 +83,9 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	
 	/**
 	 * Sets engine.
-	 * @param engine IEngine		Engine to be set.
+	 * @param engine IDatabase		Engine to be set.
 	 */
-	public void setEngine(IEngine engine) {
+	public void setEngine(IDatabase engine) {
 		this.engine = engine;
 	}
 	

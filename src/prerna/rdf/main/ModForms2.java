@@ -5,8 +5,8 @@ import java.util.List;
 
 import org.openrdf.model.vocabulary.RDF;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ACTION_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -78,7 +78,7 @@ public class ModForms2 {
 		System.out.println("Done");
 	}
 	
-	private static void processRelationFile(IEngine eng, String fileLoc, String relationship) {
+	private static void processRelationFile(IDatabase eng, String fileLoc, String relationship) {
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(',');
 		helper.parse(fileLoc);
@@ -107,7 +107,7 @@ public class ModForms2 {
 		}
 	}
 
-	private static void removeExistingRelationship(IEngine eng, String query) {
+	private static void removeExistingRelationship(IDatabase eng, String query) {
 		List<Object[]> triplesToRemove = new ArrayList<Object[]>();
 
 		IRawSelectWrapper manager = null;
@@ -130,7 +130,7 @@ public class ModForms2 {
 		}
 	}
 
-	private static void removeExistingProperties(IEngine eng, String query, String pred) {
+	private static void removeExistingProperties(IDatabase eng, String query, String pred) {
 		final String subprefix = "http://health.mil/ontologies/Concept/System/";
 		List<Object[]> triplesToRemove = new ArrayList<Object[]>();
 		// get existing values
@@ -159,7 +159,7 @@ public class ModForms2 {
 	}
 
 	
-	private static void processFile(IEngine eng, String fileLoc, String dataType) {
+	private static void processFile(IDatabase eng, String fileLoc, String dataType) {
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(',');
 		helper.parse(fileLoc);

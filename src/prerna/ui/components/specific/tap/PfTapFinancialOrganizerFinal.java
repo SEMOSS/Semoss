@@ -44,7 +44,7 @@ import javax.swing.JTable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -364,7 +364,7 @@ public class PfTapFinancialOrganizerFinal {
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo[0]+"");
 
 		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

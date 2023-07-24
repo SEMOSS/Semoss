@@ -37,7 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
 import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SysSiteOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
@@ -65,7 +65,7 @@ public class SysSiteOptBtnListener implements IChakraListener {
 		if (!setVariables())
 			return;
 		
-		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+		IDatabase siteEngine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		
 		if(siteEngine == null) {
 			Utility.showError("Cannot find required databases. Make sure you have all: " + "TAP_Site_Data");

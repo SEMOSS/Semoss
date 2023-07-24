@@ -43,7 +43,7 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.Constants;
@@ -61,7 +61,7 @@ public class FunctionalAreaSelectorListener extends AbstractListener {
 	JCheckBox HSSCheckBox;
 	JCheckBox FHPCheckBox;
 	JCheckBox DHMSMCheckBox;
-	IEngine engine;
+	IDatabase engine;
 	
 	protected static final Logger logger = LogManager.getLogger(FunctionalAreaSelectorListener.class.getName());
 
@@ -74,7 +74,7 @@ public class FunctionalAreaSelectorListener extends AbstractListener {
 	public void actionPerformed(ActionEvent e) {
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
+		engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo[0]+"");
 
 		HSDCheckBox = (JCheckBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.FUNCTIONAL_AREA_CHECKBOX_1);
 		HSSCheckBox = (JCheckBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.FUNCTIONAL_AREA_CHECKBOX_2);

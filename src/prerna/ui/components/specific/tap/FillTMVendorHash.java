@@ -38,7 +38,7 @@ import javax.swing.JOptionPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -54,7 +54,7 @@ import prerna.util.Utility;
 public class FillTMVendorHash extends GridPlaySheet{
 
 	String query = null;
-	IEngine engine = null;
+	IDatabase engine = null;
 	public Hashtable<String, Object> TMhash = new Hashtable<String, Object>();
 	ISelectWrapper wrapper;
 	ArrayList <String []> list;
@@ -66,10 +66,10 @@ public class FillTMVendorHash extends GridPlaySheet{
 	/**
 	 * Sets the engine and query.
 	 * @param query String
-	 * @param engine IEngine
+	 * @param engine IDatabase
 	 */
 	public void setEngine (String query,
-			IEngine engine) {
+			IDatabase engine) {
 		this.query = query;
 		this.engine = engine;
 	}
@@ -101,13 +101,13 @@ public class FillTMVendorHash extends GridPlaySheet{
 		//set the engine to selected database
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repos = (Object [])list.getSelectedValues();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[0]+"");
 		logger.info("Repository is " + repos);
 		
 		//run through all queries
 		while(queryTokens.hasMoreElements()){
 			String query = (String) queryTokens.nextElement();
-			setEngine(query, (IEngine)engine);
+			setEngine(query, (IDatabase)engine);
 			fillWithSelect();
 
 		}

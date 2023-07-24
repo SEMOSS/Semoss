@@ -8,8 +8,8 @@ import java.util.Date;
 
 import org.apache.commons.io.FileUtils;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -33,7 +33,7 @@ public class BackupDatabaseReactor extends AbstractReactor {
 		}
 		
 		// get engine details
-		IEngine engine = Utility.getEngine(databaseId);
+		IDatabase engine = Utility.getEngine(databaseId);
 		if (engine == null){
 			throw new IllegalArgumentException("Invalid database!");
 		}
@@ -47,11 +47,11 @@ public class BackupDatabaseReactor extends AbstractReactor {
 		String todayDate = dateFormat.format(date);
 		
 		// only backup if its an RDBMS or RDF
-		if (dbType == IEngine.ENGINE_TYPE.RDBMS) {
+		if (dbType == IDatabase.ENGINE_TYPE.RDBMS) {
 			File originalFile = new File(dbDir + DIR_SEPARATOR + "database.mv.db");
 			File newFile = new File(dbDir + DIR_SEPARATOR + "backup" + DIR_SEPARATOR + "database_" + todayDate + ".mv.db");
 			copyFile(originalFile, newFile);
-		} else if (dbType == IEngine.ENGINE_TYPE.SESAME){
+		} else if (dbType == IDatabase.ENGINE_TYPE.SESAME){
 			File originalFile = new File(dbDir + DIR_SEPARATOR + databaseId + ".jnl");
 			File newFile = new File(dbDir + DIR_SEPARATOR + "backup" + DIR_SEPARATOR + databaseId + "_" + todayDate + ".jnl");
 			copyFile(originalFile, newFile);

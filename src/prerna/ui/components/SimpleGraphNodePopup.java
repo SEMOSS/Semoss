@@ -37,7 +37,7 @@ import javax.swing.JPopupMenu;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.rdf.RemoteSparqlEngine;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.SQLGraphPlaysheet;
@@ -62,7 +62,7 @@ public class SimpleGraphNodePopup extends JPopupMenu {
 	SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(SimpleGraphNodePopup.class.getName());
 	Component comp = null;
-	IEngine engine;
+	IDatabase engine;
 	int x;
 	int y;
 	
@@ -88,7 +88,7 @@ public class SimpleGraphNodePopup extends JPopupMenu {
 
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object repo = list.getSelectedValue();
-		this.engine = (IEngine)DIHelper.getInstance().getLocalProp(repo+"");
+		this.engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo+"");
 		
 		/*NeighborhoodDataPainter dlistener = new NeighborhoodDataPainter();
 		dlistener.setPlaysheet(ps);

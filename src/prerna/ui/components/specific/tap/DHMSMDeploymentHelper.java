@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.BooleanProcessor;
@@ -122,7 +122,7 @@ public final class DHMSMDeploymentHelper {
 		
 	}
 	
-	public static List<Double> getInflationRate(IEngine engine) {
+	public static List<Double> getInflationRate(IDatabase engine) {
 		List<Double> retList = new ArrayList<Double>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, GET_INFLATION_FOR_YEAR);
@@ -144,7 +144,7 @@ public final class DHMSMDeploymentHelper {
 		return retList;
 	}
 	
-	public static HashMap<String, HashMap<String, Double>> getSiteLocation(IEngine engine) {
+	public static HashMap<String, HashMap<String, Double>> getSiteLocation(IDatabase engine) {
 		HashMap<String, HashMap<String, Double>> retHash = new HashMap<String, HashMap<String, Double>>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, GET_SITE_LOCATION_QUERY);
@@ -164,7 +164,7 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static Set<String> getHPSysList(IEngine engine) {
+	public static Set<String> getHPSysList(IDatabase engine) {
 		Set<String> sysList = new HashSet<String>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, GET_HP_SYSTEM_LIST);
@@ -176,12 +176,12 @@ public final class DHMSMDeploymentHelper {
 		return sysList;
 	}
 	
-	public static HashMap<String, String> getFirstWaveForEachSystem(IEngine engine) {
+	public static HashMap<String, String> getFirstWaveForEachSystem(IDatabase engine) {
 		List<String> waveOrder = getWaveOrder(engine);
 		return getFirstWaveForEachSystem(engine, waveOrder);
 	}
 	
-	public static HashMap<String, String> getFirstWaveForEachSystem(IEngine engine, List<String> waveOrder) {
+	public static HashMap<String, String> getFirstWaveForEachSystem(IDatabase engine, List<String> waveOrder) {
 		HashMap<String, List<String>> inputHash = new HashMap<String, List<String>>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
@@ -204,12 +204,12 @@ public final class DHMSMDeploymentHelper {
 		return determineFirstWaveForInput(waveOrder, inputHash);
 	}
 	
-	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine) {
+	public static HashMap<String, String> getLastWaveForEachSystem(IDatabase engine) {
 		List<String> waveOrder = getWaveOrder(engine);
 		return getLastWaveForEachSystem(engine, waveOrder);
 	}
 	
-	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine, List<String> waveOrder) {
+	public static HashMap<String, String> getLastWaveForEachSystem(IDatabase engine, List<String> waveOrder) {
 		HashMap<String, List<String>> inputHash = new HashMap<String, List<String>>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
@@ -272,13 +272,13 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static HashMap<String, HashMap<String, Double>> getSysFloaterCost(IEngine engine) {
+	public static HashMap<String, HashMap<String, Double>> getSysFloaterCost(IDatabase engine) {
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_FLOATER_COST_QUERY);
 		
 		return processCosts(sjsw);
 	}
 	
-	public static HashMap<String, HashMap<String, Double>> getSysSiteSupportCost(IEngine engine) {
+	public static HashMap<String, HashMap<String, Double>> getSysSiteSupportCost(IDatabase engine) {
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_SITE_SUPPORT_COST_QUERY);
 
 		return processCosts(sjsw);
@@ -308,7 +308,7 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static HashMap<String, List<String>> getFloatersAndWaves(IEngine engine) {
+	public static HashMap<String, List<String>> getFloatersAndWaves(IDatabase engine) {
 		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, FLOATER_SUPPORTS_WAVE_QUERY);
@@ -331,7 +331,7 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static Hashtable<String,Hashtable<String,Integer>> getRegionStartAndEndDate(IEngine siteEngine,Hashtable<String, List<String>> regionWaveHash,HashMap<String, String[]> waveStartEndDate) {
+	public static Hashtable<String,Hashtable<String,Integer>> getRegionStartAndEndDate(IDatabase siteEngine,Hashtable<String, List<String>> regionWaveHash,HashMap<String, String[]> waveStartEndDate) {
 		Hashtable<String,Hashtable<String,Integer>> regionStartEndDate = new Hashtable<String,Hashtable<String,Integer>>();
 		
 		Hashtable<String,Integer> regionStartQ = new Hashtable<String,Integer>();
@@ -379,7 +379,7 @@ public final class DHMSMDeploymentHelper {
 		return regionStartEndDate;
 	}
 	
-	public static HashMap<String, String[]> getWaveStartAndEndDate(IEngine engine) {
+	public static HashMap<String, String[]> getWaveStartAndEndDate(IDatabase engine) {
 		HashMap<String, String[]> retHash = new HashMap<String, String[]>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, WAVE_START_END_DATE);
@@ -396,7 +396,7 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static HashMap<String, Double> getSiteAndMultipleWaveCount(IEngine engine) {
+	public static HashMap<String, Double> getSiteAndMultipleWaveCount(IDatabase engine) {
 		HashMap<String, Double> retHash = new HashMap<String, Double>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_COUNT_QUERY);
@@ -411,7 +411,7 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static HashMap<String, List<String>> getSitesAndMultipleWaves(IEngine engine) {
+	public static HashMap<String, List<String>> getSitesAndMultipleWaves(IDatabase engine) {
 		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_QUERY);
@@ -434,7 +434,7 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static HashMap<String, List<String>> getSitesAndWaves(IEngine engine) {
+	public static HashMap<String, List<String>> getSitesAndWaves(IDatabase engine) {
 		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_WAVES_QUERY);
@@ -465,7 +465,7 @@ public final class DHMSMDeploymentHelper {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static ArrayList<String> getRegionOrder(IEngine engine,Boolean includeIOC) throws Exception {
+	public static ArrayList<String> getRegionOrder(IDatabase engine,Boolean includeIOC) throws Exception {
 
 		ArrayList<String> regionOrder = new ArrayList<String>();
 		if(includeIOC) {
@@ -500,7 +500,7 @@ public final class DHMSMDeploymentHelper {
 		return regionOrder;
 	}
 	
-	public static List<String> getWaveOrder(IEngine engine) {
+	public static List<String> getWaveOrder(IDatabase engine) {
 		List<String> waveOrder = new ArrayList<String>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, WAVE_START_END_DATE);
@@ -587,7 +587,7 @@ public final class DHMSMDeploymentHelper {
 		return waveOrder;
 	}
 	
-	public static Hashtable<String, List<String>> getWavesInRegion(IEngine engine) {
+	public static Hashtable<String, List<String>> getWavesInRegion(IDatabase engine) {
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine,WAVES_IN_REGION_QUERY);
 		String[] names = sjsw.getVariables();
@@ -613,7 +613,7 @@ public final class DHMSMDeploymentHelper {
 		return regionWaveHash;
 	}
 	
-//	public static HashMap<String, String> getRegionStartDate(IEngine engine) {
+//	public static HashMap<String, String> getRegionStartDate(IDatabase engine) {
 //		HashMap<String, String> retHash = new HashMap<String, String>();
 //		
 //		ISelectWrapper sjsw = Utility.processQuery(engine, REGION_START_DATE);
@@ -628,7 +628,7 @@ public final class DHMSMDeploymentHelper {
 //		return retHash;
 //	}
 	
-	public static HashMap<String, Integer> getNumSitesSysDeployedAt(IEngine engine) {
+	public static HashMap<String, Integer> getNumSitesSysDeployedAt(IDatabase engine) {
 		HashMap<String, Integer> retHash = new HashMap<String, Integer>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_COUNT_AT_SITES);
@@ -643,7 +643,7 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static HashMap<String, Double[]> getSysSustainmentBudget(IEngine engine) {
+	public static HashMap<String, Double[]> getSysSustainmentBudget(IDatabase engine) {
 		HashMap<String, Double[]> retHash = new HashMap<String, Double[]>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_SUSTIANMENT_BUDGET_QUERY);
@@ -683,7 +683,7 @@ public final class DHMSMDeploymentHelper {
 	}
 	
 	
-	public static HashMap<String, ArrayList<String>> getSysAtSitesInDeploymentPlan(IEngine engine) {
+	public static HashMap<String, ArrayList<String>> getSysAtSitesInDeploymentPlan(IDatabase engine) {
 		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_AT_SITE_IN_DEPLOYMENT_PLAN_QUERY);
 		String[] names = sjsw.getVariables();
@@ -704,7 +704,7 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static Set<String> getCentrallyDeployedSystems(IEngine engine) {
+	public static Set<String> getCentrallyDeployedSystems(IDatabase engine) {
 		Set<String> retSet = new HashSet<String>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, CENTRALLY_DEPLOYED_SYS_QUERY);
 		String[] names = sjsw.getVariables();

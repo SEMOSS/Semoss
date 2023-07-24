@@ -35,7 +35,7 @@ import java.util.Date;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.NodeLoadingSheetWriter;
@@ -59,7 +59,7 @@ public class ExportDatabaseLoadSheetsListener implements IChakraListener {
 		
 		//Get engine to export from
 		JComboBox exportDataSourceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
+		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
 
 		//Get all concepts in the database
 		String conceptQuery = "SELECT ?entity WHERE {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <" + Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "> ;} ORDERBY ?entity";
@@ -89,7 +89,7 @@ public class ExportDatabaseLoadSheetsListener implements IChakraListener {
 		
 	}
 	
-	private ArrayList<String[]> getRelationshipListForConcept(IEngine engine, String concept) {
+	private ArrayList<String[]> getRelationshipListForConcept(IDatabase engine, String concept) {
 
 		ArrayList<String[]> relationshipList = new ArrayList<String[]>();
 		String outConceptQuery = "SELECT DISTINCT ?s WHERE { {?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/" + concept + "> ;} {?s <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;}{?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?s ;} {?in ?p ?out ;} }";

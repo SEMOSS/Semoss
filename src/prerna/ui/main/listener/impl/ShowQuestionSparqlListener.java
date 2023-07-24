@@ -43,7 +43,7 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.om.OldInsight;
 import prerna.project.api.IProject;
 import prerna.ui.components.MapComboBoxRenderer;
@@ -76,7 +76,7 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 		// get the selected engine
 		JList<String> list = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repos = list.getSelectedValues();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(repos[0] + "");
 		// get the selected question
 		Map<String, String> insightMap = (Map<String, String>) ((JComboBox<Map<String, String>>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem();
 		String questionID = insightMap.get(MapComboBoxRenderer.KEY);

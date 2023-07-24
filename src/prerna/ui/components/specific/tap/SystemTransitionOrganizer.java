@@ -33,7 +33,7 @@ import java.util.Hashtable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -229,10 +229,10 @@ public class SystemTransitionOrganizer {
 		ArrayList <Object []> list = new ArrayList<Object[]>();
 
 		//SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
 		/*wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.setEngineType(IEngine.ENGINE_TYPE.SESAME);
+		wrapper.setEngineType(IDatabase.ENGINE_TYPE.SESAME);
 		try{
 			wrapper.executeQuery();	
 		}

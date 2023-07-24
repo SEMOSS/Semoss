@@ -19,7 +19,7 @@ import org.openrdf.rio.rdfxml.RDFXMLWriter;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.IExplorable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -44,7 +44,7 @@ public class MetaHelper implements IExplorable {
 	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 	
 	public RDFFileSesameEngine baseDataEngine = null;
-	IEngine.ENGINE_TYPE engineType = IEngine.ENGINE_TYPE.RDBMS;
+	IDatabase.ENGINE_TYPE engineType = IDatabase.ENGINE_TYPE.RDBMS;
 	String engineName = null;
 	
 	private static final String FROM_SPARQL = "SELECT DISTINCT ?entity WHERE { "
@@ -65,7 +65,7 @@ public class MetaHelper implements IExplorable {
 	
 	public RDBMSNativeEngine insightRDBMS = null;
 
-	public MetaHelper(RDFFileSesameEngine baseDataEngine, IEngine.ENGINE_TYPE engineType, String engineName)
+	public MetaHelper(RDFFileSesameEngine baseDataEngine, IDatabase.ENGINE_TYPE engineType, String engineName)
 	{
 		this.baseDataEngine = baseDataEngine;
 		if(engineType !=  null)
@@ -76,7 +76,7 @@ public class MetaHelper implements IExplorable {
 			this.engineName = "Unassigned";
 	}
 
-	public MetaHelper(RDFFileSesameEngine baseDataEngine, IEngine.ENGINE_TYPE engineType, String engineName, RDBMSNativeEngine insightRDBMS)
+	public MetaHelper(RDFFileSesameEngine baseDataEngine, IDatabase.ENGINE_TYPE engineType, String engineName, RDBMSNativeEngine insightRDBMS)
 	{
 		this.baseDataEngine = baseDataEngine;
 		if(engineType !=  null)

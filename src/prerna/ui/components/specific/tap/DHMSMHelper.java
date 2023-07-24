@@ -30,7 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -54,7 +54,7 @@ public class DHMSMHelper {
 	private boolean useDHMSMOnly = true;
 
 
-	public void runData(IEngine engine)
+	public void runData(IDatabase engine)
 	{
 		ISelectWrapper sjswQuery1 = processQuery(GET_ALL_SYSTEM_WITH_CREATE_AND_DOWNSTREAM_QUERY, engine);
 		processAllResults(sjswQuery1, true);
@@ -87,7 +87,7 @@ public class DHMSMHelper {
 
 		String capabilityGroup = "SELECT DISTINCT ?CapabilityFunctionalArea ?Capability WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;} {?CapabilityGroup ?ConsistsOfCapability ?Capability;}}";
 
-		ISelectWrapper sjswQuery = processQuery(capabilityGroup, (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
+		ISelectWrapper sjswQuery = processQuery(capabilityGroup, (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
 		
 		ArrayList<String> allHSDCapabilities = new ArrayList<String>();
 		ArrayList<String> allHSSCapabilities = new ArrayList<String>();
@@ -377,7 +377,7 @@ public class DHMSMHelper {
 	}
 
 	//process the query
-	private ISelectWrapper processQuery(String query, IEngine engine){
+	private ISelectWrapper processQuery(String query, IDatabase engine){
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();

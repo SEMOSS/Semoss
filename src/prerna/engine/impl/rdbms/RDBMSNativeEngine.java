@@ -54,9 +54,10 @@ import org.openrdf.query.TupleQueryResult;
 import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -76,7 +77,7 @@ import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
-public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
+public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine {
 
 	private static final Logger logger = LogManager.getLogger(RDBMSNativeEngine.class);
 
@@ -546,7 +547,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return IEngine.ENGINE_TYPE.RDBMS;
+		return IDatabase.ENGINE_TYPE.RDBMS;
 	}
 
 	@Override

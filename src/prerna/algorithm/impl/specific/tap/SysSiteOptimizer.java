@@ -44,7 +44,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.rdbms.h2.H2Frame;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.specific.tap.HealthGridSheet;
@@ -60,7 +60,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private static final Logger LOGGER = LogManager.getLogger(SysSiteOptimizer.class.getName());
 	
-	private IEngine systemEngine, siteEngine;
+	private IDatabase systemEngine, siteEngine;
 	
 	private ArrayList<String> localSysList, centralSysList, dataList, bluList, siteList;
 	
@@ -1482,7 +1482,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n" + message);
 	}
 	
-	public void setEngines(IEngine systemEngine, IEngine siteEngine) {
+	public void setEngines(IDatabase systemEngine, IDatabase siteEngine) {
 		this.systemEngine = systemEngine;
 		this.siteEngine = siteEngine;
 	}

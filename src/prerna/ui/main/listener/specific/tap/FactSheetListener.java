@@ -37,7 +37,7 @@ import javax.swing.JComponent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.poi.specific.FactSheetProcessor;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
@@ -76,7 +76,7 @@ public class FactSheetListener implements IChakraListener {
 		String system = null;
 		
 		DHMSMHelper dhelp = new DHMSMHelper();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(
+		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(
 				"TAP_Core_Data");
 		dhelp.runData(engine);
 		

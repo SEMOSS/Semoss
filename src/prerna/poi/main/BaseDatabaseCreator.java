@@ -7,11 +7,10 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabase.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
@@ -32,8 +31,8 @@ public class BaseDatabaseCreator {
 	}
 
 	//open with connection
-	public BaseDatabaseCreator(IEngine engine, String owlFile) {
-		baseEng = ((AbstractEngine) engine).getBaseDataEngine();
+	public BaseDatabaseCreator(IDatabase engine, String owlFile) {
+		baseEng = engine.getBaseDataEngine();
 		baseEng.setFileName(owlFile);
 	}
 
@@ -58,7 +57,7 @@ public class BaseDatabaseCreator {
 			objValue = Utility.cleanString(objValue.toString(), false);
 		}
 		
-		baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
+		baseEng.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
 	}
 	
 	/**
@@ -82,7 +81,7 @@ public class BaseDatabaseCreator {
 			objValue = Utility.cleanString(objValue.toString(), false);
 		}
 		
-		baseEng.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
+		baseEng.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
 	}
 	
 	// set this as separate pieces as well
@@ -114,7 +113,7 @@ public class BaseDatabaseCreator {
 				deleteExisitngTimestamp();
 				Calendar cal = Calendar.getInstance();
 				String cleanObj = DATE_FORMATTER.format(cal.getTime());
-				baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
+				baseEng.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
 			this.baseEng.exportDB();
 		} catch (Exception e) {
@@ -131,7 +130,7 @@ public class BaseDatabaseCreator {
 				deleteExisitngTimestamp();
 				Calendar cal = Calendar.getInstance();
 				String cleanObj = DATE_FORMATTER.format(cal.getTime());
-				baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
+				baseEng.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
 			this.baseEng.exportDB(writer);
 			writer.flush();

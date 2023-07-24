@@ -2,13 +2,12 @@ package prerna.tcp.workers;
 
 import java.util.Vector;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.api.IDatabase;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
-import prerna.tcp.PayloadStruct.OPERATION;
 
-public class EngineSocketWrapper extends AbstractEngine implements IEngine {
+public class EngineSocketWrapper extends AbstractDatabase {
 
 	// base class for doing everything over the socket
 	SocketServerHandler ssh = null;
@@ -109,7 +108,7 @@ public class EngineSocketWrapper extends AbstractEngine implements IEngine {
 		if(retStruct.ex != null)
 			throw new RuntimeException(retStruct.ex);
 		
-		return (IEngine.ENGINE_TYPE)retStruct.payload[0];
+		return (IDatabase.ENGINE_TYPE)retStruct.payload[0];
 	}
 
 	@Override

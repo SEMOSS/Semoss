@@ -57,7 +57,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.specific.tap.IndividualSystemTransitionReport;
@@ -97,8 +97,8 @@ public class TAPLegacySystemDispositionReportWriter {
 	private final String numProductKey = "numProducts";
 	private final String updateCostKey = "upgradeCostKey";
 
-	private IEngine TAP_Core_Data;
-	private IEngine TAP_Portfolio;
+	private IDatabase TAP_Core_Data;
+	private IDatabase TAP_Portfolio;
 
 	private XSSFWorkbook wb;
 	private XSSFSheet reportSheet;
@@ -113,8 +113,8 @@ public class TAPLegacySystemDispositionReportWriter {
 	private IndividualSystemTransitionReport report;
 	
 	public TAPLegacySystemDispositionReportWriter() throws IOException {
-		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-		TAP_Portfolio = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
+		TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		TAP_Portfolio = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
 
 		if(TAP_Core_Data == null) {
 			throw new IOException("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
@@ -128,8 +128,8 @@ public class TAPLegacySystemDispositionReportWriter {
 		this.sysURI = sysURI.replace(">", "").replace("<", "");
 		this.sysName = Utility.getInstanceName(this.sysURI);
 
-		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-		TAP_Portfolio = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
+		TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		TAP_Portfolio = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
 
 		if(TAP_Core_Data == null) {
 			throw new IOException("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");

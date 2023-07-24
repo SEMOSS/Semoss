@@ -33,7 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.URI;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.engine.impl.rdf.SesameJenaConstructStatement;
 import prerna.engine.impl.rdf.SesameJenaConstructWrapper;
@@ -90,14 +90,14 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 	
 				if(subjects.indexOf(st.getSubject()) < 0)
 				{
-					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+					if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
 						subjects.append("(<" + st.getSubject() + ">)");
 					else
 						subjects.append("<" + st.getSubject() + ">");
 				}
 				if(predicates.indexOf(st.getPredicate()) < 0)
 				{
-					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+					if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
 						predicates.append("(<" + st.getPredicate() +">)");
 					else
 						predicates.append( "<" + st.getPredicate() +">");
@@ -107,7 +107,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 				{			
 					if(objects.indexOf(obj+"") < 0)
 					{
-						if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+						if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
 							objects.append("(<" + obj +">)");
 						else
 							objects.append("<" + obj +">");
@@ -162,10 +162,10 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 		
 		System.err.println(" conceptSelectQuery query " + conceptSelectQuery);
 		
-		//IEngine jenaEngine = new InMemoryJenaEngine();
+		//IDatabase jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
-		IEngine jenaEngine = new InMemorySesameEngine();
+		IDatabase jenaEngine = new InMemorySesameEngine();
 //		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
@@ -227,10 +227,10 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 									  "}";
 		
 		
-		//IEngine jenaEngine = new InMemoryJenaEngine();
+		//IDatabase jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
-		IEngine jenaEngine = new InMemorySesameEngine();
+		IDatabase jenaEngine = new InMemorySesameEngine();
 //		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();

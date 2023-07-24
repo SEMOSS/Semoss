@@ -38,10 +38,10 @@ import java.util.Set;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.Utility;
@@ -55,9 +55,9 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 	private final String REMOVED_ICD_TYPE = "http://semoss.org/ontologies/Concept/ProposedDecommissionedSystemInterface";
 	private final String ICD_TYPE = "http://semoss.org/ontologies/Concept/SystemInterface";
 
-	private IEngine tapCore;
-	private IEngine futureState;
-	private IEngine futureCostState;
+	private IDatabase tapCore;
+	private IDatabase futureState;
+	private IDatabase futureCostState;
 
 	private List<Object[]> relList;
 	private List<Object[]> relPropList;
@@ -81,21 +81,21 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 
 	}
 
-	public CreateFutureStateDHMSMDatabase(IEngine tapCore, IEngine futureState, IEngine futureCostState) {
+	public CreateFutureStateDHMSMDatabase(IDatabase tapCore, IDatabase futureState, IDatabase futureCostState) {
 		this.tapCore = tapCore;
 		this.futureState = futureState;
 		this.futureCostState = futureCostState;
 	}
 
-	public void setTapCore(IEngine tapCore) {
+	public void setTapCore(IDatabase tapCore) {
 		this.tapCore = tapCore;
 	}
 
-	public void setFutureState(IEngine futureState) {
+	public void setFutureState(IDatabase futureState) {
 		this.futureState = futureState;
 	}
 
-	public void setFutureCostState(IEngine futureCostState) {
+	public void setFutureCostState(IDatabase futureCostState) {
 		this.futureCostState = futureCostState;
 	}
 
@@ -142,7 +142,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		((BigDataEngine) futureCostState).infer();
 		writeToOWL(futureCostState, baseFutureCostRelations);
 		// update base filter hash
-		((AbstractEngine) futureCostState).createBaseRelationEngine();
+		((AbstractDatabase) futureCostState).createBaseRelationEngine();
 	}
 
 	public void createFutureStateDB() throws IOException, RepositoryException, RDFHandlerException {
@@ -186,10 +186,10 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		((BigDataEngine) futureState).infer();
 		writeToOWL(futureState, baseFutureRelations);
 		// update base filter hash
-		((AbstractEngine) futureState).createBaseRelationEngine();
+		((AbstractDatabase) futureState).createBaseRelationEngine();
 	}
 
-	public void processGlItemsSubclassing(IEngine engine, Set<String> data) {
+	public void processGlItemsSubclassing(IDatabase engine, Set<String> data) {
 		processNewConcepts(engine, "http://semoss.org/ontologies/Concept/GLItem");
 		processNewConcepts(engine, "http://semoss.org/ontologies/Concept/TransitionGLItem");
 		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/GLItem", "http://semoss.org/ontologies/Concept/TransitionGLItem");

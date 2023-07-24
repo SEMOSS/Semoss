@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatabase;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 
@@ -42,7 +42,7 @@ import prerna.util.DIHelper;
  * 
  */
 public class EAEffectivenessPlaySheet extends GridPlaySheet {
-	private IEngine tapCoreDB = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+	private IDatabase tapCoreDB = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 	private EAFunctionalGapHelper helper = new EAFunctionalGapHelper();
 	
 	// Commented out queries are used for Chrissy's effectiveness calculation
