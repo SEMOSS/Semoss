@@ -30,7 +30,7 @@ public class GetPhysicalToPhysicalMapping extends AbstractReactor {
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
 		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-		qs.setEngine(Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME));
+		qs.setEngine(Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME));
 		
 		H2Frame frame = new H2Frame();
 		RdbmsImporter importer = new RdbmsImporter(frame, qs);

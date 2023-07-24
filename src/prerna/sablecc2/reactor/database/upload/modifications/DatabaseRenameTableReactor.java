@@ -50,7 +50,7 @@ public class DatabaseRenameTableReactor extends AbstractReactor {
 		String table = this.keyValue.get(this.keysToGet[1]);
 		String newTable = this.keyValue.get(this.keysToGet[2]);
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		Owler owler = new Owler(database);
 		boolean dbUpdate = false;
 		IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);

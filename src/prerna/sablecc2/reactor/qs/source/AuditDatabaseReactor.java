@@ -59,7 +59,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			}
 		}
 
-		if (!(Utility.getEngine(databaseId) instanceof RDBMSNativeEngine)) {
+		if (!(Utility.getDatabase(databaseId) instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("Database must be a relational database");
 		}
 		// process table filters
@@ -81,7 +81,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		}
 		
 		// get audit database from database id
-		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getEngine(databaseId);
+		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getDatabase(databaseId);
 		AuditDatabase audit = database.generateAudit();
 		AbstractSqlQueryUtil queryUtil = audit.getQueryUtil();
 		Connection conn = null;

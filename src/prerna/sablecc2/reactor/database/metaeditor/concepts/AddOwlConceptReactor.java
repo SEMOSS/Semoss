@@ -41,7 +41,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		}
 
 		// if RDBMS, we need to know the prim key of the column
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		String column = this.keyValue.get(this.keysToGet[2]);
 		if ((column == null || column.isEmpty()) && database.getEngineType() == ENGINE_TYPE.RDBMS) {

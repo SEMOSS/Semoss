@@ -122,7 +122,7 @@ public class DataMakerComponent {
 	 */
 	public IDatabase getEngine() {
 		if(this.engine == null) {
-			this.engine = Utility.getEngine(this.engineName);
+			this.engine = Utility.getDatabase(this.engineName);
 		}
 		return this.engine;
 	}

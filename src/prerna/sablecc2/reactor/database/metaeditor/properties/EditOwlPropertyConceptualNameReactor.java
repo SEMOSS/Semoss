@@ -52,7 +52,7 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		
 		String newPixelURI = "http://semoss.org/ontologies/Relation/Contains/" + newPixelName + "/" + concept;
 
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 		

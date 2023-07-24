@@ -30,7 +30,7 @@ public class ReloadDatabaseReactor extends AbstractReactor {
 			}
 		}
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		String propFile = database.getPropFile();
 		database.closeDB();
 		database.setProp(null);

@@ -30,7 +30,7 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		String prop = this.keyValue.get(this.keysToGet[2]);
 		String description = this.keyValue.get(this.keysToGet[3]);
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		String physicalUri = null;
 		if (prop == null || prop.isEmpty()) {

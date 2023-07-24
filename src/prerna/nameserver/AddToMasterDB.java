@@ -95,7 +95,7 @@ public class AddToMasterDB {
 
     public boolean registerEngineLocal(Properties prop, String engineUniqueId) {
         // grab the local master engine
-    	IRDBMSEngine localMaster = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+    	IRDBMSEngine localMaster = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
         // establish the connection
         Connection conn = null;
         try {
@@ -709,7 +709,7 @@ public class AddToMasterDB {
         String[] types = new String[]{"varchar(800)", "varchar(20000)"};
 
         // check if fileName exists
-        IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+        IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
         Connection conn = null;
         Statement stmt = null;
         try {
@@ -764,7 +764,7 @@ public class AddToMasterDB {
 		String[] colNames = new String[]{Constants.LM_PHYSICAL_NAME_ID, Constants.LM_META_KEY, Constants.LM_META_VALUE};
 		String localConceptID = MasterDatabaseUtility.getPhysicalConceptId(engineId, concept);
 		
-		IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
 		AbstractSqlQueryUtil queryUtil = localMaster.getQueryUtil();
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -843,14 +843,14 @@ public class AddToMasterDB {
 
         // load the local master database
         Properties localMasterProp = loadEngineProp(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME);
-        IDatabase localMaster = Utility.loadEngine(determineSmssPath(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME), localMasterProp);
+        IDatabase localMaster = Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME), localMasterProp);
 
         // test loading in a new engine to the master database
 
         // get the new engine
         String engineName = "Mv1";
         Properties engineProp = loadEngineProp(DB_DIRECTORY, engineName);
-        Utility.loadEngine(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
+        Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
 
         // delete the engine from the master db so that we can re-add it fresh for
         // testing purposes
@@ -859,7 +859,7 @@ public class AddToMasterDB {
 
         String engineName2 = "actor";
         Properties engineProp2 = loadEngineProp(DB_DIRECTORY, engineName2);
-        Utility.loadEngine(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
+        Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, engineName), engineProp);
 
         // delete the engine from the master db so that we can re-add it fresh for
         // testing purposes

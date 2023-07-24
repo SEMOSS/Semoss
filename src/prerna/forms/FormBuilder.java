@@ -58,7 +58,7 @@ public final class FormBuilder {
 		}
 		
 		String auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineId())).toUpperCase() + AUDIT_FORM_SUFFIX;
-		IDatabase formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
+		IDatabase formEng = Utility.getDatabase(FORM_BUILDER_ENGINE_NAME);
 		// create audit table if doesn't exist
 		boolean auditTableExists = false;
 		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='" + auditLogTableName + "'";
@@ -1292,7 +1292,7 @@ public final class FormBuilder {
 	public static Map<String, Object> getAuditDataForEngine(String engineName) {
 		Map<String, Object> retMap = new Hashtable<String, Object>();
 		String auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engineName)).toUpperCase() + AUDIT_FORM_SUFFIX;
-		IDatabase formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
+		IDatabase formEng = Utility.getDatabase(FORM_BUILDER_ENGINE_NAME);
 		
 		String query = "SELECT * FROM " + auditLogTableName;
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(formEng, query);

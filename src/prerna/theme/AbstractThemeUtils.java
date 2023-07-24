@@ -29,7 +29,7 @@ public abstract class AbstractThemeUtils {
 	}
 	
 	public static void loadThemingDatabase() throws SQLException {
-		themeDb = (RDBMSNativeEngine) Utility.getEngine(Constants.THEMING_DB);
+		themeDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.THEMING_DB);
 		initialize();
 		initialized = true;
 	}

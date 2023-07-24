@@ -351,7 +351,7 @@ public class Owler extends AbstractOwler {
 			// the base URI for the concept will be the baseNodeURI
 			String subject = BASE_NODE_URI + "/" + tableName;
 
-			IDatabase engine = Utility.getEngine(appId);
+			IDatabase engine = Utility.getDatabase(appId);
 			RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 			String conceptPhysical = engine.getPhysicalUriFromPixelSelector(tableName);
 			List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysical);
@@ -660,7 +660,7 @@ public class Owler extends AbstractOwler {
 
 		// then we need to change the property name as well to point to the new table name
 
-		IDatabase engine = Utility.getEngine(appId);
+		IDatabase engine = Utility.getDatabase(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String oldConceptPhysical = engine.getPhysicalUriFromPixelSelector(oldConceptName);
 		properties = engine.getPropertyUris4PhysicalUri(oldConceptPhysical);
@@ -936,7 +936,7 @@ public class Owler extends AbstractOwler {
 		// need to grab everything downstream of the node and edit it
 		// need to grab everything upstream of the node and edit it
 		
-		IDatabase engine = Utility.getEngine(appId);
+		IDatabase engine = Utility.getDatabase(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String propPhysicalUri = BASE_PROPERTY_URI + "/" + oldPropName + "/" + tableName;
 		String newPropPhysicalUri = BASE_PROPERTY_URI + "/" + newPropName + "/" + tableName;

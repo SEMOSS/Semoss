@@ -48,7 +48,7 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 		
 		PreparedStatement ps = null;
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getEngine(Constants.USER_TRACKING_DB);
+		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.USER_TRACKING_DB);
 		try {
 			ps = engine.getPreparedStatement(query);
 			int index = 1;
@@ -122,7 +122,7 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 		String query = "UPDATE USER_TRACKING SET ENDED_ON = ? WHERE SESSIONID = ?";
 		
 		PreparedStatement ps = null;
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getEngine(Constants.USER_TRACKING_DB);
+		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.USER_TRACKING_DB);
 		try {
 			ps = engine.getPreparedStatement(query);
 			int index = 1;

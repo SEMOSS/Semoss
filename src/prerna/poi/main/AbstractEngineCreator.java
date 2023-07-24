@@ -202,7 +202,7 @@ public class AbstractEngineCreator {
 //	}
 
 	protected void openEngineWithConnection(String engineId) {
-		engine = Utility.getEngine(engineId);
+		engine = Utility.getDatabase(engineId);
 		owler = new Owler(engine);
 	}
 	

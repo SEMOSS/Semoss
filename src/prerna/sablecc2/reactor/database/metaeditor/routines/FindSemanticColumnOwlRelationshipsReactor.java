@@ -51,7 +51,7 @@ public class FindSemanticColumnOwlRelationshipsReactor extends AbstractMetaEdito
 		String[] packages = { "text2vec", "data.table", "lsa", "WikidataR", "XML", "RCurl", "stringr"};
 		rJavaTranslator.checkPackages(packages);
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		
 		// get 2 lists
 		// of all table names

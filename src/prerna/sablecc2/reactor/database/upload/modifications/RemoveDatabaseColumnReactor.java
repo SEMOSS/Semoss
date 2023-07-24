@@ -49,7 +49,7 @@ public class RemoveDatabaseColumnReactor extends AbstractReactor {
 
 		// we need to store the values existing in the OWL in case 
 		// something goes wrong
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		
 		
 		// update the owl for any database

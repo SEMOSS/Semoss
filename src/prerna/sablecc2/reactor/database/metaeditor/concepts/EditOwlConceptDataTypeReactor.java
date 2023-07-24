@@ -44,7 +44,7 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 
 		String newAdditionalDataType = this.keyValue.get(this.keysToGet[3]);
 
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 

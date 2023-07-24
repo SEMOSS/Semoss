@@ -42,7 +42,7 @@ public class GetUDF extends AbstractReactor {
 			}
 		}
 		
-		IDatabase database = Utility.getEngine(databaseId);
+		IDatabase database = Utility.getDatabase(databaseId);
 
 		if(database != null) {
 			String [] output = database.getUDF();
