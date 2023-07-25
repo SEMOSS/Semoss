@@ -186,7 +186,7 @@
 //				// we need to do this since the way OWLER
 //				// is set up, it will create a connection to the engine
 //				// and we can't have both 2 connections at the same time
-//				this.rfse.closeDB();
+//				this.rfse.close();
 //			}
 //
 //			// now we need to delete the OWL and make a new one

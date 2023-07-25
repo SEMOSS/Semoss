@@ -142,7 +142,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			}
 		}

@@ -197,7 +197,7 @@ public class BaseDatabaseCreator {
 	 * 
 	 */
 	public void closeBaseEng() {
-		this.baseEng.closeDB();
+		this.baseEng.close();
 	}
 	
 }

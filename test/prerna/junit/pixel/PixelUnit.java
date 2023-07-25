@@ -290,22 +290,22 @@ public class PixelUnit {
 
 		IDatabase formBuilder = Utility.getDatabase(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
 		if (formBuilder != null) {
-			formBuilder.closeDB();
+			formBuilder.close();
 		}
 
 		IDatabase localMaster = Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
 		if (localMaster != null) {
-			localMaster.closeDB();
+			localMaster.close();
 		}
 
 		IDatabase security = Utility.getDatabase(Constants.SECURITY_DB);
 		if (security != null) {
-			security.closeDB();
+			security.close();
 		}
 
 		IDatabase themes = Utility.getDatabase(Constants.THEMING_DB);
 		if (themes != null) {
-			themes.closeDB();
+			themes.close();
 		}
 
 		DIHelper.getInstance().removeLocalProperty(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
@@ -653,7 +653,7 @@ public class PixelUnit {
 						String driver = rdbms.getDbType().getDriver();
 
 						// Close the db
-						rdbms.closeDB();
+						rdbms.close();
 
 						// Clean insert
 						IDataSet dataSet = new FlatXmlDataSetBuilder()

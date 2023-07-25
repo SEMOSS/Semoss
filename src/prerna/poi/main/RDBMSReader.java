@@ -160,7 +160,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();

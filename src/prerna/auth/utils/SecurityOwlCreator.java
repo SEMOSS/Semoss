@@ -225,7 +225,7 @@ public class SecurityOwlCreator {
 		// get the existing engine and close it
 		RDFFileSesameEngine baseEngine = securityDb.getBaseDataEngine();
 		if(baseEngine != null) {
-			baseEngine.closeDB();
+			baseEngine.close();
 		}
 		
 		// now delete the file if exists

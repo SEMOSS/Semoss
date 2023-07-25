@@ -167,7 +167,7 @@ public class POIReader extends AbstractFileReader {
 			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();
@@ -209,7 +209,7 @@ public class POIReader extends AbstractFileReader {
 			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();

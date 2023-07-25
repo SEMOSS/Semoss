@@ -67,7 +67,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	protected String PROVIDER = null;
 
 	@Override
-	public void disconnect() {
+	public void close() {
 		// since we start and delete rclone configs based on the call
 		// there is no disconnect logic
 	}

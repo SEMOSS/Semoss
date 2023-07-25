@@ -244,14 +244,14 @@ public abstract class AbstractDatabase implements IDatabase {
 	}
 
 	@Override
-	public void closeDB() {
+	public void close() {
 		if(this.baseDataEngine != null) {
 			logger.debug("closing its owl engine ");
-			this.baseDataEngine.closeDB();
+			this.baseDataEngine.close();
 		}
 //		if(this.insightRdbms != null) {
 //			logger.debug("closing its insight engine ");
-//			this.insightRdbms.closeDB();
+//			this.insightRdbms.close();
 //		}
 		if (auditDatabase != null) {
 			auditDatabase.close();
@@ -293,7 +293,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	/**
 	 * Returns whether or not an engine is currently connected to the data
 	 * store. The connection becomes true when {@link #openDB(String)} is called
-	 * and the connection becomes false when {@link #closeDB()} is called.
+	 * and the connection becomes false when {@link #close()} is called.
 	 * 
 	 * @return true if the engine is connected to its data store and false if it
 	 *         is not
@@ -591,7 +591,7 @@ public abstract class AbstractDatabase implements IDatabase {
 
 	public void deleteDB() {
 		logger.debug("closing " + this.engineName);
-		this.closeDB();
+		this.close();
 
 //		File insightFile = SmssUtilities.getInsightsRdbmsFile(this.prop);
 		File engineFolder = null;
