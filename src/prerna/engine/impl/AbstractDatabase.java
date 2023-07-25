@@ -1077,6 +1077,16 @@ public abstract class AbstractDatabase implements IDatabase {
 		return retOwl;
 	}
 	
+	@Override
+	public String getCatalogType(Properties smssProp) {
+		return IDatabase.CATALOG_TYPE;
+	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return this.getEngineType().toString();
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*

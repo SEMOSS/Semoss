@@ -59,6 +59,20 @@ public interface IEngine extends Closeable {
 	 */
 	Properties getOrigSmssProp();
 	
+	/**
+	 * 
+	 * @return
+	 */
+	String getCatalogType(Properties smssProp);
+	
+	/**
+	 * 
+	 * @return
+	 */
+	String getCatalogSubType(Properties smssProp);
+	
+	
+	
 //	/**
 //	 * Load the SMSS file and create the connection to the engine
 //	 * @param smssFilePath

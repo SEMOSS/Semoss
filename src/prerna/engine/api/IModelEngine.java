@@ -4,8 +4,15 @@ import java.util.Map;
 
 import prerna.om.Insight;
 
-public interface IModelEngine {
+public interface IModelEngine extends IEngine {
 
+	String CATALOG_TYPE = "MODEL";
+
+	enum MODEL_TYPE
+	{
+		EMBEDDED,
+	}
+	
 	// main class that is responsible for controlling everything models
 	// hosting modes - embedded, inference_engine, FastChat, OpenAI
 	// start server
@@ -16,7 +23,8 @@ public interface IModelEngine {
 	// reactors
 	// ModelDeployMatchFinder - finds it based on GPU memory etc. 
 	// StopModel
-	// 
+	
+	public MODEL_TYPE getModelType();
 	
 	public void loadModel(String modelSmss);
 	
@@ -30,9 +38,5 @@ public interface IModelEngine {
 	public String ask(String question, String context, Insight insight, Map <String, Object> parameters);
 	
 	public void stopModel();
-	
-	public String getCatalogType();
-	
-	
 	
 }
