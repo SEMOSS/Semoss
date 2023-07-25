@@ -63,6 +63,10 @@ public class SocialPropertiesUtil {
 		SocialPropertiesUtil.processor.updateAllProperties(newFileContents);
 	}
 	
+	public String getFileContents() throws NullPointerException, IOException {
+		return SocialPropertiesUtil.processor.getFileContents();
+	}
+	
 	public Map<String, Boolean> getLoginsAllowed() {
 		return SocialPropertiesUtil.processor.getLoginsAllowed();
 	}

@@ -194,6 +194,29 @@ public class SocialPropertiesProcessor {
 	
 	/**
 	 * 
+	 * @return
+	 * @throws IOException
+	 * @throws NullPointerException
+	 */
+	public String getFileContents() throws NullPointerException, IOException {
+		File currentSocialProperties = new File(this.socialPropFile);
+		if(!currentSocialProperties.exists()) {
+			throw new NullPointerException("Could not find the social properties file");
+		}
+		
+		String currentContent = null;
+		try {
+			currentContent = new String(Files.readAllBytes(Paths.get(currentSocialProperties.toURI())));
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IOException("An error occurred reading the current social properties file. Detailed message = " + e.getMessage());
+		}
+		return currentContent;
+	}
+	
+	
+	/**
+	 * 
 	 */
 	public void reloadProps() {
 		// null out values to be reset
@@ -610,4 +633,5 @@ public class SocialPropertiesProcessor {
 		}
 		return new HashMap<>(this.smtpEmailStaticProps);
 	}
+
 }
