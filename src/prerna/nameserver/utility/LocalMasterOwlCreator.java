@@ -53,7 +53,16 @@ public class LocalMasterOwlCreator {
 			cleanConcepts.add(cTable);
 		}
 		
-		return !cleanConcepts.containsAll(conceptsRequired);
+		
+		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
+		if(check1) {
+			List<String> props = localMasterDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/CONCEPTMETADATA");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/METAKEY/CONCEPTMETADATA")) {
+				return true;
+			}
+		}
+		
+		return !check1;
 	}
 	
 	/**
@@ -107,8 +116,8 @@ public class LocalMasterOwlCreator {
 		// CONCEPTMETADATA
 		owler.addConcept("CONCEPTMETADATA", null, null);
 		owler.addProp("CONCEPTMETADATA", "PHYSICALNAMEID", "VARCHAR(255)");
-		owler.addProp("CONCEPTMETADATA", "KEY", "VARCHAR(255)");
-		owler.addProp("CONCEPTMETADATA", "VALUE", "VARCHAR(255)");
+		owler.addProp("CONCEPTMETADATA", "METAKEY", "VARCHAR(800)");
+		owler.addProp("CONCEPTMETADATA", "METAVALUE", "CLOB");
 
 		// ENGINE
 		owler.addConcept("ENGINE", null, null);
