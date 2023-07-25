@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,11 +43,11 @@ public class ProjectProperties {
 		this.processor = new SocialPropertiesProcessor(socialPropertiesFileLoc);
 	}
 	
-	public void updateProviderProperties(String provider, Map<String, String> mods) {
+	public void updateProviderProperties(String provider, Map<String, String> mods) throws ConfigurationException {
 		this.processor.updateProviderProperties(provider, mods);
 	}
 	
-	public void updateAllProperties(Map<String, String> mods) {
+	public void updateAllProperties(Map<String, String> mods) throws ConfigurationException {
 		this.processor.updateAllProperties(mods);
 	}
 	
