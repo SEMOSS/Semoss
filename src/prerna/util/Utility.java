@@ -151,6 +151,7 @@ import prerna.cluster.util.ZKClient;
 import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabase;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -2328,38 +2329,19 @@ public class Utility {
 	 * @param filePath
 	 * @param engineId
 	 */
-	public static void catalogEngineByType(String smssFilePath, Properties prop, String engineId) {
+	public static void catalogEngineByType(String smssFilePath, Properties smssProp, String engineId) {
 		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 
-		boolean loadDb = false;
-		boolean loadStorage = false;
-		boolean loadModel = false;
-		
+		boolean syncToLocalMaster = false;
+
 		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
 		String engineType = null;
-		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
+		String rawType = smssProp.get(Constants.ENGINE_TYPE).toString();
 		try {
-			Object emptyClass = Class.forName(rawType).newInstance();
+			IEngine emptyClass = (IEngine) Class.forName(rawType).newInstance();
+			engineType = emptyClass.getCatalogType(smssProp);
 			if(emptyClass instanceof IDatabase) {
-				engineType = IDatabase.CATALOG_TYPE;
-				loadDb = true;
-			} else if(emptyClass instanceof IStorage) {
-				engineType = IStorage.CATALOG_TYPE;
-				loadStorage = true;
-			} else if (emptyClass instanceof IModelEngine){
-
-				String llm = "";
-				if(prop!=null && prop.containsKey("LLM"))
-					llm = "_" + prop.getProperty("LLM");
-
-				engineType = ((IModelEngine)emptyClass).getCatalogType();
-				loadModel = true;
-			}
-			else {
-				logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-				logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-				logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-				logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+				syncToLocalMaster = true;
 			}
 		} catch(Exception e) {
 			logger.warn("Unknown class name = " + rawType + " in smss file " + smssFilePath);
@@ -2372,20 +2354,12 @@ public class Utility {
 			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineNames);
 		}
 
-		if(loadDb) {
-			logger.info("Loading database engine = " + engineId);
+		logger.info("Loading engine " + engineId + " of type = " + engineType);
+		if(syncToLocalMaster) {
 			// sync up the engine metadata now
 			Utility.synchronizeEngineMetadata(engineId);
-			SecurityEngineUtils.addDatabase(engineId, null);
-		} else if(loadStorage) {
-			logger.info("Loading storage engine = " + engineId);
-			SecurityEngineUtils.addDatabase(engineId, null);
-		} else if(loadModel) {
-			logger.info("Loading Model engine = " + engineId);
-			SecurityEngineUtils.addDatabase(engineId, null);
-		} else {
-			logger.info("Ignoring engine ... " + Utility.cleanLogString(prop.getProperty(Constants.ENGINE_ALIAS)) + " >>> " + engineId );
 		}
+		SecurityEngineUtils.addDatabase(engineId, null);
 	}
 	
 	/**
