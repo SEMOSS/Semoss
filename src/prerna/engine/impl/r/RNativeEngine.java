@@ -78,7 +78,7 @@ public class RNativeEngine extends AbstractDatabase {
 	public void openDB(String propFile) {
 		super.openDB(propFile);
 
-		this.file = SmssUtilities.getDataFile(this.prop);
+		this.file = SmssUtilities.getDataFile(this.smssProp);
 		this.fileLocation = this.file.getAbsolutePath().replace('\\', '/');
 
 		List<String> concepts = this.getConcepts();
@@ -93,7 +93,7 @@ public class RNativeEngine extends AbstractDatabase {
 
 		List<String> propertyUris = this.getPropertyUris4PhysicalUri(tableUri);
 		String[] propertyUriArr = propertyUris.toArray(new String[propertyUris.size()]);
-		String typeMapStr = this.prop.getProperty(Constants.SMSS_DATA_TYPES);
+		String typeMapStr = this.smssProp.getProperty(Constants.SMSS_DATA_TYPES);
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 			try {
 				this.columnToType = new ObjectMapper().readValue(typeMapStr, Map.class);
@@ -104,7 +104,7 @@ public class RNativeEngine extends AbstractDatabase {
 			this.columnToType = this.getDataTypes(propertyUriArr);
 		}
 		
-		String addTypeStr = this.prop.getProperty(Constants.ADDITIONAL_DATA_TYPES);
+		String addTypeStr = this.smssProp.getProperty(Constants.ADDITIONAL_DATA_TYPES);
 		if (addTypeStr != null && !addTypeStr.trim().isEmpty()) {
 			try {
 				this.additionalDataType = new ObjectMapper().readValue(addTypeStr, Map.class);
@@ -115,7 +115,7 @@ public class RNativeEngine extends AbstractDatabase {
 			this.additionalDataType = this.getAdtlDataTypes(propertyUriArr);
 		}
 		// TODO
-		String newHeadersStr = this.prop.getProperty(Constants.NEW_HEADERS);
+		String newHeadersStr = this.smssProp.getProperty(Constants.NEW_HEADERS);
 		if (newHeadersStr != null && !newHeadersStr.trim().isEmpty()) {
 			try {
 				this.newHeaders = new ObjectMapper().readValue(newHeadersStr, Map.class);
@@ -155,7 +155,7 @@ public class RNativeEngine extends AbstractDatabase {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
 		maker.makeFlatOwl(dataFile, owlFile, getEngineType(), false);
 		if(owlFile.equals("REMAKE")) {
-			Utility.changePropMapFileValue(this.propFile, Constants.OWL, owlFileName);
+			Utility.changePropMapFileValue(this.smssFilePath, Constants.OWL, owlFileName);
 		}
 		return owlFile;
 	}

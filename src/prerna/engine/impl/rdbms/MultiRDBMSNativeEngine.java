@@ -101,22 +101,22 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 		// this will contain something like 1,2
 		// which tells us there is 1_ and 2_ prefixes 
 		// for the options around how to connect to the data sources
-		String prefixes = prop.getProperty(CONNECTIONS_TO_FILL);
+		String prefixes = smssProp.getProperty(CONNECTIONS_TO_FILL);
 		String[] prefixIds = prefixes.split(",");
 		
-		this.setupQuery = prop.getProperty(SETUP_QUERY_KEY);
+		this.setupQuery = smssProp.getProperty(SETUP_QUERY_KEY);
 		if(this.setupQuery == null) {
 			throw new NullPointerException("Could not find the user defined query to determine the engine context");
 		}
 		
 		// if this exists...
-		this.defaultContext = prop.getProperty(DEFAULT_CONTEXT_KEY);
+		this.defaultContext = smssProp.getProperty(DEFAULT_CONTEXT_KEY);
 		
 		// really easy way to go about this
 		// just loop through everything
 		// and make a new prop file that is temp
 		// this will create all the property files we need
-		for(Object key : this.prop.keySet()) {
+		for(Object key : this.smssProp.keySet()) {
 			// if it starts with our prefix
 			// we will separate it out into its own prop file
 			for(String prefix : prefixIds) {
@@ -134,20 +134,20 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 					// now store the key without the prefix + "_"
 					// in thisPropInput object
 					String inputKey = key.toString().replaceFirst(prefix + "_", "");
-					thisPropInput.put(inputKey, this.prop.get(key));
+					thisPropInput.put(inputKey, this.smssProp.get(key));
 				}
 			}
 			
 			if(key.toString().startsWith(SETUP_PREFIX)) {
 				String inputKey = key.toString().replaceFirst(SETUP_PREFIX, "");
-				this.contextProperties.put(inputKey, this.prop.get(key));
+				this.contextProperties.put(inputKey, this.smssProp.get(key));
 			}
 		}
 		
 		// load in the SETUP engine
 		this.contextProperties.put("TEMP", true);
 		this.contextEngine = new RDBMSNativeEngine();
-		this.contextEngine.setProp(contextProperties);
+		this.contextEngine.setSmssProp(contextProperties);
 		this.contextEngine.openDB(null);
 		
 		// load all the other engines
@@ -156,7 +156,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 			RDBMSNativeEngine engine = new RDBMSNativeEngine();
 			// set the OWL for each engine
 			engine.setBaseDataEngine(this.baseDataEngine);
-			engine.setProp(thisProp);
+			engine.setSmssProp(thisProp);
 			engine.openDB(null);
 			
 			this.contextToConnectionMap.put(contextName, engine);

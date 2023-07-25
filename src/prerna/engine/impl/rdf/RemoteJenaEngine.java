@@ -87,12 +87,12 @@ public class RemoteJenaEngine extends AbstractDatabase {
 		com.hp.hpl.jena.query.Query queryVar = QueryFactory.create(query) ;
 		
 		QueryEngineHTTP qexec = QueryExecutionFactory.createServiceRequest(this.serviceURI, queryVar);
-		String params = prop.getProperty(Constants.URL_PARAM);
+		String params = smssProp.getProperty(Constants.URL_PARAM);
 		StringTokenizer paramTokens = new StringTokenizer(params, ";");
 		while(paramTokens.hasMoreTokens())
 		{
 			String token = paramTokens.nextToken();
-			qexec.addParam(token, prop.getProperty(token));			
+			qexec.addParam(token, smssProp.getProperty(token));			
 		}
 		if(q2.isSelectType()){
 			com.hp.hpl.jena.query.ResultSet rs = qexec.execSelect();
@@ -199,7 +199,7 @@ public class RemoteJenaEngine extends AbstractDatabase {
 	@Override
 	public void openDB(String propFile) {
 		setSmssFilePath(propFile);
-		this.serviceURI = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
+		this.serviceURI = smssProp.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
 		this.connected = true;
 	}
 

@@ -13,7 +13,6 @@ import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -32,15 +31,15 @@ public class DataStaxGraphEngine extends AbstractDatabase {
 	public void openDB(String propFile) {
 		super.openDB(propFile);
 		setSmssFilePath(propFile);
-		String host = this.prop.getProperty("HOST");
-		String port = this.prop.getProperty("PORT");
-		String username = this.prop.getProperty("USERNAME");
-		String password = this.prop.getProperty("PASSWORD");
-		String graphName = this.prop.getProperty("GRAPH_NAME");
+		String host = this.smssProp.getProperty("HOST");
+		String port = this.smssProp.getProperty("PORT");
+		String username = this.smssProp.getProperty("USERNAME");
+		String password = this.smssProp.getProperty("PASSWORD");
+		String graphName = this.smssProp.getProperty("GRAPH_NAME");
 		// get the type map
-		String typeMapStr = this.prop.getProperty("TYPE_MAP");
+		String typeMapStr = this.smssProp.getProperty("TYPE_MAP");
 		// get the name map
-		String nameMapStr = this.prop.getProperty("NAME_MAP");
+		String nameMapStr = this.smssProp.getProperty("NAME_MAP");
 
 		DseCluster dseCluster = null;
 		if(username != null && password != null) {

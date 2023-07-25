@@ -699,7 +699,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					} catch (Exception e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
-					String databaseFileLocation = newInsightDatabase.getProp().getProperty(AbstractSqlQueryUtil.HOSTNAME);
+					String databaseFileLocation = newInsightDatabase.getSmssProp().getProperty(AbstractSqlQueryUtil.HOSTNAME);
 					File databaseFile = new File(databaseFileLocation);
 					if(databaseFile.exists() && databaseFile.isFile()) {
 						databaseFile.delete();
@@ -760,7 +760,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// close the db so we can move it
 		newInsightDatabase.close();
 
-		String databaseFileLocation = newInsightDatabase.getProp().getProperty(AbstractSqlQueryUtil.HOSTNAME);
+		String databaseFileLocation = newInsightDatabase.getSmssProp().getProperty(AbstractSqlQueryUtil.HOSTNAME);
 		File databaseFile = new File(databaseFileLocation);
 		return databaseFile;
 	}

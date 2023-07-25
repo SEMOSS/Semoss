@@ -105,7 +105,7 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 			
 			// only need to delete the existing file and replace it with the new file
 			// first make a copy of the existing file
-			rDatabaseOldFile = SmssUtilities.getDataFile(database.getProp());
+			rDatabaseOldFile = SmssUtilities.getDataFile(database.getSmssProp());
 			rDatabaseOldFileCopy = new File(rDatabaseOldFile.getAbsolutePath() + "_COPY");
 			Files.copy(rDatabaseOldFile, rDatabaseOldFileCopy);
 			

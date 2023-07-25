@@ -1,6 +1,7 @@
 package prerna.engine.api;
 
 import java.io.Closeable;
+import java.util.Properties;
 
 public interface IEngine extends Closeable {
 
@@ -39,5 +40,36 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	String getSmssFilePath();
+	
+	/**
+	 * Reloads the prop file
+	 * @param prop
+	 */
+	void setSmssProp(Properties smssProp);
+
+	/**
+	 * Return the prop file
+	 * @return
+	 */
+	Properties getSmssProp();
+
+	/**
+	 * Get the original prop file content - w/o additional alterations during opening db
+	 * @return
+	 */
+	Properties getOrigSmssProp();
+	
+//	/**
+//	 * Load the SMSS file and create the connection to the engine
+//	 * @param smssFilePath
+//	 */
+//	void connect(String smssFilePath) throws Exception;
+//	
+//	/**
+//	 * Use the properties in the prop file (the in-memory representation of the smss file) 
+//	 * to connec to the engine
+//	 * @param prop
+//	 */
+//	void connect(Properties prop) throws Exception;
 	
 }
