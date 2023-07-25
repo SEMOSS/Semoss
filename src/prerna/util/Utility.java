@@ -2359,7 +2359,7 @@ public class Utility {
 			// sync up the engine metadata now
 			Utility.synchronizeEngineMetadata(engineId);
 		}
-		SecurityEngineUtils.addDatabase(engineId, null);
+		SecurityEngineUtils.addEngine(engineId, null);
 	}
 	
 	/**
@@ -2424,7 +2424,7 @@ public class Utility {
 				// need to do a check to see if this is socket side here
 				if((DIHelper.getInstance().getLocalProp("core") == null || 
 						DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
-					SecurityEngineUtils.addDatabase(engineId, null);
+					SecurityEngineUtils.addEngine(engineId, null);
 				}
 			}
 		} catch (InstantiationException ie) {
@@ -2487,7 +2487,7 @@ public class Utility {
 //			synchronizeEngineMetadata(engineId);
 			if((DIHelper.getInstance().getLocalProp("core") == null || 
 					DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
-				SecurityEngineUtils.addDatabase(engineId, null);
+				SecurityEngineUtils.addEngine(engineId, null);
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);
@@ -2549,7 +2549,7 @@ public class Utility {
 //			synchronizeEngineMetadata(engineId);
 			if((DIHelper.getInstance().getLocalProp("core") == null || 
 					DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
-				SecurityEngineUtils.addDatabase(engineId, null);
+				SecurityEngineUtils.addEngine(engineId, null);
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);
