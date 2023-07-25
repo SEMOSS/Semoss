@@ -126,7 +126,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	@Override
 	public void openDB(String propFile)
 	{
-		if(propFile == null && this.prop == null){
+		if(propFile == null && this.smssProp == null){
 			if(dataSource != null){
 				try{
 					this.engineConn = getConnection();
@@ -144,24 +144,24 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			// will mostly be sent the connection string and I will connect here
 			// I need to see if the connection pool has been initiated
 			// if not initiate the connection pool
-			if(this.prop == null) {
+			if(this.smssProp == null) {
 				setSmssFilePath(propFile);
 			} else {
-				setProp(this.prop);
+				setSmssProp(this.smssProp);
 			}
 			// if this is not a temp then open the super
-			if(!this.prop.containsKey("TEMP")) { 
+			if(!this.smssProp.containsKey("TEMP")) { 
 				// not temp, in which case, this engine has a insights rdbms and an owl
 				// so call super to open them and set them in the engine
 				super.openDB(propFile);
 			}
 
 			// grab the values from the prop file 
-			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+			String dbTypeString = smssProp.getProperty(Constants.RDBMS_TYPE);
 			if(dbTypeString == null) {
-				dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
+				dbTypeString = smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
 			}
-			this.driver = prop.getProperty(Constants.DRIVER);
+			this.driver = smssProp.getProperty(Constants.DRIVER);
 			// get the dbType from the input or from the driver itself
 			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(this.driver);
 			if(this.dbType == null) {
@@ -172,43 +172,43 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType);
 
 			// get the database so we have it - can be used for filtering tables/columns
-			this.database = prop.getProperty(AbstractSqlQueryUtil.DATABASE);
+			this.database = smssProp.getProperty(AbstractSqlQueryUtil.DATABASE);
 			
 			// get the schema so we have it - can be used for filtering tables/columns
-			this.schema = prop.getProperty(AbstractSqlQueryUtil.SCHEMA);
+			this.schema = smssProp.getProperty(AbstractSqlQueryUtil.SCHEMA);
 			
 			// grab the username/password
 			// keys can be username/password
 			// but some will have it as accessKey/secretKey
 			// so accounting for that here
-			this.userName = prop.getProperty(queryUtil.getConnectionUserKey());
+			this.userName = smssProp.getProperty(queryUtil.getConnectionUserKey());
 			if(propFile != null) {
 				this.password = decryptPass(propFile, false);
 			} 
 			if(this.password == null) {
-				this.password = prop.containsKey(queryUtil.getConnectionPasswordKey()) ? prop.getProperty(queryUtil.getConnectionPasswordKey()) : "";
+				this.password = smssProp.containsKey(queryUtil.getConnectionPasswordKey()) ? smssProp.getProperty(queryUtil.getConnectionPasswordKey()) : "";
 			}
 
 			// grab the connection url
-			this.connectionURL = prop.getProperty(Constants.CONNECTION_URL);
+			this.connectionURL = smssProp.getProperty(Constants.CONNECTION_URL);
 			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
 				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
-				prop.put(Constants.CONNECTION_URL, this.connectionURL);
+				smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
 			}
 			this.originalConnectionURL = this.connectionURL;
 			
 			// make a check to see if it is asking to use file
 			boolean useFile = false;
-			if(prop.containsKey(USE_FILE)) {
-				useFile = Boolean.valueOf(prop.getProperty(USE_FILE));
+			if(smssProp.containsKey(USE_FILE)) {
+				useFile = Boolean.valueOf(smssProp.getProperty(USE_FILE));
 			}
 
 			// see if connection pooling
-			this.useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
+			this.useConnectionPooling = Boolean.valueOf(smssProp.getProperty(Constants.USE_CONNECTION_POOLING));
 
 			// fetch size
-			if(prop.getProperty(Constants.FETCH_SIZE) != null) {
-				String strFetchSize = prop.getProperty(Constants.FETCH_SIZE);
+			if(smssProp.getProperty(Constants.FETCH_SIZE) != null) {
+				String strFetchSize = smssProp.getProperty(Constants.FETCH_SIZE);
 				try {
 					this.fetchSize = Integer.parseInt(strFetchSize);
 				} catch(Exception e) {
@@ -217,8 +217,8 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				}
 			}
 			// connection query timeout
-			if(prop.getProperty(Constants.CONNECTION_QUERY_TIMEOUT) != null) {
-				String queryTimeoutStr = prop.getProperty(Constants.CONNECTION_QUERY_TIMEOUT);
+			if(smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT) != null) {
+				String queryTimeoutStr = smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT);
 				try {
 					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
 				} catch(Exception e) {
@@ -227,12 +227,12 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				}
 			}
 			// auto commit connection 
-			if(prop.getProperty(Constants.AUTO_COMMIT) != null) {
-				this.autoCommit = Boolean.parseBoolean(prop.getProperty(Constants.AUTO_COMMIT)+"");
+			if(smssProp.getProperty(Constants.AUTO_COMMIT) != null) {
+				this.autoCommit = Boolean.parseBoolean(smssProp.getProperty(Constants.AUTO_COMMIT)+"");
 			}
 			// leak detection threshold
-			if(prop.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
-				String leakDetectionStr = prop.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS);
+			if(smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
+				String leakDetectionStr = smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS);
 				try {
 					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
 				} catch(Exception e) {
@@ -241,8 +241,8 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				}
 			}
 			// idle timeout
-			if(prop.getProperty(Constants.IDLE_TIMEOUT) != null) {
-				String idleTimeoutStr = prop.getProperty(Constants.IDLE_TIMEOUT);
+			if(smssProp.getProperty(Constants.IDLE_TIMEOUT) != null) {
+				String idleTimeoutStr = smssProp.getProperty(Constants.IDLE_TIMEOUT);
 				try {
 					this.idelTimeout = Long.parseLong(idleTimeoutStr);
 				} catch(Exception e) {
@@ -251,8 +251,8 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				}
 			}
 			// pool min size
-			if(prop.getProperty(Constants.POOL_MIN_SIZE) != null) {
-				String strMinPoolSize = prop.getProperty(Constants.POOL_MIN_SIZE);
+			if(smssProp.getProperty(Constants.POOL_MIN_SIZE) != null) {
+				String strMinPoolSize = smssProp.getProperty(Constants.POOL_MIN_SIZE);
 				try {
 					this.poolMinSize = Integer.parseInt(strMinPoolSize);
 				} catch(Exception e) {
@@ -261,8 +261,8 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				}
 			}
 			// pool max size
-			if(prop.getProperty(Constants.POOL_MAX_SIZE) != null) {
-				String strMaxPoolSize = prop.getProperty(Constants.POOL_MAX_SIZE);
+			if(smssProp.getProperty(Constants.POOL_MAX_SIZE) != null) {
+				String strMaxPoolSize = smssProp.getProperty(Constants.POOL_MAX_SIZE);
 				try {
 					this.poolMaxSize = Integer.parseInt(strMaxPoolSize);
 				} catch(Exception e) {
@@ -304,7 +304,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				
 				// update the query utility values
 				this.queryUtil.setConnectionUrl(this.connectionURL);
-				this.queryUtil.setConnectionDetailsFromSMSS(this.prop);
+				this.queryUtil.setConnectionDetailsFromSMSS(smssProp);
 				// if we are connection pooling
 				if(useConnectionPooling) {
 					this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
@@ -312,7 +312,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.datasourceConnected = true;
 					logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				} else {
-					this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.prop);
+					this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, smssProp);
 					if(this.autoCommit != null) {
 						this.engineConn.setAutoCommit(this.autoCommit);
 					}
@@ -492,7 +492,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				this.datasourceConnected = true;
 				logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
-				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.prop);
+				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, smssProp);
 				logger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 			this.queryUtil.enhanceConnection(this.engineConn);

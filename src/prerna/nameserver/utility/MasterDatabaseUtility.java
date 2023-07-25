@@ -56,7 +56,7 @@ public class MasterDatabaseUtility {
 			owlCreator.remakeOwl();
 		}
 		// Update OWL
-		OwlSeparatePixelFromConceptual.fixOwl(database.getProp());
+		OwlSeparatePixelFromConceptual.fixOwl(database.getSmssProp());
 		
 		Connection conn  = null;
 		try {
