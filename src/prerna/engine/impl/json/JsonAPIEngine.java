@@ -74,9 +74,8 @@ public class JsonAPIEngine extends AbstractDatabase {
 				paramHash.put("engine", getEngineId());
 
 			if(propFile != null) {
-				setPropFile(propFile);
 				logger.info("Opening DB - " + Utility.cleanLogString(engineName));
-				setPropFile(propFile);
+				setSmssFilePath(propFile);
 			}
 			if(prop != null) {
 				// load the rdbms insights db

@@ -31,11 +31,11 @@ public class ReloadDatabaseReactor extends AbstractReactor {
 		}
 		
 		IDatabase database = Utility.getDatabase(databaseId);
-		String propFile = database.getPropFile();
+		String smssFilePath = database.getSmssFilePath();
 		database.closeDB();
 		database.setProp(null);
 		try {
-			database.openDB(propFile);
+			database.openDB(smssFilePath);
 		} catch (Exception e1) {
 			throw new IllegalArgumentException("An error occurred reloading the database. Please reach out to an administrator for assistance");
 		}

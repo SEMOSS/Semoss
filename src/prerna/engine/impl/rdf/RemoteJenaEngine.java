@@ -198,7 +198,7 @@ public class RemoteJenaEngine extends AbstractDatabase {
 	 */
 	@Override
 	public void openDB(String propFile) {
-		setPropFile(propFile);
+		setSmssFilePath(propFile);
 		this.serviceURI = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
 		this.connected = true;
 	}

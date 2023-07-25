@@ -148,7 +148,7 @@ public abstract class AbstractDatabase implements IDatabase {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			if(propFile != null) {
 				logger.info("Opening DB - " + Utility.cleanLogString(FilenameUtils.getName(propFile)));
-				setPropFile(propFile);
+				setSmssFilePath(propFile);
 			}
 			if(this.prop != null) {
 				// grab the main properties
@@ -481,17 +481,17 @@ public abstract class AbstractDatabase implements IDatabase {
 	}
 	
 	@Override
-	public void setPropFile(String propFile) {
+	public void setSmssFilePath(String smssFilePath) {
 		this.propFile = propFile;
 		this.origProp = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
 		this.prop = new CaseInsensitiveProperties(this.origProp);
 	}
 	
 	@Override
-	public String getPropFile() {
+	public String getSmssFilePath() {
 		return this.propFile;
 	}
-
+	
 	public String getOWLDefinition() {
 		if(owlHelper == null) {
 			return null;
