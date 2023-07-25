@@ -76,7 +76,7 @@ public class DisconnectListener implements IChakraListener {
 			if(engine.isConnected())
 			{
 				logger.info("Attempting to disconnect " + repoName);
-				engine.closeDB();
+				engine.close();
 				logger.info("Successfully disconnected " + repoName);
 			}
 			else

@@ -79,7 +79,7 @@
 //			// create new smss
 //			SmssUtilities.changeAppName(oldSmssFile, newSmssFile, newAppName);
 //			// create new app folder
-//			engine.closeDB();
+//			engine.close();
 //			FileUtils.copyDirectory(oldAppFolder, newAppFolder);
 //			// create new owl
 //			File newOwlFile = SmssUtilities.getOwlFile(Utility.loadProperties(newSmssFile));

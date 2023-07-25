@@ -168,7 +168,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 			xlHelper.clear();
 			// close other stuff
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();
@@ -246,7 +246,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 			xlHelper.clear();
 			// close other stuff
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();

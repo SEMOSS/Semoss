@@ -384,7 +384,7 @@
 //	 */
 //	public void cleanUpErrors(IEngine engine, String engineName, File tempPropFile, File newSmssProp) throws IOException {
 //		if(engine != null) {
-//			engine.closeDB();
+//			engine.close();
 //		}
 //		// delete the engine folder and all its contents
 //		String engineFolderPath = baseDirectory + FILE_SEPARATOR + "db" + FILE_SEPARATOR + engineName;
