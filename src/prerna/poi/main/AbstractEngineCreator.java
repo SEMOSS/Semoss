@@ -210,11 +210,11 @@ public class AbstractEngineCreator {
 	 * Close the database engine
 	 * @throws IOException 
 	 */
-	protected void closeDB() throws IOException {
+	protected void close() throws IOException {
 		logger.warn("Closing....");
 		if(engine != null) {
 			commitDB();
-			engine.closeDB();
+			engine.close();
 		}
 	}	
 

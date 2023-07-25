@@ -210,7 +210,7 @@ public class EmailUtility {
 			pop3EmailProps.put("mail.store.protocol", "pop3");
 
 			String username = "ncrt.test.email@gmail.com";
-			String password = "gqiherplssoudxtd";
+			String password = "";
 			
 			Session emailSession = null;
 			try {
@@ -284,7 +284,7 @@ public class EmailUtility {
 		try {
 			Session session = Session.getDefaultInstance(props, null);
 			Store store = session.getStore("imaps");
-			store.connect("imap.gmail.com", "ncrt.test.email@gmail.com", "gqiherplssoudxtd");
+			store.connect("imap.gmail.com", "ncrt.test.email@gmail.com", "");
 
 			Folder inbox = store.getFolder("Inbox");
 			// setting it seen is considered a write operation

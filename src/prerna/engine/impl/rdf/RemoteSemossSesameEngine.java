@@ -69,7 +69,7 @@
 //	private static final String STACKTRACE = "StackTrace: ";
 //	// things this needs to override
 //	// OpenDB
-//	// CloseDB
+//	// close
 //	// Querying of the result
 //	boolean connected = false;
 //	String api = null;
@@ -407,9 +407,9 @@
 //	}
 //
 //	@Override
-//	public void closeDB() {
+//	public void close() {
 //		// this does nothing
-////		this.insightRdbms.closeDB();
+////		this.insightRdbms.close();
 //		logger.info("cannot close remote engine");
 //	}
 //	

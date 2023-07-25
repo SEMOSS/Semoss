@@ -64,7 +64,7 @@ public class LocalMasterOwlCreator {
 		// get the existing engine and close it
 		RDFFileSesameEngine baseEngine = localMasterDb.getBaseDataEngine();
 		if(baseEngine != null) {
-			baseEngine.closeDB();
+			baseEngine.close();
 		}
 		
 		// now delete the file if exists

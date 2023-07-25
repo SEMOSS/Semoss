@@ -108,7 +108,7 @@ public class GenerateMetamodelLayout {
 			}
 		} finally {
 			if(rfse != null) {
-				rfse.closeDB();
+				rfse.close();
 			}
 		}
 	}

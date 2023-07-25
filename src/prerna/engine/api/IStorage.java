@@ -33,11 +33,6 @@ public interface IStorage extends IEngine {
 
 	/**
 	 * 
-	 */
-	void disconnect();
-	
-	/**
-	 * 
 	 * @param path
 	 * @return
 	 * @throws Exception 

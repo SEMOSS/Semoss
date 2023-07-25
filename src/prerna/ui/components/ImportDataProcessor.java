@@ -208,7 +208,7 @@ public class ImportDataProcessor {
 //				try {
 //					// close the DB so we can delete it
 //					if (engine != null)
-//						engine.closeDB();
+//						engine.close();
 //
 //					// delete the .temp file
 //					if (propFile != null && propFile.exists())

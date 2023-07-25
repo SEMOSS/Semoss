@@ -150,8 +150,8 @@ public class Neo4jEngine extends AbstractDatabase {
 	}
 	
 	@Override
-	public void closeDB() {
-		super.closeDB();
+	public void close() {
+		super.close();
 		ConnectionUtils.closeConnection(this.conn);
 	}
 	

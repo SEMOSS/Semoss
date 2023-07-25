@@ -140,7 +140,7 @@ public class ClusterEngine extends AbstractDatabase {
 	// say pull data from multiple of these engines
 	
 	@Override
-	public void closeDB() {
+	public void close() {
 		// TODO Auto-generated method stub
 		
 	}

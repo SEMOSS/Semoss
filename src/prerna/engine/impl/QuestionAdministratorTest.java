@@ -79,7 +79,7 @@
 //		}
 //
 //		assertNull(ex);
-//		movieDB.closeDB();
+//		movieDB.close();
 //	}
 //
 //	// Main method to test adding to an engine
@@ -111,7 +111,7 @@
 //
 //		QuestionAdministrator qa = new QuestionAdministrator(movieDB);
 //		qa.addQuestion("TEST THIS", "New-Perspective", dmcList, "Grid", "0", "BTreeDataFrame", true, null, null, null);
-//		movieDB.closeDB();
+//		movieDB.close();
 //	}
 //
 //}

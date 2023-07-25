@@ -55,7 +55,6 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
@@ -738,8 +737,8 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	}
 
 	@Override
-	public void closeDB() {
-		super.closeDB();
+	public void close() {
+		super.close();
 		try {
 			if(this.useConnectionPooling){
 				this.engineConnected = false;
@@ -979,7 +978,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 
 		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
-			closeDB();
+			close();
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);

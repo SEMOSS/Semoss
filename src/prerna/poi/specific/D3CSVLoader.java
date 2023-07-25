@@ -165,7 +165,7 @@
 //			reader.processD3Relationships();
 //			reader.insertBaseRelations();
 //		}
-//		reader.closeDB();
+//		reader.close();
 //	}
 //
 //	public void createURIHash()
@@ -353,7 +353,7 @@
 //			processRelationShips();
 //		}
 //		createBaseRelations();
-//		closeDB();
+//		close();
 //	}
 //
 //	/**
@@ -1205,9 +1205,9 @@
 //	 * Close the database engine
 //	 * @throws SailException 
 //	 */
-//	public void closeDB() throws SailException
+//	public void close() throws SailException
 //	{
 //		logger.warn("Closing....");
-//		bigEngine.closeDB();
+//		bigEngine.close();
 //	}	
 //}

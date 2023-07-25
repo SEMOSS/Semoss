@@ -1,6 +1,8 @@
 package prerna.engine.api;
 
-public interface IEngine {
+import java.io.Closeable;
+
+public interface IEngine extends Closeable {
 
 	/**
 	 * Sets the unique id for the engine 
