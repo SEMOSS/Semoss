@@ -5,7 +5,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -21,7 +20,7 @@ public class AppEngine extends AbstractDatabase {
 	 */
 	public void openDB(String propFile) {
 		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		setPropFile(propFile);
+		setSmssFilePath(propFile);
 		
 		// get id & name
 		this.engineId = this.prop.getProperty(Constants.ENGINE);

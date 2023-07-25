@@ -79,7 +79,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 			Properties aliasProp = getAlias(baseFolder + "/" + alias);
 
 			if (engine != null) {
-				engine.setPropFile(baseFolder + "/" + alias);
+				engine.setSmssFilePath(baseFolder + "/" + alias);
 				engine.setProp(aliasProp);
 
 				// make up an engine name

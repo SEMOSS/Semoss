@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-public interface IStorage {
+public interface IStorage extends IEngine {
 
 	String CATALOG_TYPE = "STORAGE";
 
@@ -35,42 +35,6 @@ public interface IStorage {
 	 * 
 	 */
 	void disconnect();
-	
-	/**
-	 * 
-	 * @param engineId
-	 */
-	void setEngineId(String engineId);
-	
-	/**
-	 * 
-	 * @return
-	 */
-	String getEngineId();
-
-	/**
-	 * 
-	 * @param engineName
-	 */
-	void setEngineName(String engineName);
-	
-	/**
-	 * 
-	 * @return
-	 */
-	String getEngineName();
-
-	/**
-	 * 
-	 * @param smssFilePath
-	 */
-	void setSmssFilePath(String smssFilePath);
-	
-	/**
-	 * 
-	 * @return
-	 */
-	String getSmssFilePath();
 	
 	/**
 	 * 

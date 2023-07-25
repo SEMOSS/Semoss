@@ -38,7 +38,7 @@ import prerna.engine.impl.MetaHelper;
  * so that they can be used without first recognizing what specific engine class it is.  A lot of different classes call on 
  * IEngine to refer to a specific engine, including, most notably, ProcessQueryListener.
  */
-public interface IDatabase extends IExplorable {
+public interface IDatabase extends IExplorable, IEngine {
 	
 	String CATALOG_TYPE = "DATABASE";
 	
@@ -86,18 +86,6 @@ public interface IDatabase extends IExplorable {
 	 */
 	void openDB(String propFile) throws Exception;
 
-	/**
-	 * Set the smss file within the engine
-	 * @param propFile
-	 */
-	void setPropFile(String propFile);
-
-	/**
-	 * Get the smss file within the engine
-	 * @return
-	 */
-	String getPropFile();
-	
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
@@ -158,30 +146,6 @@ public interface IDatabase extends IExplorable {
 	 * @return true if the engine is connected to its data store and false if it is not 
 	*/
 	boolean isConnected();
-
-	/**
-	 * Sets the unique id for the engine 
-	 * @param engineId - id to set the engine 
-	 */
-	void setEngineId(String engineId);
-	
-	/**
-	 * Gets the engine name for this engine	
-	 * @return Name of the engine
-	 */
-	String getEngineId();
-
-	/**
-	 * Sets the name of the engine. This may be a lot of times the same as the Repository Name
-	 * @param engineName - Name of the engine that this is being set to 
-	 */
-	void setEngineName(String engineName);
-	
-	/**
-	 * Gets the engine name for this engine	
-	 * @return Name of the engine
-	 */
-	String getEngineName();
 	
 	/**
 	 * Performs a specific action with the given args
