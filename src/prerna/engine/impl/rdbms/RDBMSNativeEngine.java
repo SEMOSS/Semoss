@@ -146,7 +146,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			// I need to see if the connection pool has been initiated
 			// if not initiate the connection pool
 			if(this.prop == null) {
-				setPropFile(propFile);
+				setSmssFilePath(propFile);
 			} else {
 				setProp(this.prop);
 			}

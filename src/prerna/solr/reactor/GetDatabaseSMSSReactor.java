@@ -46,7 +46,7 @@ public class GetDatabaseSMSSReactor extends AbstractReactor {
 		}
 				
 		IDatabase engine = Utility.getDatabase(databaseId);
-		String currentSmssFileLocation = engine.getPropFile();
+		String currentSmssFileLocation = engine.getSmssFilePath();
 		File currentSmssFile = new File(currentSmssFileLocation);
 		engine.closeDB();
 		
