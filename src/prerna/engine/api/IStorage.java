@@ -51,6 +51,22 @@ public interface IStorage extends IEngine {
 	/**
 	 * 
 	 * @param localFilePath
+	 * @param storagePath
+	 * @throws Exception
+	 */
+	void syncLocalToStorage(String localPath, String storagePath) throws Exception;
+	
+	/**
+	 * 
+	 * @param storagePath
+	 * @param localPath
+	 * @throws Exception
+	 */
+	void syncStorageToLocal(String storagePath, String localPath) throws Exception;
+	
+	/**
+	 * 
+	 * @param localFilePath
 	 * @param storageFolderPath
 	 * @throws Exception
 	 */
