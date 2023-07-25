@@ -327,7 +327,7 @@ public class UserTrackingUtils {
 			utoc.remakeOwl();
 		}
 
-		OwlSeparatePixelFromConceptual.fixOwl(userTrackingDb.getProp());
+		OwlSeparatePixelFromConceptual.fixOwl(userTrackingDb.getSmssProp());
 
 		Connection conn = null;
 		try {

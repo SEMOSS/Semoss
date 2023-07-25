@@ -17,7 +17,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.util.Utility;
 
@@ -59,10 +58,10 @@ public class WebScrapeEngine extends JsonAPIEngine {
 	{
 		Hashtable retHash  = new Hashtable();
 		try {
-			String url = prop.getProperty(INPUT_URL);
+			String url = smssProp.getProperty(INPUT_URL);
 			String method = "get";
-			if(prop.containsKey(INPUT_METHOD))
-				method = prop.getProperty(INPUT_METHOD);
+			if(smssProp.containsKey(INPUT_METHOD))
+				method = smssProp.getProperty(INPUT_METHOD);
 			
 			InputStream is = null;
 			
@@ -75,20 +74,20 @@ public class WebScrapeEngine extends JsonAPIEngine {
 			
 			Element thisTable = null;
 			
-			if(prop.containsKey(TABLE_CLASS))
+			if(smssProp.containsKey(TABLE_CLASS))
 			{
 				// this is a get by class
-				String className = prop.getProperty(TABLE_CLASS);
-				int tableNum = Integer.parseInt(prop.getProperty(TABLE_NUMBER).trim());
+				String className = smssProp.getProperty(TABLE_CLASS);
+				int tableNum = Integer.parseInt(smssProp.getProperty(TABLE_NUMBER).trim());
 				
 				Elements allTables = doc.getElementsByClass(className);
 				
 				thisTable = allTables.get(tableNum);
 			}
-			else if(prop.containsKey(TABLE_ID))
+			else if(smssProp.containsKey(TABLE_ID))
 			{
 				// get the table by id
-				String id = prop.getProperty(TABLE_ID);
+				String id = smssProp.getProperty(TABLE_ID);
 
 				thisTable = doc.getElementById(id);
 				
@@ -96,7 +95,7 @@ public class WebScrapeEngine extends JsonAPIEngine {
 			else
 			{
 				// this is just table by tag
-				int tableNum = Integer.parseInt(prop.get(TABLE_NUMBER) + "");
+				int tableNum = Integer.parseInt(smssProp.get(TABLE_NUMBER) + "");
 
 				Elements allTables = doc.getElementsByTag("table");
 				
@@ -104,7 +103,7 @@ public class WebScrapeEngine extends JsonAPIEngine {
 			}
 			
 			// now I need to collect the header and rows and then return it
-			String[] headers = getHeaders(url, prop);
+			String[] headers = getHeaders(url, smssProp);
 			Integer[] selectedIndex = null;
 			String[] selectedHeaders = null;
 			// add filters

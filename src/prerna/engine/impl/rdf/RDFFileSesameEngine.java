@@ -110,15 +110,15 @@ public class RDFFileSesameEngine extends AbstractDatabase {
 					new ForwardChainingRDFSInferencer(
 							new MemoryStore()));
 			myRepository.initialize();
-			if(prop != null) {
-				fileName = SmssUtilities.getRdfFile(prop).getAbsolutePath();
+			if(smssProp != null) {
+				fileName = SmssUtilities.getRdfFile(smssProp).getAbsolutePath();
 				
-				if(prop.containsKey(Constants.RDF_FILE_TYPE)) {
-					rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
+				if(smssProp.containsKey(Constants.RDF_FILE_TYPE)) {
+					rdfFileType = smssProp.getProperty(Constants.RDF_FILE_TYPE);
 				}
 
-				if(prop.containsKey(Constants.RDF_FILE_BASE_URI)) {
-					baseURI = prop.getProperty(Constants.RDF_FILE_BASE_URI);
+				if(smssProp.containsKey(Constants.RDF_FILE_BASE_URI)) {
+					baseURI = smssProp.getProperty(Constants.RDF_FILE_BASE_URI);
 				}
 			}
 
