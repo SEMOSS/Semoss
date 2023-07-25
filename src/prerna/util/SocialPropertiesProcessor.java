@@ -1,6 +1,10 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -108,7 +112,13 @@ public class SocialPropertiesProcessor {
 		this.loginsAllowedMap.put("registration", registration);
 	}
 	
-	public void updateProviderProperties(String provider, Map<String, String> mods) {
+	/**
+	 * 
+	 * @param provider
+	 * @param mods
+	 * @throws ConfigurationException
+	 */
+	public void updateProviderProperties(String provider, Map<String, String> mods) throws ConfigurationException {
 		Map<String, String> updates = new HashMap<>(mods.size());
 		for (String mod : mods.keySet()) {
 			updates.put(provider + "_" + mod, mods.get(mod));
@@ -116,13 +126,18 @@ public class SocialPropertiesProcessor {
 		updateAllProperties(updates);
 	}
 	
-	public void updateAllProperties(Map<String, String> mods) {
+	/**
+	 * 
+	 * @param mods
+	 * @throws ConfigurationException
+	 */
+	public void updateAllProperties(Map<String, String> mods) throws ConfigurationException {
 		PropertiesConfiguration config = null;
 		try {
 			config = new PropertiesConfiguration(this.socialPropFile);
 		} catch (ConfigurationException e1) {
 			logger.error(Constants.STACKTRACE, e1);
-			throw new IllegalArgumentException("An unexpected error happened trying to access the properties. Please try again or reach out to server admin.");
+			throw new ConfigurationException("An unexpected error happened trying to access the properties. Please try again or reach out to server admin. Detailed message = " + e1.getMessage(), e1);
 		}
 
 		for (String mod : mods.keySet()) {
@@ -133,19 +148,53 @@ public class SocialPropertiesProcessor {
 			config.save();
 			reloadProps();
 		} catch (ConfigurationException e1) {
-			throw new IllegalArgumentException("An unexpected error happened when saving the new login properties. Please try again or reach out to server admin.");
+			throw new ConfigurationException("An unexpected error happened when saving the new login properties. Please try again or reach out to server admin. Detailed message = " + e1.getMessage(), e1);
 		}
 	}
 	
-	public void updateAllProperties(String newFileContents) {
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
+	/**
+	 * 
+	 * @param newFileContents
+	 * @throws IOException
+	 */
+	public void updateAllProperties(String newFileContents) throws IOException {
+		File currentSocialProperties = new File(this.socialPropFile);
 
+		String currentContent = null;
+		if(currentSocialProperties.exists()) {
+			try {
+				currentContent = new String(Files.readAllBytes(Paths.get(currentSocialProperties.toURI())));
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+				throw new IOException("An error occurred reading the current social properties file. Detailed message = " + e.getMessage());
+			}
+			currentSocialProperties.delete();
+		}
+		
+		try {
+			try (FileWriter fw = new FileWriter(currentSocialProperties, false)){
+				fw.write(newFileContents);
+			}
+			reloadProps();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			// reset the values
+			currentSocialProperties.delete();
+			if(currentContent != null) {
+				try (FileWriter fw = new FileWriter(currentSocialProperties, false)){
+					fw.write(currentContent);
+				} catch(IOException e2) {
+					logger.error(Constants.STACKTRACE, e2);
+					throw new IOException("A fatal error occurred and could not revert the social properties to an operational state. Detailed message = " + e2.getMessage());
+				}
+				throw new IOException("An error occurred writing the new social properties. Detailed message = " + e.getMessage());
+			}
+		}
 	}
 	
+	/**
+	 * 
+	 */
 	public void reloadProps() {
 		// null out values to be reset
 		this.loadSocialProperties();
