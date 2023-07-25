@@ -58,14 +58,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Add an entire database into the security db
-	 * @param databaseId
+	 * @param engineId
 	 */
-	public static void addDatabase(String databaseId, User user) {
-		if(ignoreDatabase(databaseId)) {
+	public static void addEngine(String engineId, User user) {
+		if(ignoreDatabase(engineId)) {
 			// dont add local master or security db to security db
 			return;
 		}
-		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";
+		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 		
 		boolean global = true;
@@ -73,34 +73,34 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			global = false;
 		}
 		
-		addDatabase(databaseId, global, user);
+		addEngine(engineId, global, user);
 	}
 	
 	/**
 	 * Add an entire database into the security db
-	 * @param databaseId
+	 * @param engineId
 	 */
-	public static void addDatabase(String databaseId, boolean global, User user) {
-		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
-		if(ignoreDatabase(databaseId)) {
+	public static void addEngine(String engineId, boolean global, User user) {
+		engineId = RdbmsQueryBuilder.escapeForSQLStatement(engineId);
+		if(ignoreDatabase(engineId)) {
 			// dont add local master or security db to security db
 			return;
 		}
-		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";
+		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 
-		String databaseName = prop.getProperty(Constants.ENGINE_ALIAS);
-		if(databaseName == null) {
-			databaseName = databaseId;
+		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+		if(engineName == null) {
+			engineName = engineId;
 		}
 		
-		boolean engineExists = containsDatabaseId(databaseId);
+		boolean engineExists = containsDatabaseId(engineId);
 		if(engineExists) {
 			logger.info("Security database already contains database with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
 			String[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
-			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], typeAndCost[2], global, user);
+			addEngine(engineId, engineName, typeAndCost[0], typeAndCost[1], typeAndCost[2], global, user);
 		} 
 		
 		// TODO: need to see when we should be updating the database metadata
@@ -109,7 +109,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 //			updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
 //		}
 		
-		logger.info("Finished adding database = " + Utility.cleanLogString(databaseId));
+		logger.info("Finished adding database = " + Utility.cleanLogString(engineId));
 	}
 	
 	/**
@@ -136,15 +136,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * 
-	 * @param databaseId
-	 * @param databaseName
-	 * @param dbType
-	 * @param dbSubType
-	 * @param dbCost
+	 * @param engineId
+	 * @param engineName
+	 * @param engineType
+	 * @param engineSubType
+	 * @param engineCost
 	 * @param global
 	 * @param user
 	 */
-	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbSubType, String dbCost, boolean global, User user) {
+	public static void addEngine(String engineId, String engineName, String engineType, String engineSubType, String engineCost, boolean global, User user) {
 		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 
@@ -152,11 +152,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, databaseName);
-			ps.setString(parameterIndex++, databaseId);
-			ps.setString(parameterIndex++, dbType);
-			ps.setString(parameterIndex++, dbSubType);
-			ps.setString(parameterIndex++, dbCost);
+			ps.setString(parameterIndex++, engineName);
+			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, engineType);
+			ps.setString(parameterIndex++, engineSubType);
+			ps.setString(parameterIndex++, engineCost);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
 			if(user != null) {
