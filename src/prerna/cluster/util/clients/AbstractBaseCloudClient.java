@@ -74,7 +74,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			//close the owl
-			engine.getBaseDataEngine().closeDB();
+			engine.getBaseDataEngine().close();
 			owlFile = new File(engine.getProperty(Constants.OWL));
 
 			classLogger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + appId);
@@ -127,7 +127,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			//close the owl
-			engine.getBaseDataEngine().closeDB();
+			engine.getBaseDataEngine().close();
 			owlFile = new File(engine.getProperty(Constants.OWL));
 
 			classLogger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + appId);
@@ -177,7 +177,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
-			project.getInsightDatabase().closeDB();
+			project.getInsightDatabase().close();
 			classLogger.info("Pulling insights database for " + thisProjectFolder + " from remote=" + projectId);
 			String insightDB = getInsightDB(project, thisProjectFolder);
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+insightDB, thisProjectFolder);
@@ -221,7 +221,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		classLogger.info("Project "+ projectId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
-			project.getInsightDatabase().closeDB();
+			project.getInsightDatabase().close();
 			classLogger.info("Pushing insights database for " + thisProjectFolder + " from remote=" + projectId);
 			String insightDB = getInsightDB(project, thisProjectFolder);
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
@@ -441,7 +441,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			// the db doesn't change mid push)
 			try {
 				DIHelper.getInstance().removeEngineProperty(appId);
-				engine.closeDB();
+				engine.close();
 
 				// Push the app folder
 				classLogger.info("Pushing app from source=" + thisDbFolder + " to remote=" + Utility.cleanLogString(appId));
@@ -607,7 +607,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			try {
 				if (appAlreadyLoaded) {
 					DIHelper.getInstance().removeEngineProperty(appId);
-					engine.closeDB();
+					engine.close();
 				}
 
 				// Make the app directory (if it doesn't already exist)
@@ -1073,7 +1073,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			rCloneConfig = createRcloneConfig(appId);
 
 			DIHelper.getInstance().removeEngineProperty(appId);
-			engine.closeDB();
+			engine.close();
 
 			classLogger.info("Pulling database for" + appFolder + " from remote=" + appId);
 			if (e == RdbmsTypeEnum.SQLITE) {
@@ -1122,7 +1122,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 		try {
 			rCloneConfig = createRcloneConfig(databaseId);
-			engine.closeDB();
+			engine.close();
 			classLogger.info("Pulling database for" + appFolder + " from remote=" + databaseId);
 			if (rdbmsType == RdbmsTypeEnum.SQLITE) {
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);

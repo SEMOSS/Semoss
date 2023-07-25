@@ -487,7 +487,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		try {
 			// close the DB so we can delete it
 			if (this.database != null) {
-				database.closeDB();
+				database.close();
 			}
 
 			// delete the .temp file

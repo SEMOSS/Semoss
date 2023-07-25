@@ -75,8 +75,8 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 	}
 
 	@Override
-	public void closeDB() {
-		super.closeDB();
+	public void close() {
+		super.close();
 		try {
 			Server.shutdownTcpServer(this.server.getURL(), "", true, false);
 		} catch (SQLException e) {

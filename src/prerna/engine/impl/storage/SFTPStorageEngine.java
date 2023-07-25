@@ -65,7 +65,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void disconnect() {
+	public void close() {
 		if(this.sftpClient != null) {
 			try {
 				this.sftpClient.close();

@@ -58,7 +58,7 @@ public class SyncAppFiles extends AbstractReactor {
 			try {
 				logger.info("Synchronizing Database Now... ");
 				// remove the database
-				Utility.getDatabase(databaseName).closeDB();
+				Utility.getDatabase(databaseName).close();
 				DIHelper.getInstance().removeLocalProperty(databaseName);
 				GitSynchronizer.syncDatabases(databaseName, repository, username, password, logger);
 				logger.info("Synchronize Database Complete");
