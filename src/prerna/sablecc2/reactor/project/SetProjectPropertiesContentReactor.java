@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.project;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -41,7 +42,11 @@ public class SetProjectPropertiesContentReactor extends AbstractReactor {
 		ProjectProperties props = project.getProjectProperties();
 		
 		Map<String, String> mods = getMods();
-		props.updateAllProperties(mods);
+		try {
+			props.updateAllProperties(mods);
+		} catch (ConfigurationException e) {
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set new properties for project"));
 		return noun;
