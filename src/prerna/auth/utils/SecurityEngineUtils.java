@@ -27,6 +27,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabase;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IStorage;
@@ -144,7 +145,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			} else if(emptyClass instanceof IStorage) {
 				engineType = "STORAGE";
 				engineSubType = ((IStorage) emptyClass).getStorageType().toString();
-			} else {
+			} else if(emptyClass instanceof IModelEngine) {
+				engineType = "MODEL";
+				engineSubType = ((IModelEngine) emptyClass).getCatalogType().toString();				
+			}
+			else {
 				logger.warn("Unknown engine type to process = " + rawType);
 			}
 		} catch(Exception e) {
