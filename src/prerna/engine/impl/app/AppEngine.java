@@ -23,8 +23,8 @@ public class AppEngine extends AbstractDatabase {
 		setSmssFilePath(propFile);
 		
 		// get id & name
-		this.engineId = this.prop.getProperty(Constants.ENGINE);
-		this.engineName = this.prop.getProperty(Constants.ENGINE_ALIAS);
+		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
+		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 	}
 	
 	@Override

@@ -68,7 +68,7 @@ public class GenerateMetamodelUtility {
 			return positions;
 		}
 		// if the file is present, pull it and load
-		File owlF = SmssUtilities.getOwlFile(database.getProp());
+		File owlF = SmssUtilities.getOwlFile(database.getSmssProp());
 		if(owlF != null && owlF.isFile()) {
 			File positionFile = database.getOwlPositionFile();
 			// try to make the file

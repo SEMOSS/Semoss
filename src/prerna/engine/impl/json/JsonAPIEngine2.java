@@ -42,8 +42,8 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	{
 		try {
 			getMapper();
-			if(prop.containsKey("input_type") && ((String)prop.get("input_type")).equalsIgnoreCase("file"))
-				input = mapper.readTree(new File(baseFolder + "/" + Utility.normalizePath(prop.getProperty("input_url"))));
+			if(smssProp.containsKey("input_type") && ((String)smssProp.get("input_type")).equalsIgnoreCase("file"))
+				input = mapper.readTree(new File(baseFolder + "/" + Utility.normalizePath(smssProp.getProperty("input_url"))));
 		} catch (FileNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException ioe) {
@@ -93,7 +93,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		JsonNode data = null;
 		
 		
-		String root = prop.getProperty(ROOT) + "[].";
+		String root = smssProp.getProperty(ROOT) + "[].";
 		
 		String selects = null;
 		
@@ -123,8 +123,8 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			String jsonHeader = jsonPaths[pathIndex];
 			String queryHeader = jsonHeader;
 			// check aliasMap
-			if(this.prop.get(jsonHeader) != null) {
-				queryHeader = (String) this.prop.get(jsonHeader);
+			if(this.smssProp.get(jsonHeader) != null) {
+				queryHeader = (String) this.smssProp.get(jsonHeader);
 			}
 			if(jsonHeader.contains("=")) {
 				String[] split = jsonHeader.split("=");
@@ -207,8 +207,8 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			
 		retHash.put("COUNT", totalRows);
 
-		if(prop.containsKey("SEPARATOR"))
-			retHash.put("SEPARATOR", prop.get("SEPARATOR"));
+		if(smssProp.containsKey("SEPARATOR"))
+			retHash.put("SEPARATOR", smssProp.get("SEPARATOR"));
 
 		logger.info("Output..  " + Utility.cleanLogString(data.toString()));
 

@@ -27,10 +27,8 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import java.util.Properties;
 import java.util.Vector;
 
-import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.MetaHelper;
 
 /**
@@ -155,24 +153,6 @@ public interface IDatabase extends IExplorable, IEngine {
 	 */
 	Object doAction(IDatabase.ACTION_TYPE actionType, Object[] args);
 	
-	// load this particular prop
-	/**
-	 * Reloads the prop file
-	 */
-	void setProp(Properties prop);
-
-	/**
-	 * Return the prop file
-	 * @return
-	 */
-	CaseInsensitiveProperties getProp();
-
-	/**
-	 * Get the original prop file content - w/o additional alterations during opening db
-	 * @return
-	 */
-	CaseInsensitiveProperties getOrigProp();
-
 	/**
 	 * Gets the UDF - user defined functions in this data catalog
 	 * @return

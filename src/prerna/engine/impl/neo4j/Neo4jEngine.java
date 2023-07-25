@@ -40,7 +40,7 @@ public class Neo4jEngine extends AbstractDatabase {
 	public void openDB(String propFile) {
 		super.openDB(propFile);
 		// get type map
-		String typeMapStr = this.prop.getProperty(Constants.TYPE_MAP);
+		String typeMapStr = this.smssProp.getProperty(Constants.TYPE_MAP);
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
@@ -49,7 +49,7 @@ public class Neo4jEngine extends AbstractDatabase {
 			}
 		}
 		// get the name map
-		String nameMapStr = this.prop.getProperty(Constants.NAME_MAP);
+		String nameMapStr = this.smssProp.getProperty(Constants.NAME_MAP);
 		if (nameMapStr != null && !nameMapStr.trim().isEmpty()) {
 			try {
 				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
@@ -57,8 +57,8 @@ public class Neo4jEngine extends AbstractDatabase {
 				e.printStackTrace();
 			}
 		}
-		if (prop.containsKey(Constants.TINKER_USE_LABEL)) {
-			String booleanStr = prop.get(Constants.TINKER_USE_LABEL).toString();
+		if (smssProp.containsKey(Constants.TINKER_USE_LABEL)) {
+			String booleanStr = smssProp.get(Constants.TINKER_USE_LABEL).toString();
 			useLabel = Boolean.parseBoolean(booleanStr);
 		}
 		this.conn = getGraphDatabaseConnection();
@@ -116,9 +116,9 @@ public class Neo4jEngine extends AbstractDatabase {
 			if (this.conn == null || this.conn.isClosed()) {
 				LOGGER.info("Opening neo4j graph: ");
 				Class.forName("org.neo4j.jdbc.bolt.BoltDriver").newInstance();
-				String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
-				String username = prop.getProperty(Constants.USERNAME);
-				String password = prop.getProperty(Constants.PASSWORD);
+				String connectionURL = smssProp.getProperty(Constants.CONNECTION_URL);
+				String username = smssProp.getProperty(Constants.USERNAME);
+				String password = smssProp.getProperty(Constants.PASSWORD);
 				LOGGER.info("Connecting to remote graph: " + Utility.cleanLogString(connectionURL));
 				conn = DriverManager.getConnection(connectionURL, username, password);
 				LOGGER.info("Done neo4j opening graph: ");

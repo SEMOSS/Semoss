@@ -99,7 +99,7 @@ public class AbstractEngineCreator {
 		prop.put(Constants.ENGINE, appID);
 		prop.put(Constants.ENGINE_ALIAS, appName);
 		prop.put("TEMP", "TRUE");
-		engine.setProp(prop);
+		engine.setSmssProp(prop);
 		engine.openDB(null);
 	}
 
@@ -170,7 +170,7 @@ public class AbstractEngineCreator {
 		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
-		((AbstractDatabase) engine).setProp(prop);
+		((AbstractDatabase) engine).setSmssProp(prop);
 		engine.openDB(null);
 		
 	}
