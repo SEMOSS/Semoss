@@ -27,10 +27,8 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IModelEngine;
-import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.IStorage;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -53,7 +51,6 @@ import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RdbmsTypeEnum;
 
 public class SecurityEngineUtils extends AbstractSecurityUtils {
 
@@ -120,38 +117,16 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param prop
 	 * @return
 	 */
-	public static String[] getEngineTypeAndSubTypeAndCost(Properties prop) {
+	public static String[] getEngineTypeAndSubTypeAndCost(Properties smssProp) {
 		String engineType = null;
 		String engineSubType = null;
 		String engineCost = "$";
 		
-		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
+		String rawType = smssProp.get(Constants.ENGINE_TYPE).toString();
 		try {
-			Object emptyClass = Class.forName(rawType).newInstance();
-			if(emptyClass instanceof IDatabase) {
-				engineType = "DATABASE";
-				if(emptyClass instanceof IRDBMSEngine) {
-					String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
-					if(dbTypeString == null) {
-						dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
-					}
-					String driver = prop.getProperty(Constants.DRIVER);
-					// get the dbType from the input or from the driver itself
-					RdbmsTypeEnum dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
-					engineSubType = dbType.getLabel();
-				} else {
-					engineSubType = ((IDatabase) emptyClass).getEngineType().toString();
-				}
-			} else if(emptyClass instanceof IStorage) {
-				engineType = "STORAGE";
-				engineSubType = ((IStorage) emptyClass).getStorageType().toString();
-			} else if(emptyClass instanceof IModelEngine) {
-				engineType = "MODEL";
-				engineSubType = ((IModelEngine) emptyClass).getCatalogType().toString();				
-			}
-			else {
-				logger.warn("Unknown engine type to process = " + rawType);
-			}
+			IEngine emptyClass = (IEngine) Class.forName(rawType).newInstance();
+			engineType = emptyClass.getCatalogType(smssProp);
+			engineSubType = emptyClass.getCatalogSubType(smssProp);
 		} catch(Exception e) {
 			logger.warn("Unknown class name = " + rawType);
 		}
