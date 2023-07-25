@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -1156,6 +1157,18 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	@Override
 	public String getConnectionUrl() {
 		return this.connectionURL;
+	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		String dbTypeString = smssProp.getProperty(Constants.RDBMS_TYPE);
+		if(dbTypeString == null) {
+			dbTypeString = smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
+		}
+		String driver = smssProp.getProperty(Constants.DRIVER);
+		// get the dbType from the input or from the driver itself
+		RdbmsTypeEnum dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
+		return dbType.getLabel();
 	}
 
 	///////////////////////////////////////////////////////

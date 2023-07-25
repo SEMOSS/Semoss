@@ -70,5 +70,14 @@ public abstract class AbstractStorageEngine implements IStorage {
 		return this.smssProp;
 	}
 	
+	@Override
+	public String getCatalogType(Properties smssProp) {
+		return IStorage.CATALOG_TYPE;
+	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return this.getStorageType().toString();
+	}
 	
 }

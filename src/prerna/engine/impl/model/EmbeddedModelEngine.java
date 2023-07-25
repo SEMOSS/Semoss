@@ -25,7 +25,6 @@ import prerna.util.Utility;
 public class EmbeddedModelEngine implements IModelEngine {
 
 	// starts a embedded model in the same environment
-	// 
 	private static Logger logger = LogManager.getLogger(EmbeddedModelEngine.class);
 	Properties prop = null;
 	File cacheFolder = null;
@@ -34,7 +33,6 @@ public class EmbeddedModelEngine implements IModelEngine {
 	String port = null;
 	NativePySocketClient socketClient = null;
 	TCPPyTranslator pyt = null;
-	
 	
 	@Override
 	public void loadModel(String modelSmss) {
@@ -181,6 +179,28 @@ public class EmbeddedModelEngine implements IModelEngine {
 		
 	}
 	
+	@Override
+	public MODEL_TYPE getModelType() {
+		return MODEL_TYPE.EMBEDDED;
+	}
+	
+	@Override
+	public String getCatalogType(Properties smssProp) {
+		return IModelEngine.CATALOG_TYPE;
+	}
+	
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return this.getModelType().toString();
+	}
+	
+	
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+
 	
 	public static void main(String [] args)
 	{
@@ -206,11 +226,81 @@ public class EmbeddedModelEngine implements IModelEngine {
 		
 		//System.err.println(output);
 	}
+	
+	
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+	// TODO Auto-generated method stub
+
 
 	@Override
-	public String getCatalogType() {
+	public void setEngineId(String engineId) {
 		// TODO Auto-generated method stub
-		return "Embedded";
+		
 	}
 
+	@Override
+	public String getEngineId() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setEngineName(String engineName) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getEngineName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setSmssFilePath(String smssFilePath) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getSmssFilePath() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setSmssProp(Properties smssProp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public Properties getSmssProp() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Properties getOrigSmssProp() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void close() throws IOException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	
 }
