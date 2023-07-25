@@ -97,9 +97,9 @@ public abstract class AbstractDatabase implements IDatabase {
 	 */
 	
 	protected String baseFolder = null;
-	protected String propFile = null;
-	protected CaseInsensitiveProperties origProp = null;
-	protected CaseInsensitiveProperties prop = null;
+	protected String smssFilePath = null;
+	protected CaseInsensitiveProperties origSmssProp = null;
+	protected CaseInsensitiveProperties smssProp = null;
 	
 	protected String engineId = null;
 	protected String engineName = null;
@@ -150,16 +150,16 @@ public abstract class AbstractDatabase implements IDatabase {
 				logger.info("Opening DB - " + Utility.cleanLogString(FilenameUtils.getName(propFile)));
 				setSmssFilePath(propFile);
 			}
-			if(this.prop != null) {
+			if(this.smssProp != null) {
 				// grab the main properties
-				this.engineId = prop.getProperty(Constants.ENGINE);
-				this.engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+				this.engineId = smssProp.getProperty(Constants.ENGINE);
+				this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 				
 				ISecrets secretStore = SecretsFactory.getSecretConnector();
 				if(secretStore != null) {
 					Map<String, String> engineSecrets = secretStore.getDatabaseSecrets(this.engineName, this.engineId);
 					if(engineSecrets != null && !engineSecrets.isEmpty()) {
-						this.prop.putAll(engineSecrets);
+						this.smssProp.putAll(engineSecrets);
 					}
 				}
 				
@@ -169,26 +169,26 @@ public abstract class AbstractDatabase implements IDatabase {
 					encryptFile = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) + "");
 				}
 				// if not at application level, are we doing at app level
-				if(!encryptFile && prop.containsKey(Constants.ENCRYPT_SMSS)) {
-					encryptFile = Boolean.parseBoolean(prop.getProperty(Constants.ENCRYPT_SMSS));
+				if(!encryptFile && smssProp.containsKey(Constants.ENCRYPT_SMSS)) {
+					encryptFile = Boolean.parseBoolean(smssProp.getProperty(Constants.ENCRYPT_SMSS));
 				}
 				
-				if(encryptFile && this.prop.containsKey(Constants.PASSWORD) && 
-					!((String)this.prop.get(Constants.PASSWORD)).equalsIgnoreCase("encrypted password")) {
-						prop = encryptPropFile(propFile);
+				if(encryptFile && this.smssProp.containsKey(Constants.PASSWORD) && 
+					!((String)this.smssProp.get(Constants.PASSWORD)).equalsIgnoreCase("encrypted password")) {
+					smssProp = encryptPropFile(propFile);
 				}
 				
 				// load the rdf owl db
-				String owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
+				String owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
 				if(owlFile != null) {
 					File owlF = new File(owlFile);
 					// need a check here to say if I am asking this to be remade or keep what it is
 					if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
 						// the process of remake will start here
 						// see if the usefile is there
-						if(this.prop.containsKey(DATA_FILE)) {
+						if(this.smssProp.containsKey(DATA_FILE)) {
 							String owlFileName = null;
-							String dataFile = SmssUtilities.getDataFile(this.prop).getAbsolutePath();
+							String dataFile = SmssUtilities.getDataFile(this.smssProp).getAbsolutePath();
 							if(owlFile.equals("REMAKE")) {
 								// we will make the name
 								File dF = new File(dataFile);
@@ -206,7 +206,7 @@ public abstract class AbstractDatabase implements IDatabase {
 					}
 					// set the owl file
 					if(owlFile != null) {
-						owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
+						owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
 						logger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
 						setOWL(owlFile);
 					}
@@ -216,7 +216,7 @@ public abstract class AbstractDatabase implements IDatabase {
 //				loadInsightsRdbms();
 				
 				// load properties object for db
-				File engineProps = SmssUtilities.getEngineProperties(this.prop);
+				File engineProps = SmssUtilities.getEngineProperties(this.smssProp);
 				if (engineProps != null) {
 					this.generalEngineProp = Utility.loadProperties(engineProps.getAbsolutePath());
 				}
@@ -238,7 +238,7 @@ public abstract class AbstractDatabase implements IDatabase {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
 		maker.makeFlatOwl(dataFile, owlFile, getEngineType(), true);
 		if(owlFile.equals("REMAKE")) {
-			Utility.changePropMapFileValue(this.propFile, Constants.OWL, owlFileName);
+			Utility.changePropMapFileValue(this.smssFilePath, Constants.OWL, owlFileName);
 		}
 		return owlFile;
 	}
@@ -285,8 +285,8 @@ public abstract class AbstractDatabase implements IDatabase {
 			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
 			retProp = ontoProp.getProperty(key);
-		if (retProp == null && prop != null && prop.containsKey(key))
-			retProp = prop.getProperty(key);
+		if (retProp == null && smssProp != null && smssProp.containsKey(key))
+			retProp = smssProp.getProperty(key);
 		return retProp;
 	}
 
@@ -337,9 +337,9 @@ public abstract class AbstractDatabase implements IDatabase {
 	public void saveConfiguration() {
 		FileOutputStream fileOut = null;
 		try {
-			logger.debug("Writing to file " + propFile);
-			fileOut = new FileOutputStream(propFile);
-			prop.store(fileOut, null);
+			logger.debug("Writing to file " + smssFilePath);
+			fileOut = new FileOutputStream(smssFilePath);
+			smssProp.store(fileOut, null);
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -358,7 +358,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	 * @param value		String - The value of the property.
 	 */
 	public void addProperty(String name, String value) {
-		prop.put(name, value);
+		smssProp.put(name, value);
 	}
 
 	/**
@@ -439,7 +439,7 @@ public abstract class AbstractDatabase implements IDatabase {
 		}
 		baseRelEngine.setFileName(this.owlFileLocation);
 		baseRelEngine.openDB(null);
-		if(prop != null) {
+		if(smssProp != null) {
 			addProperty(Constants.OWL, owlFileLocation);
 		}
 
@@ -482,14 +482,14 @@ public abstract class AbstractDatabase implements IDatabase {
 	
 	@Override
 	public void setSmssFilePath(String smssFilePath) {
-		this.propFile = propFile;
-		this.origProp = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
-		this.prop = new CaseInsensitiveProperties(this.origProp);
+		this.smssFilePath = smssFilePath;
+		this.origSmssProp = new CaseInsensitiveProperties(Utility.loadProperties(smssFilePath));
+		this.smssProp = new CaseInsensitiveProperties(this.origSmssProp);
 	}
 	
 	@Override
 	public String getSmssFilePath() {
-		return this.propFile;
+		return this.smssFilePath;
 	}
 	
 	public String getOWLDefinition() {
@@ -595,7 +595,7 @@ public abstract class AbstractDatabase implements IDatabase {
 
 //		File insightFile = SmssUtilities.getInsightsRdbmsFile(this.prop);
 		File engineFolder = null;
-		File owlFile = SmssUtilities.getOwlFile(this.prop);
+		File owlFile = SmssUtilities.getOwlFile(this.smssProp);
 		String folderName = null;
 		if(owlFile != null) {
 			engineFolder = owlFile.getParentFile();
@@ -633,8 +633,8 @@ public abstract class AbstractDatabase implements IDatabase {
 			}
 		}
 
-		logger.debug("Deleting smss " + this.propFile);
-		File smssFile = new File(this.propFile);
+		logger.debug("Deleting smss " + this.smssFilePath);
+		File smssFile = new File(this.smssFilePath);
 		try {
 			FileUtils.forceDelete(smssFile);
 		} catch(IOException e) {
@@ -827,24 +827,24 @@ public abstract class AbstractDatabase implements IDatabase {
 	
 	// load the prop file
 	@Override
-	public void setProp(Properties prop) {
-		if(prop instanceof CaseInsensitiveProperties) {
-			this.origProp = (CaseInsensitiveProperties) prop;
-			this.prop = new CaseInsensitiveProperties(prop);
+	public void setSmssProp(Properties smssProp) {
+		if(smssProp instanceof CaseInsensitiveProperties) {
+			this.origSmssProp = (CaseInsensitiveProperties) smssProp;
+			this.smssProp = new CaseInsensitiveProperties(smssProp);
 		} else {
-			this.origProp = new CaseInsensitiveProperties(prop);
-			this.prop = new CaseInsensitiveProperties(prop);
+			this.origSmssProp = new CaseInsensitiveProperties(smssProp);
+			this.smssProp = new CaseInsensitiveProperties(smssProp);
 		}
 	}
 	
 	@Override
-	public CaseInsensitiveProperties getProp() {
-		return this.prop;
+	public CaseInsensitiveProperties getSmssProp() {
+		return this.smssProp;
 	}
 	
 	@Override
-	public CaseInsensitiveProperties getOrigProp() {
-		return this.origProp;
+	public CaseInsensitiveProperties getOrigSmssProp() {
+		return this.origSmssProp;
 	}
 	
 	/**
@@ -1056,8 +1056,8 @@ public abstract class AbstractDatabase implements IDatabase {
 	}
 	
 	public String [] getUDF() {
-		if(prop.containsKey("UDF")) {
-			return prop.get("UDF").toString().split(";");
+		if(smssProp.containsKey("UDF")) {
+			return smssProp.get("UDF").toString().split(";");
 		}
 		return null;
 	}
