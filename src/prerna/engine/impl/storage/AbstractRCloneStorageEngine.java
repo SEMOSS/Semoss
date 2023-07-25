@@ -83,6 +83,16 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 	
 	@Override
+	public void syncLocalToStorage(String localPath, String storagePath) throws Exception {
+		syncLocalToStorage(localPath, storagePath, null);
+	}
+	
+	@Override
+	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
+		syncStorageToLocal(storagePath, localPath, null);
+	}
+	
+	@Override
 	public void copyToStorage(String localFilePath, String storageFolderPath) throws Exception {
 		copyToStorage(localFilePath, storageFolderPath, null);
 	}
