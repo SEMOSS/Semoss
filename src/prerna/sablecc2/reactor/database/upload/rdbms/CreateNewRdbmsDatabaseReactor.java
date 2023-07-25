@@ -116,7 +116,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(this.tempSmss, this.smssFile);
 			this.tempSmss.delete();
-			this.database.setPropFile(this.smssFile.getAbsolutePath());
+			this.database.setSmssFilePath(this.smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 			// sync metadata
 			this.logger.info("Process database metadata to allow for traversing across databases");

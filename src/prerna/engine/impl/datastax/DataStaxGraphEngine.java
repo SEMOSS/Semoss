@@ -31,7 +31,7 @@ public class DataStaxGraphEngine extends AbstractDatabase {
 	@Override
 	public void openDB(String propFile) {
 		super.openDB(propFile);
-		setPropFile(propFile);
+		setSmssFilePath(propFile);
 		String host = this.prop.getProperty("HOST");
 		String port = this.prop.getProperty("PORT");
 		String username = this.prop.getProperty("USERNAME");
