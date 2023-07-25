@@ -40,6 +40,26 @@ public interface IRCloneStorage extends IStorage {
 	 * @throws InterruptedException
 	 */
 	List<Map<String, Object>> listDetails(String path, String rCloneConfig) throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param localPath
+	 * @param storagePath
+	 * @param rCloneConfig
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig) throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param storagePath
+	 * @param localPath
+	 * @param rCloneConfig
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void syncStorageToLocal(String storagePath, String localPath, String rCloneConfig) throws IOException, InterruptedException;
 	
 	/**
 	 * Copy (without deleting) the file to the storage engine
