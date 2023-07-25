@@ -76,7 +76,7 @@ public class ConnectListener implements IChakraListener {
 			if(!engine.isConnected())
 			{
 				logger.info("Attempting to Connect " + repoName);
-				engine.closeDB();
+				engine.close();
 				logger.info("Successfully Connected " + repoName);
 			}
 			else

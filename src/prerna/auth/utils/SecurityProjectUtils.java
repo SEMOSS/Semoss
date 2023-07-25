@@ -404,7 +404,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// if the engine is not already loaded 
 		// since the openDb method will load it
 		if(!projectLoaded && rne != null) {
-			rne.closeDB();
+			rne.close();
 		}
 		
 		if(reloadInsights) {
@@ -695,7 +695,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 				if(error) {
 					try {
-						newInsightDatabase.closeDB();
+						newInsightDatabase.close();
 					} catch (Exception e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
@@ -758,7 +758,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		
 		// close the db so we can move it
-		newInsightDatabase.closeDB();
+		newInsightDatabase.close();
 
 		String databaseFileLocation = newInsightDatabase.getProp().getProperty(AbstractSqlQueryUtil.HOSTNAME);
 		File databaseFile = new File(databaseFileLocation);

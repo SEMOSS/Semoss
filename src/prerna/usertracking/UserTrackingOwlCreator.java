@@ -183,7 +183,7 @@ public class UserTrackingOwlCreator {
 		// get the existing engine and close it
 		RDFFileSesameEngine baseEngine = sessionDb.getBaseDataEngine();
 		if(baseEngine != null) {
-			baseEngine.closeDB();
+			baseEngine.close();
 		}
 		
 		// now delete the file if exists

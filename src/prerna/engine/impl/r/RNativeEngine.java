@@ -199,7 +199,7 @@ public class RNativeEngine extends AbstractDatabase {
 	}
 
 	@Override
-	public void closeDB() {
+	public void close() {
 		this.dt.close();
 	}
 
@@ -216,9 +216,9 @@ public class RNativeEngine extends AbstractDatabase {
 	public void deleteDB() {
 		LOGGER.debug("Deleting R Engine: " + this.engineName + "__" + this.engineId);
 		try {
-			closeDB();
+			close();
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		// clean up SMSS and DB files/folder
 		super.deleteDB();

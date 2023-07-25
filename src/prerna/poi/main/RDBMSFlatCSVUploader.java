@@ -140,7 +140,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			csvHelper.clear();
 			// close other stuff
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();
@@ -225,7 +225,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			csvHelper.clear();
 			// close other stuff
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();

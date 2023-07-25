@@ -40,7 +40,7 @@ public class ReloadDatabaseOwlReactor extends AbstractMetaEditorReactor {
 		// close the old database
 		// assuming it was loaded properly
 		if (oldOwlEngine != null) {
-			oldOwlEngine.closeDB();
+			oldOwlEngine.close();
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
 		ClusterUtil.reactorPushOwl(databaseId);

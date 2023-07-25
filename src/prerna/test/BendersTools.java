@@ -200,6 +200,6 @@
 //	public void closeEngine(BigDataEngine engine){
 //		engine.commitOWL();
 //		engine.commit();
-//		engine.closeDB();
+//		engine.close();
 //	}
 //}
