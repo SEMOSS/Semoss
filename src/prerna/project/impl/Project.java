@@ -324,7 +324,7 @@ public class Project implements IProject {
 	public void closeProject() {
 		if(this.insightRdbms != null) {
 			logger.debug("closing the insight engine ");
-			this.insightRdbms.closeDB();
+			this.insightRdbms.close();
 		}
 		
 		// remove the symbolic link

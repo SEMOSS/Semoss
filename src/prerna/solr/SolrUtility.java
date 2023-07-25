@@ -359,7 +359,7 @@
 //					// 4) index all the documents at the same time for efficiency
 //					try {
 //						solrE.addInsights(docs);
-//						rne.closeDB();
+//						rne.close();
 //					} catch (SolrServerException | IOException e) {
 //						e.printStackTrace();
 //					}

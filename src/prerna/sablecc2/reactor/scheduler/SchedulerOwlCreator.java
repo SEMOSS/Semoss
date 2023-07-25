@@ -196,7 +196,7 @@ public class SchedulerOwlCreator {
 		// get the existing engine and close it
 		RDFFileSesameEngine baseEngine = schedulerDb.getBaseDataEngine();
 		if (baseEngine != null) {
-			baseEngine.closeDB();
+			baseEngine.close();
 		}
 
 		// now delete the file if exists

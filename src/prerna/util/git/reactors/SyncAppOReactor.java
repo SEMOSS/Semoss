@@ -56,7 +56,7 @@ public class SyncAppOReactor extends AbstractReactor {
 				logger.info("Synchronizing Database Now... ");
 				logger.info("Stopping the database ... ");
 				// remove the database
-				Utility.getDatabase(databaseName).closeDB();
+				Utility.getDatabase(databaseName).close();
 				DIHelper.getInstance().removeLocalProperty(databaseName);
 				GitSynchronizer.syncDatabases(databaseName, repository, username, password, logger);
 				logger.info("Synchronize Database Complete");

@@ -172,8 +172,8 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 	 * safely ends the active transactions and closes the engine.
 	 */
 	@Override
-	public void closeDB() {
-		super.closeDB();
+	public void close() {
+		super.close();
 		// ng.stopTransaction(Conclusion.SUCCESS);
 		try {
 			bdSail.shutDown();
@@ -410,7 +410,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 
 	/**
 	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #openDB(String)} 
-	 * is called and the connection becomes false when {@link #closeDB()} is called.
+	 * is called and the connection becomes false when {@link #close()} is called.
 	
 	 * @return true if the engine is connected to its data store and false if it is not */
 	@Override

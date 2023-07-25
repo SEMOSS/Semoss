@@ -526,7 +526,7 @@ public class SocketServerHandler implements Runnable {
 					{
 						IDatabase engine = Utility.getDatabase(engineList[engineIndex]);
 						if(engine != null)
-							engine.closeDB();
+							engine.close();
 					}
 				}
 			}

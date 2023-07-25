@@ -44,11 +44,11 @@ public class GetDatabaseSMSSReactor extends AbstractReactor {
 				}
 			}	
 		}
-				
+		
 		IDatabase engine = Utility.getDatabase(databaseId);
 		String currentSmssFileLocation = engine.getSmssFilePath();
 		File currentSmssFile = new File(currentSmssFileLocation);
-		engine.closeDB();
+		engine.close();
 		
 		String errorMsg = null;
 		if(!currentSmssFile.exists() || !currentSmssFile.isFile()) {

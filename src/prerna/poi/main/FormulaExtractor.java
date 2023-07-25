@@ -213,7 +213,7 @@ public class FormulaExtractor extends AbstractFileReader {
 			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();
@@ -258,7 +258,7 @@ public class FormulaExtractor extends AbstractFileReader {
 			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();
@@ -291,7 +291,7 @@ public class FormulaExtractor extends AbstractFileReader {
 			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();
@@ -335,7 +335,7 @@ public class FormulaExtractor extends AbstractFileReader {
 			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
-				closeDB();
+				close();
 				closeOWL();
 			} else {
 				commitDB();

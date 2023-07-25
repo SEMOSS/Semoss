@@ -2876,7 +2876,7 @@ public class OwlTemporalEngineMeta {
 	 * Close the meta data
 	 */
 	public void close() {
-		this.myEng.closeDB();
+		this.myEng.close();
 	}
 	
 	@Override

@@ -328,15 +328,15 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 	}
 
 	@Override
-	public void closeDB() {
-		super.closeDB();
+	public void close() {
+		super.close();
 		// close the setup engine
-		this.contextEngine.closeDB();
+		this.contextEngine.close();
 		// close for all the engines we have
 		for(String key : this.contextToConnectionMap.keySet()) {
 			RDBMSNativeEngine contextE = this.contextToConnectionMap.get(key);
 			try {
-				contextE.closeDB();
+				contextE.close();
 			} catch(Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
@@ -367,8 +367,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
 //			this.insightRdbms.getConnection().close();
-			closeDB();
-
+			close();
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
