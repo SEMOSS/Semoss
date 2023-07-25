@@ -46,7 +46,7 @@ public class TinkerEngine extends AbstractDatabase {
 	public void openDB(String propFile) {
 		super.openDB(propFile);
 		// get type map
-		String typeMapStr = this.prop.getProperty("TYPE_MAP");
+		String typeMapStr = this.smssProp.getProperty("TYPE_MAP");
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
@@ -56,7 +56,7 @@ public class TinkerEngine extends AbstractDatabase {
 		}
 
 		// get the name map
-		String nameMapStr = this.prop.getProperty("NAME_MAP");
+		String nameMapStr = this.smssProp.getProperty("NAME_MAP");
 		if (nameMapStr != null && !nameMapStr.trim().isEmpty()) {
 			try {
 				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
@@ -65,16 +65,16 @@ public class TinkerEngine extends AbstractDatabase {
 			}
 		}
 		
-		if (prop.containsKey(Constants.TINKER_USE_LABEL)) {
-			String booleanStr = prop.get(Constants.TINKER_USE_LABEL).toString();
+		if (smssProp.containsKey(Constants.TINKER_USE_LABEL)) {
+			String booleanStr = smssProp.get(Constants.TINKER_USE_LABEL).toString();
 			useLabel = Boolean.parseBoolean(booleanStr);
 		}
 
 		// open normal tinker engine
-		if (prop.getProperty(Constants.TINKER_FILE) != null) {
-			String fileLocation = SmssUtilities.getTinkerFile(prop).getAbsolutePath();
+		if (smssProp.getProperty(Constants.TINKER_FILE) != null) {
+			String fileLocation = SmssUtilities.getTinkerFile(smssProp).getAbsolutePath();
 			logger.info("Opening graph:  " + Utility.cleanLogString(fileLocation));
-			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
+			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(smssProp.getProperty(Constants.TINKER_DRIVER));
 			if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 				g = Neo4jGraph.open(fileLocation);
 			} else {
@@ -168,8 +168,8 @@ public class TinkerEngine extends AbstractDatabase {
 	public void commit() {
 		try {
 			long startTime = System.currentTimeMillis();
-			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
-			String fileLocation = SmssUtilities.getTinkerFile(prop).getAbsolutePath();
+			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(smssProp.getProperty(Constants.TINKER_DRIVER));
+			String fileLocation = SmssUtilities.getTinkerFile(smssProp).getAbsolutePath();
 			if (tinkerDriver == TINKER_DRIVER.TG) {
 				// user kyro to de-serialize the cached graph
 				Builder<GryoIo> builder = GryoIo.build();

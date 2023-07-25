@@ -84,7 +84,7 @@ public abstract class AbstractSecurityUtils {
 			owlCreator.remakeOwl();
 		}
 		// Update OWL
-		OwlSeparatePixelFromConceptual.fixOwl(securityDb.getProp());
+		OwlSeparatePixelFromConceptual.fixOwl(securityDb.getSmssProp());
 		
 		initialize();
 		

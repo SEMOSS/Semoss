@@ -64,7 +64,6 @@ import com.bigdata.rdf.model.BigdataLiteralImpl;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.remote.BigdataSailRemoteRepository;
 
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.IDatabase;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
@@ -102,8 +101,8 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 			
 			super.openDB(propFile);
 			
-			String sparqlQEndpoint = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
-			String sparqlUEndpoint = prop.getProperty(Constants.SPARQL_UPDATE_ENDPOINT);
+			String sparqlQEndpoint = smssProp.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
+			String sparqlUEndpoint = smssProp.getProperty(Constants.SPARQL_UPDATE_ENDPOINT);
 			
 
 			BigdataSailRemoteRepository repo = new BigdataSailRemoteRepository(sparqlUEndpoint);
@@ -134,7 +133,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 	
 			// logger.info("ie forward chaining " + ie);
 			// need to convert to constants
-			String dbcmFile = prop.getProperty(Constants.DBCM_Prop);
+			String dbcmFile = smssProp.getProperty(Constants.DBCM_Prop);
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			
 			dbcmFile = workingDir + "/" + dbcmFile;

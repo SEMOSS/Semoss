@@ -2412,7 +2412,7 @@ public class Utility {
 			engine = (IDatabase) Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
 			if(smssFilePath == null) {
-				engine.setProp(prop);
+				engine.setSmssProp(prop);
 			}
 			engine.openDB(smssFilePath);
 

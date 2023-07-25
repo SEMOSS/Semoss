@@ -699,7 +699,7 @@ public class SmssUtilities {
 		prop.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
 		prop.put("TEMP", "TRUE");
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
-		insightEngine.setProp(prop);
+		insightEngine.setSmssProp(prop);
 		// opening will work since we directly injected the prop map
 		// this way i do not need to write it to disk and then recreate it later
 		insightEngine.openDB(null);

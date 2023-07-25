@@ -77,12 +77,12 @@ public class JsonAPIEngine extends AbstractDatabase {
 				logger.info("Opening DB - " + Utility.cleanLogString(engineName));
 				setSmssFilePath(propFile);
 			}
-			if(prop != null) {
+			if(smssProp != null) {
 				// load the rdbms insights db
 				// nope nothing to load here
 
 				// load the rdf owl db
-				String owlFile = prop.getProperty(Constants.OWL);
+				String owlFile = smssProp.getProperty(Constants.OWL);
 				
 				if(owlFile != null) {
 					File owlF = new File(Utility.normalizePath(owlFile));
@@ -90,9 +90,9 @@ public class JsonAPIEngine extends AbstractDatabase {
 					if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
 						// the process of remake will start here
 						// see if the usefile is there
-						if(this.prop.containsKey(USE_FILE)) {
+						if(this.smssProp.containsKey(USE_FILE)) {
 							String owlFileName = null;
-							String dataFile = SmssUtilities.getDataFile(this.prop).getAbsolutePath();
+							String dataFile = SmssUtilities.getDataFile(this.smssProp).getAbsolutePath();
 							if(owlFile.equals("REMAKE")) {
 								// we will make the name
 								File dF = new File(dataFile);
@@ -109,7 +109,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 					}
 					// set the owl file
 					if(owlFile != null) {
-						owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
+						owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
 						logger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
 						setOWL(owlFile);
 					}
@@ -117,7 +117,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 				// load properties object for db
 				// not sure what this is doing
 				// I changed this to public
-				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);
+				String genEngPropFile = smssProp.getProperty(Constants.ENGINE_PROPERTIES);
 				if (genEngPropFile != null) {
 					generalEngineProp = Utility.loadProperties(baseFolder + "/" + genEngPropFile);
 				}
@@ -134,8 +134,8 @@ public class JsonAPIEngine extends AbstractDatabase {
 	protected void loadDocument()
 	{
 		try {
-			if(prop.containsKey(INPUT_TYPE) && ((String)prop.get(INPUT_TYPE)).equalsIgnoreCase("file"))
-				document = Configuration.defaultConfiguration().jsonProvider().parse(new FileInputStream(baseFolder + "/" + Utility.normalizePath(prop.getProperty(INPUT_URL))), "utf-8");
+			if(smssProp.containsKey(INPUT_TYPE) && ((String)smssProp.get(INPUT_TYPE)).equalsIgnoreCase("file"))
+				document = Configuration.defaultConfiguration().jsonProvider().parse(new FileInputStream(baseFolder + "/" + Utility.normalizePath(smssProp.getProperty(INPUT_URL))), "utf-8");
 		} catch (FileNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException ioe) {
@@ -207,7 +207,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 			// need to run the http to grab the URL etc. and then load the document
 			
 			// need to make a check to see if this one vs. many
-//			Hashtable inputParamHash = Utility.getParams(prop.getProperty(input_url));
+//			Hashtable inputParamHash = Utility.getParams(smssProp.getProperty(input_url));
 //			Hashtable inputValHash = getParamHash(inputParams);
 //			
 //			// make the primary hash
@@ -225,7 +225,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 					finalValHash.put(listKey, multiValue[valIndex]);
 					String url = constructURL(finalValHash);
 					
-					if(prop.getProperty(INPUT_METHOD).equalsIgnoreCase("GET"))
+					if(smssProp.getProperty(INPUT_METHOD).equalsIgnoreCase("GET"))
 					{
 						inputData = doGet(url);
 					}
@@ -242,7 +242,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 			else // this is not a list.. one time pull call it a day
 			{
 				String url = constructURL(finalValHash);
-				if(prop.getProperty(INPUT_METHOD).equalsIgnoreCase("GET"))
+				if(smssProp.getProperty(INPUT_METHOD).equalsIgnoreCase("GET"))
 					inputData = doGet(url);
 				else
 					inputData = doPost(finalValHash);
@@ -320,7 +320,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 			}
 			else
 			{
-				thisPath = prop.getProperty(jsonPaths[pathIndex]);
+				thisPath = smssProp.getProperty(jsonPaths[pathIndex]);
 				thisHeader = jsonPaths[pathIndex];
 			}
 			
@@ -457,9 +457,9 @@ public class JsonAPIEngine extends AbstractDatabase {
 			HttpGet httpget = new HttpGet(url);
 			
 			// need to set headers if the headers are there
-			if(prop.containsKey("HEADERS"))
+			if(smssProp.containsKey("HEADERS"))
 			{
-				HashMap headersMap = (HashMap)prop.get("HEADERS");
+				HashMap headersMap = (HashMap)smssProp.get("HEADERS");
 				
 				Iterator keys = headersMap.keySet().iterator();
 				while(keys.hasNext())
@@ -497,15 +497,15 @@ public class JsonAPIEngine extends AbstractDatabase {
 		String retString = null;
 		CloseableHttpClient httpclient = null;
 		try {
-			String url = prop.getProperty(INPUT_URL);
+			String url = smssProp.getProperty(INPUT_URL);
 			
 			httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
 
 			// need to set headers if the headers are there
-			if(prop.containsKey("HEADERS"))
+			if(smssProp.containsKey("HEADERS"))
 			{
-				HashMap headersMap = (HashMap)prop.get("HEADERS");
+				HashMap headersMap = (HashMap)smssProp.get("HEADERS");
 				
 				Iterator keys = headersMap.keySet().iterator();
 				while(keys.hasNext())
@@ -572,15 +572,15 @@ public class JsonAPIEngine extends AbstractDatabase {
 		InputStream retStream = null;
 		CloseableHttpClient httpclient = null;
 		try {
-			String url = prop.getProperty(INPUT_URL);
+			String url = smssProp.getProperty(INPUT_URL);
 			
 			httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
 
 			// need to set headers if the headers are there
-			if(prop != null && prop.containsKey("HEADERS"))
+			if(smssProp != null && smssProp.containsKey("HEADERS"))
 			{
-				HashMap headersMap = (HashMap)prop.get("HEADERS");
+				HashMap headersMap = (HashMap)smssProp.get("HEADERS");
 				
 				Iterator keys = headersMap.keySet().iterator();
 				while(keys.hasNext())
@@ -637,9 +637,9 @@ public class JsonAPIEngine extends AbstractDatabase {
 			HttpGet httpget = new HttpGet(url);
 			
 			// need to set headers if the headers are there
-			if(prop!= null && prop.containsKey("HEADERS"))
+			if(smssProp != null && smssProp.containsKey("HEADERS"))
 			{
-				HashMap headersMap = (HashMap)prop.get("HEADERS");
+				HashMap headersMap = (HashMap)smssProp.get("HEADERS");
 				
 				Iterator keys = headersMap.keySet().iterator();
 				while(keys.hasNext())
@@ -677,7 +677,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 	{
 		Hashtable inputHash = new Hashtable();
 		
-		String inputs = prop.getProperty(MANDATORY_INPUT);
+		String inputs = smssProp.getProperty(MANDATORY_INPUT);
 		
 		if(inputs != null && inputs.length() > 0)
 		{
@@ -687,7 +687,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 		}
 		else
 		{
-			inputHash = Utility.getParams(prop.getProperty(INPUT_URL));
+			inputHash = Utility.getParams(smssProp.getProperty(INPUT_URL));
 		}
 		
 		return inputHash;
@@ -718,7 +718,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 	{
 		Enumeration <String> keys = inputParam.keys();
 
-		String url = prop.getProperty(INPUT_URL);
+		String url = smssProp.getProperty(INPUT_URL);
 		
 		Hashtable retHash = valParam;
 		retHash.put(INPUT_URL, url);
@@ -731,8 +731,8 @@ public class JsonAPIEngine extends AbstractDatabase {
 			String value = null;
 			if(valParam.containsKey(key))
 				value = (String)valParam.get(key);
-			else if(prop.containsKey(key + "_DEFAULT"))
-				value = prop.getProperty(key + "_DEFAULT");
+			else if(smssProp.containsKey(key + "_DEFAULT"))
+				value = smssProp.getProperty(key + "_DEFAULT");
 			else
 				// need a way to remove this
 			{
@@ -757,7 +757,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 	
 		// need to get hate URL
 		String inputUrl = (String)params.get(INPUT_URL);
-		String mandatoryInputs = prop.getProperty(MANDATORY_INPUT);		
+		String mandatoryInputs = smssProp.getProperty(MANDATORY_INPUT);		
 		
 		// compose the final URL
 		return Utility.fillParam2(inputUrl, params);		

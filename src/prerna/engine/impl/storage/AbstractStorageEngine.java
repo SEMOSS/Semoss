@@ -54,4 +54,21 @@ public abstract class AbstractStorageEngine implements IStorage {
 	public String getSmssFilePath() {
 		return this.smssFilePath;
 	}
+	
+	@Override
+	public void setSmssProp(Properties smssProp) {
+		this.smssProp = smssProp;
+	}
+	
+	@Override
+	public Properties getSmssProp() {
+		return this.smssProp;
+	}
+	
+	@Override
+	public Properties getOrigSmssProp() {
+		return this.smssProp;
+	}
+	
+	
 }

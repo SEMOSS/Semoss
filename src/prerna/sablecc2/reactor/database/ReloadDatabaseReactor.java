@@ -33,7 +33,7 @@ public class ReloadDatabaseReactor extends AbstractReactor {
 		IDatabase database = Utility.getDatabase(databaseId);
 		String smssFilePath = database.getSmssFilePath();
 		database.close();
-		database.setProp(null);
+		database.setSmssProp(null);
 		try {
 			database.openDB(smssFilePath);
 		} catch (Exception e1) {

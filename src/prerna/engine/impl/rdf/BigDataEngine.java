@@ -86,19 +86,19 @@ public class BigDataEngine extends AbstractDatabase {
 	private InferenceEngine ie = null;
 
 	/**
-	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
-	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
+	 * Opens a database as defined by its smssProperties file.  What is included in the smssProperties file is dependent on the type of 
+	 * engine that is being initiated.  This is the function that first initializes an engine with the smssProperty file at the very 
 	 * least defining the data store.
-	 * @param propFile contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
+	 * @param smssPropFile contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
 	 * what type of engine is being instantiated.
 	 */
 	@Override
-	public void openDB(String propFile) {
+	public void openDB(String smssPropFile) {
 		try {			
-			super.openDB(propFile);
-			String fileName = SmssUtilities.getSysTapJnl(prop).getAbsolutePath();
-			prop.put("com.bigdata.journal.AbstractJournal.file", fileName);
-			bdSail = new BigdataSail(prop);
+			super.openDB(smssPropFile);
+			String fileName = SmssUtilities.getSysTapJnl(smssProp).getAbsolutePath();
+			smssProp.put("com.bigdata.journal.AbstractJournal.file", fileName);
+			bdSail = new BigdataSail(smssProp);
 			BigdataSailRepository repo = new BigdataSailRepository(bdSail);
 			repo.initialize();
 			// need to grab the connection to get the inference engine
@@ -322,7 +322,7 @@ public class BigDataEngine extends AbstractDatabase {
 				{
 					logger.debug("Found String " + object);
 					String value = object + "";
-					// try to see if it already has properties then add to it
+					// try to see if it already has smssProperties then add to it
 					//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
 					sc.addStatement(newSub, newPred, vf.createLiteral(value));
 				} 
@@ -387,7 +387,7 @@ public class BigDataEngine extends AbstractDatabase {
 				{
 					logger.debug("Found String " + object);
 					String value = object + "";
-					// try to see if it already has properties then add to it
+					// try to see if it already has smssProperties then add to it
 					//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
 					sc.removeStatements(newSub, newPred, vf.createLiteral(value));
 				}
@@ -440,7 +440,7 @@ public class BigDataEngine extends AbstractDatabase {
 	public void deleteDB() {
 		super.deleteDB();
 		// delete JNL if above doesn't
-		String jnlLoc = SmssUtilities.getSysTapJnl(prop).getAbsolutePath();
+		String jnlLoc = SmssUtilities.getSysTapJnl(smssProp).getAbsolutePath();
 		if(jnlLoc != null){
 			System.out.println("Deleting jnl file " + jnlLoc);
 			File jnlFile = new File(jnlLoc);

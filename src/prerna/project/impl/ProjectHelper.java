@@ -258,7 +258,7 @@ public class ProjectHelper {
 		prop.put(Constants.CONNECTION_URL, connURL);
 		prop.put("TEMP", true);
 		
-		insightsRdbms.setProp(prop);
+		insightsRdbms.setSmssProp(prop);
 		insightsRdbms.openDB(null);
 		insightsRdbms.setEngineId(projectId + "_INSIGHTS_RDBMS");
 

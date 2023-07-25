@@ -115,7 +115,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		this.database.setEngineName(newDatabaseName);
 		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
-		this.database.setProp(props);
+		this.database.setSmssProp(props);
 		this.database.openDB(null);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;

@@ -15,7 +15,7 @@ public class JanusEngine extends TinkerEngine {
 	@Override
 	public void openDB(String propFile) {
 		super.openDB(propFile);
-		String janusConfFilePath = SmssUtilities.getJanusFile(prop).getAbsolutePath();
+		String janusConfFilePath = SmssUtilities.getJanusFile(smssProp).getAbsolutePath();
 		try {
 			LOGGER.info("Opening graph: " + Utility.cleanLogString(janusConfFilePath));
 			g = JanusGraphFactory.open(janusConfFilePath);

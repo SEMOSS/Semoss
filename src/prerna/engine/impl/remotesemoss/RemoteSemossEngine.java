@@ -2,7 +2,6 @@ package prerna.engine.impl.remotesemoss;
 
 import java.util.Vector;
 
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -17,10 +16,10 @@ public class RemoteSemossEngine extends AbstractDatabase {
 		setSmssFilePath(propFile);
 		
 		// get id & name
-		this.engineId = this.prop.getProperty(Constants.ENGINE);
-		this.engineName = this.prop.getProperty(Constants.ENGINE_ALIAS);
+		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
+		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 		
-		this.remoteAddress = this.prop.getProperty("REMOTE_ADDRESS");
+		this.remoteAddress = this.smssProp.getProperty("REMOTE_ADDRESS");
 	}
 	
 	@Override
