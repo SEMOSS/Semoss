@@ -12,8 +12,12 @@ public class S3StorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 	private static final String S3_ACCESS_KEY = "S3_ACCESS_KEY";
 	private static final String S3_SECRET_KEY = "S3_SECRET_KEY";
 	
-	public boolean keysProvided = false;
-
+	// specific values - while not final they shouldn't be modified
+	protected String REGION = null;
+	protected String ACCESS_KEY = null;
+	protected String SECRET_KEY = null;
+	public boolean KEYS_PROVIDED = false;
+	
 	public S3StorageEngine() {
 		
 	}
@@ -30,9 +34,9 @@ public class S3StorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 		
 		// determine if keys provided or not
 		if(ACCESS_KEY != null && !ACCESS_KEY.isEmpty() && SECRET_KEY != null && !SECRET_KEY.isEmpty()) {
-			this.keysProvided = true;
+			this.KEYS_PROVIDED = true;
 		} else {
-			this.keysProvided = false;
+			this.KEYS_PROVIDED = false;
 		}
 	}
 	
@@ -40,7 +44,7 @@ public class S3StorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 	public String createRCloneConfig() throws IOException, InterruptedException {
 		String rcloneConfig = Utility.getRandomString(10);
 
-		if (keysProvided) {
+		if (KEYS_PROVIDED) {
 			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "access_key_id",
 					ACCESS_KEY, "secret_access_key", SECRET_KEY, "region", REGION);
 		} else {

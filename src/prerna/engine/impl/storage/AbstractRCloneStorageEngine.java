@@ -223,6 +223,11 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		
 		return rcloneConfigFolder + FILE_SEPARATOR + rcloneConfig + ".conf";
 	}
+	
+	@Override
+	public void setRCloneConfigFolder(String folderPath) {
+		this.rcloneConfigFolder = folderPath;
+	}
 
 	/**
 	 * 

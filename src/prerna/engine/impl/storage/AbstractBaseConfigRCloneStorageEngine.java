@@ -16,9 +16,6 @@ public abstract class AbstractBaseConfigRCloneStorageEngine extends AbstractRClo
 	 */
 	
 	protected String BUCKET = null;
-	protected String REGION = null;
-	protected String ACCESS_KEY = null;
-	protected String SECRET_KEY = null;
 
 	/**
 	 * List the folders/files in the path
