@@ -6,14 +6,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -26,6 +28,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PostRequestReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(PostRequestReactor.class);
 
 	public PostRequestReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", "bodyMap", "useApplicationCert"};
@@ -46,10 +50,12 @@ public class PostRequestReactor extends AbstractReactor {
 			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
 		}
 		
-		ResponseHandler<String> handler = new BasicResponseHandler();
+        String responseData = null;
+		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
 		try {
-			CloseableHttpClient httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
 			HttpPost httpPost = new HttpPost(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(int i = 0; i < headersMap.size(); i++) {
@@ -70,20 +76,21 @@ public class PostRequestReactor extends AbstractReactor {
 				httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
 			}
 			response = httpClient.execute(httpPost);
+			
+			int statusCode = response.getStatusLine().getStatusCode();
+			entity = response.getEntity();
+            if (statusCode >= 200 && statusCode < 300) {
+                responseData = entity != null ? EntityUtils.toString(entity) : null;
+            } else {
+                responseData = entity != null ? EntityUtils.toString(entity) : "";
+    			throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+            }
+			
+    		return new NounMetadata(responseData, PixelDataType.CONST_STRING);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
-		
-		String retString = null;
-		try {
-			retString = handler.handleResponse(response);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
-		}
-		
-		return new NounMetadata(retString, PixelDataType.CONST_STRING);
 	}
 
 	/**

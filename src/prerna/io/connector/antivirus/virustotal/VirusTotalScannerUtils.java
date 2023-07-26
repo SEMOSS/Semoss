@@ -90,9 +90,11 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 		final String VIRUS_TOTAL_URL = "https://www.virustotal.com/api/v3/files";
 		
         String responseData = null;
+        CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
 		try {
-			CloseableHttpClient httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
 			HttpPost httpPost = new HttpPost(VIRUS_TOTAL_URL);
 			httpPost.addHeader("x-apikey", this.apiKey);
 			httpPost.addHeader("accept", "application/json");
@@ -112,8 +114,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 			
 			response = httpClient.execute(httpPost);
 			int statusCode = response.getStatusLine().getStatusCode();
-			HttpEntity entity = response.getEntity();
-
+			entity = response.getEntity();
             if (statusCode >= 200 && statusCode < 300) {
                 responseData = entity != null ? EntityUtils.toString(entity) : null;
             } else {
@@ -121,27 +122,49 @@ public class VirusTotalScannerUtils implements IVirusScanner {
     			throw new IllegalArgumentException("Connected to " + VIRUS_TOTAL_URL + " but received error = " + responseData);
             }
 			
+            /*
+    		 * Example response:
+    		   {
+    			  "data": {
+    			    "type": "analysis",
+    			    "id": "ZmVjN2ZmM2MxN2RlZTE0NjUxNTg1ZjMwMDY0NjEzZDE6MTY5MDM3MzczOQ==",
+    			    "links": {
+    			      "self": "https://www.virustotal.com/api/v3/analyses/ZmVjN2ZmM2MxN2RlZTE0NjUxNTg1ZjMwMDY0NjEzZDE6MTY5MDM3MzczOQ=="
+    			    }
+    			  }
+    			}
+    		 * 
+    		 */
+    		JsonObject jsonResponse = Json.parse(responseData).asObject();
+    		String analysisFileId = jsonResponse.get("data").asObject().getString("id");
+    		return analysisFileId;
+    		
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
-		}
-		
-		/*
-		 * Example response:
-		   {
-			  "data": {
-			    "type": "analysis",
-			    "id": "ZmVjN2ZmM2MxN2RlZTE0NjUxNTg1ZjMwMDY0NjEzZDE6MTY5MDM3MzczOQ==",
-			    "links": {
-			      "self": "https://www.virustotal.com/api/v3/analyses/ZmVjN2ZmM2MxN2RlZTE0NjUxNTg1ZjMwMDY0NjEzZDE6MTY5MDM3MzczOQ=="
-			    }
-			  }
+		} finally {
+			if(entity != null) {
+				try {
+					EntityUtils.consume(entity);
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
-		 * 
-		 */
-		JsonObject jsonResponse = Json.parse(responseData).asObject();
-		String analysisFileId = jsonResponse.get("data").asObject().getString("id");
-		return analysisFileId;
+			if(response != null) {
+				try {
+					response.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(httpClient != null) {
+				try {
+					httpClient.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 
 	/**
@@ -163,17 +186,18 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 
 		
 		String responseData = null;
+		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
+		HttpEntity entity = null;
 		try {
-			CloseableHttpClient httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
 			HttpGet httpGet = new HttpGet(VIRUS_TOTAL_URL+analysisFileId);
 			httpGet.addHeader("x-apikey", this.apiKey);
 			httpGet.addHeader("accept", "application/json");
 			
 			response = httpClient.execute(httpGet);
 			int statusCode = response.getStatusLine().getStatusCode();
-			HttpEntity entity = response.getEntity();
-
+			entity = response.getEntity();
             if (statusCode >= 200 && statusCode < 300) {
                 responseData = entity != null ? EntityUtils.toString(entity) : null;
             } else {
@@ -181,35 +205,56 @@ public class VirusTotalScannerUtils implements IVirusScanner {
     			throw new IllegalArgumentException("Connected to " + VIRUS_TOTAL_URL + " but received error = " + responseData);
             }
 			
+            JsonObject jsonResponse = Json.parse(responseData).asObject();
+    		JsonObject dataAttributesJson = jsonResponse.get("data").asObject().get("attributes").asObject();
+    		JsonObject overallStats = dataAttributesJson.get("stats").asObject();
+    		if(overallStats.getInt("malicious") == 0 && overallStats.getInt("suspicious") == 0) {
+    			return new HashMap<>();
+    		}
+    		
+    		Map<String, Collection<String>> retMap = new HashMap<>();
+    		Collection<String> allIssues = new TreeSet<>();
+    		retMap.put(name, allIssues);
+    		JsonObject resultsJson = dataAttributesJson.get("results").asObject();
+    		List<String> categories = resultsJson.names();
+    		for(String category : categories) {
+    			JsonObject catObject = resultsJson.get(category).asObject();
+    			JsonValue results = catObject.get("result");
+    			if(results.isNull()) {
+    				continue;
+    			} else {
+    				String issue = results.asString();
+    				allIssues.add(issue);
+    			}
+    		}
+    		
+    		return retMap;
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
-		}
-		
-		JsonObject jsonResponse = Json.parse(responseData).asObject();
-		JsonObject dataAttributesJson = jsonResponse.get("data").asObject().get("attributes").asObject();
-		JsonObject overallStats = dataAttributesJson.get("stats").asObject();
-		if(overallStats.getInt("malicious") == 0 && overallStats.getInt("suspicious") == 0) {
-			return new HashMap<>();
-		}
-		
-		Map<String, Collection<String>> retMap = new HashMap<>();
-		Collection<String> allIssues = new TreeSet<>();
-		retMap.put(name, allIssues);
-		JsonObject resultsJson = dataAttributesJson.get("results").asObject();
-		List<String> categories = resultsJson.names();
-		for(String category : categories) {
-			JsonObject catObject = resultsJson.get(category).asObject();
-			JsonValue results = catObject.get("result");
-			if(results.isNull()) {
-				continue;
-			} else {
-				String issue = results.asString();
-				allIssues.add(issue);
+		} finally {
+			if(entity != null) {
+				try {
+					EntityUtils.consume(entity);
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(response != null) {
+				try {
+					response.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(httpClient != null) {
+				try {
+					httpClient.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
-		
-		return retMap;
 		
 		/*
 		 * 
