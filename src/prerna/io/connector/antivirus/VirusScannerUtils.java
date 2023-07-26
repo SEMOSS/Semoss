@@ -14,7 +14,7 @@ public class VirusScannerUtils {
 	
 	private static Logger logger = LogManager.getLogger(VirusScannerUtils.class);
 	
-	public static Map<String, Collection<String>> getViruses(InputStream is) {
+	public static Map<String, Collection<String>> getViruses(String name, InputStream is) {
 		if (Utility.isVirusScanningEnabled()) {
 			long start = System.currentTimeMillis();
 			IVirusScanner vs = VirusScannerFactory.getVirusScannerConnector();
@@ -22,7 +22,7 @@ public class VirusScannerUtils {
 				throw new IllegalArgumentException("Could not find virus scanner.");
 			}
 			
-			Map<String, Collection<String>> viruses = vs.getViruses(is);
+			Map<String, Collection<String>> viruses = vs.getViruses(name, is);
 			long end = System.currentTimeMillis();
 			logger.info("TIME TOOK: {} ms", (end - start));
 			
