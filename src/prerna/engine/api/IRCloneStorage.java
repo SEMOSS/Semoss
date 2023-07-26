@@ -7,6 +7,12 @@ import java.util.Map;
 public interface IRCloneStorage extends IStorage {
 
 	/**
+	 * Set the folder path for writing the config files on execution
+	 * @param folderPath
+	 */
+	void setRCloneConfigFolder(String folderPath);
+	
+	/**
 	 * This method is responsible for creating the specific r clone configuration object for this storage type
 	 * @throws IOException
 	 * @throws InterruptedException
