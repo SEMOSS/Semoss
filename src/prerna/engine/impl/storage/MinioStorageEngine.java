@@ -19,13 +19,15 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 	// this is not really needed
 	private static final String S3_BUCKET_KEY = "S3_BUCKET";
 
+	// specific values - while not final they shouldn't be modified
+	private String REGION = null;
+	private String ACCESS_KEY = null;
+	private String SECRET_KEY = null;
 	private String ENDPOINT = null;
 	
 	public void connect(Properties smssProp) throws Exception {
 		super.connect(smssProp);
 		
-		// set this to be the db engine folder
-		this.rcloneConfigFolder = "";
 		this.REGION = smssProp.getProperty(S3_REGION_KEY);
 		this.ACCESS_KEY = smssProp.getProperty(S3_ACCESS_KEY);
 		this.SECRET_KEY = smssProp.getProperty(S3_SECRET_KEY);
