@@ -64,7 +64,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 	}
 	
 	@Override
-	public Map<String, Collection<String>> getViruses(InputStream is) {
+	public Map<String, Collection<String>> getViruses(String name, InputStream is) {
 		ScanResult sr = this.client.scan(is);
 		
 		if (sr instanceof ScanResult.OK) {

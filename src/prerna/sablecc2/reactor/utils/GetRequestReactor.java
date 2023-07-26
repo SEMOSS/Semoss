@@ -168,7 +168,7 @@ public class GetRequestReactor extends AbstractReactor {
 		            IOUtils.copy(is, baos);
 		            bais = new ByteArrayInputStream(baos.toByteArray());
 		            
-					Map<String, Collection<String>> viruses = VirusScannerUtils.getViruses(bais);
+					Map<String, Collection<String>> viruses = VirusScannerUtils.getViruses(filename, bais);
 					if (!viruses.isEmpty()) {	
 						String error = "File contained " + viruses.size() + " virus";
 						if (viruses.size() > 1) {
