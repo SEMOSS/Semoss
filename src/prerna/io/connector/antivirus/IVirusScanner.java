@@ -8,6 +8,6 @@ public interface IVirusScanner {
 	
 	String CLAM_AV = "ClamAV";
 	
-	Map<String, Collection<String>> getViruses(InputStream is);
+	Map<String, Collection<String>> getViruses(String name, InputStream is);
 
 }
