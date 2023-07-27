@@ -258,6 +258,12 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public boolean savePointAutoRelease() {
+		// do not call release savepoint method - will throw error/exception 
+		return true;
+	}
+	
+	@Override
 	public String tableExistsQuery(String tableName, String database, String schema) {
 		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_CATALOG='" + database + "' AND TABLE_SCHEMA='" + schema + "' AND TABLE_NAME='" + tableName +"'";
 	}
