@@ -13,6 +13,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PublishProjectReactor extends AbstractReactor {
@@ -44,8 +45,14 @@ public class PublishProjectReactor extends AbstractReactor {
 			ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId), 
 					Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
 		}
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the project to publish"));
+		
+		String url = DIHelper.getInstance().getLocalProp(Constants.PORTAL_PREFIX_URL_KEY) + projectId + "/" + Constants.PORTALS_FOLDER + "/";
+		NounMetadata noun = new NounMetadata(url, PixelDataType.CONST_STRING);
+		if(release) {
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully published and released the project"));
+		} else {
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully published the project"));
+		}
 		return noun;
 	}
 
