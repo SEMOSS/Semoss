@@ -96,6 +96,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		
 		boolean engineExists = containsDatabaseId(engineId);
 		if(engineExists) {
+			String[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
+			updateDatabaseTypeAndSubType(engineId, typeAndCost[0], typeAndCost[1]);
 			logger.info("Security database already contains database with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
@@ -193,19 +195,51 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public static void updateDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global, boolean discoverable) {
-		String query = "UPDATE ENGINE SET ENGINENAME=?, TYPE=?, COST=?, GLOBAL=?, DISCOVERABLE=? WHERE ENGINEID=?";
+	public static void updateDatabase(String engineId, String engineName, String engineType, String engineSubType, boolean global, boolean discoverable) {
+		String query = "UPDATE ENGINE SET ENGINENAME=?, ENGINETYPE=?, ENGINESUBTYPE=?, GLOBAL=?, DISCOVERABLE=? WHERE ENGINEID=?";
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, databaseName);
-			ps.setString(parameterIndex++, dbType);
-			ps.setString(parameterIndex++, dbCost);
+			ps.setString(parameterIndex++, engineName);
+			ps.setString(parameterIndex++, engineType);
+			ps.setString(parameterIndex++, engineSubType);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, discoverable);
-			ps.setString(parameterIndex++, databaseId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+				if(securityDb.isConnectionPooling()) {
+					try {
+						ps.getConnection().close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+	}
+	
+	public static void updateDatabaseTypeAndSubType(String engineId, String engineType, String engineSubType) {
+		String query = "UPDATE ENGINE SET ENGINETYPE=?, ENGINESUBTYPE=? WHERE ENGINEID=?";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, engineType);
+			ps.setString(parameterIndex++, engineSubType);
+			ps.setString(parameterIndex++, engineId);
 			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {

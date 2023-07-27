@@ -965,6 +965,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		return true;
 	}
 	
+	@Override
+	public boolean savePointAutoRelease() {
+		return false;
+	}
+	
 	/////////////////////////////////////////////////////////////////////////
 	
 	/*
