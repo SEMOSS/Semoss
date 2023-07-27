@@ -139,6 +139,7 @@ public enum PixelOperationType {
 	
 	// INSIGHT CONFIG
 	INSIGHT_CONFIG,
+	APP_CONFIG,
 	GOLDEN_LAYOUT,
 	
 	// DASHBAORD
