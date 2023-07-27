@@ -100,7 +100,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 	 * 
 	 * @return
 	 */
-	private static Platform getVirusScanningFileSystem() {
+	public static Platform getVirusScanningFileSystem() {
 		String platform = DIHelper.getInstance().getProperty(CLAMAV_SCANNING_FS);
 
 		if ("WINDOWS".equalsIgnoreCase(platform)) {
