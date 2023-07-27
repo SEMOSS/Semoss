@@ -903,7 +903,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	 * 
 	 * @return
 	 */
-	public static String getApiKey() {
+	private static String getApiKey() {
 		String apiKey = DIHelper.getInstance().getProperty(VIRUSTOTAL_API_KEY);
 		if(apiKey == null || (apiKey=apiKey.trim()).isEmpty() ) {
 			throw new NullPointerException("Must define the VIRUSTOTAL API KEY");
@@ -916,7 +916,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	 * 
 	 * @return
 	 */
-	public static boolean useServerCert() {
+	private static boolean useServerCert() {
 		String useServerCert = DIHelper.getInstance().getProperty(VIRUSTOTAL_USE_CERT);
 		if(useServerCert == null || (useServerCert=useServerCert.trim()).isEmpty() ) {
 			return false;
