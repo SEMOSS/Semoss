@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +26,7 @@ public class MyProjectsReactor extends AbstractReactor {
 	public MyProjectsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
 				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
-				ReactorKeysEnum.NO_META.getKey() };
+				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey() };
 	}
 
 	@Override
@@ -40,13 +39,13 @@ public class MyProjectsReactor extends AbstractReactor {
 		String offset = this.keyValue.get(this.keysToGet[1]);
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
-		
-		List<Map<String, Object>> projectInfo = new Vector<>();
+		List<Integer> permissionFilters = getPermissionFilters();
+		List<Map<String, Object>> projectInfo = new ArrayList<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			Map<String, Object> projectMetadataFilter = getMetaMap();
 			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, 
-					projectMetadataFilter, limit, offset);
+					projectMetadataFilter, permissionFilters, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setProjects(projectInfo);
 			}
@@ -127,6 +126,19 @@ public class MyProjectsReactor extends AbstractReactor {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	private List<Integer> getPermissionFilters() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return grs.getAllNumericColumnsAsInteger();
 		}
 		
 		return null;
