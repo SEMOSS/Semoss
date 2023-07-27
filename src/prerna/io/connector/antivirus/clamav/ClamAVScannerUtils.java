@@ -78,7 +78,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 	 * 
 	 * @return
 	 */
-	public static String getVirusScanningAddress() {
+	private static String getVirusScanningAddress() {
 		return DIHelper.getInstance().getProperty(CLAMAV_SCANNING_ADDRESS);
 	}
 	
@@ -86,7 +86,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 	 * 
 	 * @return
 	 */
-	public static Integer getVirusScanningPort() {
+	private static Integer getVirusScanningPort() {
 		String virusScanning = DIHelper.getInstance().getProperty(CLAMAV_SCANNING_PORT);
 		if(virusScanning == null) {
 			// default configuration is false
@@ -100,7 +100,7 @@ public class ClamAVScannerUtils implements IVirusScanner {
 	 * 
 	 * @return
 	 */
-	public static Platform getVirusScanningFileSystem() {
+	private static Platform getVirusScanningFileSystem() {
 		String platform = DIHelper.getInstance().getProperty(CLAMAV_SCANNING_FS);
 
 		if ("WINDOWS".equalsIgnoreCase(platform)) {
