@@ -2222,6 +2222,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineIdFilters
 	 * @param favoritesOnly
 	 * @param engineMetadataFilter
+	 * @param permissionFilters 
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
@@ -2232,6 +2233,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			List<String> engineIdFilters,
 			Boolean favoritesOnly, 
 			Map<String, Object> engineMetadataFilter, 
+			List<Integer> permissionFilters, 
 			String searchTerm, 
 			String limit, 
 			String offset) {
@@ -2370,6 +2372,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		if(engineTypes != null && !engineTypes.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+		}
+		
+		// filter based on permission filters
+		if(permissionFilters != null && !permissionFilters.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", permissionFilters, PixelDataType.CONST_INT));
 		}
 		
 		OrQueryFilter orFilter = new OrQueryFilter();
