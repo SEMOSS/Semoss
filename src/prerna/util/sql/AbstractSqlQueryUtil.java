@@ -1001,6 +1001,13 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract boolean allowIfExistsAddConstraint();
 
+	/**
+	 * Is the savepoint auto released? 
+	 * If true, then dont need to release savepoint / method might not be implemented and throw error
+	 * @return
+	 */
+	public abstract boolean savePointAutoRelease();
+	
 	/////////////////////////////////////////////////////////////////////////
 
 	/*
