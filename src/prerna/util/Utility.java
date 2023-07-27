@@ -5318,7 +5318,13 @@ public class Utility {
 			if(py == null) {
 				throw new NullPointerException("Must define python home");
 			}
-			py = py + "/python.exe";
+			
+			if (SystemUtils.IS_OS_WINDOWS) {
+				py = py + "/python.exe";
+			} else {
+				py = py + "/bin/python3";
+			}
+			
 			py = py.replace("\\", "/");
 
 			String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
