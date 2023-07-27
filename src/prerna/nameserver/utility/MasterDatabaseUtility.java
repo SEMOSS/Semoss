@@ -3070,6 +3070,7 @@ public class MasterDatabaseUtility {
      */
     public static void saveMetamodelPositions(String databaseId, Map<String, Object> positions) {
         IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
+        AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
         Connection conn = null;
         Savepoint savepoint = null;
         try {
@@ -3091,7 +3092,7 @@ public class MasterDatabaseUtility {
 	        	logger.error(Constants.STACKTRACE, e);
 			}
         } finally {
-        	if(savepoint != null) {
+        	if(savepoint != null && !queryUtil.savePointAutoRelease()) {
         		try {
 					conn.releaseSavepoint(savepoint);
 				} catch (SQLException e) {
