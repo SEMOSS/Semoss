@@ -11,6 +11,7 @@ public interface IModelEngine extends IEngine {
 	enum MODEL_TYPE
 	{
 		EMBEDDED,
+		PROCESS
 	}
 	
 	// main class that is responsible for controlling everything models
@@ -28,6 +29,7 @@ public interface IModelEngine extends IEngine {
 	
 	public void loadModel(String modelSmss);
 	
+	//TODO change this to startModel() 
 	public void startServer();
 	
 	// need to change this to model client

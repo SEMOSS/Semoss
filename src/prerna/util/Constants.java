@@ -773,6 +773,13 @@ public class Constants {
 	public static final String USER_WORKSPACE = "USER_WORKSPACE";
 	public static final String INIT_MODEL_ENGINE = "INIT_MODEL_ENGINE";
 	
+	//fastchat
+	public static final String WORKER_ADDRESS = "WORKER_ADDRESS";
+	public static final String CONTROLLER_ADDRESS = "CONTROLLER_ADDRESS";
+	public static final String NUM_GPU = "NUM_GPU";
+	public static final String GPU_ID = "GPU_ID";
+
+	
 	// Pragma Options
 	public static final String IMPLICIT_ORDER = "IMPLICIT_ORDER";
 	public static final String TASK_OPTIONS_EXIST = "TASK_OPTIONS_EXIST";
