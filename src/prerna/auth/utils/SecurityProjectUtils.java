@@ -2064,13 +2064,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get the list of the engine information that the user has access to
+	 * 
 	 * @param user
 	 * @param favoritesOnly
 	 * @param projectMetadataFilter
+	 * @param permissionFilters
+	 * @param limit
+	 * @param offset
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserProjectList(User user, boolean favoritesOnly, 
-			Map<String,Object> projectMetadataFilter, String limit, String offset) {
+			Map<String,Object> projectMetadataFilter, List<Integer> permissionFilters, String limit, String offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		
@@ -2211,6 +2215,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 			qs1.addExplicitFilter(orFilter);
 		}
+		
+		// filter based on permission filters
+		if(permissionFilters != null && !permissionFilters.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==", permissionFilters, PixelDataType.CONST_INT));
+		}
+		
 		// only show those that are visible
 		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==", Arrays.asList(new Object[] {1, null}), PixelDataType.CONST_INT));
 		// favorites only

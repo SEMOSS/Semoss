@@ -187,14 +187,36 @@ public class GenRowStruct implements Serializable{
 	}
 	
 	public List<Object> getAllNumericColumns() {
-		List<Object> retVector = new Vector<Object>();
+		List<Object> returnList = new ArrayList<>();
 		for(NounMetadata noun : vector) {
 			if(noun.getNounType() == PixelDataType.CONST_DECIMAL || 
 					noun.getNounType() == PixelDataType.CONST_INT) {
-				retVector.add(noun.getValue());
+				returnList.add(noun.getValue());
 			}
 		}
-		return retVector;
+		return returnList;
+	}
+	
+	public List<Double> getAllNumericColumnsAsDouble() {
+		List<Double> returnList = new ArrayList<>();
+		for(NounMetadata noun : vector) {
+			if(noun.getNounType() == PixelDataType.CONST_DECIMAL || 
+					noun.getNounType() == PixelDataType.CONST_INT) {
+				returnList.add( ((Number) noun.getValue()).doubleValue());
+			}
+		}
+		return returnList;
+	}
+	
+	public List<Integer> getAllNumericColumnsAsInteger() {
+		List<Integer> returnList = new ArrayList<>();
+		for(NounMetadata noun : vector) {
+			if(noun.getNounType() == PixelDataType.CONST_DECIMAL || 
+					noun.getNounType() == PixelDataType.CONST_INT) {
+				returnList.add( ((Number) noun.getValue()).intValue());
+			}
+		}
+		return returnList;
 	}
 	
 	public int size() {

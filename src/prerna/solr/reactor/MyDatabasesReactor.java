@@ -28,6 +28,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
 				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.DATABASE.getKey(),
+				ReactorKeysEnum.PERMISSION_FILTERS.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
 				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()
 			};
@@ -50,12 +51,13 @@ public class MyDatabasesReactor extends AbstractReactor {
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
 		List<String> databaseFilter = getDatabaseFilters();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
+		List<Integer> permissionFilters = getPermissionFilters();
 		Boolean includeUserT = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
 		
 		List<Map<String, Object>> dbInfo = new ArrayList<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			dbInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, databaseFilter, favoritesOnly, engineMetadataFilter, searchTerm, limit, offset);
+			dbInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, databaseFilter, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setEngines(dbInfo);
 			}
@@ -146,6 +148,19 @@ public class MyDatabasesReactor extends AbstractReactor {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	private List<Integer> getPermissionFilters() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return grs.getAllNumericColumnsAsInteger();
 		}
 		
 		return null;
