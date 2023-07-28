@@ -209,6 +209,7 @@ public enum ReactorKeysEnum {
 	START_ROW("startRow",										"The starting row number to import from a file."),
 	STATEMENT("statement", 										"Statement to be evaluated"),
 	STORAGE("storage",											"Id/Name of the storage engine"),
+	STORAGE_DETAILS("storageDetails", 							"Map containing the necessary details to establish a connection to storage engine"),
 	STORAGE_PATH("storagePath", 								"File path location on storage engine"),
 	SUBTOTALS("subtotals",										"All the columns in a pivot that you need subtotal for. Default is all. "),	
 	SUM_RANGE("sumRange", 										"Range that values to sum over"),
