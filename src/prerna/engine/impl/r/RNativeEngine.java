@@ -59,7 +59,7 @@ import prerna.util.Utility;
 
 public class RNativeEngine extends AbstractDatabase {
 
-	private static final Logger LOGGER = LogManager.getLogger(RNativeEngine.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(RNativeEngine.class.getName());
 
 	private File file = null;
 	private String fileLocation = null;
@@ -125,7 +125,7 @@ public class RNativeEngine extends AbstractDatabase {
 		}
 		
 		this.in = new Insight();
-		this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this.in, LOGGER);
+		this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this.in, classLogger);
 		
 		CsvQueryStruct cqs = new CsvQueryStruct();
 		cqs.setFilePath(this.fileLocation);
@@ -155,7 +155,11 @@ public class RNativeEngine extends AbstractDatabase {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
 		maker.makeFlatOwl(dataFile, owlFile, getEngineType(), false);
 		if(owlFile.equals("REMAKE")) {
-			Utility.changePropMapFileValue(this.smssFilePath, Constants.OWL, owlFileName);
+			try {
+				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 		return owlFile;
 	}
@@ -214,11 +218,11 @@ public class RNativeEngine extends AbstractDatabase {
 	}
 
 	public void deleteDB() {
-		LOGGER.debug("Deleting R Engine: " + this.engineName + "__" + this.engineId);
+		classLogger.debug("Deleting R Engine: " + this.engineName + "__" + this.engineId);
 		try {
 			close();
 		} catch (Exception e) {
-			LOGGER.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// clean up SMSS and DB files/folder
 		super.deleteDB();
