@@ -238,7 +238,11 @@ public abstract class AbstractDatabase implements IDatabase {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
 		maker.makeFlatOwl(dataFile, owlFile, getEngineType(), true);
 		if(owlFile.equals("REMAKE")) {
-			Utility.changePropMapFileValue(this.smssFilePath, Constants.OWL, owlFileName);
+			try {
+				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 		}
 		return owlFile;
 	}

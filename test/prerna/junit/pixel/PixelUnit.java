@@ -375,7 +375,7 @@ public class PixelUnit {
 
 				// Else, its just metadata hanging around
 				remover.deleteEngineRDBMS(appId);
-				SecurityEngineUtils.deleteDatabase(appId);
+				SecurityEngineUtils.deleteEngine(appId);
 			}
 		}
 
