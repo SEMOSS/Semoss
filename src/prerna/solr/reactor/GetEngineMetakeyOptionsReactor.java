@@ -9,11 +9,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-@Deprecated
-// user {{@link GetEngineMetakeyOptionsReactor}}
-public class GetDatabaseMetakeyOptionsReactor extends AbstractReactor {
+public class GetEngineMetakeyOptionsReactor extends AbstractReactor {
 
-	public GetDatabaseMetakeyOptionsReactor() {
+	public GetEngineMetakeyOptionsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.META_KEYS.getKey()};
 	}
 	
