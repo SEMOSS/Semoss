@@ -28,7 +28,7 @@ public class GetDatabaseMetaValuesReactor extends AbstractReactor {
         if(AbstractSecurityUtils.securityEnabled()) {
             dbList = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, false, true);
         } else {
-        	dbList = SecurityEngineUtils.getAllDatabaseIds();
+        	dbList = SecurityEngineUtils.getAllEngineIds(eTypes);
         }
         if(dbList != null && dbList.isEmpty()) {
         	return new NounMetadata(new ArrayList<>(), PixelDataType.CUSTOM_DATA_STRUCTURE);

@@ -325,19 +325,28 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * 
+	 * @return
+	 */
+	public static List<String> getAllEngineIds() {
+		return getAllEngineIds(null);
+	}
+	
+	/**
 	 * Get a list of the database ids
 	 * @return
 	 */
-	public static List<String> getAllDatabaseIds() {
+	public static List<String> getAllEngineIds(List<String> engineTypes) {
 //		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		if(engineTypes != null && !engineTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+		}
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
-	
-
 	
 	/**
 	 * Get markdown for a given engine
@@ -1052,7 +1061,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * Delete all values
 	 * @param databaseId
 	 */
-	public static void deleteDatabase(String databaseId) {
+	public static void deleteEngine(String engineId) {
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
 //		deletes.add("DELETE FROM INSIGHT WHERE ENGINEID=?");
@@ -1065,7 +1074,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			PreparedStatement ps = null;
 			try {
 				ps = securityDb.getPreparedStatement(deleteQuery);
-				ps.setString(1, databaseId);
+				ps.setString(1, engineId);
 				ps.execute();
 				if(!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
