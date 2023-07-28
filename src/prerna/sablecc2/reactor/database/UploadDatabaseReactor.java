@@ -213,7 +213,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
 				lmDeleter.deleteEngineRDBMS(databaseId);
 				// delete from security
-				SecurityEngineUtils.deleteDatabase(databaseId);
+				SecurityEngineUtils.deleteEngine(databaseId);
 			}
 		}
 		

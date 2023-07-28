@@ -64,7 +64,7 @@ public class MigrateImagesToCouchReactor extends AbstractReactor {
 		
 		List<String> outcomes = new Vector<>();
 		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases",
-				SecurityEngineUtils.getAllDatabaseIds(), CouchUtil.DATABASE, outcomes);
+				SecurityEngineUtils.getAllEngineIds(), CouchUtil.DATABASE, outcomes);
 		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects",
 				SecurityProjectUtils.getAllProjectIds(), CouchUtil.PROJECT, outcomes);
 		
