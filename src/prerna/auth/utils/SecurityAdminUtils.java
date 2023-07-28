@@ -1088,6 +1088,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			updatePs.setBoolean(1, global);
 			updatePs.setString(2, databaseId);
 			updatePs.execute();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -1125,6 +1128,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			updatePs.setBoolean(1, discoverable);
 			updatePs.setString(2, databaseId);
 			updatePs.execute();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -1159,6 +1165,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			updatePs.setBoolean(1, global);
 			updatePs.setString(2, projectId);
 			updatePs.execute();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -1181,6 +1190,51 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Change if this project has a portal or not
+	 * @param user
+	 * @param projectId
+	 * @param visibility
+	 * @throws SQLException 
+	 * @throws IllegalAccessException 
+	 */
+	public void setProjectPortal(User user, String projectId, boolean hasPortal, String portalName) {
+		String updateQ = "UPDATE PROJECT SET HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
+		PreparedStatement updatePs = null;
+		try {
+			updatePs = securityDb.getPreparedStatement(updateQ);
+			int parameterIndex = 1;
+			updatePs.setBoolean(parameterIndex++, hasPortal);
+			if(portalName != null) {
+				updatePs.setString(parameterIndex++, portalName);
+			} else {
+				updatePs.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			}
+			updatePs.setString(parameterIndex++, projectId);
+			updatePs.execute();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(updatePs != null) {
+				try {
+					updatePs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(securityDb.isConnectionPooling()) {
+				try {
+					updatePs.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
 	 * Set if the database is discoverable to all users on this instance
 	 * @param user
 	 * @param databaseId
@@ -1196,6 +1250,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			updatePs.setBoolean(1, discoverable);
 			updatePs.setString(2, projectId);
 			updatePs.execute();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -1617,6 +1674,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps = securityDb.getPreparedStatement(deleteQuery);
 					ps.setString(1, userId);
 					ps.execute();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
@@ -1657,6 +1717,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.addBatch();
 					}
 					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
@@ -1753,6 +1816,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 				}
 				ps.executeBatch();
+				if(!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("An error occurred granting the user permission for all the databases");
@@ -1787,6 +1853,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps = securityDb.getPreparedStatement(deleteQuery);
 					ps.setString(1, userId);
 					ps.execute();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("An error occurred granting the user permission for all the databases");
@@ -1827,6 +1896,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.addBatch();
 					}
 					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("An error occurred granting the user permission for all the databases");
@@ -1871,6 +1943,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
@@ -1907,6 +1982,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
@@ -1957,6 +2035,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");

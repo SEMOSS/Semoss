@@ -2668,7 +2668,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Change the user visibility (show/hide) for a project. Without removing its permissions.
+	 * Change if this project has a portal or not
 	 * @param user
 	 * @param projectId
 	 * @param visibility
