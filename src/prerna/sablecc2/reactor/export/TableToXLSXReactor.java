@@ -54,6 +54,7 @@ import cz.vutbr.web.css.Term;
 import cz.vutbr.web.css.TermColor;
 import cz.vutbr.web.css.TermLength;
 import cz.vutbr.web.css.TermPercent;
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -88,9 +89,11 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	boolean keepOpen = true;
 	boolean mergeCells = true; // should we merge the cells or not. 
 	Map exportMap = new HashMap<String, Object>();
-
+	final String DATA_TYPES_ARRAY_KEY = "DATA_TYPES_ARRAY_KEY";
+	
 	int lastDataRow = 0;
 	int lastDataColumn = 0;
+	boolean isGrid = false;
 
 	public static final String ROW_COUNT = "ROW_COUNT";
 	public static final String COLUMN_COUNT = "COLUMN_COUNT";
@@ -835,66 +838,82 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	 */
 	public void formatAndSetCellType(Workbook wb, CellStyle input, Cell cell, String value) {
 		if(value != null) {
-			boolean isNumeric = NumberUtils.isCreatable(value);
+			SemossDataType cellType = null;
+			SemossDataType[] panelDatatypes = null;
 
-			// see if it is $
-			if(value.contains("$")) {
-				//input.setDataFormat((short)0x5); 
-				
-				// Adding Custom formatting to handle the decimal places.
-				String fmt = "$#,##0";
-				String tempValue = value;
-				tempValue = tempValue.replaceAll(",", "");
-				int decimalPlaces = tempValue.lastIndexOf('.') > 0 ? tempValue.length() - tempValue.lastIndexOf('.') - 1: 0;
-				if (decimalPlaces > 0) {
-					fmt = fmt + ".";
-					while(decimalPlaces-- > 0) {
-						fmt = fmt + "0";
-					}					
-				}
-				DataFormat format = wb.createDataFormat();
-				input.setDataFormat(format.getFormat(fmt));
+			// checking for grid visualization and presence of existing datatypes
+			if(isGrid && exportMap.containsKey(DATA_TYPES_ARRAY_KEY)) {							
+				panelDatatypes = (SemossDataType[]) exportMap.get(DATA_TYPES_ARRAY_KEY);
+				//Assigning datatype to the cells of the grid
+				cellType = panelDatatypes[cell.getColumnIndex()];
+			} 
 
-				Double val = Utility.getDouble(value.replaceAll("[$,\\s]", ""));
-				if(val != null) {
-					cell.setCellValue(val);
-				} else {
-					cell.setCellValue(value);
-				}
-				cell.setCellStyle(input);
-			}
-			else if(isNumeric) {
-				// see if it is a number
-				// that starts with 0
-				// so treat as a string
-				boolean leadingZero = value.startsWith("0");
-				try {
-					double val = Double.parseDouble(value);
-					if(leadingZero) {
-						if(val < 1) {
-							// it has a leading zero
-							// but is just a small #
-							cell.setCellValue(val);
-						} else {
-							// you are not a decimal
-							// and you have a leading zero
-							// so set you as a string
-							input.setDataFormat((short)0);
-							cell.setCellValue(value);
-						}
-					} else {
-						// just set the #
-						cell.setCellValue(val);
-					}
-				} catch(Exception ex) {
-					// ignore and set value
-					cell.setCellValue(value);
-				}
-			}
-			// see if this is a date yuck
-			else {
+			// checking for defined data types
+			if(cellType != null && cellType == SemossDataType.STRING) {
 				input.setDataFormat((short)0x31);
 				cell.setCellValue(value);
+			} else {
+				boolean isNumeric = NumberUtils.isCreatable(value);
+
+				// see if it is $
+				if(value.contains("$")) {
+					//input.setDataFormat((short)0x5); 
+
+					// Adding Custom formatting to handle the decimal places.
+					String fmt = "$#,##0";
+					String tempValue = value;
+					tempValue = tempValue.replaceAll(",", "");
+					int decimalPlaces = tempValue.lastIndexOf('.') > 0 ? tempValue.length() - tempValue.lastIndexOf('.') - 1: 0;
+					if (decimalPlaces > 0) {
+						fmt = fmt + ".";
+						while(decimalPlaces-- > 0) {
+							fmt = fmt + "0";
+						}					
+					}
+					DataFormat format = wb.createDataFormat();
+					input.setDataFormat(format.getFormat(fmt));
+
+					Double val = Utility.getDouble(value.replaceAll("[$,\\s]", ""));
+					if(val != null) {
+						cell.setCellValue(val);
+					} else {
+						cell.setCellValue(value);
+					}
+					cell.setCellStyle(input);
+				}
+				else if(isNumeric) {
+					// see if it is a number
+					// that starts with 0
+					// so treat as a string
+					boolean leadingZero = value.startsWith("0");
+					try {
+						double val = Double.parseDouble(value);
+						if(leadingZero) {
+							if(val < 1) {
+								// it has a leading zero
+								// but is just a small #
+								cell.setCellValue(val);
+							} else {
+								// you are not a decimal
+								// and you have a leading zero
+								// so set you as a string
+								input.setDataFormat((short)0);
+								cell.setCellValue(value);
+							}
+						} else {
+							// just set the #
+							cell.setCellValue(val);
+						}
+					} catch(Exception ex) {
+						// ignore and set value
+						cell.setCellValue(value);
+					}
+				}
+				// see if this is a date yuck
+				else {
+					input.setDataFormat((short)0x31);
+					cell.setCellValue(value);
+				}
 			}
 		}
 	}
