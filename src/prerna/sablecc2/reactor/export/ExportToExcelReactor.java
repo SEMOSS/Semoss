@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -1415,6 +1416,20 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		txl.sheetName = excelSheetName;
 		String fileName = (String) exportMap.get("FILE_NAME");
 		Boolean gridSpanRows = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRIDSPANROWS) + "");
+
+		String[] headers = task.getHeaderInfo().stream().map(hdr->{
+			return (String)hdr.get("header");
+		}).collect(Collectors.toList()).stream().toArray(String[]::new);
+		
+		List<Map<String, Object>> headerInfo = task.getHeaderInfo();
+		SemossDataType[] typesArr = new SemossDataType[headers.length];
+		for (int i = 0; i < headers.length; i++) {
+			typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+		}
+
+		//Putting the datatypes array of grid headers into export map
+		exportMap.put(DATA_TYPES_ARRAY_KEY, typesArr);
+		txl.isGrid = true;
 		txl.processTable(excelSheetName, generateGridHtml(task, panel), fileName);
 		if(gridSpanRows) {
 			txl.mergeAreas();
