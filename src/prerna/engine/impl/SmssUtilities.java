@@ -481,8 +481,10 @@ public class SmssUtilities {
 			}
 			// portal details
 			bufferedWriter.write(Settings.PUBLIC_HOME_ENABLE + tab + hasPortal + newLine);
-			if(portalName != null && !portalName.isEmpty()) {
+			if(portalName != null) {
 				bufferedWriter.write(Settings.PORTAL_NAME + tab + portalName + newLine);
+			} else {
+				bufferedWriter.write(Settings.PORTAL_NAME + tab + "" + newLine);
 			}
 
 			String rdbmsTypeStr = null;

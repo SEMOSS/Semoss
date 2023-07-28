@@ -812,20 +812,20 @@ public class Utility {
 	}
 
 	/**
-	 * Changes a value within the SMSS file for a given key
+	 * Changes a value within the properties file for a given key
 	 * 
-	 * @param smssPath       The path to the SMSS file
-	 * @param keyToAlter     The key to alter
-	 * @param valueToProvide The value to give the key
+	 * @param filePath
+	 * @param keyToAlter
+	 * @param valueToProvide
+	 * @throws IOException
 	 */
-	public static void changePropMapFileValue(String smssPath, String keyToAlter, String valueToProvide) {
-		changePropMapFileValue(smssPath, keyToAlter, valueToProvide, false);
+	public static void changePropertiesFileValue(String filePath, String keyToAlter, String valueToProvide) throws IOException {
+		changePropertiesFileValue(filePath, keyToAlter, valueToProvide, false);
 	}
 
-	public static void changePropMapFileValue(String smssPath, String keyToAlter, String valueToProvide,
-			boolean contains) {
+	public static void changePropertiesFileValue(String filePath, String keyToAlter, String valueToProvide, boolean contains) throws IOException {
 		FileOutputStream fileOut = null;
-		File file = new File(smssPath);
+		File file = new File(filePath);
 
 		/*
 		 * 1) Loop through the smss file and add each line as a list of strings
@@ -884,6 +884,7 @@ public class Utility {
 			}
 		} catch (IOException ioe) {
 			logger.error(Constants.STACKTRACE, ioe);
+			throw ioe;
 		} finally {
 			// close the readers
 			try {
@@ -905,25 +906,22 @@ public class Utility {
 	}
 
 	/**
-	 * Adds a new key-value pair into the SMSS file
-	 * 
-	 * @param smssPath       The path of the smss file
-	 * @param keyToAdd       The key to add into the smss file
-	 * @param valueToProvide The value for the key to add to the smss file
+	 * Adds a new key-value pair into a properties file
+	 * @param propertiesFile
+	 * @param locInFile
+	 * @param mods
+	 * @throws IOException
 	 */
-	public static void updateSMSSFile(String smssPath, String keyToAdd, String valueToProvide) {
-		updateSMSSFile(smssPath, "OWL", keyToAdd, valueToProvide);
-	}
-
-	public static void updateSMSSFile(String smssPath, String locInFile, String keyToAdd, String valueToProvide) {
+	public static void addKeysAtLocationIntoPropertiesFile(String propertiesFile, String locInFile, Map<String, String> mods) throws IOException {
 		FileOutputStream fileOut = null;
-		File file = new File(smssPath);
+		File file = new File(propertiesFile);
 
 		/*
-		 * 1) Loop through the smss file and add each line as a list of strings
+		 * 1) Loop through the properties file and add each line as a list of strings
 		 * 2) iterate through the list of strings and write out each line
-		 * 3) if the current line being printed starts with locInFile (hard coded as OWL)
+		 * 3) if the current line being printed starts with locInFile
 		 * 		then the new key-value pair will be written right after it
+		 * 4) if locInFile was never found, print at end of file
 		 */
 
 		List<String> content = new ArrayList<>();
@@ -938,6 +936,7 @@ public class Utility {
 				content.add(line);
 			}
 
+			boolean found = false;
 			fileOut = new FileOutputStream(file);
 			for (int i = 0; i < content.size(); i++) {
 				// 2) write out each line into the file
@@ -948,13 +947,26 @@ public class Utility {
 				// 3) if the last line printed matches that in locInFile, then write the new
 				// key-value pair after
 				if (content.get(i).startsWith(locInFile + "\t") || content.get(i).startsWith(locInFile + " ")) {
-					String newProp = keyToAdd + "\t" + valueToProvide;
+					found = true;
+					for(String keyToAdd : mods.keySet()) {
+						String newProp = keyToAdd + "\t" + mods.get(keyToAdd);
+						fileOut.write(newProp.getBytes());
+						fileOut.write("\n".getBytes());
+					}
+				}
+			}
+			
+			if(!found) {
+				fileOut.write("\n".getBytes());
+				for(String keyToAdd : mods.keySet()) {
+					String newProp = keyToAdd + "\t" + mods.get(keyToAdd);
 					fileOut.write(newProp.getBytes());
 					fileOut.write("\n".getBytes());
 				}
 			}
 		} catch (IOException ioe) {
 			logger.error(Constants.STACKTRACE, ioe);
+			throw ioe;
 		} finally {
 			// close the readers
 			try {
@@ -2581,6 +2593,23 @@ public class Utility {
 				}
 			}
 
+			// clean up the SMSS files
+			{
+				try {
+					Properties props = Utility.loadProperties(smssFilePath);
+					if(props.get(Settings.PUBLIC_HOME_ENABLE) == null) {
+						logger.info("Updating project smss to include public home property");
+						Map<String, String> mods = new HashMap<>();
+						mods.put(Settings.PUBLIC_HOME_ENABLE, "false");
+						Utility.addKeysAtLocationIntoPropertiesFile(smssFilePath, Constants.CONNECTION_URL, mods);
+						// push to cloud
+						ClusterUtil.reactorPushProjectSmss(projectId);
+					}
+				} catch(Exception e) {
+					//ignore
+				}
+			}
+			
 			// we store the smss location in DIHelper
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFilePath);
 

@@ -409,7 +409,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		
 		if(reloadInsights) {
 			logger.info("Modifying force reload to false");
-			Utility.changePropMapFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");	
+			try {
+				Utility.changePropertiesFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}	
 			
 			// need to remove existing insights w/ permissions that do not exist anymore
 			if(existingInsightPermissions && !insightPermissionIds.isEmpty()) {
