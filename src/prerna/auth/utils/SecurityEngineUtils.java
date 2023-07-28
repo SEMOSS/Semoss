@@ -2457,7 +2457,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param includeExistingAccess
 	 * @return
 	 */
-	public static List<String> getUserDatabaseIdList(User user, boolean includeGlobal, boolean includeDiscoverable, boolean includeExistingAccess) {
+	public static List<String> getUserEngineIdList(User user, List<String> engineTypes, boolean includeGlobal, boolean includeDiscoverable, boolean includeExistingAccess) {
 		String enginePrefix = "ENGINE__";
 		String enginePermissionPrefix = "ENGINEPERMISSION__";
 		String groupEnginePermissionPrefix = "GROUPENGINEPERMISSION__";
@@ -2474,6 +2474,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		if(includeDiscoverable) {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(enginePrefix + "DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
+		}
+		if(engineTypes != null && !engineTypes.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(enginePrefix + "ENGINETYPE", "==", engineTypes));
 		}
 		String existingAccessComparator = "==";
 		if(!includeExistingAccess) {

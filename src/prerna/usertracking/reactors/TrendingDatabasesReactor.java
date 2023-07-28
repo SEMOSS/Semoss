@@ -1,8 +1,10 @@
 package prerna.usertracking.reactors;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IDatabase;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -20,10 +22,12 @@ public class TrendingDatabasesReactor extends AbstractReactor {
 	@Override 
 	public NounMetadata execute() {
 		organizeKeys();
-		
 		if (Utility.isUserTrackingDisabled()) {
 			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
 		}
+		
+		List<String> eTypes = new ArrayList<>();
+		eTypes.add(IDatabase.CATALOG_TYPE);
 		
 		String numDisplay = this.keyValue.get(this.keysToGet[0]);
 		if (numDisplay == null) {
@@ -31,7 +35,7 @@ public class TrendingDatabasesReactor extends AbstractReactor {
 		}
 		Integer nd = Integer.valueOf(numDisplay);
 		
-		List<String> accessibleDbs = SecurityEngineUtils.getUserDatabaseIdList(this.insight.getUser(), true, true, true);
+		List<String> accessibleDbs = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, true, true);
 		
 		List<String> dbs = EngineUsageUtils.getTrendingDatabases(nd, accessibleDbs);
 		
