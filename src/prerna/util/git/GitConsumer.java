@@ -139,7 +139,7 @@ public class GitConsumer {
 			throw new IllegalArgumentException("There is no app id defined within the smss of the new app you are downloading");
 		}
 		
-		if (SecurityEngineUtils.getAllDatabaseIds().contains(actualAppId)) {
+		if (SecurityEngineUtils.getAllEngineIds(null).contains(actualAppId)) {
 			throw new IllegalArgumentException("The app you are attempting to copy already exists as " + SecurityEngineUtils.getDatabaseAliasForId(actualAppId));
 		}
 		
