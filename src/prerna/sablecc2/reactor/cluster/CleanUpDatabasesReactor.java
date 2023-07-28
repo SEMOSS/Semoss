@@ -101,7 +101,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 			//////////////////////////////////////////////////////////////////////////////////////////
 			//////////////////////////////////// Cleanup Apps ////////////////////////////////////////
 			Map<String, Object> removedAppsMap = new HashMap<>();
-			List<String> databaseIds = SecurityEngineUtils.getAllDatabaseIds();
+			List<String> databaseIds = SecurityEngineUtils.getAllEngineIds();
 			for (String databaseId : databaseIds) {
 				String alias = SecurityEngineUtils.getDatabaseAliasForId(databaseId);
 				String key = alias + "__" + databaseId; 
@@ -121,7 +121,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 						// Delete from master db
 						DeleteFromMasterDB remover = new DeleteFromMasterDB();
 						remover.deleteEngineRDBMS(databaseId);
-						SecurityEngineUtils.deleteDatabase(databaseId);
+						SecurityEngineUtils.deleteEngine(databaseId);
 						
 						// Delete from cluster
 						try {

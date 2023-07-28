@@ -20,17 +20,17 @@ public class GetEngineMetaValuesReactor extends AbstractReactor {
     
     @Override
     public NounMetadata execute() {
-    	List<String> engineTypes = getListValues(ReactorKeysEnum.ENGINE_TYPE.getKey());
-        List<String> dbList = null;
+    	List<String> eTypes = getListValues(ReactorKeysEnum.ENGINE_TYPE.getKey());
+        List<String> engineList = null;
         if(AbstractSecurityUtils.securityEnabled()) {
-            dbList = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), engineTypes, true, false, true);
+            engineList = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, false, true);
         } else {
-        	dbList = SecurityEngineUtils.getAllDatabaseIds();
+        	engineList = SecurityEngineUtils.getAllEngineIds(eTypes);
         }
-        if(dbList != null && dbList.isEmpty()) {
+        if(engineList != null && engineList.isEmpty()) {
         	return new NounMetadata(new ArrayList<>(), PixelDataType.CUSTOM_DATA_STRUCTURE);
         }
-        List<Map<String, Object>> ret = SecurityEngineUtils.getAvailableMetaValues(dbList, getListValues(ReactorKeysEnum.META_KEYS.getKey()) );
+        List<Map<String, Object>> ret = SecurityEngineUtils.getAvailableMetaValues(engineList, getListValues(ReactorKeysEnum.META_KEYS.getKey()) );
         return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
     }
     
