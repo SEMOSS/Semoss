@@ -947,6 +947,31 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		return false;
 	}
+	
+	/**
+	 * See if specific project is global
+	 * @return
+	 */
+	public static boolean projectHasPortal(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__HASPORTAL", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		return false;
+	}
 
 	/**
 	 * 
@@ -2614,6 +2639,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						ps.addBatch();
 					}
 					ps.executeBatch();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
 				} catch(Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw e;
@@ -2621,16 +2649,60 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					if(ps != null) {
 						ps.close();
 					}
+					if(securityDb.isConnectionPooling()) {
+						ps.getConnection().close();
+					}
 				}
 			}
-			
-			// commit regardless of insert or update
-			securityDb.commit();
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
+			}
+		}
+	}
+	
+	/**
+	 * Change the user visibility (show/hide) for a project. Without removing its permissions.
+	 * @param user
+	 * @param projectId
+	 * @param visibility
+	 * @throws SQLException 
+	 * @throws IllegalAccessException 
+	 */
+	public static void setProjectPortal(User user, String projectId, boolean hasPortal, String portalName) throws SQLException, IllegalAccessException {
+		if(!userIsOwner(user, projectId)) {
+			throw new IllegalAccessException("The user doesn't have the permission to set if this project has a portal");
+		}
+		
+		String query = "UPDATE PROJECT SET HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
+		PreparedStatement ps = securityDb.getPreparedStatement(query);
+		if(ps == null) {
+			throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
+		}
+		try {
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, hasPortal);
+			if(portalName != null) {
+				ps.setString(parameterIndex++, portalName);
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			}
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(ps != null) {
+				ps.close();
+			}
+			if(securityDb.isConnectionPooling()) {
+				ps.getConnection().close();
 			}
 		}
 	}
