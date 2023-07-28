@@ -303,11 +303,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				}
 			}
 			
-			engines = SecurityEngineUtils.getAllDatabaseIds();
+			engines = SecurityEngineUtils.getAllEngineIds();
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
 					logger.info("Deleting the engine from security..... " + Utility.cleanLogString(engine));
-					SecurityEngineUtils.deleteDatabase(engine);
+					SecurityEngineUtils.deleteEngine(engine);
 				}
 			}
 		}

@@ -96,7 +96,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(databaseId);
-		SecurityEngineUtils.deleteDatabase(databaseId);
+		SecurityEngineUtils.deleteEngine(databaseId);
 		return true;
 	}
 
