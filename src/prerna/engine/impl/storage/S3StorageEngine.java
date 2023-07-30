@@ -5,8 +5,12 @@ import java.util.Properties;
 
 import prerna.util.Utility;
 
-public class S3StorageEngine extends AbstractBaseConfigRCloneStorageEngine {
+public class S3StorageEngine extends AbstractRCloneStorageEngine {
 
+	{
+		this.PROVIDER = "s3";
+	}
+	
 	private static final String S3_REGION_KEY = "S3_REGION";
 	private static final String S3_BUCKET_KEY = "S3_BUCKET";
 	private static final String S3_ACCESS_KEY = "S3_ACCESS_KEY";

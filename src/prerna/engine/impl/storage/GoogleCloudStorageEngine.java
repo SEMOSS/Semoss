@@ -5,7 +5,7 @@ import java.util.Properties;
 
 import prerna.util.Utility;
 
-public class GoogleCloudStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
+public class GoogleCloudStorageEngine extends AbstractRCloneStorageEngine {
 
 	{
 		this.PROVIDER = "google cloud storage";
