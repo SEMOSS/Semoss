@@ -5,19 +5,23 @@ import java.util.Properties;
 
 import prerna.util.Utility;
 
-public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
+public class MinioStorageEngine extends AbstractRCloneStorageEngine {
 
+	{
+		this.PROVIDER = "s3";
+	}
+	
 	/**
 	 * Yes, this is the minio engine
 	 * But the keys are the same as S3 with exception of requiring endpoint
 	 */
-	private static final String S3_REGION_KEY = "S3_REGION";
-	private static final String S3_ACCESS_KEY = "S3_ACCESS_KEY";
-	private static final String S3_SECRET_KEY = "S3_SECRET_KEY";
-	private static final String S3_ENDPOINT_KEY = "S3_ENDPOINT";
+	private static final String MINIO_REGION_KEY = "MINIO_REGION";
+	private static final String MINIO_ACCESS_KEY = "MINIO_ACCESS_KEY";
+	private static final String MINIO_SECRET_KEY = "MINIO_SECRET_KEY";
+	private static final String MINIO_ENDPOINT_KEY = "MINIO_ENDPOINT";
 	
 	// this is not really needed
-	private static final String S3_BUCKET_KEY = "S3_BUCKET";
+	private static final String MINIO_BUCKET_KEY = "MINIO_BUCKET";
 
 	// specific values - while not final they shouldn't be modified
 	private String REGION = null;
@@ -28,13 +32,13 @@ public class MinioStorageEngine extends AbstractBaseConfigRCloneStorageEngine {
 	public void connect(Properties smssProp) throws Exception {
 		super.connect(smssProp);
 		
-		this.REGION = smssProp.getProperty(S3_REGION_KEY);
-		this.ACCESS_KEY = smssProp.getProperty(S3_ACCESS_KEY);
-		this.SECRET_KEY = smssProp.getProperty(S3_SECRET_KEY);
-		this.ENDPOINT = smssProp.getProperty(S3_ENDPOINT_KEY);
+		this.REGION = smssProp.getProperty(MINIO_REGION_KEY);
+		this.ACCESS_KEY = smssProp.getProperty(MINIO_ACCESS_KEY);
+		this.SECRET_KEY = smssProp.getProperty(MINIO_SECRET_KEY);
+		this.ENDPOINT = smssProp.getProperty(MINIO_ENDPOINT_KEY);
 		
 		// this is technically not required for minio
-		this.BUCKET = smssProp.getProperty(S3_BUCKET_KEY);
+		this.BUCKET = smssProp.getProperty(MINIO_BUCKET_KEY);
 	}
 	
 	@Override
