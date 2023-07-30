@@ -27,34 +27,6 @@ import prerna.util.Utility;
 
 public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine implements IRCloneStorage {
 
-	/*
-	 * 
-	 * This is just for my reference while building out the engines
-	 * 
-		// s3 prefix is used for minio as well
-		public static final String S3_REGION_KEY = "S3_REGION";
-		public static final String S3_BUCKET_KEY = "S3_BUCKET";
-		public static final String S3_ACCESS_KEY = "S3_ACCESS_KEY";
-		public static final String S3_SECRET_KEY = "S3_SECRET_KEY";
-		public static final String S3_ENDPOINT_KEY = "S3_ENDPOINT";
-		
-		// gcp keys
-		public static final String GCP_SERVICE_ACCOUNT_FILE_KEY = "GCP_SERVICE_ACCOUNT_FILE";
-		public static final String GCP_REGION_KEY = "GCP_REGION";
-		public static final String GCP_BUCKET_KEY = "GCP_BUCKET";
-		
-		// az keys
-		public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
-		public static final String AZ_NAME = "AZ_NAME";
-		public static final String AZ_KEY = "AZ_KEY";
-		public static final String SAS_URL = "SAS_URL";
-		public static final String AZ_URI = "AZ_URI";
-		public static final String STORAGE = "STORAGE"; // says if this is local / cluster
-		public static final String KEY_HOME = "KEY_HOME"; // this is where the various keys are cycled
-	 * 
-	 * 
-	 */
-	
 	private static final Logger classLogger = LogManager.getLogger(AbstractRCloneStorageEngine.class);
 
 	// the path to rclone executable - default assumes in path
@@ -66,6 +38,9 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	// this must be set in the implementing class
 	protected String PROVIDER = null;
 
+	// optional bucket
+	protected String BUCKET = null;
+	
 	@Override
 	public void close() {
 		// since we start and delete rclone configs based on the call
@@ -131,6 +106,313 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			new File(configPath).delete();
 		}
 	}
+	
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+
+	
+	/**
+	 * List the folders/files in the path
+	 */
+	@Override
+	public List<String> list(String path, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
+		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
+			rCloneConfig = createRCloneConfig();
+			delete = true;
+		}
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(path != null) {
+				path = path.replace("\\", "/");
+				if(!path.startsWith("/")) {
+					rClonePath += "/"+path;
+				} else {
+					rClonePath += path;
+				}
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+			return results;
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+	
+	/**
+	 * List the folders/files in the path
+	 */
+	@Override
+	public List<Map<String, Object>> listDetails(String path, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
+		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
+			rCloneConfig = createRCloneConfig();
+			delete = true;
+		}
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(path != null) {
+				path = path.replace("\\", "/");
+				if(!path.startsWith("/")) {
+					rClonePath += "/"+path;
+				} else {
+					rClonePath += path;
+				}
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, "rclone", "lsjson", rClonePath, "--max-depth=1");
+			return results;
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+	
+	@Override
+	public void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
+		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
+			rCloneConfig = createRCloneConfig();
+			delete = true;
+		}
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(localPath == null || localPath.isEmpty()) {
+				throw new NullPointerException("Must define the local location of the file to push");
+			}
+			if(storagePath == null || storagePath.isEmpty()) {
+				throw new NullPointerException("Must define the location of the storage folder to move to");
+			}
+	
+			storagePath = storagePath.replace("\\", "/");
+			localPath = localPath.replace("\\", "/");
+	
+			if(!storagePath.startsWith("/")) {
+				storagePath = "/"+storagePath;
+			}
+			rClonePath += storagePath;
+			
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!localPath.startsWith("\"")) {
+				localPath = "\""+localPath+"\"";
+			}
+			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", localPath, rClonePath);
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+		
+	}
+
+	@Override
+	public void syncStorageToLocal(String storagePath, String localPath, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
+		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
+			rCloneConfig = createRCloneConfig();
+			delete = true;
+		}
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(localPath == null || localPath.isEmpty()) {
+				throw new NullPointerException("Must define the local location of the file to push");
+			}
+			if(storagePath == null || storagePath.isEmpty()) {
+				throw new NullPointerException("Must define the location of the storage folder to move to");
+			}
+	
+			storagePath = storagePath.replace("\\", "/");
+			localPath = localPath.replace("\\", "/");
+	
+			if(!storagePath.startsWith("/")) {
+				storagePath = "/"+storagePath;
+			}
+			rClonePath += storagePath;
+			
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!localPath.startsWith("\"")) {
+				localPath = "\""+localPath+"\"";
+			}
+			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rClonePath, localPath);
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+	
+	@Override
+	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
+		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
+			rCloneConfig = createRCloneConfig();
+			delete = true;
+		}
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(localFilePath == null || localFilePath.isEmpty()) {
+				throw new NullPointerException("Must define the local location of the file to push");
+			}
+			if(storageFolderPath == null || storageFolderPath.isEmpty()) {
+				throw new NullPointerException("Must define the location of the storage folder to move to");
+			}
+	
+			storageFolderPath = storageFolderPath.replace("\\", "/");
+			localFilePath = localFilePath.replace("\\", "/");
+	
+			if(!storageFolderPath.startsWith("/")) {
+				storageFolderPath = "/"+storageFolderPath;
+			}
+			rClonePath += storageFolderPath;
+			
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!localFilePath.startsWith("\"")) {
+				localFilePath = "\""+localFilePath+"\"";
+			}
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", localFilePath, rClonePath);
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+	
+	@Override
+	public void copyToLocal(String storageFilePath, String localFolderPath, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
+		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
+			rCloneConfig = createRCloneConfig();
+			delete = true;
+		}
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(storageFilePath == null || storageFilePath.isEmpty()) {
+				throw new NullPointerException("Must define the storage location of the file to download");
+			}
+			if(localFolderPath == null || localFolderPath.isEmpty()) {
+				throw new NullPointerException("Must define the location of the local folder to move to");
+			}
+			
+			storageFilePath = storageFilePath.replace("\\", "/");
+			localFolderPath = localFolderPath.replace("\\", "/");
+			
+			if(!storageFilePath.startsWith("/")) {
+				storageFilePath = "/"+storageFilePath;
+			}
+			rClonePath += storageFilePath;
+	
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			// wrap in quotes just in case of spaces, etc.
+			if(!localFolderPath.startsWith("\"")) {
+				localFolderPath = "\""+localFolderPath+"\"";
+			}
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rClonePath, localFolderPath);
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+	
+	@Override
+	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
+		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
+			rCloneConfig = createRCloneConfig();
+			delete = true;
+		}
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(storagePath == null || storagePath.isEmpty()) {
+				throw new NullPointerException("Must define the storage location of the file to download");
+			}
+			
+			storagePath = storagePath.replace("\\", "/");
+			
+			if(!storagePath.startsWith("/")) {
+				storagePath = "/"+storagePath;
+			}
+			rClonePath += storagePath;
+	
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			
+			if(leaveFolderStructure) {
+				// always do delete
+				runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
+			} else {
+				// we can only do purge on a folder
+				// so need to check
+				List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+				if(results.size() == 1 && !results.get(0).endsWith("/")) {
+					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
+				} else {
+					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "purge", rClonePath);
+				}
+			}
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+	
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
 
 	/**
 	 * 
