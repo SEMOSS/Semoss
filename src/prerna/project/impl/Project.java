@@ -1477,7 +1477,13 @@ public class Project implements IProject {
 			}
 			
 			// instrumenting the client class also now
-			String pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
+			// first is it defined in smss
+			String pyClient = this.prop.getProperty(Settings.TCP_CLIENT);
+			// if not, grab from rdf map
+			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
+				pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
+			}
+			// else default to socket client
 			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
 				pyClient = "prerna.tcp.client.SocketClient";
 			}
