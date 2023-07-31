@@ -1,10 +1,13 @@
 package prerna.sablecc2.reactor.database;
 
+import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 
 public class SetContextReactor extends AbstractReactor {
 	
@@ -18,7 +21,6 @@ public class SetContextReactor extends AbstractReactor {
 		this.keysToGet = new String[] {ReactorKeysEnum.CONTEXT.getKey()};
 		this.keyRequired = new int[]{1};
 	}
-	
 	
 	@Override
 	public NounMetadata execute() {
@@ -35,6 +37,20 @@ public class SetContextReactor extends AbstractReactor {
 		// attempt once to directly map it with same name
 		if(!success) {
 			return getError("No mount point " + context + " - please use Mount(<mount point>, App Name) to set a mount point");
+		}
+		
+		// if python enabled
+		// set the path
+		if(PyUtils.pyEnabled()) {
+			String assetsDir = AssetUtility.getProjectAssetFolder(context).replace("\\", "/");
+			String script = "import sys\n"+
+				"import os\n"+
+				"sys.path.append('"+assetsDir+"')\n"+
+				"os.chdir('"+assetsDir+"')"
+				;
+			
+			PyTranslator pyT = this.insight.getPyTranslator();
+			pyT.runEmptyPy(script);			
 		}
 		
 		return new NounMetadata("Successfully set context to '" + context , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
