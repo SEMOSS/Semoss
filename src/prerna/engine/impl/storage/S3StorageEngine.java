@@ -11,10 +11,10 @@ public class S3StorageEngine extends AbstractRCloneStorageEngine {
 		this.PROVIDER = "s3";
 	}
 	
-	private static final String S3_REGION_KEY = "S3_REGION";
-	private static final String S3_BUCKET_KEY = "S3_BUCKET";
-	private static final String S3_ACCESS_KEY = "S3_ACCESS_KEY";
-	private static final String S3_SECRET_KEY = "S3_SECRET_KEY";
+	public static final String S3_REGION_KEY = "S3_REGION";
+	public static final String S3_BUCKET_KEY = "S3_BUCKET";
+	public static final String S3_ACCESS_KEY = "S3_ACCESS_KEY";
+	public static final String S3_SECRET_KEY = "S3_SECRET_KEY";
 	
 	// specific values - while not final they shouldn't be modified
 	protected String REGION = null;
