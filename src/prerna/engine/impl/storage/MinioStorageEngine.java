@@ -9,19 +9,20 @@ public class MinioStorageEngine extends AbstractRCloneStorageEngine {
 
 	{
 		this.PROVIDER = "s3";
+		this.TRANSFER_LIMIT = "4";
 	}
 	
 	/**
 	 * Yes, this is the minio engine
 	 * But the keys are the same as S3 with exception of requiring endpoint
 	 */
-	private static final String MINIO_REGION_KEY = "MINIO_REGION";
-	private static final String MINIO_ACCESS_KEY = "MINIO_ACCESS_KEY";
-	private static final String MINIO_SECRET_KEY = "MINIO_SECRET_KEY";
-	private static final String MINIO_ENDPOINT_KEY = "MINIO_ENDPOINT";
+	public static final String MINIO_REGION_KEY = "MINIO_REGION";
+	public static final String MINIO_ACCESS_KEY = "MINIO_ACCESS_KEY";
+	public static final String MINIO_SECRET_KEY = "MINIO_SECRET_KEY";
+	public static final String MINIO_ENDPOINT_KEY = "MINIO_ENDPOINT";
 	
 	// this is not really needed
-	private static final String MINIO_BUCKET_KEY = "MINIO_BUCKET";
+	public static final String MINIO_BUCKET_KEY = "MINIO_BUCKET";
 
 	// specific values - while not final they shouldn't be modified
 	private String REGION = null;
