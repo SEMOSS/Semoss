@@ -9,6 +9,7 @@ public class MinioClient extends AbstractBaseCloudClient {
 
 	{
 		this.PROVIDER = "s3";
+		this.TRANSFER_LIMIT = "4";
 	}
 	
 	private String ENDPOINT = null;
