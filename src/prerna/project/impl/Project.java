@@ -146,6 +146,7 @@ public class Project implements IProject {
 
 	// project specific analytics thread
 	private transient Process tcpServerProcess;
+	private transient String tcpServerProcessPrefix;
 	private transient SocketClient tcpClient;
 	private String processSpace = null;
 	private String port = null;
@@ -1451,6 +1452,17 @@ public class Project implements IProject {
 	private synchronized void createProjectTcpServer() {
 		if (tcpClient == null || !tcpClient.isConnected())  // start only if it not already in progress
 		{
+			boolean nativePyServer = false;
+			// first is it defined in smss
+			String nativePyServerStr = this.prop.getProperty(Settings.NATIVE_PY_SERVER);
+			// if not, grab from rdf map
+			if(nativePyServerStr == null || (nativePyServerStr=nativePyServerStr.trim()).isEmpty()) {
+				nativePyServerStr = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER);
+			}
+			if(nativePyServerStr != null) {
+				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
+			}
+			
 			logger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.prop));
 			this.port = this.projectProperties.getProperty(Settings.FORCE_PORT);
 			// port has not been forced
@@ -1471,7 +1483,13 @@ public class Project implements IProject {
 				tempDirForProject = Files.createTempDirectory(mainCachePath, "a");
 				this.processSpace = tempDirForProject.toString();
 				Utility.writeLogConfigurationFile(this.processSpace);
-				this.tcpServerProcess = Utility.startTCPServer(cp, this.processSpace, this.port);
+				if(nativePyServer) {
+					Object[] ret = Utility.startTCPServerNativePy(this.processSpace, this.port);
+					this.tcpServerProcess = (Process) ret[0];
+					this.tcpServerProcessPrefix = (String) ret[1];
+				} else {
+					this.tcpServerProcess = Utility.startTCPServer(cp, this.processSpace, this.port);
+				}
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
