@@ -171,6 +171,7 @@ import prerna.sablecc2.om.task.TaskUtility;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
+import prerna.tcp.client.SocketClient;
 import prerna.tcp.workers.EngineSocketWrapper;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -5406,7 +5407,40 @@ public class Utility {
 
 		return new Object[] {thisProcess, prefix};
 	}
-
+	
+	/**
+	 * 
+	 * @param pyClientClass
+	 * @param port
+	 * @return
+	 */
+	public static SocketClient startTCPClient(String pyClient, String port) {
+		SocketClient tcpClient = null;
+		try {
+			tcpClient = (SocketClient) Class.forName(pyClient).newInstance();
+			tcpClient.connect("127.0.0.1", Integer.parseInt(port), false);
+			//nc.run(); - you cannot do this because then the client goes into listener mode
+			Thread t = new Thread(tcpClient);
+			t.start();
+			while(!tcpClient.isReady())
+			{
+				synchronized(tcpClient)
+				{
+					try 
+					{
+						tcpClient.wait();
+						logger.info("Setting the socket client ");
+					} catch (InterruptedException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		return tcpClient;
+	}
 	
 	public static Process startRMIServer(String cp, String insightFolder, String port) {
 		// this basically starts a java process
