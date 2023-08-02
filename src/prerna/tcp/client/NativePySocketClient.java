@@ -19,6 +19,8 @@ import prerna.auth.User;
 import prerna.sablecc2.comm.JobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
+import prerna.tcp.client.workers.EngineWorker;
+import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -31,8 +33,8 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     private String HOST = null;
     private int PORT = -1;
     private boolean ssl = false;
-    Map requestMap = new HashMap();
-    Map responseMap = new HashMap();
+    //Map requestMap = new HashMap();
+    //Map responseMap = new HashMap();
     private boolean ready = false;
     private boolean connected = false;
     private AtomicInteger count = new AtomicInteger(0);
@@ -113,6 +115,12 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    	if(attempt > 6) {
 	            logger.info("CLIENT Connection Failed !!!!!!!");
 	            killall = true;
+	            connected = false;
+	            ready = true;
+	            synchronized(this)
+	            {
+	            	this.notifyAll();
+	            }
 	    	}
     	}    	
     	
@@ -155,43 +163,60 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					if(lock != null)
 	    						exposeLog((String)ps.payload[0], lock.insightId);
 	    				}
+	    				
 	       				// need some way to say this is the output from the actual python vs. something that is a logger
 	    				// this is done through interim and operations
-	    				if(ps.interim && ps.response) // this is interim.. 
+	    				if(ps.response || ps.operation == ps.operation.STDOUT)
 	    				{
-	    					// need to return output here
-	    					outputAssimilator.append(ps.payload[0]);
+		    				if(ps.interim) // this is interim.. 
+		    				{
+		    					// need to return output here
+		    					outputAssimilator.append(ps.payload[0]);
+		    				}
+		    				else if(ps.response)// interim is over
+		    				{
+		    					// we are going to force the output since that is they may have requested
+			    				lock = (PayloadStruct)requestMap.remove(ps.epoc);
+		    					if(outputAssimilator.length() > 0 && ((String)ps.payload[0]).equalsIgnoreCase("NONE")) 
+		    						ps.payload[0] = outputAssimilator;
+		    					
+		    					// try to convert it into a full object
+		    					// need to check if it is primitive before converting
+		    					try
+		    					{
+			    					Object obj = gson.fromJson((String)ps.payload[0], Object.class);
+			    					ps.payload[0] = obj;
+		    					}catch(Exception ignored)
+		    					{
+		    						
+		    					}
+		    					
+		    					System.out.println("FINAL OUTPUT <<<<<<<" + outputAssimilator + ">>>>>>>>>>>>");
+		    					// re-initialize it
+		    					outputAssimilator = new StringBuffer("");
+	
+		    					// put it in response
+		    					responseMap.put(ps.epoc, ps);
+		    					if(lock != null)
+		    					{
+		    						synchronized(lock)
+		    						{
+		    							lock.notifyAll();
+		    						}
+		    					}
+		    				}
 	    				}
-	    				else if(ps.response)// interim is over
+	    				else
 	    				{
-	    					// we are going to force the output since that is they may have requested
-		    				lock = (PayloadStruct)requestMap.remove(ps.epoc);
-	    					if(outputAssimilator.length() > 0 && ((String)ps.payload[0]).equalsIgnoreCase("NONE")) 
-	    						ps.payload[0] = outputAssimilator;
-	    					
-	    					// try to convert it into a full object
-	    					try
-	    					{
-		    					Object obj = gson.fromJson((String)ps.payload[0], Object.class);
-		    					ps.payload[0] = obj;
-	    					}catch(Exception ignored)
-	    					{
-	    						
-	    					}
-	    					
-	    					System.out.println("FINAL OUTPUT <<<<<<<" + outputAssimilator + ">>>>>>>>>>>>");
-	    					// re-initialize it
-	    					outputAssimilator = new StringBuffer("");
-
-	    					// put it in response
-	    					responseMap.put(ps.epoc, ps);
-	    					if(lock != null)
-	    					{
-	    						synchronized(lock)
-	    						{
-	    							lock.notifyAll();
-	    						}
-	    					}
+	    					// this is a request we need to process
+	    					// need a way here to also push the payload classes
+	    					// will come to it in a bit
+	    					NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps);
+	    					worker.run();
+	    					executeCommand(worker.getOutput());
+	    					// not sure if this needs to be a thread
+							//Thread ew = new Thread(worker);
+							//ew.start();
 	    				}
     				}
     				else
@@ -435,5 +460,6 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     public boolean isReady() {
     	return this.ready;
     }
+    
     
 }

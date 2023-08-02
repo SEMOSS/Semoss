@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -20,6 +21,7 @@ import prerna.om.Insight;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class EmbeddedModelEngine implements IModelEngine {
@@ -33,9 +35,19 @@ public class EmbeddedModelEngine implements IModelEngine {
 	String port = null;
 	NativePySocketClient socketClient = null;
 	TCPPyTranslator pyt = null;
+	Map vars = new HashMap();
+	String varName = null;
+	String stopper = null;
 	
+	public EmbeddedModelEngine()
+	{
+		vars.put(Settings.VAR_NAME, "");
+		vars.put(Settings.PROMPT_STOPPER, "");
+		
+	}
 	@Override
-	public void loadModel(String modelSmss) {
+	public void loadModel(String modelSmss) 
+	{
 		// TODO Auto-generated method stub
 		// starts the model
 		try {
@@ -43,6 +55,14 @@ public class EmbeddedModelEngine implements IModelEngine {
 			File file = new File(modelSmss);
 			
 			prop.load(new FileInputStream(file));
+			genVars();
+			String curDir = file.getParent();
+			curDir = curDir.replace("\\", "/");
+			prop.put("CUR_DIR", curDir);
+			String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+			String engineID = prop.getProperty(Constants.ENGINE);
+			prop.put("ENGINE_DIR", curDir + "/" + engineName + "__" + engineID);
+			vars = new HashMap(prop);
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -58,6 +78,15 @@ public class EmbeddedModelEngine implements IModelEngine {
 		// spin the server
 		// start the client
 		// get the startup command and parameters - at some point we need a better way than the command
+		
+		// execute all the basic commands
+		String initCommands = (String)prop.get(Constants.INIT_MODEL_ENGINE);
+		
+		// break the commands seperated by ;
+		String [] commands = initCommands.split(";");
+		// replace the Vars
+		for(int commandIndex = 0;commandIndex < commands.length;commandIndex++)
+			commands[commandIndex] = fillVars(commands[commandIndex]);
 		
 		port = Utility.findOpenPort();
 		// create a generic folder
@@ -83,14 +112,8 @@ public class EmbeddedModelEngine implements IModelEngine {
 		pyt = new TCPPyTranslator();
 		pyt.setClient(socketClient);
 		
-		// execute all the basic commands
-		String initCommands = (String)prop.get(Constants.INIT_MODEL_ENGINE);
 		
-		// break the commands seperated by ;
-		String [] commands = initCommands.split(";");
-		
-		pyt.runEmptyPy(commands);
-		
+		pyt.runEmptyPy(commands);		
 	}
 
 	//@Override
@@ -142,7 +165,7 @@ public class EmbeddedModelEngine implements IModelEngine {
 		if(!this.socketClient.isConnected())
 			this.startServer();
 		
-		String varName = (String)prop.get("VAR_NAME");
+		String varName = (String)prop.get(Settings.VAR_NAME);
 		
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
 		callMaker.append("question='").append(question).append("'");
@@ -202,50 +225,32 @@ public class EmbeddedModelEngine implements IModelEngine {
 	///////////////////////////////////////////////////////////////////////
 
 	
-	public static void main(String [] args)
-	{
-		String propFile = "c:/users/pkapaleeswaran/workspacej3/SemossDev/model/Orca_Embedded.smss";
-		
-		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_MAP.prop");
-		
-		IModelEngine eng = new EmbeddedModelEngine();
-		eng.loadModel(propFile);
-		eng.startServer();
-		
-		Map <String, Object> params = new HashMap<String, Object>();
-		params.put("max_new_tokens", 200);
-		params.put("temperature", 0.01);
-		
-		String output = eng.ask("What is the capital of India ?", null, null, params);
-		
-		//PyTranslator pyt = eng.getClient();
-		
-		System.err.println(output);
-		
-		//Object output = pyt.runScript("i.ask(question='What is the capital of India ?')");
-		
-		//System.err.println(output);
-	}
-	
-	
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-	// TODO Auto-generated method stub
-
 
 	@Override
 	public void setEngineId(String engineId) {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	private void genVars()
+	{
+		Iterator <String> keys = vars.keySet().iterator();
+		while(keys.hasNext())
+		{
+			String key = keys.next();
+			if(!prop.containsKey(key))
+			{
+				String randomString = "v_" + Utility.getRandomString(6);
+				prop.put(key, randomString);
+			}
+		}
+	}
+	
+	private String fillVars(String input)
+	{
+		StringSubstitutor sub = new StringSubstitutor(vars);
+		String resolvedString = sub.replace(input);
+		return resolvedString;
 	}
 
 	@Override
@@ -302,5 +307,31 @@ public class EmbeddedModelEngine implements IModelEngine {
 		
 	}
 	
+	
+	public static void main(String [] args)
+	{
+		String propFile = "c:/users/pkapaleeswaran/workspacej3/SemossDev/db/PolicyBot.smss";
+		
+		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_MAP.prop");
+		
+		IModelEngine eng = new EmbeddedModelEngine();
+		eng.loadModel(propFile);
+		eng.startServer();
+		
+		Map <String, Object> params = new HashMap<String, Object>();
+		params.put("max_new_tokens", 200);
+		params.put("temperature", 0.01);
+		
+		String output = eng.ask("What is the capital of India ?", null, null, params);
+		
+		//PyTranslator pyt = eng.getClient();
+		
+		System.err.println(output);
+		
+		//Object output = pyt.runScript("i.ask(question='What is the capital of India ?')");
+		
+		//System.err.println(output);
+	}
+
 	
 }
