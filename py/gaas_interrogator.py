@@ -15,11 +15,12 @@ from pathlib import Path
 class Interrogator():
   
   
-  def __init__(self, model_path=None, autoload=True, **kwargs):
+  def __init__(self, model_path=None, autoload=True, stopper="abracadabra", **kwargs):
     self.model_name=model_path
     self.snapshot="main"
     self.output_prefix = ""
     self.serialized = False
+    self.stopper = stopper
     if "output_prefix" in kwargs:
       self.output_prefix = kwargs.pop("output_prefix")
     if "revision" in kwargs:

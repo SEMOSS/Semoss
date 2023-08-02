@@ -10,7 +10,10 @@ class SemossConsole(object):
         self.socket_handler.send_output(console_line, self.payload, response=False)
       else:
         #self.txtctrl.write(string)
-        self.output.append(console_line)
+        self.output.append(console_line)        
 
     def flush(self):
+      pass
+
+    def close(self):
       pass
