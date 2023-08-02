@@ -1,0 +1,9 @@
+{
+    "orca.default.context":"### System:\n$system\n\n### User:\n$question\n\n### Input:\n$context\n\n### Response:\n",
+    "orca.default.nocontext":"### System:\n$system\n\n### User:\n$question\n\n### Response:\n",
+    "guanaco.default.nocontext": "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction: $question\n\n### Response:",
+    "guanaco.default.context": "A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. Based on the following paragraphs, answer the human's question:\n\n$context.\n\n### Questions:\n\n$question\n\n### Response:",
+    "wizard.default.nocontext": "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction: $question\n\n### Response:",
+    "wizard.default.context": "A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. USER: $context. $question ? ASSISTANT:",
+    "sql.default.context": "A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. Based on the table and columns defined below, create a sql statement that answers the human's question:### Question:\n\n$question\n\n### SQL:"
+}
