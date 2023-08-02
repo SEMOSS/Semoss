@@ -5,10 +5,14 @@ import json
 import logging
 import smssutil
 import traceback as tb
+import threading
 from clean import PyFrame
+import gaas_server_proxy as gsp
 
 
 class TCPServerHandler(socketserver.BaseRequestHandler):
+  
+  da_server = None
   
   def setup(self):
     self.message = None
@@ -17,6 +21,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     self.stop = False
     self.size = 0
     self.my_var = {}
+    self.monitor = threading.Condition()
+    self.my_var.update({"core_server": self})
+    TCPServerHandler.da_server = self
+    #TCPServerHandler.myvar = self
+    
+    # cache where the link between payload id and monitor is kept
+    self.monitors = {}
+    # add the storage
+    # LLM
+    # DB Proxy here
     self.prefix = self.server.prefix
     self.insight_folder = self.server.insight_folder
     self.log_file = None
@@ -37,7 +51,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         #print(f"receiving data {size}")
         data = self.request.recv(size)
         #print(f"process the data ---- {data.decode('utf-8')}")
-        self.get_final_output(data)
+        #payload = data.decode('utf-8')      
+        runner = threading.Thread(target=self.get_final_output, kwargs=({'data':data}))
+        runner.start()
+        #self.get_final_output(data)
         if not data: 
           break
           self.request.sendall(data)
@@ -49,8 +66,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       #print("all processing has finished !!")
     #self.get_final_output(data)
   
-  def get_final_output(self, data):
+  def get_final_output(self, data=None):
     payload = ""
+    #payload = data
     try:
       payload = data.decode('utf-8')      
       print(f"PAYLOAD.. {payload}")
@@ -79,12 +97,18 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.prefix = output_file
         print("set the prefix to .. " + self.prefix)
         self.send_output("prefix set", payload, response=True)
+      #elif command == 'core':
+      #  exec('core_server=s
+      #  print("set the core " + self.prefix)
+      #  self.send_output("prefix set", payload, response=True)
       
+      # need a way to handle stop message here
+      
+      # If this is a python payload 
       elif payload['operation'] == 'PYTHON':
         print(f"Executing command {command}")
         # old smss calls
         if command.endswith(".py") or command.startswith('smssutil'):
-          print("executing smssutil")
           try:
             output = eval(command, globals(), self.my_var)
           except Exception as e:
@@ -101,13 +125,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # all new
         else:
           # same trick - try to eval if it fails run as exec
-          import semoss_console as console
-          console = console.SemossConsole(socket_handler=self, payload=payload)
           import contextlib
-          with contextlib.redirect_stdout(console), contextlib.redirect_stderr(console):
+          globals()['core_server'] = self
+          import semoss_console as console
+          c = console.SemossConsole(socket_handler=self, payload=payload)
+          with contextlib.redirect_stdout(c), contextlib.redirect_stderr(c):
             try:
               output = eval(command, globals(), self.my_var)
-              #print(f"Eval output {output}")
             except Exception as e:
               try:
                 exec(command, globals(), self.my_var)
@@ -117,6 +141,18 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 output =  ''.join(tb.format_exception(None, e, e.__traceback__))
           output = str(output)
           self.send_output(output, payload, operation=payload["operation"], response=True)
+      
+      # this is when it is a response 
+      elif payload['response']:
+        print("In the response block")
+        # this is a response coming back from a request from the java container
+        if payload['epoc'] in self.monitors:
+          condition = self.monitors[payload['epoc']]
+          self.monitors.update({payload['epoc']: payload})
+          condition.acquire()
+          condition.notifyAll()
+          condition.release()
+      
       else:
         output = f"This is a python only instance. Command {command} is not supported"
         output = str(output)
@@ -175,6 +211,32 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     
     # send it out
     self.request.sendall(ret_array)
+
+  def send_request(self, payload):
+    # Do not write any prints here
+    # since the console is captured it will go into recursion
+        
+    #print("sending output " + output)
+    # make it back into payload just for epoch
+    # if this comes with prefix. it is part of the response    
+    output = json.dumps(payload)
+    # write response back
+    size = len(output)
+    size_byte = size.to_bytes(4, 'big')
+    ret_array = bytearray(size)
+    # pack the size upfront 
+    ret_array[0:4] = size_byte
+    # pack the message next
+    ret_array[4:] = output.encode('utf-8')
+    
+    if self.log_file is not None:
+      self.log_file.write(f"REQUEST === {payload}")
+      self.log_file.flush()
+      self.log_file.write("\n")
+    # send it out
+    self.request.sendall(ret_array)
+
+
     
   def stop_request(self):
     if not self.stop:
