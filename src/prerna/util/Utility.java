@@ -824,7 +824,28 @@ public class Utility {
 		changePropertiesFileValue(filePath, keyToAlter, valueToProvide, false);
 	}
 
+	/**
+	 * 
+	 * @param filePath
+	 * @param keyToAlter
+	 * @param valueToProvide
+	 * @param contains
+	 * @throws IOException
+	 */
 	public static void changePropertiesFileValue(String filePath, String keyToAlter, String valueToProvide, boolean contains) throws IOException {
+		Map<String, String> keyToNewValue = new HashMap<>();
+		keyToNewValue.put(keyToAlter, valueToProvide);
+		changePropertiesFileValue(filePath, keyToNewValue, contains);
+	}
+	
+	/**
+	 * 
+	 * @param filePath
+	 * @param keyToNewValue
+	 * @param contains
+	 * @throws IOException
+	 */
+	public static void changePropertiesFileValue(String filePath, Map<String, String> keyToNewValue, boolean contains) throws IOException {
 		FileOutputStream fileOut = null;
 		File file = new File(filePath);
 
@@ -851,31 +872,42 @@ public class Utility {
 			byte[] lineBreak = "\n".getBytes();
 			// 2) iterate through each line if the smss file
 			for (int i = 0; i < content.size(); i++) {
-				// 3) if this line starts with the key to alter
-
+				
+				// separate out logic for contains vs exact match
 				if (contains) {
-					if (content.get(i).contains(keyToAlter)) {
-						// create new line to write using the key and the new value
-						String newKeyValue = keyToAlter + "\t" + valueToProvide;
-						fileOut.write(newKeyValue.getBytes());
+					boolean updated = false;
+					// 3) if this line starts with the key to alter
+					FOUND_LOOP : for(String keyToAlter : keyToNewValue.keySet()) {
+						if (content.get(i).contains(keyToAlter)) {
+							// create new line to write using the key and the new value
+							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
+							fileOut.write(newKeyValue.getBytes());
+							updated = true;
+							break FOUND_LOOP;
+						}
 					}
-
+					
 					// 4) if it doesn't, just write the next line as is
-					else {
+					if(!updated) {
 						byte[] contentInBytes = content.get(i).getBytes();
 						fileOut.write(contentInBytes);
 					}
 					// after each line, write a line break into the file
 					fileOut.write(lineBreak);
 				} else {
-					if (content.get(i).startsWith(keyToAlter + "\t") || content.get(i).startsWith(keyToAlter + " ")) {
-						// create new line to write using the key and the new value
-						String newKeyValue = keyToAlter + "\t" + valueToProvide;
-						fileOut.write(newKeyValue.getBytes());
+					boolean updated = false;
+					for(String keyToAlter : keyToNewValue.keySet()) {
+						FOUND_LOOP : if (content.get(i).startsWith(keyToAlter + "\t") || content.get(i).startsWith(keyToAlter + " ")) {
+							// create new line to write using the key and the new value
+							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
+							fileOut.write(newKeyValue.getBytes());
+							updated = true;
+							break FOUND_LOOP;
+						}
 					}
 
 					// 4) if it doesn't, just write the next line as is
-					else {
+					if(!updated) {
 						byte[] contentInBytes = content.get(i).getBytes();
 						fileOut.write(contentInBytes);
 					}
