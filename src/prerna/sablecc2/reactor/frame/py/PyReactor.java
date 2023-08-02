@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.py;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
@@ -65,9 +66,19 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			//if(tokens > 1) 
 			{
-				if(nativePyServer)
-					output = pyTranslator.runScript(code) + "";
-				else
+//				if(nativePyServer)
+//				{
+//					Map appMap = insight.getUser().getVarMap();
+//					
+//					if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
+//					{
+//						String varFolderAssignment = appMap.get("PY_VAR_STRING").toString();
+//						varFolderAssignment = varFolderAssignment.replace("\n", ";");
+//						pyTranslator.runScript(varFolderAssignment);
+//					}
+//					output = pyTranslator.runScript(code, this.insight) + "";
+//				}
+//				else
 					output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
 			} 
 			/*else {

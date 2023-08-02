@@ -7,6 +7,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.ErrorSenderThread;
 import prerna.tcp.client.SocketClient;
+import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class TCPPyTranslator extends PyTranslator {
@@ -22,7 +24,8 @@ public class TCPPyTranslator extends PyTranslator {
 	public void setClient(SocketClient nc) {
 		this.nc = nc;
 	}
-	
+
+
 	@Override
 	public synchronized Object runScript(String script) 
 	{
@@ -86,44 +89,29 @@ public class TCPPyTranslator extends PyTranslator {
 		// get error messages
 		if(insight != null)
 		{
+			ps.insightId = insight.getInsightId();
+			boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
+					&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
 
-			/*
-			if(ps.payload != null && ps.payload.length > 0 && (ps.payload[0].toString().startsWith("smssutil.runwrappereval(") || ps.payload[0].toString().startsWith("smssutil.runwrapper(")) )
+			if(!nativePyServer)
 			{
-				// really dirty manipulation of payload since the thread doesnt allow calling across threads from python
-				// smssutil.runwrappereval("C:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/D51AF71E6313E7516C716491C2C83AE9/caf28ff2-de29-4453-abd9-42e48f59a088/Py/Temp/av1kc8xQE1SzC.py", "C:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/D51AF71E6313E7516C716491C2C83AE9/caf28ff2-de29-4453-abd9-42e48f59a088/Py/Temp/av1kc8xQE1SzC.txt", "C:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/D51AF71E6313E7516C716491C2C83AE9/caf28ff2-de29-4453-abd9-42e48f59a088/Py/Temp/av1kc8xQE1SzC.txt", globals())
-				// it is already being set.. nothing to do
-//				String thisPayload = ps.payload[0]+"";
-//				thisPayload = thisPayload.substring(thisPayload.indexOf("("));
-//				String [] payloadParts = thisPayload.split(",");
-//				if(payloadParts.length == 4) // this is our guy
-//				{
-//					file = payloadParts[1];
-//					System.err.println("File is " + file);
-//					//et.epoc = ps.epoc;
-//					// I think we can simplify this.. but for now
-//					est.setFile(file);
-//					est.start();
-//				}
+				est = new ErrorSenderThread();
+				est.setInsight(insight);
+	
+				// write the file to create
+				// for now let it be
+				file = Utility.getRandomString(5);
+				makeTempFolder(insight.getInsightFolder());
+				String pyTemp  = insight.getInsightFolder() + "/Py/Temp";
+				file = pyTemp + "/" + file;
+				file = file.replace("\\", "/");
+				
+				script = script.replace("\"", "'");
+				String payload = "smssutil.runwrappereval_return(\"" + script + "\", '" + file + "', '" + file + "', globals())";
+				ps.payload[0] = payload;
+				est.setFile(file);
+				est.start();
 			}
-			else
-			{*/
-			est = new ErrorSenderThread();
-			est.setInsight(insight);
-
-			// write the file to create
-			// for now let it be
-			file = Utility.getRandomString(5);
-			makeTempFolder(insight.getInsightFolder());
-			String pyTemp  = insight.getInsightFolder() + "/Py/Temp";
-			file = pyTemp + "/" + file;
-			file = file.replace("\\", "/");
-			
-			script = script.replace("\"", "'");
-			String payload = "smssutil.runwrappereval_return(\"" + script + "\", '" + file + "', '" + file + "', globals())";
-			ps.payload[0] = payload;
-			est.setFile(file);
-			est.start();
 			//}
 		}
 		
