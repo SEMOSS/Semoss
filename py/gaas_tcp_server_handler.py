@@ -137,8 +137,23 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 exec(command, globals(), self.my_var)
                 output = f"executed command {command}"
               except Exception as e:
-                #print(e)
-                output =  ''.join(tb.format_exception(None, e, e.__traceback__))
+                # user is probably trying to call a 'global' variable inside a function call
+                # add all user defined variables to globals
+                globals().update(self.my_var)
+
+                # store the removal keys in case of assignment
+                removal_keys = list(self.my_var.keys())
+                try:
+                  output = eval(command, globals(), self.my_var)
+                except Exception as e:
+                  try:
+                    exec(command, globals(), self.my_var)
+                    output = f"executed command {command}"
+                  except Exception as e:
+                    output =  ''.join(tb.format_exception(None, e, e.__traceback__))
+                # remove all user defined variables to globals
+                for key in removal_keys:
+                  del globals()[key]
           output = str(output)
           self.send_output(output, payload, operation=payload["operation"], response=True)
       
