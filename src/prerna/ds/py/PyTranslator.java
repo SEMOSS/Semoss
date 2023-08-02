@@ -16,6 +16,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
 import prerna.tcp.client.ErrorSenderThread;
+import prerna.tcp.client.NativePySocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -419,7 +420,10 @@ public class PyTranslator {
 		}
 	}
 
-	public synchronized String runSingle(Map<String, StringBuffer> appMap, String inscript, Insight in) {
+	public synchronized String runSingle(Map<String, StringBuffer> appMap, String inscript, Insight in) 
+	{
+		
+		
 		// Clean the script
 		String script = convertArrayToString(inscript);
 		script = script.trim();
@@ -506,6 +510,7 @@ public class PyTranslator {
 			est.setFile(outputPath);
 		}				
 
+		String output = null;
 		try {
 			FileUtils.writeStringToFile(preScriptFile, preScript);
 			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", null);
@@ -520,18 +525,19 @@ public class PyTranslator {
 			RuntimeException error = null;
 			try {
 				// Start the error sender thread
-				//executeEmptyPyDirect("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \""
-				//		+ outputPath + "\", globals())", null);
-				runScript("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \""
-								+ outputPath + "\", globals())");
-				
-				if(in != null)
+				if(this instanceof TCPPyTranslator && ((TCPPyTranslator)this).nc instanceof NativePySocketClient)
+					output = "" + runScript(script, insight);
+				else
 				{
-					est.stopSession();
-				}
-				//runScript(script, in);
-				// executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" +
-				// outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
+					runScript("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \""
+									+ outputPath + "\", globals())");
+
+					if(in != null)
+					{
+						est.stopSession();
+					}
+					output = FileUtils.readFileToString(outputFile).trim();
+				}					
 			} catch (RuntimeException e) {
 				e.printStackTrace();
 				error = e; // Save the error so we can report it
@@ -539,7 +545,6 @@ public class PyTranslator {
 
 			// Finally, read the output and return, or throw the appropriate error
 			try {
-				String output = FileUtils.readFileToString(outputFile).trim();
 				// Error cases
 
 				// clean up the output
@@ -558,7 +563,7 @@ public class PyTranslator {
 
 				// Successful case
 				return output;
-			} catch (IOException e) {
+			} catch (Exception e) {
 				// If we have the detailed error, then throw it
 				if (error != null) {
 					throw error;
