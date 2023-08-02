@@ -12,8 +12,6 @@ import java.util.UUID;
 
 
 import java.util.Map.Entry;
-
-import prerna.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 
 public class OpenAiEngine extends EmbeddedModelEngine {
@@ -123,27 +121,27 @@ public class OpenAiEngine extends EmbeddedModelEngine {
 	}
 	
 	// TODO placeholder for inference logs retrieval
-	public String getContext(String convoId, String userId){
-		// TODO make not a db call?
-		if (ModelInferenceLogsUtils.doCheckConvoExists(convoId)) {
-			List<Map<String, Object>> convoHistory = ModelInferenceLogsUtils.doRetrieveConvo(convoId, userId);
-					
-			StringBuilder convoList = new StringBuilder("[");
-			for (Map<String, Object> record : convoHistory) {
-				// Convert Map<String, Object> to Map<Object, Object>
-				
-				Object priorContent = record.get("CONTENT");
-				String priorContentString = (String) priorContent;
-		        convoList.append(priorContentString).append(",");
-			}
-			convoList.append("]");
-			return convoList.toString();
-		}
-		else {
-			ModelInferenceLogsUtils.doCreateNewConversation(convoId, "TestConvo1", userId);
-		}
-		return null;
-	}
+//	public String getContext(String convoId, String userId){
+//		// TODO make not a db call?
+//		if (ModelInferenceLogsUtils.doCheckConvoExists(convoId)) {
+//			List<Map<String, Object>> convoHistory = ModelInferenceLogsUtils.doRetrieveConvo(convoId, userId);
+//					
+//			StringBuilder convoList = new StringBuilder("[");
+//			for (Map<String, Object> record : convoHistory) {
+//				// Convert Map<String, Object> to Map<Object, Object>
+//				
+//				Object priorContent = record.get("CONTENT");
+//				String priorContentString = (String) priorContent;
+//		        convoList.append(priorContentString).append(",");
+//			}
+//			convoList.append("]");
+//			return convoList.toString();
+//		}
+//		else {
+//			ModelInferenceLogsUtils.doCreateNewConversation(convoId, "TestConvo1", userId);
+//		}
+//		return null;
+//	}
 	
 	public static String escapeSingleQuote(String input) {
         return input.replace("'", "\\'");
