@@ -69,10 +69,26 @@ def runwrapper(file, output, error,g):
   ofile.close()
   efile.close()
 
+def runwrapper_semoss_console(command, output, error,g):
+  import contextlib, io, sys,os
+  ofile = output
+  efile = error
+  with contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
+    #datafile = open(file, "r")
+     # print(f'found the trigger {jout}')
+    try:
+      exec(command, g)
+    except Exception as e:
+      print(e)
+  ofile.close()
+  efile.close()
+
+
 def runwrappereval(file, output, error,g):
   import contextlib, io, sys,os
   ofile = open(output, "w", buffering=1)
   efile = open(error, "w", buffering=1)
+
   with contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
     datafile = open(file, "r")
     command = datafile.read()
@@ -87,6 +103,27 @@ def runwrappereval(file, output, error,g):
         print(e)
   ofile.close()
   efile.close()
+
+def runwrappereval_semoss_console(command, output, error,g):
+  import contextlib, io, sys,os
+  ofile = output
+  efile = error
+  with contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(ofile):
+    #datafile = open(file, "r")
+    #command = datafile.read()
+    try:
+      output_obj = eval(command, g)
+      if output_obj is not None:
+        #print(output_obj)
+        return output_obj
+    except Exception as e:
+      try:
+        exec(command, g)
+      except Exception as e:
+        print(e)
+  ofile.close()
+  efile.close()
+
 
 # same as run wrapper eval but will also return the output instead of printing it and
 # will not exec it
@@ -388,6 +425,16 @@ def compose_prompt(context=None, question=None):
   #print(query)
   return query
 
+def compose_prompt_wizard(context=None, question=None):
+  assert question is not None
+  if context is None:
+    query = f"Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction: {question}\n\n### Response:"
+  else:
+    query = f"A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. USER: {context}. {question} ? ASSISTANT:"
+  #print(query)
+  return query
+
+
 def compose_prompt_qa(context=None, question=None):
   prompt = f"Context information is below. \n---------------------\n{context}\n---------------------\nGiven the context information and not prior knowledge, answer the question: {question}\n"
   return prompt
@@ -414,7 +461,7 @@ def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200,
         finish_reason = f"... <Unable to complete request, please try by increasing token size from {max_new_tokens}>"
         final_output.update({"meta": finish_reason})
   #print(client.generated_stream.finish_reason)
-  #print(text)
+  print(f"{text}")
   final_output.update({"response": f"{text}"})
   return final_output
 
@@ -551,3 +598,13 @@ def hasTrigger(l, output, error):
     print("hello ")
     return 'trigger' in l
 
+#https://huggingface.co/psmathur/orca_mini_3b
+def compose_prompt_orca(system='You are an AI assistant that follows instruction extremely well. Help as much as you can.', instruction=None, input=None):
+  prompt = ""
+  if input:
+      prompt = f"### System:\n{system}\n\n### User:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
+  else:
+      prompt = f"### System:\n{system}\n\n### User:\n{instruction}\n\n### Response:\n"
+
+  return prompt
+  
