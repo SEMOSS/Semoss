@@ -54,7 +54,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		// security
 		User user = this.insight.getUser();
 		if (AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			if (!isAdmin) {
 				boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);

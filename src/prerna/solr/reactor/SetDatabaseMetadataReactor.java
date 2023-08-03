@@ -27,7 +27,7 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 		String databaseId = UploadInputUtility.getDatabaseNameOrId(this.store);
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to edit");
 			}

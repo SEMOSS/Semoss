@@ -31,7 +31,7 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			String specificDbFilter = getDatabase();
 			if(specificDbFilter != null) {
-				if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), specificDbFilter)) {
+				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), specificDbFilter)) {
 					throw new IllegalArgumentException("Database " + specificDbFilter + " does not exist or user does not have access to database");
 				}
 				dbFilters = new Vector<String>();

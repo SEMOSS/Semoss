@@ -83,7 +83,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		List<String> databaseIds = getDatabases();
 		for(String dbId : databaseIds) {
 			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), dbId)) {
+				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), dbId)) {
 					throw new IllegalArgumentException("User does not have permission to view this database or database does not exist");
 				}
 			}

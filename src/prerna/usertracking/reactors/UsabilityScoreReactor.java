@@ -124,8 +124,8 @@ public class UsabilityScoreReactor extends AbstractReactor {
 
 	private String checkDatabaseId(String databaseId) {
 		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 			}
 		} else {

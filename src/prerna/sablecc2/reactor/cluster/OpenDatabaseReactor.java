@@ -41,9 +41,9 @@ public class OpenDatabaseReactor extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if( !(SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId) 
-					|| SecurityEngineUtils.databaseIsDiscoverable(databaseId)
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+			if( !(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId) 
+					|| SecurityEngineUtils.engineIsDiscoverable(databaseId)
 					)
 				){
 				// you dont have access

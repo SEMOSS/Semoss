@@ -646,7 +646,7 @@ public abstract class AbstractReactor implements IReactor {
 	protected String testDatabaseId(String databaseId, boolean edit) {
 		String testId = databaseId;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			testId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), testId);
+			testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
 			if(edit) {
 				// need edit permission
 				if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), testId)) {
@@ -654,7 +654,7 @@ public abstract class AbstractReactor implements IReactor {
 				}
 			} else {
 				// just need read access
-				if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), testId)) {
+				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), testId)) {
 					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
 				}
 			}
