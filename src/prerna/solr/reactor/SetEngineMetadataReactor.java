@@ -23,7 +23,7 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = UploadInputUtility.getDatabaseNameOrId(this.store);
+		String engineId = UploadInputUtility.getEngineNameOrId(this.store);
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
