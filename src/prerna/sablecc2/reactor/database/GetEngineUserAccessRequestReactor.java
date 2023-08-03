@@ -13,31 +13,30 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-@Deprecated
-public class GetDatabaseUserAccessRequestReactor extends AbstractReactor {
+public class GetEngineUserAccessRequestReactor extends AbstractReactor {
 	
-	public GetDatabaseUserAccessRequestReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+	public GetEngineUserAccessRequestReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if(databaseId == null) {
-			throw new IllegalArgumentException("Please define the database id.");
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if(engineId == null) {
+			throw new IllegalArgumentException("Please define the engine id.");
 		}
 		// check user permission for the database
 		User user = this.insight.getUser();
-		if(!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
-			throw new IllegalArgumentException("User does not have permission to view access requests for this database");
+		if(!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException("User does not have permission to view access requests for this engine");
 		}
 		List<Map<String, Object>> requests = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			requests = SecurityEngineUtils.getUserAccessRequestsByEngine(databaseId);
+			requests = SecurityEngineUtils.getUserAccessRequestsByEngine(engineId);
 		} else {
 			requests = new ArrayList<>();
 		}
-		return new NounMetadata(requests, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		return new NounMetadata(requests, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
 	}
 }
