@@ -1,9 +1,9 @@
 package prerna.auth.utils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,7 +33,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String testUserDatabaseIdForAlias(User user, String potentialId) {
-		List<String> ids = new Vector<String>();
+		List<String> ids = new ArrayList<String>();
 		
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.ENGINEID "
