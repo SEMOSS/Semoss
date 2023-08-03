@@ -706,6 +706,10 @@ public class Constants {
 	public static final String USER_TRACKING_METHOD = "USER_TRACKING_METHOD";
 	public static final String USER_TRACKING_DB = "UserTrackingDatabase";
 	
+	// Model Inference Logs for CfG AI Server
+	public static final String MODEL_INFERENCE_LOGS_ENABLED = "MODEL_INFERENCE_LOGS_ENABLED";
+	public static final String MODEL_INFERENCE_LOGS_DB = "ModelInferenceLogsDatabase";
+	
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";
 	public static final String R_ANALYTICS_SCRIPTS_FOLDER = "AnalyticsRoutineScripts";
