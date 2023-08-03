@@ -1,5 +1,5 @@
 import transformers
-from datasets import Dataset
+from datasets import Dataset, concatenate_datasets
 import pandas as pd
 import faiss
 from sentence_transformers import SentenceTransformer
@@ -43,6 +43,8 @@ class FAISSSearcher():
     self.init_device()
     if df is not None:
       self.ds = Dataset.from_pandas(df)
+      if '__index_level_0__' in self.ds.column_names:
+        self.ds = self.ds.remove_columns('__index_level_0__')
     if ds is not None:
       self.ds = ds
     self.dpr = dpr
@@ -50,6 +52,8 @@ class FAISSSearcher():
     self.lfqa_loaded = False
     self.qa_loaded = False
     self.summarizer_loaded = False
+    self.encoded_vectors = None
+    self.encoder_name = None
    
   
   def concatenate_columns(self, row, columns_to_index=None, target_column=None, separator="\n"):
@@ -99,26 +103,58 @@ class FAISSSearcher():
   # the other paraphraser - "paraphrase-mpnet-base-v2"
   # sentence-transformers/facebook-dpr-ctx_encoder-single-nq-base
   def custom_faiss_index(self, columns_to_index=None, target_column="text", embedding_column="embeddings", encoder_name="paraphrase-mpnet-base-v2", separator="\n"):
-    import faiss
     #take the columns and concatenate them together
     if(columns_to_index is None):
       columns_to_index = list(self.ds.features)
-    from functools import partial
     # concatenate columns
     #print(self.ds)
     self.ds = self.ds.map(self.concatenate_columns, fn_kwargs={"columns_to_index": columns_to_index, "target_column": target_column, "separator":separator})
     #get the column to index
     self.load_faiss_encoder(encoder_name=encoder_name)
     vectors = self.faiss_encoder.encode(self.ds[target_column])
+    self.encoded_vectors = np.copy(vectors)
     vector_dimension = vectors.shape[1]
     self.index = faiss.IndexFlatL2(vector_dimension)
     faiss.normalize_L2(vectors)
     self.index.add(vectors)
   
+  def appendToIndex(self, dataObj= None, target_column="text",columns_to_index=None , separator="\n"):
+    if(columns_to_index is None):
+      columns_to_index = list(self.ds.features)
+  
+    #previous_encoded_vector = np.load(filePath)
+    appendDs = Dataset.from_dict({})
+    if (isinstance(dataObj, pd.DataFrame)):
+      appendDs = Dataset.from_pandas(dataObj)
+      if '__index_level_0__' in appendDs.column_names:
+        appendDs = appendDs.remove_columns('__index_level_0__')
+    elif (isinstance(dataObj, Dataset)):
+      appendDs = dataObj
+    elif (isinstance(dataObj, dict)):
+      appendDs = Dataset.from_dict(dataObj)
+    else:
+      raise ValueError("Undefined class check: dataObj is of an unrecognized type")
+    
+    appendDs = appendDs.map(self.concatenate_columns, fn_kwargs={"columns_to_index": columns_to_index, "target_column": target_column, "separator":separator})
+
+    self.load_faiss_encoder()
+    new_vector = self.faiss_encoder.encode(appendDs[target_column])
+
+    assert self.encoded_vectors.shape[1] == new_vector.shape[1]
+
+    self.ds = concatenate_datasets([self.ds, appendDs])
+    conc_vector = np.concatenate((self.encoded_vectors,new_vector),axis=0)
+    vector_dimension = conc_vector.shape[1]
+    self.index = faiss.IndexFlatL2(vector_dimension)
+    self.encoded_vectors = np.copy(conc_vector)
+    faiss.normalize_L2(conc_vector)
+    self.index.add(conc_vector)
+  
   def load_faiss_encoder(self, encoder_name="paraphrase-mpnet-base-v2"):
     if not self.faiss_encoder_loaded:
       self.faiss_encoder = SentenceTransformer(encoder_name)
       self.faiss_encoder_loaded = True
+      self.encoder_name = encoder_name
     
   def get_result_faiss(self, question, results=5, target_columns=None, json=True, print_result=False, index=None, ds=None):
     if ds is None:
@@ -293,7 +329,7 @@ Question: {Question} """
       prompt = ""
       content = ""
       for doc in docs:
-          content += doc['Content'] + '\n\n'
+          content += doc['content'] + '\n\n'
       prompt = prompt_template.format(Content=content.lstrip(), Question=question.strip())
       return prompt
 
