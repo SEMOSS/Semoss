@@ -65,7 +65,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			if(!addAll && insightsToAdd.size()==1 && insightsToAdd.contains(INSIGHT_STATS)) {
 				// do not need a database for this situation
 				pullDatabase = false;
-			} else if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			} else if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("User does not have permission to view the database");
 			}
 		}

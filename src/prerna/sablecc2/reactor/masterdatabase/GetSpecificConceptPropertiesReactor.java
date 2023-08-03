@@ -36,7 +36,7 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 		String engineId = engineFilterGrs.get(0).toString();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			List<String> dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 			if(!dbFilters.contains(engineId)) {
 				throw new IllegalArgumentException("Databases " + engineId + " does not exist or user does not have access");

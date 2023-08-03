@@ -43,7 +43,7 @@ public class DeleteDatabaseStructureReactor extends AbstractReactor {
 		
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
 			}

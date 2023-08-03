@@ -40,7 +40,7 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 			eFilters = new Vector<String>();
 			String engineFilter = engineFilterGrs.get(0).toString();
 			if(AbstractSecurityUtils.securityEnabled()) {
-				engineFilter = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineFilter);
+				engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
 			} else {
 				engineFilter = MasterDatabaseUtility.testDatabaseIdIfAlias(engineFilter);
 			}

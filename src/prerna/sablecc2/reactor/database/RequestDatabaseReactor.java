@@ -79,7 +79,7 @@ public class RequestDatabaseReactor extends AbstractReactor {
 			throw new IllegalArgumentException("This user has already requested access to this database with the given permission level");
 		}
 		// checking to make sure database is discoverable
-		boolean canRequest = SecurityEngineUtils.databaseIsDiscoverable(databaseId);
+		boolean canRequest = SecurityEngineUtils.engineIsDiscoverable(databaseId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
 			SecurityEngineUtils.setUserAccessRequest(userId, userType, databaseId, requestPermission);

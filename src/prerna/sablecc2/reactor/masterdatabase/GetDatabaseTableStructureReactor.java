@@ -39,7 +39,7 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}

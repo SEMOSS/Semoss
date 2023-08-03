@@ -76,7 +76,7 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 	public void resolvePayloadVariables(List<Map<String, Object>> paramList, List<Object> exportVariables) {
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		if (AbstractSecurityUtils.securityEnabled()) {
-			if (!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException(
 						"Database " + databaseId + " does not exist or user does not have access to database");
 			}

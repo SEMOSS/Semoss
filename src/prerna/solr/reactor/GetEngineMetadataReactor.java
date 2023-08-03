@@ -33,12 +33,12 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 		List<Map<String, Object>> baseInfo = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
-			if(SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+			if(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 				// user has access!
-				baseInfo = SecurityEngineUtils.getUserDatabaseList(this.insight.getUser(), engineId);
-			} else if(SecurityEngineUtils.databaseIsDiscoverable(engineId)) {
-				baseInfo = SecurityEngineUtils.getDiscoverableDatabaseList(engineId);
+				baseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineId, null);
+			} else if(SecurityEngineUtils.engineIsDiscoverable(engineId)) {
+				baseInfo = SecurityEngineUtils.getDiscoverableEngineList(engineId, null);
 			} else {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
