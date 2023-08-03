@@ -1088,25 +1088,36 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		// DATABASEACCESSREQUEST 
+		{
+			// 2023-08-03
+			// RENAME DATABASEACCESSREQUEST TO ENGINEACCESSREQUEST
+			if(allowIfExistsTable) {
+				securityDb.removeData(queryUtil.dropTableIfExists("DATABASEACCESSREQUEST"));
+			} else {
+				if(!queryUtil.tableExists(conn, "DATABASEACCESSREQUEST ", database, schema)) {
+					securityDb.removeData(queryUtil.dropTable("DATABASEACCESSREQUEST"));
+				}
+			}
+		}
+		// ENGINEACCESSREQUEST 
 		colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "ENGINEID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
 		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("DATABASEACCESSREQUEST ", colNames, types));
+			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEACCESSREQUEST ", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(conn, "DATABASEACCESSREQUEST ", database, schema)) {
+			if(!queryUtil.tableExists(conn, "ENGINEACCESSREQUEST ", database, schema)) {
 				// make the table
-				securityDb.insertData(queryUtil.createTable("DATABASEACCESSREQUEST ", colNames, types));
+				securityDb.insertData(queryUtil.createTable("ENGINEACCESSREQUEST ", colNames, types));
 			}
 		}
 		//MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
 		{
-			List<String> allCols = queryUtil.getTableColumns(conn, "DATABASEACCESSREQUEST", database, schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEACCESSREQUEST", database, schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("ID") && !allCols.contains("id")) {
-				String addIdColumn = queryUtil.alterTableAddColumn("DATABASEACCESSREQUEST", "ID", "VARCHAR(255)");
+				String addIdColumn = queryUtil.alterTableAddColumn("ENGINEACCESSREQUEST", "ID", "VARCHAR(255)");
 				securityDb.insertData(addIdColumn);
 			}
 		}

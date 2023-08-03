@@ -22,9 +22,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 
-class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
+class SecurityUserEngineUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityUserDatabaseUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityUserEngineUtils.class);
 
 	/**
 	 * Get what permission the user has for a given database
@@ -72,17 +72,17 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 	/**
 	 * Get the database permissions for a specific user
 	 * @param singleUserId
-	 * @param databaseId
+	 * @param engineId
 	 * @return
 	 */
-	public static Integer getUserDatabasePermission(String singleUserId, String databaseId) {
+	public static Integer getUserEnginePermission(String singleUserId, String engineId) {
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION  "
 //				+ "WHERE ENGINEID='" + databaseId + "' AND USERID='" + singleUserId + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
 		IRawSelectWrapper wrapper = null;
 		try {

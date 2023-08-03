@@ -596,7 +596,7 @@ public class ClusterUtil {
 					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 					return images[0];
 				} else {
-					String alias = SecurityEngineUtils.getDatabaseAliasForId(databaseId);
+					String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
 					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases" + DIR_SEPARATOR + databaseId + ".png";
 
 					if(alias != null) {
