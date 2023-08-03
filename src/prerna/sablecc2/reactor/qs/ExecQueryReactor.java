@@ -73,7 +73,7 @@ public class ExecQueryReactor extends AbstractReactor {
 
 				// If security is enabled, then check that the user can edit the engine
 				if (AbstractSecurityUtils.securityEnabled()) {
-					if (!SecurityEngineUtils.userCanEditDatabase(user, engine.getEngineId())) {
+					if (!SecurityEngineUtils.userCanEditEngine(user, engine.getEngineId())) {
 						throw new IllegalArgumentException("User does not have permission to exec query for this app");
 					}
 				}

@@ -649,7 +649,7 @@ public abstract class AbstractReactor implements IReactor {
 			testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
 			if(edit) {
 				// need edit permission
-				if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), testId)) {
+				if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), testId)) {
 					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
 				}
 			} else {

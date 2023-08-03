@@ -27,7 +27,7 @@ public class RdbmsReconnectReactor extends AbstractReactor {
 		// make sure user has at least edit access
 		if (AbstractSecurityUtils.securityEnabled()) {
 			if(!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-				if (!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+				if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 					throw new IllegalArgumentException("User does not have permission to re-establish the connection for this database");
 				}
 			}

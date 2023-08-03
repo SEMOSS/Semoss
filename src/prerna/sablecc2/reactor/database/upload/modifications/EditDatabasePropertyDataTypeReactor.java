@@ -33,7 +33,7 @@ public class EditDatabasePropertyDataTypeReactor extends AbstractReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
 			}
 		} else {

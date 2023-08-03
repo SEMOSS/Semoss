@@ -45,7 +45,7 @@ public class NativePyEngineWorker implements Runnable {
 			
 			// TODO: *****************need to do a security check *************
 			boolean canAccess = SecurityEngineUtils.userIsOwner(user, engineId) 
-								|| SecurityEngineUtils.userCanEditDatabase(user, engineId)
+								|| SecurityEngineUtils.userCanEditEngine(user, engineId)
 								|| SecurityEngineUtils.userCanViewEngine(user, engineId); 
 			
 			if(canAccess)
