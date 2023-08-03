@@ -85,7 +85,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static boolean userGroupCanEditDatabase(User user, String databaseId) {
+	public static boolean userGroupCanEditEngine(User user, String databaseId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", databaseId));
@@ -319,7 +319,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void addDatabaseGroupPermission(User user, String groupId, String groupType, String databaseId, String permission) throws IllegalAccessException {
-		if(!SecurityEngineUtils.userCanEditDatabase(user, databaseId)) {
+		if(!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		

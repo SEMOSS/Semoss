@@ -195,7 +195,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static boolean userCanEditDatabase(User user, String databaseId) {
+	public static boolean userCanEditEngine(User user, String databaseId) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
 //				+ "WHERE ENGINEID='" + databaseId + "' AND USERID IN " + userFilters;

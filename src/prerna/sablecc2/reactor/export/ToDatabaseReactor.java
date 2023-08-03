@@ -62,7 +62,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		this.engineId = getEngineId();
 		if(AbstractSecurityUtils.securityEnabled()) {
 			this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
-			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), this.engineId)) {
+			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
 				throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
 			}
 		} else {
