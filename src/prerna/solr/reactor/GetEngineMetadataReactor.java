@@ -1,5 +1,6 @@
 package prerna.solr.reactor;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -14,39 +15,38 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-@Deprecated
-public class GetDatabaseMetadataReactor extends AbstractReactor {
+public class GetEngineMetadataReactor extends AbstractReactor {
 	
-	public GetDatabaseMetadataReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
+	public GetEngineMetadataReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 		
-		if(databaseId == null || databaseId.isEmpty()) {
-			throw new IllegalArgumentException("Must input an database id");
+		if(engineId == null || engineId.isEmpty()) {
+			throw new IllegalArgumentException("Must input an engine id");
 		}
 		
 		List<Map<String, Object>> baseInfo = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
+			if(SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
 				// user has access!
-				baseInfo = SecurityEngineUtils.getUserDatabaseList(this.insight.getUser(), databaseId);
-			} else if(SecurityEngineUtils.databaseIsDiscoverable(databaseId)) {
-				baseInfo = SecurityEngineUtils.getDiscoverableDatabaseList(databaseId);
+				baseInfo = SecurityEngineUtils.getUserDatabaseList(this.insight.getUser(), engineId);
+			} else if(SecurityEngineUtils.databaseIsDiscoverable(engineId)) {
+				baseInfo = SecurityEngineUtils.getDiscoverableDatabaseList(engineId);
 			} else {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
 			}
 		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
+			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
 			// just grab the info
-			baseInfo = SecurityEngineUtils.getAllDatabaseList(databaseId);
+			baseInfo = SecurityEngineUtils.getAllDatabaseList(engineId);
 		}
 		
 		if(baseInfo == null || baseInfo.isEmpty()) {
@@ -55,10 +55,15 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 		
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
-		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, getMetaKeys(), false));
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(engineId, getMetaKeys(), false));
 		// append last engine update
-		databaseInfo.put("last_updated", MasterDatabaseUtility.getEngineDate(databaseId));
-		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		{
+			Date eDate = MasterDatabaseUtility.getEngineDate(engineId);
+			if(eDate != null) {
+				databaseInfo.put("last_updated", MasterDatabaseUtility.getEngineDate(engineId));
+			}
+		}
+		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
 	}
 	
 	private List<String> getMetaKeys() {
