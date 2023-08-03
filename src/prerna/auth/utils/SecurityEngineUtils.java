@@ -693,9 +693,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @return
 	 */
-	public static boolean userCanViewDatabase(User user, String databaseId) {
-		return SecurityUserDatabaseUtils.userCanViewDatabase(user, databaseId)
-				|| SecurityGroupEngineUtils.userGroupCanViewDatabase(user, databaseId);
+	public static boolean userCanViewEngine(User user, String databaseId) {
+		return SecurityUserDatabaseUtils.userCanViewEngine(user, databaseId)
+				|| SecurityGroupEngineUtils.userGroupCanViewEngine(user, databaseId);
 	}
 	
 	/**
@@ -759,7 +759,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static List<Map<String, Object>> getDatabaseUsers(User user, String databaseId, String userId, String permission, long limit, long offset) throws IllegalAccessException {
-		if(!userCanViewDatabase(user, databaseId)) {
+		if(!userCanViewEngine(user, databaseId)) {
 			throw new IllegalArgumentException("The user does not have access to view this database");
 		}
 		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
@@ -788,7 +788,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	public static long getDatabaseUsersCount(User user, String databaseId, String userId, String permission) throws IllegalAccessException {
-		if(!userCanViewDatabase(user, databaseId)) {
+		if(!userCanViewEngine(user, databaseId)) {
 			throw new IllegalArgumentException("The user does not have access to view this database");
 		}
 		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
@@ -1348,7 +1348,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void setDbVisibility(User user, String databaseId, boolean visibility) throws SQLException, IllegalAccessException {
-		if(!SecurityUserDatabaseUtils.userCanViewDatabase(user, databaseId)) {
+		if(!SecurityUserDatabaseUtils.userCanViewEngine(user, databaseId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this app.");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
@@ -1432,7 +1432,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void setDbFavorite(User user, String databaseId, boolean isFavorite) throws SQLException, IllegalAccessException {
 		if (!databaseIsGlobal(databaseId)
-				&& !userCanViewDatabase(user, databaseId)) {
+				&& !userCanViewEngine(user, databaseId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this database.");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
@@ -1890,7 +1890,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		/*
 		 * Security check to make sure that the user can view the application provided. 
 		 */
-		if (!userCanViewDatabase(user, databaseId)) {
+		if (!userCanViewEngine(user, databaseId)) {
 			throw new IllegalArgumentException("The user does not have access to view this database");
 		}
 		
@@ -1935,11 +1935,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Determine if a user can request a database
+	 * Determine if a user can request a engine
 	 * @param databaseId
 	 * @return
 	 */
-	public static boolean databaseIsDiscoverable(String databaseId) {
+	public static boolean engineIsDiscoverable(String databaseId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
@@ -2683,11 +2683,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the list of the database information that the user has access to
+	 * Get the list of the engine information that the user has access to
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, String databaseFilter) {
+	public static List<Map<String, Object>> getUserEngineList(User user, String engineFilter, List<String> engineTypeFilter) {
 //		String userFilters = getUserFilters(user);
 //		String filter = createFilter(engineFilter); 
 //		String query = "SELECT DISTINCT "
@@ -2720,8 +2720,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
-		if(databaseFilter != null && !databaseFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
+		}
+		if(engineTypeFilter != null && !engineTypeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypeFilter));
 		}
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
@@ -2739,10 +2742,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	/**
 	 * Get the list of the database information that the user has access to
 	 * @param user
-	 * @param dbTypeFilter
+	 * @param engineTypeFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> dbTypeFilter) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> engineTypeFilter) {
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -2761,8 +2764,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
-		if(dbTypeFilter != null && !dbTypeFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", dbTypeFilter));
+		if(engineTypeFilter != null && !engineTypeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypeFilter));
 		}
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
@@ -2788,11 +2791,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the list of the database information that the user has access to
+	 * Get the list of the engine information that the user has access to
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getDiscoverableDatabaseList(String databaseFilter) {
+	public static List<Map<String, Object>> getDiscoverableEngineList(String engineFilter, List<String> engineTypeFilter) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
@@ -2807,8 +2810,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
-		if(databaseFilter != null && !databaseFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
+		}
+		if(engineTypeFilter != null && !engineTypeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypeFilter));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));

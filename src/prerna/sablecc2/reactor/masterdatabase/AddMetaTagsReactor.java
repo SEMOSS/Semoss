@@ -34,7 +34,7 @@ public class AddMetaTagsReactor extends AbstractMetaDBReactor {
 		String engineId = getEngineId();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}

@@ -54,7 +54,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		if(AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseId);
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
 			if(!SecurityEngineUtils.userCanEditDatabase(user, databaseId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this database schema");
 			}

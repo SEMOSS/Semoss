@@ -48,7 +48,7 @@ public class InitAppRepo extends GitBaseReactor {
 		// you can only push
 		// if you are the owner
 		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 			if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 			}
