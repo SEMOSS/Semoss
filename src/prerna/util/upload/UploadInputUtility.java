@@ -25,6 +25,7 @@ import prerna.util.Utility;
 
 public class UploadInputUtility {
 
+	public static final String ENGINE = ReactorKeysEnum.ENGINE.getKey();
 	public static final String DATABASE = ReactorKeysEnum.DATABASE.getKey();
 	public static final String PROJECT = ReactorKeysEnum.PROJECT.getKey();
 	public static final String FILE_PATH = ReactorKeysEnum.FILE_PATH.getKey();
@@ -67,6 +68,26 @@ public class UploadInputUtility {
 	// only applies for "csv" uploading - doesn't need to be ","
 	public static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
 
+	public static String getEngineNameOrId(NounStore store) {
+		GenRowStruct grs = store.getNoun(ENGINE);
+		if (grs == null || grs.isEmpty()) {
+			throw new IllegalArgumentException("Must define the new engine id or name using key " + ENGINE);
+		}
+		
+		NounMetadata noun = grs.getNoun(0);
+		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
+			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
+			if(uploadMap.get("engine_id") != null) {
+				return uploadMap.get("engine_id").toString();
+			} 
+			// support legacy
+			else if(uploadMap.get("database_id") != null) {
+				return uploadMap.get("database_id").toString();
+			}
+		}
+		return noun.getValue().toString();
+	}
+	
 	public static String getDatabaseNameOrId(NounStore store) {
 		GenRowStruct grs = store.getNoun(DATABASE);
 		if (grs == null || grs.isEmpty()) {
