@@ -12,6 +12,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.upload.UploadInputUtility;
 
+@Deprecated
 public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 	
 	public SetDatabaseMetadataReactor() {
@@ -28,7 +29,7 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to edit");
 			}
 		} else {

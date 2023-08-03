@@ -33,7 +33,7 @@ public class IsGit extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), projectId)) {
+			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
 			}
 			databaseName = SecurityProjectUtils.getProjectAliasForId(projectId);

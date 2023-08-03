@@ -44,7 +44,7 @@ public class AddDatabaseStructureReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		if(AbstractSecurityUtils.securityEnabled()) {
 			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
 			}
 		} else {
