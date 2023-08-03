@@ -677,18 +677,18 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Determine if the user can modify the database
+	 * Determine if the user can modify the engine
 	 * @param databaseId
 	 * @param userId
 	 * @return
 	 */
-	public static boolean userCanEditDatabase(User user, String databaseId) {
-		return SecurityUserDatabaseUtils.userCanEditDatabase(user, databaseId)
-				|| SecurityGroupEngineUtils.userGroupCanEditDatabase(user, databaseId);
+	public static boolean userCanEditEngine(User user, String databaseId) {
+		return SecurityUserDatabaseUtils.userCanEditEngine(user, databaseId)
+				|| SecurityGroupEngineUtils.userGroupCanEditEngine(user, databaseId);
 	}
 	
 	/**
-	 * Determine if a user can view a database
+	 * Determine if a user can view a engine
 	 * @param user
 	 * @param databaseId
 	 * @return

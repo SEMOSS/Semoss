@@ -28,7 +28,7 @@ public class GetDatabaseUserAccessRequestReactor extends AbstractReactor {
 		}
 		// check user permission for the database
 		User user = this.insight.getUser();
-		if(!SecurityEngineUtils.userCanEditDatabase(user, databaseId)) {
+		if(!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
 			throw new IllegalArgumentException("User does not have permission to view access requests for this database");
 		}
 		List<Map<String, Object>> requests = null;

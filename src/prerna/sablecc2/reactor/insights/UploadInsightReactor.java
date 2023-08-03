@@ -56,7 +56,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				throwAnonymousUserError();
 			}
-			if (!SecurityEngineUtils.userCanEditDatabase(user, projectId)) {
+			if (!SecurityEngineUtils.userCanEditEngine(user, projectId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the proejct");
 			}
 			// Get the user's email
