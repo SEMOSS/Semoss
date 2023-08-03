@@ -38,7 +38,7 @@ public class VoteDatabaseReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Vote is null");
 		}
 
-		if (!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 			throw new IllegalArgumentException("Database cannot be viewed by user.");
 		}
 

@@ -24,8 +24,8 @@ public class StorageReactor extends AbstractReactor {
 		String storageId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
-			storageId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), storageId);
-			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), storageId)) {
+			storageId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), storageId);
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), storageId)) {
 				throw new IllegalArgumentException("Storage " + storageId + " does not exist or user does not have access to storage");
 			}
 		} else {

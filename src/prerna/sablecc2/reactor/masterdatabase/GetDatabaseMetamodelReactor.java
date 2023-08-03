@@ -53,8 +53,8 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!	
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId) && 
-					!SecurityEngineUtils.databaseIsDiscoverable(databaseId)) {
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId) && 
+					!SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}
