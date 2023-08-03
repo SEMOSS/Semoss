@@ -24,11 +24,16 @@ public class ProjectRReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		String code = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
-		
-		if(projectId == null || projectId.isEmpty()) {
+		if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
+			projectId = this.insight.getContextProjectId();
+			if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
+				projectId = this.insight.getProjectId();
+			}
+		}
+		if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
+		String code = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
