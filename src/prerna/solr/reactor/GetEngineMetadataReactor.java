@@ -41,16 +41,12 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 				baseInfo = SecurityEngineUtils.getDiscoverableEngineList(engineId, null);
 			} else {
 				// you dont have access
-				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
+				throw new IllegalArgumentException("Engine does not exist or user does not have access to the database");
 			}
-		} else {
-			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
-			// just grab the info
-			baseInfo = SecurityEngineUtils.getAllDatabaseList(engineId);
 		}
 		
 		if(baseInfo == null || baseInfo.isEmpty()) {
-			throw new IllegalArgumentException("Could not find any database data");
+			throw new IllegalArgumentException("Could not find any engine metadata");
 		}
 		
 		// we filtered to a single database
