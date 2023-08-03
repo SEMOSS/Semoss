@@ -460,27 +460,27 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	
-	public static void main(String[] args) throws Exception {
-		// these are not real/import access/secret 
-		Properties mockSmss = new Properties();
-		mockSmss.put(AZ_CONN_STRING, "AccountName=***REMOVED***;AccountKey=***REMOVED***;EndpointSuffix=core.windows.net;DefaultEndpointsProtocol=https;");
-		mockSmss.put(AZ_ACCOUNT_NAME, "***REMOVED***");
-		mockSmss.put(AZ_PRIMARY_KEY, "***REMOVED***");
-		mockSmss.put(AZ_GENERATE_DYNAMIC_SAS, "true");
-
-		AzureBlobStorageEngine engine = new AzureBlobStorageEngine();
-		engine.connect(mockSmss);
-		
-		{
-			List<String> list = engine.list("08e03a5f-9b8d-4f24-a3f7-ba6959f2c5c0/version");
-			System.out.println(list);
-		}
-		{
-			List<Map<String, Object>> list = engine.listDetails("08e03a5f-9b8d-4f24-a3f7-ba6959f2c5c0/version");
-			System.out.println(list);
-		}
-		engine.close();
-	}
+//	public static void main(String[] args) throws Exception {
+//		// these are not real/import access/secret 
+//		Properties mockSmss = new Properties();
+//		mockSmss.put(AZ_CONN_STRING, "");
+//		mockSmss.put(AZ_ACCOUNT_NAME, "");
+//		mockSmss.put(AZ_PRIMARY_KEY, "");
+//		mockSmss.put(AZ_GENERATE_DYNAMIC_SAS, "true");
+//
+//		AzureBlobStorageEngine engine = new AzureBlobStorageEngine();
+//		engine.connect(mockSmss);
+//		
+//		{
+//			List<String> list = engine.list("08e03a5f-9b8d-4f24-a3f7-ba6959f2c5c0/version");
+//			System.out.println(list);
+//		}
+//		{
+//			List<Map<String, Object>> list = engine.listDetails("08e03a5f-9b8d-4f24-a3f7-ba6959f2c5c0/version");
+//			System.out.println(list);
+//		}
+//		engine.close();
+//	}
 	
 	
 	

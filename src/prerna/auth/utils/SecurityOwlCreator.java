@@ -37,7 +37,8 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PASSWORD_RULES");
 		conceptsRequired.add("PASSWORD_HISTORY");
 		conceptsRequired.add("PASSWORD_RESET");
-		conceptsRequired.add("DATABASEACCESSREQUEST");
+		//conceptsRequired.add("DATABASEACCESSREQUEST");
+		conceptsRequired.add("ENGINEACCESSREQUEST");
 		conceptsRequired.add("PROJECTACCESSREQUEST");
 		conceptsRequired.add("INSIGHTACCESSREQUEST");
 		
@@ -170,8 +171,8 @@ public class SecurityOwlCreator {
 				return true;
 			}
 			
-			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ID/DATABASEACCESSREQUEST")) {
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/ID/ENGINEACCESSREQUEST")) {
 				return true;
 			}
 			
@@ -434,18 +435,18 @@ public class SecurityOwlCreator {
 		owler.addProp("PASSWORD_RESET", "TOKEN", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "DATE_ADDED", "TIMESTAMP");
 		
-		// DATABASEACCESSREQUEST
-		owler.addConcept("DATABASEACCESSREQUEST", null, null);
-		owler.addProp("DATABASEACCESSREQUEST", "ID", "VARCHAR(255)");
-		owler.addProp("DATABASEACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
-		owler.addProp("DATABASEACCESSREQUEST", "REQUEST_TYPE", "VARCHAR(255)");
-		owler.addProp("DATABASEACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
-		owler.addProp("DATABASEACCESSREQUEST", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("DATABASEACCESSREQUEST", "PERMISSION", "INT");
-		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
-		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
-		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
-		owler.addProp("DATABASEACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
+		// ENGINEACCESSREQUEST
+		owler.addConcept("ENGINEACCESSREQUEST", null, null);
+		owler.addProp("ENGINEACCESSREQUEST", "ID", "VARCHAR(255)");
+		owler.addProp("ENGINEACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
+		owler.addProp("ENGINEACCESSREQUEST", "REQUEST_TYPE", "VARCHAR(255)");
+		owler.addProp("ENGINEACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
+		owler.addProp("ENGINEACCESSREQUEST", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("ENGINEACCESSREQUEST", "PERMISSION", "INT");
+		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
+		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
+		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
+		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
 		
 		// PROJECTACCESSREQUEST 
 		owler.addConcept("PROJECTACCESSREQUEST", null, null);

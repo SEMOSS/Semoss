@@ -26,20 +26,19 @@ import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
 
-@Deprecated
-public class RequestDatabaseReactor extends AbstractReactor {
+public class RequestEngineReactor extends AbstractReactor {
 	
-	private static final String REQUEST_DATABASE_EMAIL_TEMPLATE = "requestDatabase.html";
-	private static final Logger classLogger = LogManager.getLogger(RequestDatabaseReactor.class);
+	private static final String REQUEST_DATABASE_EMAIL_TEMPLATE = "requestEngine.html";
+	private static final Logger classLogger = LogManager.getLogger(RequestEngineReactor.class);
 
-	public RequestDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.PERMISSION.getKey() };
+	public RequestEngineReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PERMISSION.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 		String permission = this.keyValue.get(this.keysToGet[1]);
 		// turn permission into an integer in case it was added as the string version of the value
 		int requestPermission = -1;
@@ -54,7 +53,7 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		boolean security = AbstractSecurityUtils.securityEnabled();
 		if (security) {
 			if (user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to request an app",
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to request an engine",
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -70,25 +69,25 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
 		// check user permission for the database
-		Integer currentUserPermission = SecurityEngineUtils.getUserEnginePermission(userId, databaseId);
+		Integer currentUserPermission = SecurityEngineUtils.getUserEnginePermission(userId, engineId);
 		if(currentUserPermission != null && requestPermission == currentUserPermission) {
-			throw new IllegalArgumentException("This user already has access to this database with the given permission level");
+			throw new IllegalArgumentException("This user already has access to this engine with the given permission level");
 		}
 		//check user pending permission for database
-		Integer currentPendingUserPermission = SecurityEngineUtils.getUserAccessRequestDatabasePermission(userId, databaseId);
+		Integer currentPendingUserPermission = SecurityEngineUtils.getUserAccessRequestDatabasePermission(userId, engineId);
 		if(currentPendingUserPermission != null && requestPermission == currentPendingUserPermission) {
-			throw new IllegalArgumentException("This user has already requested access to this database with the given permission level");
+			throw new IllegalArgumentException("This user has already requested access to this engine with the given permission level");
 		}
 		// checking to make sure database is discoverable
-		boolean canRequest = SecurityEngineUtils.engineIsDiscoverable(databaseId);
+		boolean canRequest = SecurityEngineUtils.engineIsDiscoverable(engineId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
-			SecurityEngineUtils.setUserAccessRequest(userId, userType, databaseId, requestPermission);
-			sendEmail(user, databaseId, permission);
-			return NounMetadata.getSuccessNounMessage("Successfully requested database '" + databaseId + "'");
+			SecurityEngineUtils.setUserAccessRequest(userId, userType, engineId, requestPermission);
+			sendEmail(user, engineId, permission);
+			return NounMetadata.getSuccessNounMessage("Successfully requested access to engine '" + engineId + "'");
 		}
 
-		return NounMetadata.getErrorNounMessage("Database '" + databaseId + "' is not requestable");
+		return NounMetadata.getErrorNounMessage("Engine '" + engineId + "' is not requestable");
 	}
 
 	/**
@@ -109,14 +108,14 @@ public class RequestDatabaseReactor extends AbstractReactor {
 				permission = AccessPermissionEnum.getPermissionValueById(permission);
 			}
 			if (databaseOwners != null && !databaseOwners.isEmpty()) {
-				String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+				String engineName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-				final String DATABASE_NAME_REPLACEMENT = "$databaseName$";
+				final String ENGINE_NAME_REPLACEMENT = "$engineName$";
 				final String PERMISSION_REPLACEMENT = "$permission$";
 				final String USER_NAME_REPLACEMENT = "$userName$";
 				final String USER_EMAIL_REPLACEMENT = "$userEmail$";
 				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
-				emailReplacements.put(DATABASE_NAME_REPLACEMENT, databaseName);
+				emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
 				emailReplacements.put(PERMISSION_REPLACEMENT, permission);
 				emailReplacements.put(USER_NAME_REPLACEMENT, userName);
 				emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
