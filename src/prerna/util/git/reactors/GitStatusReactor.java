@@ -38,7 +38,7 @@ public class GitStatusReactor extends AbstractReactor {
 			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 			}
-			databaseName = SecurityEngineUtils.getDatabaseAliasForId(databaseId);
+			databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		} else {
 			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		}
