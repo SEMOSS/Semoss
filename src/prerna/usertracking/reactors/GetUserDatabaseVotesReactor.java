@@ -35,7 +35,7 @@ public class GetUserDatabaseVotesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Database Id cannot be null.");
 		}
 
-		if (!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 			throw new IllegalArgumentException("Database cannot be viewed by user.");
 		}
 

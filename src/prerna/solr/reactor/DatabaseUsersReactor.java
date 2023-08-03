@@ -31,8 +31,8 @@ public class DatabaseUsersReactor extends AbstractReactor {
 		List<Map<String, Object>> baseInfo = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 				// you dont have access
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}

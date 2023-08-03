@@ -47,7 +47,7 @@ public class EngineWorker implements Runnable {
 			User user = sc.getUser();
 			boolean canAccess = SecurityEngineUtils.userIsOwner(user, engineId) 
 								|| SecurityEngineUtils.userCanEditDatabase(user, engineId)
-								|| SecurityEngineUtils.userCanViewDatabase(user, engineId); 
+								|| SecurityEngineUtils.userCanViewEngine(user, engineId); 
 			
 			if(canAccess)
 			{

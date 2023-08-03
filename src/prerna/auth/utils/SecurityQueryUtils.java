@@ -29,10 +29,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	private static final Logger logger = LogManager.getLogger(SecurityQueryUtils.class);
 	
 	/**
-	 * Try to reconcile and get the database id
+	 * Try to reconcile and get the engine id
 	 * @return
 	 */
-	public static String testUserDatabaseIdForAlias(User user, String potentialId) {
+	public static String testUserEngineIdForAlias(User user, String potentialId) {
 		List<String> ids = new ArrayList<String>();
 		
 //		String userFilters = getUserFilters(user);

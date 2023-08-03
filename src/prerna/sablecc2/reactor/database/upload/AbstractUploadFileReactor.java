@@ -92,7 +92,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		if (existing) {
 			if (security) {
 				// check if input is alias since we are adding ot existing
-				databaseIdOrName = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseIdOrName);
+				databaseIdOrName = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseIdOrName);
 				if (!SecurityEngineUtils.userCanEditDatabase(user, databaseIdOrName)) {
 					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 					SemossPixelException err = new SemossPixelException(noun);
