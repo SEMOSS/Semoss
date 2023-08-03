@@ -81,7 +81,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 			String items = "";
 			for (int row = 0; row < myEngines.size(); row++) {
 				String dbid = myEngines.get(row);
-				String dbname = SecurityEngineUtils.getDatabaseAliasForId(dbid);
+				String dbname = SecurityEngineUtils.getEngineAliasForId(dbid);
 				String oneItem = dbid + "$" + dbname + "$";
 				if(row < myEngines.size() - 1) {
 					items += "\"" + oneItem + "\", ";

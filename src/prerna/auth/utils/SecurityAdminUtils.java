@@ -1359,7 +1359,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void addDatabaseUser(String newUserId, String databaseId, String permission) {
 		// make sure user doesn't already exist for this database
-		if(SecurityUserDatabaseUtils.getUserDatabasePermission(newUserId, databaseId) != null) {
+		if(SecurityUserEngineUtils.getUserEnginePermission(newUserId, databaseId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this database. Please edit the existing permission level.");
 		}
@@ -1390,7 +1390,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
 		// this returns a list of existing permissions
-		Map<String, Integer> existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermissions(userIds, databaseId);
+		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserDatabasePermissions(userIds, databaseId);
 		if (!existingUserPermission.isEmpty()) {
 			throw new IllegalArgumentException("The following users already have access to this database. Please edit the existing permission level: "+String.join(",", existingUserPermission.keySet()));
 		}
@@ -2067,7 +2067,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void editDatabaseUserPermission(String existingUserId, String databaseId, String newPermission) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermission(existingUserId, databaseId);
+		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, databaseId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the database");
 		}
@@ -2103,7 +2103,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	    }
 			    
 		// get user permissions to edit
-		Map<String, Integer> existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermissions(existingUserIds, databaseId);
+		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserDatabasePermissions(existingUserIds, databaseId);
 		
 		// make sure all users to edit currently has access to database
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
@@ -2314,7 +2314,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void removeDatabaseUser(String existingUserId, String databaseId) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermission(existingUserId, databaseId);
+		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, databaseId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the database");
 		}
@@ -2337,7 +2337,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public void removeDatabaseUsers(List<String> existingUserIds, String databaseId) {
-		Map<String, Integer> existingUserPermission = SecurityUserDatabaseUtils.getUserDatabasePermissions(existingUserIds, databaseId);
+		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserDatabasePermissions(existingUserIds, databaseId);
 		
 		// make sure these users all exist and have access
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
