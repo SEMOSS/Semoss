@@ -106,6 +106,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       
       # If this is a python payload 
       elif payload['operation'] == 'PYTHON':
+        is_exception = False
         print(f"Executing command {command}")
         # old smss calls
         if command.endswith(".py") or command.startswith('smssutil'):
@@ -118,9 +119,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             except Exception as e:
               print(e)
               output = str(e)
+              is_exception = True
           print(f"executing file.. {command}")
           output = str(output)
-          self.send_output(output, payload, operation=payload["operation"], response=True)
+          self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
 
         # all new
         else:
@@ -154,8 +156,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # remove all user defined variables to globals
                 for key in removal_keys:
                   del globals()[key]
+                is_exception = True
           output = str(output)
-          self.send_output(output, payload, operation=payload["operation"], response=True)
+          self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
       
       # this is when it is a response 
       elif payload['response']:
@@ -203,7 +206,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     }
 
     if exception:
-      payload.update({"ex":output})
+      payload.update({"ex":output
+                      #"payload":[None]
+                      })
 
     output = json.dumps(payload)
     # write response back
