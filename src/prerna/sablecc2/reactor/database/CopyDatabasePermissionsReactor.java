@@ -40,10 +40,10 @@ public class CopyDatabasePermissionsReactor extends AbstractReactor {
 		String targetDatabaseId = this.keyValue.get(this.keysToGet[1]);
 
 		// must be an editor for both to run this
-		if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), sourceDatabaseId)) {
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), sourceDatabaseId)) {
 			throw new IllegalArgumentException("You do not have edit access to the source database");
 		}
-		if(!SecurityEngineUtils.userCanEditDatabase(this.insight.getUser(), targetDatabaseId)) {
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), targetDatabaseId)) {
 			throw new IllegalArgumentException("You do not have edit access to the target database");
 		}
 		
