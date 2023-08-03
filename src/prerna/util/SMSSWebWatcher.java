@@ -43,6 +43,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.OwlPrettyPrintFixer;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
@@ -239,6 +240,24 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// we couldn't initialize the db
 					// remove it from DIHelper
 					DIHelper.getInstance().removeEngineProperty(Constants.USER_TRACKING_DB);
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		// load model inference logs database
+		if(Utility.isModelInferenceLogsEnabled()) {
+			String modelInferenceLogsDBName = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
+			int modelInferenceLogsDBNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, modelInferenceLogsDBName);
+	
+			if (modelInferenceLogsDBNameIndex > -1) {
+				loadExistingDB(fileNames[modelInferenceLogsDBNameIndex]);
+				try {
+					ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
+				} catch (Exception e) {
+					// we couldn't initialize the db
+					// remove it from DIHelper
+					DIHelper.getInstance().removeEngineProperty(Constants.MODEL_INFERENCE_LOGS_DB);
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
