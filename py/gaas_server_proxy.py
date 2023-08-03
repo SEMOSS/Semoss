@@ -15,7 +15,7 @@ class ServerProxy():
     return f"py_{self.epoc}"
 
   # method_args is typically a list
-  def comm(self, epoc=None, engine_type="storage", engine_id = None, method_name=None, method_args=[]):
+  def comm(self, epoc=None, engine_type="storage", engine_id = None, method_name=None, method_args=[], method_arg_types=[]):
   # converts this into a payload
   # adds itself to the monitor block
   # calls the server to deliver the message
@@ -27,12 +27,13 @@ class ServerProxy():
     payload = {
       "epoc": epoc,
       "response": False,
-      "operation": engine_type,
+      "engineType": engine_type,
       "interim": False,
       # all the method stuff will come here
       "objId": engine_id,
       "methodName": method_name,
-      "payload": method_args
+      "payload": method_args,
+      "payloadClassNames":method_arg_types
     }
     # adds itself to the monitor block
     self.server.monitors.update({epoc:self.condition})
@@ -46,9 +47,16 @@ class ServerProxy():
     self.condition.release()
     # once it gets the response removes it from the monitors
 
-  def test(self):
-    epoc = self.get_next_epoc()
-    thread = threading.Thread(target=self.comm, kwargs={'epoc':epoc, 'engine_type':"ENGINE", 'engine_id': 'hello', 'method_name':'method1', 'method_args':['cat', 'bat', 'rat']})
+  def call(self, epoc=None, engine_type='Storage', engine_id=None, method_name='None', method_args=None, method_arg_types=None):
+    #epoc = self.get_next_epoc()
+    thread = threading.Thread(target=self.comm, kwargs={
+              'epoc':epoc, 
+              'engine_type':engine_type, 
+              'engine_id': engine_id, 
+              'method_name':method_name, 
+              'method_args':method_args,
+              'method_arg_types': method_arg_types
+              })
     thread.start()
     thread.join()
     new_payload_struct = self.server.monitors.pop(epoc)
@@ -59,6 +67,27 @@ class ServerProxy():
       return new_payload_struct['ex']
     else:
       return new_payload_struct['payload']
+
+  def test(self):
+    epoc = self.get_next_epoc()
+    thread = threading.Thread(target=self.comm, kwargs={'epoc':epoc, 
+                              'engine_type':"ENGINE", 
+                              'engine_id': 'hello', 
+                              'method_name':'method1', 
+                              'method_args':['cat', 'bat', None],
+                              'method_arg_types':['java.lang.String', 'java.lang.String', 'java.lang.String']
+                              })
+    thread.start()
+    thread.join()
+    new_payload_struct = self.server.monitors.pop(epoc)
+    print(new_payload_struct)
+    # if exception
+    # convert exception and give back
+    if 'ex' in new_payload_struct:
+      return new_payload_struct['ex']
+    else:
+      return new_payload_struct['payload']
+
     
     #ps = self.comm(engine_type="ENGINE", engine_id="hello", method_name="method1", method_args=['cat', 'bat', 'rat'])
     #print(ps['payload'])
