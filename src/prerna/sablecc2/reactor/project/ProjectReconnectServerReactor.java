@@ -14,11 +14,11 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class ProjectReconnectServer extends AbstractReactor {
+public class ProjectReconnectServerReactor extends AbstractReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(ProjectReconnectServer.class);
+	private static final Logger classLogger = LogManager.getLogger(ProjectReconnectServerReactor.class);
 	
-	public ProjectReconnectServer() {
+	public ProjectReconnectServerReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), "force", "port"};
 	}
 	
