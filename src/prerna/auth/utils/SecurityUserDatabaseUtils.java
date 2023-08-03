@@ -153,7 +153,7 @@ class SecurityUserDatabaseUtils extends AbstractSecurityUtils {
 	 * @param databaseId
 	 * @return
 	 */
-	public static boolean userCanViewDatabase(User user, String databaseId) {
+	public static boolean userCanViewEngine(User user, String databaseId) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT * "
 //				+ "FROM ENGINE "

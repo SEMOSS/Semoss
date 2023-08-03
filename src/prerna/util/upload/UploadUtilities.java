@@ -2028,7 +2028,7 @@ public class UploadUtilities {
 	 * @return
 	 */
 	public static Map<String, Object> getDatabaseReturnData(User user, String databaseId) {
-		List<Map<String, Object>> baseInfo = SecurityEngineUtils.getUserDatabaseList(user, databaseId);
+		List<Map<String, Object>> baseInfo = SecurityEngineUtils.getUserEngineList(user, databaseId, null);
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}

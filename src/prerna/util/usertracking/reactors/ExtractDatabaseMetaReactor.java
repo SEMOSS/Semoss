@@ -40,8 +40,8 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 		String engineId = UploadInputUtility.getDatabaseNameOrId(this.store);
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityEngineUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
 			}
 		} else {

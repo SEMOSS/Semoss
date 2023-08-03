@@ -74,7 +74,7 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableReac
 
 		if (security) {
 			// check if input is alias since we are adding ot existing
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseId);
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
 			
 			// throw error is user is not owner
 			if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {

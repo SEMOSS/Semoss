@@ -43,7 +43,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 			
 			// we may have the alias
 			if(AbstractSecurityUtils.securityEnabled()) {
-				databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+				databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 				if(!isAdmin) {
 					if(AbstractSecurityUtils.adminOnlyDbDelete()) {
