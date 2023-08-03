@@ -212,6 +212,32 @@ public interface IProject {
 	
 	/**
 	 * 
+	 * @param create
+	 * @return
+	 */
+	SocketClient getProjectTcpClient(boolean create);
+	
+	/**
+	 * 
+	 * @param create
+	 * @param port
+	 * @return
+	 */
+	SocketClient getProjectTcpClient(boolean create, int port);
+	
+	/**
+	 * 
+	 */
+	void setProjectTcpClient(SocketClient tcpClient);
+	
+	/**
+	 * 
+	 * @return
+	 */
+	String getProjectTcpServerDirectory();
+	
+	/**
+	 * 
 	 * @return
 	 */
 	TCPRTranslator getProjectRTranslator();
