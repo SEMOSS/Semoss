@@ -4497,6 +4497,20 @@ public class Utility {
 	}
 	
 	/**
+	 * Determine if model inference logs db is enabled
+	 * @return
+	 */
+	public static boolean isModelInferenceLogsEnabled() {
+		String modelInferenceLogs = DIHelper.getInstance().getProperty(Constants.MODEL_INFERENCE_LOGS_ENABLED);
+		if(modelInferenceLogs == null) {
+			// default configuration is false
+			return false;
+		}
+		
+		return Boolean.parseBoolean(modelInferenceLogs);
+	}
+	
+	/**
 	 * Determine if user tracking enabled
 	 * @return
 	 */
