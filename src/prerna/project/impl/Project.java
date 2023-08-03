@@ -148,9 +148,8 @@ public class Project implements IProject {
 	private transient Process tcpServerProcess;
 	private transient String tcpServerProcessPrefix;
 	private transient SocketClient tcpClient;
-	private String processSpace = null;
-	private String port = null;
-
+	private String tcpServerDirectory = null;
+	private int port = -1;
 	
 	@Override
 	public void openProject(String projectSmssFilePath) {
@@ -1417,13 +1416,38 @@ public class Project implements IProject {
 	 * 
 	 * @return
 	 */
+	@Override
 	public SocketClient getProjectTcpClient() {
+		return getProjectTcpClient(true);
+	}
+	
+	@Override
+	public SocketClient getProjectTcpClient(boolean create) {
+		return getProjectTcpClient(create, -1);
+	}
+	
+	@Override
+	public SocketClient getProjectTcpClient(boolean create, int port) {
+		if(!create) {
+			return this.tcpClient;
+		}
+		
 		if(this.tcpClient != null) {
 			return this.tcpClient;
 		}
 		
-		createProjectTcpServer();
+		createProjectTcpServer(port);
 		return this.tcpClient;
+	}
+	
+	@Override
+	public void setProjectTcpClient(SocketClient tcpClient) {
+		this.tcpClient = tcpClient;
+	}
+	
+	@Override
+	public String getProjectTcpServerDirectory() {
+		return this.tcpServerDirectory;
 	}
 	
 	/**
@@ -1449,7 +1473,7 @@ public class Project implements IProject {
 	/**
 	 * 
 	 */
-	private synchronized void createProjectTcpServer() {
+	private synchronized void createProjectTcpServer(int port) {
 		if (tcpClient == null || !tcpClient.isConnected())  // start only if it not already in progress
 		{
 			boolean nativePyServer = false;
@@ -1464,10 +1488,23 @@ public class Project implements IProject {
 			}
 			
 			logger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.prop));
-			this.port = this.projectProperties.getProperty(Settings.FORCE_PORT);
-			// port has not been forced
-			if (this.port == null) {
-				this.port = Utility.findOpenPort();
+			if(port != -1) {
+				this.port = port;
+			} else {
+				String forcePort = this.projectProperties.getProperty(Settings.FORCE_PORT);
+				// port has not been forced
+				if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+					try {
+						this.port = Integer.parseInt(forcePort);
+					} catch(NumberFormatException e) {
+						// ignore
+						logger.warn("Project " + this.projectId + " has an invalid FORCE_PORT value");
+						// just find a new port
+						this.port = Integer.parseInt(Utility.findOpenPort());
+					}
+				} else {
+					this.port = Integer.parseInt(Utility.findOpenPort());
+				}
 			}
 			
 			//TODO: how do we account for chroot??
@@ -1481,14 +1518,14 @@ public class Project implements IProject {
 			try {
 				mainCachePath = Paths.get(DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
 				tempDirForProject = Files.createTempDirectory(mainCachePath, "a");
-				this.processSpace = tempDirForProject.toString();
-				Utility.writeLogConfigurationFile(this.processSpace);
+				this.tcpServerDirectory = tempDirForProject.toString();
+				Utility.writeLogConfigurationFile(this.tcpServerDirectory);
 				if(nativePyServer) {
-					Object[] ret = Utility.startTCPServerNativePy(this.processSpace, this.port);
+					Object[] ret = Utility.startTCPServerNativePy(this.tcpServerDirectory, this.port+"");
 					this.tcpServerProcess = (Process) ret[0];
 					this.tcpServerProcessPrefix = (String) ret[1];
 				} else {
-					this.tcpServerProcess = Utility.startTCPServer(cp, this.processSpace, this.port);
+					this.tcpServerProcess = Utility.startTCPServer(cp, this.tcpServerDirectory, this.port+"");
 				}
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
@@ -1508,7 +1545,7 @@ public class Project implements IProject {
 			
 			try {
 				this.tcpClient = (SocketClient) Class.forName(pyClient).newInstance();
-				tcpClient.connect("127.0.0.1", Integer.parseInt(port), false);
+				tcpClient.connect("127.0.0.1", this.port, false);
 				//nc.run(); - you cannot do this because then the client goes into listener mode
 				Thread t = new Thread(tcpClient);
 				t.start();
