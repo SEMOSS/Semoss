@@ -46,7 +46,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 				databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 				if(!isAdmin) {
-					if(AbstractSecurityUtils.adminOnlyDbDelete()) {
+					if(AbstractSecurityUtils.adminOnlyEngineDelete()) {
 						throwFunctionalityOnlyExposedForAdminsError();
 					}
 					
