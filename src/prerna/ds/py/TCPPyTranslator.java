@@ -124,6 +124,7 @@ public class TCPPyTranslator extends PyTranslator {
 			if(ps != null && ps.ex != null)
 			{
 				logger.info("Exception " + ps.ex);
+				throw new SemossPixelException(ps.ex);
 			}
 			else
 				return ps.payload[0];
@@ -133,7 +134,6 @@ public class TCPPyTranslator extends PyTranslator {
 			logger.info("Py engine is not available anymore ");
         	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 		}
-		return null;
 	}
 
 	
