@@ -170,21 +170,24 @@ public class EmbeddedModelEngine implements IModelEngine {
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
 		callMaker.append("question='").append(question).append("'");
 		if(context != null)
-		callMaker.append(",").append("context='").append(context).append("'");
-		
-		Iterator <String> paramKeys = parameters.keySet().iterator();
-		while(paramKeys.hasNext())
+			callMaker.append(",").append("context='").append(context).append("'");
+	
+		if(parameters != null)
 		{
-			String key = paramKeys.next();
-			callMaker.append(",").append(key).append("=");
-			Object value = parameters.get(key);
-			if(value instanceof String)
+			Iterator <String> paramKeys = parameters.keySet().iterator();
+			while(paramKeys.hasNext())
 			{
-				callMaker.append("'").append(value+"").append("'");
-			}
-			else
-			{
-				callMaker.append(value+"");
+				String key = paramKeys.next();
+				callMaker.append(",").append(key).append("=");
+				Object value = parameters.get(key);
+				if(value instanceof String)
+				{
+					callMaker.append("'").append(value+"").append("'");
+				}
+				else
+				{
+					callMaker.append(value+"");
+				}
 			}
 		}
 		callMaker.append(")");
