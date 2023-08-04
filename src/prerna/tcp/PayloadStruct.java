@@ -15,6 +15,11 @@ public class PayloadStruct implements Serializable{
 	public String methodName = "method";
 	public Object [] payload = null;
 	public Class [] payloadClasses = null;
+	
+	// this is because python cant marshal java classes
+	public String [] payloadClassNames = null;
+	public String engineType = null;
+	
 	public String ex = null;
 	public boolean processed = false;
 	public boolean longRunning = false;
