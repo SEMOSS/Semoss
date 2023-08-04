@@ -182,14 +182,6 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 		    					
 		    					// try to convert it into a full object
 		    					// need to check if it is primitive before converting
-		    					try
-		    					{
-			    					Object obj = gson.fromJson((String)ps.payload[0], Object.class);
-			    					ps.payload[0] = obj;
-		    					}catch(Exception ignored)
-		    					{
-		    						
-		    					}
 		    					
 		    					System.out.println("FINAL OUTPUT <<<<<<<" + outputAssimilator + ">>>>>>>>>>>>");
 		    					// re-initialize it
@@ -211,6 +203,9 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					// this is a request we need to process
 	    					// need a way here to also push the payload classes
 	    					// will come to it in a bit
+	    					// clean up the payload struct a little
+	    					ps = convertPayloadClasses(ps);
+	    					
 	    					NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps);
 	    					worker.run();
 	    					executeCommand(worker.getOutput());
@@ -235,6 +230,26 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     		System.err.println("outside the run loop");
     	}
     }	
+    
+    private PayloadStruct convertPayloadClasses(PayloadStruct input)
+    {
+    	if(input.payloadClassNames != null)
+    	{
+    		input.payloadClasses = new Class[input.payloadClassNames.length];
+    		for(int classIndex = 0;classIndex < input.payloadClassNames.length;classIndex++)
+    		{
+    			try {
+					String className = input.payloadClassNames[classIndex];
+					input.payloadClasses[classIndex] = Class.forName(className);
+				} catch (ClassNotFoundException e) 
+    			{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+    		}
+    	}
+    	return input;
+    }
     
     // this is the method that pushes to the front end
     // when output happens
