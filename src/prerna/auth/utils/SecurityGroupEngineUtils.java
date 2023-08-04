@@ -297,7 +297,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		}
 		
 		if(bestGroupDatabasePermission == null && bestUserDatabasePermission == null) {
-			if(SecurityEngineUtils.databaseIsGlobal(databaseId)) {
+			if(SecurityEngineUtils.engineIsGlobal(databaseId)) {
 				return AccessPermissionEnum.READ_ONLY.getId();
 			}
 			return null;

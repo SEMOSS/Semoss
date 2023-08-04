@@ -27,13 +27,12 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	private static final Logger logger = LogManager.getLogger(SecurityUserEngineUtils.class);
 
 	/**
-	 * Get what permission the user has for a given database
+	 * Get what permission the user has for a given engine
 	 * @param userId
-	 * @param databaseId
-	 * @param insightId
+	 * @param engineId
 	 * @return
 	 */
-	public static String getActualUserDatabasePermission(User user, String databaseId) {
+	public static String getActualUserEnginePermission(User user, String engineId) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
 //				+ "WHERE ENGINEID='" + databaseId + "' AND USERID IN " + userFilters;
@@ -41,7 +40,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -62,7 +61,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		}
 		
 		// see if database is public
-		if(SecurityEngineUtils.databaseIsGlobal(databaseId)) {
+		if(SecurityEngineUtils.engineIsGlobal(engineId)) {
 			return AccessPermissionEnum.READ_ONLY.getPermission();
 		}
 		
@@ -229,12 +228,12 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Determine if the user can edit the database
+	 * Determine if the user can edit the engine
 	 * @param userId
-	 * @param databaseId
+	 * @param engineId
 	 * @return
 	 */
-	static int getMaxUserDatabasePermission(User user, String databaseId) {
+	static int getMaxUserEnginePermission(User user, String engineId) {
 //		String userFilters = getUserFilters(user);
 //		// query the database
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
@@ -243,7 +242,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
@@ -295,16 +294,16 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	} 	
 	
 	/**
-	 * Get the database permissions for a specific user
+	 * Get the engine permissions for a specific user
 	 * @param singleUserId
-	 * @param databaseId
+	 * @param engineId
 	 * @return
 	 */
-	public static Map<String, Integer> getUserDatabasePermissions(List<String> userIds, String databaseId) {
+	public static Map<String, Integer> getUserEnginePermissions(List<String> userIds, String engineId) {
 		Map<String, Integer> retMap = new HashMap<String, Integer>();
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = getUserDatabasePermissionsWrapper(userIds, databaseId);
+			wrapper = getUserEnginePermissionsWrapper(userIds, engineId);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String userId = (String) data[0];
@@ -322,16 +321,16 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the database permissions for a specific user
+	 * Get the engine permissions for a specific user
 	 * @param singleUserId
-	 * @param databaseId
+	 * @param engineId
 	 * @return
 	 */
-	public static IRawSelectWrapper getUserDatabasePermissionsWrapper(List<String> userIds, String databaseId) throws Exception {
+	public static IRawSelectWrapper getUserEnginePermissionsWrapper(List<String> userIds, String engineId) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return wrapper;
