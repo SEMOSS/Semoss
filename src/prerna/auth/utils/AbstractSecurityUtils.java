@@ -177,23 +177,23 @@ public abstract class AbstractSecurityUtils {
 		return securityEnabled && adminOnlyProjectSetPublic;
 	}
 	
-	public static boolean adminOnlyDbAdd() {
+	public static boolean adminOnlyEngineAdd() {
 		return securityEnabled && adminOnlyDatabaseAdd;
 	}
 	
-	public static boolean adminOnlyDbDelete() {
+	public static boolean adminOnlyEngineDelete() {
 		return securityEnabled && adminOnlyDatabaseDelete;
 	}
 	
-	public static boolean adminOnlyDbAddAccess() {
+	public static boolean adminOnlyEngineAddAccess() {
 		return securityEnabled && adminOnlyDatabaseAddAccess;
 	}
 	
-	public static boolean adminOnlyDbSetPublic() {
+	public static boolean adminOnlyEngineSetPublic() {
 		return securityEnabled && adminOnlyDatabaseSetPublic;
 	}
 	
-	public static boolean adminOnlyDbSetDiscoverable() {
+	public static boolean adminOnlyEngineSetDiscoverable() {
 		return securityEnabled && adminOnlyDatabaseSetDiscoverable;
 	}
 	
