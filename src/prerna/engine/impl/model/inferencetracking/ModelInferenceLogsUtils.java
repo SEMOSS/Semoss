@@ -58,23 +58,24 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	public static String doCreateNewConversation(String roomName, String roomDescription, 
-			   String roomConfigData, String userId, Boolean isActive, String projectId, String agentId) {
+			   String roomConfigData, String userId, String agentType, Boolean isActive, String projectId, String agentId) {
 		String convoId = UUID.randomUUID().toString();
-		doCreateNewConversation(convoId, roomName, roomDescription, roomConfigData, userId, isActive, projectId, agentId);
+		doCreateNewConversation(convoId, roomName, roomDescription, roomConfigData, userId, agentType, isActive, projectId, agentId);
 		return convoId;
 	}
 	
-	public static void doCreateNewConversation(String convoId, String roomName, String roomDescription, 
-											   String roomConfigData, String userId, Boolean isActive, String projectId, String agentId) {
+	public static void doCreateNewConversation(String roomId, String roomName, String roomDescription, 
+											   String roomConfigData, String userId, String agentType, Boolean isActive, String projectId, String agentId) {
 		String query = "INSERT INTO ROOM (ROOM_ID, ROOM_NAME, "
-				+ "ROOM_DESCRIPTION, ROOM_CONFIG_DATA, USER_ID, AGENT_TYPE, IS_ACTIVE, DATE_CREATED, PROJECTID, AGENT_ID) "
+				+ "ROOM_DESCRIPTION, ROOM_CONFIG_DATA, USER_ID, AGENT_TYPE, IS_ACTIVE, "
+				+ "DATE_CREATED, PROJECT_ID, AGENT_ID) "
 				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int index = 1;
-			ps.setString(index++, convoId);
+			ps.setString(index++, roomId);
 			ps.setString(index++, roomName);
 			ps.setString(index++, roomDescription);
 			if(allowClob) {
@@ -84,6 +85,7 @@ public class ModelInferenceLogsUtils {
 			} else {
 				ps.setString(index++, roomConfigData);
 			}
+			ps.setString(index++, userId);
 			ps.setString(index++, userId);
 			ps.setBoolean(index++, isActive);
 			ps.setObject(index++, LocalDateTime.now());
@@ -100,13 +102,36 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 	
-	public static boolean doCheckConversationExists (String convoId) {
+	public static boolean doCheckConversationExists (String roomId) {
 		String query = "SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int index = 1;
-			ps.setString(index++, convoId);
+			ps.setString(index++, roomId);
+			ps.execute();
+			if(ps.execute()) {
+				ResultSet rs = ps.getResultSet();
+				if (rs.next()) {
+					int count = rs.getInt(1);
+					return count >= 1;
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			closeResources(modelInferenceLogsDb, null, ps, null);
+		}
+		return false;
+	}
+	
+	public static boolean doModelIsRegistered (String agentId) {
+		String query = "SELECT COUNT(*) FROM AGENT WHERE AGENT_ID = ?";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, agentId);
 			ps.execute();
 			if(ps.execute()) {
 				ResultSet rs = ps.getResultSet();
@@ -125,7 +150,7 @@ public class ModelInferenceLogsUtils {
 	
 	public static String doCreateNewAgent(String agentName, String agentDescription, String agentType,
 			Boolean isMarketplace, String author) {
-		String agentId = UUID.randomUUID().toString();
+		String agentId = "EMB_" + UUID.randomUUID().toString();
 		doCreateNewAgent(agentId, agentName, agentDescription, agentType, isMarketplace, author);
 		return agentId;
 	}
@@ -157,32 +182,41 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	public static void doRecordMessage(String messageId,
-									   String conversationId,
-									   String userId,
-									   String modelId,
-									   String content,
-									   String messageType) {
+									   String messageType,
+									   String messageData,
+									   String roomId,
+									   String agentId,
+									   String feedbackText,
+									   LocalDateTime feedbackDate,
+									   Boolean rating,
+									   String sessionId,
+									   String userId) {
 		boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
-		String query = "INSERT INTO MESSAGES (MESSAGE_ID, CONVERSATION_ID, USER_ID, MODEL_ID, "
-				+ "CONTENT, CREATION_DATE, MESSAGE_TYPE) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?)";
+		String query = "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA,"
+				+ " DATE_CREATED, ROOM_ID, AGENT_ID, FEEDBACK_TEXT, FEEDBACK_DATE,"
+				+ " RATING, SESSIONID, USER_ID) " + 
+				"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int index = 1;
 			ps.setString(index++, messageId);
-			ps.setString(index++, conversationId);
-			ps.setString(index++, userId);
-			ps.setString(index++, modelId);
+			ps.setString(index++, messageType);
 			if(allowClob) {
 				Clob toclob = modelInferenceLogsDb.getConnection().createClob();
-				toclob.setString(1, content);
+				toclob.setString(1, messageData);
 				ps.setClob(index++, toclob);
 			} else {
-				ps.setString(index++, content);
+				ps.setString(index++, messageData);
 			}
 			ps.setObject(index++, LocalDateTime.now());
-			ps.setString(index++, messageType);
+			ps.setString(index++, roomId);
+			ps.setString(index++, agentId);
+			ps.setString(index++, feedbackText);
+			ps.setObject(index++, feedbackDate);
+			ps.setBoolean(index++, rating);
+			ps.setString(index++, sessionId);
+			ps.setString(index++, userId);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
