@@ -2,8 +2,6 @@ package prerna.engine.impl.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -12,12 +10,13 @@ import java.util.UUID;
 
 
 import java.util.Map.Entry;
+
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
+import prerna.util.Constants;
 
 public class OpenAiEngine extends EmbeddedModelEngine {
-	
-	private Map<String, ArrayList<Map<Object, Object>>> chatHistory = new Hashtable<>();
-	
+		
 	@SuppressWarnings("unchecked")
 	@Override
 	public String ask(String question, String context, Insight insight, Map <String, Object> parameters) 
@@ -25,19 +24,24 @@ public class OpenAiEngine extends EmbeddedModelEngine {
 		if(!this.socketClient.isConnected())
 			this.startServer();
 		
+		if (!ModelInferenceLogsUtils.doModelIsRegistered(this.getEngineId())) {
+			ModelInferenceLogsUtils.doCreateNewAgent(this.getEngineId(), this.getEngineName(), null, 
+					this.getModelType().toString(), false, insight.getUser().getPrimaryLoginToken().getId());
+		}
+		
 		String varName = (String)prop.get("VAR_NAME");
 		boolean keepContext = Boolean.parseBoolean((String)prop.get("KEEP_CONTEXT"));
 		
-		String convoId = null;
+		String roomId = null;
 		String messageId = null;
 		String history = null;
-		if (parameters.containsKey("CONVO_ID")){
-			convoId = (String) parameters.get("CONVO_ID");
-			parameters.remove("CONVO_ID");
+		if (parameters.containsKey("ROOM_ID")){
+			roomId = (String) parameters.get("ROOM_ID");
+			parameters.remove("ROOM_ID");
 			messageId = UUID.randomUUID().toString();
 			
-			if (keepContext && convoId != null && !convoId.isEmpty()) {
-				history = getConversationHistory(convoId, insight.getUser().getPrimaryLoginToken().getId());
+			if (keepContext && roomId != null && !roomId.isEmpty()) {
+				history = getConversationHistory(roomId, insight.getUser().getPrimaryLoginToken().getId());
 			}
 		}
 	
@@ -68,88 +72,59 @@ public class OpenAiEngine extends EmbeddedModelEngine {
 		Object output = pyt.runScript(callMaker.toString());
 		
 		Map<Object, Object> outputMap = (Map<Object,Object>) output;
-		if (keepContext && convoId != null && !convoId.isEmpty()) {
+		if (keepContext && roomId != null && !roomId.isEmpty()) {
 			
 			//TODO placeholder for inference logs insert
-//			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-//					convoId, 
-//					insight.getUser().getPrimaryLoginToken().getId(), 
-//					getEngineId(), 
-//					"{'role': 'user', 'content': '"+question+"'}", 
-//					"INPUT");
+			ModelInferenceLogsUtils.doRecordMessage(messageId, 
+													"INPUT",
+													"{'role': 'user', 'content': '"+question+"'}",
+													roomId,
+													this.getEngineId(),
+													null,
+													null,
+													false,
+													null,
+													insight.getUser().getPrimaryLoginToken().getId()
+													);
 			
-//			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-//					convoId, 
-//					insight.getUser().getPrimaryLoginToken().getId(), 
-//					getEngineId(), 
-//					constructPyDictFromMap(outputMap), 
-//					"RESPONSE");
-			
-			Map<Object, Object> inputQuestion = new HashMap<Object, Object>();
-			inputQuestion.put("role","user");
-			inputQuestion.put("content",question);
-			chatHistory.get(insight.getUser().getPrimaryLoginToken().getId()+convoId).add(inputQuestion);
-			chatHistory.get(insight.getUser().getPrimaryLoginToken().getId()+convoId).add(outputMap);
+			ModelInferenceLogsUtils.doRecordMessage(messageId, 
+													"RESPONSE",
+													constructPyDictFromMap(outputMap),
+													roomId,
+													this.getEngineId(),
+													null,
+													null,
+													false,
+													null,
+													insight.getUser().getPrimaryLoginToken().getId()
+													);
 		}
 		return (String) outputMap.get("content");
 	}
 	
-	// temporary method while we implement inference logs db
-	public String getConversationHistory(String convoId, String userId){
-		if (chatHistory.containsKey(userId+convoId)) {
-			ArrayList<Map<Object, Object>> convoHistory = chatHistory.get(userId+convoId);
+	// TODO placeholder for inference logs retrieval
+	public String getConversationHistory(String roomId, String userId){
+		// TODO make not a db call?
+		if (ModelInferenceLogsUtils.doCheckConversationExists(roomId)) {
+			List<Map<String, Object>> convoHistory = ModelInferenceLogsUtils.doRetrieveConversation(roomId, userId);
+					
 			StringBuilder convoList = new StringBuilder("[");
-			for (Map<Object, Object> record : convoHistory) {
-				Object priorContent = determineStringType(record);
-		        convoList.append(priorContent).append(",");
+			for (Map<String, Object> record : convoHistory) {
+				// Convert Map<String, Object> to Map<Object, Object>
+				
+				Object priorContent = record.get("MESSAGE_DATA");
+				String priorContentString = (String) priorContent;
+		        convoList.append(priorContentString).append(",");
 			}
 			convoList.append("]");
 			return convoList.toString();
 		}
 		else {
-			// we want to start a conversation
-			ArrayList<Map<Object, Object>> userNewChat = new ArrayList<Map<Object, Object>>();
-			chatHistory.put(userId+convoId, userNewChat);
+			ModelInferenceLogsUtils.doCreateNewConversation(roomId, "TestRoom", "TestDescription", 
+					   "{}", userId, this.getModelType().toString(), true, null, this.getEngineId());
 		}
 		return null;
 	}
-	
-	public void deleteConversation(String convoId, String userId) {
-		if (chatHistory.containsKey(userId+convoId)) {
-			this.chatHistory.remove(userId+convoId);
-		}
-	}
-	
-	// TODO placeholder for inference logs retrieval
-//	public String getContext(String convoId, String userId){
-//		// TODO make not a db call?
-//		if (ModelInferenceLogsUtils.doCheckConvoExists(convoId)) {
-//			List<Map<String, Object>> convoHistory = ModelInferenceLogsUtils.doRetrieveConvo(convoId, userId);
-//					
-//			StringBuilder convoList = new StringBuilder("[");
-//			for (Map<String, Object> record : convoHistory) {
-//				// Convert Map<String, Object> to Map<Object, Object>
-//				
-//				Object priorContent = record.get("CONTENT");
-//				String priorContentString = (String) priorContent;
-//		        convoList.append(priorContentString).append(",");
-//			}
-//			convoList.append("]");
-//			return convoList.toString();
-//		}
-//		else {
-//			ModelInferenceLogsUtils.doCreateNewConversation(convoId, "TestConvo1", userId);
-//		}
-//		return null;
-//	}
-	
-	public static String escapeSingleQuote(String input) {
-        return input.replace("'", "\\'");
-    }
-	
-    public static String replaceNewlineWithBackslash(String input) {
-        return input.replace("\n", "\\");
-    }
 	
     public static String constructPyDictFromMap(Map<Object,Object> theMap) {
     	StringBuilder theDict = new StringBuilder("{");
@@ -207,6 +182,16 @@ public class OpenAiEngine extends EmbeddedModelEngine {
     
 	@Override
 	public String getEngineId() {
-		return (String) prop.get("ENGINE");
+		return prop.getProperty(Constants.ENGINE);
+	}
+	
+	@Override
+	public MODEL_TYPE getModelType() {
+		return MODEL_TYPE.PROCESS;
+	}
+
+	@Override
+	public String getEngineName() {
+		return prop.getProperty(Constants.ENGINE_ALIAS);
 	}
 }
