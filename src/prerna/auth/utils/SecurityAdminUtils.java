@@ -190,12 +190,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get all user databases
+	 * Get all user engines
 	 * @param userId
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUserDbs(String userId) throws IllegalArgumentException{
+	public List<Map<String, Object>> getAllUserEngines(String userId) throws IllegalArgumentException{
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID", "user_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "app_permission"));
@@ -1031,13 +1031,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * Get all databases options
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllDatabaseSettings() {
-		return getAllDatabaseSettings(null);
+	public List<Map<String, Object>> getAllEngineSettings() {
+		return getAllEngineSettings(null, null);
 	}
 	
-	public List<Map<String, Object>> getAllDatabaseSettings(String databaseFilter) {
+	public List<Map<String, Object>> getAllEngineSettings(String engineFilter, List<String> engineTypes) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		// correct alias names
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_engine_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
+		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
@@ -1046,10 +1050,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
-		if(databaseFilter != null && !databaseFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
 		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		if(engineTypes != null && !engineTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+		}
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
@@ -1058,7 +1065,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getAllProjectSettings() {
-		return getAllDatabaseSettings(null);
+		return getAllProjectSettings(null);
 	}
 	
 	public List<Map<String, Object>> getAllProjectSettings(String projectFilter) {
