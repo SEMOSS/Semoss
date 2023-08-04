@@ -13,6 +13,7 @@ import com.sun.rowset.CachedRowSetImpl;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabase;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Utility;
@@ -48,9 +49,17 @@ public class NativePyEngineWorker implements Runnable {
 								|| SecurityEngineUtils.userCanEditEngine(user, engineId)
 								|| SecurityEngineUtils.userCanViewEngine(user, engineId); 
 			
+			canAccess = true;
 			if(canAccess)
 			{
-				IDatabase engine = Utility.getDatabase(engineId);
+				IEngine engine = null;
+				if(ps.engineType.equalsIgnoreCase("MODEL"))
+					engine = Utility.getModel(engineId);
+				if(ps.engineType.equalsIgnoreCase("STORAGE"))
+					engine = Utility.getStorage(engineId);
+				if(ps.engineType.equalsIgnoreCase("DATABASE"))
+					engine = Utility.getDatabase(engineId);
+				
 				Method method = findEngineMethod(engine, ps.methodName, ps.payloadClasses);
 				Object retObject = method.invoke(engine, ps.payload);
 	
@@ -83,7 +92,7 @@ public class NativePyEngineWorker implements Runnable {
 		output = ps;
 	}
 
-    public Method findEngineMethod(IDatabase engine, String methodName, Class [] arguments)
+    public Method findEngineMethod(IEngine engine, String methodName, Class [] arguments)
     {
     	Method retMethod = null;
     	

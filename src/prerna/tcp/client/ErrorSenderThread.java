@@ -37,7 +37,8 @@ public class ErrorSenderThread extends Thread
 	{
 		this.processComplete = true;
 		this.file = null;
-		JobManager.getManager().addStdOut(in.getInsightId(), "Execution complete...");				
+		JobManager.getManager().addStdOut(in.getInsightId(), "Execution complete...");		
+		//JobManager.getManager().flushJob(in.getInsightId());
 	}
 	
 	public void setInsight(Insight in)
