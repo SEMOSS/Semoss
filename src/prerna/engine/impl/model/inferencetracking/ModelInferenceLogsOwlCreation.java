@@ -66,7 +66,9 @@ public class ModelInferenceLogsOwlCreation {
 		this.roomColumns = Arrays.asList(
 				Pair.of("ROOM_ID", "VARCHAR(50)"),
 				Pair.of("ROOM_NAME", "VARCHAR(255)"),
+				Pair.of("ROOM_DESCRIPTION", "VARCHAR(255)"),
 				Pair.of("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
+				Pair.of("USER_ID", "VARCHAR(255)"),
 				Pair.of("AGENT_TYPE", "VARCHAR(50)"),
 				Pair.of("IS_ACTIVE",BOOLEAN_DATATYPE_NAME),
 				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
@@ -76,7 +78,7 @@ public class ModelInferenceLogsOwlCreation {
 		
 		this.messageColumns = Arrays.asList(
 				Pair.of("MESSAGE_ID", "VARCHAR(50)"),
-				Pair.of("MESSAGE_TYPE", "VARCHAR(255)"),
+				Pair.of("MESSAGE_TYPE", "VARCHAR(50)"),
 				Pair.of("MESSAGE_DATA", CLOB_DATATYPE_NAME),
 				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.of("ROOM_ID", "VARCHAR(50)"),
@@ -84,7 +86,7 @@ public class ModelInferenceLogsOwlCreation {
 				Pair.of("FEEDBACK_TEXT", "VARCHAR(MAX)"),
 				Pair.of("FEEDBACK_DATE", TIMESTAMP_DATATYPE_NAME),
 				Pair.of("RATING", BOOLEAN_DATATYPE_NAME),
-				Pair.of("SESSION_ID", "VARCHAR(255)"),
+				Pair.of("SESSIONID", "VARCHAR(255)"),
 				Pair.of("USER_ID", "VARCHAR(255)")
 			);
 		
@@ -100,7 +102,7 @@ public class ModelInferenceLogsOwlCreation {
 		this.primaryKeys = Arrays.asList(
 				Pair.of("AGENT", Pair.of(Arrays.asList("AGENT_ID"), Arrays.asList("VARCHAR(50)"))),
 				Pair.of("ROOM", Pair.of(Arrays.asList("ROOM_ID"), Arrays.asList("VARCHAR(50)"))),
-				Pair.of("MESSAGE", Pair.of(Arrays.asList("MESSAGE_ID"), Arrays.asList("VARCHAR(50)")))
+				Pair.of("MESSAGE", Pair.of(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)")))
 			);
 	}
 	
