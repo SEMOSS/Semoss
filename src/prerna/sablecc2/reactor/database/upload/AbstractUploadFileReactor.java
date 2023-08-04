@@ -84,7 +84,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				throwUserNotPublisherError();
 			}
 			
-			if (AbstractSecurityUtils.adminOnlyDbAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 				throwFunctionalityOnlyExposedForAdminsError();
 			}
 		}

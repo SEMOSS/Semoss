@@ -72,7 +72,7 @@ public class UploadDatabaseReactor extends AbstractInsightReactor {
 				throwUserNotPublisherError();
 			}
 			
-			if (AbstractSecurityUtils.adminOnlyDbAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 				throwFunctionalityOnlyExposedForAdminsError();
 			}
 		}
