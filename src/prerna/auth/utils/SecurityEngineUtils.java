@@ -742,7 +742,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String databaseId, String userId, String permission, long limit, long offset) {
+	public static List<Map<String, Object>> getFullEngineOwnersAndEditors(String databaseId, String userId, String permission, long limit, long offset) {
 		return SecurityUserEngineUtils.getFullDatabaseOwnersAndEditors(databaseId, userId, permission, limit, offset);
 	}
 	
