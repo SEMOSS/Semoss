@@ -191,11 +191,26 @@ public class ModelInferenceLogsUtils {
 									   Boolean rating,
 									   String sessionId,
 									   String userId) {
+		LocalDateTime dateCreated = LocalDateTime.now();
+		doRecordMessage(messageId, messageType, messageData, dateCreated, roomId, agentId, feedbackText, feedbackDate, rating, sessionId, userId);
+	}
+	
+	public static void doRecordMessage(String messageId,
+									   String messageType,
+									   String messageData,
+									   LocalDateTime dateCreated,
+									   String roomId,
+									   String agentId,
+									   String feedbackText,
+									   LocalDateTime feedbackDate,
+									   Boolean rating,
+									   String sessionId,
+									   String userId) {
 		boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA,"
-				+ " DATE_CREATED, ROOM_ID, AGENT_ID, FEEDBACK_TEXT, FEEDBACK_DATE,"
-				+ " RATING, SESSIONID, USER_ID) " + 
-				"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			+ " DATE_CREATED, ROOM_ID, AGENT_ID, FEEDBACK_TEXT, FEEDBACK_DATE,"
+			+ " RATING, SESSIONID, USER_ID) " + 
+			"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -209,7 +224,7 @@ public class ModelInferenceLogsUtils {
 			} else {
 				ps.setString(index++, messageData);
 			}
-			ps.setObject(index++, LocalDateTime.now());
+			ps.setObject(index++, dateCreated);
 			ps.setString(index++, roomId);
 			ps.setString(index++, agentId);
 			ps.setString(index++, feedbackText);
