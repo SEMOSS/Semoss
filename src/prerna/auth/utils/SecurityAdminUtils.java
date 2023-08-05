@@ -1294,18 +1294,25 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get all the users for a databases
-	 * @param databaseId
+	 * @param engineId
 	 * @param userId
 	 * @param permission
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getDatabaseUsers(String databaseId, String userId, String permission, long limit, long offset) {
-		return SecurityEngineUtils.getFullDatabaseOwnersAndEditors(databaseId, userId, permission, limit, offset);
+	public List<Map<String, Object>> getEngineUsers(String engineId, String userId, String permission, long limit, long offset) {
+		return SecurityEngineUtils.getFullEngineOwnersAndEditors(engineId, userId, permission, limit, offset);
 	}
 	
-	public static long getDatabaseUsersCount(String databaseId, String userId, String permission) {
+	/**
+	 * 
+	 * @param engineId
+	 * @param userId
+	 * @param permission
+	 * @return
+	 */
+	public static long getEngineUsersCount(String engineId, String userId, String permission) {
 		boolean hasUserId = userId != null && !(userId=userId.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission=permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1314,7 +1321,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
         fSelector.setFunction(QueryFunctionHelper.COUNT);
         fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
         qs.addSelector(fSelector);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (hasUserId) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "?like", userId));
 		}
@@ -1755,10 +1762,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param singleUserId
 	 * @return
 	 */
-	public static List<String> getDatabasesUserHasExplicitAccess(String singleUserId) {
+	public static List<String> getEnginesUserHasExplicitAccess(String singleUserId, List<String> engineTypes) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
+		if(engineTypes != null && !engineTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+			qs.addRelation("ENGINEPERMISSION__ENGINEID", "inner.join", "ENGINE__ENGINEID");
+		}
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 	
@@ -1767,11 +1778,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param singleUserId
 	 * @return
 	 */
-	public Map<String, Boolean> getDatabasesAndVisibilityUserHasExplicitAccess(String singleUserId) {
+	public Map<String, Boolean> getEnginesAndVisibilityUserHasExplicitAccess(String singleUserId, List<String> engineTypes) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
+		if(engineTypes != null && !engineTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+			qs.addRelation("ENGINEPERMISSION__ENGINEID", "inner.join", "ENGINE__ENGINEID");
+		}
 		Map<String, Boolean> values = new HashMap<>();
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1781,7 +1796,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				values.put((String) row[0], (Boolean) row[1]);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1791,17 +1806,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return values;
 	}
 	
-	/** 
-	 * give user permission for all the databases
+	/**
+	 * Give user permission for all the engines
 	 * @param userId		String - 	The user id we are providing permissions to
 	 * @param permission	String - 	The permission level for the access
 	 * @param isAddNew 		boolean - 	If false, modifying existing project permissions to the new permission level
 	 * 									If true, adding new projects with the permission level specified
+	 * @param engineTypes
 	 */
-	public void grantAllDatabases(String userId, String permission, boolean isAddNew) {
+	public void grantAllEngines(String userId, String permission, boolean isAddNew, List<String> engineTypes) {
+		String logETypes = (engineTypes == null || engineTypes.isEmpty()) ? "[ALL]" : ("[" + String.join(", ", engineTypes) + "]");
+
 		if(isAddNew) {
-			List<String> currentDatabaseAccess = getDatabasesUserHasExplicitAccess(userId);
-			List<String> databaseIds = SecurityEngineUtils.getAllEngineIds();
+			List<String> currentEngineAccess = getEnginesUserHasExplicitAccess(userId, engineTypes);
+			List<String> engineIds = SecurityEngineUtils.getAllEngineIds();
 			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)";
 			int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 			boolean visible = true;
@@ -1810,8 +1828,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			try {
 				ps = securityDb.getPreparedStatement(insertQuery);
 				// add new permission for databases
-				for (String databaseId : databaseIds) {
-					if(currentDatabaseAccess.contains(databaseId)) {
+				for (String databaseId : engineIds) {
+					if(currentEngineAccess.contains(databaseId)) {
 						// only add for new databases, not existing databases
 						continue;
 					}
@@ -1828,7 +1846,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("An error occurred granting the user permission for all the databases");
+				throw new IllegalArgumentException("An error occurred granting the user permission for all the engines of type "+logETypes);
 			} finally {
 				if (ps != null) {
 					try {
@@ -1847,7 +1865,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} else {
 			// first grab the databases and visibility
-			Map<String, Boolean> currentDatabaseToVisibilityMap = getDatabasesAndVisibilityUserHasExplicitAccess(userId);
+			Map<String, Boolean> currentEngineToVisibilityMap = getEnginesAndVisibilityUserHasExplicitAccess(userId, engineTypes);
 			
 			// we will remove all the current permissions
 			// and then re-add the ones they used to have but with the new level
@@ -1865,7 +1883,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occurred granting the user permission for all the databases");
+					throw new IllegalArgumentException("An error occurred granting the user permission for all the engines of type "+logETypes);
 				} finally {
 					if (ps != null) {
 						try {
@@ -1893,8 +1911,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				try {
 					ps = securityDb.getPreparedStatement(insertQuery);
 					// add new permission for all projects
-					for (String databaseId : currentDatabaseToVisibilityMap.keySet()) {
-						boolean visible = currentDatabaseToVisibilityMap.get(databaseId);
+					for (String databaseId : currentEngineToVisibilityMap.keySet()) {
+						boolean visible = currentEngineToVisibilityMap.get(databaseId);
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, userId);
 						ps.setString(parameterIndex++, databaseId);
@@ -1908,7 +1926,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("An error occurred granting the user permission for all the databases");
+					throw new IllegalArgumentException("An error occurred granting the user permission for all the engines of type "+logETypes);
 				} finally {
 					if (ps != null) {
 						try {
@@ -1932,18 +1950,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	
 	/** 
 	 * give new users access to a database
-	 * @param databaseId
+	 * @param engineId
 	 * @param permission
 	 */
-	public void grantNewUsersDatabaseAccess(String databaseId, String permission) {
+	public void grantNewUsersEngineAccess(String engineId, String permission) {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?, '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "', "
+				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
 				+ AccessPermissionEnum.getIdByPermission(permission) + ", " + "TRUE);";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			// get users with no access to app
-			List<Map<String, Object>> users = getDatabaseUsersNoCredentials(databaseId);
+			List<Map<String, Object>> users = getDatabaseUsersNoCredentials(engineId);
 			for (Map<String, Object> userMap : users) {
 				String userId = (String) userMap.get("id");
 				ps.setString(1, userId);
@@ -1955,7 +1973,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for engine "+engineId + " with permission " + permission);
 		} finally {
 			if(ps != null) {
 				try {
