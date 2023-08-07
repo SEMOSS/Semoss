@@ -79,7 +79,7 @@ import prerna.util.sql.SqlQueryUtilFactory;
 
 public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine {
 
-	private static final Logger logger = LogManager.getLogger(RDBMSNativeEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(RDBMSNativeEngine.class);
 
 	public static final String STATEMENT_OBJECT = "STATEMENT_OBJECT";
 	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
@@ -136,10 +136,10 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 						this.engineConn.setAutoCommit(this.autoCommit);
 					}
 				} catch (Exception e){
-					logger.error("error RDBMS opening database", e);
+					classLogger.error("error RDBMS opening database", e);
 				}
 			} else {
-				logger.info("using engine connection");
+				classLogger.info("using engine connection");
 			}
 		} else {
 			// will mostly be sent the connection string and I will connect here
@@ -214,7 +214,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.fetchSize = Integer.parseInt(strFetchSize);
 				} catch(Exception e) {
 					System.out.println("Error occurred trying to parse and get the fetch size");
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			// connection query timeout
@@ -224,7 +224,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
 				} catch(Exception e) {
 					System.out.println("Error occurred trying to parse and get the query timeout");
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			// auto commit connection 
@@ -238,7 +238,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
 				} catch(Exception e) {
 					System.out.println("Error occurred trying to parse and get the leak detection threshold");
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			// idle timeout
@@ -248,7 +248,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.idelTimeout = Long.parseLong(idleTimeoutStr);
 				} catch(Exception e) {
 					System.out.println("Error occurred trying to parse and get the idle timeout");
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			// pool min size
@@ -258,7 +258,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.poolMinSize = Integer.parseInt(strMinPoolSize);
 				} catch(Exception e) {
 					System.out.println("Error occurred trying to parse and get the min pool size");
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			// pool max size
@@ -268,7 +268,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.poolMaxSize = Integer.parseInt(strMaxPoolSize);
 				} catch(Exception e) {
 					System.out.println("Error occurred trying to parse and get the max pool size");
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 
@@ -311,18 +311,18 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
 					setDataSourceProperties(this.dataSource);
 					this.datasourceConnected = true;
-					logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				} else {
 					this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, smssProp);
 					if(this.autoCommit != null) {
 						this.engineConn.setAutoCommit(this.autoCommit);
 					}
 					this.queryUtil.enhanceConnection(this.engineConn);
-					logger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					classLogger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				}
 				this.engineConnected = true;
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}	
@@ -382,18 +382,18 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					conn = getConnection();
 					this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
 				} catch(SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(this.datasourceConnected && conn != null) {
 						try {
 							conn.close();
 						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 						try {
 							meta.getConnection().close();
 						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -425,15 +425,15 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			this.queryUtil.setDatabase(this.database);
 			this.queryUtil.setSchema(this.schema);
 		} catch (ClassNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -445,7 +445,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			this.engineConn.close();
 			makeConnection(this.driver, this.userName, this.password, this.connectionURL, this.fileCreateString);
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -467,7 +467,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
 				setDataSourceProperties(this.dataSource);
 				this.datasourceConnected = true;
-				logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 
 			// return/generate a connection object
@@ -491,10 +491,10 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				setDataSourceProperties(this.dataSource);
 				this.engineConn = this.dataSource.getConnection();
 				this.datasourceConnected = true;
-				logger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, smssProp);
-				logger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 			this.queryUtil.enhanceConnection(this.engineConn);
 			if(this.autoCommit != null) {
@@ -515,14 +515,14 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				try(Statement statement = conn.createStatement()){
 					statement.executeUpdate(query);
 				} catch(SQLException e){
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				}
 			} else {
 				try(PreparedStatement statement = conn.prepareStatement(query)){
 					statement.execute();
 				} catch(SQLException e){
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				}
 			}
@@ -573,7 +573,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					conceptURI = row.getBinding("concept").getValue().toString();
 				}
 			} catch (QueryEvaluationException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
 		}
@@ -596,7 +596,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
 			return columnsFromResult;
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			closeConnections(conn,rs,stmt);
 		}
@@ -615,7 +615,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
 			return columnsFromResult;
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			closeConnections(conn,rs,stmt);	
 		}
@@ -642,11 +642,11 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				try {
 					rs.setFetchSize(this.fetchSize);
 				} catch(Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		} catch(SQLTimeoutException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			hasError = true;
 			if(this.queryTimeout > 0) {
 				throw new SQLTimeoutException("Query execution cancelled - processing time took longer than set limit of " 
@@ -666,7 +666,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			}
 			throw e;
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			hasError = true;
 			throw e;
 		} finally {
@@ -712,7 +712,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			statement.executeUpdate();
 		} catch (SQLException e) {
 			statement = null;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(autoCloseStatement) {
 				closeConnections(conn,null,statement);
@@ -757,7 +757,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			}
 
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -767,7 +767,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				this.dataSource.close();
 				this.datasourceConnected = false;
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -794,9 +794,9 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					retVector.addElement(list);
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		logger.info("Found " + retVector.size() + " elements in result set");
+		classLogger.info("Found " + retVector.size() + " elements in result set");
 		return retVector;
 	}
 
@@ -817,7 +817,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			rs = stmt.executeQuery(query);
 			// return to pool
 		} catch (Exception e) {
-			logger.error("Error occurred in getResults method of RDBMSNativeEngine", e);
+			classLogger.error("Error occurred in getResults method of RDBMSNativeEngine", e);
 		}
 		return rs;
 	}
@@ -837,13 +837,13 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				stmt.execute("SHUTDOWN");
 				// return to pool
 			} catch (Exception e) {
-				logger.error("Unable to shutdown.", e);
+				classLogger.error("Unable to shutdown.", e);
 			} finally {
 				if(stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -858,7 +858,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			try(PreparedStatement statement = conn.prepareStatement(query)){
 				statement.execute();
 			} catch(SQLException e){
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 			// you have to commit on the connection itself
@@ -877,11 +877,11 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	public void commit() {
 		try {
 			if(this.datasourceConnected && this.dataSource != null) {
-				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				logger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
 				return;
 			}
 			Connection conn = getConnection();
@@ -889,7 +889,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				conn.commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -960,7 +960,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					break;
 			}
 		} catch (QueryEvaluationException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return relation;
@@ -968,7 +968,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 
 	@Override
 	public void delete() {
-		logger.debug("Deleting RDBMS Engine: " + this.engineName);
+		classLogger.debug("Deleting RDBMS Engine: " + this.engineName);
 
 		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
 		//WHY ARE WE DELETING THE SOURCE DATABSE????
@@ -983,7 +983,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			close();
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// Clean up SMSS and DB files/folder
 		super.delete();
@@ -999,7 +999,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				this.autoCommit = autoCommit;
 				engineConn.setAutoCommit(autoCommit);
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -1007,7 +1007,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	@Override
 	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException {
 		if(this.datasourceConnected && this.dataSource != null) {
-			logger.warn("You are using bulkInsertPreparedStatement with connection pooling - this method creates a connection that must be closed");
+			classLogger.warn("You are using bulkInsertPreparedStatement with connection pooling - this method creates a connection that must be closed");
 		}
 		// if a table name and a column name are not specified, do nothing
 		// not enough information to be meaningful
@@ -1046,7 +1046,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	@Override
 	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
 		if(this.datasourceConnected && this.dataSource != null) {
-			logger.warn("You are using getPreparedStatement with connection pooling - this method creates a connection that must be closed");
+			classLogger.warn("You are using getPreparedStatement with connection pooling - this method creates a connection that must be closed");
 		}
 		boolean error = false;
 		Connection conn = null;
@@ -1055,7 +1055,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			return conn.prepareStatement(sql);
 		} catch(SQLException e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
 			if(error) {
@@ -1069,7 +1069,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	@Override
 	public DatabaseMetaData getConnectionMetadata() {
 		if(this.datasourceConnected && this.dataSource != null) {
-			logger.warn("You are using getConnectionMetadata with connection pooling - this method creates a connection that must be closed");
+			classLogger.warn("You are using getConnectionMetadata with connection pooling - this method creates a connection that must be closed");
 		}
 		boolean error = false;
 		Connection conn = null;
@@ -1078,14 +1078,14 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			return conn.getMetaData();
 		} catch(SQLException e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(error) {
 				if(this.datasourceConnected && this.dataSource != null && conn != null) {
 					try {
 						conn.close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -1110,11 +1110,11 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 						conceptIdHash.setEngine(this);
 						conceptIdHash.load();
 					} catch(Exception ex) {
-						logger.error(Constants.STACKTRACE, ex);
+						classLogger.error(Constants.STACKTRACE, ex);
 					}
 				}
 			} catch (SQLException ex) {
-				logger.error(Constants.STACKTRACE, ex);
+				classLogger.error(Constants.STACKTRACE, ex);
 			}
 			// this is not required because the canInit does close
 //			finally {
@@ -1143,7 +1143,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			this.engineConnected = !this.engineConn.isClosed();
 			this.autoCommit = this.engineConn.getAutoCommit();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
