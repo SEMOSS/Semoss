@@ -26,6 +26,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
+@Deprecated
 public class DeleteDatabaseReactor extends AbstractReactor {
 
 	public DeleteDatabaseReactor() {
@@ -35,26 +36,32 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		List<String> databaseIds = getDatabaseIds();
-		for (String databaseId : databaseIds) {
-			if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(databaseId)) {
-				throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
-			}
-			User user = this.insight.getUser();
-			
-			// we may have the alias
-			if(AbstractSecurityUtils.securityEnabled()) {
-				databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-				if(!isAdmin) {
-					if(AbstractSecurityUtils.adminOnlyEngineDelete()) {
-						throwFunctionalityOnlyExposedForAdminsError();
+		// first validate all the inputs
+		User user = this.insight.getUser();
+		if(AbstractSecurityUtils.securityEnabled()) {
+			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+			if(!isAdmin) {
+				if(AbstractSecurityUtils.adminOnlyEngineDelete()) {
+					throwFunctionalityOnlyExposedForAdminsError();
+				}
+				for (String databaseId : databaseIds) {
+					if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(databaseId)) {
+						throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
 					}
-					
+					// we may have the alias
+					databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 					boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
 					if(!isOwner) {
 						throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");
 					}
-				}
+				} 
+			}
+		}
+		
+		for (String databaseId : databaseIds) {
+			// we may have the alias
+			if(AbstractSecurityUtils.securityEnabled()) {
+				databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 			} else {
 				databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 				if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
