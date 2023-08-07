@@ -353,7 +353,8 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 		getContext().commit();
 	}
 	
-	public void deleteDB() {
+	@Override
+	public void delete() {
 		logger.debug("Deleting Multi RDBMS Engine: " + this.engineName);
 
 		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
@@ -374,7 +375,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 		}
 
 		// Clean up SMSS and DB files/folder
-		super.deleteDB();
+		super.delete();
 	}
 	
 	@Override

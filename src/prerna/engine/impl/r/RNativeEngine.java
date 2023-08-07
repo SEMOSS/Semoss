@@ -217,7 +217,8 @@ public class RNativeEngine extends AbstractDatabase {
 		// not implemented for R
 	}
 
-	public void deleteDB() {
+	@Override
+	public void delete() {
 		classLogger.debug("Deleting R Engine: " + this.engineName + "__" + this.engineId);
 		try {
 			close();
@@ -225,7 +226,7 @@ public class RNativeEngine extends AbstractDatabase {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// clean up SMSS and DB files/folder
-		super.deleteDB();
+		super.delete();
 	}
 
 	@Override

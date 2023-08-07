@@ -86,7 +86,7 @@ public abstract class AbstractDatabase implements IDatabase {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	private static final Logger logger = LogManager.getLogger(AbstractDatabase.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractDatabase.class);
 	
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
@@ -147,7 +147,7 @@ public abstract class AbstractDatabase implements IDatabase {
 		try {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			if(propFile != null) {
-				logger.info("Opening DB - " + Utility.cleanLogString(FilenameUtils.getName(propFile)));
+				classLogger.info("Opening DB - " + Utility.cleanLogString(FilenameUtils.getName(propFile)));
 				setSmssFilePath(propFile);
 			}
 			if(this.smssProp != null) {
@@ -207,7 +207,7 @@ public abstract class AbstractDatabase implements IDatabase {
 					// set the owl file
 					if(owlFile != null) {
 						owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
-						logger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
+						classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
 						setOWL(owlFile);
 					}
 				}
@@ -222,7 +222,7 @@ public abstract class AbstractDatabase implements IDatabase {
 				}
 			}
 		} catch (RuntimeException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} 
 		
 	}
@@ -241,7 +241,7 @@ public abstract class AbstractDatabase implements IDatabase {
 			try {
 				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return owlFile;
@@ -250,7 +250,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	@Override
 	public void close() {
 		if(this.baseDataEngine != null) {
-			logger.debug("closing its owl engine ");
+			classLogger.debug("closing its owl engine ");
 			this.baseDataEngine.close();
 		}
 //		if(this.insightRdbms != null) {
@@ -274,7 +274,7 @@ public abstract class AbstractDatabase implements IDatabase {
 					if(file.exists() && Files.isSymbolicLink(Paths.get(Utility.normalizePath(fileName))))
 						FileUtils.forceDelete(file);
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -284,7 +284,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	public String getProperty(String key) {
 		String retProp = null;
 
-		logger.debug("Property is " + Utility.cleanLogString(key) + "]");
+		classLogger.debug("Property is " + Utility.cleanLogString(key) + "]");
 		if (generalEngineProp != null && generalEngineProp.containsKey(key))
 			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
@@ -341,17 +341,17 @@ public abstract class AbstractDatabase implements IDatabase {
 	public void saveConfiguration() {
 		FileOutputStream fileOut = null;
 		try {
-			logger.debug("Writing to file " + smssFilePath);
+			classLogger.debug("Writing to file " + smssFilePath);
 			fileOut = new FileOutputStream(smssFilePath);
 			smssProp.store(fileOut, null);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(fileOut!=null)
 					fileOut.close();
 			}catch(IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -406,7 +406,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	 * @param h		Hashtable - The base data hash that this is being set to
 	 */
 	public void setBaseHash(Hashtable h) {
-		logger.debug(this.engineId + " Set the Base Data Hash ");
+		classLogger.debug(this.engineId + " Set the Base Data Hash ");
 		this.baseDataHash = h;
 	}
 
@@ -451,7 +451,7 @@ public abstract class AbstractDatabase implements IDatabase {
 			baseHash.putAll(RDFEngineHelper.createBaseFilterHash(baseRelEngine.getRc()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		setBaseHash(baseHash);
 
@@ -512,7 +512,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	 * Commits the base data engine
 	 */
 	public void commitOWL() {
-		logger.debug("Committing base data engine of " + this.engineId);
+		classLogger.debug("Committing base data engine of " + this.engineId);
 		this.baseDataEngine.commit();
 	}
 
@@ -527,8 +527,8 @@ public abstract class AbstractDatabase implements IDatabase {
 	 * Runs a select query on the base data engine of this engine
 	 */
 	public Object execOntoSelectQuery(String query) {
-		logger.debug("Running select query on base data engine of " + this.engineId);
-		logger.debug("Query is " + query);
+		classLogger.debug("Running select query on base data engine of " + this.engineId);
+		classLogger.debug("Query is " + query);
 		return this.baseDataEngine.execQuery(query);
 	}
 
@@ -580,24 +580,24 @@ public abstract class AbstractDatabase implements IDatabase {
 			method = this.getClass().getMethod(methodName, args.getClass());
 			ret = method.invoke(this, params);
 		} catch (SecurityException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchMethodException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalArgumentException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return ret;
 	}
 
-	public void deleteDB() {
-		logger.debug("closing " + this.engineName);
+	@Override
+	public void delete() {
+		classLogger.debug("Delete database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		this.close();
 
-//		File insightFile = SmssUtilities.getInsightsRdbmsFile(this.prop);
 		File engineFolder = null;
 		File owlFile = SmssUtilities.getOwlFile(this.smssProp);
 		String folderName = null;
@@ -610,39 +610,31 @@ public abstract class AbstractDatabase implements IDatabase {
 		folderName = engineFolder.getName();
 
 		if(owlFile != null && owlFile.exists()) {
-			logger.info("Deleting owl file " + owlFile.getAbsolutePath());
+			classLogger.info("Deleting owl file " + owlFile.getAbsolutePath());
 			try {
 				FileUtils.forceDelete(owlFile);
 			} catch(IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-//		if(insightFile != null && insightFile.exists()) {
-//			logger.info("Deleting insight file " + insightFile.getAbsolutePath());
-//			try {
-//				FileUtils.forceDelete(insightFile);
-//			} catch(IOException e) {
-//				logger.error(Constants.STACKTRACE, e);
-//			}
-//		}
 
 		//this check is to ensure we are deleting the right folder.
-		logger.debug("checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		classLogger.info("Checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		if(folderName.equals(SmssUtilities.getUniqueName(this.engineName, this.engineId))) {
-			logger.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
+			classLogger.info("folder getting deleted is " + engineFolder.getAbsolutePath());
 			try {
 				FileUtils.deleteDirectory(engineFolder);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
-		logger.debug("Deleting smss " + this.smssFilePath);
+		classLogger.debug("Deleting smss " + this.smssFilePath);
 		File smssFile = new File(this.smssFilePath);
 		try {
 			FileUtils.forceDelete(smssFile);
 		} catch(IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// remove from DIHelper
@@ -683,14 +675,14 @@ public abstract class AbstractDatabase implements IDatabase {
 				if(wrap.hasNext()) {
 					IHeadersDataRow data = wrap.next();
 					baseUri = data.getRawValues()[0] + "";
-					logger.info("Got base uri from owl " + Utility.cleanLogString(this.baseUri) + " for engine " + getEngineId() + " : " + getEngineName());
+					classLogger.info("Got base uri from owl " + Utility.cleanLogString(this.baseUri) + " for engine " + getEngineId() + " : " + getEngineName());
 				}
 				if(baseUri == null){
 					baseUri = Constants.CONCEPT_URI;
-					logger.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineId() + " : " + getEngineName());
+					classLogger.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineId() + " : " + getEngineName());
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrap != null) {
 					wrap.cleanUp();
@@ -768,7 +760,7 @@ public abstract class AbstractDatabase implements IDatabase {
 			conceptSet.clear();
 			conceptSet = null;
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -796,7 +788,7 @@ public abstract class AbstractDatabase implements IDatabase {
 			}
 
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -963,9 +955,9 @@ public abstract class AbstractDatabase implements IDatabase {
 				retString = snow.decryptMessage(creationTime, passwordFileName);
 			}			
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return retString;
@@ -1043,15 +1035,15 @@ public abstract class AbstractDatabase implements IDatabase {
 			
 			return prop;
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(os != null) {
 				try {
 					os.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

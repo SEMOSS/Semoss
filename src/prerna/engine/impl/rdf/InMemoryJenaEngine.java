@@ -36,7 +36,6 @@ import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.update.UpdateAction;
 
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.AbstractDatabase;
 
 /**
@@ -152,7 +151,7 @@ public class InMemoryJenaEngine extends AbstractDatabase {
 	}
 
 	@Override
-	public void deleteDB() {
+	public void delete() {
 		// This does nothing
 		
 	}
