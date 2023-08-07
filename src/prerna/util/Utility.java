@@ -5383,7 +5383,7 @@ public class Utility {
 		return thisProcess;
 	}
 
-	public static Object [] startTCPServerNativePy(String insightFolder, String port) {
+	public static Object [] startTCPServerNativePy(String insightFolder, String port, String ...otherProps ) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
@@ -5426,7 +5426,11 @@ public class Utility {
 			
 			String outputFile = finalDir + "/console.txt";
 			
-			String[] commands = new String[] {py, gaasServer, port, "1", pyBase, finalDir, prefix};
+			String timeout = "15";
+			if(otherProps!= null && otherProps.length > 0)
+				timeout = otherProps[0];
+			
+			String[] commands = new String[] {py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
 
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
