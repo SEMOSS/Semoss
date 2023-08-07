@@ -1,12 +1,23 @@
 package prerna.engine.impl.storage;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IStorage;
+import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public abstract class AbstractStorageEngine implements IStorage {
 
+	private static final Logger classLogger = LogManager.getLogger(AbstractDatabase.class);
+	
 	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	protected String engineId = null;
@@ -78,6 +89,45 @@ public abstract class AbstractStorageEngine implements IStorage {
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return this.getStorageType().toString();
+	}
+	
+	@Override
+	public void delete() {
+		classLogger.debug("Delete storage engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		try {
+			this.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		File engineFolder = new File(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+				+ "/" + Constants.DB_FOLDER + "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		if(engineFolder.exists()) {
+			classLogger.info("Delete storage engine folder " + engineFolder);
+			try {
+				FileUtils.deleteDirectory(engineFolder);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		} else {
+			classLogger.info("Storage engine folder " + engineFolder + " does not exist");
+		}
+		
+		classLogger.info("Deleting storage engine smss " + this.smssFilePath);
+		File smssFile = new File(this.smssFilePath);
+		try {
+			FileUtils.forceDelete(smssFile);
+		} catch(IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// remove from DIHelper
+		String engineIds = (String)DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+		engineIds = engineIds.replace(";" + this.engineId, "");
+		// in case we are at the start
+		engineIds = engineIds.replace(this.engineId + ";", "");
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+		DIHelper.getInstance().removeEngineProperty(this.engineId);
 	}
 	
 }

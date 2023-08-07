@@ -966,7 +966,8 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 		return relation;
 	}
 
-	public void deleteDB() {
+	@Override
+	public void delete() {
 		logger.debug("Deleting RDBMS Engine: " + this.engineName);
 
 		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
@@ -985,7 +986,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			logger.error(Constants.STACKTRACE, e);
 		}
 		// Clean up SMSS and DB files/folder
-		super.deleteDB();
+		super.delete();
 	}
 
 	public RdbmsTypeEnum getDbType() {
