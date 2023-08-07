@@ -310,6 +310,11 @@ public class EmbeddedModelEngine implements IModelEngine {
 		
 	}
 	
+	@Override
+	public void delete() {
+		// TODO Auto-generated method stub
+		
+	}
 	
 	public static void main(String [] args)
 	{

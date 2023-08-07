@@ -71,6 +71,10 @@ public interface IEngine extends Closeable {
 	 */
 	String getCatalogSubType(Properties smssProp);
 	
+	/**
+	 * Deletes the engine and any stored configuration
+	 */
+	void delete();
 	
 	
 //	/**

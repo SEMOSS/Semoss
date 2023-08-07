@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.utils;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -12,8 +12,8 @@ import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteAppRunner;
 import prerna.engine.api.IDatabase;
+import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -26,51 +26,45 @@ import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
-public class DeleteDatabaseReactor extends AbstractReactor {
+public class DeleteEngineReactor extends AbstractReactor {
 
-	public DeleteDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
+	public DeleteEngineReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		List<String> databaseIds = getDatabaseIds();
-		for (String databaseId : databaseIds) {
-			if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(databaseId)) {
+		List<String> engineIds = getEngineIds();
+		for (String engineId : engineIds) {
+			if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
 				throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
 			}
 			User user = this.insight.getUser();
 			
 			// we may have the alias
 			if(AbstractSecurityUtils.securityEnabled()) {
-				databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 				if(!isAdmin) {
 					if(AbstractSecurityUtils.adminOnlyEngineDelete()) {
 						throwFunctionalityOnlyExposedForAdminsError();
 					}
 					
-					boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
+					boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
 					if(!isOwner) {
-						throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");
+						throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
 					}
 				}
-			} else {
-				databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-				if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-					throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-				}
-			}
-
-			IDatabase database = Utility.getDatabase(databaseId);
-			deleteDatabase(database);
-			EngineSyncUtility.clearEngineCache(databaseId);
+			} 
 			
-			UserTrackingUtils.deleteDatabase(databaseId);
+			IEngine engine = Utility.getEngine(engineId);
+			deleteEngines(engine);
+			EngineSyncUtility.clearEngineCache(engineId);
+			UserTrackingUtils.deleteDatabase(engineId);
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
-				Thread deleteAppThread = new Thread(new DeleteAppRunner(databaseId));
+				Thread deleteAppThread = new Thread(new DeleteAppRunner(engineId));
 				deleteAppThread.start();
 			}
 		}
@@ -80,48 +74,50 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 
 	/**
 	 * 
-	 * @param database
+	 * @param engine
 	 * @return
 	 */
-	private boolean deleteDatabase(IDatabase database) {
-		String databaseId = database.getEngineId();
-		database.delete();
+	private boolean deleteEngines(IEngine engine) {
+		String engineId = engine.getEngineId();
+		engine.delete();
 
 		// remove from dihelper... this is absurd
-		String databaseIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		databaseIds = databaseIds.replace(";" + databaseId, "");
+		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+		engineIds = engineIds.replace(";" + engineId, "");
 		// in case it was the first databases loaded
-		databaseIds = databaseIds.replace(databaseId + ";", "");
-		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, databaseIds);
+		engineIds = engineIds.replace(engineId + ";", "");
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
 
-		DeleteFromMasterDB remover = new DeleteFromMasterDB();
-		remover.deleteEngineRDBMS(databaseId);
-		SecurityEngineUtils.deleteEngine(databaseId);
+		if(engine instanceof IDatabase) {
+			DeleteFromMasterDB remover = new DeleteFromMasterDB();
+			remover.deleteEngineRDBMS(engineId);
+		}
+		SecurityEngineUtils.deleteEngine(engineId);
 		return true;
 	}
 
 	/**
 	 * Get inputs
-	 * @return list of databases to delete
+	 * @return list of engines to delete
 	 */
-	public List<String> getDatabaseIds() {
-		List<String> databaseIds = new Vector<String>();
+	public List<String> getEngineIds() {
+		List<String> engineIds = new ArrayList<>();
 
 		// see if added as key
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
-				databaseIds.add(grs.get(i).toString());
+				engineIds.add(grs.get(i).toString());
 			}
-			return databaseIds;
+			return engineIds;
 		}
 
 		// no key is added, grab all inputs
 		int size = this.curRow.size();
 		for (int i = 0; i < size; i++) {
-			databaseIds.add(this.curRow.get(i).toString());
+			engineIds.add(this.curRow.get(i).toString());
 		}
-		return databaseIds;
+		return engineIds;
 	}
 }

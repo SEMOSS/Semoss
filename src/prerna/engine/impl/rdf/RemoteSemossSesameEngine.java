@@ -401,7 +401,7 @@
 //	}
 //
 //	@Override
-//	public void deleteDB(){
+//	public void delete(){
 //		// this does nothing
 //		logger.info("cannot delete remote engine");
 //	}
