@@ -91,11 +91,6 @@ public interface IDatabase extends IExplorable, IEngine {
 	void close();
 
 	/**
-	 * Deletes the engine and any stored configuration
-	 */
-	void delete();
-	
-	/**
 	 * Runs the passed string query against the engine.  The query passed must be in the structure that the specific engine implementation
 	 * requires
 	 * @param query the string version of the SELECT query to be run against the engine
