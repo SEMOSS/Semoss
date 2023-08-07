@@ -2956,6 +2956,20 @@ public class Utility {
 		return project;
 	}
 	
+	public static IEngine getEngine(String engineId) {
+		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
+		String type = (String) typeAndSubtype[0];
+		if(IDatabase.CATALOG_TYPE.equalsIgnoreCase(type)) {
+			return getDatabase(engineId);
+		} else if(IStorage.CATALOG_TYPE.equalsIgnoreCase(type)) {
+			return getStorage(engineId);
+		} else if(IModelEngine.CATALOG_TYPE.equalsIgnoreCase(type)) {
+			return getModel(engineId);
+		}
+		
+		throw new IllegalArgumentException("Unknown engine type with value " + type);
+	}
+	
 	/**
 	 * 
 	 * @param engineId - engine to get
