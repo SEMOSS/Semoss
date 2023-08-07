@@ -10,11 +10,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
+import prerna.project.impl.Project;
 import prerna.tcp.client.ErrorSenderThread;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.AssetUtility;
@@ -59,6 +61,7 @@ public class PyTranslator {
 	public PyTranslator() {
 		// startDisruptor();
 		// System.out.println("Py Translator created");
+		this.logger = LogManager.getLogger(Project.class);
 	}
 
 	public SemossDataType convertDataType(String pDataType) {
@@ -573,12 +576,15 @@ public class PyTranslator {
 				throw new IllegalArgumentException("Failed to run Py script.");
 			} finally {
 				// Cleanup
-				outputFile.delete();
-				try {
+				if(outputFile.exists())
+				{
+					try {
+					outputFile.delete();
 					this.runScript(removePathVariables);
 					// this.executeEmptyR("gc();"); // Garbage collection
-				} catch (Exception e) {
+					} catch (Exception e) {
 					logger.warn("Unable to cleanup Py.", e);
+					}
 				}
 			}
 		} catch (IOException e) {
