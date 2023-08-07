@@ -139,6 +139,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param engineId
+	 * @return
+	 */
+	public static Object[] getEngineTypeAndSubtype(String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("ENGINE__ENGINEID", "==", engineId));
+		List<Object[]> results = QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
+		if(results == null || results.isEmpty()) {
+			throw new IllegalArgumentException("Could not find engine with id " + engineId);
+		}
+		return results.get(0);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
 	 * @param engineName
 	 * @param engineType
 	 * @param engineSubType

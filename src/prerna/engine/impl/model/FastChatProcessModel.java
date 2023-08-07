@@ -10,8 +10,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import prerna.engine.api.IModelEngine;
-import prerna.engine.api.IModelEngine.MODEL_TYPE;
-import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -219,6 +217,12 @@ public class FastChatProcessModel implements IModelEngine {
 
 	@Override
 	public void close() throws IOException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public void delete() {
 		// TODO Auto-generated method stub
 		
 	}
