@@ -35,26 +35,32 @@ public class DeleteEngineReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		List<String> engineIds = getEngineIds();
-		for (String engineId : engineIds) {
-			if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
-				throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
-			}
-			User user = this.insight.getUser();
-			
-			// we may have the alias
-			if(AbstractSecurityUtils.securityEnabled()) {
-				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-				if(!isAdmin) {
-					if(AbstractSecurityUtils.adminOnlyEngineDelete()) {
-						throwFunctionalityOnlyExposedForAdminsError();
+		// first validate all the inputs
+		User user = this.insight.getUser();
+		if(AbstractSecurityUtils.securityEnabled()) {
+			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+			if(!isAdmin) {
+				if(AbstractSecurityUtils.adminOnlyEngineDelete()) {
+					throwFunctionalityOnlyExposedForAdminsError();
+				}
+				for (String engineId : engineIds) {
+					if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
+						throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
 					}
-					
+					// we may have the alias
+					engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 					boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
 					if(!isOwner) {
 						throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
 					}
-				}
+				} 
+			}
+		}
+		// once all are good, we can delete
+		for (String engineId : engineIds) {
+			// we may have the alias
+			if(AbstractSecurityUtils.securityEnabled()) {
+				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			} 
 			
 			IEngine engine = Utility.getEngine(engineId);
