@@ -437,8 +437,9 @@ public class BigDataEngine extends AbstractDatabase {
 	/**
 	 * This method permanently deletes the database and all of its associated files
 	 */
-	public void deleteDB() {
-		super.deleteDB();
+	@Override
+	public void delete() {
+		super.delete();
 		// delete JNL if above doesn't
 		String jnlLoc = SmssUtilities.getSysTapJnl(smssProp).getAbsolutePath();
 		if(jnlLoc != null){

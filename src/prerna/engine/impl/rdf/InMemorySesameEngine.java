@@ -409,7 +409,7 @@ public class InMemorySesameEngine extends AbstractDatabase {
 	}
 
 	@Override
-	public void deleteDB() {
+	public void delete() {
 		// This does nothing
 		
 	}
