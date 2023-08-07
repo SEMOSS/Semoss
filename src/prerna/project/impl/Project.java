@@ -1432,7 +1432,7 @@ public class Project implements IProject {
 			return this.tcpClient;
 		}
 		
-		if(this.tcpClient != null) {
+		if(this.tcpClient != null && this.tcpClient.isConnected()) {
 			return this.tcpClient;
 		}
 		
@@ -1521,7 +1521,11 @@ public class Project implements IProject {
 				this.tcpServerDirectory = tempDirForProject.toString();
 				Utility.writeLogConfigurationFile(this.tcpServerDirectory);
 				if(nativePyServer) {
-					Object[] ret = Utility.startTCPServerNativePy(this.tcpServerDirectory, this.port+"");
+					
+					String timeout = "15";
+					if(this.prop.containsKey(Settings.TIMEOUT))
+						timeout = this.prop.getProperty(Settings.TIMEOUT);
+					Object[] ret = Utility.startTCPServerNativePy(this.tcpServerDirectory, this.port+"", timeout);
 					this.tcpServerProcess = (Process) ret[0];
 					this.tcpServerProcessPrefix = (String) ret[1];
 				} else {
@@ -1566,6 +1570,12 @@ public class Project implements IProject {
 				logger.error(Constants.STACKTRACE, e);
 			}
 		}
+	}
+
+	@Override
+	public String getProjectAssetFolder() {
+		// TODO Auto-generated method stub
+		return this.projectAssetFolder;
 	}
 	
 }
