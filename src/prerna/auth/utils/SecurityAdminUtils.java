@@ -159,7 +159,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
-	 * Get all database users
+	 * Get all users
 	 * @param offset 
 	 * @param limit 
 	 * @return
@@ -1083,17 +1083,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	
 	/**
-	 * Set if database should be public or not
-	 * @param databaseId
+	 * Set if engine should be public or not
+	 * @param engineId
 	 * @param global
 	 */
-	public boolean setDatabaseGlobal(String databaseId, boolean global) {
+	public boolean setEngineGlobal(String engineId, boolean global) {
 		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
 		PreparedStatement updatePs = null;
 		try {
 			updatePs = securityDb.getPreparedStatement(updateQ);
 			updatePs.setBoolean(1, global);
-			updatePs.setString(2, databaseId);
+			updatePs.setString(2, engineId);
 			updatePs.execute();
 			if(!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
@@ -1120,20 +1120,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Set if the database is discoverable to all users on this instance
+	 * Set if the engine is discoverable to all users on this instance
 	 * @param user
-	 * @param databaseId
+	 * @param engineId
 	 * @param discoverable
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public boolean setDatabaseDiscoverable(String databaseId, boolean discoverable) {
+	public boolean setEngineDiscoverable(String engineId, boolean discoverable) {
 		String updateQ = "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=?";
 		PreparedStatement updatePs = null;
 		try {
 			updatePs = securityDb.getPreparedStatement(updateQ);
 			updatePs.setBoolean(1, discoverable);
-			updatePs.setString(2, databaseId);
+			updatePs.setString(2, engineId);
 			updatePs.execute();
 			if(!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
@@ -1242,9 +1242,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Set if the database is discoverable to all users on this instance
+	 * Set if the project is discoverable to all users on this instance
 	 * @param user
-	 * @param databaseId
+	 * @param projectId
 	 * @param discoverable
 	 * @return
 	 * @throws IllegalAccessException
@@ -1367,20 +1367,20 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param newUserId
-	 * @param databaseId
+	 * @param engineId
 	 * @param permission
 	 * @return
 	 */
-	public void addDatabaseUser(String newUserId, String databaseId, String permission) {
+	public void addEngineUser(String newUserId, String engineId, String permission) {
 		// make sure user doesn't already exist for this database
-		if(SecurityUserEngineUtils.getUserEnginePermission(newUserId, databaseId) != null) {
+		if(SecurityUserEngineUtils.getUserEnginePermission(newUserId, engineId) != null) {
 			// that means there is already a value
-			throw new IllegalArgumentException("This user already has access to this database. Please edit the existing permission level.");
+			throw new IllegalArgumentException("This user already has access to this engine. Please edit the existing permission level.");
 		}
 		
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "', "
+				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
 				+ AccessPermissionEnum.getIdByPermission(permission) + ", "
 				+ "TRUE);";
 
@@ -1399,7 +1399,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public void addDatabaseUserPermissions(String databaseId, List<Map<String,String>> permission) {
+	public void addEngineUserPermissions(String databaseId, List<Map<String,String>> permission) {
 		// first, check to make sure these users do not already have permissions to database
 		// get list of userids from permission list map
 		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
@@ -1961,7 +1961,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			// get users with no access to app
-			List<Map<String, Object>> users = getDatabaseUsersNoCredentials(engineId);
+			List<Map<String, Object>> users = getEngineUsersNoCredentials(engineId);
 			for (Map<String, Object> userMap : users) {
 				String userId = (String) userMap.get("id");
 				ps.setString(1, userId);
@@ -2086,27 +2086,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param existingUserId
-	 * @param databaseId
+	 * @param engineId
 	 * @param newPermission
 	 * @return
 	 */
-	public void editDatabaseUserPermission(String existingUserId, String databaseId, String newPermission) {
+	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, databaseId);
+		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
 		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the database");
+			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the engine");
 		}
 		
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		
 		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=" + newPermissionLvl
 				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this engine");
 		}
 	}
 	
@@ -2114,12 +2114,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param user
 	 * @param existingUserId
-	 * @param databaseId
+	 * @param engineId
 	 * @param newPermission
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editDatabaseUserPermissions(String databaseId, List<Map<String, String>> requests) throws IllegalAccessException {
+	public static void editEngineUserPermissions(String engineId, List<Map<String, String>> requests) throws IllegalAccessException {
 
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
@@ -2128,13 +2128,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	    }
 			    
 		// get user permissions to edit
-		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds, databaseId);
+		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds, engineId);
 		
 		// make sure all users to edit currently has access to database
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the database: "+String.join(",", toRemoveUserIds));
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the engine: "+String.join(",", toRemoveUserIds));
 		}
 		
 		// update user permissions in bulk
@@ -2148,7 +2148,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				//WHERE
 				insertPs.setString(parameterIndex++, requests.get(i).get("userid"));
-				insertPs.setString(parameterIndex++, databaseId);
+				insertPs.setString(parameterIndex++, engineId);
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -2334,41 +2334,41 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param editedUserId
-	 * @param databaseId
+	 * @param engineId
 	 * @return
 	 */
-	public void removeDatabaseUser(String existingUserId, String databaseId) {
+	public void removeEngineUser(String existingUserId, String engineId) {
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, databaseId);
+		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
 		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the database");
+			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the engine");
 		}
 		
 		String query = "DELETE FROM ENGINEPERMISSION WHERE "
 				+ "USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this engine");
 		}
 	}
 	
 	/**
 	 * 
 	 * @param editedUserId
-	 * @param databaseId
+	 * @param engineId
 	 * @return
 	 */
-	public void removeDatabaseUsers(List<String> existingUserIds, String databaseId) {
-		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds, databaseId);
+	public void removeEngineUsers(List<String> existingUserIds, String engineId) {
+		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds, engineId);
 		
 		// make sure these users all exist and have access
 		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the database: "+String.join(",", toRemoveUserIds));
+			throw new IllegalArgumentException("Attempting to modify user permission for the following users who do not currently have access to the engine: "+String.join(",", toRemoveUserIds));
 		}
 
 		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
@@ -2378,7 +2378,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			for(int i=0; i<existingUserIds.size(); i++) {
 				int parameterIndex = 1;
 				deletePs.setString(parameterIndex++, existingUserIds.get(i));
-				deletePs.setString(parameterIndex++, databaseId);
+				deletePs.setString(parameterIndex++, engineId);
 				deletePs.addBatch();
 			}
 			deletePs.executeBatch();
@@ -2793,11 +2793,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Returns List of users that have no access credentials to a given database
-	 * @param databaseId
+	 * Returns List of users that have no access credentials to a given engine
+	 * @param engineId
 	 * @return
 	 */
-	public List<Map<String, Object>> getDatabaseUsersNoCredentials(String databaseId) {
+	public List<Map<String, Object>> getEngineUsersNoCredentials(String engineId) {
 		/*
 		 * String Query = 
 		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL  FROM USER WHERE ID NOT IN 
@@ -2815,7 +2815,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
 			//Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",databaseId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",engineId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
 		}
 		
@@ -2876,18 +2876,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	/**
 	 * 
-	 * @param databaseId
+	 * @param engineId
 	 * @param newPermission
 	 */
-	public void updateDatabaseUserPermissions(String databaseId, String newPermission) {
+	public void updateEngineUserPermissions(String engineId, String newPermission) {
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
 		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=" + newPermissionLvl 
-				+ " WHERE ENGINEID='" + RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
+				+ " WHERE ENGINEID='" + RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this database");
+			throw new IllegalArgumentException("An error occurred adding user permissions for this engine");
 		}
 		
 	}
@@ -2912,18 +2912,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Add all users to an database with the same permission
-	 * @param databaseId
+	 * @param engineId
 	 * @param permission
 	 */
-	public void addAllDatabaseUsers(String databaseId, String permission) {
+	public void addAllEngineUsers(String engineId, String permission) {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?, '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "', "
+				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
 				+ AccessPermissionEnum.getIdByPermission(permission) + ", " + "TRUE);";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
-			if (databaseId != null && permission != null) {
-				List<Map<String, Object>> users = getDatabaseUsersNoCredentials(databaseId);
+			if (engineId != null && permission != null) {
+				List<Map<String, Object>> users = getEngineUsersNoCredentials(engineId);
 				for (Map<String, Object> userMap : users) {
 					String userId = (String) userMap.get("id");
 					ps.setString(1, userId);
@@ -2931,7 +2931,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 				ps.executeBatch();
 				// update existing user permissions
-				updateDatabaseUserPermissions(databaseId, permission);
+				updateEngineUserPermissions(engineId, permission);
 			}
 		} catch (SQLException e1) {
 			logger.error(Constants.STACKTRACE, e1);
@@ -3308,10 +3308,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * Approving user access requests and giving user access in permissions
 	 * @param userId
 	 * @param userType
-	 * @param databaseId
+	 * @param engineId
 	 * @param requests
 	 */
-	public static void approveDatabaseUserAccessRequests(String userId, String userType, String databaseId, List<Map<String, Object>> requests) {
+	public static void approveEngineUserAccessRequests(String userId, String userType, String engineId, List<Map<String, Object>> requests) {
 		// bulk delete
 		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 		PreparedStatement deletePs = null;
@@ -3320,7 +3320,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			for(int i=0; i<requests.size(); i++) {
 				int parameterIndex = 1;
 				deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
-				deletePs.setString(parameterIndex++, databaseId);
+				deletePs.setString(parameterIndex++, engineId);
 				deletePs.addBatch();
 			}
 			deletePs.executeBatch();
@@ -3354,7 +3354,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			for(int i=0; i<requests.size(); i++) {
 				int parameterIndex = 1;
 				insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
-				insertPs.setString(parameterIndex++, databaseId);
+				insertPs.setString(parameterIndex++, engineId);
 				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
 				insertPs.setBoolean(parameterIndex++, true);
 				insertPs.addBatch();
@@ -3382,8 +3382,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 
-		// now we do the new bulk update to databaseaccessrequest table
-		String updateQ = "UPDATE DATABASEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
+		// now we do the new bulk update to engineaccessrequest table
+		String updateQ = "UPDATE ENGINEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement updatePs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -3399,7 +3399,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.setTimestamp(index++, timestamp, cal);
 				//where
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
-				updatePs.setString(index++, databaseId);
+				updatePs.setString(index++, engineId);
 				updatePs.addBatch();
 			}
 			updatePs.executeBatch();
@@ -3428,15 +3428,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Denying user access requests to database
+	 * Denying user access requests to engine
 	 * @param userId
 	 * @param userType
-	 * @param databaseId
+	 * @param engineId
 	 * @param requests
 	 */
-	public static void denyDatabaseUserAccessRequests(String userId, String userType, String databaseId, List<String> requestIds) {
+	public static void denyEngineUserAccessRequests(String userId, String userType, String engineId, List<String> requestIds) {
 		// bulk update to databaseaccessrequest table
-		String updateQ = "UPDATE DATABASEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 		PreparedStatement updatePs = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
@@ -3451,7 +3451,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.setTimestamp(index++, timestamp, cal);
 				//where
 				updatePs.setString(index++, requestIds.get(i));
-				updatePs.setString(index++, databaseId);
+				updatePs.setString(index++, engineId);
 				updatePs.addBatch();
 			}
 			updatePs.executeBatch();
