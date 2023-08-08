@@ -13,9 +13,20 @@ import prerna.util.Utility;
 
 public class PixelPreProcessor {
 
+	private static final String S_ENCODE_START = "<sEncode>";
+	private static final String S_ENCODE_END = "</sEncode>";
+	
+	private static final String ENCODE_START = "<encode>";
+	private static final String ENCODE_END = "</encode>";
+
+	private static final String E_START = "<e>";
+	private static final String E_END = "</e>";
+	
 	/**
 	 * Pre-process the pixel to encode values that would not be allowed based on the grammar
 	 * @param expression
+	 * @param encodingList
+	 * @param encodedTextToOriginal
 	 * @return
 	 */
 	public static String preProcessPixel(String expression, List<String> encodingList, Map<String, String> encodedTextToOriginal) {
@@ -27,11 +38,11 @@ public class PixelPreProcessor {
 		// which have an embedded encode wtihin the recipe step
 		// so to do this, i have added another encode operator
 		// which is the master one
-		Pattern p = Pattern.compile("<sEncode>.+?</sEncode>", Pattern.DOTALL);
+		Pattern p = Pattern.compile(S_ENCODE_START+".+?"+S_ENCODE_END, Pattern.DOTALL);
 		Matcher m = p.matcher(expression);
 		while(m.find()) {
 			String originalText = m.group(0);
-			String encodedText = originalText.replace("<sEncode>", "").replace("</sEncode>", "");
+			String encodedText = originalText.replace(S_ENCODE_START, "").replace(S_ENCODE_END, "");
 			encodedText = Utility.encodeURIComponent(encodedText);
 			encodeChanges.put(originalText, encodedText);
 			// DO NOT DO BELOW BECAUSE IT UPDATES THE MATCHER
@@ -46,29 +57,46 @@ public class PixelPreProcessor {
 		}
 		
 		// <encode> </encode>
-		String newExpression = encodeExpression(expression, encodingList, encodedTextToOriginal);
+		String newExpression = encodeExpression(expression, encodingList, encodedTextToOriginal, ENCODE_START, ENCODE_END);
 		if(newExpression != null) {
 			expression = newExpression;
 		}
 
+		// <e> </e>
+		newExpression = encodeExpression(expression, encodingList, encodedTextToOriginal, E_START, E_END);
+		if(newExpression != null) {
+			expression = newExpression;
+		}
+		
 		return expression;
 	}
 
-	private static String encodeExpression(String expression, List<String> encodingList, Map<String, String> encodedTextToOriginal) {
+	/**
+	 * 
+	 * @param expression
+	 * @param encodingList
+	 * @param encodedTextToOriginal
+	 * @return
+	 */
+	private static String encodeExpression(String expression, 
+			List<String> encodingList, 
+			Map<String, String> encodedTextToOriginal,
+			final String START_VALUE,
+			final String END_VALUE) {
 		// find all <encode> positions
 		List<Integer> encodeList = new ArrayList<Integer>();
-		int curEncodeIndex = expression.indexOf("<encode>");
+		int curEncodeIndex = expression.indexOf(START_VALUE);
 		while(curEncodeIndex >= 0) {
 			encodeList.add(new Integer(curEncodeIndex));
-			curEncodeIndex = expression.indexOf("<encode>", curEncodeIndex+1);
+			curEncodeIndex = expression.indexOf(START_VALUE, curEncodeIndex+1);
 		}
 
 		// find all </encode> positions
 		List<Integer> slashEncodeList = new ArrayList<Integer>();
-		int curSlashIndex = expression.indexOf("</encode>");
+		int curSlashIndex = expression.indexOf(END_VALUE);
 		while(curSlashIndex >= 0) {
 			slashEncodeList.add(new Integer(curSlashIndex));
-			curSlashIndex = expression.indexOf("</encode>", curSlashIndex+1);
+			curSlashIndex = expression.indexOf(END_VALUE, curSlashIndex+1);
 		}
 		
 		List<Integer[]> encodeBlocks = encodeBlock(encodeList, slashEncodeList);
@@ -112,7 +140,7 @@ public class PixelPreProcessor {
 			}
 		}
 		
-		int continueSize = "</encode>".length();
+		int continueSize = END_VALUE.length();
 		
 		// because the index we actually care about will change
 		// as we encode
@@ -139,7 +167,7 @@ public class PixelPreProcessor {
 		});
 		
 		for(String originalText : originalStrings) {
-			String encodedText = originalText.substring("<encode>".length(), originalText.length() - "</encode>".length());
+			String encodedText = originalText.substring(START_VALUE.length(), originalText.length() - END_VALUE.length());
 			encodedText = Utility.encodeURIComponent(encodedText);
 			encodedTextToOriginal.put(encodedText, originalText);
 			// need to add every 
