@@ -85,11 +85,15 @@ public class TCPPyTranslator extends PyTranslator {
 		
 		ErrorSenderThread est = null;
 		String file = null;
-
+		
 		// get error messages
 		if(insight != null)
 		{
 			ps.insightId = insight.getInsightId();
+			if(insight.getUser() != null)
+			{
+				nc.addInsight2Insight(ps.insightId, insight);
+			}
 			boolean nativePyServer = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER) != null
 					&& DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true");
 
