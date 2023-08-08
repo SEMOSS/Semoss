@@ -1997,7 +1997,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void setUserAccessRequest(String userId, String userType, String engineId, int permission) {
 		// first mark previously undecided requests as old
-		String updateQ = "UPDATENGINEACCESSREQUESTST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND ENGINEID=? AND APPROVER_DECISION='NEW_REQUEST'";
+		String updateQ = "UPDATE ENGINEACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND ENGINEID=? AND APPROVER_DECISION='NEW_REQUEST'";
 		PreparedStatement updatePs = null;
 		try {
 			int index = 1;
