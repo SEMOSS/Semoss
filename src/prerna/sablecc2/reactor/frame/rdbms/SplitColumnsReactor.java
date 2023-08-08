@@ -15,8 +15,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.util.Constants;
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -25,6 +24,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
+import prerna.util.Constants;
 
 public class SplitColumnsReactor extends AbstractFrameReactor {
 
@@ -44,7 +44,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 		if(!isRegex) {
 			separator = Pattern.quote(separator);
 		}
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		PreparedStatement ps = null;
 
 		for(int i = 1; i < cols.size(); i++) {
@@ -60,7 +60,13 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 				table = split[0];
 			}
 			String colSplitBase = column + "_SPLIT_";
-			Iterator<IHeadersDataRow> colIterator = frame.query(qs);
+			Iterator<IHeadersDataRow> colIterator = null;
+			try {
+				colIterator = frame.query(qs);
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Error executing query with message = " + e.getMessage());
+			}
 
 			int highestIndex = 0;
 			List<String> addedColumns = new Vector<>();
@@ -135,7 +141,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 				}
 			} catch (SQLException e) {
 				logger.error("StackTrace: ", e);
-			}	finally {
+			} finally {
 			      if(ps != null) {
 		                try {
 		                	ps.close();
