@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -18,11 +19,13 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -137,23 +140,39 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public String ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+	public Map<String, String> ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+		Map<String, String> output = new HashMap<String, String>();
 		if(!this.socketClient.isConnected())
 			this.startServer();
 		
-		String userId = insight.getUser().getPrimaryLoginToken().getId();
+		// has to be set to null until we figure out NativePyEngineWorker getting insight
+		String sessionId = null;
+		if (insight.getVarStore().containsKey(JobReactor.SESSION_KEY)) {
+			sessionId = (String) insight.getVarStore().get(JobReactor.SESSION_KEY).getValue();
+		}
+		// assumption, if project level, then they will be inferencing through a saved insight
+		String projectId = insight.getProjectId();
+		User user = insight.getUser();
+		String userId = user.getPrimaryLoginToken().getId();
 		String response;
 		String roomId = (String) parameters.get("ROOM_ID");
+
+		// everything should be recorded so we always need a roomId
+		if (roomId == null) {
+			roomId = UUID.randomUUID().toString();
+		}
 		
-		checkIfConversationExists(roomId , userId);
-		
+		// TODO this needs to be moved to wherever we "publish" a new LLM/agent
 		if (!ModelInferenceLogsUtils.doModelIsRegistered(this.getEngineId())) {
 			ModelInferenceLogsUtils.doCreateNewAgent(this.getEngineId(), this.getEngineName(), null, 
-					this.getModelType().toString(), false, insight.getUser().getPrimaryLoginToken().getId());
+					this.getModelType().toString(), user.getPrimaryLoginToken().getId());
 		}
+		
+		checkIfConversationExists(user, roomId, projectId, question);
+		
 		String messageId = UUID.randomUUID().toString();
 		LocalDateTime inputTime = LocalDateTime.now();
-		if (keepConversationHistory & parameters.containsKey("ROOM_ID")) {
+		if (keepConversationHistory) { //python client needs to be configured to add history
 			Map<String, Object> inputOutputMap = new HashMap<String, Object>();
 			inputOutputMap.put(ROLE, "user");
 			inputOutputMap.put(MESSAGE_CONTENT, question);
@@ -161,13 +180,11 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 													"INPUT",
 													constructPyDictFromMap(inputOutputMap),
+													getTokenSizeString(question),
 													inputTime,
 													roomId,
 													this.getEngineId(),
-													null,
-													null,
-													false,
-													null,
+													sessionId,
 													userId
 													);
 			
@@ -177,42 +194,40 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 													"RESPONSE",
 													constructPyDictFromMap(inputOutputMap),
+													getTokenSizeString(response),
 													roomId,
 													this.getEngineId(),
-													null,
-													null,
-													false,
-													null,
+													sessionId,
 													userId
 													);
 		} else {
 			response = askQuestion(question, context, insight, parameters);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 													"INPUT",
+													null,
 													getTokenSizeString(question),
 													inputTime,
 													roomId,
 													this.getEngineId(),
-													null,
-													null,
-													false,
-													null,
+													sessionId,
 													userId
 													);
 			
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 													"RESPONSE",
+													null,
 													getTokenSizeString(response),
 													roomId,
 													this.getEngineId(),
-													null,
-													null,
-													false,
-													null,
+													sessionId,
 													userId
 													);
 		}
-		return response;
+		// TODO make these constants so we can start to track where they are being used
+		output.put("ROOM_ID",roomId);
+		output.put("MESSAGE_ID",messageId);
+		output.put("RESPONSE",response);
+		return output;
 	}
 
 	// Abstract method, child classes should construct their input / output here
@@ -264,12 +279,22 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		return convoList.toString();
 	}
 	
-	public void checkIfConversationExists (String roomId, String userId){
+	public void checkIfConversationExists (User user, String roomId, String projectId, String question){
 		// TODO make not a db call?
 		if (!ModelInferenceLogsUtils.doCheckConversationExists(roomId)) {
-			ModelInferenceLogsUtils.doCreateNewConversation(roomId, "TestRoom", "TestDescription", 
-					   "{}", userId, this.getModelType().toString(), true, null, this.getEngineId());
+			String roomName = generateRoomTitle(question);
+			ModelInferenceLogsUtils.doCreateNewConversation(roomId, roomName, "", 
+					   "{}", user.getPrimaryLoginToken().getId(), this.getModelType().toString(), true, projectId, this.getEngineId());
+			logger.info("New inference started by " + user.getPrimaryLoginToken().getUsername());
 		}
+	}
+	
+	public String generateRoomTitle(String originalQuestion) {
+		StringBuilder summarizeStatement = new StringBuilder("summarize \\\"");
+		summarizeStatement.append(originalQuestion);
+		summarizeStatement.append("\\\" in less than 8 words. Please exclude all punctuation from the response.");
+		String roomTitle = askQuestion(summarizeStatement.toString(), null, null, null);
+		return roomTitle;
 	}
 	
 	// this is good for python dictionaries but also for making sure we can easily construct 
@@ -327,13 +352,15 @@ public abstract class AbstractModelEngine implements IModelEngine {
     	}
     }
     
-    public static String getTokenSizeString(String input) {
+    public static Integer getTokenSizeString(String input) {
         if (input == null || input.trim().isEmpty()) {
-            return "0";
+            return 0;
         }
 
-        String[] tokens = input.trim().split("\\s+");
-        return String.valueOf(tokens.length);
+        //TODO should we be using the model tokenizer?
+        StringTokenizer str_arr = new StringTokenizer(input);
+ 
+        return str_arr.countTokens();
     }
 	
 	@Override

@@ -21,6 +21,7 @@ public class ModelInferenceLogsOwlCreation {
 	private List<Pair<String, String>> agentColumns = null;
 	private List<Pair<String, String>> roomColumns = null;
 	private List<Pair<String, String>> messageColumns = null;
+	private List<Pair<String, String>> feedbackColumns = null;
 
 	// pairs table name with table's primary keys 
 	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
@@ -53,12 +54,12 @@ public class ModelInferenceLogsOwlCreation {
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
+		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 		this.agentColumns = Arrays.asList(
 				Pair.of("AGENT_ID", "VARCHAR(50)"),
 				Pair.of("AGENT_NAME", "VARCHAR(255)"),
 				Pair.of("DESCRIPTION", "VARCHAR(255)"),
 				Pair.of("AGENT_TYPE", "VARCHAR(50)"),
-				Pair.of("MARKETPLACE", BOOLEAN_DATATYPE_NAME),
 				Pair.of("AUTHOR", "VARCHAR(255)"),
 				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)
 			);
@@ -80,20 +81,27 @@ public class ModelInferenceLogsOwlCreation {
 				Pair.of("MESSAGE_ID", "VARCHAR(50)"),
 				Pair.of("MESSAGE_TYPE", "VARCHAR(50)"),
 				Pair.of("MESSAGE_DATA", CLOB_DATATYPE_NAME),
+				Pair.of("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),
 				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.of("ROOM_ID", "VARCHAR(50)"),
 				Pair.of("AGENT_ID", "VARCHAR(50)"),
-				Pair.of("FEEDBACK_TEXT", "VARCHAR(MAX)"),
-				Pair.of("FEEDBACK_DATE", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("RATING", BOOLEAN_DATATYPE_NAME),
 				Pair.of("SESSIONID", "VARCHAR(255)"),
 				Pair.of("USER_ID", "VARCHAR(255)")
+			);
+		
+		this.feedbackColumns = Arrays.asList(
+				Pair.of("MESSAGE_ID", "VARCHAR(50)"),
+				Pair.of("MESSAGE_TYPE", "VARCHAR(50)"),
+				Pair.of("FEEDBACK_TEXT", "VARCHAR(MAX)"),
+				Pair.of("FEEDBACK_DATE", TIMESTAMP_DATATYPE_NAME),
+				Pair.of("RATING", BOOLEAN_DATATYPE_NAME)
 			);
 		
 		this.allSchemas = Arrays.asList(
 				Pair.of("AGENT", agentColumns),
 				Pair.of("ROOM", roomColumns),
-				Pair.of("MESSAGE", messageColumns)
+				Pair.of("MESSAGE", messageColumns),
+				Pair.of("FEEDBACK", feedbackColumns)
 			);
 	}
 	
@@ -109,7 +117,8 @@ public class ModelInferenceLogsOwlCreation {
 	public void defineForeignKeys() {
 		this.foreignKeys = Arrays.asList(
 				Pair.of("ROOM", Pair.of(Arrays.asList("AGENT_ID"), Pair.of(Arrays.asList("AGENT"), Arrays.asList("AGENT_ID")))),
-				Pair.of("MESSAGE", Pair.of(Arrays.asList("ROOM_ID","AGENT_ID"), Pair.of(Arrays.asList("ROOM","AGENT"), Arrays.asList("ROOM_ID","AGENT_ID"))))
+				Pair.of("MESSAGE", Pair.of(Arrays.asList("ROOM_ID","AGENT_ID"), Pair.of(Arrays.asList("ROOM","AGENT"), Arrays.asList("ROOM_ID","AGENT_ID")))),
+				Pair.of("FEEDBACK", Pair.of(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.of(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"))))
 			);
 	}
 	
