@@ -145,7 +145,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("ENGINE__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
 		List<Object[]> results = QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
 		if(results == null || results.isEmpty()) {
 			throw new IllegalArgumentException("Could not find engine with id " + engineId);
