@@ -18,15 +18,15 @@ public class SetContextReactor extends AbstractReactor {
 	// for instance a user could have saved a recipe with some mapping and then later, they would like to use a different mapping
 
 	public SetContextReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.CONTEXT.getKey()};
-		this.keyRequired = new int[]{1};
+		this.keysToGet = new String[] {ReactorKeysEnum.CONTEXT.getKey(), "loadPath"};
+		this.keyRequired = new int[]{1, 0};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String context = keyValue.get(keysToGet[0]);
-		
+		boolean load = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1])+"");
 		// all of this can be moved into the context reactor
 		if(context == null) {
 			return getError("No context is set - please use Context(<mount point>) to set context");
@@ -41,7 +41,7 @@ public class SetContextReactor extends AbstractReactor {
 		
 		// if python enabled
 		// set the path
-		if(PyUtils.pyEnabled()) {
+		if(PyUtils.pyEnabled() && load) {
 			String assetsDir = AssetUtility.getProjectAssetFolder(context).replace("\\", "/");
 			String script = "import sys\n"+
 				"import os\n"+
@@ -54,6 +54,14 @@ public class SetContextReactor extends AbstractReactor {
 		}
 		
 		return new NounMetadata("Successfully set context to '" + context , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equalsIgnoreCase(this.keysToGet[1])) {
+			return "Boolean if the path of the project should be loaded into the users process";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
