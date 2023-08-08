@@ -5904,8 +5904,13 @@ public class Utility {
 
 	private static void logDiagnostics(List<Diagnostic<? extends JavaFileObject>> diagnostics, PrintWriter pw) {
 		for (Diagnostic<? extends JavaFileObject> x : diagnostics) {
-			pw.println("[" + x.getKind().toString() + "] " + x.getSource().toUri() + ":" + x.getLineNumber()
-					+ " - " + x.getMessage(Locale.getDefault()));
+			if(x.getSource() != null) {
+				pw.println("[" + x.getKind().toString() + "] " + x.getSource().toUri() + ":" + x.getLineNumber()
+				+ " - " + x.getMessage(Locale.getDefault()));
+			} else {
+				pw.println("[" + x.getKind().toString() + "] 'NO-SOURCE-MESSAGE':" + x.getLineNumber()
+				+ " - " + x.getMessage(Locale.getDefault()));
+			}
 			pw.flush();
 		}
 	}
