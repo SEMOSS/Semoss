@@ -248,7 +248,7 @@ public interface IProject {
 	 */
 	TCPPyTranslator getProjectPyTranslator();
 	
-	String getProjectAssetFolder();
+	String getCompileOutput();
 	
 }
 
