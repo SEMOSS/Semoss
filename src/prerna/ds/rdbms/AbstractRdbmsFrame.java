@@ -161,6 +161,15 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		this.builder.addRow(tableName, columnNames, values, types);
 	}
 	
+	public void addNewColumn(String[] newHeaders, String[] types, String tableName) {
+		this.builder.alterTableNewColumns(tableName, newHeaders, types);
+		for(int i = 0; i < newHeaders.length; i++) {
+			this.metaData.addProperty(tableName, tableName + "__" + newHeaders[i]);
+			this.metaData.setAliasToProperty(tableName + "__" + newHeaders[i], newHeaders[i]);
+			this.metaData.setDataTypeToProperty(tableName + "__" + newHeaders[i], types[i]);
+		}
+	}
+	
 	@Override
 	public void removeColumn(String columnHeader) {
 		if(this.util.allowDropColumn()) {
@@ -202,18 +211,17 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public IRawSelectWrapper query(String query) {
+	public IRawSelectWrapper query(String query) throws Exception {
 		logger.info("Executing query...");
 		long start = System.currentTimeMillis();
-		RawRDBMSSelectWrapper it = new RawRDBMSSelectWrapper();
-		it.directExecutionViaConnection(this.conn, query, false);
+		RawRDBMSSelectWrapper it = RawRDBMSSelectWrapper.directExecutionViaConnection(this.conn, query, false);
 		long end = System.currentTimeMillis();
 		logger.info("Time to execute query on frame = " + (end-start) + "ms");
 		return it;
 	}
 	
 	@Override
-	public IRawSelectWrapper query(SelectQueryStruct qs) {
+	public IRawSelectWrapper query(SelectQueryStruct qs) throws Exception {
 		logger.info("Generating SQL query...");
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		if(!this.frameName.equals(this.originalName)) {
