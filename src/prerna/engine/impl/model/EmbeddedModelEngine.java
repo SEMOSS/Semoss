@@ -76,11 +76,11 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		params.put("max_new_tokens", 200);
 		params.put("temperature", 0.01);
 		
-		Map<String, String> output = eng.ask("What is the capital of India ?", null, null, params);
+		String output = eng.ask("What is the capital of India ?", null, null, params);
 		
 		//PyTranslator pyt = eng.getClient();
 		
-		System.err.println(output.get("RESPONSE"));
+		System.err.println(output);
 		
 		//Object output = pyt.runScript("i.ask(question='What is the capital of India ?')");
 		
