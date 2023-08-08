@@ -44,8 +44,18 @@ class Server(socketserver.ThreadingTCPServer):
     self.logger.info("Ready to start server")
     #self.socket.timeout = 10
     # default time out is 15 min. set up if you want more
-    self.socket.settimeout(timeout*60)
-    self.timeout = timeout
+    if timeout > 0:
+      timeout = timeout * 60
+      print(f"Setting timeout to .. {timeout}")
+      self.timeout = timeout
+      #self.socket.settimeout(timeout*60)
+    else:
+      timeout = None
+      print(f"Setting timeout to .. {timeout}")
+      self.socket.settimeout(None)
+    
+    self.timeout_val = timeout
+  
     if start:
       self.serve_forever()
   
@@ -107,11 +117,11 @@ if __name__ == '__main__':
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), start=True)
   if len(sys.argv) == 4:
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], start=True)
-  if len(sys.argv) == 5:
+  if len(sys.argv) == 5: # with insight folder
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], start=True)
-  if len(sys.argv) == 6:
+  if len(sys.argv) == 6: # with prefix
     Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], prefix=sys.argv[5], start=True)
-  if len(sys.argv) == 7:
-    Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], prefix=sys.argv[5], timeout=sys.argv[6], start=True)
+  if len(sys.argv) == 7: # with timeout
+    Server(port=int(sys.argv[1]), max_count=int(sys.argv[2]), py_folder=sys.argv[3], insight_folder=sys.argv[4], prefix=sys.argv[5], timeout=int(sys.argv[6]), start=True)
     
  
