@@ -114,6 +114,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	private int poolMaxSize = 16;
 	private int queryTimeout = -1;
 	private Boolean autoCommit = null;
+	private int transactionIsolationType = -1;
 	
 	private long leakDetectionThresholdMilliseconds = 30_000;
 	private long idelTimeout = 60_000;
@@ -134,6 +135,9 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.engineConnected = true;
 					if(this.autoCommit != null) {
 						this.engineConn.setAutoCommit(this.autoCommit);
+					}
+					if(this.transactionIsolationType > -1) {
+						this.engineConn.setTransactionIsolation(this.transactionIsolationType);
 					}
 				} catch (Exception e){
 					classLogger.error("error RDBMS opening database", e);
@@ -231,6 +235,11 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			if(smssProp.getProperty(Constants.AUTO_COMMIT) != null) {
 				this.autoCommit = Boolean.parseBoolean(smssProp.getProperty(Constants.AUTO_COMMIT)+"");
 			}
+			// connection transaction type
+			if(smssProp.getProperty(Constants.TRANSACTION_TYPE) != null) {
+				this.transactionIsolationType = AbstractSqlQueryUtil.getConnectionTypeValueFromString(smssProp.getProperty(Constants.TRANSACTION_TYPE)+"");
+			}
+			
 			// leak detection threshold
 			if(smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
 				String leakDetectionStr = smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS);
@@ -316,6 +325,9 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 					this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, smssProp);
 					if(this.autoCommit != null) {
 						this.engineConn.setAutoCommit(this.autoCommit);
+					}
+					if(this.transactionIsolationType > -1) {
+						this.engineConn.setTransactionIsolation(this.transactionIsolationType);
 					}
 					this.queryUtil.enhanceConnection(this.engineConn);
 					classLogger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
@@ -418,6 +430,9 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			if(this.autoCommit != null) {
 				this.engineConn.setAutoCommit(this.autoCommit);
 			}
+			if(this.transactionIsolationType > -1) {
+				this.engineConn.setTransactionIsolation(this.transactionIsolationType);
+			}
 			this.queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
 			this.queryUtil.setConnectionUrl(this.connectionURL);
 			this.queryUtil.setUsername(this.userName);
@@ -475,6 +490,9 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			if(this.autoCommit != null) {
 				conn.setAutoCommit(this.autoCommit);
 			}
+			if(this.transactionIsolationType > -1) {
+				this.engineConn.setTransactionIsolation(this.transactionIsolationType);
+			}
 			this.queryUtil.enhanceConnection(conn);
 			return conn;
 		}
@@ -499,6 +517,9 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			this.queryUtil.enhanceConnection(this.engineConn);
 			if(this.autoCommit != null) {
 				this.engineConn.setAutoCommit(this.autoCommit);
+			}
+			if(this.transactionIsolationType > -1) {
+				this.engineConn.setTransactionIsolation(this.transactionIsolationType);
 			}
 			this.engineConnected = true;
 		}
@@ -994,10 +1015,23 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	}
 
 	public void setAutoCommit(boolean autoCommit) {
-		if(engineConn != null) {
+		this.autoCommit = autoCommit;
+		if(this.engineConn != null) {
 			try {
-				this.autoCommit = autoCommit;
-				engineConn.setAutoCommit(autoCommit);
+				this.engineConn.setAutoCommit(this.autoCommit);
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+	}
+	
+	public void setTransactionIsolationType(int transactionIsolationType) {
+		this.transactionIsolationType = transactionIsolationType;
+		if(this.engineConn != null) {
+			try {
+				if(this.transactionIsolationType > -1) {
+					this.engineConn.setTransactionIsolation(this.transactionIsolationType);
+				}
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}

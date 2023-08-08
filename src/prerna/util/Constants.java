@@ -475,7 +475,52 @@ public class Constants {
 	public static final String IDLE_TIMEOUT = "IDLE_TIMEOUT";
 	public static final String CONNECTION_QUERY_TIMEOUT = "CONNECTION_QUERY_TIMEOUT";
 	public static final String AUTO_COMMIT = "AUTO_COMMIT";
-	
+	// transaction types
+	public static final String TRANSACTION_TYPE = "TRANSACTION_TYPE";
+	/**
+     * A constant indicating that transactions are not supported.
+     */
+	public static final String TRANSACTION_NONE = "TRANSACTION_NONE";
+	/**
+     * A constant indicating that
+     * dirty reads, non-repeatable reads and phantom reads can occur.
+     * This level allows a row changed by one transaction to be read
+     * by another transaction before any changes in that row have been
+     * committed (a "dirty read").  If any of the changes are rolled back,
+     * the second transaction will have retrieved an invalid row.
+     */
+	public static final String TRANSACTION_READ_UNCOMMITTED = "TRANSACTION_READ_UNCOMMITTED";
+    /**
+     * A constant indicating that
+     * dirty reads are prevented; non-repeatable reads and phantom
+     * reads can occur.  This level only prohibits a transaction
+     * from reading a row with uncommitted changes in it.
+     */
+	public static final String TRANSACTION_READ_COMMITTED = "TRANSACTION_READ_COMMITTED";
+    /**
+     * A constant indicating that
+     * dirty reads and non-repeatable reads are prevented; phantom
+     * reads can occur.  This level prohibits a transaction from
+     * reading a row with uncommitted changes in it, and it also
+     * prohibits the situation where one transaction reads a row,
+     * a second transaction alters the row, and the first transaction
+     * rereads the row, getting different values the second time
+     * (a "non-repeatable read").
+     */
+	public static final String TRANSACTION_REPEATABLE_READ = "TRANSACTION_REPEATABLE_READ";
+    /**
+     * A constant indicating that
+     * dirty reads, non-repeatable reads and phantom reads are prevented.
+     * This level includes the prohibitions in
+     * <code>TRANSACTION_REPEATABLE_READ</code> and further prohibits the
+     * situation where one transaction reads all rows that satisfy
+     * a <code>WHERE</code> condition, a second transaction inserts a row that
+     * satisfies that <code>WHERE</code> condition, and the first transaction
+     * rereads for the same condition, retrieving the additional
+     * "phantom" row in the second read.
+     */
+	public static final String TRANSACTION_SERIALIZABLE = "TRANSACTION_SERIALIZABLE";
+
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
 	
