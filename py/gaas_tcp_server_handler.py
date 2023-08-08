@@ -35,7 +35,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     self.insight_folder = self.server.insight_folder
     self.log_file = None
     # need to set timeout here also
-    self.request.settimeout(self.server.timeout*60)
+    if self.server.timeout_val > 0:
+      self.request.settimeout(self.server.timeout_val)
+    else: # this may not be needed but
+      self.request.settimeout(None)
+    
     if self.insight_folder is not None:
       #print(f"starting to log in location {self.insight_folder}/log.txt")
       self.log_file = open(f"{self.insight_folder}/log.txt", "a")
@@ -71,9 +75,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     #payload = data
     try:
       payload = data.decode('utf-8')      
-      print(f"PAYLOAD.. {payload}")
+      #print(f"PAYLOAD.. {payload}")
       # do payload manipulation here 
       payload = json.loads(payload)
+      
+      local = threading.local()
+      local.payload = payload
 
       command_list = payload['payload']
       command = ''
@@ -103,7 +110,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       #  self.send_output("prefix set", payload, response=True)
       
       # need a way to handle stop message here
+   
+      # Need a way to push stdout as print here
       
+   
       # If this is a python payload 
       elif payload['operation'] == 'PYTHON':
         is_exception = False
@@ -204,6 +214,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       "operation": operation,
       "interim": interim
     }
+  
+    if 'insightId' in orig_payload:
+      payload.update({'insightId': orig_payload['insightId']})
+
 
     if exception:
       payload.update({"ex":output
@@ -224,6 +238,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       self.log_file.write(f"{orig_payload} === {size}")
       self.log_file.write("\n")
       self.log_file.write(f"OUTPUT === {payload}")
+      self.log_file.write(f"{list(orig_payload.keys())}")
       self.log_file.flush()
       if response and not interim:
         self.log_file.write("\n")
@@ -238,7 +253,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         
     #print("sending output " + output)
     # make it back into payload just for epoch
-    # if this comes with prefix. it is part of the response    
+    # if this comes with prefix. it is part of the response 
+    #local = threading.local()
+    #orig_payload = local.payload
+    
+    #print(f"Original Payload {orig_payload}")
+    #print(locals().keys())
+    #print(globals().keys())
+    
     output = json.dumps(payload)
     # write response back
     size = len(output)
