@@ -14,11 +14,10 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.util.Utility;
 
-@Deprecated
-public class VoteDatabaseReactor extends AbstractReactor {
+public class VoteEngineReactor extends AbstractReactor {
 
-	public VoteDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.VOTE.getKey() };
+	public VoteEngineReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.VOTE.getKey() };
 	}
 
 	@Override
@@ -29,9 +28,9 @@ public class VoteDatabaseReactor extends AbstractReactor {
 			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
 		}
 		
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if (databaseId == null) {
-			throw new IllegalArgumentException("Database Id is null");
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (engineId == null) {
+			throw new IllegalArgumentException("Engine Id is null");
 		}
 
 		Integer vote = Integer.valueOf(this.keyValue.get(this.keysToGet[1]));
@@ -39,16 +38,16 @@ public class VoteDatabaseReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Vote is null");
 		}
 
-		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database cannot be viewed by user.");
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Engine cannot be viewed by user.");
 		}
 
 		List<Pair<String, String>> creds = User.getUserIdAndType(this.insight.getUser());
 		
-		UserCatalogVoteUtils.vote(creds, databaseId, vote);
+		UserCatalogVoteUtils.vote(creds, engineId, vote);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully voted for catalog"));
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully voted for engine " + engineId));
 		return noun;
 	}
 
