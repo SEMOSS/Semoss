@@ -329,7 +329,7 @@ Question: {Question} """
       prompt = ""
       content = ""
       for doc in docs:
-          content += doc['content'] + '\n\n'
+          content += doc['Content'] + '\n\n'
       prompt = prompt_template.format(Content=content.lstrip(), Question=question.strip())
       return prompt
 
