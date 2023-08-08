@@ -1573,9 +1573,21 @@ public class Project implements IProject {
 	}
 
 	@Override
-	public String getProjectAssetFolder() {
+	public String getCompileOutput() 
+	{
 		// TODO Auto-generated method stub
-		return this.projectAssetFolder;
+		String finalOutput = null;
+		try {
+			String compilerOutput = AssetUtility.getProjectAssetFolder(this.projectId) + "/classes/compileerror.out";
+			File file = new File(compilerOutput);
+			if(file.exists())
+				finalOutput = FileUtils.readFileToString(new File(compilerOutput));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return finalOutput;
 	}
 	
 }

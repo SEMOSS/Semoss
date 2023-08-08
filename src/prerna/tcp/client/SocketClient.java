@@ -17,6 +17,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import prerna.auth.User;
+import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
@@ -46,6 +47,8 @@ public class SocketClient implements Runnable {
 	InputStream is = null;
 	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
+	Map <String, Insight> insightMap = new HashMap<String, Insight>();
+
 	
     public void connect(String HOST, int PORT, boolean SSL)
     {
@@ -123,6 +126,11 @@ public class SocketClient implements Runnable {
     	
     	if(attempt > 6) {
             logger.info("CLIENT Connection Failed !!!!!!!");
+            ready = true; // come out of the loop
+            synchronized(this)
+            {
+            	this.notifyAll();
+            }
     	}
     }	
     
@@ -310,5 +318,12 @@ public class SocketClient implements Runnable {
     public boolean isReady() {
     	return this.ready;
     }
+    
+
+    public void addInsight2Insight(String insightId, Insight insight)
+    {
+    	insightMap.put(insightId, insight);
+    }
+
     
 }
