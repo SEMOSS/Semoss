@@ -16,10 +16,10 @@ import com.google.gson.Gson;
 
 import io.netty.channel.ChannelFuture;
 import prerna.auth.User;
+import prerna.om.Insight;
 import prerna.sablecc2.comm.JobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
-import prerna.tcp.client.workers.EngineWorker;
 import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -135,7 +135,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     				is.read(length);
 
     				int size = ByteBuffer.wrap(length).getInt();
-    				System.err.println("Incoming data is of size " + size);
+    				//System.err.println("Incoming data is of size " + size);
     				
     				if(size > 0)
     				{
@@ -147,11 +147,11 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					int cur_size = is.read(newMsg);
 	    					System.arraycopy(newMsg, 0, msg, size_read, cur_size);
 	    					size_read = size_read + cur_size;
-	    					System.out.println("incoming size " + size + "  read size.. " + size_read);
+	    					//System.out.println("incoming size " + size + "  read size.. " + size_read);
 	    				}
 	
 	    				String message = new String(msg);
-	    				System.err.print(message);
+	    				//System.err.print(message);
 	    				PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
 
 	    				PayloadStruct lock = (PayloadStruct)requestMap.get(ps.epoc);
@@ -183,7 +183,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 		    					// try to convert it into a full object
 		    					// need to check if it is primitive before converting
 		    					
-		    					System.out.println("FINAL OUTPUT <<<<<<<" + outputAssimilator + ">>>>>>>>>>>>");
+		    					logger.info("FINAL OUTPUT <<<<<<<" + outputAssimilator + ">>>>>>>>>>>>");
 		    					// re-initialize it
 		    					outputAssimilator = new StringBuffer("");
 	
@@ -205,13 +205,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    					// will come to it in a bit
 	    					// clean up the payload struct a little
 	    					ps = convertPayloadClasses(ps);
-	    					
-	    					NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps);
-	    					worker.run();
-	    					executeCommand(worker.getOutput());
-	    					// not sure if this needs to be a thread
-							//Thread ew = new Thread(worker);
-							//ew.start();
+	    					processRequest(ps);
 	    				}
     				}
     				else
@@ -231,6 +225,35 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     	}
     }	
     
+    private void processRequest(PayloadStruct ps)
+    {
+		String insightId = ps.insightId;
+		if(insightId == null)
+		{
+			ps.response = true;
+			ps.ex = "Insight Id cannot be null";
+			// return the error
+			executeCommand(ps);
+			return;
+		}
+		Insight insight = insightMap.get(insightId);
+		user = insight.getUser();
+		if(user == null)
+		{
+			ps.response = true;
+			ps.ex = "There is no user associated with this insight id";
+			// return the error
+			executeCommand(ps);
+			return;
+		}
+		else
+		{
+			NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps);
+			worker.run();
+			executeCommand(worker.getOutput());
+		}
+    }
+    
     private PayloadStruct convertPayloadClasses(PayloadStruct input)
     {
     	if(input.payloadClassNames != null)
@@ -241,6 +264,12 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     			try {
 					String className = input.payloadClassNames[classIndex];
 					input.payloadClasses[classIndex] = Class.forName(className);
+					if(input.payloadClasses[classIndex] == Insight.class)
+					{
+						String insightId = "" + input.payload[classIndex]; 
+						Insight insight = insightMap.get(insightId);
+						input.payload[classIndex] = insight;
+					}
 				} catch (ClassNotFoundException e) 
     			{
 					// TODO Auto-generated catch block
@@ -418,7 +447,6 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     			ps.notifyAll();
     		}
     	}
-    	
     	this.requestMap.clear();
     	closeStream(this.os);
     	closeStream(this.is);

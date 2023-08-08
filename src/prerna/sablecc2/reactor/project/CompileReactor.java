@@ -43,22 +43,16 @@ public class CompileReactor extends AbstractReactor {
 			IProject project = Utility.getProject(projectId);
 			ProjectCustomReactorCompilator.reset(projectId);
 			project.compileReactors(null);
-			
-			try {
-				// get the compiler output
-				String compilerOutput = project.getProjectAssetFolder() + "/classes/compileerror.out";
-				output.append("Project - ").append(project.getProjectName()).append("\n");
-				output.append("-------------").append("\n");
-				String compileOutput = FileUtils.readFileToString(new File(compilerOutput));
-				if(compileOutput.length() > 0)
-					output.append(compileOutput);
-				else
-					output = new StringBuilder("No Errors");
-				return new NounMetadata(output + "", PixelDataType.CONST_STRING);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+					
+			// get the compiler output
+			String compileOutput = project.getCompileOutput();
+			output.append("Project - ").append(project.getProjectName()).append("\n");
+			output.append("-------------").append("\n");
+			if(compileOutput != null)
+				output.append(compileOutput);
+			else
+				output = new StringBuilder("No Errors");
+			return new NounMetadata(output + "", PixelDataType.CONST_STRING);
 			
 		}
 		
