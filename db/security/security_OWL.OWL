@@ -1928,150 +1928,150 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATE_ADDED</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
 	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">DATABASEACCESSREQUEST</Conceptual>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINEACCESSREQUEST</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ID/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ID/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ID</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_USERID/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_USERID/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_USERID/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_USERID/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_USERID/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_USERID/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_USERID/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_USERID/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REQUEST_USERID</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_TYPE/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_TYPE/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_TYPE/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_TYPE/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_TYPE/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_TYPE/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_TYPE/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_TYPE/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REQUEST_TYPE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_TIMESTAMP/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_TIMESTAMP/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_TIMESTAMP/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_TIMESTAMP/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_TIMESTAMP/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_TIMESTAMP/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_TIMESTAMP/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_TIMESTAMP/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REQUEST_TIMESTAMP</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINEID/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINEID/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINEID</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PERMISSION/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PERMISSION/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PERMISSION/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PERMISSION/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PERMISSION/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PERMISSION/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INT"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PERMISSION/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PERMISSION/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PERMISSION</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_USERID/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_USERID/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_USERID/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_USERID/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_USERID/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_USERID/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_USERID/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_USERID/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">APPROVER_USERID</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_TYPE/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_TYPE/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_TYPE/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_TYPE/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_TYPE/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_TYPE/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_TYPE/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_TYPE/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">APPROVER_TYPE</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_DECISION/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_DECISION/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_DECISION/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_DECISION/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_DECISION/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_DECISION/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_DECISION/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_DECISION/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">APPROVER_DECISION</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_TIMESTAMP/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_TIMESTAMP/ENGINEACCESSREQUEST">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DATABASEACCESSREQUEST">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_TIMESTAMP/DATABASEACCESSREQUEST"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEACCESSREQUEST">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_TIMESTAMP/ENGINEACCESSREQUEST"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_TIMESTAMP/DATABASEACCESSREQUEST">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/APPROVER_TIMESTAMP/ENGINEACCESSREQUEST">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:TIMESTAMP"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_TIMESTAMP/DATABASEACCESSREQUEST"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/APPROVER_TIMESTAMP/ENGINEACCESSREQUEST"/>
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">APPROVER_TIMESTAMP</Conceptual>
 </rdf:Description>
 
@@ -3065,7 +3065,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2023:07:18 11:10:09</TIME>
+	<TIME xmlns="ENGINE:">2023:08:03 11:37:16</TIME>
 </rdf:Description>
 
 </rdf:RDF>

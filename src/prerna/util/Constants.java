@@ -521,6 +521,8 @@ public class Constants {
      */
 	public static final String TRANSACTION_SERIALIZABLE = "TRANSACTION_SERIALIZABLE";
 
+	public static final String SENSITIVE_INFO_MASK = "********";
+	
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
 	
