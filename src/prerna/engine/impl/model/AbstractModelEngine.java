@@ -140,8 +140,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public Map<String, String> ask(String question, String context, Insight insight, Map<String, Object> parameters) {
-		Map<String, String> output = new HashMap<String, String>();
+	public String ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+		//Map<String, String> output = new HashMap<String, String>();
 		if(!this.socketClient.isConnected())
 			this.startServer();
 		
@@ -224,10 +224,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 													);
 		}
 		// TODO make these constants so we can start to track where they are being used
-		output.put("ROOM_ID",roomId);
-		output.put("MESSAGE_ID",messageId);
-		output.put("RESPONSE",response);
-		return output;
+		//output.put("ROOM_ID",roomId);
+		//output.put("MESSAGE_ID",messageId);
+		//output.put("RESPONSE",response);
+		return response;
 	}
 
 	// Abstract method, child classes should construct their input / output here
