@@ -42,6 +42,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
@@ -4171,6 +4172,23 @@ public class Utility {
 			}
 		}
 		return retProp;
+	}
+	
+	/**
+	 * 
+	 * @param propertiesAsString
+	 * @return
+	 */
+	public static Properties loadPropertiesString(String propertiesAsString) {
+	    Properties retProp = new Properties();
+	    try(StringReader is = new StringReader(propertiesAsString)) {
+	    	try {
+				retProp.load(is);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+	    }
+	    return retProp;
 	}
 	
 	/**

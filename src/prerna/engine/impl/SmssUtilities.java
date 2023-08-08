@@ -785,5 +785,118 @@ public class SmssUtilities {
 
 		insightEngine.commit();
 	}
+	
+	/**
+	 * 
+	 * @param currentSmssContent
+	 * @return
+	 */
+	public static String concealSmssSensitiveInfo(String currentSmssContent) {
+		StringBuilder concealedSmssContent = new StringBuilder();
+		String[] currentSmssLines = currentSmssContent.split("\n");
+		
+		String[] keysToFind = new String[] {
+				AbstractSqlQueryUtil.PASSWORD.toUpperCase(),
+				AbstractSqlQueryUtil.ACCESS_KEY.toUpperCase(),
+				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase()
+		};
+		
+		for(String curLine : currentSmssLines) {
+			String curLineUpperMatch = curLine.toUpperCase();
+			
+			// loop through all the keys to find
+			boolean found = false;
+			for(String key : keysToFind) {
+				if( curLineUpperMatch.startsWith(key+"\t") 
+						|| curLineUpperMatch.startsWith(key+" ")
+						|| curLineUpperMatch.startsWith(key+"=") ) 
+				{
+					concealedSmssContent.append(key).append("\t").append(Constants.SENSITIVE_INFO_MASK);
+					found = true;
+					break;
+				}
+			}
+			if(!found) {
+				concealedSmssContent.append(curLine);
+			}
+			concealedSmssContent.append("\n");
+		}
+		
+		return concealedSmssContent.toString();
+	}
 
+	/**
+	 * 
+	 * @param newSmssContent
+	 * @param currentSmssProperties
+	 * @return
+	 */
+	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties) {
+		Properties newProperties = Utility.loadPropertiesString(newSmssContent);
+		if(newProperties == null) {
+			throw new IllegalArgumentException("New SMSS content is not a valid properties file format");
+		}
+		CaseInsensitiveProperties allUpperProps = new CaseInsensitiveProperties(newProperties);
+		
+		String[] keysToFind = new String[] {
+				AbstractSqlQueryUtil.PASSWORD.toUpperCase(),
+				AbstractSqlQueryUtil.ACCESS_KEY.toUpperCase(),
+				AbstractSqlQueryUtil.SECRET_KEY.toUpperCase()
+		};
+		
+		boolean requireProcessing = false;
+		for(String key : keysToFind) {
+			if(allUpperProps.containsKey(key) && allUpperProps.get(key).equals(Constants.SENSITIVE_INFO_MASK)) {
+				requireProcessing = true;
+				break;
+			}
+		}
+		
+		if(!requireProcessing) {
+			return newSmssContent;
+		}
+		
+		// okay, we found a key that is all sensitive info
+		// lets fix it
+		
+		CaseInsensitiveProperties allUpperCurrentSmss = new CaseInsensitiveProperties(currentSmssProperties);
+		StringBuilder constructedSmssContent = new StringBuilder();
+		String[] currentSmssLines = newSmssContent.split("\n");
+		
+		
+		for(String curLine : currentSmssLines) {
+			String curLineUpperMatch = curLine.toUpperCase();
+			
+			// loop through all the keys to find
+			boolean found = false;
+			for(String key : keysToFind) {
+				if( curLineUpperMatch.startsWith(key+"\t") 
+						|| curLineUpperMatch.startsWith(key+" ")
+						|| curLineUpperMatch.startsWith(key+"=") ) 
+				{
+					// check if we are still the concealed value or not
+					if(allUpperProps.get(key).equals(Constants.SENSITIVE_INFO_MASK)) {
+						// write the key with the original value in the current smss file
+						// value might be an empty string which could return a null
+						Object value = "";
+						if(allUpperCurrentSmss.get(keysToFind) != null) {
+							value = allUpperCurrentSmss.get(keysToFind);
+						}
+						constructedSmssContent.append(key).append("\t").append(value);
+					} else {
+						// the value has been changed
+						constructedSmssContent.append(curLine);
+					}
+					found = true;
+					break;
+				}
+			}
+			if(!found) {
+				constructedSmssContent.append(curLine);
+			}
+			constructedSmssContent.append("\n");
+		}
+		return constructedSmssContent.toString();
+	}
+	
 }
