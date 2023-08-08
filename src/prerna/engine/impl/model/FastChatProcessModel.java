@@ -10,12 +10,14 @@ import java.util.Map;
 import java.util.Properties;
 
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.IModelEngine.MODEL_TYPE;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class FastChatProcessModel implements IModelEngine {
+public class FastChatProcessModel extends AbstractModelEngine {
 	
     private String workerAddress;
     private String controllerAddress;
@@ -25,28 +27,16 @@ public class FastChatProcessModel implements IModelEngine {
     private String port; 
     private long pid;
     private Process process;
-	Properties prop = null;
-
-    
-//    public FastChatProcessModel(String workerAddress, String modelPath, String controllerAddress, String gpuID, String gpuNum) {
-//        this.modelPath = modelPath;
-//        this.controllerAddress=controllerAddress;
-//        this.port=Utility.findOpenPort();
-//        this.workerAddress = workerAddress+":"+port.toString();
-//        this.gpuIdString=gpuID;
-//        this.gpuNum=gpuNum;
-//
-//    }
     
 	@Override
 	public void loadModel(String modelSmss) {
 		// TODO Auto-generated method stub
 		// starts the model
 		try {
-			prop = new Properties();
+			generalEngineProp = new Properties();
 			File file = new File(modelSmss);
 			
-			prop.load(new FileInputStream(file));
+			generalEngineProp.load(new FileInputStream(file));
 			
 			workerAddress = DIHelper.getInstance().getProperty(Constants.WORKER_ADDRESS);
 			if(workerAddress ==null || workerAddress.trim().isEmpty()) {
@@ -56,10 +46,10 @@ public class FastChatProcessModel implements IModelEngine {
 			if(controllerAddress ==null || controllerAddress.trim().isEmpty()) {
 				controllerAddress = System.getenv(Constants.WORKER_ADDRESS);
 			}
-			modelPath = (String)prop.get(Constants.MODEL);
+			modelPath = (String)generalEngineProp.get(Constants.MODEL);
 			//TODO comes from some gpu client on resources
-			gpuIdString = (String)prop.get(Constants.GPU_ID);
-			gpuNum = (String)prop.get(Constants.NUM_GPU);
+			gpuIdString = (String)generalEngineProp.get(Constants.GPU_ID);
+			gpuNum = (String)generalEngineProp.get(Constants.NUM_GPU);
 
 
 		} catch (FileNotFoundException e) {
@@ -107,10 +97,9 @@ public class FastChatProcessModel implements IModelEngine {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-//        pid=getUnixProcessId(process);
-//        System.out.println("PID for "+ modelPath + " is " + pid);
     }
     
+    @Override
     public void stopModel() {
         if (process != null) {
             // Attempt to gracefully shut down the Python process first
@@ -143,99 +132,10 @@ public class FastChatProcessModel implements IModelEngine {
             }
         }
     }
-    
-	@Override
-	public MODEL_TYPE getModelType() {
-		return MODEL_TYPE.PROCESS;
-	}
 
 	@Override
-	public void setEngineId(String engineId) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public String getEngineId() {
+	protected String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-	@Override
-	public void setEngineName(String engineName) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public String getEngineName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setSmssFilePath(String smssFilePath) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public String getSmssFilePath() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setSmssProp(Properties smssProp) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Properties getSmssProp() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Properties getOrigSmssProp() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getCatalogType(Properties smssProp) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public void delete() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public String ask(String question, String context, Insight insight, Map<String, Object> parameters) {
-		// TODO the ask will pump the question and context and the port + parameters into the python ask for fastchat
-		
-		// insight should be  null 
-		
-		
-		return null;
-	}
-    
-
 }
