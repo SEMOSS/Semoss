@@ -4,27 +4,21 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabase;
+import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public class GetDatabaseSMSSReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(GetDatabaseSMSSReactor.class);
 
 	public GetDatabaseSMSSReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
@@ -48,35 +42,19 @@ public class GetDatabaseSMSSReactor extends AbstractReactor {
 		IDatabase engine = Utility.getDatabase(databaseId);
 		String currentSmssFileLocation = engine.getSmssFilePath();
 		File currentSmssFile = new File(currentSmssFileLocation);
-		engine.close();
 		
-		String errorMsg = null;
 		if(!currentSmssFile.exists() || !currentSmssFile.isFile()) {
-			errorMsg = "Could not find current catalog smss file";
-			classLogger.error(Constants.ERROR_MESSAGE,  errorMsg);
-			throw new IllegalArgumentException(errorMsg);
+			throw new IllegalArgumentException("Could not find smss file for database " + databaseId + ". Please reach out to an administrator for assistance");
 		}
 		
 		String currentSmssContent = null;
 		try {
 			currentSmssContent = new String(Files.readAllBytes(Paths.get(currentSmssFile.toURI())));
 		} catch (IOException e) {
-			errorMsg = "An error occurred reading the current catalog smss details. Detailed message = " + e.getMessage();
-			classLogger.error(Constants.ERROR_MESSAGE, errorMsg);
-			throw new IllegalArgumentException(errorMsg);
+			throw new IllegalArgumentException("An error occurred reading the current engine smss details. Detailed message = " + e.getMessage());
 		}
 		
-		Map<String, String> outputMap = new HashMap<String, String>();
-		String [] smssContent = currentSmssContent.split("\\n");
-		for (String smssLine: smssContent) {
-			if (smssLine.startsWith("#") || smssLine.startsWith("PASSWORD"))
-				continue;
-			
-			// split each line into an array of items using the tab character as the delimiter, with a maximum of 2 substrings
-			String[] keyValue = smssLine.split("\\t",2);
-			outputMap.put(keyValue[0], keyValue[1]);
-		}
-		
-		return new NounMetadata(outputMap, PixelDataType.MAP);
+		String concealedSmssContent = SmssUtilities.concealSmssSensitiveInfo(currentSmssContent);
+		return new NounMetadata(concealedSmssContent, PixelDataType.CONST_STRING);
 	}
 }
