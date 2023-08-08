@@ -27,7 +27,9 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.parsers.PraseSqlQueryForCount;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -476,20 +478,55 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	 * i.e. the naked engine ;)
 	 * @param conn
 	 * @param query
+	 * @throws Exception 
 	 */
-	public void directExecutionViaConnection(Connection conn, String query, boolean closeIfFail) {
+	public static RawRDBMSSelectWrapper directExecutionViaConnection(Connection conn, String query, boolean closeIfFail) throws Exception {
+		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
 		try {
-			this.query = query;
-			this.conn = conn;
-			this.stmt = this.conn.createStatement();
-			this.rs = this.stmt.executeQuery(query);
-			setVariables();
+			wrapper.query = query;
+			wrapper.conn = conn;
+			wrapper.stmt = wrapper.conn.createStatement();
+			wrapper.rs = wrapper.stmt.executeQuery(query);
+			wrapper.setVariables();
+			return wrapper;
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			if(closeIfFail) {
-				ConnectionUtils.closeAllConnections(conn, stmt, rs);
+				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
+			} else {
+				ConnectionUtils.closeAllConnections(null, wrapper.stmt, wrapper.rs);
 			}
-			throw new IllegalArgumentException(e.getMessage());
+			throw e;
+		}
+	}
+	
+	/**
+	 * This method allows me to perform the execution of a query on a given connection
+	 * without having to go through a formal RDBMSNativeEngine construct
+	 * i.e. the naked engine ;)
+	 * @param conn
+	 * @param query
+	 * @throws Exception 
+	 */
+	public static RawRDBMSSelectWrapper directExecutionViaConnection(IRDBMSEngine database, Connection conn, SelectQueryStruct qs, boolean closeIfFail) throws Exception {
+		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
+		try {
+			IQueryInterpreter interpreter = database.getQueryInterpreter();
+			interpreter.setQueryStruct(qs);
+			wrapper.query = interpreter.composeQuery();
+			wrapper.conn = conn;
+			wrapper.stmt = wrapper.conn.createStatement();
+			wrapper.rs = wrapper.stmt.executeQuery(wrapper.query);
+			wrapper.setVariables();
+			return wrapper;
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			if(closeIfFail) {
+				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
+			} else {
+				ConnectionUtils.closeAllConnections(null, wrapper.stmt, wrapper.rs);
+			}
+			throw e;
 		}
 	}
 	

@@ -428,15 +428,6 @@ public class H2Frame extends AbstractRdbmsFrame {
 		}
 	}
 
-	public void addNewColumn(String[] newHeaders, String[] types, String tableName) {
-		this.builder.alterTableNewColumns(tableName, newHeaders, types);
-		for(int i = 0; i < newHeaders.length; i++) {
-			this.metaData.addProperty(tableName, tableName + "__" + newHeaders[i]);
-			this.metaData.setAliasToProperty(tableName + "__" + newHeaders[i], newHeaders[i]);
-			this.metaData.setDataTypeToProperty(tableName + "__" + newHeaders[i], types[i]);
-		}
-	}
-
 	@Override
 	@Deprecated
 	public void processDataMakerComponent(DataMakerComponent component) {
