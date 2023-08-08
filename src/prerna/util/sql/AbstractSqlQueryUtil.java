@@ -1979,6 +1979,31 @@ public abstract class AbstractSqlQueryUtil {
 		
 		return meta;
 	}
+	
+	/**
+	 * 
+	 * @param value
+	 * @return
+	 */
+	public static int getConnectionTypeValueFromString(String value) {
+		if(value == null) {
+			return -1;
+		}
+		
+		if(value.equalsIgnoreCase(Constants.TRANSACTION_NONE)) {
+			return Connection.TRANSACTION_NONE;
+		} else if(value.equalsIgnoreCase(Constants.TRANSACTION_READ_UNCOMMITTED)) {
+			return Connection.TRANSACTION_READ_UNCOMMITTED;
+		} else if(value.equalsIgnoreCase(Constants.TRANSACTION_READ_COMMITTED)) {
+			return Connection.TRANSACTION_READ_COMMITTED;
+		} else if(value.equalsIgnoreCase(Constants.TRANSACTION_REPEATABLE_READ)) {
+			return Connection.TRANSACTION_REPEATABLE_READ;
+		} else if(value.equalsIgnoreCase(Constants.TRANSACTION_SERIALIZABLE)) {
+			return Connection.TRANSACTION_SERIALIZABLE;
+		}
+		
+		return -1;
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
