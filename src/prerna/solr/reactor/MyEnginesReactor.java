@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IRawSelectWrapper;
@@ -131,6 +132,16 @@ public class MyEnginesReactor extends AbstractReactor {
 					if(wrapper != null) {
 						wrapper.cleanUp();
 					}
+				}
+				
+				Map<String, Boolean> voted = UserCatalogVoteUtils.userEngineVotes(User.getUserIdAndType(this.insight.getUser()), index.keySet());
+				for (String ks : index.keySet()) {
+					int indexToFind = index.get(ks);
+					Boolean hasUpvoted = voted.get(ks);
+					if (hasUpvoted == null) {
+						hasUpvoted = false;
+					}
+					engineInfo.get(indexToFind).put("hasUpvoted", hasUpvoted);
 				}
 			}
 		}
