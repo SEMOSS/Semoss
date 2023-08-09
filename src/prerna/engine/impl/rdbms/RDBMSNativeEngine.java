@@ -491,7 +491,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 				conn.setAutoCommit(this.autoCommit);
 			}
 			if(this.transactionIsolationType > -1) {
-				this.engineConn.setTransactionIsolation(this.transactionIsolationType);
+				conn.setTransactionIsolation(this.transactionIsolationType);
 			}
 			this.queryUtil.enhanceConnection(conn);
 			return conn;
