@@ -29,7 +29,13 @@ public interface IStorage extends IEngine {
 	 * 
 	 * @param smssProp
 	 */
-	void connect(Properties smssProp) throws Exception;
+	void open(String smssFilePath) throws Exception;
+	
+	/**
+	 * 
+	 * @param smssProp
+	 */
+	void open(Properties smssProp) throws Exception;
 
 	/**
 	 * 

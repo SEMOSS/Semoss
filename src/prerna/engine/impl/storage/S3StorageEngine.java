@@ -26,8 +26,8 @@ public class S3StorageEngine extends AbstractRCloneStorageEngine {
 		
 	}
 	
-	public void connect(Properties smssProp) throws Exception {
-		super.connect(smssProp);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 		
 		// set this to be the db engine folder
 		this.rcloneConfigFolder = "";
