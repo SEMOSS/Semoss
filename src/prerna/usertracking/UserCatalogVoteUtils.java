@@ -339,36 +339,36 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	 * @param catalogId
 	 */
 	public static void delete(List<Pair<String, String>> creds, String catalogId) {
-		 String query = "DELETE FROM " + VOTE_TN + " WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
-		 PreparedStatement ps = null;
-			try {
-				ps = userTrackingDb.getPreparedStatement(query);
-					for (Pair<String, String> cred : creds) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, cred.getLeft());
-					ps.setString(parameterIndex++, cred.getRight());
-					ps.setString(parameterIndex++, catalogId);
-					ps.addBatch();
+		String query = "DELETE FROM " + VOTE_TN + " WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
+		PreparedStatement ps = null;
+		try {
+			ps = userTrackingDb.getPreparedStatement(query);
+			for (Pair<String, String> cred : creds) {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, cred.getLeft());
+				ps.setString(parameterIndex++, cred.getRight());
+				ps.setString(parameterIndex++, catalogId);
+				ps.addBatch();
+			}
+			ps.execute();
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
 				}
-				ps.execute();
-			} catch(Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(ps != null) {
+				if(userTrackingDb.isConnectionPooling()) {
 					try {
-						ps.close();
+						ps.getConnection().close();
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
-					if(userTrackingDb.isConnectionPooling()) {
-						try {
-							ps.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
 				}
 			}
+		}
 	}
 
 	/**

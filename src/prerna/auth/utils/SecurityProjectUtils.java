@@ -2096,13 +2096,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param user
 	 * @param favoritesOnly
+	 * @param portalsOnly
 	 * @param projectMetadataFilter
 	 * @param permissionFilters
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserProjectList(User user, boolean favoritesOnly, 
+	public static List<Map<String, Object>> getUserProjectList(User user, boolean favoritesOnly, boolean portalsOnly,
 			Map<String,Object> projectMetadataFilter, List<Integer> permissionFilters, String limit, String offset) {
 		Collection<String> userIds = getUserFiltersQs(user);
 		
@@ -2112,24 +2113,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
-		qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTID", "project_id"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"PROJECTNAME", "project_name"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"TYPE", "project_type"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"COST", "project_cost"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"GLOBAL", "project_global"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CATALOGNAME", "project_catalog_name"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBY", "project_created_by"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"CREATEDBYTYPE", "project_created_by_type"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"DATECREATED", "project_date_created"));
 		// dont forget reactors/portal information
-		qs1.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED", "project_portal_published_date"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER", "project_published_user"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE", "project_published_user_type"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED", "project_reactors_compiled_date"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
-		qs1.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"HASPORTAL", "project_has_portal"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"PORTALNAME", "project_portal_name"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHED", "project_portal_published_date"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDUSER", "project_published_user"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"PORTALPUBLISHEDTYPE", "project_published_user_type"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILED", "project_reactors_compiled_date"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix+"REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		// back to the others
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "project_favorite"));
@@ -2239,7 +2240,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// filters
 		OrQueryFilter orFilter = new OrQueryFilter();
 		{
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "!=", null, PixelDataType.CONST_INT));
 			qs1.addExplicitFilter(orFilter);
@@ -2256,6 +2257,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if(favoritesOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", true, PixelDataType.BOOLEAN));
 		}
+		if(portalsOnly) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix+"HASPORTAL", "==", true, PixelDataType.BOOLEAN));
+		}
+		
 		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against projectids from subquery
 		if (projectMetadataFilter!=null && !projectMetadataFilter.isEmpty()) {
 			for (String k : projectMetadataFilter.keySet()) {
