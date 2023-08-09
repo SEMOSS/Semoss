@@ -43,8 +43,8 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void connect(Properties smssProp) throws Exception {
-		super.connect(smssProp);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 
 		this.host = smssProp.getProperty(Constants.HOSTNAME);
 		this.port = smssProp.getProperty(Constants.PORT);

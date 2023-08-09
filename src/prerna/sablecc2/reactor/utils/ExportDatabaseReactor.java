@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
@@ -31,6 +32,8 @@ import prerna.util.ZipUtils;
 
 @Deprecated
 public class ExportDatabaseReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(ExportDatabaseReactor.class);
 
 	private static final String CLASS_NAME = ExportDatabaseReactor.class.getName();
 
@@ -72,7 +75,11 @@ public class ExportDatabaseReactor extends AbstractReactor {
 		try {
 			IDatabase database = Utility.getDatabase(databaseId);
 			DIHelper.getInstance().removeEngineProperty(databaseId);
-			database.close();
+			try {
+				database.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 			
 			String databaseName = database.getEngineName();
 			String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/export/ZIPs";
