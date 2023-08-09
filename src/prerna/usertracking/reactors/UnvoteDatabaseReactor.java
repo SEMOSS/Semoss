@@ -14,6 +14,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.util.Utility;
 
+@Deprecated
 public class UnvoteDatabaseReactor extends AbstractReactor {
 	
 	public UnvoteDatabaseReactor() {
