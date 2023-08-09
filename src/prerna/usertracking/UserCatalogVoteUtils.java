@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -84,6 +85,82 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		}
 		
 		return votes;
+	}
+	
+	/**
+	 * 
+	 * @param creds
+	 * @param engineId
+	 * @return
+	 */
+	public static Map<String, Boolean> userEngineVotes(List<Pair<String, String>> creds, Set<String> engineIds) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "USERID"));
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "TYPE"));
+		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
+		
+		OrQueryFilter of = new OrQueryFilter();
+		for (Pair<String, String> cred : creds) {
+			AndQueryFilter af = new AndQueryFilter();
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "USERID", "==", cred.getLeft()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "TYPE", "==", cred.getRight()));
+			of.addFilter(af);
+		}
+		qs.addExplicitFilter(of);
+		if(engineIds != null && !engineIds.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", engineIds));
+		}
+		
+		IRawSelectWrapper wrapper = null;
+		Map<String, Map<Pair<String, String>, Integer>> mappy = new HashMap<>();
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
+			while (wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				Object[] values = headerRow.getValues();
+				
+				if (values[0] != null && values[1] != null && values[2] != null && values[3] != null) {
+					String engine = values[0].toString();
+					Pair<String, String> credential = Pair.of(values[1].toString(), values[2].toString());
+					Integer vote = ((Number) values[3]).intValue();
+					
+					if (mappy.containsKey(engine)) {
+						mappy.get(engine).put(credential, vote);
+					} else {
+						Map<Pair<String, String>, Integer> newMap = new HashMap<>();
+						newMap.put(credential, vote);
+						mappy.put(engine, newMap);
+					}
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		Map<String, Boolean> toReturn = new HashMap<>();
+		for (String x : engineIds) {
+			boolean upvoted = false;
+			
+			if (mappy.containsKey(x)) {
+				Map<Pair<String, String>, Integer> fromDB = mappy.get(x);
+				boolean allUpvoted = true;
+				for (Pair<String, String> cred : creds) {
+					if (!fromDB.containsKey(cred) || fromDB.get(cred) == null || fromDB.get(cred) != 1) {
+						allUpvoted = false;
+					}
+				}
+				upvoted = allUpvoted;
+			}
+
+			toReturn.put(x, upvoted);
+		}
+		
+		return toReturn;
 	}
 
 	/**
