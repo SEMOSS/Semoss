@@ -28,6 +28,7 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
+import java.io.IOException;
 
 import javax.swing.JComponent;
 import javax.swing.JList;
@@ -76,7 +77,11 @@ public class DisconnectListener implements IChakraListener {
 			if(engine.isConnected())
 			{
 				logger.info("Attempting to disconnect " + repoName);
-				engine.close();
+				try {
+					engine.close();
+				} catch (IOException e1) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 				logger.info("Successfully disconnected " + repoName);
 			}
 			else

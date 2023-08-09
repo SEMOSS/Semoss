@@ -30,8 +30,8 @@ public class MinioStorageEngine extends AbstractRCloneStorageEngine {
 	private String SECRET_KEY = null;
 	private String ENDPOINT = null;
 	
-	public void connect(Properties smssProp) throws Exception {
-		super.connect(smssProp);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 		
 		this.REGION = smssProp.getProperty(MINIO_REGION_KEY);
 		this.ACCESS_KEY = smssProp.getProperty(MINIO_ACCESS_KEY);
