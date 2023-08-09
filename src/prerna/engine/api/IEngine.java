@@ -1,6 +1,7 @@
 package prerna.engine.api;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.Properties;
 
 public interface IEngine extends Closeable {
@@ -76,6 +77,12 @@ public interface IEngine extends Closeable {
 	 */
 	void delete();
 	
+	/**
+	 * Closes the connection associated with the engine.  This will prevent further changes from being made and 
+	 * ends any transactions
+	 */
+	@Override
+	void close() throws IOException;
 	
 //	/**
 //	 * Load the SMSS file and create the connection to the engine

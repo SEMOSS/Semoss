@@ -85,12 +85,6 @@ public interface IDatabase extends IExplorable, IEngine {
 	void openDB(String propFile) throws Exception;
 
 	/**
-	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
-	 * safely ends the active transactions and closes the engine.
-	 */
-	void close();
-
-	/**
 	 * Runs the passed string query against the engine.  The query passed must be in the structure that the specific engine implementation
 	 * requires
 	 * @param query the string version of the SELECT query to be run against the engine

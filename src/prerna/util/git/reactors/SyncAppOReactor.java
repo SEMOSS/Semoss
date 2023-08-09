@@ -1,5 +1,6 @@
 package prerna.util.git.reactors;
 
+import java.io.IOException;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
@@ -56,7 +58,11 @@ public class SyncAppOReactor extends AbstractReactor {
 				logger.info("Synchronizing Database Now... ");
 				logger.info("Stopping the database ... ");
 				// remove the database
-				Utility.getDatabase(databaseName).close();
+				try {
+					Utility.getDatabase(databaseName).close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 				DIHelper.getInstance().removeLocalProperty(databaseName);
 				GitSynchronizer.syncDatabases(databaseName, repository, username, password, logger);
 				logger.info("Synchronize Database Complete");

@@ -13,6 +13,7 @@ import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public abstract class AbstractStorageEngine implements IStorage {
 
@@ -30,7 +31,16 @@ public abstract class AbstractStorageEngine implements IStorage {
 	 * @param builder
 	 * @throws Exception 
 	 */
-	public void connect(Properties smssProp) throws Exception {
+	public void open(String smssFilePath) throws Exception {
+		this.open(Utility.loadProperties(smssFilePath));
+	}
+	
+	/**
+	 * Init the general storage values
+	 * @param builder
+	 * @throws Exception 
+	 */
+	public void open(Properties smssProp) throws Exception {
 		this.smssProp = smssProp;
 		this.engineId = smssProp.getProperty(Constants.ENGINE);
 		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
