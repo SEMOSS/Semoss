@@ -24,7 +24,7 @@ public class PixelUnitConsole extends PixelUnit {
 				// Read pixel from tester
 				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 								
-				LOGGER.info("Enter Pixel command (separated by ; and on one line): ");
+				classLogger.info("Enter Pixel command (separated by ; and on one line): ");
 				String pixel = reader.readLine();   
 				pixel = pixel.trim();
 				
@@ -34,19 +34,19 @@ public class PixelUnitConsole extends PixelUnit {
 					JsonArray allPixelReturns = getPixelReturns(returnData);
 					JsonElement lastPixelReturn = allPixelReturns.get(allPixelReturns.size() - 1);
 					
-					LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-					LOGGER.info("ALL: ");
+					classLogger.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+					classLogger.info("ALL: ");
 					System.out.println(GSON_PRETTY.toJson(allPixelReturns));
-					LOGGER.info("LAST: ");
+					classLogger.info("LAST: ");
 					System.out.println(GSON_PRETTY.toJson(lastPixelReturn));
-					LOGGER.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+					classLogger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 				} else {
 					
 					// Otherwise terminate if the tester enters without typing a Pixel
 					end = "end";
 				}
 			} catch(Exception e) {
-				LOGGER.error("Error: ", e);
+				classLogger.error("Error: ", e);
 			} finally {
 				
 				// Destroy the "test" - reset state

@@ -2518,7 +2518,7 @@ public class Utility {
 			// create and open the class
 			engine = (IStorage) Class.forName(engineClass).newInstance();
 			engine.setSmssFilePath(smssFilePath);
-			engine.connect(smssProp);
+			engine.open(smssProp);
 			
 			// set the engine in DIHelper
 			DIHelper.getInstance().setEngineProperty(engineId, engine);
