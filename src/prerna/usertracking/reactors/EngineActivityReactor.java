@@ -15,7 +15,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -23,6 +22,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.usertracking.EngineUsageUtils;
 import prerna.usertracking.EngineViewsUtils;
+import prerna.usertracking.UserTrackingStatisticsUtils;
 import prerna.util.Utility;
 
 public class EngineActivityReactor extends AbstractReactor {
@@ -30,48 +30,47 @@ public class EngineActivityReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(EngineActivityReactor.class);
 	
 	public EngineActivityReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
 		if (Utility.isUserTrackingDisabled()) {
 			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
 		}
 		
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		
-		checkDatabaseId(databaseId);
-			
-		logger.info("Getting engine activity for database: {}", databaseId);
-		
-		Map<String, Object> engineActivity = new HashMap<>();
-
-		addTotalViews(engineActivity, databaseId);
-		
-		addViewsByDate(engineActivity, databaseId);
-		
-		addTotalUsesAndUsedIn(engineActivity, databaseId);
-		
-		addUsesByDate(engineActivity, databaseId);
-		
-		return new NounMetadata(engineActivity, PixelDataType.MAP, PixelOperationType.DATABASE_ACTIVITY);
-	}
-
-	private void checkDatabaseId(String databaseId) {
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		boolean addwarning = false;
+		// TODO: account for legacy
+		if(engineId == null) {
+			engineId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
+			if(engineId != null) {
+				addwarning = true;
 			}
 		}
+		if(AbstractSecurityUtils.securityEnabled()) {
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+				throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to engine");
+			}
+		}
+			
+		logger.info("Getting engine activity for engine: {}", engineId);
+		Map<String, Object> engineActivity = new HashMap<>();
+		addTotalViews(engineActivity, engineId);
+		addViewsByDate(engineActivity, engineId);
+		addTotalUsesAndUsedIn(engineActivity, engineId);
+		addUsesByDate(engineActivity, engineId);
+		addUsabilityScore(engineActivity, engineId);
+//		addDownloads(engineActivity, engineId);
+		
+//		return new NounMetadata(engineActivity, PixelDataType.MAP, PixelOperationType.ENGINE_ACTIVITY);
+		NounMetadata noun = new NounMetadata(engineActivity, PixelDataType.MAP, PixelOperationType.ENGINE_ACTIVITY);
+		if(addwarning) {
+			noun.addAdditionalReturn(getWarning("Update reactor syntax to use engine= instead of database="));
+		}
+		return noun;
 	}
 
 	private void addTotalViews(Map<String, Object> engineActivity, String databaseId) {
@@ -123,4 +122,12 @@ public class EngineActivityReactor extends AbstractReactor {
 		engineActivity.put("usesByDate", ubd);
 	}
 	
+	private void addUsabilityScore(Map<String, Object> engineActivity, String databaseId) {
+		engineActivity.put("usabilityScore", UserTrackingStatisticsUtils.calculateScore(databaseId));
+	}
+	
+	// going to start tracking downloads later. adding it in now for front end
+	private void addDownloads(Map<String, Object> engineActivity, String databaseId) {
+		engineActivity.put("downloads", 0);
+	}
 }
