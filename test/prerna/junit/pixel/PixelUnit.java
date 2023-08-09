@@ -91,7 +91,7 @@ import prerna.util.gson.GsonUtility;
 
 public class PixelUnit {
 
-	protected static final Logger LOGGER = LogManager.getLogger(JUnit.class.getName());
+	protected static final Logger classLogger = LogManager.getLogger(JUnit.class.getName());
 
 	protected static final String BASE_DIRECTORY = new File("").getAbsolutePath();
 	protected static final String BASE_DB_DIRECTORY = Paths.get(BASE_DIRECTORY, "db").toAbsolutePath().toString();
@@ -156,7 +156,7 @@ public class PixelUnit {
 		} catch (Exception e) {
 
 			// Tests assume that this setup is correct in order to run
-			LOGGER.error("Error: ", e);
+			classLogger.error("Error: ", e);
 			assumeNoException(e);
 		}
 		checkAssumptions();
@@ -197,9 +197,9 @@ public class PixelUnit {
 			fis = new FileInputStream(log4JPropFile);
 			source = new ConfigurationSource(fis);
 			Configurator.initialize(null, source);
-			LOGGER.info("Successfully configured Log4j for JUnit suite.");
+			classLogger.info("Successfully configured Log4j for JUnit suite.");
 		} catch (IOException e) {
-			LOGGER.warn("Unable to initialize log4j for testing.", e);
+			classLogger.warn("Unable to initialize log4j for testing.", e);
 		} finally {
 			if(fis != null) {
 				try {
@@ -225,7 +225,7 @@ public class PixelUnit {
 		// Just in case, manually override USE_PYTHON to be true for testing purposes
 		// Warn if this was not the case to begin with
 		if (!Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USE_PYTHON))) {
-			LOGGER.warn("Python must be functional for local testing.");
+			classLogger.warn("Python must be functional for local testing.");
 			Properties coreProps = DIHelper.getInstance().getCoreProp();
 			coreProps.setProperty(Constants.USE_PYTHON, "true");
 			DIHelper.getInstance().setCoreProp(coreProps);
@@ -245,7 +245,7 @@ public class PixelUnit {
 
 		// Turn tracking off while testing
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.T_ON))) {
-			LOGGER.info("Setting tracking off during unit tests.");
+			classLogger.info("Setting tracking off during unit tests.");
 			Properties coreProps = DIHelper.getInstance().getCoreProp();
 			coreProps.setProperty(Constants.T_ON, "false");
 			DIHelper.getInstance().setCoreProp(coreProps);
@@ -256,7 +256,7 @@ public class PixelUnit {
 		try {
 			Files.delete(TEST_RDF_MAP);
 		} catch (IOException e) {
-			LOGGER.warn("Unable to delete " + TEST_RDF_MAP, e);
+			classLogger.warn("Unable to delete " + TEST_RDF_MAP, e);
 		}
 	}
 
@@ -287,25 +287,40 @@ public class PixelUnit {
 	}
 
 	private static void unloadDatabases() {
-
 		IDatabase formBuilder = Utility.getDatabase(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
 		if (formBuilder != null) {
-			formBuilder.close();
+			try {
+				formBuilder.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 
 		IDatabase localMaster = Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
 		if (localMaster != null) {
-			localMaster.close();
+			try {
+				localMaster.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 
 		IDatabase security = Utility.getDatabase(Constants.SECURITY_DB);
 		if (security != null) {
-			security.close();
+			try {
+				security.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 
 		IDatabase themes = Utility.getDatabase(Constants.THEMING_DB);
 		if (themes != null) {
-			themes.close();
+			try {
+				themes.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 
 		DIHelper.getInstance().removeLocalProperty(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
@@ -344,7 +359,7 @@ public class PixelUnit {
 			if (importNames.contains(alias) & metamodelNames.contains(alias)) {
 				loadTestDatabase(alias);
 			} else {
-				LOGGER.warn("Cannot load " + alias + ", missing the corresponding import pixel or metamodel file.");
+				classLogger.warn("Cannot load " + alias + ", missing the corresponding import pixel or metamodel file.");
 			}
 		}
 	}
@@ -409,7 +424,7 @@ public class PixelUnit {
 				try {
 					Files.delete(xmlFile);
 				} catch (IOException e) {
-					LOGGER.warn("Unable to delete " + xmlFile, e);
+					classLogger.warn("Unable to delete " + xmlFile, e);
 				}
 			}
 
@@ -417,7 +432,7 @@ public class PixelUnit {
 			try {
 				deleteApp(appId);
 			} catch (IOException e) {
-				LOGGER.warn("Unable to app " + appId, e);
+				classLogger.warn("Unable to app " + appId, e);
 			}
 		}
 	}
@@ -477,9 +492,9 @@ public class PixelUnit {
 		pixel = formatString(pixel);
 		long start = System.currentTimeMillis();
 		PixelRunner returnData = new Insight().runPixel(pixel);
-		LOGGER.info(GSON.toJson(returnData.getResults()));
+		classLogger.info(GSON.toJson(returnData.getResults()));
 		long end = System.currentTimeMillis();
-		LOGGER.info("Execution time : " + (end - start) + " ms");
+		classLogger.info("Execution time : " + (end - start) + " ms");
 		return returnData;
 	}
 
@@ -493,7 +508,7 @@ public class PixelUnit {
 		try {
 			SchedulerUtil.shutdownScheduler(true);
 		} catch (SchedulerException e) {
-			LOGGER.warn("Unable to shutdown scheduler.", e);
+			classLogger.warn("Unable to shutdown scheduler.", e);
 		}
 
 		// Close r
@@ -554,7 +569,7 @@ public class PixelUnit {
 			// Assume these are the only two differences
 			assumeThat(valuesChanged.size(), is(equalTo(2)));
 		} catch (IOException e) {
-			LOGGER.error("Error: ", e);
+			classLogger.error("Error: ", e);
 			assumeNoException(e);
 		}
 
@@ -568,7 +583,7 @@ public class PixelUnit {
 						.readFileToString(Paths.get(TEST_DATA_DIRECTORY, alias + METAMODEL_EXTENSION).toFile());
 				testPixel(pixel, expectedJson, false, new ArrayList<String>(), true, true, false, true);
 			} catch (IOException e) {
-				LOGGER.error("Error: ", e);
+				classLogger.error("Error: ", e);
 				assumeNoException(e);
 			}
 		}
@@ -615,7 +630,7 @@ public class PixelUnit {
 		InsightStore.getInstance().put(insight);
 
 		// Wait for Python to load
-		LOGGER.info("Waiting for python to initialize...");
+		classLogger.info("Waiting for python to initialize...");
 		long start = System.currentTimeMillis();
 		boolean timeout = false;
 		while (!jep.isReady() && !timeout) {
@@ -624,7 +639,7 @@ public class PixelUnit {
 
 		// Assume that Python did not timeout for tests to run
 		assumeThat(timeout, is(not(equalTo(true))));
-		LOGGER.info("Python has initialized.");
+		classLogger.info("Python has initialized.");
 
 	}
 
@@ -662,20 +677,20 @@ public class PixelUnit {
 						databaseTester.setSetUpOperation(DatabaseOperation.CLEAN_INSERT);
 						databaseTester.setDataSet(dataSet);
 						databaseTester.onSetup();
-						LOGGER.info("Cleaned: " + alias);
+						classLogger.info("Cleaned: " + alias);
 					} catch (Exception e) {
-						LOGGER.warn("Cannot clean database with the alias " + alias + ", an exception has occurred.",
+						classLogger.warn("Cannot clean database with the alias " + alias + ", an exception has occurred.",
 								e);
 						testDatabasesAreClean = false;
 					} finally {
 						rdbms.openDB(null);
 					}
 				} else {
-					LOGGER.warn("Cannot clean database with the alias " + alias + ", database is not an RDBMS.");
+					classLogger.warn("Cannot clean database with the alias " + alias + ", database is not an RDBMS.");
 					testDatabasesAreClean = false;
 				}
 			} else {
-				LOGGER.warn("Cannot clean database with the alias " + alias + ", database not found.");
+				classLogger.warn("Cannot clean database with the alias " + alias + ", database not found.");
 				testDatabasesAreClean = false;
 			}
 		}
@@ -737,7 +752,7 @@ public class PixelUnit {
 		} catch (AssumptionViolatedException | AssertionError e) {
 			throw e;
 		} catch (IOException e) {
-			LOGGER.error("Error: ", e);
+			classLogger.error("Error: ", e);
 			String message = "An I/O exception occured while running this test.";
 			if (assume) {
 				throw new AssumptionViolatedException(message, e);
@@ -745,7 +760,7 @@ public class PixelUnit {
 				throw new AssertionError(message, e);
 			}
 		} catch (RuntimeException e) {
-			LOGGER.error("Error: ", e);
+			classLogger.error("Error: ", e);
 
 			System.out.println("####ERRORED IN TEST PIXEL: ");
 
@@ -774,7 +789,7 @@ public class PixelUnit {
 					throw new AssertionError(message, e);
 				}
 			} catch (IOException e1) {
-				LOGGER.warn("Failed to get the actual JSON.", e1);
+				classLogger.warn("Failed to get the actual JSON.", e1);
 			}
 
 			// Otherwise just throw something generic
@@ -1047,9 +1062,9 @@ public class PixelUnit {
 				Object result = results.get(ddiffCommand);
 
 				// Make sure there is no difference, ignoring order
-				LOGGER.debug("EXPECTED: " + expectedJson);
-				LOGGER.debug("ACTUAL:   " + actualJson);
-				LOGGER.info("DIFF:     " + result);
+				classLogger.debug("EXPECTED: " + expectedJson);
+				classLogger.debug("ACTUAL:   " + actualJson);
+				classLogger.info("DIFF:     " + result);
 
 				return (Map<String, Object>) result;
 			} finally {
@@ -1063,7 +1078,7 @@ public class PixelUnit {
 			long start = System.currentTimeMillis();
 			PixelRunner returnData = insight.runPixel(pixel);		
 			long end = System.currentTimeMillis();
-			LOGGER.info("Execution time : " + (end - start) + " ms");
+			classLogger.info("Execution time : " + (end - start) + " ms");
 			return returnData;
 		}
 
@@ -1116,7 +1131,7 @@ public class PixelUnit {
 			//   insightDeepDiff.setPy(jep);
 			// InsightStore.getInstance().put(insight);
 			// Wait for Python to load
-			LOGGER.info("Waiting for python to initialize...");
+			classLogger.info("Waiting for python to initialize...");
 			long start = System.currentTimeMillis();
 			boolean timeout = false;
 			while (!jep.isReady() && !timeout) {
@@ -1137,7 +1152,7 @@ public class PixelUnit {
 					jepMonitor.wait(30000);
 					response = jep.response;
 				} catch (InterruptedException e) {
-					LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
+					classLogger.error("The following Python script was interrupted: " + String.join("\n", script), e);
 				}
 			}
 			return response;
@@ -1172,7 +1187,7 @@ public class PixelUnit {
 		//				jepMonitor.wait(30000);
 		//				response = jep.response;
 		//			} catch (InterruptedException e) {
-		//				LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
+		//				classLogger.error("The following Python script was interrupted: " + String.join("\n", script), e);
 		//			}
 		//		}
 		//		return response;

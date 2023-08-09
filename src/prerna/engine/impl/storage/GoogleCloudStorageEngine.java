@@ -19,8 +19,8 @@ public class GoogleCloudStorageEngine extends AbstractRCloneStorageEngine {
 	private String REGION = null;
 	private String GCP_SERVICE_ACCOUNT_FILE = null;
 	
-	public void connect(Properties smssProp) throws Exception {
-		super.connect(smssProp);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 		
 		// set this to be the db engine folder
 		this.REGION = smssProp.getProperty(GCS_REGION);

@@ -1,5 +1,10 @@
 package prerna.sablecc2.reactor.database;
 
+import java.io.IOException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -8,10 +13,13 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ReloadDatabaseReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(ReloadDatabaseReactor.class);
+	
 	public ReloadDatabaseReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
 	}
@@ -32,7 +40,11 @@ public class ReloadDatabaseReactor extends AbstractReactor {
 		
 		IDatabase database = Utility.getDatabase(databaseId);
 		String smssFilePath = database.getSmssFilePath();
-		database.close();
+		try {
+			database.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		database.setSmssProp(null);
 		try {
 			database.openDB(smssFilePath);

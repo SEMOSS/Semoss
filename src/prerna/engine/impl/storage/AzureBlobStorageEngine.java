@@ -49,8 +49,8 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 
 	private boolean generateDynamicSAS = true;
 	
-	public void connect(Properties smssProp) throws Exception {
-		super.connect(smssProp);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 		
 		this.accountName = smssProp.getProperty(AZ_ACCOUNT_NAME);
 		this.primaryKey = smssProp.getProperty(AZ_PRIMARY_KEY);
