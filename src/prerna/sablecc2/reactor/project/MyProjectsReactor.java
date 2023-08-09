@@ -26,7 +26,7 @@ public class MyProjectsReactor extends AbstractReactor {
 	public MyProjectsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
 				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
-				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey() };
+				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.ONLY_PORTALS.getKey() };
 	}
 
 	@Override
@@ -35,16 +35,17 @@ public class MyProjectsReactor extends AbstractReactor {
 		// sort by name, date created, views, upvotes, trending
 		
 		organizeKeys();
-		String limit = this.keyValue.get(this.keysToGet[0]);
-		String offset = this.keyValue.get(this.keysToGet[1]);
-		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
-		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
+		String limit = this.keyValue.get( ReactorKeysEnum.LIMIT.getKey());
+		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
+		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())+"");
+		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())+"");
+		Boolean portalsOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey())+"");
 		List<Integer> permissionFilters = getPermissionFilters();
 		List<Map<String, Object>> projectInfo = new ArrayList<>();
-
+		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			Map<String, Object> projectMetadataFilter = getMetaMap();
-			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, 
+			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, portalsOnly,
 					projectMetadataFilter, permissionFilters, limit, offset);
 			if(!favoritesOnly) {
 				this.insight.getUser().setProjects(projectInfo);
