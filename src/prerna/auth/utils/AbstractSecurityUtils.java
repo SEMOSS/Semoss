@@ -1094,7 +1094,7 @@ public abstract class AbstractSecurityUtils {
 			if(allowIfExistsTable) {
 				securityDb.removeData(queryUtil.dropTableIfExists("DATABASEACCESSREQUEST"));
 			} else {
-				if(!queryUtil.tableExists(conn, "DATABASEACCESSREQUEST ", database, schema)) {
+				if(queryUtil.tableExists(conn, "DATABASEACCESSREQUEST ", database, schema)) {
 					securityDb.removeData(queryUtil.dropTable("DATABASEACCESSREQUEST"));
 				}
 			}
