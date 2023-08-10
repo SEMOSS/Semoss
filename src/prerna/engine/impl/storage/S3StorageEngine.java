@@ -3,6 +3,7 @@ package prerna.engine.impl.storage;
 import java.io.IOException;
 import java.util.Properties;
 
+import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Utility;
 
 public class S3StorageEngine extends AbstractRCloneStorageEngine {
@@ -59,8 +60,8 @@ public class S3StorageEngine extends AbstractRCloneStorageEngine {
 	}
 	
 	@Override
-	public STORAGE_TYPE getStorageType() {
-		return STORAGE_TYPE.AMAZON_S3;
+	public StorageTypeEnum getStorageType() {
+		return StorageTypeEnum.AMAZON_S3;
 	}
 	
 }

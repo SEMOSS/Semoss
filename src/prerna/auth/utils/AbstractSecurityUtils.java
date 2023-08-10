@@ -1600,13 +1600,13 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Does this database name already exist
+	 * Does this engine name already exist
 	 * @param user
-	 * @param databaseName
+	 * @param engineName
 	 * @return
 	 */
-	public static boolean userContainsDatabaseName(User user, String databaseName) {
-		if(ignoreDatabase(databaseName)) {
+	public static boolean userContainsEngineName(User user, String engineName) {
+		if(ignoreDatabase(engineName)) {
 			// dont add local master or security db to security db
 			return true;
 		}
@@ -1620,7 +1620,7 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", databaseName));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", engineName));
 		List<Integer> permissionValues = new Vector<Integer>(2);
 		permissionValues.add(new Integer(1));
 		permissionValues.add(new Integer(2));
@@ -1643,8 +1643,8 @@ public abstract class AbstractSecurityUtils {
 		return false;
 	}
 	
-	public static boolean containsDatabaseName(String databaseName) {
-		if(ignoreDatabase(databaseName)) {
+	public static boolean containsEngineName(String engineName) {
+		if(ignoreDatabase(engineName)) {
 			// dont add local master or security db to security db
 			return true;
 		}
@@ -1653,7 +1653,7 @@ public abstract class AbstractSecurityUtils {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", databaseName));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", engineName));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
