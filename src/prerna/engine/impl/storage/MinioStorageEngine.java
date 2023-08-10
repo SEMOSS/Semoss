@@ -3,6 +3,7 @@ package prerna.engine.impl.storage;
 import java.io.IOException;
 import java.util.Properties;
 
+import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Utility;
 
 public class MinioStorageEngine extends AbstractRCloneStorageEngine {
@@ -53,8 +54,8 @@ public class MinioStorageEngine extends AbstractRCloneStorageEngine {
 	}
 
 	@Override
-	public STORAGE_TYPE getStorageType() {
-		return STORAGE_TYPE.MINIO;
+	public StorageTypeEnum getStorageType() {
+		return StorageTypeEnum.MINIO;
 	}
 
 	
