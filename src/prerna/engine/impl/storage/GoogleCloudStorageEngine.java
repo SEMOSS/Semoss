@@ -3,6 +3,7 @@ package prerna.engine.impl.storage;
 import java.io.IOException;
 import java.util.Properties;
 
+import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Utility;
 
 public class GoogleCloudStorageEngine extends AbstractRCloneStorageEngine {
@@ -39,8 +40,8 @@ public class GoogleCloudStorageEngine extends AbstractRCloneStorageEngine {
 	}
 	
 	@Override
-	public STORAGE_TYPE getStorageType() {
-		return STORAGE_TYPE.GOOGLE_CLOUD_STORAGE;
+	public StorageTypeEnum getStorageType() {
+		return StorageTypeEnum.GOOGLE_CLOUD_STORAGE;
 	}
 
 }
