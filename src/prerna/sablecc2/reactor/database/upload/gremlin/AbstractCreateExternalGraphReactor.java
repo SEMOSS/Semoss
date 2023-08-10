@@ -131,7 +131,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			}
 		}
 
-		Map<String, Object> retMap = UploadUtilities.getDatabaseReturnData(this.insight.getUser(), newDatabaseId);
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), newDatabaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	

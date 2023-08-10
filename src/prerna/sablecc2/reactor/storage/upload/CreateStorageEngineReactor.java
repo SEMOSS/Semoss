@@ -8,6 +8,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IStorage;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.sablecc2.om.GenRowStruct;
@@ -17,6 +18,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.upload.UploadUtilities;
 
 public class CreateStorageEngineReactor extends AbstractReactor {
 
@@ -78,14 +80,18 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			String storageClass = storageType.getStorageClass();
 			storage = (IStorage) Class.forName(storageClass).newInstance();
 			
+			UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
+			
 			
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
 //		UploadUtilities.updateDIHelper(storageId, storageName, storageId, smssFile);
 		
-		
-		return null;
+		ClusterUtil.reactorPushDatabase(storageId);
+
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
+		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	
 	/**
