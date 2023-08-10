@@ -1,8 +1,13 @@
 package prerna.sablecc2.reactor.storage.upload;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -18,9 +23,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.upload.UploadUtilities;
 
 public class CreateStorageEngineReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(CreateStorageEngineReactor.class);
 
 	public CreateStorageEngineReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_DETAILS.getKey()};
@@ -74,24 +83,56 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		}
 		
 		String storageId = UUID.randomUUID().toString();
-		String smssFile = null;
+		File tempSmss = null;
+		File smssFile = null;
 		IStorage storage = null;
 		try {
 			String storageClass = storageType.getStorageClass();
 			storage = (IStorage) Class.forName(storageClass).newInstance();
+			tempSmss = UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
 			
-			UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
+			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
+			DIHelper.getInstance().setEngineProperty(storageId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			storage.open(tempSmss.getAbsolutePath());			
 			
-			
+			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+			FileUtils.copyFile(tempSmss, smssFile);
+			storage.setSmssFilePath(smssFile.getAbsolutePath());
+			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
 		} catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
+			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile);
 		}
-//		UploadUtilities.updateDIHelper(storageId, storageName, storageId, smssFile);
 		
 		ClusterUtil.reactorPushDatabase(storageId);
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+	}
+	
+	/**
+	 * Delete all the corresponding files that are generated from the upload the failed
+	 */
+	private void cleanUpCreateNewError(IStorage storage, String storageId, File tempSmss, File smssFile) {
+		try {
+			// close the DB so we can delete it
+			if (storage != null) {
+				storage.close();
+			}
+
+			// delete the .temp file
+			if (tempSmss != null && tempSmss.exists()) {
+				FileUtils.forceDelete(tempSmss);
+			}
+			// delete the .smss file
+			if (smssFile != null && smssFile.exists()) {
+				FileUtils.forceDelete(smssFile);
+			}
+			
+			UploadUtilities.removeEngineFromDIHelper(storageId);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 	}
 	
 	/**

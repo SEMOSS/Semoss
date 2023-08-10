@@ -34,7 +34,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.InsightAdministrator;
@@ -104,16 +104,32 @@ public class UploadUtilities {
 	
 	/**
 	 * Used to update DIHelper
-	 * Should only be used when making new database
-	 * @param newDatabaseName
-	 * @param database
+	 * Should only be used when making new engine
+	 * @param newEngineName
+	 * @param engine
 	 * @param smssFile
 	 */
-	public static void updateDIHelper(String newDatabaseId, String newDatabaseName, IDatabase database, File smssFile) {
-		DIHelper.getInstance().setEngineProperty(newDatabaseId + "_" + Constants.STORE, smssFile.getAbsolutePath());
-		DIHelper.getInstance().setEngineProperty(newDatabaseId, database);
+	public static void updateDIHelper(String newEngineId, String newEngineName, IEngine engine, File smssFile) {
+		DIHelper.getInstance().setEngineProperty(newEngineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		DIHelper.getInstance().setEngineProperty(newEngineId, engine);
 		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		engineIds = engineIds + ";" + newDatabaseId;
+		engineIds = engineIds + ";" + newEngineId;
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+	}
+	
+	/**
+	 * Used to update DIHelper
+	 * Should only be used when making new engine
+	 * @param newEngineName
+	 * @param engine
+	 * @param smssFile
+	 */
+	public static void removeEngineFromDIHelper(String erroredEngineId) {
+		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.STORE);
+		DIHelper.getInstance().removeEngineProperty(erroredEngineId);
+		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+		engineIds = engineIds.replace(";"+erroredEngineId+";", ";");
+		engineIds = engineIds.replace(";"+erroredEngineId, "");
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
 	}
 	
