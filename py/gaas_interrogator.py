@@ -29,12 +29,13 @@ class Interrogator():
     # try to see if the serialized model is available
     self.model_folder = self.get_physical_folder(repo_id=model_path)
     #print(self.model_folder)
-    self.cached_model_path = f"{self.model_folder}/ser"
-    if os.path.exists(self.cached_model_path):
-      # change to the model path
-      self.model_name = self.cached_model_path
-      #print(f"New load path {self.model_name}")
-      self.serialized = True
+    if self.model_folder is not None:
+      self.cached_model_path = f"{self.model_folder}/ser"
+      if os.path.exists(self.cached_model_path):
+        # change to the model path
+        self.model_name = self.cached_model_path
+        #print(f"New load path {self.model_name}")
+        self.serialized = True
     
     if autoload:
       print("loading tokenizer.. ", end="")
@@ -155,10 +156,13 @@ class Interrogator():
     
   def get_physical_folder(self, repo_id=None, snapshot='main'):
     config_file =  hub_api.try_to_load_from_cache(repo_id=repo_id, revision=snapshot, filename='config.json')
-    path = Path(hub_api.try_to_load_from_cache(repo_id=self.model_name, revision=self.snapshot, filename='config.json'))
-    self.model_folder = path.parent.absolute()
-    if self.model_folder is not None and os.path.exists(self.model_folder):
-      return self.model_folder
+    if config_file is not None:
+      path = Path(hub_api.try_to_load_from_cache(repo_id=self.model_name, revision=self.snapshot, filename='config.json'))
+      self.model_folder = path.parent.absolute()
+      if self.model_folder is not None and os.path.exists(self.model_folder):
+        return self.model_folder
+      else:
+        return None
     else:
       return None
       
