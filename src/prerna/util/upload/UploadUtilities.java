@@ -397,7 +397,7 @@ public class UploadUtilities {
 //			} else {
 				dbClassName = RDBMSNativeEngine.class.getName();
 //			}
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 
 			// write the rdbms type
 			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
@@ -517,7 +517,7 @@ public class UploadUtilities {
 			File newFile = new File(dbTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
 
 			// tinker-specific properties
 			// neo4j does not have an extension
@@ -590,7 +590,7 @@ public class UploadUtilities {
 			bufferedWriter = new BufferedWriter(writer);
 
 			String dbClassName = BigDataEngine.class.getName();
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			// get additional RDF default properties
 			String defaultDBPropName = "db" + DIR_SEPARATOR + "Default" + DIR_SEPARATOR + "Default.properties";
 			String jnlName = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + databaseName + ".jnl";
@@ -667,7 +667,7 @@ public class UploadUtilities {
 			File newFile = new File(dbTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, JanusEngine.class.getName(), newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, JanusEngine.class.getName(), newLine, tab);
 
 			// janus conf file location
 			// we will want to parameterize this
@@ -749,7 +749,7 @@ public class UploadUtilities {
 			File newFile = new File(dbTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
 			
 			// tinker file location
 			// we will want to parameterize this
@@ -833,7 +833,7 @@ public class UploadUtilities {
 			File newFile = new File(dbTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
 			
 			// host + port
 			if(host.contains("\\")) {
@@ -912,7 +912,7 @@ public class UploadUtilities {
 			File newFile = new File(dbTempNeo4jLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
 			// neo4j external properties
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionStringKey + newLine);
 			bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
@@ -979,7 +979,7 @@ public class UploadUtilities {
 			File newFile = new File(dbTempNeo4jLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
 			bufferedWriter.write(Constants.NEO4J_FILE + tab + filePath + newLine);
 			Gson gson = new GsonBuilder().create();
 			if (useLabel) {
@@ -1049,7 +1049,7 @@ public class UploadUtilities {
 		try {
 			writer = new FileWriter(dbTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			// separate for connection details
 			bufferedWriter.write(newLine);
 			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
@@ -1140,7 +1140,7 @@ public class UploadUtilities {
 			bufferedWriter = new BufferedWriter(writer);
 			
 			String engineClassName = RNativeEngine.class.getName();
-			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, engineClassName, newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, engineClassName, newLine, tab);
 			String dataFile = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + fileName;
 			bufferedWriter.write(AbstractDatabase.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
 			// stringify maps
@@ -1187,6 +1187,111 @@ public class UploadUtilities {
 	}
 	
 	/**
+	 * Get the storage temporary smss location
+	 * 
+	 * @param storageId
+	 * @param storageName
+	 * @return
+	 */
+	private static String getStorageTempSmssLoc(String storageId, String storageName) {
+		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String dbTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(storageName, storageId) + ".temp";
+		return dbTempSmssLoc;
+	}
+	
+	/**
+	 * Get the model temporary smss location
+	 * 
+	 * @param modelId
+	 * @param modelName
+	 * @return
+	 */
+	private static String getModelTempSmssLoc(String modelId, String modelName) {
+		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String dbTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(modelName, modelId) + ".temp";
+		return dbTempSmssLoc;
+	}
+	
+	/**
+	 * Create a temporary smss file for storage engine
+	 * @param storageId
+	 * @param storageName
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryStorageSmss(String storageId, String storageName, String storageClassName, Map<String, String> properties) throws IOException {
+		String storageTempSmssLoc = getStorageTempSmssLoc(storageId, storageName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File storageTempSmss = new File(storageTempSmssLoc);
+		if (storageTempSmss.exists()) {
+			storageTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+
+		FileReader fileRead = null;
+		BufferedReader bufferedReader = null;
+
+		try {
+			writer = new FileWriter(storageTempSmss);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultEngineSettings(bufferedWriter, storageId, storageName, storageClassName, newLine, tab);
+			bufferedWriter.write(newLine);
+			
+			for(String key : properties.keySet()) {
+				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key));
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Could not generate temporary smss file for storage");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+				if (fileRead != null) {
+					fileRead.close();
+				}
+				if (bufferedReader != null) {
+					bufferedReader.close();
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
+		return storageTempSmss;
+	}
+	
+	/**
+	 * 
+	 * @param bufferedWriter
+	 * @param engineId
+	 * @param engineName
+	 * @param className
+	 * @param newLine
+	 * @param tab
+	 * @throws IOException
+	 */
+	private static void writeDefaultEngineSettings(BufferedWriter bufferedWriter, String engineId, String engineName, String className, final String newLine, final String tab) throws IOException {
+		bufferedWriter.write("#Base Properties" +  newLine);
+		bufferedWriter.write(Constants.ENGINE + tab + engineId + newLine);
+		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + engineName + newLine);
+		bufferedWriter.write(Constants.ENGINE_TYPE + tab + className + newLine);
+	}
+	
+	/**
 	 * Writes the shared properties across majority of databases. This includes:
 	 * 1) database Name
 	 * 2) database Type
@@ -1195,27 +1300,19 @@ public class UploadUtilities {
 	 * @param bufferedWriter
 	 * @param databaseName
 	 * @param owlFile
-	 * @param dbClassName
+	 * @param className
 	 * @param newLine
 	 * @param tab
 	 * @throws IOException
 	 */
-	private static void writeDefaultSettings(BufferedWriter bufferedWriter, String databaseId, String databaseName, File owlFile, String dbClassName, final String newLine, final String tab) throws IOException {
-		bufferedWriter.write("#Base Properties" +  newLine);
-		bufferedWriter.write(Constants.ENGINE + tab + databaseId + newLine);
-		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + databaseName + newLine);
-		bufferedWriter.write(Constants.ENGINE_TYPE + tab + dbClassName + newLine);
-		// write insights rdbms
-		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
-		if(rdbmsTypeStr == null) {
-			// default will be h2
-			rdbmsTypeStr = "H2_DB";
-		}
+	private static void writeDefaultDatabaseSettings(BufferedWriter bufferedWriter, String databaseId, String databaseName, File owlFile, String className, final String newLine, final String tab) throws IOException {
+		writeDefaultEngineSettings(bufferedWriter, databaseId, databaseName, className, newLine, tab);
 		// write owl
 		String paramOwlLoc = getRelativeOwlPath(owlFile).replaceFirst(SmssUtilities.getUniqueName(databaseName, databaseId), SmssUtilities.ENGINE_REPLACEMENT);
 		bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
 	}
 	
+
 	
 	
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -2054,12 +2151,12 @@ public class UploadUtilities {
 	}
 	
 	/**
-	 * Return map for uploading a new database
+	 * Return map for uploading a new engine
 	 * @param databaseId
 	 * @return
 	 */
-	public static Map<String, Object> getDatabaseReturnData(User user, String databaseId) {
-		List<Map<String, Object>> baseInfo = SecurityEngineUtils.getUserEngineList(user, databaseId, null);
+	public static Map<String, Object> getEngineReturnData(User user, String engineId) {
+		List<Map<String, Object>> baseInfo = SecurityEngineUtils.getUserEngineList(user, engineId, null);
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}
