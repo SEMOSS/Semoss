@@ -23,6 +23,7 @@ import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
+import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Constants;
 
 public class SFTPStorageEngine extends AbstractStorageEngine {
@@ -38,8 +39,8 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	private String password = null;
 
 	@Override
-	public STORAGE_TYPE getStorageType() {
-		return STORAGE_TYPE.SFTP;
+	public StorageTypeEnum getStorageType() {
+		return StorageTypeEnum.SFTP;
 	}
 
 	@Override
