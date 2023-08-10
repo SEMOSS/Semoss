@@ -9,9 +9,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IStorage;
@@ -70,7 +72,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		organizeKeys();
 		
 		String storageName = getStorageName();
-		Map<String, String> storageDetails = getSmssDetails();
+		Map<String, String> storageDetails = getStorageDetails();
 		String storageTypeStr = storageDetails.get(IStorage.STORAGE_NAME);
 		if(storageTypeStr == null || (storageTypeStr=storageTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the storage type");
@@ -99,6 +101,15 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			FileUtils.copyFile(tempSmss, smssFile);
 			storage.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
+			SecurityEngineUtils.addEngine(storageId, !AbstractSecurityUtils.securityEnabled(), user);
+			
+			// even if no security, just add user as database owner
+			if (user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for (AuthProvider ap : logins) {
+					SecurityEngineUtils.addDatabaseOwner(storageId, user.getAccessToken(ap).getId());
+				}
+			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile);
@@ -160,8 +171,8 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private Map<String, String> getSmssDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+	private Map<String, String> getStorageDetails() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if(mapNouns != null && !mapNouns.isEmpty()) {
