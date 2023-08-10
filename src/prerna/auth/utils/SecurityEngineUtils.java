@@ -226,7 +226,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, discoverable);
 			ps.setString(parameterIndex++, engineId);
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -258,7 +260,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, engineSubType);
 			ps.setString(parameterIndex++, engineId);
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -291,7 +295,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, databaseId);
 			ps.setBoolean(parameterIndex++, true);
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -1302,22 +1308,24 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setBoolean(parameterIndex++, true);
 				ps.setString(parameterIndex++, databaseId);
 				ps.execute();
-				securityDb.commit();
+				if(!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(ps != null) {
 					try {
 						ps.close();
-						if(securityDb.isConnectionPooling()) {
-							try {
-								ps.getConnection().close();
-							} catch (SQLException e) {
-								logger.error(Constants.STACKTRACE, e);
-							}
-						}
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
+					}
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
