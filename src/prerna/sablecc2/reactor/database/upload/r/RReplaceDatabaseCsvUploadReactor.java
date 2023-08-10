@@ -160,7 +160,7 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 		// TODO:
 		ClusterUtil.reactorPushDatabase(databaseId);
 
-		Map<String, Object> retMap = UploadUtilities.getDatabaseReturnData(this.insight.getUser(), databaseId);
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
