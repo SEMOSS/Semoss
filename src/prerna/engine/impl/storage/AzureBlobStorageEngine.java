@@ -21,6 +21,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 
+import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -160,8 +161,8 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 
 
 	@Override
-	public STORAGE_TYPE getStorageType() {
-		return STORAGE_TYPE.MICROSOFT_AZURE_BLOB_STORAGE;
+	public StorageTypeEnum getStorageType() {
+		return StorageTypeEnum.MICROSOFT_AZURE_BLOB_STORAGE;
 	}
 	
 	/*

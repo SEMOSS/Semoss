@@ -9,21 +9,14 @@ public interface IStorage extends IEngine {
 
 	String CATALOG_TYPE = "STORAGE";
 
-	enum STORAGE_TYPE
-	{
-		AMAZON_S3,
-		GOOGLE_CLOUD_STORAGE,
-		GOOGLE_DRIVE,
-		MICROSOFT_AZURE_BLOB_STORAGE,
-		MINIO,
-		SFTP,
-	}
+	// this is what the FE sends for the type of storage we are creating
+	String STORAGE_NAME = "STORAGE_NAME";
 	
 	/**
 	 * 
 	 * @return
 	 */
-	STORAGE_TYPE getStorageType();
+	StorageTypeEnum getStorageType();
 	
 	/**
 	 * 
