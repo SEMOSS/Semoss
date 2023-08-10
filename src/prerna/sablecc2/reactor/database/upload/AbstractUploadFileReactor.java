@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
@@ -23,12 +24,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.upload.UploadInputUtility;
 import prerna.util.upload.UploadUtilities;
 
 public abstract class AbstractUploadFileReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(AbstractUploadFileReactor.class);
+	
 	/**
 	 * Every reactor that extends this needs to define its own inputs
 	 * However, every one needs to have the following in the keysToGet array:
@@ -129,7 +133,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				}
 				this.logger.info("Complete");
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				this.error = true;
 				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
@@ -182,7 +186,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				
 				this.logger.info("Complete");
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				this.error = true;
 				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
@@ -224,7 +228,6 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 	 * Delete all the corresponding files that are generated from the upload the failed
 	 */
 	private void cleanUpCreateNewError() {
-		// TODO:clean up DIHelper!
 		try {
 			// close the DB so we can delete it
 			if (this.database != null) {
@@ -249,8 +252,10 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				}
 				FileUtils.forceDelete(this.databaseFolder);
 			}
+			
+			UploadUtilities.removeEngineFromDIHelper(this.databaseId);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
