@@ -461,7 +461,7 @@ def chat_guanaco(context=None, question = None, client=None, max_new_tokens=200,
         finish_reason = f"... <Unable to complete request, please try by increasing token size from {max_new_tokens}>"
         final_output.update({"meta": finish_reason})
   #print(client.generated_stream.finish_reason)
-  print(f"{text}")
+  # print(f"{text}")
   final_output.update({"response": f"{text}"})
   return final_output
 
