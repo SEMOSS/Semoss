@@ -127,6 +127,37 @@ public class UploadUtilities {
 		SecurityEngineUtils.addEngine(databaseId, !AbstractSecurityUtils.securityEnabled(), user);
 	}
 
+	/**
+	 * 
+	 * @param user
+	 * @param engineName
+	 * @param engineId
+	 * @throws IOException
+	 */
+	public static void validateEngine(User user, String engineName, String engineId) throws IOException {
+		if(engineName == null || engineName.isEmpty()) {
+			throw new IllegalArgumentException("Need to provide a name for the database");
+		}
+		// need to make sure the database is unique
+		boolean containsDatabase = false;
+		if(AbstractSecurityUtils.securityEnabled()) {
+			containsDatabase = AbstractSecurityUtils.userContainsEngineName(user, engineName);
+		} else {
+			containsDatabase = AbstractSecurityUtils.containsEngineName(engineName);
+		}
+		if(containsDatabase) {
+			throw new IOException("Engine name already exists.  Please provide a unique engine name");
+		}
+		
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		// need to make sure app folder doesn't already exist
+		String databaseLocation = baseFolder + ENGINE_DIRECTORY +  SmssUtilities.getUniqueName(engineName, engineId);
+		File databaseFolder = new File(databaseLocation);
+		if(databaseFolder.exists()) {
+			throw new IOException("Engine folder already contains a database directory with the same name. "
+					+ "Please delete the existing database folder or provide a unique database name");
+		}
+	}
 	
 	/**
 	 * Validate the database name
@@ -143,9 +174,9 @@ public class UploadUtilities {
 		// need to make sure the database is unique
 		boolean containsDatabase = false;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			containsDatabase = AbstractSecurityUtils.userContainsDatabaseName(user, databaseName);
+			containsDatabase = AbstractSecurityUtils.userContainsEngineName(user, databaseName);
 		} else {
-			containsDatabase = AbstractSecurityUtils.containsDatabaseName(databaseName);
+			containsDatabase = AbstractSecurityUtils.containsEngineName(databaseName);
 		}
 		if(containsDatabase) {
 			throw new IOException("Database name already exists.  Please provide a unique database name");
