@@ -9,6 +9,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import prerna.om.Insight;
+import prerna.util.Utility;
 
 public class OpenAiEngine extends AbstractModelEngine {
 		
@@ -25,17 +26,14 @@ public class OpenAiEngine extends AbstractModelEngine {
 		
 		
 		if(parameters != null) {
-			String roomId = (String) parameters.get("ROOM_ID");
-			parameters.remove("ROOM_ID");
-			String history = null;
-			if (keepConversationHistory){
-				if (roomId != null && !roomId.isEmpty()) {
-					history = getConversationHistory(roomId, insight.getUser().getPrimaryLoginToken().getId());
-				}
+			if (Utility.isModelInferenceLogsEnabled() || parameters.containsKey("ROOM_ID")) {
+				String roomId = (String) parameters.get("ROOM_ID");
+				parameters.remove("ROOM_ID");
+				String history = getConversationHistory(roomId);
+				if(history != null) //could still be null if its the first question in the convo
+					callMaker.append(",").append("history=").append(history);
 			}
-			if(history != null) //could still be null if its the first question in the convo
-				callMaker.append(",").append("history=").append(history);
-			
+
 			Iterator <String> paramKeys = parameters.keySet().iterator();
 			while(paramKeys.hasNext()) {
 				String key = paramKeys.next();
