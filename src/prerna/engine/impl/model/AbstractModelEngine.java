@@ -4,14 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -23,9 +20,9 @@ import prerna.auth.User;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -62,6 +59,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	String workingDirecotry;
 	String workingDirectoryBasePath;
 	File cacheFolder;
+	
+	private Map<String, ArrayList<Map<String, Object>>> chatHistory = new Hashtable<>();
 	
 	@Override
 	public void loadModel(String modelSmssFilePath) {
@@ -142,96 +141,49 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	@Override
 	public String ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		//Map<String, String> output = new HashMap<String, String>();
+		//TODO turn into threads
 		if(!this.socketClient.isConnected())
 			this.startServer();
 		
-		// has to be set to null until we figure out NativePyEngineWorker getting insight
-		String sessionId = null;
-		if (insight.getVarStore().containsKey(JobReactor.SESSION_KEY)) {
-			sessionId = (String) insight.getVarStore().get(JobReactor.SESSION_KEY).getValue();
-		}
-		// assumption, if project level, then they will be inferencing through a saved insight
-		String projectId = insight.getProjectId();
-		User user = insight.getUser();
-		String userId = user.getPrimaryLoginToken().getId();
 		String response;
-		String roomId = (String) parameters.get("ROOM_ID");
-
-		// everything should be recorded so we always need a roomId
-		if (roomId == null) {
-			roomId = UUID.randomUUID().toString();
-		}
-		
-		// TODO this needs to be moved to wherever we "publish" a new LLM/agent
-		if (!ModelInferenceLogsUtils.doModelIsRegistered(this.getEngineId())) {
-			ModelInferenceLogsUtils.doCreateNewAgent(this.getEngineId(), this.getEngineName(), null, 
-					this.getModelType().toString(), user.getPrimaryLoginToken().getId());
-		}
-		
-		checkIfConversationExists(user, roomId, projectId, question);
-		
-		String messageId = UUID.randomUUID().toString();
-		LocalDateTime inputTime = LocalDateTime.now();
-		if (keepConversationHistory) { //python client needs to be configured to add history
-			Map<String, Object> inputOutputMap = new HashMap<String, Object>();
-			inputOutputMap.put(ROLE, "user");
-			inputOutputMap.put(MESSAGE_CONTENT, question);
-			response = askQuestion(question, context, insight, parameters);
-			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-													"INPUT",
-													constructPyDictFromMap(inputOutputMap),
-													getTokenSizeString(question),
-													inputTime,
-													roomId,
-													this.getEngineId(),
-													sessionId,
-													userId
-													);
+		if (Utility.isModelInferenceLogsEnabled()) {
+			if(parameters == null) {
+				parameters = new HashMap<String, Object>();
+			}
+			String roomId = (String) parameters.get("ROOM_ID");
+			// everything should be recorded so we always need a roomId
+			if (roomId == null) {
+				roomId = UUID.randomUUID().toString();
+				parameters.put("ROOM_ID",roomId);
+			}
 			
-			// TODO need to find a way to pass this back
-			inputOutputMap.put(ROLE, "assistant");
-			inputOutputMap.put(MESSAGE_CONTENT, response);
-			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-													"RESPONSE",
-													constructPyDictFromMap(inputOutputMap),
-													getTokenSizeString(response),
-													roomId,
-													this.getEngineId(),
-													sessionId,
-													userId
-													);
+			String messageId = UUID.randomUUID().toString();
+			LocalDateTime inputTime = LocalDateTime.now();
+			response = askQuestion(question, context, insight, parameters);
+			LocalDateTime outputTime = LocalDateTime.now();
+			
+			if (keepConversationHistory) {
+				Map<String, Object> inputMap = new HashMap<String, Object>();
+				Map<String, Object> outputMap = new HashMap<String, Object>();
+				inputMap.put(ROLE, "user");
+				inputMap.put(MESSAGE_CONTENT, question);
+				outputMap.put(ROLE, "assistant");
+				outputMap.put(MESSAGE_CONTENT, response);
+		            
+		        chatHistory.get(roomId).add(inputMap);
+		        chatHistory.get(roomId).add(outputMap);
+			}
+			
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, this, insight, question, inputTime, response, outputTime);
+			inferenceRecorder.run();
 		} else {
 			response = askQuestion(question, context, insight, parameters);
-			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-													"INPUT",
-													null,
-													getTokenSizeString(question),
-													inputTime,
-													roomId,
-													this.getEngineId(),
-													sessionId,
-													userId
-													);
-			
-			ModelInferenceLogsUtils.doRecordMessage(messageId, 
-													"RESPONSE",
-													null,
-													getTokenSizeString(response),
-													roomId,
-													this.getEngineId(),
-													sessionId,
-													userId
-													);
 		}
-		// TODO make these constants so we can start to track where they are being used
-		//output.put("ROOM_ID",roomId);
-		//output.put("MESSAGE_ID",messageId);
-		//output.put("RESPONSE",response);
 		return response;
 	}
 
 	// Abstract method, child classes should construct their input / output here
-	protected abstract String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters);
+	public abstract String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters);
 	
 	@Override
 	public void stopModel() {
@@ -279,6 +231,28 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		return convoList.toString();
 	}
 	
+	public String getConversationHistory(String roomId){
+		if (keepConversationHistory){
+			if (chatHistory.containsKey(roomId)) {
+				ArrayList<Map<String, Object>> convoHistory = chatHistory.get(roomId);
+				StringBuilder convoList = new StringBuilder("[");
+				for (Map<String, Object> record : convoHistory) {
+					Object priorContent = ModelInferenceLogsUtils.determineStringType(record);
+			        convoList.append(priorContent).append(",");
+				}
+				convoList.append("]");
+				return convoList.toString();
+			}
+			else {
+				// we want to start a conversation
+				ArrayList<Map<String, Object>> userNewChat = new ArrayList<Map<String, Object>>();
+				chatHistory.put(roomId, userNewChat);
+			}
+		}
+		return null;
+	}
+
+	
 	public void checkIfConversationExists (User user, String roomId, String projectId, String question){
 		// TODO make not a db call?
 		if (!ModelInferenceLogsUtils.doCheckConversationExists(roomId)) {
@@ -289,6 +263,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		}
 	}
 	
+	//TODO 
 	public String generateRoomTitle(String originalQuestion) {
 		StringBuilder summarizeStatement = new StringBuilder("summarize \\\"");
 		summarizeStatement.append(originalQuestion);
@@ -296,72 +271,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		String roomTitle = askQuestion(summarizeStatement.toString(), null, null, null);
 		return roomTitle;
 	}
-	
-	// this is good for python dictionaries but also for making sure we can easily construct 
-	// the logs into model inference python list, since everything is python at this point.
-    public static String constructPyDictFromMap(Map<String,Object> theMap) {
-    	StringBuilder theDict = new StringBuilder("{");
-    	for (Entry<String, Object> entry : theMap.entrySet()) {
-    		theDict.append(determineStringType(entry.getKey())).append(":").append(determineStringType(entry.getValue())).append(",");
-    	}
-    	theDict.append("}");
-    	return theDict.toString();
-    }
-    
-    /* This is basically a utility method that attemps to generate the python code (string) for a java object.
-	 * It currently only does base types.
-	 * Potentially move it in the future but just keeping it here for now
-	*/
-    @SuppressWarnings("unchecked")
-    public static String determineStringType(Object obj) {
-    	if (obj instanceof Integer || obj instanceof Double || obj instanceof Long) {
-    		return String.valueOf(obj);
-    	} else if (obj instanceof Map) {
-    		return constructPyDictFromMap((Map<String, Object>) obj);
-    	} else if (obj instanceof ArrayList || obj instanceof Object[] || obj instanceof List) {
-    		StringBuilder theList = new StringBuilder("[");
-    		List<Object> list;
-    		if (obj instanceof ArrayList<?>) {
-    			list = (ArrayList<Object>) obj;
-    		} else if ((obj instanceof Object[])) {
-    			list = Arrays.asList((Object[]) obj);
-    		} else {
-    			list = (List<Object>) obj;
-    		}
-    		
-			for (Object subObj : list) {
-				theList.append(determineStringType(subObj)).append(",");
-        	}
-			theList.append("]");
-			return theList.toString();
-    	} else if (obj instanceof Boolean) {
-    		String boolString = String.valueOf(obj);
-    		// convert to py version
-    		String cap = boolString.substring(0, 1).toUpperCase() + boolString.substring(1);
-    		return cap;
-    	} else if (obj instanceof Set<?>) {
-    		StringBuilder theSet = new StringBuilder("{");
-    		Set<?> set = (Set<?>) obj;
-			for (Object subObj : set) {
-				theSet.append(determineStringType(subObj)).append(",");
-        	}
-			theSet.append("}");
-			return theSet.toString();
-    	} else {
-    		return "\'"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n") + "\'";
-    	}
-    }
-    
-    public static Integer getTokenSizeString(String input) {
-        if (input == null || input.trim().isEmpty()) {
-            return 0;
-        }
-
-        //TODO should we be using the model tokenizer?
-        StringTokenizer str_arr = new StringTokenizer(input);
- 
-        return str_arr.countTokens();
-    }
 	
 	@Override
 	public void setEngineId(String engineId) {
@@ -440,6 +349,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	public void delete() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	public boolean keepsConversationHistory() {
+		return this.keepConversationHistory;
 	}
 	
 }
