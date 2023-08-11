@@ -122,6 +122,10 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				throw new IllegalArgumentException("Error occurred grabbing next row for query. Detailed message = " + e.getMessage());
+			}
+			throw new IllegalArgumentException("Error occurred grabbing next row for query");
 		}
 
 		return false;
