@@ -11,6 +11,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
+import prerna.util.Utility;
 
 public class EmbeddedModelEngine extends AbstractModelEngine {
 	// starts a embedded model in the same environment
@@ -36,8 +37,13 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 	
 		if(parameters != null)
 		{
-			String roomId = (String) parameters.get("ROOM_ID");
-			parameters.remove("ROOM_ID");
+			if (Utility.isModelInferenceLogsEnabled() || parameters.containsKey("ROOM_ID")) {
+				String roomId = (String) parameters.get("ROOM_ID");
+				parameters.remove("ROOM_ID");
+				String history = getConversationHistory(roomId);
+				if(history != null) //could still be null if its the first question in the convo
+					callMaker.append(",").append("history=").append(history);
+			}
 			
 			Iterator <String> paramKeys = parameters.keySet().iterator();
 			while(paramKeys.hasNext())
