@@ -62,6 +62,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		// add the scheduler cert if required
 		String keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
 		String keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+		String keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		
 		try {
 			// run the pixel endpoint
@@ -74,7 +75,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			
 			String csrfToken = null;
 			CookieStore httpCookieStore = new BasicCookieStore();
-			CloseableHttpClient httpclient = AbstractHttpHelper.getCustomClient(httpCookieStore, keyStore, keyStorePass);
+			CloseableHttpClient httpclient = AbstractHttpHelper.getCustomClient(httpCookieStore, keyStore, keyStorePass, keyPass);
 			if(FETCH_CSRF){
 				String fetchUrl = url;
 				if(fetchUrl.endsWith("/")) {
