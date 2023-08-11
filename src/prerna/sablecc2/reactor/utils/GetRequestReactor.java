@@ -49,10 +49,12 @@ public class GetRequestReactor extends AbstractReactor {
 		List<Map<String, String>> headersMap = getHeadersMap();
 		String keyStore = null;
 		String keyStorePass = null;
+		String keyPass = null;
 		boolean useApplicationCert = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]) + "");
 		if(useApplicationCert) {
 			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
 			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
 		boolean saveFile = false;
@@ -61,19 +63,19 @@ public class GetRequestReactor extends AbstractReactor {
 		}
 		
 		if (saveFile) {
-			return file(headersMap, url, keyStore, keyStorePass);	
+			return file(headersMap, url, keyStore, keyStorePass, keyPass);	
 		} else {
-			return nonFile(headersMap, url, keyStore, keyStorePass);	
+			return nonFile(headersMap, url, keyStore, keyStorePass, keyPass);	
 		}	
 	}
 	
-	private NounMetadata nonFile(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass) {
+	private NounMetadata nonFile(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass, String keyPass) {
 		CloseableHttpResponse response = null;
 		CloseableHttpClient httpClient = null;
 		HttpEntity entity = null;
 		String responseData = null;
 		try {
-			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpGet httpGet = new HttpGet(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(int i = 0; i < headersMap.size(); i++) {
@@ -123,7 +125,7 @@ public class GetRequestReactor extends AbstractReactor {
 		}
 	}
 	
-	private NounMetadata file(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass) {
+	private NounMetadata file(List<Map<String, String>> headersMap, String url, String keyStore, String keyStorePass, String keyPass) {
 		String[] pathSeparated = url.split("/");
 		String filename = pathSeparated[pathSeparated.length - 1];
 		
@@ -140,7 +142,7 @@ public class GetRequestReactor extends AbstractReactor {
 		HttpEntity entity = null;
 
 		try {
-			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpGet httpGet = new HttpGet(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(int i = 0; i < headersMap.size(); i++) {
