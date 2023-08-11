@@ -193,12 +193,14 @@ public class TextGenerationProcessInference extends AbstractModelEngine {
 		
 		
 		if(parameters != null) {
-			if (Utility.isModelInferenceLogsEnabled() || parameters.containsKey("ROOM_ID")) {
+			if (parameters.containsKey("ROOM_ID")) { //always have to remove roomId so we dont pass it to py client
 				String roomId = (String) parameters.get("ROOM_ID");
 				parameters.remove("ROOM_ID");
-				String history = getConversationHistory(roomId);
-				if(history != null) //could still be null if its the first question in the convo
-					callMaker.append(",").append("history=").append(history);
+				if (Utility.isModelInferenceLogsEnabled()) { // have to check that inference logs are enabled so that query works
+					String history = getConversationHistory(roomId);
+					if(history != null) //could still be null if its the first question in the convo
+						callMaker.append(",").append("history=").append(history);
+				}
 			}
 						
 			Iterator <String> paramKeys = parameters.keySet().iterator();
