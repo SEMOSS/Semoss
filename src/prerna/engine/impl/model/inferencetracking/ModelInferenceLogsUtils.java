@@ -8,9 +8,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.Map.Entry;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
@@ -18,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -36,6 +42,79 @@ public class ModelInferenceLogsUtils {
 	private static Logger logger = LogManager.getLogger(ModelInferenceLogsUtils.class);
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
+	
+	
+	// this is good for python dictionaries but also for making sure we can easily construct 
+	// the logs into model inference python list, since everything is python at this point.
+    public static String constructPyDictFromMap(Map<String,Object> theMap) {
+    	StringBuilder theDict = new StringBuilder("{");
+    	for (Entry<String, Object> entry : theMap.entrySet()) {
+    		theDict.append(determineStringType(entry.getKey())).append(":").append(determineStringType(entry.getValue())).append(",");
+    	}
+    	theDict.append("}");
+    	return theDict.toString();
+    }
+    
+    /* This is basically a utility method that attemps to generate the python code (string) for a java object.
+	 * It currently only does base types.
+	 * Potentially move it in the future but just keeping it here for now
+	*/
+    @SuppressWarnings("unchecked")
+    public static String determineStringType(Object obj) {
+    	if (obj instanceof Integer || obj instanceof Double || obj instanceof Long) {
+    		return String.valueOf(obj);
+    	} else if (obj instanceof Map) {
+    		return constructPyDictFromMap((Map<String, Object>) obj);
+    	} else if (obj instanceof ArrayList || obj instanceof Object[] || obj instanceof List) {
+    		StringBuilder theList = new StringBuilder("[");
+    		List<Object> list;
+    		if (obj instanceof ArrayList<?>) {
+    			list = (ArrayList<Object>) obj;
+    		} else if ((obj instanceof Object[])) {
+    			list = Arrays.asList((Object[]) obj);
+    		} else {
+    			list = (List<Object>) obj;
+    		}
+    		
+			for (Object subObj : list) {
+				theList.append(determineStringType(subObj)).append(",");
+        	}
+			theList.append("]");
+			return theList.toString();
+    	} else if (obj instanceof Boolean) {
+    		String boolString = String.valueOf(obj);
+    		// convert to py version
+    		String cap = boolString.substring(0, 1).toUpperCase() + boolString.substring(1);
+    		return cap;
+    	} else if (obj instanceof Set<?>) {
+    		StringBuilder theSet = new StringBuilder("{");
+    		Set<?> set = (Set<?>) obj;
+			for (Object subObj : set) {
+				theSet.append(determineStringType(subObj)).append(",");
+        	}
+			theSet.append("}");
+			return theSet.toString();
+    	} else {
+    		return "\'"+String.valueOf(obj).replace("'", "\\'").replace("\n", "\\n") + "\'";
+    	}
+    }
+    
+    public static Integer getTokenSizeString(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return 0;
+        }
+        //TODO should we be using the model tokenizer?
+        StringTokenizer str_arr = new StringTokenizer(input);
+        return str_arr.countTokens();
+    }
+	
+	public static String generateRoomTitle(AbstractModelEngine engine, String originalQuestion) {
+		StringBuilder summarizeStatement = new StringBuilder("summarize \\\"");
+		summarizeStatement.append(originalQuestion);
+		summarizeStatement.append("\\\" in less than 8 words. Please exclude all punctuation from the response.");
+		String roomTitle = engine.askQuestion(summarizeStatement.toString(), null, null, null);
+		return roomTitle;
+	}
 	
 	public static void doCreateNewUser(User user) {
 		String query = "INSERT INTO USERS (USER_ID, USERNAME, EMAIL) VALUES (?, ?, ?)";
