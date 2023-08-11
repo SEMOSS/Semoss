@@ -648,11 +648,12 @@ public abstract class AbstractHttpHelper {
 	/**
 	 * Get a custom client using the info passed in
 	 * @param cookieStore
-	 * @param keyStore
-	 * @param keyStorePass
+	 * @param keyStore				the keystore location
+	 * @param keyStorePass			the password for the keystore
+	 * @param keyPass				the password for the certificate if different from the keystore password
 	 * @return
 	 */
-	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass) {
+	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass, String keyPass) {
 		HttpClientBuilder builder = HttpClients.custom();
 		if(cookieStore != null) {
 			builder.setDefaultCookieStore(cookieStore);
@@ -678,7 +679,11 @@ public abstract class AbstractHttpHelper {
 				if(!keyStoreF.exists() && !keyStoreF.isFile()) {
 					logger.warn("Defined a keystore to use in the request but the file " + keyStoreF.getAbsolutePath() + " does not exist");
 				} else {
-					sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(), keyStorePass.toCharArray());
+					if(keyPass == null || keyPass.isEmpty()) {
+						sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(), keyStorePass.toCharArray());
+					} else {
+						sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(), keyPass.toCharArray());
+					}
 				}
 			}
 			

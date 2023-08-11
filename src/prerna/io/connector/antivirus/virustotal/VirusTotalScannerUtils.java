@@ -71,13 +71,15 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	public Map<String, Collection<String>> getViruses(String name, InputStream is) {
 		String keyStore = null;
 		String keyStorePass = null;
+		String keyPass = null;
 		if(this.useServerCert) {
 			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
 			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
-		String analysisFileId = uploadFileEndpoint(name, is, keyStore, keyStorePass);
-		return analysesEndpoint(analysisFileId, name, keyStore, keyStorePass);
+		String analysisFileId = uploadFileEndpoint(name, is, keyStore, keyStorePass, keyPass);
+		return analysesEndpoint(analysisFileId, name, keyStore, keyStorePass, keyPass);
 	}
 
 	/**
@@ -86,7 +88,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	 * @param is
 	 * @return
 	 */
-	private String uploadFileEndpoint(String name, InputStream is, String keyStore, String keyStorePass) {
+	private String uploadFileEndpoint(String name, InputStream is, String keyStore, String keyStorePass, String keyPass) {
 		final String VIRUS_TOTAL_URL = "https://www.virustotal.com/api/v3/files";
 		
         String responseData = null;
@@ -94,7 +96,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
 		try {
-			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpPost httpPost = new HttpPost(VIRUS_TOTAL_URL);
 			httpPost.addHeader("x-apikey", this.apiKey);
 			httpPost.addHeader("accept", "application/json");
@@ -173,7 +175,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	 * @param keyStore
 	 * @param keyStorePass
 	 */
-	private Map<String, Collection<String>> analysesEndpoint(String analysisFileId, String name, String keyStore, String keyStorePass) {
+	private Map<String, Collection<String>> analysesEndpoint(String analysisFileId, String name, String keyStore, String keyStorePass, String keyPass) {
 //		HttpRequest request = HttpRequest.newBuilder()
 //				.uri(URI.create("https://www.virustotal.com/api/v3/analyses/ZmVjN2ZmM2MxN2RlZTE0NjUxNTg1ZjMwMDY0NjEzZDE6MTY5MDM3MzczOQ%3D%3D"))
 //				.header("accept", "application/json")
@@ -190,7 +192,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
 		try {
-			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpGet httpGet = new HttpGet(VIRUS_TOTAL_URL+analysisFileId);
 			httpGet.addHeader("x-apikey", this.apiKey);
 			httpGet.addHeader("accept", "application/json");
