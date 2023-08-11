@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -60,6 +61,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	String workingDirectoryBasePath;
 	File cacheFolder;
 	
+	// string substitute vars
+	Map vars = new HashMap();
+	
 	private Map<String, ArrayList<Map<String, Object>>> chatHistory = new Hashtable<>();
 	
 	@Override
@@ -97,6 +101,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				// make the folder if one does not exist
 				if(!cacheFolder.exists())
 					cacheFolder.mkdir();
+				
+				// vars for string substitution
+				vars = new HashMap(generalEngineProp);
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -116,10 +123,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		// break the commands seperated by ;
 		String [] commands = initCommands.split(PY_COMMAND_SEPARATOR);
 		
-		// replace the Vars -- dont think we need this anymore
-//		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
-//			commands[commandIndex] = fillVars(commands[commandIndex]);
-//		}
+		// replace the Vars
+		for(int commandIndex = 0; commandIndex < commands.length;commandIndex++) {
+			commands[commandIndex] = fillVars(commands[commandIndex]);
+		}
 		port = Utility.findOpenPort();
 
 		Object [] outputs = Utility.startTCPServerNativePy(this.workingDirectoryBasePath, port);
@@ -212,6 +219,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			}
 		}
 		return false;
+	}
+	
+	private String fillVars(String input) {
+		StringSubstitutor sub = new StringSubstitutor(vars);
+		String resolvedString = sub.replace(input);
+		return resolvedString;
 	}
 	
 	public String getConversationHistory(String roomId, String userId){
