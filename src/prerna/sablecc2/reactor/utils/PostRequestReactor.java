@@ -44,10 +44,12 @@ public class PostRequestReactor extends AbstractReactor {
 		List<Map<String, String>> bodyMap = getBody();
 		String keyStore = null;
 		String keyStorePass = null;
+		String keyPass = null;
 		boolean useApplicationCert = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]) + "");
 		if(useApplicationCert) {
 			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
 			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
 		
         String responseData = null;
@@ -55,7 +57,7 @@ public class PostRequestReactor extends AbstractReactor {
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
 		try {
-			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass);
+			httpClient = AbstractHttpHelper.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpPost httpPost = new HttpPost(url);
 			if(headersMap != null && !headersMap.isEmpty()) {
 				for(int i = 0; i < headersMap.size(); i++) {
