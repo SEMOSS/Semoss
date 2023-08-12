@@ -136,13 +136,13 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 								if (accessFlag && !access) {
 									continue;
 								}
-								String type = "";
+								String dbType = "";
 								if (access) {
-									type = (Utility.getDatabase(engId)).getEngineType() + "";
+									dbType = (Utility.getDatabase(engId)).getDatabaseType() + "";
 								}
 								engineDetail.put("appName", alias);
 								engineDetail.put("appId", engId);
-								engineDetail.put("appType", type);
+								engineDetail.put("appType", dbType);
 								engineDetail.put("access", access);
 								convertedMembers.add(engineDetail);
 							}
@@ -183,14 +183,14 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 						if (accessFlag && !access) {
 							continue;
 						}
-						String type = "";
+						String dbType = "";
 						if (access) {
-							type = (Utility.getDatabase(engId)).getEngineType() + "";
+							dbType = (Utility.getDatabase(engId)).getDatabaseType() + "";
 						}
 						// only return databases the user can access
 						engineDetail.put("appName", alias);
 						engineDetail.put("appId", engId);
-						engineDetail.put("appType", type);
+						engineDetail.put("appType", dbType);
 						engineDetail.put("freq", freq);
 						engineDetail.put("access", access);
 						convertedMembers.add(engineDetail);

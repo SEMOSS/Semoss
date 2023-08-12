@@ -412,7 +412,7 @@ public class Utility {
 	}
 
 	public static String getFQNodeName(IDatabase engine, String URI) {
-		if (engine.getEngineType().equals(IDatabase.ENGINE_TYPE.RDBMS)) {
+		if (engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS) {
 			return getInstanceName(URI) + "__" + getPrimaryKeyFromURI(URI);
 		} else {
 			return getInstanceName(URI);
@@ -468,20 +468,20 @@ public class Utility {
 		StringBuffer bindingStr = new StringBuffer("");
 		for (int i = 0; i<uri.size();i++)
 		{
-			if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
+			if(engine.getEngineType() == IDatabase.DATABASE_TYPE.SESAME)
 				bindingStr = bindingStr.append("(<").append(uri.get(i)).append(">)");
 			else
 				bindingStr = bindingStr.append("<").append(uri.get(i)).append(">");
 		}
 		Hashtable paramHash = new Hashtable();
 		paramHash.put("FILTER_VALUES",  bindingStr.toString());
-		if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
+		if(engine.getEngineType() == IDatabase.DATABASE_TYPE.SESAME)
 		{			
 			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
 					"{{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
 					"}" +"BINDINGS ?Entity {@FILTER_VALUES@}";
 		}
-		else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
+		else if(engine.getEngineType() == IDatabase.DATABASE_TYPE.JENA)
 		{
 			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
 					"{{VALUES ?Entity {@FILTER_VALUES@}"+
@@ -2768,7 +2768,7 @@ public class Utility {
 	 * 
 	 * @return String Instance name.
 	 */
-	public static String getInstanceName(String uri, IDatabase.ENGINE_TYPE type) {
+	public static String getInstanceName(String uri, IDatabase.DATABASE_TYPE type) {
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
 		int totalTok = tokens.countTokens();
 		String instanceName = null;
@@ -2785,7 +2785,7 @@ public class Utility {
 			}
 		}
 
-		if (type == IDatabase.ENGINE_TYPE.RDBMS || type == IDatabase.ENGINE_TYPE.R)
+		if (type == IDatabase.DATABASE_TYPE.RDBMS || type == IDatabase.DATABASE_TYPE.R)
 			instanceName = "Table_" + instanceName + "Column_" + secondLastToken;
 
 		return instanceName;

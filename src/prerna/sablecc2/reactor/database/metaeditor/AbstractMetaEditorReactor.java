@@ -84,8 +84,8 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		Hashtable<String, String> propHash = new Hashtable<>();
 		Hashtable<String, String> relationHash = new Hashtable<>();
 
-		boolean isRdbms = (engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS
-				|| engine.getEngineType() == IDatabase.ENGINE_TYPE.IMPALA);
+		boolean isRdbms = (engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS
+				|| engine.getDatabaseType() == IDatabase.DATABASE_TYPE.IMPALA);
 
 		List<String> concepts = engine.getPhysicalConcepts();
 		for (String cUri : concepts) {

@@ -8,7 +8,7 @@ import org.apache.commons.io.FileUtils;
 import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.RNativeEngine;
@@ -68,7 +68,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		
 
 		logger.info(stepCounter + ". Start generating database metadata");
-		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.R);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), IDatabase.DATABASE_TYPE.R);
 		// table name is the file name
 		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 		// add the table

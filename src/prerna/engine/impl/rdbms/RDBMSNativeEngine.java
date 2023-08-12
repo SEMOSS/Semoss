@@ -567,8 +567,8 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	}
 
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return IDatabase.ENGINE_TYPE.RDBMS;
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabase.DATABASE_TYPE.RDBMS;
 	}
 
 	@Override

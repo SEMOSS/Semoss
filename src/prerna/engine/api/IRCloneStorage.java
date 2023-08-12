@@ -7,6 +7,12 @@ import java.util.Map;
 public interface IRCloneStorage extends IStorage {
 
 	/**
+	 * Determine if a shared/created r clone config can be shared between methods
+	 * @return
+	 */
+	boolean canReuseRcloneConfig();
+	
+	/**
 	 * Set the folder path for writing the config files on execution
 	 * @param folderPath
 	 */

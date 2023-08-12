@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -208,7 +208,7 @@ public class UserTrackingOwlCreator {
 	 * @throws IOException
 	 */
 	private void writeNewOwl(String owlLocation) throws IOException {
-		Owler owler = new Owler(owlLocation, ENGINE_TYPE.RDBMS);
+		Owler owler = new Owler(owlLocation, DATABASE_TYPE.RDBMS);
 
 		// ENGINE	
 		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {

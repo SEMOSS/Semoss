@@ -13,9 +13,9 @@ public class CSVToOwlMaker {
 	 * 
 	 * @param csvFile
 	 * @param owlFileLocation
-	 * @param engineType
+	 * @param dbType
 	 */
-	public void makeFlatOwl(String csvFile, String owlFileLocation, IDatabase.ENGINE_TYPE engineType, boolean addUniqueId) {
+	public void makeFlatOwl(String csvFile, String owlFileLocation, IDatabase.DATABASE_TYPE dbType, boolean addUniqueId) {
 		// get the headers + types + additional types
 		// based on the csv parsing
 		// and then generate a new OWL file
@@ -31,7 +31,7 @@ public class CSVToOwlMaker {
 		String fileName = Utility.getOriginalFileName(csvFile);
 		String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 
-		Owler owler = new Owler(owlFileLocation, engineType);
+		Owler owler = new Owler(owlFileLocation, dbType);
 		owler.addConcept(cleanTableName, null, null);
 		if(addUniqueId) {
 			String identityColumn = cleanTableName + "_UNIQUE_ROW_ID";
@@ -57,6 +57,6 @@ public class CSVToOwlMaker {
 		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
 		String owlFile = "C:/Users/pkapaleeswaran/workspacej3/datasets/MovieOWL.OWL";
 		CSVToOwlMaker maker = new CSVToOwlMaker();
-		maker.makeFlatOwl(fileName, owlFile, IDatabase.ENGINE_TYPE.RDBMS, true);
+		maker.makeFlatOwl(fileName, owlFile, IDatabase.DATABASE_TYPE.RDBMS, true);
 	}
 }

@@ -153,7 +153,7 @@ public class RNativeEngine extends AbstractDatabase {
 	 */
 	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
-		maker.makeFlatOwl(dataFile, owlFile, getEngineType(), false);
+		maker.makeFlatOwl(dataFile, owlFile, getDatabaseType(), false);
 		if(owlFile.equals("REMAKE")) {
 			try {
 				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
@@ -171,8 +171,8 @@ public class RNativeEngine extends AbstractDatabase {
 	}
 
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return IDatabase.ENGINE_TYPE.R;
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabase.DATABASE_TYPE.R;
 	}
 
 	@Override

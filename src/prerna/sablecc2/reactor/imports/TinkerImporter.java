@@ -16,7 +16,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -415,8 +415,8 @@ public class TinkerImporter extends AbstractImporter {
 	 */
 	private boolean processAsFlat(SelectQueryStruct qs) {
 		IDatabase engine = qs.getEngine();
-		ENGINE_TYPE engineType = engine == null ? null : engine.getEngineType();
-		if(engineType == null || engineType == ENGINE_TYPE.TINKER || engineType == ENGINE_TYPE.SESAME) {
+		DATABASE_TYPE dbType = engine == null ? null : engine.getDatabaseType();
+		if(dbType == null || dbType == DATABASE_TYPE.TINKER || dbType == DATABASE_TYPE.SESAME) {
 			return false;
 		}
 		

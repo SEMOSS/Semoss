@@ -28,8 +28,8 @@ public class AppEngine extends AbstractDatabase {
 	}
 	
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return ENGINE_TYPE.APP;
+	public DATABASE_TYPE getDatabaseType() {
+		return DATABASE_TYPE.APP;
 	}
 	
 	////////////////////////////////////////////////////////////

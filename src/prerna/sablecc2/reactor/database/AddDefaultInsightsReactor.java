@@ -12,7 +12,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.GenRowStruct;
@@ -80,11 +79,11 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		String projectName = project.getProjectName();
 		
 		String databaseName = "";
-		ENGINE_TYPE eType = null;
+		IDatabase.DATABASE_TYPE dbType = null;
 		if(pullDatabase) {
 			IDatabase database = Utility.getDatabase(databaseId);
 			databaseName = database.getEngineName();
-			eType = database.getEngineType();
+			dbType = database.getDatabaseType();
 		}
 		
 		boolean cacheable = Utility.getApplicationCacheInsight();
@@ -116,7 +115,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 			logger.info("Done adding insight usage stats");
 			
-			if(eType == ENGINE_TYPE.RDBMS) {
+			if(dbType == IDatabase.DATABASE_TYPE.RDBMS) {
 				retMap = UploadUtilities.addGridDeltaInsight(projectId, projectName, databaseId, databaseName, insightEngine);
 				newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 				recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
@@ -187,7 +186,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				logger.info("Done adding insight usage stats");
 			}
 			if(insightsToAdd.contains(GRID_DELTA_INSTANCE)) {
-				if(eType == ENGINE_TYPE.RDBMS) {
+				if(dbType == IDatabase.DATABASE_TYPE.RDBMS) {
 					Map<String, Object> retMap = UploadUtilities.addGridDeltaInsight(projectId, projectName, databaseId, databaseName, insightEngine);
 					String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 					List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
@@ -202,7 +201,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				}
 			}
 			if(insightsToAdd.contains(AUDIT_MODIFICATION)) {
-				if(eType == ENGINE_TYPE.RDBMS) {
+				if(dbType == IDatabase.DATABASE_TYPE.RDBMS) {
 					Map<String, Object> retMap = UploadUtilities.addAuditModificationView(projectId, projectName, databaseId, databaseName, insightEngine);
 					if(retMap != null) {
 						String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
@@ -225,7 +224,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				}
 			}
 			if(insightsToAdd.contains(AUDIT_TIMELINE)) {
-				if(eType == ENGINE_TYPE.RDBMS) {
+				if(dbType == IDatabase.DATABASE_TYPE.RDBMS) {
 					Map<String, Object> retMap = UploadUtilities.addAuditTimelineView(projectId, projectName, databaseId, databaseName, insightEngine);
 					if(retMap != null) {
 						String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
@@ -248,7 +247,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				}
 			}
 			if(insightsToAdd.contains(INSERT_FORM)) {
-				if(eType == ENGINE_TYPE.RDBMS) {
+				if(dbType == IDatabase.DATABASE_TYPE.RDBMS) {
 					Map<String, Object> retMap = UploadUtilities.addInsertFormInsight(projectId, projectName, databaseId, databaseName, insightEngine);
 					if(retMap != null) {
 						String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);

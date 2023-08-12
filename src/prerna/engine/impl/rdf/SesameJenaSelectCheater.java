@@ -44,7 +44,7 @@ import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.util.Utility;
 
 /**
@@ -56,7 +56,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	
 	public transient TupleQueryResult tqr = null;
 	transient ResultSet rs = null;	
-	transient ENGINE_TYPE engineType = IDatabase.ENGINE_TYPE.SESAME;	
+	transient DATABASE_TYPE engineType = IDatabase.DATABASE_TYPE.SESAME;	
 	transient QuerySolution curSt = null;	
 	//IDatabase engine = null;
 	transient BindingSet bs;
@@ -80,7 +80,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	{
 		logger.debug("Set the engine " );
 		this.engine = engine;
-		engineType = engine.getEngineType();
+		engineType = engine.getDatabaseType();
 	}
 	
 	/**
@@ -101,7 +101,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	@Override
 	public void execute() throws Exception
 	{
-		if(engineType == IDatabase.ENGINE_TYPE.SESAME)
+		if(engineType == IDatabase.DATABASE_TYPE.SESAME)
 		{
 			tqr = (TupleQueryResult) engine.execQuery(query);
 			getVariables();
@@ -109,7 +109,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			processSelectVar();
 			count=0;
 		}
-		else if(engineType == IDatabase.ENGINE_TYPE.JENA)
+		else if(engineType == IDatabase.DATABASE_TYPE.JENA)
 		{
 			rs = (ResultSet)engine.execQuery(query);
 			getVariables();
@@ -118,7 +118,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			count=0;
 			
 		}
-//		else if(engineType == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+//		else if(engineType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 //		{
 //			// get the actual SesameJenaConstructWrapper from the engine
 //			// this is json output
@@ -139,13 +139,13 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		try {
 			if(var == null)
 			{
-				if(engineType == IDatabase.ENGINE_TYPE.SESAME)
+				if(engineType == IDatabase.DATABASE_TYPE.SESAME)
 				{
 					var = new String[tqr.getBindingNames().size()];
 					List <String> names = tqr.getBindingNames();
 					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
 				}
-				else if(engineType == IDatabase.ENGINE_TYPE.JENA)
+				else if(engineType == IDatabase.DATABASE_TYPE.JENA)
 				{
 					var = new String[rs.getResultVars().size()];
 					List <String> names = rs.getResultVars();
@@ -153,7 +153,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 							colIndex < names.size();
 							var[colIndex] = names.get(colIndex), colIndex++);
 				}
-				else if(engineType == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+				else if(engineType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 				{
 					var = proxy.getVariables();
 				}
@@ -176,17 +176,17 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		try
 		{
 			logger.debug("Checking for next " );
-			if(engineType == IDatabase.ENGINE_TYPE.SESAME)
+			if(engineType == IDatabase.DATABASE_TYPE.SESAME)
 			{
 				retBool = tqr.hasNext();
 				if(!retBool)
 					tqr.close();
 			}
-			else if(engineType == IDatabase.ENGINE_TYPE.JENA)
+			else if(engineType == IDatabase.DATABASE_TYPE.JENA)
 			{
 				retBool = rs.hasNext();
 			}
-			else if(engineType == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(engineType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				if(retSt != null) // they have not taken the previous one yet
 					return true;
@@ -286,7 +286,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		try
 		{	
 				
-			if(engineType == IDatabase.ENGINE_TYPE.SESAME)
+			if(engineType == IDatabase.DATABASE_TYPE.SESAME)
 			{
 				thisSt = new SesameJenaConstructStatement();
 				if(count==0)
@@ -323,7 +323,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 					count=0;
 				}
 			}
-			else if(engineType == IDatabase.ENGINE_TYPE.JENA)
+			else if(engineType == IDatabase.DATABASE_TYPE.JENA)
 			{
 				thisSt = new SesameJenaConstructStatement();
 			    logger.debug("Adding a JENA statement ");
@@ -332,7 +332,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			    thisSt.setPredicate(row.get(var[1])+"");
 			    thisSt.setObject(row.get(var[2]));
 			}			
-			else if(engineType == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(engineType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				thisSt = retSt;
 				retSt = null;
@@ -384,13 +384,4 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		}
 	}
 	
-	/**
-	 * Method setEngineType. Sets the engine type.
-	 * @param engineType Enum - The type engine that this is being set to.
-	 */
-	@Override
-	public void setEngineType(ENGINE_TYPE engineType)
-	{
-		this.engineType = engineType;
-	}
 }
