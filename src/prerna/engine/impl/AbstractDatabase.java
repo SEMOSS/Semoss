@@ -439,7 +439,10 @@ public abstract class AbstractDatabase implements IDatabase {
 		// + "_" + Constants.OWL);
 		if (this.owlFileLocation == null) {
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			owlFileLocation = baseFolder + "/db/" + getEngineId() + "/" + getEngineId()	+ "_OWL.OWL";
+			owlFileLocation = baseFolder + DIR_SEPARATOR + 
+					Constants.DATABASE_FOLDER + DIR_SEPARATOR + 
+					SmssUtilities.getUniqueName(getEngineName(), getEngineId()) + DIR_SEPARATOR +
+					getEngineName()	+ "_OWL.OWL"; 
 		}
 		baseRelEngine.setFileName(this.owlFileLocation);
 		baseRelEngine.openDB(null);
