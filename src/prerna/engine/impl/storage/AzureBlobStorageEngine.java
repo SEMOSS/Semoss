@@ -475,7 +475,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 //		mockSmss.put(AZ_GENERATE_DYNAMIC_SAS, "true");
 //
 //		AzureBlobStorageEngine engine = new AzureBlobStorageEngine();
-//		engine.connect(mockSmss);
+//		engine.open(mockSmss);
 //		
 //		{
 //			List<String> list = engine.list("08e03a5f-9b8d-4f24-a3f7-ba6959f2c5c0/version");

@@ -61,14 +61,6 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void updateApp(String appId) throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @param appId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
 	void deleteApp(String appId) throws IOException, InterruptedException;
 
 	/**

@@ -649,14 +649,6 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	}
 
 	@Override
-	public void updateApp(String appId) throws IOException, InterruptedException {
-		if (Utility.getDatabase(appId, true) == null) {
-			throw new IllegalArgumentException("App needs to be defined in order to update...");
-		}
-		pullDatabase(appId, false);
-	}
-
-	@Override
 	public void deleteApp(String appId) throws IOException, InterruptedException {
 		String rcloneConfig = null;
 		String cleanedAppId = Utility.cleanLogString(appId);
