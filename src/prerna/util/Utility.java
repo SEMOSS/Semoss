@@ -3056,8 +3056,8 @@ public class Utility {
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 						try {
-							AbstractCloudClient.getClient().pullApp(engineId);
-						} catch (IOException | InterruptedException e) {
+							AbstractCloudClient.getClient().pullDatabase(engineId);
+						} catch (Exception e) {
 							logger.error(Constants.STACKTRACE, e);
 							return null;
 						}
@@ -3210,8 +3210,8 @@ public class Utility {
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 						try {
-							AbstractCloudClient.getClient().pullApp(storageId);
-						} catch (IOException | InterruptedException e) {
+							AbstractCloudClient.getClient().pullDatabase(storageId);
+						} catch (Exception e) {
 							logger.error(Constants.STACKTRACE, e);
 							return null;
 						}
@@ -3364,8 +3364,8 @@ public class Utility {
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 						try {
-							AbstractCloudClient.getClient().pullApp(modelId);
-						} catch (IOException | InterruptedException e) {
+							AbstractCloudClient.getClient().pullDatabase(modelId);
+						} catch (Exception e) {
 							logger.error(Constants.STACKTRACE, e);
 							return null;
 						}
