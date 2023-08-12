@@ -88,11 +88,17 @@ public interface IStorage extends IEngine {
 
 	/**
 	 * 
-	 * @param storageFilePath
+	 * @param storagePath
 	 * @param leaveFolderStructure
 	 * @throws Exception
 	 */
 	void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception;
 
+	/**
+	 * 
+	 * @param storageFolderPath
+	 * @throws Exception
+	 */
+	void deleteFolderFromStorage(String storageFolderPath) throws Exception;
 	
 }
