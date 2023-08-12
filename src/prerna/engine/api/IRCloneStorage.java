@@ -113,5 +113,14 @@ public interface IRCloneStorage extends IStorage {
 	 */
 	void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure, String rCloneConfig) throws IOException, InterruptedException;
 	
+	/**
+	 * 
+	 * @param storageFolderPath
+	 * @param rCloneConfig
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void deleteFolderFromStorage(String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException;
+	
 }
 

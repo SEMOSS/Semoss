@@ -185,7 +185,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	@Override
 	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
 		if(storagePath == null || storagePath.isEmpty()) {
-			throw new NullPointerException("Must define the storage location of the file to download");
+			throw new NullPointerException("Must define the storage location of the file to delete");
 		}
 		storagePath = storagePath.replace("\\", "/");
 
@@ -207,6 +207,29 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		} else {
 			sftpClient.rm(storagePath);
 		}
+	}
+	
+	@Override
+	public void deleteFolderFromStorage(String storageFolderPath) throws Exception {
+		if(storageFolderPath == null || storageFolderPath.isEmpty()) {
+			throw new NullPointerException("Must define the storage location of the folder to delete");
+		}
+		storageFolderPath = storageFolderPath.replace("\\", "/");
+
+		if(!storageFolderPath.startsWith("/")) {
+			storageFolderPath = "/"+storageFolderPath;
+		}
+		
+		FileAttributes attributes = sftpClient.statExistence(storageFolderPath);
+		if(attributes == null) {
+			throw new IllegalArgumentException("Storage folder " + storageFolderPath + " does not exist");
+		}
+		
+		if(attributes.getType() != FileMode.Type.DIRECTORY) {
+			throw new IllegalArgumentException("Storage path " + storageFolderPath + " is not a directory");
+		}
+
+		sftpClient.rmdir(storageFolderPath);
 	}
 
 	private void recursivelyDeleteFiles(String storageDirectory) throws IOException {
