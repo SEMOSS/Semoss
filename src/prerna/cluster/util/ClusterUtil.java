@@ -305,38 +305,6 @@ public class ClusterUtil {
 		return;
 	}
 
-
-
-	public static void reactorUpdateApp(String appId) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				AbstractCloudClient.getClient().updateApp(appId);
-			} catch (IOException | InterruptedException e) {
-				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to update app from cloud storage",
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-
-	public static void reactorImagePull(String appId) {
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				AbstractCloudClient.getClient().updateApp(appId);
-			}  catch (IOException | InterruptedException e) {
-				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to fetch app image", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-	}
-
 	public static void reactorPushDatabaseFolder(IDatabase engine, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 

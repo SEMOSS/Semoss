@@ -73,7 +73,6 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 //import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.cluster.CleanUpDatabasesReactor;
 import prerna.sablecc2.reactor.cluster.OpenDatabaseReactor;
-import prerna.sablecc2.reactor.cluster.UpdateDatabaseReactor;
 import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.sablecc2.reactor.database.AddDefaultInsightsReactor;
 import prerna.sablecc2.reactor.database.DatabaseColumnUniqueReactor;
@@ -1106,7 +1105,6 @@ public class ReactorFactory {
 		
 		// Clusters
 		reactorHash.put("OpenDatabase", OpenDatabaseReactor.class);
-		reactorHash.put("UpdateDatabase", UpdateDatabaseReactor.class);
 		reactorHash.put("CleanUpDatabases", CleanUpDatabasesReactor.class);
 		reactorHash.put("Version", VersionReactor.class);
 		//reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
