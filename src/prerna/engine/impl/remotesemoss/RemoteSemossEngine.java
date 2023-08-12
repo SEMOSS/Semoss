@@ -53,8 +53,8 @@ public class RemoteSemossEngine extends AbstractDatabase {
 	}
 
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return ENGINE_TYPE.REMOTE_SEMOSS;
+	public DATABASE_TYPE getDatabaseType() {
+		return DATABASE_TYPE.REMOTE_SEMOSS;
 	}
 	
 	//////////////////////////////////////////////////////

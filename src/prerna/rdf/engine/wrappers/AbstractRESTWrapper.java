@@ -138,7 +138,7 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		String appId = engine.getEngineId();
 		
 		// TODO >>>timb: right now, only RDBMS works for remote
-		if (engine.getEngineType() != IDatabase.ENGINE_TYPE.RDBMS || appId.startsWith("security") || appId.startsWith("LocalMasterDatabase") || appId.startsWith("form_builder_engine")) {
+		if (engine.getDatabaseType() != IDatabase.DATABASE_TYPE.RDBMS || appId.startsWith("security") || appId.startsWith("LocalMasterDatabase") || appId.startsWith("form_builder_engine")) {
 			return true;
 		} else {
 			return false;

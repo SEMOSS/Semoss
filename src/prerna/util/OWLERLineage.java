@@ -33,7 +33,7 @@ public class OWLERLineage {
 	
 	// need to know the database type due to differences in URIs when the
 	// database is RDF vs. RDBMS
-	private IDatabase.ENGINE_TYPE type = null;
+	private IDatabase.DATABASE_TYPE type = null;
 	// the engine here is a wrapper around a RDFFileSesameEngine which helps with adding the URIs into the engine
 	private BaseDatabaseCreator engine = null;
 	// file name for the location of the OWL file to write to
@@ -44,7 +44,7 @@ public class OWLERLineage {
 	 * @param fileName				The location of the new OWL file
 	 * @param type					The type of the engine the OWL file is being created for
 	 */
-	public OWLERLineage(String owlPath, IDatabase.ENGINE_TYPE type) {
+	public OWLERLineage(String owlPath, IDatabase.DATABASE_TYPE type) {
 		this.owlPath = owlPath;
 		this.type = type;
 		

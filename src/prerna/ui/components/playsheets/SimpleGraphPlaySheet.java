@@ -90,14 +90,14 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 	
 				if(subjects.indexOf(st.getSubject()) < 0)
 				{
-					if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
+					if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME)
 						subjects.append("(<" + st.getSubject() + ">)");
 					else
 						subjects.append("<" + st.getSubject() + ">");
 				}
 				if(predicates.indexOf(st.getPredicate()) < 0)
 				{
-					if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
+					if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME)
 						predicates.append("(<" + st.getPredicate() +">)");
 					else
 						predicates.append( "<" + st.getPredicate() +">");
@@ -107,7 +107,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 				{			
 					if(objects.indexOf(obj+"") < 0)
 					{
-						if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME)
+						if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME)
 							objects.append("(<" + obj +">)");
 						else
 							objects.append("<" + obj +">");

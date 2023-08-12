@@ -6,7 +6,7 @@ import java.util.Vector;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -44,7 +44,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		IDatabase database = Utility.getDatabase(databaseId);
 		ClusterUtil.reactorPullOwl(databaseId);
 		String column = this.keyValue.get(this.keysToGet[2]);
-		if ((column == null || column.isEmpty()) && database.getEngineType() == ENGINE_TYPE.RDBMS) {
+		if ((column == null || column.isEmpty()) && database.getDatabaseType() == DATABASE_TYPE.RDBMS) {
 			throw new IllegalArgumentException("Must define the column for the concept being added to the database metadata");
 		}
 		String dataType = this.keyValue.get(this.keysToGet[3]);

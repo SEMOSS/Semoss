@@ -77,7 +77,7 @@ public class WrapperManager {
 	public IRawSelectWrapper getRawWrapper(IDatabase engine, SelectQueryStruct qs, boolean delayExecIfPossible) throws Exception {
 		IRawSelectWrapper returnWrapper = null;
 		boolean genQueryString = true;
-		switch(engine.getEngineType()) {
+		switch(engine.getDatabaseType()) {
 			case SESAME : {
 				returnWrapper = new RawSesameSelectWrapper();
 				break;
@@ -190,7 +190,7 @@ public class WrapperManager {
 		}
 
 		if (returnWrapper == null) {
-			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getEngineType());
+			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getDatabaseType());
 		}
 
 		if(genQueryString) {
@@ -250,7 +250,7 @@ public class WrapperManager {
 	// TODO >>>timb: REST - here add another engine type REMOTE or REST
 	public IRawSelectWrapper getRawWrapper(IDatabase engine, String query) throws Exception {
 		IRawSelectWrapper returnWrapper = null;
-		switch(engine.getEngineType()) {
+		switch(engine.getDatabaseType()) {
 			case SESAME : {
 				returnWrapper = new RawSesameSelectWrapper();
 				break;
@@ -306,7 +306,7 @@ public class WrapperManager {
 		}
 
 		if (returnWrapper == null) {
-			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getEngineType());
+			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getDatabaseType());
 		}
 
 		logger.debug(returnWrapper.getClass() + " executing query: " + Utility.cleanLogString(query));
@@ -329,7 +329,7 @@ public class WrapperManager {
 	@Deprecated
 	public ISelectWrapper getSWrapper(IDatabase engine, String query) {
 		ISelectWrapper returnWrapper = null;
-		switch(engine.getEngineType()) {
+		switch(engine.getDatabaseType()) {
 			case SESAME : {
 				returnWrapper = new SesameSelectWrapper();
 				break;
@@ -352,7 +352,7 @@ public class WrapperManager {
 		}
 
 		if (returnWrapper == null) {
-			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getEngineType());
+			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getDatabaseType());
 		}
 
 		logger.debug(returnWrapper.getClass() + " executing query: " + query);
@@ -371,7 +371,7 @@ public class WrapperManager {
 	@Deprecated
 	public IConstructWrapper getCWrapper(IDatabase engine, String query) {
 		IConstructWrapper returnWrapper = null;
-		switch(engine.getEngineType())
+		switch(engine.getDatabaseType())
 		{
 			case SESAME : {
 				returnWrapper = new SesameConstructWrapper();
@@ -411,7 +411,7 @@ public class WrapperManager {
 	@Deprecated
 	public IConstructWrapper getChWrapper(IDatabase engine, String query) {
 		IConstructWrapper returnWrapper = null;
-		switch(engine.getEngineType())
+		switch(engine.getDatabaseType())
 		{
 			case SESAME : {
 				returnWrapper = new SesameSelectCheater();
@@ -435,7 +435,7 @@ public class WrapperManager {
 		}
 
 		if (returnWrapper == null) {
-			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getEngineType());
+			throw new NullPointerException("No wrapper has been identifier for engine of type " + engine.getDatabaseType());
 		}
 
 		returnWrapper.setEngine(engine);

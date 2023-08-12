@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.utils;
 import java.util.List;
 
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -30,18 +30,18 @@ public class CheckRecommendOptimizationReactor extends AbstractReactor {
 		databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 
 		IDatabase database = Utility.getDatabase(databaseId);
-		ENGINE_TYPE type = database.getEngineType();
+		DATABASE_TYPE dbType = database.getDatabaseType();
 		RDFFileSesameEngine owlEngine = null;
-		if (type.equals(ENGINE_TYPE.RDBMS)) {
+		if (dbType == DATABASE_TYPE.RDBMS) {
 			RDBMSNativeEngine eng = (RDBMSNativeEngine) database;
 			owlEngine = eng.getBaseDataEngine();
-		} else if (type.equals(ENGINE_TYPE.TINKER)) {
+		} else if (dbType == DATABASE_TYPE.TINKER) {
 			TinkerEngine eng = (TinkerEngine) database;
 			owlEngine = eng.getBaseDataEngine();
-		} else if (type.equals(ENGINE_TYPE.SESAME)) {
+		} else if (dbType == DATABASE_TYPE.SESAME) {
 			BigDataEngine eng = (BigDataEngine) database;
 			owlEngine = eng.getBaseDataEngine();
-		} else if (type.equals(ENGINE_TYPE.JENA)) {
+		} else if (dbType == DATABASE_TYPE.JENA) {
 			RDFFileSesameEngine eng = (RDFFileSesameEngine) database;
 			owlEngine = eng.getBaseDataEngine();
 		}

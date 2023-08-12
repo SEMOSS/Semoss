@@ -37,7 +37,6 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -158,7 +157,7 @@ public class ClusterEngine extends AbstractDatabase {
 	}
 
 	@Override
-	public ENGINE_TYPE getEngineType() {
+	public DATABASE_TYPE getDatabaseType() {
 		// TODO Auto-generated method stub
 		return null;
 	}
