@@ -31,11 +31,20 @@ public interface ICloudClient {
 
 	/**
 	 * 
-	 * @param appId
+	 * @param databaseId
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullApp(String appId) throws IOException, InterruptedException;
+	void pullDatabase(String databaseId) throws Exception;
+	
+	/**
+	 * 
+	 * @param databaseId
+	 * @param databaseAlreadyLoaded
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullDatabase(String databaseId, boolean databaseAlreadyLoaded) throws Exception; 
 	
 	/**
 	 * 
@@ -44,17 +53,8 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException;
+	void pullDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws Exception;
 
-	/**
-	 * 
-	 * @param appId
-	 * @param appAlreadyLoaded
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException; 
-	
 	/**
 	 * 
 	 * @param appId
