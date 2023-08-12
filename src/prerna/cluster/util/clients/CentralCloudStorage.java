@@ -488,9 +488,16 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void deleteApp(String appId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+	public void deleteApp(String databaseId) throws IOException, InterruptedException {
+		String sharedRCloneConfig = null;
+		if(storageEngine.canReuseRcloneConfig()) {
+			sharedRCloneConfig = storageEngine.createRCloneConfig();
+		}
+		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
+		String storageSmssFolder = DB_CONTAINER_PREFIX + databaseId + SMSS_POSTFIX;
+
+		storageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
+		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
 	}
 
 	@Override
