@@ -106,7 +106,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	public void deleteRcloneConfig(String rCloneConfig) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rCloneConfig);
 		try {
-			runRcloneDeleteFileProcess(rCloneConfig, "rclone", "config", "delete", rCloneConfig);
+			runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "config", "delete", rCloneConfig);
 		} finally {
 			new File(configPath).delete();
 		}
@@ -146,7 +146,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			if(!rClonePath.startsWith("\"")) {
 				rClonePath = "\""+rClonePath+"\"";
 			}
-			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+			List<String> results = runRcloneProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
 			return results;
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -182,7 +182,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			if(!rClonePath.startsWith("\"")) {
 				rClonePath = "\""+rClonePath+"\"";
 			}
-			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, "rclone", "lsjson", rClonePath, "--max-depth=1");
+			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, RCLONE, "lsjson", rClonePath, "--max-depth=1");
 			return results;
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -226,7 +226,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			if(!localPath.startsWith("\"")) {
 				localPath = "\""+localPath+"\"";
 			}
-			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", localPath, rClonePath);
+			runRcloneTransferProcess(rCloneConfig, RCLONE, "sync", localPath, rClonePath);
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -270,7 +270,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			if(!localPath.startsWith("\"")) {
 				localPath = "\""+localPath+"\"";
 			}
-			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rClonePath, localPath);
+			runRcloneTransferProcess(rCloneConfig, RCLONE, "sync", rClonePath, localPath);
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -313,7 +313,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			if(!localFilePath.startsWith("\"")) {
 				localFilePath = "\""+localFilePath+"\"";
 			}
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", localFilePath, rClonePath);
+			runRcloneTransferProcess(rCloneConfig, RCLONE, "copy", localFilePath, rClonePath);
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -356,7 +356,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			if(!localFolderPath.startsWith("\"")) {
 				localFolderPath = "\""+localFolderPath+"\"";
 			}
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rClonePath, localFolderPath);
+			runRcloneTransferProcess(rCloneConfig, RCLONE, "copy", rClonePath, localFolderPath);
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -394,15 +394,15 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			
 			if(leaveFolderStructure) {
 				// always do delete
-				runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
+				runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "delete", rClonePath);
 			} else {
 				// we can only do purge on a folder
 				// so need to check
-				List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rClonePath);
+				List<String> results = runRcloneProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
 				if(results.size() == 1 && !results.get(0).endsWith("/")) {
-					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "delete", rClonePath);
+					runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "delete", rClonePath);
 				} else {
-					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "purge", rClonePath);
+					runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "purge", rClonePath);
 				}
 			}
 		} finally {
