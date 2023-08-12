@@ -98,7 +98,7 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 			if (database == null) {
 				throw new IllegalArgumentException("Couldn't find the database " + databaseId + " to append data into");
 			}
-			if(database.getEngineType() != IDatabase.ENGINE_TYPE.R) {
+			if(database.getDatabaseType() != IDatabase.DATABASE_TYPE.R) {
 				throw new IllegalArgumentException("Database must be an existing R database");
 			}
 			logger.info("Done");

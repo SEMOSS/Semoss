@@ -93,7 +93,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 * Load Data
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
-		Owler owler = new Owler(owlFile.getAbsolutePath(), this.database.getEngineType());
+		Owler owler = new Owler(owlFile.getAbsolutePath(), this.database.getDatabaseType());
 		importFileRDBMS((RDBMSNativeEngine) this.database, owler, filePath);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;

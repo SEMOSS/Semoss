@@ -12,10 +12,10 @@ public class MetadataUtility {
 		
 	}
 	
-	public static boolean ignoreConceptData(IDatabase.ENGINE_TYPE type) {
-		return type == IDatabase.ENGINE_TYPE.RDBMS
-				|| type == IDatabase.ENGINE_TYPE.R
-				|| type == IDatabase.ENGINE_TYPE.IMPALA
+	public static boolean ignoreConceptData(IDatabase.DATABASE_TYPE type) {
+		return type == IDatabase.DATABASE_TYPE.RDBMS
+				|| type == IDatabase.DATABASE_TYPE.R
+				|| type == IDatabase.DATABASE_TYPE.IMPALA
 //				|| type == IDatabase.ENGINE_TYPE.JMES_API
 				;
 	}
@@ -28,7 +28,7 @@ public class MetadataUtility {
 		if(eType.equals("RDF")) {
 			eType = "SESAME";
 		}
-		return ignoreConceptData(IDatabase.ENGINE_TYPE.valueOf(eType));
+		return ignoreConceptData(IDatabase.DATABASE_TYPE.valueOf(eType));
 	}
 	
 	/**

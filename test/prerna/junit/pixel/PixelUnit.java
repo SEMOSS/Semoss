@@ -69,7 +69,6 @@ import prerna.configure.Me;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.forms.AbstractFormBuilder;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -701,7 +700,7 @@ public class PixelUnit {
 	}
 
 	private static boolean isRelationalDatabase(IDatabase engine) {
-		return engine != null && engine.getEngineType().equals(ENGINE_TYPE.RDBMS);
+		return engine != null && engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS;
 	}
 
 	//////////////////////////////////////////////////////////////////////

@@ -289,8 +289,8 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 	}
 
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return IDatabase.ENGINE_TYPE.RDBMS;
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabase.DATABASE_TYPE.RDBMS;
 	}
 
 	@Override

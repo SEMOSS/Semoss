@@ -58,22 +58,22 @@ public class AbstractEngineCreator {
 	
 	protected void openRdfEngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewRdfEngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.SESAME, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.SESAME, this.customBaseURI);
 	}
 	
 	protected void openRdbmsEngineWithoutConnection(String appName, String engineID) throws Exception {
 		createNewRDBMSEngine(appName, engineID);
-		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.RDBMS, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
 	protected void openTinkerEngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewTinkerEngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.SESAME, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.SESAME, this.customBaseURI);
 	}
 	
 	protected void openREngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewREngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.SESAME, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.SESAME, this.customBaseURI);
 	}
 	
 	private void createNewRDBMSEngine(String appName, String appID) throws Exception {
@@ -139,7 +139,7 @@ public class AbstractEngineCreator {
 	//added for connect to external RDBMS workflow
 	protected void generateEngineFromRDBMSConnection(String schema, String appName, String appID) throws Exception {
 		connectToExternalRDBMSEngine(schema,appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabase.ENGINE_TYPE.RDBMS, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
 //	//added for connect to external Impala workflow
@@ -241,8 +241,8 @@ public class AbstractEngineCreator {
 	 * 
 	 * @throws EngineException
 	 */
-	protected void openOWLWithOutConnection(String owlFile, IDatabase.ENGINE_TYPE type, String customBaseURI) {
-		owler = new Owler(owlFile, type);
+	protected void openOWLWithOutConnection(String owlFile, IDatabase.DATABASE_TYPE dbType, String customBaseURI) {
+		owler = new Owler(owlFile, dbType);
 		owler.addCustomBaseURI(customBaseURI);
 	}
 

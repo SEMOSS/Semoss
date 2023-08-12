@@ -26,8 +26,8 @@ public class JanusEngine extends TinkerEngine {
 	}
 	
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return IDatabase.ENGINE_TYPE.JANUS_GRAPH;
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabase.DATABASE_TYPE.JANUS_GRAPH;
 	}
 
 }

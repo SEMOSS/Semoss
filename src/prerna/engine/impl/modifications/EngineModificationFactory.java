@@ -1,7 +1,7 @@
 package prerna.engine.impl.modifications;
 
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.IEngineModifier;
 
 public class EngineModificationFactory {
@@ -11,10 +11,10 @@ public class EngineModificationFactory {
 	}
 	
 	public static IEngineModifier getEngineModifier(IDatabase engine) {
-		ENGINE_TYPE eType = engine.getEngineType();
+		DATABASE_TYPE dbType = engine.getDatabaseType();
 		
 		IEngineModifier modifier = null;
-		if(eType == ENGINE_TYPE.RDBMS) {
+		if(dbType == DATABASE_TYPE.RDBMS) {
 			modifier = new RdbmsModifier();
 		}
 		

@@ -71,7 +71,7 @@ public class RDFEngineHelper {
 	{
 		String conceptHierarchyForSubject = "" ;
 
-		if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			conceptHierarchyForSubject = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{" +
@@ -80,7 +80,7 @@ public class RDFEngineHelper {
 					"} BINDINGS ?Subject { " + subjects + objects + " } " +
 					"";
 		}
-		else if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
+		else if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
 		{
 			conceptHierarchyForSubject = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{VALUES ?Subject {" + subjects + objects + "}" +
@@ -104,7 +104,7 @@ public class RDFEngineHelper {
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
 
-		if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{" +
@@ -113,7 +113,7 @@ public class RDFEngineHelper {
 					"} BINDINGS ?Subject { " + predicates + " } " +
 					"";// relation hierarchy		
 		}
-		else if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
+		else if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{ VALUES ?Subject {" + predicates + "}" + 
@@ -138,7 +138,7 @@ public class RDFEngineHelper {
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
 
-		if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{" +
@@ -147,7 +147,7 @@ public class RDFEngineHelper {
 					"} BINDINGS ?Subject { " + predicates + " } " +
 					"";// relation hierarchy
 		}
-		else if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
+		else if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{ VALUES ?Subject {" + predicates + "}" + 
@@ -173,7 +173,7 @@ public class RDFEngineHelper {
 	{
 
 		String propertyQuery = "";
-		if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME|| fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME|| fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			propertyQuery = "CONSTRUCT { ?Subject ?Predicate ?Object . ?Predicate ?type ?contains} WHERE {" +
 					"BIND(<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> AS ?type)"+
@@ -183,7 +183,7 @@ public class RDFEngineHelper {
 					"{?Subject ?Predicate ?Object}}" +
 					"BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects + " }";
 		}
-		else if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
+		else if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
 		{
 			propertyQuery = "CONSTRUCT { ?Subject ?Predicate ?Object. ?Predicate ?type ?contains} WHERE {" +
 					"VALUES ?Subject {" + subjects + " " + predicates + " " + objects + "}" +
@@ -298,7 +298,7 @@ public class RDFEngineHelper {
 //		// loads all of the labels
 //		// http://www.w3.org/2000/01/rdf-schema#label
 //		String labelQuery = "";
-//		if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+//		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 //		{			
 //			labelQuery = "SELECT DISTINCT ?Subject ?Label WHERE " +
 //					"{" +
@@ -306,7 +306,7 @@ public class RDFEngineHelper {
 //					"} BINDINGS ?Subject { " + subjects + " } " +
 //					"";
 //		}
-//		else if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
+//		else if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
 //		{
 //			labelQuery = "SELECT DISTINCT ?Subject ?Label WHERE " +
 //					"{VALUES ?Subject {" + subjects + "}" +
@@ -402,7 +402,7 @@ public class RDFEngineHelper {
 		sjsc.execute();
 		*/
 		
-		if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			try {
 				toRC.add(((SesameConstructWrapper)sjsc).gqr); // abstraction leak
@@ -441,7 +441,7 @@ public class RDFEngineHelper {
 		sjsc.setQuery(constructAllQuery);
 		sjsc.execute();
 		 */
-		if(fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			try {
 				toRC.remove(((SesameConstructWrapper)sjsc).gqr);

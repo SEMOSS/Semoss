@@ -17,14 +17,14 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.json.JsonAPIEngine;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class WebScrapeEngine extends JsonAPIEngine {
 
 	private static final Logger logger = LogManager.getLogger(WebScrapeEngine.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	// override execute query and get enginetype etc. 
 	
@@ -47,11 +47,9 @@ public class WebScrapeEngine extends JsonAPIEngine {
 	
 	
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return prerna.engine.api.IDatabase.ENGINE_TYPE.WEB;
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabase.DATABASE_TYPE.WEB;
 	}
-
-	
 	
 	@Override
 	public Object execQuery(String query) 
@@ -138,9 +136,9 @@ public class WebScrapeEngine extends JsonAPIEngine {
 			retHash.put("TYPES", types);
 			
 		} catch (NumberFormatException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 		return retHash;
 	}
@@ -197,7 +195,7 @@ public class WebScrapeEngine extends JsonAPIEngine {
 				headers = collectHeaders(firstRow);
 			}
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		}
 
 		return headers;
@@ -221,7 +219,7 @@ public class WebScrapeEngine extends JsonAPIEngine {
 
 			tables = doc.getElementsByTag("table").size();
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		}
 
 		return tables;

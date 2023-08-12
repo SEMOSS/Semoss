@@ -33,7 +33,7 @@ public class OpenProjectReactor extends AbstractReactor {
 			Map<String, Object> returnMap = new HashMap<String, Object>();
 			returnMap.put("project_name", "NEWSEMOSSAPP");
 			returnMap.put("project_id", projectId);
-			returnMap.put("project_type", IDatabase.ENGINE_TYPE.APP.toString());
+			returnMap.put("project_type", IDatabase.DATABASE_TYPE.APP.toString());
 			returnMap.put("project_cost", "");	
 			return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_DATABASE);
 		}

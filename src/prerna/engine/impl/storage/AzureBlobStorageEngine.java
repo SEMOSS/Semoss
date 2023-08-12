@@ -158,6 +158,11 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 		
 		return rcloneConfig;
 	}
+	
+	@Override
+	public boolean canReuseRcloneConfig() {
+		return !this.generateDynamicSAS;
+	}
 
 
 	@Override
