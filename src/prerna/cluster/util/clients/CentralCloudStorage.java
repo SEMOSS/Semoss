@@ -11,9 +11,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
@@ -26,6 +28,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
+import prerna.util.ProjectSyncUtility;
 import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -426,7 +429,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 	
 	@Override
-	public void pullDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
+	public void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
 		if (rdbmsType != RdbmsTypeEnum.SQLITE
 				&& rdbmsType != RdbmsTypeEnum.H2_DB) {
 			throw new IllegalArgumentException("Unallowed database type. Must be either SQLITE or H2");
@@ -488,52 +491,133 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void deleteApp(String databaseId) throws IOException, InterruptedException {
-		String sharedRCloneConfig = null;
-		if(storageEngine.canReuseRcloneConfig()) {
-			sharedRCloneConfig = storageEngine.createRCloneConfig();
-		}
-		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
+	public void pushDatabaseSmss(String databaseId) throws Exception {
+		// We need to push the file alias__appId.smss
+		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
+		String localSmssFileName = SmssUtilities.getUniqueName(databaseName, databaseId) + ".smss";
+		String localSmssFilePath = Utility.normalizePath(DATABASE_FOLDER + FILE_SEPARATOR + localSmssFileName);
+		
 		String storageSmssFolder = DB_CONTAINER_PREFIX + databaseId + SMSS_POSTFIX;
 
-		storageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
-		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
+		// synchronize on the app id
+		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to push database");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
+		lock.lock();
+		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
+		try {
+			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+		} finally {
+			lock.unlock();
+			classLogger.info("Database " + aliasAndDatabaseId + " is unlocked");
+		}
 	}
 
 	@Override
-	public void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pushOwl(String databaseId) throws Exception {
+		IDatabase database = Utility.getDatabase(databaseId, false);
+		if (database == null) {
+			throw new IllegalArgumentException("Database not found...");
+		}
 		
-	}
-
-	@Override
-	public List<String> listAllBlobContainers() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void deleteContainer(String containerId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		// We need to push the file alias__appId.smss
+		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
+		File localOwlF = SmssUtilities.getOwlFile(database.getSmssProp());
+		String localOwlFile = localOwlF.getAbsolutePath();
+		String localOwlPositionFile = localOwlF.getParent() + "/" + AbstractDatabase.OWL_POSITION_FILENAME;
+		boolean hasPositionFile = new File(localOwlPositionFile).exists();
 		
+		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
+
+		String sharedRCloneConfig = null;
+
+		// synchronize on the app id
+		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to push database owl and postions.json");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
+		lock.lock();
+		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
+		try {
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+			//close the owl
+			database.getBaseDataEngine().close();
+			storageEngine.copyToStorage(localOwlFile, storageDatabaseFolder, sharedRCloneConfig);
+			if(hasPositionFile) {
+				storageEngine.copyToStorage(localOwlPositionFile, storageDatabaseFolder, sharedRCloneConfig);
+			}
+		} finally {
+			try {
+				database.setOWL(localOwlFile);
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Database "+ aliasAndDatabaseId + " is unlocked");
+		}
 	}
 
 	@Override
-	public void pushOwl(String appId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pullOwl(String databaseId) throws Exception {
+		IDatabase database = Utility.getDatabase(databaseId, false);
+		if (database == null) {
+			throw new IllegalArgumentException("Database not found...");
+		}
 		
-	}
+		// We need to push the file alias__appId.smss
+		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
+		String localDatabaseFolder = DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
 
-	@Override
-	public void pullOwl(String appId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		File localOwlF = SmssUtilities.getOwlFile(database.getSmssProp());
+		String localOwlFile = localOwlF.getAbsolutePath();
+		String owlFileName = localOwlF.getName();
 		
-	}
+		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
+		String storageDatabaseOwl = storageDatabaseFolder + "/" + owlFileName;
+		String storageDatabaseOwlPosition = storageDatabaseFolder + "/" + AbstractDatabase.OWL_POSITION_FILENAME;
+		
+		String sharedRCloneConfig = null;
 
-	@Override
-	public String createRcloneConfig() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
+		// synchronize on the app id
+		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to pull database owl and postions.json");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
+		lock.lock();
+		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
+		try {
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+			//close the owl
+			database.getBaseDataEngine().close();
+			storageEngine.copyToLocal(storageDatabaseOwl, localDatabaseFolder);
+			storageEngine.copyToLocal(storageDatabaseOwlPosition, localDatabaseFolder);
+		} finally {
+			try {
+				database.setOWL(localOwlFile);
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Database "+ aliasAndDatabaseId + " is unlocked");
+		}
 	}
 
 	@Override
@@ -547,17 +631,18 @@ public class CentralCloudStorage implements ICloudClient {
 		// TODO Auto-generated method stub
 		
 	}
-
+	
 	@Override
-	public void pullProjectImageFolder() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
+	public void deleteDatabase(String databaseId) throws IOException, InterruptedException {
+		String sharedRCloneConfig = null;
+		if(storageEngine.canReuseRcloneConfig()) {
+			sharedRCloneConfig = storageEngine.createRCloneConfig();
+		}
+		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
+		String storageSmssFolder = DB_CONTAINER_PREFIX + databaseId + SMSS_POSTFIX;
 
-	@Override
-	public void pushProjectImageFolder() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+		storageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
+		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
 	}
 
 	@Override
@@ -565,13 +650,7 @@ public class CentralCloudStorage implements ICloudClient {
 		// TODO Auto-generated method stub
 		
 	}
-
-	@Override
-	public void pushProjectSmss(String projectId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
-
+	
 	@Override
 	public void pullProject(String projectId) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
@@ -580,6 +659,42 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullProject(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public void pushProjectSmss(String projectId) throws Exception {
+		// We need to push the file alias__appId.smss
+		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
+		String localSmssFileName = SmssUtilities.getUniqueName(projectName, projectId) + ".smss";
+		String localSmssFilePath = Utility.normalizePath(PROJECT_FOLDER + FILE_SEPARATOR + localSmssFileName);
+		
+		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
+
+		// synchronize on the app id
+		classLogger.info("Applying lock for " + aliasAndProjectId + " to push project smss");
+		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+		lock.lock();
+		classLogger.info("Project " + aliasAndProjectId + " is locked");
+		try {
+			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+		} finally {
+			lock.unlock();
+			classLogger.info("Project " + aliasAndProjectId + " is unlocked");
+		}
+		
+	}
+	
+	@Override
+	public void pullProjectImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushProjectImageFolder() throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		
 	}
@@ -760,6 +875,25 @@ public class CentralCloudStorage implements ICloudClient {
 		throw new IllegalArgumentException("There is no insight database for project: " + project.getProjectName());
 	}
 	
+	@Override
+	public List<String> listAllBlobContainers() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void deleteContainer(String containerId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String createRcloneConfig() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
@@ -789,7 +923,7 @@ public class CentralCloudStorage implements ICloudClient {
 		ICloudClient centralStorage = CentralCloudStorage.getInstance();
 		centralStorage.pushDatabase("56af9395-64fd-40a2-b68c-bbd6961336a5");
 		centralStorage.pullDatabase("56af9395-64fd-40a2-b68c-bbd6961336a5", true);
-		centralStorage.pullDatabaseFile("56af9395-64fd-40a2-b68c-bbd6961336a5", RdbmsTypeEnum.H2_DB);
+		centralStorage.pullLocalDatabaseFile("56af9395-64fd-40a2-b68c-bbd6961336a5", RdbmsTypeEnum.H2_DB);
 	}
 
 }

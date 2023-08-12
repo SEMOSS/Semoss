@@ -192,35 +192,35 @@ public class AZClient extends AbstractCloudClient {
 	}
 	
 	@Override
-	public void pullOwl(String appId) throws IOException, InterruptedException{
-		IDatabase engine = Utility.getDatabase(appId, false);
-		if (engine == null) {
+	public void pullOwl(String databaseId) throws IOException, InterruptedException{
+		IDatabase database = Utility.getDatabase(databaseId, false);
+		if (database == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
 		String appRcloneConfig = null;
 		File owlFile = null;
-		String alias = SecurityEngineUtils.getEngineAliasForId(appId);
-		String aliasAppId = alias + "__" + appId;
+		String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String aliasAppId = alias + "__" + databaseId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		classLogger.info("Applying lock for " + appId + " to pull owl");
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		classLogger.info("Applying lock for " + databaseId + " to pull owl");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
-		classLogger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ databaseId + " is locked");
 
 		try {
-			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
+			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + databaseId);
 			//close the owl
-			engine.getBaseDataEngine().close();
-			owlFile = new File(engine.getProperty(Constants.OWL));
+			database.getBaseDataEngine().close();
+			owlFile = new File(database.getProperty(Constants.OWL));
 
-			classLogger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + appId);
+			classLogger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + databaseId);
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX +appId+"/"+ owlFile.getName(), appFolder);
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX + appId+"/"+ AbstractDatabase.OWL_POSITION_FILENAME, appFolder);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX +databaseId+"/"+ owlFile.getName(), appFolder);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX + databaseId+"/"+ AbstractDatabase.OWL_POSITION_FILENAME, appFolder);
 
 		}  finally {
 			try {
@@ -229,49 +229,49 @@ public class AZClient extends AbstractCloudClient {
 				}
 				//open the owl
 				if(owlFile!=null && owlFile.exists()) {
-					engine.setOWL(owlFile.getAbsolutePath());
+					database.setOWL(owlFile.getAbsolutePath());
 				} else {
-					throw new IllegalArgumentException("Pull failed. OWL for engine " + appId + " was not found");
+					throw new IllegalArgumentException("Pull failed. OWL for engine " + databaseId + " was not found");
 				}
 			} finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				classLogger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ databaseId + " is unlocked");
 			}
 		}
 	}
 
 	@Override
-	public void pushOwl(String appId) throws IOException, InterruptedException{
-		IDatabase engine = Utility.getDatabase(appId, false);
-		if (engine == null) {
+	public void pushOwl(String databaseId) throws IOException, InterruptedException{
+		IDatabase database = Utility.getDatabase(databaseId, false);
+		if (database == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
 		String appRcloneConfig = null;
 		File owlFile = null;
-		String alias = SecurityEngineUtils.getEngineAliasForId(appId);
-		String aliasAppId = alias + "__" + appId;
+		String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String aliasAppId = alias + "__" + databaseId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		classLogger.info("Applying lock for " + appId + " to push owl");
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		classLogger.info("Applying lock for " + databaseId + " to push owl");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
-		classLogger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ databaseId + " is locked");
 		try {
-			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
+			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + databaseId);
 			//close the owl
-			engine.getBaseDataEngine().close();
-			owlFile = new File(engine.getProperty(Constants.OWL));
+			database.getBaseDataEngine().close();
+			owlFile = new File(database.getProperty(Constants.OWL));
 
-			classLogger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + appId);
+			classLogger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + databaseId);
 
 
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId);			 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractDatabase.OWL_POSITION_FILENAME, appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId);			 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), appRcloneConfig + ":" + DB_CONTAINER_PREFIX + databaseId);			 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractDatabase.OWL_POSITION_FILENAME, appRcloneConfig + ":" + DB_CONTAINER_PREFIX + databaseId);			 
 
 
 		}  finally {
@@ -281,15 +281,15 @@ public class AZClient extends AbstractCloudClient {
 				}
 				//open the owl
 				if(owlFile!=null && owlFile.exists()) {
-					engine.setOWL(owlFile.getAbsolutePath());
+					database.setOWL(owlFile.getAbsolutePath());
 				} else {
-					throw new IllegalArgumentException("Push failed. OWL for engine " + appId + " was not found");
+					throw new IllegalArgumentException("Push failed. OWL for engine " + databaseId + " was not found");
 				}
 			}
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				classLogger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ databaseId + " is unlocked");
 			}
 		}
 	}
@@ -502,7 +502,7 @@ public class AZClient extends AbstractCloudClient {
 	}
 	
 	@Override
-	public void pullDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
+	public void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
 		IDatabase engine = Utility.getDatabase(databaseId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("Database not found...");
@@ -1735,7 +1735,7 @@ public class AZClient extends AbstractCloudClient {
 
 	// TODO >>>timb: test out delete functionality
 	@Override
-	public void deleteApp(String appId) throws IOException, InterruptedException {
+	public void deleteDatabase(String appId) throws IOException, InterruptedException {
 		String rcloneConfig = Utility.getRandomString(10);
 		try {
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);

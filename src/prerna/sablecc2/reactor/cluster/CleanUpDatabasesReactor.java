@@ -125,11 +125,11 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 						
 						// Delete from cluster
 						try {
-							AbstractCloudClient.getClient().deleteApp(databaseId);
+							AbstractCloudClient.getClient().deleteDatabase(databaseId);
 							
 							// Successful cleanup
 							removedAppsMap.put(key, "removed");
-						} catch (IOException | InterruptedException e) {
+						} catch (Exception e) {
 							logger.error(STACKTRACE, e);
 							// Partially successful cleanup
 							removedAppsMap.put(key, "removed from security and local master, but failed to remove from cloud storage");
