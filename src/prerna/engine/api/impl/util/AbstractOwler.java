@@ -46,7 +46,7 @@ public abstract class AbstractOwler {
 	protected Set<String> pixelNames = new HashSet<String>();
 	// need to know the database type due to differences in URIs when the
 	// database is RDF vs. RDBMS
-	protected IDatabase.ENGINE_TYPE type = null;
+	protected IDatabase.DATABASE_TYPE type = null;
 	
 	
 	// the engine here is a wrapper around a RDFFileSesameEngine which helps with adding the URIs into the engine
@@ -59,7 +59,7 @@ public abstract class AbstractOwler {
 	 * @param fileName				The location of the new OWL file
 	 * @param type					The type of the engine the OWL file is being created for
 	 */
-	public AbstractOwler(String owlPath, IDatabase.ENGINE_TYPE type) {
+	public AbstractOwler(String owlPath, IDatabase.DATABASE_TYPE type) {
 		this.owlPath = owlPath;
 		this.type = type;
 
@@ -79,7 +79,7 @@ public abstract class AbstractOwler {
 	 */
 	public AbstractOwler(IDatabase existingEngine) {
 		this.owlPath = existingEngine.getOWL();
-		this.type = existingEngine.getEngineType();
+		this.type = existingEngine.getDatabaseType();
 		engine = new BaseDatabaseCreator(existingEngine, owlPath);
 	}
 

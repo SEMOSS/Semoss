@@ -135,7 +135,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 				if(paramQuery != null && !paramQuery.isEmpty()) {
 					//TODO: rdbms has type as null... this is confusing given the other comments here....
 					if(type != null && !type.isEmpty()) {
-						if (mainEngine.getEngineType().equals(IDatabase.ENGINE_TYPE.RDBMS)) {
+						if (mainEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS) {
 							if (type.contains(":")) {
 								String[] typeArray = type.split(":");
 								type = typeArray[1];

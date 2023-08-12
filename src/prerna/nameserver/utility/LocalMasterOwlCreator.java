@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Utility;
@@ -98,7 +98,7 @@ public class LocalMasterOwlCreator {
 	 * @throws IOException
 	 */
 	private void writeNewOwl(String owlLocation) throws IOException {
-		Owler owler = new Owler(owlLocation, ENGINE_TYPE.RDBMS);
+		Owler owler = new Owler(owlLocation, DATABASE_TYPE.RDBMS);
 
 		// BITLY
 		owler.addConcept("BITLY", null, null);

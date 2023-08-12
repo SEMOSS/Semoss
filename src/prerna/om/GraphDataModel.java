@@ -232,8 +232,8 @@ public class GraphDataModel implements IDataMaker {
 			RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this, subclassCreate);
 			RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
 
-			boolean isRDF = (engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA || 
-					engine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+			boolean isRDF = (engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA || 
+					engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
 
 			String baseConceptSelectQuery = null;
 			// the queries below needs to be instrumented later to come from engine
@@ -255,7 +255,7 @@ public class GraphDataModel implements IDataMaker {
 							"BIND(\"\" AS ?Object)" +
 							"}";
 			}
-			else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS)
+			else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
 			{
 				// change the query here
 				baseConceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {"
@@ -297,7 +297,7 @@ public class GraphDataModel implements IDataMaker {
 
 
 			}
-			else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS)
+			else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
 			{
 				predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {"
 						+ "{?Subject ?Predicate ?Object} "
@@ -384,26 +384,26 @@ public class GraphDataModel implements IDataMaker {
 				//predData.addPredicateAvailable(st.getPredicate());//, st.getPredicate());
 
 				if(subjects.indexOf("(<" + st.getSubject() + ">)") < 0) {
-					if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || engine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE || engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS) // RDBMS because the the in memory is RDBMS
+					if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS) // RDBMS because the the in memory is RDBMS
 						subjects.append("(<").append(st.getSubject()).append(">)");
-					else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
+					else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
 						subjects.append("<").append(st.getSubject()).append(">");
 					// do the block for RDBMS - For RDBMS - What I really need are the instances - actually I dont need anything
 				}
 
 				if(predicates.indexOf("(<" + st.getPredicate() +">)") < 0) {
-					if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || engine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE || engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS)
+					if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
 						predicates.append("(<").append(st.getPredicate()).append(">)");
-					else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
+					else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
 						predicates.append("<").append(st.getPredicate()).append(">");
 				}
 
 				//TODO: need to find a way to do this for jena too
 				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal)) {			
 					if(objects.indexOf("(<" + obj +">)") < 0) {
-						if(engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || engine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE || engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS)
+						if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
 							objects.append("(<" + obj +">)");
-						else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA)
+						else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
 							objects.append("<" + obj +">");
 					}
 				}
@@ -427,8 +427,8 @@ public class GraphDataModel implements IDataMaker {
 				logger.info("done with processing base data");
 				// load the concept linkages
 				// the concept linkages are a combination of the base relationships and what is on the file
-				boolean isRDF = (engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA || 
-						engine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+				boolean isRDF = (engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA || 
+						engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
 				boolean loadHierarchy = !(subjects.length()==0 && predicates.length()==0 && objects.length()==0) && isRDF; // Load Hierarchy if and only if this is a RDF Engine - else dont worry about it
 				if(loadHierarchy) {
 					try {

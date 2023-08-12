@@ -246,14 +246,10 @@ public class RDFFileSesameEngine extends AbstractDatabase {
 		return null;
 	}
 
-	/**
-	 * Gets the type of the engine.  The engine type is often used to determine what API to use while running queries against the 
-	 * engine.
-
-	 * @return the type of the engine */
-	public ENGINE_TYPE getEngineType()
+	@Override
+	public DATABASE_TYPE getDatabaseType()
 	{
-		return IDatabase.ENGINE_TYPE.SESAME;
+		return IDatabase.DATABASE_TYPE.SESAME;
 	}
 
 	/**

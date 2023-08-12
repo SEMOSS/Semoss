@@ -236,7 +236,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	 */
 	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
-		maker.makeFlatOwl(dataFile, owlFile, getEngineType(), true);
+		maker.makeFlatOwl(dataFile, owlFile, getDatabaseType(), true);
 		if(owlFile.equals("REMAKE")) {
 			try {
 				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
@@ -398,7 +398,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	@Override
 	public void setBaseDataEngine(RDFFileSesameEngine baseDataEngine) {
 		this.baseDataEngine = baseDataEngine;
-		this.owlHelper = new MetaHelper(this.baseDataEngine, getEngineType(), this.engineId);
+		this.owlHelper = new MetaHelper(this.baseDataEngine, getDatabaseType(), this.engineId);
 	}
 
 	/**
@@ -421,7 +421,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	public void setOWL(String owl) {
 		this.owlFileLocation = owl;
 		createBaseRelationEngine();
-		this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineId);
+		this.owlHelper = new MetaHelper(baseDataEngine, getDatabaseType(), this.engineId);
 	}
 
 	/**
@@ -1080,7 +1080,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return this.getEngineType().toString();
+		return getDatabaseType().toString();
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////

@@ -327,7 +327,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating database metadata...");
-		Owler owler = new Owler(owlFile.getAbsolutePath(), database.getEngineType());
+		Owler owler = new Owler(owlFile.getAbsolutePath(), database.getDatabaseType());
 		// get the existing datatypes
 		// table names -> column name, column type
 		Set<String> cleanTables = new HashSet<String>();

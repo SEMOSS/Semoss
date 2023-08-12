@@ -92,8 +92,8 @@ public class DataStaxGraphEngine extends AbstractDatabase {
 	}
 	
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return ENGINE_TYPE.DATASTAX_GRAPH;
+	public DATABASE_TYPE getDatabaseType() {
+		return DATABASE_TYPE.DATASTAX_GRAPH;
 	}
 	
 	

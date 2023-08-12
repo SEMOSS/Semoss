@@ -107,13 +107,9 @@ public class InMemoryJenaEngine extends AbstractDatabase {
 
 	}
 	
-	/**
-	 * Gets the type of the engine.  The engine type is often used to determine what API to use while running queries against the 
-	 * engine.	
-	 * @return the type of the engine */
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return ENGINE_TYPE.JENA;
+	public DATABASE_TYPE getDatabaseType() {
+		return DATABASE_TYPE.JENA;
 	}
 
 	/**

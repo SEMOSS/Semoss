@@ -16,7 +16,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
@@ -406,11 +406,11 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 
-		ENGINE_TYPE engineType = engine.getEngineType();
+		DATABASE_TYPE engineType = engine.getDatabaseType();
 
 		// We need to push the folder alias__appId and the file alias__appId.smss
 		String alias = null;
-		if (engineType == ENGINE_TYPE.APP) {
+		if (engineType == DATABASE_TYPE.APP) {
 			alias = engine.getEngineName();
 		} else {
 			alias = SecurityEngineUtils.getEngineAliasForId(appId);

@@ -24,16 +24,19 @@ public class ImpalaEngine extends RDBMSNativeEngine {
 	 * 
 	 */
 	
+	@Deprecated
 	public ImpalaEngine() {
 		
 	}
 	
+	@Deprecated
 	public IQueryInterpreter getQueryInterpreter(){
 		return new ImpalaSqlInterpreter(this);
 	}
 	
-	public ENGINE_TYPE getEngineType() {
-		return IDatabase.ENGINE_TYPE.IMPALA;
+	@Deprecated
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabase.DATABASE_TYPE.IMPALA;
 	}
 
 }
