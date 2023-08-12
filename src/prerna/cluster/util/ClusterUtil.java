@@ -214,8 +214,8 @@ public class ClusterUtil {
 	public static void reactorPushDatabase(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushApp(appId);
-			} catch (IOException | InterruptedException e) {
+				AbstractCloudClient.getClient().pushDatabase(appId);
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push app to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
