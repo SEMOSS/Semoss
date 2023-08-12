@@ -1,6 +1,5 @@
 package prerna.cluster.util;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,14 +65,14 @@ public class PushAppsReactor extends AbstractReactor{
 				if(!cleanedNames.contains(appId)){
 					pushedApps.put(appId, "pushed");
 					if(!dryRun){
-					cc.pushApp(appId);
+						cc.pushDatabase(appId);
 					}
 				} else{
 					pushedApps.put(appId, "Already exists");
 				}
 			}
 			
-		} catch (IOException | InterruptedException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
