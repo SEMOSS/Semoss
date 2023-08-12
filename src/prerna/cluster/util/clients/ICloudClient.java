@@ -53,60 +53,32 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws Exception;
+	void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws Exception;
 
+	/**
+	 * Push only the SMSS file for a database
+	 * 
+	 * @param databaseId
+	 * @throws Exception 
+	 */
+	void pushDatabaseSmss(String databaseId) throws Exception;
+	
 	/**
 	 * 
-	 * @param appId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void deleteApp(String appId) throws IOException, InterruptedException;
-
-	/**
-	 * Push only the smss file for an engine
 	 * @param databaseId
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException;
-	
-	@Deprecated
-	// TODO: need to make sep for db and project
-	List<String> listAllBlobContainers() throws IOException, InterruptedException; 
+	void pushOwl(String databaseId) throws Exception;
 
 	/**
 	 * 
-	 * @param containerId
+	 * @param databaseId
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void deleteContainer(String containerId) throws IOException, InterruptedException; 
+	void pullOwl(String databaseId) throws Exception;
 
-	/**
-	 * 
-	 * @param appId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushOwl(String appId)  throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @param appId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullOwl(String appId)  throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @return
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	String  createRcloneConfig() throws IOException, InterruptedException;
-	
 	/**
 	 * 
 	 * @throws IOException
@@ -123,17 +95,11 @@ public interface ICloudClient {
 	
 	/**
 	 * 
+	 * @param databaseId
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullProjectImageFolder() throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushProjectImageFolder() throws IOException, InterruptedException;
+	void deleteDatabase(String databaseId) throws Exception;
 	
 	/**
 	 * 
@@ -142,14 +108,6 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pushProject(String projectId) throws IOException, InterruptedException;
-	
-	/**
-	 * 
-	 * @param projectId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushProjectSmss(String projectId) throws IOException, InterruptedException;
 	
 	/**
 	 * 
@@ -167,6 +125,28 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pullProject(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException; 
+	
+	/**
+	 * Push only the smss file for a project
+	 * 
+	 * @param projectId
+	 * @throws Exception 
+	 */
+	void pushProjectSmss(String projectId) throws Exception;
+	
+	/**
+	 * 
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullProjectImageFolder() throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pushProjectImageFolder() throws IOException, InterruptedException;
 	
 	/**
 	 * 
@@ -308,4 +288,23 @@ public interface ICloudClient {
 	void fixLegacyUserAssetStructure(String appId, boolean isAsset) throws IOException, InterruptedException;
 
 	
+	@Deprecated
+	// TODO: need to make sep for db and project
+	List<String> listAllBlobContainers() throws IOException, InterruptedException; 
+
+	/**
+	 * 
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	String createRcloneConfig() throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param containerId
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void deleteContainer(String containerId) throws IOException, InterruptedException; 
 }
