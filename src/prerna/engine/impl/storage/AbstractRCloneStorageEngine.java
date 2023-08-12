@@ -97,6 +97,11 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		deleteFromStorage(storagePath, leaveFolderStructure, null);
 	}
 	
+	@Override
+	public void deleteFolderFromStorage(String storageFolderPath) throws Exception {
+		deleteFolderFromStorage(storageFolderPath, null);
+	}
+	
 	/**
 	 * 
 	 * @param rcloneConfig
@@ -377,7 +382,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				rClonePath += BUCKET;
 			}
 			if(storagePath == null || storagePath.isEmpty()) {
-				throw new NullPointerException("Must define the storage location of the file to download");
+				throw new NullPointerException("Must define the storage location of the file to delete");
 			}
 			
 			storagePath = storagePath.replace("\\", "/");
@@ -410,6 +415,43 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				deleteRcloneConfig(rCloneConfig);
 			}
 		}
+	}
+	
+	@Override
+	public void deleteFolderFromStorage(String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
+		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
+			rCloneConfig = createRCloneConfig();
+			delete = true;
+		}
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(BUCKET != null) {
+				rClonePath += BUCKET;
+			}
+			if(storageFolderPath == null || storageFolderPath.isEmpty()) {
+				throw new NullPointerException("Must define the storage location of the folder to delete");
+			}
+			
+			storageFolderPath = storageFolderPath.replace("\\", "/");
+			
+			if(!storageFolderPath.startsWith("/")) {
+				storageFolderPath = "/"+storageFolderPath;
+			}
+			rClonePath += storageFolderPath;
+	
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			
+			runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "purge", rClonePath);
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+		
 	}
 	
 	

@@ -424,7 +424,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 		try {
 			String rClonePath = rCloneConfig+":";
 			if(storagePath == null || storagePath.isEmpty()) {
-				throw new NullPointerException("Must define the storage location of the file to download");
+				throw new NullPointerException("Must define the storage location of the file to delete");
 			}
 			
 			storagePath = storagePath.replace("\\", "/");
@@ -452,6 +452,39 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 					runRcloneDeleteFileProcess(rCloneConfig, "rclone", "purge", rClonePath);
 				}
 			}
+		} finally {
+			if(delete && rCloneConfig != null) {
+				deleteRcloneConfig(rCloneConfig);
+			}
+		}
+	}
+	
+	@Override
+	public void deleteFolderFromStorage(String storageFolderPath, String rCloneConfig) throws IOException, InterruptedException {
+		boolean delete = false;
+		if(rCloneConfig == null || rCloneConfig.isEmpty()) {
+			rCloneConfig = createRCloneConfig(getContainerFromPath(storageFolderPath));
+			delete = true;
+		}
+		try {
+			String rClonePath = rCloneConfig+":";
+			if(storageFolderPath == null || storageFolderPath.isEmpty()) {
+				throw new NullPointerException("Must define the storage location of the folder to delete");
+			}
+			
+			storageFolderPath = storageFolderPath.replace("\\", "/");
+			
+			if(!storageFolderPath.startsWith("/")) {
+				storageFolderPath= "/"+storageFolderPath;
+			}
+			rClonePath += storageFolderPath;
+	
+			// wrap in quotes just in case of spaces, etc.
+			if(!rClonePath.startsWith("\"")) {
+				rClonePath = "\""+rClonePath+"\"";
+			}
+			
+			runRcloneDeleteFileProcess(rCloneConfig, "rclone", "purge", rClonePath);
 		} finally {
 			if(delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
