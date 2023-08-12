@@ -1,7 +1,5 @@
 package prerna.cluster.util;
 
-import java.io.IOException;
-
 import prerna.cluster.util.clients.AbstractCloudClient;
 
 public class PullAppRunner implements Runnable {
@@ -15,10 +13,8 @@ public class PullAppRunner implements Runnable {
 	@Override
 	public void run() {
 		try {
-			AbstractCloudClient.getClient().pullApp(appId);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (InterruptedException e) {
+			AbstractCloudClient.getClient().pullDatabase(appId);
+		} catch (Exception e) {
 			e.printStackTrace();
 		}		
 	}
