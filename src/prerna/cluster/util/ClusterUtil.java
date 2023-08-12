@@ -230,7 +230,7 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				AbstractCloudClient.getClient().pushDatabaseSmss(appId);
-			} catch (IOException | InterruptedException e) {
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push app smss to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
@@ -273,13 +273,13 @@ public class ClusterUtil {
 		return;
 	}
 
-	public static void reactorPullOwl(String appId) {
+	public static void reactorPullOwl(String databaseId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullOwl(appId);
-			} catch (IOException | InterruptedException e) {
+				AbstractCloudClient.getClient().pullOwl(databaseId);
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to pull owl for engine: " + appId, PixelDataType.CONST_STRING,
+				NounMetadata noun = new NounMetadata("Failed to pull owl for database: " + databaseId, PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -289,13 +289,13 @@ public class ClusterUtil {
 		return;
 	}
 
-	public static void reactorPushOwl(String appId) {
+	public static void reactorPushOwl(String databaseId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushOwl(appId);
-			} catch (IOException | InterruptedException e) {
+				AbstractCloudClient.getClient().pushOwl(databaseId);
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push owl for engine: " + appId, PixelDataType.CONST_STRING,
+				NounMetadata noun = new NounMetadata("Failed to push owl for database: " + databaseId, PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -380,7 +380,7 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				AbstractCloudClient.getClient().pushProjectSmss(projectId);
-			} catch (IOException | InterruptedException e) {
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push project smss to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
