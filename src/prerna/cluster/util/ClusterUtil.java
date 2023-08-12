@@ -184,8 +184,8 @@ public class ClusterUtil {
 	public static void reactorPullApp(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullApp(appId);
-			} catch (IOException | InterruptedException e) {
+				AbstractCloudClient.getClient().pullDatabase(appId);
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to pull app to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
@@ -199,8 +199,8 @@ public class ClusterUtil {
 	public static void reactorPullApp(String appId, boolean appAlreadyLoaded) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullApp(appId, appAlreadyLoaded);
-			} catch (IOException | InterruptedException e) {
+				AbstractCloudClient.getClient().pullDatabase(appId, appAlreadyLoaded);
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to pull app to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);

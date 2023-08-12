@@ -1527,32 +1527,32 @@ public class AZClient extends AbstractCloudClient {
 	//////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////// Pull ////////////////////////////////////////////
 
-	public void pullApp(String appId) throws IOException, InterruptedException {
-		pullApp(appId, false);
+	public void pullDatabase(String databaseId) throws IOException, InterruptedException {
+		pullDatabase(databaseId, false);
 	}
 
-	public void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException {
-		IDatabase engine = null;
-		if (appAlreadyLoaded) {
-			engine = Utility.getDatabase(appId, false);
-			if (engine == null) {
-				throw new IllegalArgumentException("App not found...");
+	public void pullDatabase(String databaseId, boolean databaseAlreadyLoaded) throws IOException, InterruptedException {
+		IDatabase database = null;
+		if (databaseAlreadyLoaded) {
+			database = Utility.getDatabase(databaseId, false);
+			if (database == null) {
+				throw new IllegalArgumentException("Database not found...");
 			}
 		}
 
-		String smssContainer = appId + SMSS_POSTFIX;
+		String smssContainer = databaseId + SMSS_POSTFIX;
 
 		// Start with the sas token
 		String appRcloneConfig = null;
 		String smssRcloneConfig = null;
 
 		// synchronize on the app id
-		classLogger.info("Applying lock for " + Utility.cleanLogString(appId) + " to pull app");
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		classLogger.info("Applying lock for " + Utility.cleanLogString(databaseId) + " to pull app");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
-		classLogger.info("App "+ Utility.cleanLogString(appId) + " is locked");
+		classLogger.info("App "+ Utility.cleanLogString(databaseId) + " is locked");
 		try {
-			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
+			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + databaseId);
 			smssRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + smssContainer);
 
 			// List the smss directory to get the alias + app id
@@ -1566,10 +1566,10 @@ public class AZClient extends AbstractCloudClient {
 			}
 			if (smss == null) {
 				try {
-					fixLegacyDbStructure(appId);
+					fixLegacyDbStructure(databaseId);
 				} catch(IOException | InterruptedException e) {
 					classLogger.info(Constants.STACKTRACE, e);
-					throw new IOException("Failed to pull app for appid=" + appId);
+					throw new IOException("Failed to pull app for appid=" + databaseId);
 				}
 				
 				// try again
@@ -1582,7 +1582,7 @@ public class AZClient extends AbstractCloudClient {
 				}
 				
 				if (smss == null) {
-					throw new IOException("Failed to pull app for appid=" + appId);
+					throw new IOException("Failed to pull app for appid=" + databaseId);
 				} else {
 					// we just fixed the structure and this was pulled and synched up
 					// can just return from here
@@ -1595,9 +1595,9 @@ public class AZClient extends AbstractCloudClient {
 
 			// Close the database (if an existing app), so that we can pull without file locks
 			try {
-				if (appAlreadyLoaded) {
-					DIHelper.getInstance().removeEngineProperty(appId);
-					engine.close();
+				if (databaseAlreadyLoaded) {
+					DIHelper.getInstance().removeEngineProperty(databaseId);
+					database.close();
 				}
 
 				// Make the app directory (if it doesn't already exist)
@@ -1605,9 +1605,9 @@ public class AZClient extends AbstractCloudClient {
 				appFolder.mkdir(); 
 
 				// Pull the contents of the app folder before the smss
-				classLogger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + appFolder.getPath());
-				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":" + DB_CONTAINER_PREFIX + appId, appFolder.getPath());
-				classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + appFolder.getPath());
+				classLogger.info("Pulling app from remote=" + Utility.cleanLogString(databaseId) + " to target=" + appFolder.getPath());
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":" + DB_CONTAINER_PREFIX + databaseId, appFolder.getPath());
+				classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(databaseId) + " to target=" + appFolder.getPath());
 
 				// Now pull the smss
 				classLogger.info("Pulling smss from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + dbFolder);
@@ -1617,13 +1617,13 @@ public class AZClient extends AbstractCloudClient {
 				classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(smssContainer) + " to target=" + dbFolder);
 
 				// Catalog the db if it is new
-				if (!appAlreadyLoaded) {
+				if (!databaseAlreadyLoaded) {
 					SMSSWebWatcher.catalogDB(smss, dbFolder);
 				}
 			} finally {
 				// Re-open the database (if an existing app)
-				if (appAlreadyLoaded) {
-					Utility.getDatabase(appId, false);
+				if (databaseAlreadyLoaded) {
+					Utility.getDatabase(databaseId, false);
 				}
 			}
 		} finally {
@@ -1638,7 +1638,7 @@ public class AZClient extends AbstractCloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				classLogger.info("App "+ Utility.cleanLogString(appId) + " is unlocked");
+				classLogger.info("App "+ Utility.cleanLogString(databaseId) + " is unlocked");
 			}
 		}
 	}
@@ -1727,7 +1727,7 @@ public class AZClient extends AbstractCloudClient {
 		if (Utility.getDatabase(appId, true) == null) {
 			throw new IllegalArgumentException("App needs to be defined in order to update...");
 		}
-		pullApp(appId, false);
+		pullDatabase(appId, false);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
