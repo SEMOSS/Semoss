@@ -14,20 +14,20 @@ public interface ICloudClient {
 
 	/**
 	 * 
-	 * @param appId
+	 * @param databaseId
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushApp(String appId) throws IOException, InterruptedException;
+	void pushDatabase(String databaseId) throws Exception;
 	
 	/**
 	 * 
-	 * @param appId
-	 * @param e
+	 * @param databaseId
+	 * @param dbType
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
+	void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws Exception;
 
 	/**
 	 * 

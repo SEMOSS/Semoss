@@ -400,8 +400,8 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 
 	@Override
-	public void pushApp(String appId) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getDatabase(appId, false);
+	public void pushDatabase(String databaseId) throws IOException, InterruptedException {
+		IDatabase engine = Utility.getDatabase(databaseId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -413,11 +413,11 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		if (engineType == DATABASE_TYPE.APP) {
 			alias = engine.getEngineName();
 		} else {
-			alias = SecurityEngineUtils.getEngineAliasForId(appId);
+			alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		}
 
 		String normalizedAlias = Utility.normalizePath(alias);
-		String aliasAppId = normalizedAlias + "__" + appId;
+		String aliasAppId = normalizedAlias + "__" + databaseId;
 		String thisDbFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		String smss = aliasAppId + ".smss";
 		String smssFile = dbFolder + FILE_SEPARATOR + smss;
@@ -425,13 +425,13 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
-		classLogger.info("Applying lock for " + appId + " to push app");
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		classLogger.info("Applying lock for " + databaseId + " to push app");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
-		classLogger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ databaseId + " is locked");
 		try {
-			rCloneConfig = createRcloneConfig(appId);
-			String smssContainer = appId + SMSS_POSTFIX;
+			rCloneConfig = createRcloneConfig(databaseId);
+			String smssContainer = databaseId + SMSS_POSTFIX;
 
 			// Some temp files needed for the transfer
 			File temp = null;
@@ -440,13 +440,13 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			// Close the database, so that we can push without file locks (also ensures that
 			// the db doesn't change mid push)
 			try {
-				DIHelper.getInstance().removeEngineProperty(appId);
+				DIHelper.getInstance().removeEngineProperty(databaseId);
 				engine.close();
 
 				// Push the app folder
-				classLogger.info("Pushing app from source=" + thisDbFolder + " to remote=" + Utility.cleanLogString(appId));
-				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", thisDbFolder, rCloneConfig+RCLONE_DB_PATH+appId);
-				classLogger.debug("Done pushing from source=" + thisDbFolder + " to remote=" + Utility.cleanLogString(appId));
+				classLogger.info("Pushing app from source=" + thisDbFolder + " to remote=" + Utility.cleanLogString(databaseId));
+				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", thisDbFolder, rCloneConfig+RCLONE_DB_PATH+databaseId);
+				classLogger.debug("Done pushing from source=" + thisDbFolder + " to remote=" + Utility.cleanLogString(databaseId));
 
 				// Move the smss to an empty temp directory (otherwise will push all items in
 				// the db folder)
@@ -469,7 +469,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 				}
 
 				// Re-open the database
-				Utility.getDatabase(appId, false);
+				Utility.getDatabase(databaseId, false);
 			}
 		} finally {
 			try {
@@ -480,7 +480,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				classLogger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ databaseId + " is unlocked");
 			}
 		}
 	}
@@ -1054,41 +1054,41 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	}
 
 	@Override
-	public void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getDatabase(appId, false);
-		if (engine == null) {
+	public void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws IOException, InterruptedException {
+		IDatabase database = Utility.getDatabase(databaseId, false);
+		if (database == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
 		String rCloneConfig = null;
-		String alias = SecurityEngineUtils.getEngineAliasForId(appId);
-		String aliasAppId = alias + "__" + appId;
+		String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String aliasAppId = alias + "__" + databaseId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
-		classLogger.info("Applying lock for " + appId + " to push db file");
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		classLogger.info("Applying lock for " + databaseId + " to push db file");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
-		classLogger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ databaseId + " is locked");
 		try {
-			rCloneConfig = createRcloneConfig(appId);
+			rCloneConfig = createRcloneConfig(databaseId);
 
-			DIHelper.getInstance().removeEngineProperty(appId);
-			engine.close();
+			DIHelper.getInstance().removeEngineProperty(databaseId);
+			database.close();
 
-			classLogger.info("Pulling database for" + appFolder + " from remote=" + appId);
-			if (e == RdbmsTypeEnum.SQLITE) {
+			classLogger.info("Pulling database for" + appFolder + " from remote=" + databaseId);
+			if (dbType == RdbmsTypeEnum.SQLITE) {
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				for (String sqliteFile : sqliteFileNames) {
-					runRcloneProcess(rCloneConfig, "rclone", "sync", appFolder + "/" + sqliteFile, rCloneConfig+RCLONE_DB_PATH+appId);
+					runRcloneProcess(rCloneConfig, "rclone", "sync", appFolder + "/" + sqliteFile, rCloneConfig+RCLONE_DB_PATH+databaseId);
 				}
-			} else if (e == RdbmsTypeEnum.H2_DB) {
-				runRcloneProcess(rCloneConfig, "rclone", "sync", appFolder + "/database.mv.db", rCloneConfig+RCLONE_DB_PATH+appId);
+			} else if (dbType == RdbmsTypeEnum.H2_DB) {
+				runRcloneProcess(rCloneConfig, "rclone", "sync", appFolder + "/database.mv.db", rCloneConfig+RCLONE_DB_PATH+databaseId);
 			} else {
 				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
 			}
 
 			// open the engine again
-			Utility.getDatabase(appId, false);
+			Utility.getDatabase(databaseId, false);
 		} finally {
 			try {
 				if (rCloneConfig != null) {
@@ -1098,7 +1098,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				classLogger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ databaseId + " is unlocked");
 			}
 		}
 	}
@@ -1213,7 +1213,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			Utility.loadProject(projectDir + "/" + smss, Utility.loadProperties(projectDir + "/" + smss));
 
 			// now push the new db and app into the right locations
-			pushApp(appId);
+			pushDatabase(appId);
 			pushProject(appId);
 		} finally {
 			try {
