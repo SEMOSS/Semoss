@@ -107,14 +107,14 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 				String dbName = row[1] + "";
 				String sim = (row[2] + "").substring(0, 5);
 				boolean access = false;
-				String type = "";
+				String dbType = "";
 				SemossDate lmDate = null;
 				List<String> insights = null;
 				// if we have access get db details
 				if (enginesWithAccess.contains(id)) {
 					access = true;
 					dbName = Utility.getDatabase(id).getEngineName();
-					type = Utility.getDatabase(id).getEngineType() + "";
+					dbType = Utility.getDatabase(id).getDatabaseType() + "";
 					lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInProject(id);
 					//insights = SecurityQueryUtils.getUserInsightsForEngine(this.insight.getUser(), id);
 				}
@@ -123,7 +123,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 				dbDetails.put("insightName", insights);
 				dbDetails.put("app_name", dbName);
 				dbDetails.put("app_id", id);
-				dbDetails.put("app_type", type);
+				dbDetails.put("app_type", dbType);
 				dbDetails.put("access", access);
 				dbDetails.put("sim_score", sim);
 				dbDetails.put("lastModified", lmDate);

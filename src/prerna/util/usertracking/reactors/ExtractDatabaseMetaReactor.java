@@ -6,7 +6,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -60,8 +60,8 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 		}
 
 		// only executes for rdbms, tinker, and rdf
-		ENGINE_TYPE engineType = engine.getEngineType();
-		if (engineType.equals(ENGINE_TYPE.RDBMS) || engineType.equals(ENGINE_TYPE.SESAME) || engineType.equals(ENGINE_TYPE.TINKER)) {
+		DATABASE_TYPE engineType = engine.getDatabaseType();
+		if (engineType == DATABASE_TYPE.RDBMS || engineType == DATABASE_TYPE.SESAME || engineType == DATABASE_TYPE.TINKER) {
 			Owler owl = new Owler(engine);
 			owl.addUniqueCounts(engine);
 		}

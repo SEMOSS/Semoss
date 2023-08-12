@@ -127,23 +127,23 @@ public class AddToMasterDB {
 
             // grab the engine type
             // if it is RDBMS vs RDF
-            IDatabase.ENGINE_TYPE engineType = null;
+            IDatabase.DATABASE_TYPE dbType = null;
             String engineTypeString = null;
             String propEngType = prop.getProperty("ENGINE_TYPE");
             if (propEngType.contains("RDBMS") || propEngType.contains("Impala")) {
-                engineType = IDatabase.ENGINE_TYPE.RDBMS;
+                dbType = IDatabase.DATABASE_TYPE.RDBMS;
                 engineTypeString = "TYPE:RDBMS";
             } else if (propEngType.contains("Tinker")) {
-                engineType = IDatabase.ENGINE_TYPE.TINKER;
+                dbType = IDatabase.DATABASE_TYPE.TINKER;
                 engineTypeString = "TYPE:TINKER";
             } else if (propEngType.contains("RNative")) {
-                engineType = IDatabase.ENGINE_TYPE.R; // process it as a flat file I bet
+                dbType = IDatabase.DATABASE_TYPE.R; // process it as a flat file I bet
                 engineTypeString = "TYPE:R";
             } else if (propEngType.contains("Janus")) {
-                engineType = IDatabase.ENGINE_TYPE.JANUS_GRAPH;
+                dbType = IDatabase.DATABASE_TYPE.JANUS_GRAPH;
                 engineTypeString = "TYPE:JANUS_GRAPH";
             } else {
-                engineType = IDatabase.ENGINE_TYPE.SESAME;
+                dbType = IDatabase.DATABASE_TYPE.SESAME;
                 engineTypeString = "TYPE:RDF";
             }
 
@@ -180,7 +180,7 @@ public class AddToMasterDB {
             for (int conceptIndex = 0; conceptIndex < concepts.size(); conceptIndex++) {
                 String conceptPhysicalUri = concepts.get(conceptIndex);
                 logger.debug("Processing concept ::: " + conceptPhysicalUri);
-                masterConcept(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, conceptPhysicalUri, helper, engineType);
+                masterConcept(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, conceptPhysicalUri, helper, dbType);
             }
 
             String relationPsQuery = "INSERT INTO RELATION (ID, SOURCEID, TARGETID, GLOBALID) VALUES (?,?,?,?)";
@@ -241,11 +241,11 @@ public class AddToMasterDB {
      * @param engineName
      * @param conceptPhysicalUri
      * @param helper
-     * @param engineType
+     * @param dbType
      * @throws SQLException 
      */
     private void masterConcept(PreparedStatement conceptPs, PreparedStatement engineConceptPs, PreparedStatement conceptMetaDataPs, 
-    		String engineName, String conceptPhysicalUri, MetaHelper helper, IDatabase.ENGINE_TYPE engineType) throws SQLException {
+    		String engineName, String conceptPhysicalUri, MetaHelper helper, IDatabase.DATABASE_TYPE dbType) throws SQLException {
     	int parameterIndex = 1;
     	
         // I need to add the concept into the CONCEPT table
@@ -317,7 +317,7 @@ public class AddToMasterDB {
 
         // a concept (or table) in RDBMS/R has no meaning - the data is in the
         // properties (columns)
-        boolean ignoreData = MetadataUtility.ignoreConceptData(engineType);
+        boolean ignoreData = MetadataUtility.ignoreConceptData(dbType);
 
         // generate a new id for the concept
         String engineConceptGuid = UUID.randomUUID().toString();
@@ -391,7 +391,7 @@ public class AddToMasterDB {
             logger.debug("For concept = " + conceptPhysicalUri + ", adding property ::: " + propertyPhysicalUri);
             masterProperty(conceptPs, engineConceptPs, conceptMetaDataPs, engineName, 
             		conceptPhysicalUri, propertyPhysicalUri, engineConceptGuid,
-                    conceptPhysicalInstance, conceptGuid, semossName, helper, engineType);
+                    conceptPhysicalInstance, conceptGuid, semossName, helper, dbType);
         }
     }
 
@@ -406,13 +406,13 @@ public class AddToMasterDB {
      * @param propertyPhysicalUri
      * @param parentEngineConceptGuid
      * @param helper
-     * @param engineType
+     * @param dbType
      * @throws SQLException 
      */
     private void masterProperty(PreparedStatement conceptPs, PreparedStatement engineConceptPs, PreparedStatement conceptMetaDataPs, 
     		String engineName, String conceptPhysicalUri, String propertyPhysicalUri,
             String parentEngineConceptGuid, String parentPhysicalName, String parentConceptGuid,
-            String parentSemossName, MetaHelper helper, IDatabase.ENGINE_TYPE engineType) throws SQLException {
+            String parentSemossName, MetaHelper helper, IDatabase.DATABASE_TYPE dbType) throws SQLException {
     	int parameterIndex = 1;
         // I need to add the property into the CONCEPT table
         // The CONCEPT table is engine agnostic
@@ -495,7 +495,7 @@ public class AddToMasterDB {
         // need to account for differences in how this is stored between
         // rdbms vs. graph databases
         String propertyPhysicalInstance = null;
-        if (engineType == IDatabase.ENGINE_TYPE.RDBMS || engineType == IDatabase.ENGINE_TYPE.R) {
+        if (dbType == IDatabase.DATABASE_TYPE.RDBMS || dbType == IDatabase.DATABASE_TYPE.R) {
             propertyPhysicalInstance = Utility.getClassName(propertyPhysicalUri);
         }
         if (propertyPhysicalInstance == null || propertyPhysicalInstance.equalsIgnoreCase("Contains")) {

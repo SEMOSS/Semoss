@@ -19,7 +19,7 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IDatabase.ACTION_TYPE;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -137,7 +137,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		this.helper.parse(filePath);
 		logger.info("Done loading excel file");
 
-		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), DATABASE_TYPE.RDBMS);
 		// here is where we actually insert the data
 		processExcelSheets(this.database, owler, this.helper, dataTypesMap, 
 				additionalDataTypeMap, newHeaders, 

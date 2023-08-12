@@ -48,6 +48,11 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 	
 	@Override
+	public boolean canReuseRcloneConfig() {
+		return true;
+	}
+	
+	@Override
 	public List<String> list(String path) throws IOException, InterruptedException {
 		return list(path, null);
 	}

@@ -21,7 +21,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -244,7 +244,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 		// create owl file
 		logger.info("4. Start generating engine metadata...");
-		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), DATABASE_TYPE.TINKER);
 		// add concepts
 		for (String concept : concepts) {
 			String conceptType = conceptTypes.get(concept);

@@ -69,8 +69,8 @@ public class Neo4jEmbeddedEngine extends AbstractDatabase {
 	}
 
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return IDatabase.ENGINE_TYPE.NEO4J_EMBEDDED;
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabase.DATABASE_TYPE.NEO4J_EMBEDDED;
 	}
 
 	@Override

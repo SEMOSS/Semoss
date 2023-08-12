@@ -45,7 +45,7 @@ public interface IDatabase extends IExplorable, IEngine {
 	//TODO: this should switch to IDatabase now
 	//TODO: this should switch to IDatabase now
 
-	enum ENGINE_TYPE {
+	enum DATABASE_TYPE {
 		@Deprecated
 		APP, // this is now just an IProject
 		JENA, 
@@ -112,11 +112,11 @@ public interface IDatabase extends IExplorable, IEngine {
 	void commit();
 	
 	/**
-	 * Gets the type of the engine.  The engine type is often used to determine what API to use while running queries against the 
-	 * engine.
-	 * @return the type of the engine 
+	 * Gets the type of the database.  The database type is often used to determine what API to use while running queries against the 
+	 * database.
+	 * @return the type of the database 
 	*/
-	ENGINE_TYPE getEngineType();
+	DATABASE_TYPE getDatabaseType();
 	
 	/**
 	 * Uses the passed in type to return a vector of all of the instances of that type

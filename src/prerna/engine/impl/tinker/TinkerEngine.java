@@ -127,8 +127,8 @@ public class TinkerEngine extends AbstractDatabase {
 	}
 
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return IDatabase.ENGINE_TYPE.TINKER;
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabase.DATABASE_TYPE.TINKER;
 	}
 
 	@Override

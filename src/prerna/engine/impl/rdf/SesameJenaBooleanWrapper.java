@@ -35,7 +35,7 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 
 /**
  * This helps insert and delete boolean queries to the database.
@@ -46,7 +46,7 @@ public class SesameJenaBooleanWrapper {
 	Model model = null;	
 	StmtIterator si = null;	
 	IDatabase engine = null;	
-	ENGINE_TYPE engineType = IDatabase.ENGINE_TYPE.SESAME;
+	DATABASE_TYPE databaseType = IDatabase.DATABASE_TYPE.SESAME;
 	String query = null;
 	com.hp.hpl.jena.rdf.model.Statement curSt = null;
 	
@@ -68,7 +68,7 @@ public class SesameJenaBooleanWrapper {
 	public void setEngine(IDatabase engine)
 	{
 		this.engine = engine;
-		engineType = engine.getEngineType();
+		databaseType = engine.getDatabaseType();
 	}
 	
 	/**
