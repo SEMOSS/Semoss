@@ -22,7 +22,7 @@ import com.google.gson.GsonBuilder;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -95,7 +95,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		// TODO additional types?
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), DATABASE_TYPE.TINKER);
 		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
 			// put in types to metamodel
 			Map<String, String> dataTypes = new HashMap<>();

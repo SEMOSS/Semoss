@@ -15,7 +15,6 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IDatabase.ACTION_TYPE;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -166,7 +165,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating database metadata");
-		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), IDatabase.DATABASE_TYPE.RDBMS);
 		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();

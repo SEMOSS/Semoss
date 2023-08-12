@@ -114,9 +114,9 @@ public final class FormBuilder {
 			removeRelationships = (List<HashMap<String, Object>>)engineHash.get("removeRelationships");
 		}
 
-		if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA || engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME) {
+		if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME) {
 			saveRDFFormData(engine, baseURI, relationBaseURI, propertyBaseURI, nodes, relationships, removeNodes, removeRelationships, formEng, auditLogTableName, user);
-		} else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS) {
+		} else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS) {
 			saveRDBMSFormData(engine, baseURI, relationBaseURI, conceptBaseURI, propertyBaseURI, nodes, relationships, formEng, auditLogTableName, user);
 		} else {
 			throw new IOException("Engine type cannot be found");

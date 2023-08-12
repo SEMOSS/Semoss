@@ -115,8 +115,8 @@ public class OwlSeparatePixelFromConceptual {
 
 		deleteAllTriples(rfse);
 		
-		IDatabase.ENGINE_TYPE eType = rdbms ? IDatabase.ENGINE_TYPE.RDBMS : IDatabase.ENGINE_TYPE.SESAME;
-		Owler owler = new Owler(owlFile.getAbsolutePath(), eType);
+		IDatabase.DATABASE_TYPE dbType = rdbms ? IDatabase.DATABASE_TYPE.RDBMS : IDatabase.DATABASE_TYPE.SESAME;
+		Owler owler = new Owler(owlFile.getAbsolutePath(), dbType);
 		
 		// add all the concepts and properties
 		for(String conceptPhysicalURI : physicalConceptsAndConceptuals.keySet()) {

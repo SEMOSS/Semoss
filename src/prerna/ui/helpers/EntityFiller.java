@@ -46,7 +46,7 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
@@ -133,7 +133,7 @@ public class EntityFiller implements Runnable {
 					if(type != null) {
 //						type = Utility.getTransformedNodeName(engine, type, false);
 						//TODO: to many effects for making this work well for rdbms params
-						if(engine.getEngineType().equals(IDatabase.ENGINE_TYPE.RDBMS)) {
+						if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS) {
 					        if(type.contains("http://semoss.org/ontologies/Concept")){
 					        	// we are dealing with the physical uri which is in the form ...Concept/Column/Table
 					        	sparqlQuery = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
@@ -173,7 +173,7 @@ public class EntityFiller implements Runnable {
 					if (extQuery != null) {
 						if(extQueryUnBound != null && extQueryBindings != null && extQueryBindings.size() > 0){
 //							extQueryBindings = Utility.getTransformedNodeNamesMap(engine, extQueryBindings, false);
-							if(engine.getEngineType() == ENGINE_TYPE.RDBMS){
+							if(engine.getDatabaseType() == DATABASE_TYPE.RDBMS){
 								for(String key: extQueryBindings.keySet()){
 									List<Object> valuesList = extQueryBindings.get(key);
 									int i = 0;

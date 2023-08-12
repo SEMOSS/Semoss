@@ -119,7 +119,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Parsing file metadata...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
-		Owler owler = new Owler(owlFile.getAbsolutePath(), this.database.getEngineType());
+		Owler owler = new Owler(owlFile.getAbsolutePath(), this.database.getDatabaseType());
 		try {
 			// open the csv file
 			// and get the headers

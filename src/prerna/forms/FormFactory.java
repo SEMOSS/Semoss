@@ -1,7 +1,7 @@
 package prerna.forms;
 
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 
 public final class FormFactory {
 
@@ -10,8 +10,8 @@ public final class FormFactory {
 	}
 	
 	public static AbstractFormBuilder getFormBuilder(IDatabase engine) {
-		ENGINE_TYPE eType = engine.getEngineType();
-		if(eType == ENGINE_TYPE.JENA || eType == ENGINE_TYPE.SESAME) {
+		DATABASE_TYPE dbType = engine.getDatabaseType();
+		if(dbType == DATABASE_TYPE.JENA || dbType == DATABASE_TYPE.SESAME) {
 			return new RdfFormBuilder(engine);
 		} else {
 			return null;

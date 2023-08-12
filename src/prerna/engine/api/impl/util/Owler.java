@@ -37,7 +37,7 @@ public class Owler extends AbstractOwler {
 	 * @param fileName The location of the new OWL file
 	 * @param type     The type of the engine the OWL file is being created for
 	 */
-	public Owler(String owlPath, IDatabase.ENGINE_TYPE type) {
+	public Owler(String owlPath, IDatabase.DATABASE_TYPE type) {
 		super(owlPath, type);
 	}
 
@@ -182,7 +182,7 @@ public class Owler extends AbstractOwler {
 
 			// create the property URI
 			String property = null;
-			if (type == IDatabase.ENGINE_TYPE.SESAME) {
+			if (type == IDatabase.DATABASE_TYPE.SESAME) {
 				// THIS IS BECAUSE OF LEGACY QUERIES!!!
 				property = BASE_PROPERTY_URI + "/" + propertyCol;
 			} else {
@@ -546,7 +546,7 @@ public class Owler extends AbstractOwler {
 	public NounMetadata removeProp(String tableName, String propertyCol, String dataType, String adtlDataType, String conceptual) {
 		// create the property URI
 		String property = null;
-		if (type == IDatabase.ENGINE_TYPE.SESAME) {
+		if (type == IDatabase.DATABASE_TYPE.SESAME) {
 			// THIS IS BECAUSE OF LEGACY QUERIES!!!
 			property = BASE_PROPERTY_URI + "/" + propertyCol;
 		} else {

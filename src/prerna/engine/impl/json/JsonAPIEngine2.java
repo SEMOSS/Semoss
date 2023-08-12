@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
+import prerna.engine.api.IDatabase;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
 import prerna.util.Constants;
@@ -258,8 +259,8 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	}
 	
 	@Override
-	public ENGINE_TYPE getEngineType() {
-		return prerna.engine.api.IDatabase.ENGINE_TYPE.JSON2;
+	public DATABASE_TYPE getDatabaseType() {
+		return IDatabase.DATABASE_TYPE.JSON2;
 	}
 
 }

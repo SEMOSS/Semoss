@@ -93,7 +93,7 @@ public class EngineSocketWrapper extends AbstractDatabase {
 	}
 
 	@Override
-	public ENGINE_TYPE getEngineType() {
+	public DATABASE_TYPE getDatabaseType() {
 		// TODO Auto-generated method stub
 		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
 		PayloadStruct ps = new PayloadStruct();
@@ -108,7 +108,7 @@ public class EngineSocketWrapper extends AbstractDatabase {
 		if(retStruct.ex != null)
 			throw new RuntimeException(retStruct.ex);
 		
-		return (IDatabase.ENGINE_TYPE)retStruct.payload[0];
+		return (IDatabase.DATABASE_TYPE)retStruct.payload[0];
 	}
 
 	@Override

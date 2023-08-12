@@ -60,14 +60,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "NativeFrame";
 
-	private static List<IDatabase.ENGINE_TYPE> cacheEngines = new Vector<>();
+	private static List<IDatabase.DATABASE_TYPE> cacheEngines = new Vector<>();
 	static {
-		cacheEngines.add(IDatabase.ENGINE_TYPE.SESAME);
-		cacheEngines.add(IDatabase.ENGINE_TYPE.JENA);
-		cacheEngines.add(IDatabase.ENGINE_TYPE.RDBMS);
-		cacheEngines.add(IDatabase.ENGINE_TYPE.IMPALA);
-		cacheEngines.add(IDatabase.ENGINE_TYPE.NEO4J_EMBEDDED);
-		cacheEngines.add(IDatabase.ENGINE_TYPE.NEO4J);
+		cacheEngines.add(IDatabase.DATABASE_TYPE.SESAME);
+		cacheEngines.add(IDatabase.DATABASE_TYPE.JENA);
+		cacheEngines.add(IDatabase.DATABASE_TYPE.RDBMS);
+		cacheEngines.add(IDatabase.DATABASE_TYPE.IMPALA);
+		cacheEngines.add(IDatabase.DATABASE_TYPE.NEO4J_EMBEDDED);
+		cacheEngines.add(IDatabase.DATABASE_TYPE.NEO4J);
 	}
 
 	private SelectQueryStruct originalQs;
@@ -329,7 +329,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 		IRawSelectWrapper it = null;
 		if(cache) {
-			if(NativeFrame.cacheEngines.contains(this.queryQs.retrieveQueryStructEngine().getEngineType())) {
+			if(NativeFrame.cacheEngines.contains(this.queryQs.retrieveQueryStructEngine().getDatabaseType())) {
 				// this is an engine whose results can be cached
 				IQueryInterpreter interpreter = this.queryQs.retrieveQueryStructEngine().getQueryInterpreter();
 				interpreter.setQueryStruct(qs);
@@ -432,7 +432,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	public boolean engineQueryCacheable() {
-		return NativeFrame.cacheEngines.contains(this.queryQs.retrieveQueryStructEngine().getEngineType());
+		return NativeFrame.cacheEngines.contains(this.queryQs.retrieveQueryStructEngine().getDatabaseType());
 	}
 
 	@Override

@@ -27,7 +27,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ENGINE_TYPE;
+import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -144,7 +144,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		
 		// now i need all the relationships
 		List<String[]> rels = engine.getPhysicalRelationships();
-		if(engine.getEngineType() == ENGINE_TYPE.SESAME) {
+		if(engine.getDatabaseType() == DATABASE_TYPE.SESAME) {
 			for(String[] rel : rels) {
 				logger.info("Start rel sheet for " + Utility.cleanLogString(Arrays.toString(rel)));
 				List<String> edgeProps = getEdgeProperties(engine, rel[0], rel[1], rel[2]);
@@ -225,7 +225,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			List<String> properties) {
 		// write the information for the headers and construct the query
 		// so it outputs in the same order
-		boolean isRdbms = engine.getEngineType() == ENGINE_TYPE.IMPALA || engine.getEngineType() == ENGINE_TYPE.RDBMS;
+		boolean isRdbms = engine.getDatabaseType() == DATABASE_TYPE.IMPALA || engine.getDatabaseType() == DATABASE_TYPE.RDBMS;
 		Sheet sheet = workbook.createSheet(physicalNodeName + "_Props");
 				
 		// add row 1

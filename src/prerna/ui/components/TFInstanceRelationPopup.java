@@ -105,8 +105,8 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 				String repo = repos[0] +"";
 				IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
 				
-				boolean isRDF = (engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA || 
-						engine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+				boolean isRDF = (engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA || 
+						engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
 
 				// execute the query
 				// add all the relationships
@@ -116,7 +116,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 				// the listener should then trigger the graph play sheet possibly
 				// and for each relationship add the listener
 				String typeQuery = "";
-				if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
+				if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA) {
 					typeQuery = DIHelper.getInstance().getProperty(this.neighborQueryJENA + prefix);
 				} else {
 					typeQuery =  DIHelper.getInstance().getProperty(this.neighborQuery + prefix);
@@ -135,7 +135,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 //					uri = Utility.getTransformedNodeName(engine, uri, false);
 					
 					String query2 = "";
-					if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
+					if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA) {
 						query2 = DIHelper.getInstance().getProperty(this.mainQueryJENA + prefix);
 					} else {
 						query2 = DIHelper.getInstance().getProperty(this.mainQuery + prefix);
@@ -143,7 +143,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 					String typeName = null;
 					if(isRDF)
 						typeName = Utility.getConceptType(engine, uri);
-					else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS)
+					else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
 						typeName = Utility.getQualifiedClassName(uri);
 
 					if(typeV.contains(typeName))
@@ -172,7 +172,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 					if(isRDF)
 					{
 						
-						if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
+						if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA) {
 							for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
 							{
 								if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).toString().equals(thisVert.getProperty(Constants.VERTEX_TYPE).toString())){
@@ -203,7 +203,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 						// run the query
 						/*SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
 						sjw.setEngine(engine);
-						sjw.setEngineType(engine.getEngineType());
+						sjw.setEngineType(engine.getDatabaseType());
 						sjw.setQuery(filledQuery);
 						sjw.executeQuery();
 						*/
@@ -216,7 +216,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 							// only one variable
 							String objClassName = stmt.getRawVar(vars[0])+"";
 							String pred = "";
-							if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
+							if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA) {
 								pred = stmt.getRawVar(vars[1])+"";
 							}
 							//logger.debug("Predicate is " + predName + "<<>> "+ predClassName);
@@ -257,7 +257,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 									typeList.add(objClassName);
 									hash.put("SUBJECT_TYPE", typeList);
 								}
-								if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
+								if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA) {
 									List<Object> predList = new ArrayList<Object>();
 									predList.add(pred);
 									hash.put("PREDICATE", predList);
@@ -266,7 +266,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 								String nFillQuery = Utility.fillParam(typeQuery, hash);
 								System.err.println(nFillQuery);
 								NeighborMenuItem nItem = new NeighborMenuItem(instance, nFillQuery, engine);
-								if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
+								if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA) {
 									nItem = new NeighborMenuItem("->" + Utility.getInstanceName(pred) + "->" + instance, nFillQuery, engine);
 								}
 								nItem.addActionListener(NeighborMenuListener.getInstance());
@@ -277,7 +277,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 	
 						}	
 					}
-					else if(engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS)
+					else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
 					{
 					// block to uncomment later
 						
@@ -307,7 +307,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 							}
 							
 							NeighborMenuItem nItem = new NeighborMenuItem(instance, traverseQuery, engine);
-							if(engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA) {
+							if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA) {
 								nItem = new NeighborMenuItem(instance, traverseQuery, engine);
 							}
 							nItem.addActionListener(NeighborMenuListener.getInstance());
@@ -348,8 +348,8 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 			String repo = repos[0] +"";
 			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
 			
-			boolean isRDF = (engine.getEngineType() == IDatabase.ENGINE_TYPE.SESAME || engine.getEngineType() == IDatabase.ENGINE_TYPE.JENA || 
-					engine.getEngineType() == IDatabase.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+			boolean isRDF = (engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA || 
+					engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
 			if(isRDF)
 				addRelations("_2");
 		}
