@@ -20,7 +20,6 @@ import org.apache.logging.log4j.core.config.Configurator;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -627,13 +626,13 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 		type = type.toUpperCase();
 		if (type.contains("VARCHAR")) {
-			return "'" + RdbmsQueryBuilder.escapeForSQLStatement(Utility.cleanString(value.toString(), true)) + "'";
+			return "'" + AbstractSqlQueryUtil.escapeForSQLStatement(Utility.cleanString(value.toString(), true)) + "'";
 		} else if (Utility.isNumericType(type)) {
 			return value;
 		} else if (type.contains("DATE")) {
 			return "'" + value + "'";
 		}
-		return "'" + RdbmsQueryBuilder.escapeForSQLStatement(value.toString()) + "'";
+		return "'" + AbstractSqlQueryUtil.escapeForSQLStatement(value.toString()) + "'";
 	}
 
 	private String createInsertStatement(String concept, String defaultInsertQuery, String[] values,
