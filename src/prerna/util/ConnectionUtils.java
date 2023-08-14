@@ -31,53 +31,109 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-/**
- * <p>Utility functions for closing all RDBMS connections</p>
- *
- * @author 
- * @version $Revision: 1.0 $
- */
+import prerna.engine.api.IRDBMSEngine;
+
 public class ConnectionUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(ConnectionUtils.class);
 	
-	public static void closeAllConnections(Connection con, Statement ps, ResultSet rs){
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con, Statement ps, ResultSet rs){
 		if(rs!=null){
 			try{
 				rs.close();
 			} catch (Exception e){
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(ps!=null){
 			try{
 				ps.close();
 			} catch (Exception e){
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		if(engine.isConnectionPooling()) {
+			if(con!=null){
+				try{
+					con.close();
+				} catch (Exception e){
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement ps, ResultSet rs){
+		if(rs!=null){
+			try{
+				rs.close();
+			} catch (Exception e){
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		if(ps!=null){
+			try{
+				ps.close();
+			} catch (Exception e){
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		if(engine.isConnectionPooling()) {
+			try{
+				if(ps!=null && ps.getConnection()!=null){
+					ps.getConnection().close();
+				}
+			} catch (Exception e){
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+	}
+
+	public static void closeAllConnections(Connection con, Statement ps, ResultSet rs){
+		if(rs!=null){
+			try{
+				rs.close();
+			} catch (Exception e){
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		if(ps!=null){
+			try{
+				ps.close();
+			} catch (Exception e){
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(con!=null){
 			try{
 				con.close();
 			} catch (Exception e){
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
-	
+
 	public static void closeAllConnections(Connection con, Statement ps){
 		closeAllConnections(con, ps, null);
 	}
-	
+
 	public static void closeResultSet(ResultSet rs){
 		closeAllConnections(null, null, rs);
 	}
-	
+
 	public static void closePreparedStatement(Statement ps){
 		closeAllConnections(null, ps, null);
 	}
-	
+
 	public static void closeConnection(Connection con){
 		closeAllConnections(con, null, null);
 	}
 	
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement ps){
+		closeAllConnectionsIfPooling(engine, ps, null);
+	}
+
 }
