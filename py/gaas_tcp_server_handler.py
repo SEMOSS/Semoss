@@ -52,12 +52,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       try:
         data = self.request.recv(4)
         size = int.from_bytes(data, "big")
-        #print(f"receiving data {size}")
+        epoc = self.request.recv(4)
+        #print(f"epoc {epoc} {epoc.decode('utf-8')}")
         data = self.request.recv(size)
         #print(f"process the data ---- {data.decode('utf-8')}")
-        #payload = data.decode('utf-8')      
-        runner = threading.Thread(target=self.get_final_output, kwargs=({'data':data}))
-        runner.start()
+        #payload = data.decode('utf-8')   
+        if self.server.blocking:
+          self.get_final_output(data)
+        else:
+          runner = threading.Thread(target=self.get_final_output, kwargs=({'data':data}))
+          runner.start()
         #self.get_final_output(data)
         if not data: 
           break
@@ -70,10 +74,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       #print("all processing has finished !!")
     #self.get_final_output(data)
   
-  def get_final_output(self, data=None):
+  def get_final_output(self, data=None, epoc=None):
     payload = ""
     #payload = data
+    # if this fails.. there is nothing you can do.. 
+    # you just have to send the response back as error
     try:
+      # if this fails.. no go 
+      # but the receiver still needs to be informed so it doesnt stall
       payload = data.decode('utf-8')      
       #print(f"PAYLOAD.. {payload}")
       # do payload manipulation here 
@@ -175,6 +183,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         print("In the response block")
         # this is a response coming back from a request from the java container
         if payload['epoc'] in self.monitors:
+          # log this payload
+          if self.log_file is not None:
+            self.log_file.write(f"Payload Response {payload}")
+            self.log_file.write("\n")
+            self.log_file.flush()
+
           condition = self.monitors[payload['epoc']]
           self.monitors.update({payload['epoc']: payload})
           condition.acquire()
@@ -189,7 +203,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.send_output(output, payload, operation=payload["operation"], response=True)
     except Exception as e:
       output = ''.join(tb.format_exception(None, e, e.__traceback__))
-      self.send_output(output, payload, response=True, exception=True)
+      payload = {
+      "epoc": epoc,
+      "ex": [output]
+      }
+      # there is a possibility this is a response from the previous  
+      if epoc in self.monitors:
+        condition = self.monitors[epoc]
+        self.monitors.update({epoc: payload})
+        condition.acquire()
+        condition.notifyAll()
+        condition.release()
+      else:
+        self.send_output(output, payload, response=True, exception=True)
       
   def send_output(self, output, orig_payload, operation = "STDOUT", response=False, interim=False, exception=False):
     # Do not write any prints here
@@ -296,3 +322,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
   def handle_timeout(self):
     print("handler timeout.. ")
     
+  def release_all(self):
+    # pushes out all the conditions
+    # so no threads are breaking
+    # technically this is not a good way.. but
+    epocs_to_release = list(self.monitors.keys())
+    payload = {"ex": "Failed to perform operation, forcing release"}
+    for epoc in epocs_to_release:
+      condition = self.monitors[epoc]
+      payload.update({'epoc':epoc})
+      self.monitors.update(epoc, payload)
+      condition.acquire()
+      condition.notifyAll()
+      condition.release()
+
+
+      
