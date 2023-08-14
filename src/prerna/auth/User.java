@@ -1028,6 +1028,9 @@ public class User implements Serializable {
 						pyTupleSpace = PyUtils.getInstance().startTCPServeNativePy(this, pyTupleSpace, port);
 					else
 						pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
+					
+					
+					setTupleSpace(pyTupleSpace);
 				}
 			}
 			

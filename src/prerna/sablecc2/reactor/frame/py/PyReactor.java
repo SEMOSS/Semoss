@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.frame.py;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
@@ -13,6 +12,7 @@ import prerna.ds.py.PyUtils;
 import prerna.om.Variable.LANGUAGE;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -54,6 +54,8 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		int tokens = code.split("\\n").length;
 
+		this.code = fillVars(this.code);
+		
 		PyTranslator pyTranslator = this.insight.getPyTranslator();
 		pyTranslator.setLogger(logger);
 		//String output = pyTranslator.runPyAndReturnOutput(code);
@@ -63,37 +65,43 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 			return new NounMetadata("Please use PyPlot to plot your chart", PixelDataType.CONST_STRING);
 		}
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			//if(tokens > 1) 
-			{
-//				if(nativePyServer)
-//				{
-//					Map appMap = insight.getUser().getVarMap();
-//					
-//					if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
-//					{
-//						String varFolderAssignment = appMap.get("PY_VAR_STRING").toString();
-//						varFolderAssignment = varFolderAssignment.replace("\n", ";");
-//						pyTranslator.runScript(varFolderAssignment);
-//					}
-//					output = pyTranslator.runScript(code, this.insight) + "";
-//				}
-//				else
-					output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
-			} 
-			/*else {
-				//output = pyTranslator.runScript(code) + "";
-				output = pyTranslator.runScript(insight.getUser().getVarMap(), code) + "";
-			}*/
-		} else 
+		try
 		{
-			//if(tokens > 1) 
+			if(AbstractSecurityUtils.securityEnabled()) {
+				//if(tokens > 1) 
+				{
+	//				if(nativePyServer)
+	//				{
+	//					Map appMap = insight.getUser().getVarMap();
+	//					
+	//					if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
+	//					{
+	//						String varFolderAssignment = appMap.get("PY_VAR_STRING").toString();
+	//						varFolderAssignment = varFolderAssignment.replace("\n", ";");
+	//						pyTranslator.runScript(varFolderAssignment);
+	//					}
+	//					output = pyTranslator.runScript(code, this.insight) + "";
+	//				}
+	//				else
+						output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
+				} 
+				/*else {
+					//output = pyTranslator.runScript(code) + "";
+					output = pyTranslator.runScript(insight.getUser().getVarMap(), code) + "";
+				}*/
+			} else 
 			{
-				output = pyTranslator.runSingle(null, code, this.insight) + "";
-			} 
-			/*else {
-				output = pyTranslator.runScript(code) + "";
-			}*/
+				//if(tokens > 1) 
+				{
+					output = pyTranslator.runSingle(null, code, this.insight) + "";
+				} 
+				/*else {
+					output = pyTranslator.runScript(code) + "";
+				}*/
+			}
+		}catch(SemossPixelException ex)
+		{
+			output = ex.getMessage();
 		}
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
@@ -128,4 +136,5 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 	public boolean isUserScript() {
 		return true;
 	}
+	
 }

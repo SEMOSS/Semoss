@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
@@ -892,5 +893,71 @@ public abstract class AbstractReactor implements IReactor {
 	public static NounMetadata getWarning(String message) {
 		return NounMetadata.getWarningNounMessage(message);
 	}
+	
+	public List<String> getNounAsStringList(String key) {
+		List<String> columns = new Vector<String>();
+
+		GenRowStruct colGrs = this.store.getNoun(key);
+		if (colGrs != null && !colGrs.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
+				String column = colGrs.get(selectIndex) + "";
+				columns.add(column);
+			}
+		} else {
+			GenRowStruct inputsGRS = this.getCurRow();
+			// keep track of selectors to change to upper case
+			if (inputsGRS != null && !inputsGRS.isEmpty()) {
+				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
+					String column = inputsGRS.get(selectIndex) + "";
+					columns.add(column);
+				}
+			}
+		}
+
+		return columns;
+	}
+	
+	public String fillVars(String input)
+	{
+		// ${i} - insight id
+		// ${iid} - insight id
+		// ${insight_id} - insight id
+		// ${if} - insight folder
+		// ${i_f} - Insight folder
+		// ${p} - project folder assets
+		// ${project} - project
+		// ${p_id} - project id
+		// ${pid} - project id
+		// ${log}
+		
+		String insightId = this.insight.getInsightId();
+		String insightFolder = this.insight.getInsightFolder();
+		String projectId = this.insight.getProjectId();
+		String projectFolder = this.insight.getAppFolder();
+		if(projectId == null)
+			projectId = insightId;
+		
+		if(projectFolder == null)
+			projectFolder = insightFolder;
+			
+		Map <String, String> varMap = new HashMap<String, String>();
+		varMap.put("i", insightId);
+		varMap.put("iid", insightId);
+		varMap.put("i_id", insightId);
+		varMap.put("insight_id", insightId);
+		varMap.put("if", insightFolder);
+		varMap.put("i_f", insightFolder);
+		varMap.put("p", projectId);
+		varMap.put("pid", projectId);
+		varMap.put("pf", projectFolder);
+		varMap.put("p_f", projectFolder);
+		//varMap.put("log", insightFolder);
+		
+		StringSubstitutor sub = new StringSubstitutor(varMap);
+		String resolvedString = sub.replace(input);
+		return resolvedString;
+
+	}
+
 	
 }
