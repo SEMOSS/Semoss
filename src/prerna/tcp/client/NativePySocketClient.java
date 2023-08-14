@@ -248,7 +248,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 		}
 		else
 		{
-			NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps);
+			NativePyEngineWorker worker = new NativePyEngineWorker(this.getUser(), ps, insight);
 			worker.run();
 			executeCommand(worker.getOutput());
 		}
@@ -336,14 +336,6 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 							// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					/*
-					// trigger after 400 milliseconds
-					if(pollNum == 2 && !ps.longRunning)
-					{
-						logger.info("Writing empty message " + ps.epoc);
-						writeEmptyPayload();
-					}
-					*/
 				}
 				if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
 				{
@@ -365,7 +357,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     	try
     	{
     		String jsonPS = gson.toJson(ps);
-    		byte [] psBytes = pack(jsonPS);
+    		byte [] psBytes = pack(jsonPS, ps.epoc);
     		try {
     			os.write(psBytes);
     		} catch(IOException ex) {
@@ -378,25 +370,32 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     	}
     }
     
-	public byte[] pack(String message) {
+	public byte[] pack(String message, String epoc) {
 		byte[] psBytes = message.getBytes(StandardCharsets.UTF_8);
 
 		// get the length
 		int length = psBytes.length;
 
-		System.err.println("Packing with length " + length);
+		//System.err.println("Packing with length " + length);
 
 		// make this into array
 		byte[] lenBytes = ByteBuffer.allocate(4).putInt(length).array();
+		
+		byte[] epocBytes = ByteBuffer.allocate(4).put(epoc.getBytes(StandardCharsets.UTF_8)).array();
 
+		
 		// pack both of these
-		byte[] finalByte = new byte[psBytes.length + lenBytes.length];
+		byte[] finalByte = new byte[psBytes.length + lenBytes.length + epocBytes.length];
 
 		for (int lenIndex = 0; lenIndex < lenBytes.length; lenIndex++)
 			finalByte[lenIndex] = lenBytes[lenIndex];
 
+		// write the epoc bytes
+		for (int lenIndex = 0; lenIndex < epocBytes.length; lenIndex++)
+			finalByte[lenIndex + lenBytes.length] = epocBytes[lenIndex];
+		
 		for (int lenIndex = 0; lenIndex < psBytes.length; lenIndex++)
-			finalByte[lenIndex + lenBytes.length] = psBytes[lenIndex];
+			finalByte[lenIndex + lenBytes.length + epocBytes.length] = psBytes[lenIndex];
 
 		return finalByte;
 

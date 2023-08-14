@@ -2,19 +2,24 @@ package prerna.tcp.client.workers;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import com.sun.rowset.CachedRowSetImpl;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.om.Insight;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Utility;
 
@@ -28,11 +33,19 @@ public class NativePyEngineWorker implements Runnable {
 	public static final int MAX_ROWS = 50;
 	PayloadStruct output = null;
 	User user = null;
+	Insight insight = null;
 	
 	public NativePyEngineWorker(User user, PayloadStruct ps)
 	{
 		this.ps = ps;
 		this.user = user;
+	}
+
+	public NativePyEngineWorker(User user, PayloadStruct ps, Insight insight)
+	{
+		this.ps = ps;
+		this.user = user;
+		this.insight = insight;
 	}
 
 	@Override
@@ -53,27 +66,61 @@ public class NativePyEngineWorker implements Runnable {
 			if(canAccess)
 			{
 				IEngine engine = null;
-				if(ps.engineType.equalsIgnoreCase("MODEL"))
-					engine = Utility.getModel(engineId);
-				if(ps.engineType.equalsIgnoreCase("STORAGE"))
-					engine = Utility.getStorage(engineId);
-				if(ps.engineType.equalsIgnoreCase("DATABASE"))
-					engine = Utility.getDatabase(engineId);
-				
-				Method method = findEngineMethod(engine, ps.methodName, ps.payloadClasses);
-				Object retObject = method.invoke(engine, ps.payload);
-	
-				// the map that comes may not be fully serializable
-				if(retObject instanceof Map && !(retObject instanceof CaseInsensitiveProperties))
+				if(ps.engineType.equalsIgnoreCase("DATABASE") && ps.methodName.equalsIgnoreCase("execquery"))
 				{
-					Map <String, Object> outputMap = normalizeMap((Map <String, Object>)retObject);
-					ps.payload = new Object[] {outputMap};
+					engine = Utility.getDatabase(engineId);
+					{
+						IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper((IDatabase)engine, ps.payload[0] + "");
+						wrapper.execute();
+						{
+							// do the logic of converting it into 
+							String fileLocation = null;
+							if(this.insight != null)
+								fileLocation = insight.getInsightFolder() + "/a_" + Utility.getRandomString(5) + ".csv";
+							else
+							{
+								fileLocation = user.getTupleSpace();
+								fileLocation = Files.createTempFile(Paths.get(fileLocation), "t", null, null).toString();
+							}
+							//Utility.writeResultToFile(fileLocation, wrapper);
+							Utility.writeResultToJson(fileLocation, wrapper, null, null);
+							fileLocation = fileLocation.replace("\\","/");
+							ps.payload = new Object[] {fileLocation};
+						}
+					}
 				}
 				else
 				{
-					// need to check for serialization
-					ps.payload = new Object[] {retObject};
-				}
+					if(ps.engineType.equalsIgnoreCase("MODEL"))
+						engine = Utility.getModel(engineId);
+					if(ps.engineType.equalsIgnoreCase("STORAGE"))
+						engine = Utility.getStorage(engineId);
+					if(ps.engineType.equalsIgnoreCase("DATABASE"))
+						engine = Utility.getDatabase(engineId);
+					Method method = findEngineMethod(engine, ps.methodName, ps.payloadClasses);
+					Object retObject = method.invoke(engine, ps.payload);
+		
+					// the map that comes may not be fully serializable
+					if(retObject instanceof Map)
+					{
+						if(((Map) retObject).containsKey(RDBMSNativeEngine.RESULTSET_OBJECT))
+						{
+							JSONArray retArray = convertToJSONArray((ResultSet)((Map) retObject).get(RDBMSNativeEngine.RESULTSET_OBJECT));
+							
+							//ps.payload = new Object [] {"helo"};
+						}
+						else
+						{
+							Map <String, Object> outputMap = normalizeMap((Map <String, Object>)retObject);
+							ps.payload = new Object[] {outputMap};
+						}
+					}
+					else
+					{
+						// need to check for serialization
+						ps.payload = new Object[] {retObject};
+					}
+				}					
 			}
 			else
 			{
@@ -152,13 +199,11 @@ public class NativePyEngineWorker implements Runnable {
     		
     		if(obj instanceof ResultSet)
     		{
-    			try {
-					// move this CacheRowSetImpl
-					CachedRowSetImpl impl = new CachedRowSetImpl();
-					impl.setMaxRows(MAX_ROWS);
-					impl.populate((ResultSet)obj);
-					output.put(key, impl);
-				} catch (SQLException e) {
+    			JSONArray jsonArray;
+				try {
+					jsonArray = convertToJSONArray((ResultSet)obj);
+					output.put(key, jsonArray);
+				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
@@ -176,5 +221,21 @@ public class NativePyEngineWorker implements Runnable {
     	return this.output;
     }
 
+    
+    public JSONArray convertToJSONArray(ResultSet resultSet)
+            throws Exception {
+        JSONArray jsonArray = new JSONArray();
+        while (resultSet.next()) {
+            JSONObject obj = new JSONObject();
+            int total_rows = resultSet.getMetaData().getColumnCount();
+            for (int i = 0; i < total_rows; i++) {
+                obj.put(resultSet.getMetaData().getColumnLabel(i + 1)
+                        .toLowerCase(), resultSet.getObject(i + 1));
+
+            }
+            jsonArray.put(obj);
+        }
+        return jsonArray;// .toString();
+    }
 	
 }
