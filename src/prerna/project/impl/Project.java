@@ -942,12 +942,12 @@ public class Project implements IProject {
 	/**
 	 * Publish the portals folder to public_home
 	 */
-	public boolean publish(String public_home) {
+	public boolean publish(String publicHomeFilePath) {
 		// find what is the final URL
 		// this is the base url plus manipulations
 		// find what the tomcat deploy directory is
 		// no easy way to find other than may be find the classpath ? - will instrument this through RDF Map
-		if(public_home != null) {
+		if(publicHomeFilePath != null) {
 			boolean enableForProject = (prop != null && Boolean.parseBoolean(prop.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
 			SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
 			boolean outOfDate = false;
@@ -962,14 +962,14 @@ public class Project implements IProject {
 			}
 			try {
 				if(this.republishPortal || outOfDate || (enableForProject && !this.publishedPortal)) {
-					Path sourcePath = Paths.get(this.projectPortalFolder);
-					Path targetPath = Paths.get(public_home + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
+					Path sourcePortalsProjectPath = Paths.get(this.projectPortalFolder);
+					Path targetPublicHomeProjectPortalsPath = Paths.get(publicHomeFilePath + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
 		
-					File targetDirectory = targetPath.toFile();
+					File targetPublicHomeProjectPortalsDir = targetPublicHomeProjectPortalsPath.toFile();
 					// if the target directory exists
 					// we have to delete it before 
-					if(targetDirectory.exists() && targetDirectory.isDirectory()) {
-						FileUtils.deleteDirectory(targetDirectory);
+					if(targetPublicHomeProjectPortalsDir.exists() && targetPublicHomeProjectPortalsDir.isDirectory()) {
+						FileUtils.deleteDirectory(targetPublicHomeProjectPortalsDir);
 					}
 					
 					// do we physically copy of link?
@@ -984,20 +984,21 @@ public class Project implements IProject {
 					
 					// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
 					if(copy) {
-						if(!targetDirectory.exists()) {
-							targetDirectory.mkdir();
+						if(!targetPublicHomeProjectPortalsDir.exists()) {
+							targetPublicHomeProjectPortalsDir.mkdir();
 						}
-						FileUtils.copyDirectory(sourcePath.toFile(), targetDirectory);
+						FileUtils.copyDirectory(sourcePortalsProjectPath.toFile(), targetPublicHomeProjectPortalsDir);
 					}
 					// this is where we create symbolic link
-					else if(!targetDirectory.exists() && !Files.isSymbolicLink(targetPath)) {
-						Files.createSymbolicLink(targetPath, sourcePath);
+					else if(!targetPublicHomeProjectPortalsDir.exists() && !Files.isSymbolicLink(targetPublicHomeProjectPortalsPath)) {
+						Files.createSymbolicLink(targetPublicHomeProjectPortalsPath, sourcePortalsProjectPath);
 					}
-					targetDirectory.deleteOnExit();
+					writePortalsJSON(publicHomeFilePath);
+					targetPublicHomeProjectPortalsDir.deleteOnExit();
 					this.publishedPortal = true;
 					this.republishPortal = false;
 					this.lastPortalPublishDate = new SemossDate(LocalDateTime.now());
-					logger.info("Project '" + projectId + "' has new last portal published date = " + this.lastPortalPublishDate);
+					logger.info("Project '" + SmssUtilities.getUniqueName(projectName, projectId) + "' has new last portal published date = " + this.lastPortalPublishDate);
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
@@ -1007,6 +1008,16 @@ public class Project implements IProject {
 		}
 		
 		return this.publishedPortal;
+	}
+	
+	/**
+	 * Write a JSON file containing details about the portal that can be called by a relative path from the portal
+	 * without needing to know any project settings by the FE
+	 * @param publicHomeFilePath
+	 */
+	private void writePortalsJSON(String publicHomeFilePath) {
+		String jsonFileLocation = publicHomeFilePath + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER;
+		
 	}
 	
 	@Override
