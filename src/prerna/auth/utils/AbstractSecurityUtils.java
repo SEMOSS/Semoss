@@ -23,7 +23,6 @@ import jodd.util.BCrypt;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -1931,9 +1930,9 @@ public abstract class AbstractSecurityUtils {
 			hasData = true;
 			b.append(" IN (");
 			Iterator<String> iterator = filterValues.iterator();
-			b.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(iterator.next())).append("'");
+			b.append("'").append(AbstractSqlQueryUtil.escapeForSQLStatement(iterator.next())).append("'");
 			while(iterator.hasNext()) {
-				b.append(", '").append(RdbmsQueryBuilder.escapeForSQLStatement(iterator.next())).append("'");
+				b.append(", '").append(AbstractSqlQueryUtil.escapeForSQLStatement(iterator.next())).append("'");
 			}
 		}
 		if(hasData) {
@@ -1954,9 +1953,9 @@ public abstract class AbstractSecurityUtils {
 			List<AuthProvider> logins = user.getLogins();
 			if(!logins.isEmpty()) {
 				int numLogins = logins.size();
-				b.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(user.getAccessToken(logins.get(0)).getId())).append("'");
+				b.append("'").append(AbstractSqlQueryUtil.escapeForSQLStatement(user.getAccessToken(logins.get(0)).getId())).append("'");
 				for(int i = 1; i < numLogins; i++) {
-					b.append(", '").append(RdbmsQueryBuilder.escapeForSQLStatement(user.getAccessToken(logins.get(i)).getId())).append("'");
+					b.append(", '").append(AbstractSqlQueryUtil.escapeForSQLStatement(user.getAccessToken(logins.get(i)).getId())).append("'");
 				}
 			}
 		}
