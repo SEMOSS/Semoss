@@ -28,7 +28,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
@@ -50,6 +49,7 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.parser.ParserException;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
@@ -697,9 +697,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param isPublic
 	 * @throws IllegalAccessException
 	 */
-	public static void setInsightGlobalWithinApp(User user, String projectId, String insightId, boolean isPublic) throws IllegalAccessException {
+	public static void setInsightGlobalWithinProject(User user, String projectId, String insightId, boolean isPublic) throws IllegalAccessException {
 		if(!userIsInsightOwner(user, projectId, insightId)) {
-			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
+			throw new IllegalAccessException("The user doesn't have the permission to set this insight as global. Only the owner or an admin can perform this action.");
 		}
 		
 		String query = "UPDATE INSIGHT SET GLOBAL=? WHERE PROJECTID=? AND INSIGHTID=?";
@@ -711,24 +711,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -846,24 +835,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, schemaName);
 			}
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -891,24 +869,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -971,24 +938,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, projectId);
 			ps.execute();
-			securityDb.commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -1018,20 +974,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1075,20 +1018,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1122,20 +1052,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1148,7 +1065,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateInsightMetadata(String projectId, String insightId, Map<String, Object> metadata) {
 		// first do a delete
-		final String metaKey = "tag";
 		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -1161,24 +1077,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			ps.getConnection().commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		
 		// now we do the new insert with the order of the tags
@@ -1211,24 +1116,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 			ps.executeBatch();
-			ps.getConnection().commit();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1264,20 +1158,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		
 		// no updates, insert
@@ -1298,20 +1179,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			} catch(SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(ps != null) {
-					try {
-						ps.close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-					if(securityDb.isConnectionPooling()) {
-						try {
-							ps.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		}
 	}
@@ -1341,20 +1209,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		
 		// now we do the new insert with the order of the tags
@@ -1381,20 +1236,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1423,20 +1265,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		
 		// now we do the new insert with the order of the tags
@@ -1462,20 +1291,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1501,20 +1317,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		
 		// now we do the new insert with the order of the tags
@@ -1563,20 +1366,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		
 	}
@@ -1607,14 +1397,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 */
 	public static void updateExecutionCount(String projectId, String insightId) {
-		String updateQuery = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 "
-				+ "WHERE PROJECTID='" + projectId + "' AND INSIGHTID='" + insightId + "'";
+		String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND AND INSIGHTID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(updateQuery);
-			// the above does a commit if necessary
-//			securityDb.commit();
-		} catch (SQLException e) {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, projectId);
+			ps.setString(parameterIndex++, insightId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1654,17 +1451,23 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES('"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
-				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
-
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
-		} catch (SQLException e) {
+			ps = securityDb.getPreparedStatement("INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, newUserId);
+			ps.setString(parameterIndex++, projectId);
+			ps.setString(parameterIndex++, insightId);
+			ps.setInt(parameterIndex, AccessPermissionEnum.getIdByPermission(permission));
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1708,15 +1511,25 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=" + newPermissionLvl
-				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND PROJECTID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "' "
-				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
-		} catch (SQLException e) {
+			ps = securityDb.getPreparedStatement("UPDATE USERINSIGHTPERMISSION SET PERMISSION=? WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?");
+			int parameterIndex = 1;
+			//SET
+			ps.setInt(parameterIndex++, newPermissionLvl);
+			//WHERE
+			ps.setString(parameterIndex++, existingUserId);
+			ps.setString(parameterIndex++, projectId);
+			ps.setString(parameterIndex++, insightId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1760,41 +1573,28 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		
 		// update user permissions in bulk
-		String insertQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
-		PreparedStatement insertPs = null;
+		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
+		PreparedStatement ps = null;
 		try {
-			insertPs = securityDb.getPreparedStatement(insertQ);
+			ps = securityDb.getPreparedStatement(updateQ);
 			for(int i=0; i<requests.size(); i++) {
 				int parameterIndex = 1;
 				//SET
-				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				//WHERE
-				insertPs.setString(parameterIndex++, requests.get(i).get("userid"));
-				insertPs.setString(parameterIndex++, projectId);
-				insertPs.setString(parameterIndex++, insightId);
-				insertPs.addBatch();
+				ps.setString(parameterIndex++, requests.get(i).get("userid"));
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.addBatch();
 			}
-			insertPs.executeBatch();
-			if(!insertPs.getConnection().getAutoCommit()) {
-				insertPs.getConnection().commit();
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
 	}
 	
@@ -1830,15 +1630,23 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "DELETE FROM USERINSIGHTPERMISSION WHERE "
-				+ "USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND PROJECTID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "' "
-				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
+		String deleteQuery = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(deleteQuery);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, existingUserId);
+			ps.setString(parameterIndex++, projectId);
+			ps.setString(parameterIndex++, insightId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -2970,14 +2778,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean updateMetakeyOptions(List<Map<String,Object>> metaoptions) {
 		boolean valid = false;
-		String[] colNames = new String[]{Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS};
         PreparedStatement insertPs = null;
         String tableName = "INSIGHTMETAKEYS";
         try {
 			// first truncate table clean 
-			String truncateSql = "TRUNCATE TABLE " + tableName;
+			String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
 			securityDb.removeData(truncateSql);
-			insertPs = securityDb.getPreparedStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
+			insertPs = securityDb.bulkInsertPreparedStatement(new Object[] {tableName, Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS});
 			// then insert latest options
 			for (int i = 0; i < metaoptions.size(); i++) {
 				insertPs.setString(1, (String) metaoptions.get(i).get("metakey"));
@@ -2987,24 +2794,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
 			valid = true;
         } catch (SQLException e) {
         	logger.error(Constants.STACKTRACE, e);
         } finally {
-        	if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
         }
 		return valid;
 	}
@@ -3130,37 +2927,24 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
-		PreparedStatement deletePs = null;
+		PreparedStatement ps = null;
 		try {
-			deletePs = securityDb.getPreparedStatement(deleteQ);
+			ps = securityDb.getPreparedStatement(deleteQ);
 			for(int i=0; i<existingUserIds.size(); i++) {
 				int parameterIndex = 1;
-				deletePs.setString(parameterIndex++, existingUserIds.get(i));
-				deletePs.setString(parameterIndex++, projectId);
-				deletePs.setString(parameterIndex++, insightId);
-				deletePs.addBatch();
+				ps.setString(parameterIndex++, existingUserIds.get(i));
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.addBatch();
 			}
-			deletePs.executeBatch();
-			if(!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(deletePs != null) {
-				try {
-					deletePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						deletePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -3172,7 +2956,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param requests
 	 */
 	public static void approveInsightUserAccessRequests(User user, String projectId, String insightId, List<Map<String, String>> requests) throws IllegalAccessException {
-		
 		// make sure user has right permission level to approve access requests
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -3214,20 +2997,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		} finally {
-			if(deletePs != null) {
-				try {
-					deletePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						deletePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?,?)";
@@ -3249,20 +3019,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
 
 		// now we do the new bulk update to accessrequest table
@@ -3282,9 +3039,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				updatePs.setString(index++, userType);
 				updatePs.setString(index++, "APPROVED");
 				updatePs.setTimestamp(index++, timestamp, cal);
-				
 				updatePs.setString(index++, (String) requests.get(i).get("requestid"));
-				
 				updatePs.addBatch();
 			}
 			updatePs.executeBatch();
@@ -3295,20 +3050,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
-			if(updatePs != null) {
-				try {
-					updatePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						updatePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
 		}
 	}
 	
@@ -3321,7 +3063,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param requests
 	 */
 	public static void denyInsightUserAccessRequests(User user, String projectId, String insightId, List<String> requestIdList) throws IllegalAccessException {
-		
 		// make sure user has right permission level to approve access requests
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if(!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -3335,47 +3076,32 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				
 		// bulk update to accessrequest table
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
-		PreparedStatement updatePs = null;
+		PreparedStatement ps = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-			updatePs = securityDb.getPreparedStatement(updateQ);
+			ps = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
 			String userType = token.getProvider().toString();
 			for(int i=0; i<requestIdList.size(); i++) {
 				int index = 1;
-				updatePs.setString(index++, userId);
-				updatePs.setString(index++, userType);
-				updatePs.setString(index++, "DENIED");
-				updatePs.setTimestamp(index++, timestamp, cal);
-				
-				updatePs.setString(index++, requestIdList.get(i));
-				
-				updatePs.addBatch();
+				ps.setString(index++, userId);
+				ps.setString(index++, userType);
+				ps.setString(index++, "DENIED");
+				ps.setTimestamp(index++, timestamp, cal);
+				ps.setString(index++, requestIdList.get(i));
+				ps.addBatch();
 			}
-			updatePs.executeBatch();
-			if(!updatePs.getConnection().getAutoCommit()) {
-				updatePs.getConnection().commit();
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
-			if(updatePs != null) {
-				try {
-					updatePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						updatePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -3476,24 +3202,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			deletePs.setString(index++, projectId);
 			deletePs.setString(index++, insightId);
 			deletePs.execute();
+			if(!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while deleting user access request with detailed message = " + e.getMessage());
 		} finally {
-			if(deletePs != null) {
-				try {
-					deletePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						deletePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 
 		// now we do the new insert 
@@ -3513,24 +3229,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			insertPs.setString(index++, insightId);
 			insertPs.setInt(index++, permission);
 			insertPs.execute();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
-			if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
 	}
 
