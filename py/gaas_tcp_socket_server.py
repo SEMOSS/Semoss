@@ -13,7 +13,7 @@ from gaas_tcp_server_handler import TCPServerHandler
 
 class Server(socketserver.ThreadingTCPServer):
   
-  def __init__(self, server_address=None, handler_class=TCPServerHandler, port=81, max_count=1, py_folder=".", insight_folder=".", prefix="", timeout=15, start=False):
+  def __init__(self, server_address=None, handler_class=TCPServerHandler, port=81, max_count=1, py_folder=".", insight_folder=".", prefix="", timeout=15, start=False, blocking=False):
     self.logger = logging.getLogger('SocketServer')
     self.logger.debug('__init__')
     self.stop = False    
@@ -26,6 +26,7 @@ class Server(socketserver.ThreadingTCPServer):
     
     self.monitor = threading.Condition()
     self.timed_out = False
+    self.blocking = blocking
 
     # see if the port was passed through argv
     if(self.port is None and len(sys.argv) > 0):
