@@ -15,6 +15,7 @@ import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
+@Deprecated
 public class RdbmsQueryBuilder {
 
 	public static String escapeForSQLStatement(String s) {
@@ -70,6 +71,7 @@ public class RdbmsQueryBuilder {
 	 * @param data
 	 * @return
 	 */
+	@Deprecated
 	public static String makeInsert(String tableName, String [] colNames, String [] types, Object [] data) {
 		StringBuilder retString = new StringBuilder("INSERT INTO "+ tableName + " (" + colNames[0]);
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
@@ -458,6 +460,7 @@ public class RdbmsQueryBuilder {
 	}
 
 	// DELETE FROM TABLE_NAME WHERE COLUMN1 = VAL1 AND COLUMN2 = VAL2
+	@Deprecated
 	public static String makeDeleteData(String tableName, String[] columnName, Object[] values) {
 		StringBuilder deleteQuery = new StringBuilder("DELETE FROM " + tableName + " WHERE ");
 		for (int i = 0; i < columnName.length; i++) {
