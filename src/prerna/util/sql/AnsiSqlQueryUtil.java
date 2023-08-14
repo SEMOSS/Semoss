@@ -753,7 +753,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		QueryFunctionSelector regexFunction = new QueryFunctionSelector();
 		regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
 		regexFunction.addInnerSelector(new QueryColumnSelector(columnQs));
-		regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
+		regexFunction.addInnerSelector(new QueryConstantSelector(escapeForSQLStatement(searchTerm)));
 		regexFunction.addInnerSelector(new QueryConstantSelector("i"));
 		filter.setFunctionSelector(regexFunction);
 		qs.addExplicitFilter(filter);
