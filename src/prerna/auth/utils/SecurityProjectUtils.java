@@ -2752,9 +2752,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
         String tableName = "PROJECTMETAKEYS";
         try {
 			// first truncate table clean 
-			String truncateSql = "TRUNCATE TABLE " + tableName;
+			String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
 			securityDb.removeData(truncateSql);
-			insertPs = securityDb.bulkInsertPreparedStatement(new Object[] {"PROJECTMETAKEYS",Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS} );
+			insertPs = securityDb.bulkInsertPreparedStatement(new Object[] {tableName, Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS} );
 			// then insert latest options
 			for (int i = 0; i < metaoptions.size(); i++) {
 				insertPs.setString(1, (String) metaoptions.get(i).get("metakey"));
