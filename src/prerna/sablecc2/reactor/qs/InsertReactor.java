@@ -17,11 +17,9 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -63,7 +61,7 @@ public class InsertReactor extends AbstractReactor {
 		}
 		
 		AbstractQueryStruct qs = (AbstractQueryStruct) qStruct.getValue();
-		IDatabase engine = null;
+		IRDBMSEngine database = null;
 		ITableDataFrame frame = null;
 		AbstractSqlQueryUtil queryUtil = null;
 		String userId = "user not defined";
@@ -71,11 +69,12 @@ public class InsertReactor extends AbstractReactor {
 		if(qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
-				engine = qs.retrieveQueryStructEngine();
+				IDatabase engine = qs.retrieveQueryStructEngine();
 				if(!(engine instanceof IRDBMSEngine)) {
 					throw new IllegalArgumentException("Insert query only works for rdbms databases");
 				}
-				queryUtil = ((IRDBMSEngine) engine).getQueryUtil();
+				database = (IRDBMSEngine) engine;
+				queryUtil = database.getQueryUtil();
 				// If an engine and the user is defined, then grab it for the audit log
 				User user = this.insight.getUser();
 				if (user != null) {
@@ -83,7 +82,7 @@ public class InsertReactor extends AbstractReactor {
 				}
 				
 				// If security is enabled, then check that the user can edit the engine
-				if (AbstractSecurityUtils.securityEnabled() && !SecurityEngineUtils.userCanEditEngine(user, engine.getEngineId())) {
+				if (AbstractSecurityUtils.securityEnabled() && !SecurityEngineUtils.userCanEditEngine(user, database.getEngineId())) {
 					throw new IllegalArgumentException("User does not have permission to insert query for this database");
 				}
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
@@ -130,7 +129,7 @@ public class InsertReactor extends AbstractReactor {
 				prefixSb.append(", ");
 			}
 			if(c.getColumn().equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				prefixSb.append(getPrimKey(engine, c.getTable()));
+				prefixSb.append(getPrimKey(database, c.getTable()));
 			} else {
 				prefixSb.append(c.getColumn());
 			}
@@ -143,10 +142,10 @@ public class InsertReactor extends AbstractReactor {
 		// h2/sqlite is file based
 		// so need to do the whole sync across engines
 		// only need for cloud
-		if(ClusterUtil.IS_CLUSTER && engine != null) {
-			RdbmsTypeEnum eType = ((RDBMSNativeEngine) engine).getQueryUtil().getDbType();
+		if(ClusterUtil.IS_CLUSTER && database != null) {
+			RdbmsTypeEnum eType = database.getQueryUtil().getDbType();
 			if(eType == RdbmsTypeEnum.H2_DB || eType == RdbmsTypeEnum.SQLITE) {
-				insertFileEngine(engine, queryUtil, initial, valueCombinations, selectors, userId);
+				insertFileEngine(database, queryUtil, initial, valueCombinations, selectors, userId);
 				NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 				String customSuccessMessage = getCustomSuccessMessage();
 				if(customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
@@ -176,11 +175,11 @@ public class InsertReactor extends AbstractReactor {
 				} 
 				else if(values[i] instanceof String) {
 					if(values[i].equals("<UUID>")) {
-						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+						valuesSb.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
 					} else if(values[i].equals("<USER_ID>")) {
-						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'");
+						valuesSb.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(userId) + "'");
 					} else {
-						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
+						valuesSb.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(values[i] + "") + "'");
 					}
 				}
 				else if(values[i] instanceof SemossDate) {
@@ -212,13 +211,13 @@ public class InsertReactor extends AbstractReactor {
 			String query = initial + valuesSb.toString();
 			logger.info("SQL QUERY...." + query);
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
-				if(engine == null) {
+				if(database == null) {
 					throw new NullPointerException("No engine passed in to insert the data");
 				}
 				try {
-					engine.insertData(query);
+					database.insertData(query);
 					if(commit) {
-						engine.commit();
+						database.commit();
 					}
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
@@ -226,8 +225,8 @@ public class InsertReactor extends AbstractReactor {
 							new NounMetadata("An error occurred trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 
-				if (engine != null) {
-					AuditDatabase audit = engine.generateAudit();
+				if (database != null) {
+					AuditDatabase audit = database.generateAudit();
 					audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 				}
 			} else {
@@ -253,16 +252,16 @@ public class InsertReactor extends AbstractReactor {
 	
 	/**
 	 * Insert into the engine
-	 * @param engine
+	 * @param database
 	 * @param initial
 	 * @param valueCombinations
 	 * @param selectors
 	 * @param userId
 	 */
-	private void insertFileEngine(IDatabase engine, AbstractSqlQueryUtil queryUtil, 
+	private void insertFileEngine(IRDBMSEngine database, AbstractSqlQueryUtil queryUtil, 
 			String initial, List<Object[]> valueCombinations, List<IQuerySelector> selectors, String userId) {
-		synchronized(engine) {
-			ClusterUtil.reactorPullApp(engine.getEngineId());
+		synchronized(database) {
+			ClusterUtil.reactorPullApp(database.getEngineId());
 			
 			// determine if we can insert booleans as true/false
 			boolean allowBooleanType = queryUtil.allowBooleanDataType();
@@ -282,11 +281,11 @@ public class InsertReactor extends AbstractReactor {
 					} 
 					else if(values[i] instanceof String) {
 						if(values[i].equals("<UUID>")) {
-							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+							valuesSb.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
 						} else if(values[i].equals("<USER_ID>")) {
-							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'");
+							valuesSb.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(userId) + "'");
 						} else {
-							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
+							valuesSb.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(values[i] + "") + "'");
 						}
 					}
 					else if(values[i] instanceof SemossDate) {
@@ -318,8 +317,8 @@ public class InsertReactor extends AbstractReactor {
 				String query = initial + valuesSb.toString();
 
 				try {
-					engine.insertData(query);
-					AuditDatabase audit = engine.generateAudit();
+					database.insertData(query);
+					AuditDatabase audit = database.generateAudit();
 					audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
@@ -328,7 +327,7 @@ public class InsertReactor extends AbstractReactor {
 				}
 			}
 			// push back to the cluster
-			ClusterUtil.reactorPushDatabase(engine.getEngineId());
+			ClusterUtil.reactorPushDatabase(database.getEngineId());
 		}
 	}
 	

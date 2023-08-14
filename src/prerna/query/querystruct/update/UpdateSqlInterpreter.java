@@ -8,7 +8,6 @@ import java.util.UUID;
 
 import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -18,6 +17,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class UpdateSqlInterpreter extends SqlInterpreter {
 	
@@ -92,11 +92,11 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 				sets.append(column + "= NULL");
 			} else if(v instanceof String) {
 				if(v.equals("<UUID>")) {
-					sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+					sets.append(column + "=" + "'" + AbstractSqlQueryUtil.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
 				} else if(v.equals("<USER_ID>") && this.userId != null) {
-					sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'");
+					sets.append(column + "=" + "'" + AbstractSqlQueryUtil.escapeForSQLStatement(userId) + "'");
 				} else {
-					sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
+					sets.append(column + "=" + "'" + AbstractSqlQueryUtil.escapeForSQLStatement(v + "") + "'");
 				}
 			} else if(v instanceof SemossDate) {
 				String dateValue = ((SemossDate) v).getFormattedDate() ;
