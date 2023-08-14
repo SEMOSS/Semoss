@@ -4,9 +4,9 @@ import gaas_interrogator as gi
 from gaas_streamer import SemossStreamer
 
 class Interrogator(gi.Interrogator):
-  def __init__(self, model_path="psmathur/orca_mini_3b", autoload=True, **kwargs):
+  def __init__(self, model_path="psmathur/orca_mini_3b", autoload=True, stopper="abracadabra", **kwargs):
     print("Creating tokenizer and Model")
-    super().__init__(model_path=model_path, autoload=autoload, **kwargs)
+    super().__init__(model_path=model_path, autoload=autoload, stopper=stopper, **kwargs)
     print("<<Orca Ready>>")
   
   def ask(self, question=None, context=None, prefix="", **kwargs):
