@@ -22,7 +22,6 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -519,7 +518,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 					} else if(types[1] == SemossDataType.DOUBLE) {
 						values = "( " + Utility.getDouble(cells[1]);
 					} else {
-						values = "( '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[1]) + "'";
+						values = "( '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[1]) + "'";
 					}
 				}
 				for (int cellIndex = 2; cellIndex < numHeaders; cellIndex++) {
@@ -537,7 +536,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 						} else if(types[cellIndex] == SemossDataType.DOUBLE) {
 							values = values + " , " + Utility.getDouble(cells[cellIndex]);
 						} else {
-							values = values + " , '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[cellIndex]) + "'";
+							values = values + " , '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[cellIndex]) + "'";
 						}
 					}
 				}
@@ -619,7 +618,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 
 				// need to determine if i am performing an update or an insert
 				String getRowCountQuery = "SELECT COUNT(*) as ROW_COUNT FROM " + tableToSet + " WHERE " + tableToSet
-						+ " = '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter]) + "' AND " + tableToInsert + "_FK IS NULL";
+						+ " = '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "' AND " + tableToInsert + "_FK IS NULL";
 				boolean isInsert = false;
 				IRawSelectWrapper wrapper = null;
 				try {
@@ -700,7 +699,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 						}
 
 						String existingValues = "(SELECT DISTINCT " + unknownCols + " FROM " + tableToSet + " WHERE "
-								+ tableToSet + "='" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter]) + "' ) AS TEMP_FK";
+								+ tableToSet + "='" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "' ) AS TEMP_FK";
 						StringBuilder selectingValues = new StringBuilder();
 						selectingValues.append("SELECT DISTINCT ");
 
@@ -710,8 +709,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 								selectingValues.append("TEMP_FK.").append(col).append(" AS ").append(col).append(", ");
 							}
 						}
-						selectingValues.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter]) + "'").append(" AS ").append(tableToSet).append(", ");
-						selectingValues.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(cells[inserter]) + "'").append(" AS ").append(tableToInsert + "_FK").append(" ");
+						selectingValues.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "'").append(" AS ").append(tableToSet).append(", ");
+						selectingValues.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[inserter]) + "'").append(" AS ").append(tableToInsert + "_FK").append(" ");
 						selectingValues.append(" FROM ").append(tableToSet).append(",");
 
 						String insert = "INSERT INTO " + tableToSet + "(" + colsToSelect + " ) " + selectingValues.toString() + existingValues;
@@ -720,7 +719,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				} else {
 					// this is a nice and simple insert
 					String updateString = "Update " + tableToSet + "  SET ";
-					String values = tableToInsert + "_FK" + " = '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[inserter]) + "' WHERE " + tableToSet + " = '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter])  + "'";
+					String values = tableToInsert + "_FK" + " = '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[inserter]) + "' WHERE " + tableToSet + " = '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter])  + "'";
 					database.insertData(updateString + values);
 				}
 			}

@@ -14,7 +14,6 @@ import org.openrdf.query.TupleQueryResult;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -354,7 +353,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					if(value instanceof Number) {
 						return value.toString();
 					} else {
-						return "'" + RdbmsQueryBuilder.escapeForSQLStatement(constant + "") + "'";
+						return "'" + AbstractSqlQueryUtil.escapeForSQLStatement(constant + "") + "'";
 					}
 				}
 			} catch(Exception e) {
@@ -381,7 +380,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 			}
 		} else {
-			return "'" + RdbmsQueryBuilder.escapeForSQLStatement(constant + "") + "'";
+			return "'" + AbstractSqlQueryUtil.escapeForSQLStatement(constant + "") + "'";
 		}
 	}
 
@@ -1257,7 +1256,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 				
 				// get the first value
-				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
+				String val = AbstractSqlQueryUtil.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
 				if(isSearch && val.contains("\\")) {
 					myObj.append(leftWrapper).append(val.replace("\\", "\\\\")).append(rightWrapper);
@@ -1266,7 +1265,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 				i++;
 				for(; i < size; i++) {
-					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
+					val = AbstractSqlQueryUtil.escapeForSQLStatement(objects.get(i).toString());
 					// get the other values
 					if(isSearch && val.contains("\\")) {
 						myObj.append(" , ").append(leftWrapper).append(val.replace("\\", "\\\\")).append(rightWrapper);
@@ -1332,7 +1331,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 				
 				// get the first value
-				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
+				String val = AbstractSqlQueryUtil.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
 				if(isSearch && val.contains("\\")) {
 					myObj.append(leftWrapper).append(val.replace("\\", "\\\\")).append(rightWrapper);
@@ -1341,7 +1340,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 				i++;
 				for(; i < size; i++) {
-					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
+					val = AbstractSqlQueryUtil.escapeForSQLStatement(objects.get(i).toString());
 					// get the first value
 					// get the other values
 					if(isSearch && val.contains("\\")) {
