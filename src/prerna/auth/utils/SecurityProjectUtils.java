@@ -1792,8 +1792,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws SQLException
 	 */
 	public static void copyProjectPermissions(String sourceProjectId, String targetProjectId) throws Exception {
-		String insertTargetAppPermissionSql = "INSERT INTO PROJECTPERMISSION (PROJECTID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
-		PreparedStatement insertTargetAppPermissionStatement = securityDb.getPreparedStatement(insertTargetAppPermissionSql);
+		String insertTargetProjectPermissionSql = "INSERT INTO PROJECTPERMISSION (PROJECTID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
+		PreparedStatement insertTargetProjectPermissionStatement = securityDb.getPreparedStatement(insertTargetProjectPermissionSql);
 		
 		// grab the permissions, filtered on the source engine id
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1809,12 +1809,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				Object[] row = wrapper.next().getValues();
 				// now loop through all the permissions
 				// but with the target engine id instead of the source engine id
-				insertTargetAppPermissionStatement.setString(1, targetProjectId);
-				insertTargetAppPermissionStatement.setString(2, (String) row[1]);
-				insertTargetAppPermissionStatement.setInt(3, ((Number) row[2]).intValue() );
-				insertTargetAppPermissionStatement.setBoolean(4, (Boolean) row[3]);
+				insertTargetProjectPermissionStatement.setString(1, targetProjectId);
+				insertTargetProjectPermissionStatement.setString(2, (String) row[1]);
+				insertTargetProjectPermissionStatement.setInt(3, ((Number) row[2]).intValue() );
+				insertTargetProjectPermissionStatement.setBoolean(4, (Boolean) row[3]);
 				// add to batch
-				insertTargetAppPermissionStatement.addBatch();
+				insertTargetProjectPermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -1825,7 +1825,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		// first delete the current app permissions on the database
+		// first delete the current project permissions
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("DELETE FROM PROJECTPERMISSION WHERE PROJECTID=?");
@@ -1834,19 +1834,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// here we delete
 			ps.execute();
 			// now we insert
-			insertTargetAppPermissionStatement.executeBatch();
+			insertTargetProjectPermissionStatement.executeBatch();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-			if(!insertTargetAppPermissionStatement.getConnection().getAutoCommit()) {
-				insertTargetAppPermissionStatement.getConnection().commit();
+			if(!insertTargetProjectPermissionStatement.getConnection().getAutoCommit()) {
+				insertTargetProjectPermissionStatement.getConnection().commit();
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred removing the user permissions for the project and insights of this project");
+			throw new IllegalArgumentException("An error occurred transferring the project permissions");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertTargetAppPermissionStatement);
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertTargetProjectPermissionStatement);
 		}
 	}
 	

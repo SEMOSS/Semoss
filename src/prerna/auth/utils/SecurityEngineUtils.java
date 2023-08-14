@@ -25,7 +25,6 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -46,11 +45,11 @@ import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityEngineUtils extends AbstractSecurityUtils {
 
@@ -81,7 +80,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 */
 	public static void addEngine(String engineId, boolean global, User user) {
-		engineId = RdbmsQueryBuilder.escapeForSQLStatement(engineId);
 		if(ignoreDatabase(engineId)) {
 			// dont add local master or security db to security db
 			return;
@@ -195,20 +193,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -232,20 +217,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -266,20 +238,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -301,20 +260,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -471,20 +417,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
 		} finally {
-			if(deletePs != null) {
-				try {
-					deletePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						deletePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
@@ -506,20 +439,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
 
 		// now we do the new bulk update to engineaccessrequest table
@@ -553,20 +473,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
-			if(updatePs != null) {
-				try {
-					updatePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						updatePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
 		}
 	}
 	
@@ -591,48 +498,35 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		
 		// bulk update to engineaccessrequest table
 		String updateQ = "UPDATE ENGINEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
-		PreparedStatement updatePs = null;
+		PreparedStatement ps = null;
 		try {
 			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
-			updatePs = securityDb.getPreparedStatement(updateQ);
+			ps = securityDb.getPreparedStatement(updateQ);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 			String userId = token.getId();
 			String userType = token.getProvider().toString();
 			for(int i = 0; i  <requestIds.size(); i++) {
 				int index = 1;
 				//set
-				updatePs.setString(index++, userId);
-				updatePs.setString(index++, userType);
-				updatePs.setString(index++, "DENIED");
-				updatePs.setTimestamp(index++, timestamp, cal);
+				ps.setString(index++, userId);
+				ps.setString(index++, userType);
+				ps.setString(index++, "DENIED");
+				ps.setTimestamp(index++, timestamp, cal);
 				//where
-				updatePs.setString(index++, requestIds.get(i));
-				updatePs.setString(index++, engineId);
-				updatePs.addBatch();
+				ps.setString(index++, requestIds.get(i));
+				ps.setString(index++, engineId);
+				ps.addBatch();
 			}
-			updatePs.executeBatch();
-			if(!updatePs.getConnection().getAutoCommit()) {
-				updatePs.getConnection().commit();
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
-			if(updatePs != null) {
-				try {
-					updatePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						updatePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -875,17 +769,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES('"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
-				+ "TRUE, "
-				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
-
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
-		} catch (SQLException e) {
+			ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES(?,?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, newUserId);
+			ps.setString(parameterIndex++, engineId);
+			ps.setBoolean(parameterIndex++, true);
+			ps.setInt(parameterIndex, AccessPermissionEnum.getIdByPermission(permission));
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this engine");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -924,38 +824,25 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?,?,?,?)";
-		PreparedStatement insertPs = null;
+		PreparedStatement ps = null;
 		try {
-			insertPs = securityDb.getPreparedStatement(insertQ);
+			ps = securityDb.getPreparedStatement(insertQ);
 			for(int i=0; i<permission.size(); i++) {
 				int parameterIndex = 1;
-				insertPs.setString(parameterIndex++, permission.get(i).get("userid"));
-				insertPs.setString(parameterIndex++, engineId);
-				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
-				insertPs.setBoolean(parameterIndex++, true);
-				insertPs.addBatch();
+				ps.setString(parameterIndex++, permission.get(i).get("userid"));
+				ps.setString(parameterIndex++, engineId);
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
+				ps.setBoolean(parameterIndex++, true);
+				ps.addBatch();
 			}
-			insertPs.executeBatch();
-			if(!insertPs.getConnection().getAutoCommit()) {
-				insertPs.getConnection().commit();
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -998,14 +885,24 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=" + newPermissionLvl
-				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
-		} catch (SQLException e) {
+			ps = securityDb.getPreparedStatement("UPDATE ENGINEPERMISSION SET PERMISSION=? WHERE USERID=? AND ENGINEID=?");
+			int parameterIndex = 1;
+			//SET
+			ps.setInt(parameterIndex++, newPermissionLvl);
+			//WHERE
+			ps.setString(parameterIndex++, existingUserId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this engine");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1051,40 +948,27 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		
 		// update user permissions in bulk
-		String insertQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ? WHERE USERID = ? AND ENGINEID = ?";
-		PreparedStatement insertPs = null;
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ? WHERE USERID = ? AND ENGINEID = ?";
+		PreparedStatement ps = null;
 		try {
-			insertPs = securityDb.getPreparedStatement(insertQ);
+			ps = securityDb.getPreparedStatement(updateQ);
 			for(int i=0; i<requests.size(); i++) {
 				int parameterIndex = 1;
 				//SET
-				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				//WHERE
-				insertPs.setString(parameterIndex++, requests.get(i).get("userid"));
-				insertPs.setString(parameterIndex++, databaseId);
-				insertPs.addBatch();
+				ps.setString(parameterIndex++, requests.get(i).get("userid"));
+				ps.setString(parameterIndex++, databaseId);
+				ps.addBatch();
 			}
-			insertPs.executeBatch();
-			if(!insertPs.getConnection().getAutoCommit()) {
-				insertPs.getConnection().commit();
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}	
 	}
 	
@@ -1113,20 +997,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(ps != null) {
-					try {
-						ps.close();
-						if(securityDb.isConnectionPooling()) {
-							try {
-								ps.getConnection().close();
-							} catch (SQLException e) {
-								logger.error(Constants.STACKTRACE, e);
-							}
-						}
-					} catch (SQLException e) {
-						e.printStackTrace();
-					}
-				}
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		}
 	}
@@ -1162,28 +1033,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID='" 
-				+ RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
+		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(deleteQuery);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, existingUserId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
-		
-		
-		//TODO >>> Kunal: There are no more insights in an database. likely need to clean whole file
-		// need to also delete all insight permissions for this database
-//		query = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID='" 
-//				+ RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-//				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
-//		try {
-//			securityDb.insertData(query);
-//		} catch (SQLException e) {
-//			logger.error(Constants.STACKTRACE, e);
-//			throw new IllegalArgumentException("An error occurred removing the user permissions for the insights of this database");
-//		}
 	}
 	
 	/**
@@ -1220,36 +1086,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		
 		// first do a delete
 		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
-		PreparedStatement deletePs = null;
+		PreparedStatement ps = null;
 		try {
-			deletePs = securityDb.getPreparedStatement(deleteQ);
+			ps = securityDb.getPreparedStatement(deleteQ);
 			for(int i=0; i<existingUserIds.size(); i++) {
 				int parameterIndex = 1;
-				deletePs.setString(parameterIndex++, existingUserIds.get(i));
-				deletePs.setString(parameterIndex++, engineId);
-				deletePs.addBatch();
+				ps.setString(parameterIndex++, existingUserIds.get(i));
+				ps.setString(parameterIndex++, engineId);
+				ps.addBatch();
 			}
-			deletePs.executeBatch();
-			if(!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
+			ps.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
 			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(deletePs != null) {
-				try {
-					deletePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						deletePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -1267,29 +1120,19 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
-		PreparedStatement updatePs = null;
+		PreparedStatement ps = null;
 		try {
-			updatePs = securityDb.getPreparedStatement(updateQ);
-			updatePs.setBoolean(1, global);
-			updatePs.setString(2, engineId);
-			updatePs.execute();
+			ps = securityDb.getPreparedStatement(updateQ);
+			ps.setBoolean(1, global);
+			ps.setString(2, engineId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(updatePs != null) {
-				try {
-					updatePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						updatePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		return true;
 	}
@@ -1314,20 +1157,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(ps != null) {
-					try {
-						ps.close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-					if(securityDb.isConnectionPooling()) {
-						try {
-							ps.getConnection().close();
-						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-					}
-				}
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		}
 	}
@@ -1346,29 +1176,19 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		
 		String updateQ = "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=?";
-		PreparedStatement updatePs = null;
+		PreparedStatement ps = null;
 		try {
-			updatePs = securityDb.getPreparedStatement(updateQ);
-			updatePs.setBoolean(1, discoverable);
-			updatePs.setString(2, engineId);
-			updatePs.execute();
-		} catch(Exception e) {
+			ps = securityDb.getPreparedStatement(updateQ);
+			ps.setBoolean(1, discoverable);
+			ps.setString(2, engineId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(updatePs != null) {
-				try {
-					updatePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						updatePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		return true;
 	}
@@ -1433,17 +1253,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						ps.addBatch();
 					}
 					ps.executeBatch();
-					ps.getConnection().commit();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
 				} catch(Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw e;
 				} finally {
-					if(ps != null) {
-						ps.close();
-						if(securityDb.isConnectionPooling()) {
-							ps.getConnection().close();
-						}
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 			
@@ -1517,17 +1334,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						ps.addBatch();
 					}
 					ps.executeBatch();
-					ps.getConnection().commit();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
 				} catch(Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw e;
 				} finally {
-					if(ps != null) {
-						ps.close();
-						if(securityDb.isConnectionPooling()) {
-							ps.getConnection().close();
-						}
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		} catch (Exception e) {
@@ -1542,19 +1356,33 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	/**
 	 * update the database name
 	 * @param user
-	 * @param databaseId
+	 * @param engineId
 	 * @param isPublic
 	 * @return
 	 */
-	public static boolean setDatabaseName(User user, String databaseId, String newDatabaseName) {
-		if(!SecurityUserEngineUtils.userIsOwner(user, databaseId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to change the database name. Only the owner or an admin can perform this action.");
+	public static boolean setEngineName(User user, String engineId, String newEngineName) {
+		if(!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
+			throw new IllegalArgumentException("The user doesn't have the permission to change the engine name. Only the owner or an admin can perform this action.");
 		}
-		newDatabaseName = RdbmsQueryBuilder.escapeForSQLStatement(newDatabaseName);
-		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
-		String query = "UPDATE ENGINE SET ENGINENAME = '" + newDatabaseName + "' WHERE ENGINEID ='" + databaseId + "';";
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
+		
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("UPDATE ENGINE SET ENGINENAME=? WHERE ENGINEID=?");
+			int parameterIndex = 1;
+			// SET
+			ps.setString(parameterIndex++, newEngineName);
+			// WHERE
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred updating the engine name");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
 		return true;
 	}
 	
@@ -1603,20 +1431,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(deletePs != null) {
-				try {
-					deletePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						deletePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 		
 		// now we do the new insert with the order of the tags
@@ -1653,121 +1468,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-	
-//	/**
-//	 * Update the database description
-//	 * Will perform an insert if the description doesn't currently exist
-//	 * @param databaseId
-//	 * @param insideId
-//	 */
-//	public static void updateDatabaseDescription(String databaseId, String description) {
-//		// try to do an update
-//		// if nothing is updated
-//		// do an insert
-//		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
-//		String query = "UPDATE ENGINEMETA SET METAVALUE='" 
-//				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
-//				+ "WHERE METAKEY='description' AND ENGINEID='" + databaseId + "'";
-//		Statement stmt = null;
-//		try {
-//			stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
-//			if(stmt.getUpdateCount() <= 0) {
-//				// need to perform an insert
-//				query = securityDb.getQueryUtil().insertIntoTable("ENGINEMETA", 
-//						new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"}, 
-//						new String[]{"varchar(255)", "varchar(255)", "clob", "int"}, 
-//						new Object[]{databaseId, "description", description, 0});
-//				securityDb.insertData(query);
-//			}
-//		} catch(SQLException e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		} finally {
-//			if(stmt != null) {
-//				try {
-//					stmt.close();
-//				} catch (SQLException e) {
-//					logger.error(Constants.STACKTRACE, e);
-//				}
-//				if(securityDb.isConnectionPooling()) {
-//					try {
-//						stmt.getConnection().close();
-//					} catch (SQLException e) {
-//						logger.error(Constants.STACKTRACE, e);
-//					}
-//				}
-//			}
-//		}
-//	}
-	
-//	/**
-//	 * Update the database tags
-//	 * Will delete existing values and then perform a bulk insert
-//	 * @param databaseId
-//	 * @param insightId
-//	 * @param tags
-//	 */
-//	public static void updateDatabaseTags(String databaseId, List<String> tags) {
-//		// first do a delete
-//		String query = "DELETE FROM ENGINEMETA WHERE METAKEY='tag' AND ENGINEID='" + databaseId + "'";
-//		try {
-//			securityDb.insertData(query);
-//			securityDb.commit();
-//		} catch (SQLException e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		}
-//		
-//		// now we do the new insert with the order of the tags
-//		query = securityDb.getQueryUtil().createInsertPreparedStatementString("ENGINEMETA", 
-//				new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"});
-//		PreparedStatement ps = null;
-//		try {
-//			ps = securityDb.getPreparedStatement(query);
-//			for(int i = 0; i < tags.size(); i++) {
-//				String tag = tags.get(i);
-//				ps.setString(1, databaseId);
-//				ps.setString(2, "tag");
-//				ps.setString(3, tag);
-//				ps.setInt(4, i);
-//				ps.addBatch();;
-//			}
-//			
-//			ps.executeBatch();
-//		} catch(Exception e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		} finally {
-//			if(ps != null) {
-//				try {
-//					ps.close();
-//				} catch (SQLException e) {
-//					logger.error(Constants.STACKTRACE, e);
-//				}
-//				if(securityDb.isConnectionPooling()) {
-//					try {
-//						ps.getConnection().close();
-//					} catch (SQLException e) {
-//						logger.error(Constants.STACKTRACE, e);
-//					}
-//				}
-//			}
-//		}
-//	}
 	
 	/**
 	 * Get the wrapper for additional database metadata
@@ -1874,9 +1577,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param targetDatabaseId
 	 * @throws SQLException
 	 */
-	public static void copyDatabasePermissions(String sourceDatabaseId, String targetDatabaseId) throws Exception {
-		String insertTargetDbPermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
-		PreparedStatement insertTargetDbPermissionStatement = securityDb.getPreparedStatement(insertTargetDbPermissionSql);
+	public static void copyEnginePermissions(String sourceDatabaseId, String targetDatabaseId) throws Exception {
+		String insertTargetEnginePermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
+		PreparedStatement insertTargetEnginePermissionStatement = securityDb.getPreparedStatement(insertTargetEnginePermissionSql);
 		
 		// grab the permissions, filtered on the source database id
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1892,12 +1595,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				Object[] row = wrapper.next().getValues();
 				// now loop through all the permissions
 				// but with the target engine id instead of the source engine id
-				insertTargetDbPermissionStatement.setString(1, targetDatabaseId);
-				insertTargetDbPermissionStatement.setString(2, (String) row[1]);
-				insertTargetDbPermissionStatement.setInt(3, ((Number) row[2]).intValue() );
-				insertTargetDbPermissionStatement.setBoolean(4, (Boolean) row[3]);
+				insertTargetEnginePermissionStatement.setString(1, targetDatabaseId);
+				insertTargetEnginePermissionStatement.setString(2, (String) row[1]);
+				insertTargetEnginePermissionStatement.setInt(3, ((Number) row[2]).intValue() );
+				insertTargetEnginePermissionStatement.setBoolean(4, (Boolean) row[3]);
 				// add to batch
-				insertTargetDbPermissionStatement.addBatch();
+				insertTargetEnginePermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -1908,11 +1611,29 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		// first delete the current database permissions on the database
-		String deleteTargetDbPermissionsSql = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID = '" + AbstractSqlQueryUtil.escapeForSQLStatement(targetDatabaseId) + "'";
-		securityDb.removeData(deleteTargetDbPermissionsSql);
-		// execute the query
-		insertTargetDbPermissionStatement.executeBatch();
+		// first delete the current project permissions
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, targetDatabaseId);
+			// here we delete
+			ps.execute();
+			// now we insert
+			insertTargetEnginePermissionStatement.executeBatch();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			if(!insertTargetEnginePermissionStatement.getConnection().getAutoCommit()) {
+				insertTargetEnginePermissionStatement.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred transferring the engine permissions");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertTargetEnginePermissionStatement);
+		}
 	}
 	
 	/**
@@ -2014,24 +1735,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			updatePs.setString(index++, userType);
 			updatePs.setString(index++, engineId);
 			updatePs.execute();
+			if(!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while marking old user access request with detailed message = " + e.getMessage());
 		} finally {
-			if(updatePs != null) {
-				try {
-					updatePs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						updatePs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
 		}
 
 		// now we do the new insert 
@@ -2050,24 +1761,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			insertPs.setString(index++, engineId);
 			insertPs.setInt(index++, permission);
 			insertPs.execute();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
-			if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
 	}
 	
@@ -2126,136 +1827,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
 	}
 	
-//	/**
-//	 * Get all databases for setting options that the user has access to
-//	 * @param user
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getUserDatabaseSettings(User user) {
-//		return getUserDatabaseSettings(user, null);
-//	}
-	
-//	/**
-//	 * Get database settings - if databaseFitler passed will filter to that db otherwise returns all
-//	 * @param user
-//	 * @param dbFilter
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getUserDatabaseSettings(User user, String databaseFilter) {
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		// correct alias names
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-//		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
-//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "database_visibility"));
-//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "database_permission"));
-//		// legacy alias names
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
-//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "app_visibility"));
-//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "app_permission"));
-//		// filter to user permissions
-//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-//		if(databaseFilter != null && !databaseFilter.isEmpty()) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
-//		}
-//		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
-//		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "left.outer.join");
-//		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-//
-//		Set<String> dbIdsIncluded = new HashSet<String>();
-//		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
-//		IRawSelectWrapper wrapper = null;
-//		try {
-//			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-//			while (wrapper.hasNext()) {
-//				IHeadersDataRow headerRow = wrapper.next();
-//				String[] headers = headerRow.getHeaders();
-//				Object[] values = headerRow.getValues();
-//				
-//				// store the database ids
-//				// we will exclude these later
-//				// database id is the first one to be returned
-//				dbIdsIncluded.add(values[0].toString());
-//				
-//				Map<String, Object> map = new HashMap<String, Object>();
-//				for (int i = 0; i < headers.length; i++) {
-//					map.put(headers[i], values[i]);
-//				}
-//				result.add(map);
-//			}
-//		} catch (Exception e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		} finally {
-//			if(wrapper != null) {
-//				wrapper.cleanUp();
-//			}
-//		}
-//		
-//		// we dont need to run 2nd query if we are filtering to one db and already have it
-//		if(databaseFilter != null && !databaseFilter.isEmpty() && !result.isEmpty()) {
-//			qs = new SelectQueryStruct();
-//			// correct alias names
-//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-//			qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
-//			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "database_visibility"));
-//			// legacy alias names
-//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-//			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("ENGINEPERMISSION__VISIBILITY", true, "app_visibility"));
-//			// filter to global
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-//			// since some rdbms do not allow "not in ()" - we will only add if necessary
-//			if (!dbIdsIncluded.isEmpty()) {
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(dbIdsIncluded)));
-//			}
-//			if(databaseFilter != null && !databaseFilter.isEmpty()) {
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
-//			}
-//			qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-//			try {
-//				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-//				while(wrapper.hasNext()) {
-//					IHeadersDataRow headerRow = wrapper.next();
-//					String[] headers = headerRow.getHeaders();
-//					Object[] values = headerRow.getValues();
-//					
-//					Map<String, Object> map = new HashMap<String, Object>();
-//					for(int i = 0; i < headers.length; i++) {
-//						map.put(headers[i], values[i]);
-//					}
-//					// add the others which we know
-//					map.put("database_global", true);
-//					map.put("database_permission", "READ_ONLY");
-//					map.put("app_global", true);
-//					map.put("app_permission", "READ_ONLY");
-//					result.add(map);
-//				}
-//			} catch (Exception e) {
-//				logger.error(Constants.STACKTRACE, e);
-//			} finally {
-//				if(wrapper != null) {
-//					wrapper.cleanUp();
-//				}
-//			}
-//			
-//			// now we need to loop through and order the results
-//			Collections.sort(result, new Comparator<Map<String, Object>>() {
-//				@Override
-//				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-//					String appName1 = o1.get("low_database_name").toString();
-//					String appName2 = o2.get("low_database_name").toString();
-//					return appName1.compareTo(appName2);
-//				}
-//			});
-//		}
-//		
-//		return result;
-//	}
-
 
 	/**
 	 * Get the list of the database information that the user has access to
@@ -3030,14 +2601,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean updateMetakeyOptions(List<Map<String,Object>> metaoptions) {
 		boolean valid = false;
-		String[] colNames = new String[]{Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS};
         PreparedStatement insertPs = null;
         String tableName = "ENGINEMETAKEYS";
         try {
 			// first truncate table clean 
 			String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
 			securityDb.removeData(truncateSql);
-			insertPs = securityDb.getPreparedStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
+			insertPs = securityDb.bulkInsertPreparedStatement(new Object[] {"ENGINEMETAKEYS",Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS} );
 			// then insert latest options
 			for (int i = 0; i < metaoptions.size(); i++) {
 				insertPs.setString(1, (String) metaoptions.get(i).get("metakey"));
@@ -3047,24 +2617,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
+			if(!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
 			valid = true;
         } catch (SQLException e) {
         	logger.error(Constants.STACKTRACE, e);
         } finally {
-        	if(insertPs != null) {
-				try {
-					insertPs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						insertPs.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
         }
 		return valid;
 	}
