@@ -40,8 +40,6 @@ class ServerProxy():
     }
     # adds itself to the monitor block
     self.server.monitors.update({epoc:self.condition})
-    
-    
     # acquires and goes into wait
     self.condition.acquire()
     # send the request
