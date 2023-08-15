@@ -111,7 +111,8 @@ public class TextGenerationProcessInference extends AbstractModelEngine {
 		System.out.println("Executing command: " + String.join(" ", command));
 		
 		ProcessBuilder processBuilder = new ProcessBuilder(command);
-        processBuilder.inheritIO(); // Redirect the subprocess's standard error and output to the current process
+		// dont inherit IO so that we can catch 
+        // processBuilder.inheritIO(); // Redirect the subprocess's standard error and output to the current process
        
         try {
 			this.process = processBuilder.start();
