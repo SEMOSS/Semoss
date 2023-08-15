@@ -59,9 +59,7 @@ class OpenAiClient(BaseClient):
       kwargs['messages'] = message_payload
       
       completion = openai.ChatCompletion.create(model=self.model_name, **kwargs)
-      response = completion.choices[0].message
-      if self.keep_history:
-        self.instance_history.append(dict(response))
+      response = completion.choices[0].message.content
       final_query = response
 
     elif chat_type == 'completion':
