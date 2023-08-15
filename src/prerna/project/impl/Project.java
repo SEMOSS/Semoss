@@ -1044,14 +1044,14 @@ public class Project implements IProject {
 		org.jsoup.nodes.Document document;
 		try {
 			document = Jsoup.parse(indexHtmlF, "UTF-8");
-			String scriptToAppend = "<script id=\"semoss-generated-script\">window.SEMOSS = {\"APP\": \""+projectId+"\",\"MODULE\": \""+module+"\"}</script>";
+			String scriptContent = "window.SEMOSS = {\"APP\": \""+projectId+"\",\"MODULE\": \""+module+"\"}";
 			Element autoGenScript = document.getElementById("semoss-generated-script");
 			if(autoGenScript == null) {
 				document.selectFirst("head")
 					.child(0)
-					.before(scriptToAppend);
+					.before("<script id=\"semoss-generated-script\">"+scriptContent+"</script>");
 			} else {
-				autoGenScript.html(scriptToAppend);
+				autoGenScript.html(scriptContent);
 			}
 			
 			String newHtml = document.html();
