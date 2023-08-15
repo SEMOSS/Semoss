@@ -135,12 +135,13 @@ public class Project implements IProject {
 	private SemossDate lastReactorCompilationDate = null;
 	
 	// publish portals
+	private static final String PORTAL_INDEX_SCRIPT_ID = "semoss-env";
 	private boolean hasPortal = false;
 	private String portalName = null;
 	private SemossDate lastPortalPublishDate = null;
 	private boolean publishedPortal = false;
 	private boolean republishPortal = false;
-
+	
 	// project specific analytics thread
 	private transient Process tcpServerProcess;
 	private transient String tcpServerProcessPrefix;
@@ -1028,11 +1029,11 @@ public class Project implements IProject {
 		try {
 			document = Jsoup.parse(indexHtmlF, "UTF-8");
 			String scriptContent = "{\"APP\": \""+projectId+"\",\"MODULE\": \""+module+"\"}";
-			Element autoGenScript = document.getElementById("semoss-generated-script");
+			Element autoGenScript = document.getElementById(PORTAL_INDEX_SCRIPT_ID);
 			if(autoGenScript == null) {
 				document.selectFirst("head")
 					.child(0)
-					.before("<script id=\"semoss-generated-script\" type=\"application/json\">"+scriptContent+"</script>");
+					.before("<script id=\""+PORTAL_INDEX_SCRIPT_ID+"\" type=\"application/json\">"+scriptContent+"</script>");
 			} else {
 				autoGenScript.html(scriptContent);
 			}
