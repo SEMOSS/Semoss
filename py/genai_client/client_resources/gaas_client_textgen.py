@@ -18,7 +18,8 @@ class TextGenClient(BaseClient):
     
   def ask(self, 
           question:str=None, 
-          context:list=[], 
+          context:str=None,
+          history:list=[],
           template_name:str=None, 
           stop_sequences=["#", ";"],
           **kwargs:dict
@@ -26,17 +27,22 @@ class TextGenClient(BaseClient):
     # start the prompt as an empty string
     prompt = ""
     
-    # default the template name based on model name
-    if template_name != None and self.model_name in self.templates:
-      content = [self.templates[template_name],'\n']
-    elif f"{self.model_name}.default.nocontext" in self.templates:
-      content = [self.templates[f"{self.model_name}.default.nocontext"],'\n']
-    
+    # TODO try to clean this up
+    # attempt to pull in the context
+    content = []
+    if context != None:
+       content = [context,'\n']
+    else:
+      if template_name != None:
+        possibleContent = self.get_template(template_name=template_name)
+        if possibleContent != None:
+           content = [possibleContent,'\n']
+
     # Add history if one is provided
-    for history in context:
-        content.append(history['role'])
+    for statement in history:
+        content.append(statement['role'])
         content.append(':')
-        content.append(history['content'])
+        content.append(statement['content'])
         content.append('\n')
     
     # assert that the question is not None. We can do this or put an assert statement
@@ -50,7 +56,7 @@ class TextGenClient(BaseClient):
     # join all the inputs into a single string
     prompt = "".join(content)
 
-    print(prompt)
+    #print(prompt)
     
     # ask the question and apply the additional params
     response = self.client.generate(prompt, stop_sequences=stop_sequences, **kwargs)

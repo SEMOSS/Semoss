@@ -8,12 +8,11 @@ class OpenAiClient(BaseClient):
   # prefix
   #'vicuna-7b-v1.3'
   # openai.api_base = "https://play.semoss.org/fastchat/v1/"
-  def __init__(self, template_file=None, endpoint=None, model_name='gpt-3.5-turbo', api_key="EMPTY", keep_history = False, **kwargs):
+  def __init__(self, template_file=None, endpoint=None, model_name='gpt-3.5-turbo', api_key="EMPTY", **kwargs):
     super().__init__(template_file=template_file)
     self.kwargs = kwargs
     self.template_file = template_file
     self.model_name = model_name
-    self.keep_history = keep_history
     self.instance_history = []
     if (endpoint!=None):
       self.endpoint = endpoint
@@ -37,20 +36,26 @@ class OpenAiClient(BaseClient):
 
     final_query = "Please specify a valid completion type. Use 'chat-completion' or 'completion'"
     if chat_type == 'chat-completion':
+      # the list to construct the payload from
       message_payload = []
 
+      # if the user provided context, use that. Otherwise, try to get it from the template
       if context is not None:
         message_payload.append({"role": "system", "content": context})
+      else:
+        if template_name != None:
+          possibleContent = self.get_template(template_name=template_name)
+          if possibleContent != None:
+            message_payload.append({"role": "system", "content": possibleContent})
 
+      # if history was added, then add it to the payload. Currently history is being like OpenAI prompts
       if history is not None:
         message_payload.extend(history)
 
+      # add the new question to the payload
       message_payload.append({"role": "user", "content": question})
       
-      if self.keep_history:
-        self.instance_history.extend(message_payload)
-        message_payload = self.instance_history
-
+      # add the message payload as a kwarg
       kwargs['messages'] = message_payload
       
       completion = openai.ChatCompletion.create(model=self.model_name, **kwargs)
