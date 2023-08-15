@@ -52,7 +52,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       try:
         data = self.request.recv(4)
         size = int.from_bytes(data, "big")
-        epoc = self.request.recv(4)
+        epoc_size = 20
+        epoc = self.request.recv(epoc_size)
         #print(f"epoc {epoc} {epoc.decode('utf-8')}")
         data = self.request.recv(size)
         #print(f"process the data ---- {data.decode('utf-8')}")
