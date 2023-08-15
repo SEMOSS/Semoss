@@ -98,8 +98,7 @@ public class TextGenerationProcessInference extends AbstractModelEngine {
 	public void startServer() {
 		List<String> command = new ArrayList<>();
 		if (this.launchArguments.containsKey(Constants.GPU_ID)) {
-    		command.add(possibleInputs.get(Constants.GPU_ID));
-        	command.add(this.launchArguments.get(Constants.GPU_ID));
+    		command.add(possibleInputs.get(Constants.GPU_ID) + "=" + this.launchArguments.get(Constants.GPU_ID));
         	this.launchArguments.remove(Constants.GPU_ID);
 		}
 		command.add("text-generation-launcher");
