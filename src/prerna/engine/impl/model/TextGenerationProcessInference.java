@@ -67,16 +67,12 @@ public class TextGenerationProcessInference extends AbstractModelEngine {
 				this.workerAddress = System.getenv(Constants.WORKER_ADDRESS);
 			}
 			if (this.controllerAddress ==null || this.controllerAddress.trim().isEmpty()) {
-				this.controllerAddress = this.workerAddress + this.inferencePort;
+				this.controllerAddress = this.workerAddress + ":" + this.inferencePort;
 			}
 			
-			String initCommand;
-			if (this.generalEngineProp.containsKey("ENDPOINT")) {
-				initCommand = String.format((String) this.generalEngineProp.get(Constants.INIT_MODEL_ENGINE),(String) this.generalEngineProp.get("ENDPOINT"));
-			} else {
-				initCommand = String.format((String) this.generalEngineProp.get(Constants.INIT_MODEL_ENGINE), this.controllerAddress);
-			}
-			this.generalEngineProp.put(Constants.INIT_MODEL_ENGINE, initCommand);
+			if (!this.generalEngineProp.containsKey("ENDPOINT")) {
+				this.generalEngineProp.put("ENDPOINT", this.controllerAddress);
+			} 
 			
 			// create a generic folder
 			this.workingDirecotry = "EM_MODEL_" + Utility.getRandomString(6);
@@ -86,7 +82,9 @@ public class TextGenerationProcessInference extends AbstractModelEngine {
 			// make the folder if one does not exist
 			if(!cacheFolder.exists())
 				cacheFolder.mkdir();
-
+			
+			// vars for string substitution
+			vars = new HashMap(generalEngineProp);
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Unable to load model details from the SMSS file");
