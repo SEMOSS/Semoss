@@ -939,7 +939,7 @@ public class Project implements IProject {
 	/**
 	 * Publish the portals folder to public_home
 	 */
-	public boolean publish(String publicHomeFilePath, String contextPath) {
+	public boolean publish(String publicHomeFilePath) {
 		// find what is the final URL
 		// this is the base url plus manipulations
 		// find what the tomcat deploy directory is
@@ -969,7 +969,7 @@ public class Project implements IProject {
 						FileUtils.deleteDirectory(targetPublicHomeProjectPortalsDir);
 					}
 					
-					rewritePortalIndexHtml(this.projectPortalFolder + DIR_SEPARATOR + "index.html", contextPath);
+					rewritePortalIndexHtml(this.projectPortalFolder + DIR_SEPARATOR + "index.html");
 					
 					// do we physically copy of link?
 					// first smss file
@@ -1008,7 +1008,7 @@ public class Project implements IProject {
 		return this.publishedPortal;
 	}
 	
-	private void rewritePortalIndexHtml(String indexHtmlPath, String contextPath) {
+	private void rewritePortalIndexHtml(String indexHtmlPath) {
 		/*
 		 * <script>
 		        window.SEMOSS = {
@@ -1023,24 +1023,7 @@ public class Project implements IProject {
 			return;
 		}
 		
-		String module = contextPath;
-		String route = "";
-		Map<String, String> envMap = System.getenv();
-		if (envMap.containsKey(Constants.MONOLITH_ROUTE)) {
-			route = envMap.get(Constants.MONOLITH_ROUTE);
-			if(route != null && !(route=route.trim()).isEmpty()) {
-				if(!route.startsWith("/")) {
-					route = "/"+route;
-				}
-				if(route.endsWith("/")) {
-					route = route.substring(0, route.length()-1);
-				}
-			}
-		}
-		if(route != null && !(route=route.trim()).isEmpty()) {
-			module = route+module;
-		}
-		
+		String module = Utility.getApplicationRouteAndContextPath();
 		org.jsoup.nodes.Document document;
 		try {
 			document = Jsoup.parse(indexHtmlF, "UTF-8");

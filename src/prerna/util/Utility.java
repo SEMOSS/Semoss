@@ -4630,8 +4630,6 @@ public class Utility {
 	
 	/**
 	 * 
-	 * 
-	 * 
 	 * @return
 	 */
 	public static String getSameSiteCookieValue() {
@@ -4651,6 +4649,121 @@ public class Utility {
 		return sameSiteString;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
+	public static String getApplicationBaseUrl() {
+		// derived from the social.properties redirect value
+		try {
+			String redirectUrlStr = SocialPropertiesUtil.getInstance().getProperty("redirect");
+			URL redirectUrl = new URL(redirectUrlStr);
+			String protocol = redirectUrl.getProtocol();
+			int port = redirectUrl.getPort();
+			String host = redirectUrl.getHost();
+			if(port > 0) {
+				return protocol + "://" + host + ":" + port; 
+			} else {
+				return protocol + "://" + host;
+			}
+		} catch(MalformedURLException e) {
+			logger.warn("Invalid redirect URL in social.properties for redirect");
+			logger.error(Constants.STACKTRACE, e);
+		}
+		return null;
+	}
+	
+	public static String getApplicationContextPath() {
+		String contextPath = (String) DIHelper.getInstance().getLocalProp(Constants.CONTEXT_PATH_KEY);
+		if(contextPath == null || (contextPath=contextPath.trim()).isEmpty()) {
+			return null;
+		}
+		
+		if(contextPath.startsWith("/")) {
+			contextPath = contextPath.substring(1);
+		}
+		if(contextPath.endsWith("/")) {
+			contextPath = contextPath.substring(0, contextPath.length()-1);
+		}
+		return contextPath;
+	}
+	
+	public static String getApplicationOptionalRoutePath() {
+		String route = (String) DIHelper.getInstance().getLocalProp(Constants.MONOLITH_ROUTE);
+		if(route == null) {
+			Map<String, String> envMap = System.getenv();
+			if (envMap.containsKey(Constants.MONOLITH_ROUTE)) {
+				route = envMap.get(Constants.MONOLITH_ROUTE);
+			}
+		}
+		if(route == null || (route=route.trim()).isEmpty()) {
+			return null;
+		}
+
+		if(!route.startsWith("/")) {
+			route = "/"+route;
+		}
+		if(route.endsWith("/")) {
+			route = route.substring(0, route.length()-1);
+		}
+		return route;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public static String getApplicationUrl() {
+		// derived from the social.properties redirect value
+		String baseUrl = getApplicationBaseUrl();
+		String optionalRoute = getApplicationOptionalRoutePath();
+		String contextPath = getApplicationContextPath();
+		String url = baseUrl;
+		if(optionalRoute != null && !(optionalRoute=optionalRoute.trim()).isEmpty()) {
+			url=url+"/"+optionalRoute;
+		}
+		url=url+"/"+contextPath;
+		return url;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public static String getApplicationRouteAndContextPath() {
+		String optionalRoute = getApplicationOptionalRoutePath();
+		String contextPath = getApplicationContextPath();
+		String routeAndContext = "/"+contextPath;
+		if(optionalRoute != null && !(optionalRoute=optionalRoute.trim()).isEmpty()) {
+			routeAndContext = "/"+optionalRoute + routeAndContext;
+		}
+		return routeAndContext;
+	}
+	
+	/**
+	 * Default value is public_home
+	 * @return
+	 */
+	public static String getPublicHomeFolder() {
+		String publicHomeFolder = "public_home";
+		if(DIHelper.getInstance().getProperty(Settings.PUBLIC_HOME) != null) {
+			publicHomeFolder = DIHelper.getInstance().getProperty(Settings.PUBLIC_HOME);
+		}
+		// assume public home is clean for lower paths
+		if(publicHomeFolder.startsWith("/")) {
+			publicHomeFolder = publicHomeFolder.substring(1);
+		}
+		if(publicHomeFolder.endsWith("/")) {
+			publicHomeFolder = publicHomeFolder.substring(0, publicHomeFolder.length()-1);
+		}
+		return publicHomeFolder;
+	}
+	
+	/**
+	 * 
+	 * @param urlString
+	 * @param filePath
+	 */
 	public static void copyURLtoFile(String urlString, String filePath) {
 		try(PrintWriter out = new PrintWriter(filePath)){
 			URL url = new URL(urlString);
