@@ -576,6 +576,7 @@ public class Constants {
 //	public static final String WIDGET_TAB_EXPORT_DASHBOARD = "WIDGET_TAB_EXPORT_DASHBOARD";
 	
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
+	
 	public static final String PORTAL_PREFIX_URL_KEY = "PORTAL_PREFIX_URL_KEY";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
 	
@@ -715,7 +716,9 @@ public class Constants {
 
 	//cookie name of a load load balancing routing
 	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
-
+	public static final String MONOLITH_PREFIX = "MONOLITH_PREFIX";
+	public static final String ENDPOINT_REDIRECT_KEY = "ENDPOINT_REDIRECT_KEY";
+	
 	//Graph engines
 	public static final String TYPE_MAP = "TYPE_MAP";
 	public static final String NAME_MAP = "NAME_MAP";
