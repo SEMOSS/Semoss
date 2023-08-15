@@ -5,8 +5,6 @@ from genai_client.client_resources.gaas_client_openai import OpenAiClient
 class FastChatClient(OpenAiClient):
   
   def __init__(self, model_name = 'vicuna-7b-v1.3', endpoint = None, **kwargs):
-    # if ('template_file' in kwargs.keys()):
-    #     super().__init__(template_file=kwargs['template_file'])
     if (endpoint==None):
       kwargs['endpoint'] = "https://play.semoss.org/fastchat/v1"
     kwargs['model_name'] = model_name
