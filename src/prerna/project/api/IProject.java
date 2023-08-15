@@ -150,7 +150,7 @@ public interface IProject {
 	 * @param contextPath
 	 * @return
 	 */
-	boolean publish(String location, String contextPath);
+	boolean publish(String location);
 	
 	/**
 	 * 
