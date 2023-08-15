@@ -381,7 +381,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 		// make this into array
 		byte[] lenBytes = ByteBuffer.allocate(4).putInt(length).array();
 		
-		byte[] epocBytes = ByteBuffer.allocate(4).put(epoc.getBytes(StandardCharsets.UTF_8)).array();
+		byte[] epocBytes = ByteBuffer.allocate(20).put(epoc.getBytes(StandardCharsets.UTF_8)).array();
 
 		
 		// pack both of these
