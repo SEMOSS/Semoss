@@ -23,6 +23,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	
 	public GetEngineUsageReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keyRequired = new int[] {1};
 	}
 	
 	@Override
@@ -31,7 +32,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		String engineType = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + TYPE);
-	
 		Map<String, String> outputMap;
 		switch(engineType) {
 			case "DATABASE":
@@ -46,24 +46,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			default:
 				throw new SemossPixelException("Engine Type is undefined");
 		}
-		
-		String[] reactorInputs = engineAbstractReactor.keysToGet;
-		StringBuilder reactorKeyInfo = new StringBuilder(outputMap.get(PIXEL)).append("(");
-		for (int i = 0; i < reactorInputs.length; i++) {
-			String inputKey = reactorInputs[i];
-			reactorKeyInfo.append(inputKey).append(" = ");
-			if (inputKey.equals("engine") || inputKey.equals("database") || inputKey.equals("storage")) {
-				reactorKeyInfo.append("\"").append(engineId).append("\"");
-			} else {
-				reactorKeyInfo.append("<").append("").append(">");
-			}
-			if (i == reactorInputs.length - 1) {
-				reactorKeyInfo.append(");");
-			} else {
-				reactorKeyInfo.append(", ");
-			}
-		}
-		outputMap.put(PIXEL, reactorKeyInfo.toString());
 		return new NounMetadata(outputMap, PixelDataType.MAP);
 	}
 	
@@ -72,11 +54,14 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		
 		Map<String, String> usageMap = new HashMap<String, String>();
 		usageMap.put(PYTHON,"from gaas_gpt_model import ModelEngine\r\n" + 
-				"model = ModelEngine(engine_id=\""+engineId+"\")");
+				"question = 'Sample Question'\r\n" +
+				"model = ModelEngine(engine_id = \""+engineId+"\", insight_id = '${i}')\r\n" +
+				"model.ask(question = question)");
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
 				"import prerna.engine.api.IModelEngine;\r\n" + 
 				"IModelEngine eng = Utility.getModel(\""+engineId+"\");");
-		usageMap.put(PIXEL,"LLM");
+		
+		usageMap.put(PIXEL,"LLM(engine = \""+engineId+"\", command = \"Sample Question\", paramValues = [ {} ] );");
 		
 		return usageMap;
 	}
@@ -84,11 +69,18 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private Map<String, String> getStorageUsage(String engineId) {
 		this.engineAbstractReactor = new StorageReactor();
 		Map<String, String> usageMap = new HashMap<String, String>();
-		usageMap.put(PYTHON,"");
+		usageMap.put(PYTHON,"from gaas_gpt_storage import StorageEngine\r\n" + 
+				"storageEngine = StorageEngine(engine_id = \""+engineId+"\", insight_id = '${i}'))\r\n" +
+				"storageEngine.list(path = '/your/path/')\r\n" + 
+				"storageEngine.listDetails(path = '/your/path/')\r\n" + 
+				"storageEngine.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" +
+				"storageEngine.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')\r\n" + 
+				"storageEngine.copyToLocal(localFolderPath= 'your/local/file/path', storageFilePath = 'your/storage/file/path')\r\n" + 
+				"storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path')");
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
 				"import prerna.engine.api.IStorage;\r\n" + 
 				"IStorage storage = Utility.getStorage(\""+engineId+"\");");
-		usageMap.put(PIXEL,"Storage");
+		usageMap.put(PIXEL,"Storage(storage = \""+engineId+"\")");
 		return usageMap;
 	}
 	
@@ -96,11 +88,15 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		this.engineAbstractReactor = new DatabaseReactor();
 		
 		Map<String, String> usageMap = new HashMap<String, String>();
-		usageMap.put(PYTHON,"");
+		usageMap.put(PYTHON,"from gaas_gpt_database import DatabaseEngine\r\n" + 
+				"databaseEngine = DatabaseEngine(engine_id = \""+engineId+"\", insight_id = '${i}'))\r\n" +
+				"databaseEngine.execQuery(query = 'SELECT * FROM table_name')\r\n" + 
+				"databaseEngine.insertData(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')\r\n" + 
+				"databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')");
 		usageMap.put(JAVA,"import prerna.util.Utility;\r\n" + 
 				"import prerna.engine.api.IDatabase;\r\n" + 
 				"IDatabase database = Utility.getDatabase(\""+engineId+"\");");
-		usageMap.put(PIXEL,"Database");
+		usageMap.put(PIXEL,"Database(database = \""+engineId+"\")");
 		return usageMap;
 	}
 }
