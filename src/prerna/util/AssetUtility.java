@@ -98,13 +98,7 @@ public class AssetUtility {
 	 * @return
 	 */
 	public static String getAssetVersionBasePath(Insight in, String space, boolean editRequired) {
-		String assetFolder = null;
-		if(in.isSavedInsight()) {
-			assetFolder = getProjectVersionFolder(in.getProjectName(), in.getProjectId());
-		} else {
-			assetFolder = in.getInsightFolder();
-		}
-		
+		String assetFolder = in.getInsightFolder();
 		// find out what space the user wants to use to get the base asset path
 		if (space != null) {
 			if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
@@ -200,8 +194,8 @@ public class AssetUtility {
 	}
 	
 	public static String getProjectVersionFolder(String projectName, String projectId) {
-		String appBaseFolder = getProjectBaseFolder(projectName, projectId);
-		String gitFolder = appBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER;
+		String projectBaseFolder = getProjectBaseFolder(projectName, projectId);
+		String gitFolder = projectBaseFolder + DIR_SEPARATOR + Constants.VERSION_FOLDER;
 		// if this folder does not exist create it
 		File file = new File(Utility.normalizePath(gitFolder));
 		if (!file.exists()) {			
@@ -217,7 +211,7 @@ public class AssetUtility {
 	public static String getAssetRelativePath(Insight in, String space) {
 		String relativePath = "";
 		if(space == null || space.equals(INSIGHT_SPACE_KEY)) {
-			relativePath = in.getRdbmsId();
+			relativePath = "/" + Constants.VERSION_FOLDER + "/" + in.getRdbmsId();
 		} else {
 			// user space or asset app
 			// asset app - no relative space ?
