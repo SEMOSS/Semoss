@@ -319,7 +319,7 @@ public class Project implements IProject {
 	}
 	
 	@Override
-	public void closeProject() {
+	public void close() {
 		if(this.insightRdbms != null) {
 			logger.debug("closing the insight engine ");
 			this.insightRdbms.close();
@@ -346,7 +346,7 @@ public class Project implements IProject {
 	public void deleteProject() {
 		String folderName = SmssUtilities.getUniqueName(this.projectName, this.projectId);
 		logger.debug("Closing " + folderName);
-		this.closeProject();
+		this.close();
 
 		if(this.insightDatabaseLoc != null) {
 			File insightFile = new File(this.insightDatabaseLoc);

@@ -900,7 +900,7 @@ public class AZClient extends AbstractCloudClient {
 			// Close the project, so that we can push without file locks (also ensures that the project doesn't change mid push)
 			try {
 				DIHelper.getInstance().removeProjectProperty(projectId);
-				project.closeProject();
+				project.close();
 
 				// Push the app folder
 				classLogger.info("Pushing app from source=" + thisProjectFolder + " to remote=" + projectId);
@@ -1074,7 +1074,7 @@ public class AZClient extends AbstractCloudClient {
 			try {
 				if (projectAlreadyLoaded) {
 					DIHelper.getInstance().removeProjectProperty(projectId);
-					project.closeProject();
+					project.close();
 				}
 
 				// Make the app directory (if it doesn't already exist)
@@ -1290,7 +1290,7 @@ public class AZClient extends AbstractCloudClient {
 			try {
 				if (projectAlreadyLoaded) {
 					DIHelper.getInstance().removeProjectProperty(projectId);
-					project.closeProject();
+					project.close();
 				}
 
 				// Make the app directory (if it doesn't already exist)
@@ -1361,7 +1361,7 @@ public class AZClient extends AbstractCloudClient {
 			// Close the database, so that we can push without file locks (also ensures that the db doesn't change mid push)
 			try {
 				DIHelper.getInstance().removeProjectProperty(projectId);
-				project.closeProject();
+				project.close();
 
 				// Push the app folder
 				classLogger.info("Pushing app from source=" + thisUserFolder + " to remote=" + projectId);
