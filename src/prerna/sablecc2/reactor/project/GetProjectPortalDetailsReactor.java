@@ -39,7 +39,7 @@ public class GetProjectPortalDetailsReactor extends AbstractReactor {
 		}
 		
 		IProject project = Utility.getProject(projectId);
-		String url = DIHelper.getInstance().getLocalProp(Constants.PORTAL_PREFIX_URL_KEY) + projectId + "/" + Constants.PORTALS_FOLDER + "/";
+		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/" + Constants.PORTALS_FOLDER + "/";
 
 		Map<String, Object> portalDetails = new HashMap<>();
 		portalDetails.put("isPublished", project.isPublished());
