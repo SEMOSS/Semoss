@@ -251,7 +251,6 @@ public class CentralCloudStorage implements ICloudClient {
 			lock.unlock();
 			classLogger.info("Database "+ aliasAndDatabaseId + " is unlocked");
 		}
-		
 	}
 
 	@Override
@@ -647,8 +646,55 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pushProject(String projectId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+
+		// We need to push the folder alias__appId and the file alias__appId.smss
+		String alias = project.getProjectName();
+		if(alias == null) {
+			alias = SecurityProjectUtils.getProjectAliasForId(projectId);
+		}
+
+		String aliasAndProjectId = alias + "__" + projectId;
+		String localProjectFolder = PROJECT_FOLDER + FILE_SEPARATOR + aliasAndProjectId;
+		String localSmssFileName = aliasAndProjectId + ".smss";
+		String localSmssFilePath = PROJECT_FOLDER + FILE_SEPARATOR + localSmssFileName;
+
+		String sharedRCloneConfig = null;
+
+		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
+		String storageSmssFolder = DB_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
+
+		// synchronize on the project id
+		classLogger.info("Applying lock for " + aliasAndProjectId + " to push project");
+		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+		lock.lock();
+		classLogger.info("Project "+ aliasAndProjectId + " is locked");
+		try {
+			DIHelper.getInstance().removeProjectProperty(projectId);
+			project.close();
+			
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+			storageEngine.syncLocalToStorage(localProjectFolder, storageProjectFolder, sharedRCloneConfig);
+			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
+		} finally {
+			try {
+				// Re-open the database
+				Utility.getDatabase(projectId, false);
+				if(sharedRCloneConfig != null) {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				}
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Project "+ aliasAndProjectId + " is unlocked");
+		}
 	}
 	
 	@Override
