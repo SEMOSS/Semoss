@@ -11,6 +11,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.util.Constants;
 
 public class CheckRPackagesReactor extends AbstractReactor {
 
@@ -48,6 +49,7 @@ public class CheckRPackagesReactor extends AbstractReactor {
 				CheckRPackagesReactor.pkgs = rJavaTranslator.getStringArray("as.character(unique(data.frame(installed.packages())$Package))");
 				CheckRPackagesReactor.rInstalled = true;
 			} catch(Exception e){
+				logger.error(Constants.STACKTRACE, e);
 				logger.info(e.getMessage());
 				CheckRPackagesReactor.rInstalled = false;
 				CheckRPackagesReactor.pkgs = new String[0];
