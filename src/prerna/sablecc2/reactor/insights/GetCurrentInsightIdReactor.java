@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.insights.recipemanagement;
+package prerna.sablecc2.reactor.insights;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
