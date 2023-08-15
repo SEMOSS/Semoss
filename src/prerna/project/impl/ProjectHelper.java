@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
@@ -39,6 +40,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class ProjectHelper {
 
+	private static final Logger classLogger = LogManager.getLogger(ProjectHelper.class);
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private ProjectHelper() {
@@ -175,14 +177,14 @@ public class ProjectHelper {
 								try {
 									FileUtils.forceDelete(f);
 								} catch (IOException e) {
-									e.printStackTrace();
+									classLogger.error(Constants.STACKTRACE, e);
 								}
 							}
 						}
 						try {
 							FileUtils.forceDelete(projectFolder);
 						} catch (IOException e) {
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -270,7 +272,7 @@ public class ProjectHelper {
 			wrapper  = WrapperManager.getInstance().getRawWrapper(insightsRdbms, tableExistsQuery);
 			tableExists = wrapper.hasNext();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -291,11 +293,11 @@ public class ProjectHelper {
 					try {
 						insightsRdbms.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
 					} catch (SQLException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 			{
@@ -355,7 +357,7 @@ public class ProjectHelper {
 						}
 					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 
@@ -369,7 +371,7 @@ public class ProjectHelper {
 			//					try {
 			//						insightsRdbms.insertData(update);
 			//					} catch (SQLException e) {
-			//						e.printStackTrace();
+			//						classLogger.error(Constants.STACKTRACE, e);
 			//					}
 			//					insightsRdbms.commit();
 			//				}
@@ -381,7 +383,7 @@ public class ProjectHelper {
 			//			try {
 			//				insightsRdbms.insertData(update);
 			//			} catch (SQLException e) {
-			//				e.printStackTrace();
+			//				classLogger.error(Constants.STACKTRACE, e);
 			//			}
 			//			insightsRdbms.commit();
 			//

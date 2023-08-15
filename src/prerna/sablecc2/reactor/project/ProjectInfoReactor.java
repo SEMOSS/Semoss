@@ -22,7 +22,7 @@ public class ProjectInfoReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		
-		if(projectId == null || projectId.isEmpty()) {
+		if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 		
