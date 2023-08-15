@@ -153,6 +153,7 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 	    				String message = new String(msg);
 	    				//System.err.print(message);
 	    				PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
+	    				
 
 	    				PayloadStruct lock = (PayloadStruct)requestMap.get(ps.epoc);
 
@@ -182,6 +183,15 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
 		    					
 		    					// try to convert it into a full object
 		    					// need to check if it is primitive before converting
+		    					// try to convert it into a full object
+		    					try
+		    					{
+			    					Object obj = gson.fromJson((String)ps.payload[0], Object.class);
+			    					ps.payload[0] = obj;
+		    					}catch(Exception ignored)
+		    					{
+		    						
+		    					}
 		    					
 		    					logger.info("FINAL OUTPUT <<<<<<<" + outputAssimilator + ">>>>>>>>>>>>");
 		    					// re-initialize it
