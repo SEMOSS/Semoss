@@ -46,7 +46,7 @@ public class PublishProjectReactor extends AbstractReactor {
 					Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
 		}
 		
-		String url = DIHelper.getInstance().getLocalProp(Constants.PORTAL_PREFIX_URL_KEY) + projectId + "/" + Constants.PORTALS_FOLDER + "/";
+		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/" + Constants.PORTALS_FOLDER + "/";
 		NounMetadata noun = new NounMetadata(url, PixelDataType.CONST_STRING);
 		if(release) {
 			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully published and released the project"));
