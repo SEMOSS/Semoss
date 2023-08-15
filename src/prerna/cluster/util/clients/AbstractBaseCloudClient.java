@@ -731,7 +731,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			try {
 				if (projectAlreadyLoaded) {
 					DIHelper.getInstance().removeProjectProperty(projectId);
-					project.closeProject();
+					project.close();
 				}
 
 				// Make the project directory (if it doesn't already exist)
@@ -809,7 +809,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			// the db doesn't change mid push)
 			try {
 				DIHelper.getInstance().removeProjectProperty(projectId);
-				project.closeProject();
+				project.close();
 
 				// Push the project folder
 				classLogger.info("Pushing project from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
@@ -1455,7 +1455,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			try {
 				if (projectAlreadyLoaded) {
 					DIHelper.getInstance().removeProjectProperty(projectId);
-					project.closeProject();
+					project.close();
 				}
 
 				// Make the project directory (if it doesn't already exist)
@@ -1514,7 +1514,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			// the db doesn't change mid push)
 			try {
 				DIHelper.getInstance().removeProjectProperty(projectId);
-				project.closeProject();
+				project.close();
 
 				// Push the app folder
 				classLogger.info("Pushing project from source=" + thisProjectFolder + " to remote=" + Utility.cleanLogString(projectId));
