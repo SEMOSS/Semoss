@@ -1,29 +1,26 @@
 
 import json
 from string import Template
-import os
 
 class BaseClient():
-  chat_templates = {
-      "orca.default.context":"### System:\n$system\n\n### User:\n$question\n\n### Input:\n$context\n\n### Response:\n",
-      "orca.default.nocontext":"### System:\n$system\n\n### User:\n$question\n\n### Response:\n",
-      "guanaco.default.nocontext": "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n###",
-      "guanaco.default.context": "A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. Based on the following paragraphs, answer the human's question:\n\n",
-      "wizard.default.nocontext": "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction: $question\n\n### Response:",
-      "wizard.default.context": "A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. USER: $context. $question ? ASSISTANT:",
-      "sql.default.context": "A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. Based on the table and columns defined below, create a sql statement that answers the human's question:### Question:\n\n$question\n\n### SQL:"
-  }
   # loads all the templates
   # fills the templates and gives information back
-  def __init__(self,template_file=None):
-    self.templates=None
-    if (template_file == None):
-      self.template_file = self.chat_templates
-      self.templates = self.chat_templates
+  def __init__(self,template_file="chat_templates.json"):
+    self.templates= {}
+    if (template_file != None):
+      self.template_file = template_file
+      with open(template_file) as da_file:
+        file_contents = da_file.read()
+        self.templates = json.loads(file_contents)
+      print("Templates loaded")
 
   def get_template(self, template_name=None):
     if template_name in self.templates.keys():
       return self.templates[template_name]
+    elif f"{self.model_name}.default.context" in self.templates:
+      return self.templates[f"{self.model_name}.default.context"]
+    elif f"{self.model_name}.default.nocontext" in self.templates:
+      return self.templates[f"{self.model_name}.default.nocontext"]
     else:
       return None
       
@@ -31,8 +28,9 @@ class BaseClient():
     assert template_name is not None
     if template_name not in self.templates:
       self.templates.update({template_name:template})
-      
-    return True
+      print("template is set")
+    else:
+      print("template already exists")
       
   def write_templates(self, template_file=None):
     if template_file is None:
