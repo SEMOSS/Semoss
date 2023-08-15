@@ -225,9 +225,9 @@ public class NativePySocketClient extends SocketClient implements Runnable  {
     				}
     			} catch (Exception ex) {
     				ex.printStackTrace();
-    				killall = true;
-    				connected=false;
-    				break;
+    				//killall = true;
+    				//connected=false;
+    				//break;
     			}
     		}
     		connected = false;
