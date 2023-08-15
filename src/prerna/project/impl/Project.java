@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -25,11 +26,9 @@ import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.io.FileUtils;
@@ -41,12 +40,10 @@ import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
-import org.w3c.dom.DOMException;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 import org.xeustechnologies.jcl.JarClassLoader;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 
@@ -942,7 +939,7 @@ public class Project implements IProject {
 	/**
 	 * Publish the portals folder to public_home
 	 */
-	public boolean publish(String publicHomeFilePath) {
+	public boolean publish(String publicHomeFilePath, String contextPath) {
 		// find what is the final URL
 		// this is the base url plus manipulations
 		// find what the tomcat deploy directory is
@@ -958,7 +955,7 @@ public class Project implements IProject {
 			// but not published
 			if(outOfDate || this.lastPortalPublishDate == null) {
 				logger.info("Pulling Portals folder for project = " + this.projectId + ". Current portal out of date = " + outOfDate + ". Last portal publish date = " + this.lastPortalPublishDate);
-				ClusterUtil.reactorPullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
+				ClusterUtil.reactorPullProjectFolder(this, this.projectPortalFolder);
 			}
 			try {
 				if(this.republishPortal || outOfDate || (enableForProject && !this.publishedPortal)) {
@@ -971,6 +968,8 @@ public class Project implements IProject {
 					if(targetPublicHomeProjectPortalsDir.exists() && targetPublicHomeProjectPortalsDir.isDirectory()) {
 						FileUtils.deleteDirectory(targetPublicHomeProjectPortalsDir);
 					}
+					
+					rewritePortalIndexHtml(this.projectPortalFolder + DIR_SEPARATOR + "index.html", contextPath);
 					
 					// do we physically copy of link?
 					// first smss file
@@ -993,7 +992,6 @@ public class Project implements IProject {
 					else if(!targetPublicHomeProjectPortalsDir.exists() && !Files.isSymbolicLink(targetPublicHomeProjectPortalsPath)) {
 						Files.createSymbolicLink(targetPublicHomeProjectPortalsPath, sourcePortalsProjectPath);
 					}
-					writePortalsJSON(publicHomeFilePath);
 					targetPublicHomeProjectPortalsDir.deleteOnExit();
 					this.publishedPortal = true;
 					this.republishPortal = false;
@@ -1010,14 +1008,60 @@ public class Project implements IProject {
 		return this.publishedPortal;
 	}
 	
-	/**
-	 * Write a JSON file containing details about the portal that can be called by a relative path from the portal
-	 * without needing to know any project settings by the FE
-	 * @param publicHomeFilePath
-	 */
-	private void writePortalsJSON(String publicHomeFilePath) {
-		String jsonFileLocation = publicHomeFilePath + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER;
+	private void rewritePortalIndexHtml(String indexHtmlPath, String contextPath) {
+		/*
+		 * <script>
+		        window.SEMOSS = {
+		            "APP": "<project_id>",
+		            "MODULE": "/{route - optional}/{context - usually just Monolith}"
+		        }
+		    </script>
+		 */
+		// add the route if this is server deployment
+		File indexHtmlF = new File(indexHtmlPath);
+		if(!indexHtmlF.exists() || !indexHtmlF.isFile()) {
+			return;
+		}
 		
+		String module = contextPath;
+		String route = "";
+		Map<String, String> envMap = System.getenv();
+		if (envMap.containsKey(Constants.MONOLITH_ROUTE)) {
+			route = envMap.get(Constants.MONOLITH_ROUTE);
+			if(route != null && !(route=route.trim()).isEmpty()) {
+				if(!route.startsWith("/")) {
+					route = "/"+route;
+				}
+				if(route.endsWith("/")) {
+					route = route.substring(0, route.length()-1);
+				}
+			}
+		}
+		if(route != null && !(route=route.trim()).isEmpty()) {
+			module = route+module;
+		}
+		
+		org.jsoup.nodes.Document document;
+		try {
+			document = Jsoup.parse(indexHtmlF, "UTF-8");
+			String scriptToAppend = "<script id=\"semoss-generated-script\">window.SEMOSS = {\"APP\": \""+projectId+"\",\"MODULE\": \""+module+"\"}</script>";
+			Element autoGenScript = document.getElementById("semoss-generated-script");
+			if(autoGenScript == null) {
+				document.selectFirst("head")
+					.child(0)
+					.before(scriptToAppend);
+			} else {
+				autoGenScript.html(scriptToAppend);
+			}
+			
+			String newHtml = document.html();
+			try(FileWriter fw = new FileWriter(indexHtmlF, false)) {
+				fw.write(newHtml);
+				fw.flush();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
 	}
 	
 	@Override
@@ -1365,30 +1409,20 @@ public class Project implements IProject {
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder builder = factory.newDocumentBuilder();
 			
-			Document d = builder.parse(is);
+			org.w3c.dom.Document d = builder.parse(is);
 			
 			XPathFactory xpathfactory = XPathFactory.newInstance();
 			XPath xpath = xpathfactory.newXPath();
 
 			XPathExpression expr = xpath.compile("//project/build/directory/text()");
 			Object result = expr.evaluate(d, XPathConstants.NODESET);
-			NodeList nodes = (NodeList) result;
+			org.w3c.dom.NodeList nodes = (org.w3c.dom.NodeList) result;
 			for (int i = 0; i < nodes.getLength(); i++) {
 			  targetFolder = nodes.item(i).getNodeValue();
 			}
-		} catch (FileNotFoundException e) {
+		} catch (Exception e) {
       	  logger.error(Constants.STACKTRACE, e);
-		} catch (XPathExpressionException e) {
-      	  logger.error(Constants.STACKTRACE, e);
-		} catch (DOMException e) {
-      	  logger.error(Constants.STACKTRACE, e);
-		} catch (ParserConfigurationException e) {
-      	  logger.error(Constants.STACKTRACE, e);
-		} catch (SAXException e) {
-      	  logger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-      	  logger.error(Constants.STACKTRACE, e);
-		}		
+		}
 	    return targetFolder;
 	}
 	
