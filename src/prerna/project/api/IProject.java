@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.project.api;
 
+import java.io.Closeable;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -42,7 +43,7 @@ import prerna.sablecc2.reactor.frame.r.util.TCPRTranslator;
 import prerna.tcp.client.SocketClient;
 import prerna.util.SemossClassloader;
 
-public interface IProject {
+public interface IProject extends Closeable {
 	
 	/**
 	 * Load the project based on the smss details
@@ -110,11 +111,6 @@ public interface IProject {
 	 */
 	String getInsightDefinition();
 
-	/**
-	 * Close the project
-	 */
-	void closeProject();
-	
 	/**
 	 * Delete the project from disk
 	 */

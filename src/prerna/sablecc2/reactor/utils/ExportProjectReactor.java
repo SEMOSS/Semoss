@@ -73,11 +73,12 @@ public class ExportProjectReactor extends AbstractReactor {
 		Lock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
 		try {
-			DIHelper.getInstance().removeProjectProperty(projectId);
-			project.closeProject();
 			// zip project
 			ZipOutputStream zos = null;
 			try {
+				DIHelper.getInstance().removeProjectProperty(projectId);
+				project.close();
+				
 				if(ClusterUtil.IS_CLUSTER) {
 					logger.info("Creating insight database ...");
 					File insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
