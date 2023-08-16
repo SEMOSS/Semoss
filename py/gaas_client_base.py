@@ -8,9 +8,12 @@ class BaseClient():
   def __init__(self,template_file="chat_templates.json"):
     self.templates=None
     self.template_file = template_file
-    with open(template_file) as da_file:
-      file_contents = da_file.read()
-      self.templates = json.loads(file_contents)
+    if template_file is not None:
+      with open(template_file) as da_file:
+        file_contents = da_file.read()
+        self.templates = json.loads(file_contents)
+    else:
+      self.templates = {}
     print("Templates loaded")
 
   def get_template(self, template_name=None):
@@ -35,8 +38,10 @@ class BaseClient():
       json.dump(self.templates, f)
       
   def fill_template(self, template_name=None, **args):
-    assert template_name is not None
     this_template = self.get_template(template_name)
+    if this_template is None:
+      this_template=template_name
+      
     if this_template is not None:
       template = Template(this_template)
       #mapping = {'name': 'John Doe', 'site': 'StackAbuse.com'}
