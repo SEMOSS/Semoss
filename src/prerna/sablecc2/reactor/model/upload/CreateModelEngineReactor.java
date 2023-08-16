@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.storage.upload;
+package prerna.sablecc2.reactor.model.upload;
 
 import java.io.File;
 import java.util.List;
@@ -16,8 +16,8 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IStorage;
-import prerna.engine.api.StorageTypeEnum;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -29,12 +29,12 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.upload.UploadUtilities;
 
-public class CreateStorageEngineReactor extends AbstractReactor {
+public class CreateModelEngineReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(CreateStorageEngineReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateModelEngineReactor.class);
 
-	public CreateStorageEngineReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_DETAILS.getKey()};
+	public CreateModelEngineReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MODEL_DETAILS.getKey()};
 	}
 	
 	@Override
@@ -45,7 +45,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			user = this.insight.getUser();
 			if (user == null) {
 				NounMetadata noun = new NounMetadata(
-						"User must be signed into an account in order to create a storage engine", PixelDataType.CONST_STRING,
+						"User must be signed into an account in order to create a model engine", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -71,64 +71,64 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 		
-		String storageName = getStorageName();
-		Map<String, String> storageDetails = getStorageDetails();
-		String storageTypeStr = storageDetails.get(IStorage.STORAGE_NAME);
-		if(storageTypeStr == null || (storageTypeStr=storageTypeStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must define the storage type");
+		String modelName = getModelName();
+		Map<String, String> modelDetails = getModelDetails();
+		String modelTypeStr = modelDetails.get(IModelEngine.MODEL_NAME);
+		if(modelTypeStr == null || (modelTypeStr=modelTypeStr.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must define the model type");
 		}
-		StorageTypeEnum storageType = null;
+		ModelTypeEnum modelType = null;
 		try {
-			storageType = StorageTypeEnum.getEnumFromName(storageTypeStr);
+			modelType = ModelTypeEnum.getEnumFromName(modelTypeStr);
 		} catch(Exception e) {
-			throw new IllegalArgumentException("Invalid storage type " + storageTypeStr);
+			throw new IllegalArgumentException("Invalid model type " + modelTypeStr);
 		}
 		
-		String storageId = UUID.randomUUID().toString();
+		String modelId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
-		IStorage storage = null;
+		IModelEngine model = null;
 		try {
-			String storageClass = storageType.getStorageClass();
-			storage = (IStorage) Class.forName(storageClass).newInstance();
-			tempSmss = UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
+			String modelClass = modelType.getModelClass();
+			model = (IModelEngine) Class.forName(modelClass).newInstance();
+			tempSmss = UploadUtilities.createTemporaryModelSmss(modelId, modelName, modelClass, modelDetails);
 			
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
-			DIHelper.getInstance().setEngineProperty(storageId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-			storage.open(tempSmss.getAbsolutePath());			
+			DIHelper.getInstance().setEngineProperty(modelId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			model.loadModel(tempSmss.getAbsolutePath());			
 			
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
-			storage.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
-			SecurityEngineUtils.addEngine(storageId, !AbstractSecurityUtils.securityEnabled(), user);
+			model.setSmssFilePath(smssFile.getAbsolutePath());
+			UploadUtilities.updateDIHelper(modelId, modelName, model, smssFile);
+			SecurityEngineUtils.addEngine(modelId, !AbstractSecurityUtils.securityEnabled(), user);
 			
 			// even if no security, just add user as database owner
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addDatabaseOwner(storageId, user.getAccessToken(ap).getId());
+					SecurityEngineUtils.addDatabaseOwner(modelId, user.getAccessToken(ap).getId());
 				}
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile);
+			cleanUpCreateNewError(model, modelId, tempSmss, smssFile);
 		}
 		
-		ClusterUtil.reactorPushDatabase(storageId);
+		ClusterUtil.reactorPushDatabase(modelId);
 
-		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	
 	/**
 	 * Delete all the corresponding files that are generated from the upload the failed
 	 */
-	private void cleanUpCreateNewError(IStorage storage, String storageId, File tempSmss, File smssFile) {
+	private void cleanUpCreateNewError(IModelEngine model, String modelId, File tempSmss, File smssFile) {
 		try {
 			// close the DB so we can delete it
-			if (storage != null) {
-				storage.close();
+			if (model != null) {
+				model.close();
 			}
 
 			// delete the .temp file
@@ -140,7 +140,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 				FileUtils.forceDelete(smssFile);
 			}
 			
-			UploadUtilities.removeEngineFromDIHelper(storageId);
+			UploadUtilities.removeEngineFromDIHelper(modelId);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -150,8 +150,8 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private String getStorageName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+	private String getModelName() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if(strValues != null && !strValues.isEmpty()) {
@@ -164,15 +164,15 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			return strValues.get(0).trim();
 		}
 		
-		throw new NullPointerException("Must define the name of the new storage engine");
+		throw new NullPointerException("Must define the name of the new model engine");
 	}
 	
 	/**
 	 * 
 	 * @return
 	 */
-	private Map<String, String> getStorageDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE_DETAILS.getKey());
+	private Map<String, String> getModelDetails() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if(mapNouns != null && !mapNouns.isEmpty()) {
@@ -185,7 +185,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			return (Map<String, String>) mapNouns.get(0).getValue();
 		}
 		
-		throw new NullPointerException("Must define the properties for the new storage engine");
+		throw new NullPointerException("Must define the properties for the new model engine");
 	}
 
 }
