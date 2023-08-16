@@ -1020,6 +1020,32 @@ public class Utility {
 			}
 		}
 	}
+	
+	/**
+	 * Makes sure that the file we are creating is in fact unique
+	 * @param directory
+	 * @param fileLocation
+	 * @return
+	 */
+	public static String getUniqueFilePath(String directory, String fileLocation) {
+		String fileName = Utility.normalizePath(FilenameUtils.getBaseName(fileLocation).trim());
+		String fileExtension = FilenameUtils.getExtension(fileLocation).trim();
+		
+		// h2 is weird and will not work if it doesn't end in .mv.db
+		boolean isH2 = fileLocation.endsWith(".mv.db");
+		File f = new File(directory + "/" + fileName + "." + fileExtension);
+		int counter = 2;
+		while(f.exists()) {
+			if(isH2) {
+				f = new File(directory + "/" + fileName.replace(".mv", "") + " (" + counter + ")" + ".mv.db");
+			} else {
+				f = new File(directory + "/" + fileName + " (" + counter + ")" + "." + fileExtension);
+			}
+			counter++;
+		}
+		
+		return f.getAbsolutePath();
+	}
 
 	/**
 	 * Cleans a string based on certain patterns
