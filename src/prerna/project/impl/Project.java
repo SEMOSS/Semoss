@@ -88,7 +88,8 @@ import prerna.util.git.GitRepoUtils;
 
 public class Project implements IProject {
 
-	private static final Logger logger = LogManager.getLogger(Project.class);
+	private static final Logger classLogger = LogManager.getLogger(Project.class);
+	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
@@ -230,7 +231,7 @@ public class Project implements IProject {
 		// if it is not defined directly in the smss
 		// we will not create an insights database
 		if(insightDatabaseLoc != null) {
-			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.prop, logger);
+			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.prop, classLogger);
 		}
 		
 //		// yay! even more updates
@@ -321,7 +322,7 @@ public class Project implements IProject {
 	@Override
 	public void close() {
 		if(this.insightRdbms != null) {
-			logger.debug("closing the insight engine ");
+			classLogger.debug("closing the insight engine ");
 			this.insightRdbms.close();
 		}
 		
@@ -336,26 +337,52 @@ public class Project implements IProject {
 					if(file.exists() && Files.isSymbolicLink(Paths.get(Utility.normalizePath(fileName))))
 						FileUtils.forceDelete(file);
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
+		
+		
+		// TODO: do we want to close the py process everything time we close?
+		// we close when we push insights (cause of the insights database) or update smss
+		
+//		try {
+//			if(tcpClient != null) {
+//				// this should destroy the process as well
+//				tcpClient.stopPyServe(this.tcpServerDirectory);
+//			}
+//		} catch(Exception e) {
+//			classLogger.error(Constants.STACKTRACE, e);
+//		}
+//		// but just in case above doesn't destroy it
+//		try {
+//			if(tcpServerProcess != null) {
+//				tcpServerProcess.destroy();
+//			}
+//		} catch(Exception e) {
+//			classLogger.error(Constants.STACKTRACE, e);
+//			try {
+//				tcpServerProcess.destroy();
+//			} catch(Exception e1) {
+//				classLogger.error(Constants.STACKTRACE, e1);
+//			}
+//		}
 	}
 
 	@Override
 	public void deleteProject() {
 		String folderName = SmssUtilities.getUniqueName(this.projectName, this.projectId);
-		logger.debug("Closing " + folderName);
+		classLogger.debug("Closing " + folderName);
 		this.close();
 
 		if(this.insightDatabaseLoc != null) {
 			File insightFile = new File(this.insightDatabaseLoc);
 			if(insightFile.exists()) {
-				logger.info("Deleting insight file " + insightFile.getAbsolutePath());
+				classLogger.info("Deleting insight file " + insightFile.getAbsolutePath());
 				try {
 					FileUtils.forceDelete(insightFile);
 				} catch(IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -365,20 +392,20 @@ public class Project implements IProject {
 				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR + folderName;
 		File folder = new File(folderPath);
 		if(folder.exists() && folder.isDirectory()) {
-			logger.debug("folder getting deleted is " + folder.getAbsolutePath());
+			classLogger.debug("folder getting deleted is " + folder.getAbsolutePath());
 			try {
 				FileUtils.deleteDirectory(folder);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e.getMessage());
+				classLogger.error(Constants.STACKTRACE, e.getMessage());
 			}
 		}
 
-		logger.debug("Deleting smss " + this.projectSmssFilePath);
+		classLogger.debug("Deleting smss " + this.projectSmssFilePath);
 		File smssFile = new File(this.projectSmssFilePath);
 		try {
 			FileUtils.forceDelete(smssFile);
 		} catch(IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		//remove from DIHelper
@@ -411,7 +438,7 @@ public class Project implements IProject {
 		
 		if(!idString.isEmpty()) {
 			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
-			logger.info("Running insights query " + Utility.cleanLogString(query));
+			classLogger.info("Running insights query " + Utility.cleanLogString(query));
 			
 			IRawSelectWrapper wrap = null;
 			try {
@@ -497,7 +524,7 @@ public class Project implements IProject {
 								breakdown = PixelUtility.parsePixel(pixelString);
 								pixelList.addAll(breakdown);
 							} catch (ParserException | LexerException | IOException e) {
-								logger.error(Constants.STACKTRACE, e);
+								classLogger.error(Constants.STACKTRACE, e);
 								throw new IllegalArgumentException("Error occurred parsing the pixel expression");
 							}
 						}
@@ -508,7 +535,7 @@ public class Project implements IProject {
 			} catch(IllegalArgumentException e1) {
 				throw e1;
 			} catch (Exception e1) {
-				logger.error(Constants.STACKTRACE, e1);
+				classLogger.error(Constants.STACKTRACE, e1);
 			} 
 			finally {
 				if(wrap != null) {
@@ -533,7 +560,7 @@ public class Project implements IProject {
 				stringBuilder.append(ss.getVar(names[0]) + "").append("%!%");
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrap != null) {
 				wrap.cleanUp();
@@ -739,7 +766,7 @@ public class Project implements IProject {
 		}
 		
 		this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
-		logger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
+		classLogger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
 	}
 	
 	private void compileReactorsFromJavaFiles(SemossClassloader customLoader) {
@@ -750,7 +777,7 @@ public class Project implements IProject {
 				//FileUtils.cleanDirectory(classesDir);
 				//classesDir.mkdir();
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -794,7 +821,7 @@ public class Project implements IProject {
 		// just pull to make sure we have the latest in case project was loaded
 		// but not published
 		if(outOfDate || this.lastReactorCompilationDate == null) {
-			logger.info("Pulling Java folder for project = " + this.projectId + ". Current reactors out of date = " + outOfDate + ". Last compilation date = " + this.lastReactorCompilationDate);
+			classLogger.info("Pulling Java folder for project = " + this.projectId + ". Current reactors out of date = " + outOfDate + ". Last compilation date = " + this.lastReactorCompilationDate);
 			ClusterUtil.reactorPullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
 			this.clearClassCache();
 		}
@@ -808,7 +835,7 @@ public class Project implements IProject {
 			// dont need to keep setting this 
 			if(this.lastReactorCompilationDate == null) {
 				this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
-				logger.info("Project '" + projectId + "' does not have a Java folder. Will still set the last compilation date = " + this.lastReactorCompilationDate);
+				classLogger.info("Project '" + projectId + "' does not have a Java folder. Will still set the last compilation date = " + this.lastReactorCompilationDate);
 			}
 			return null;
 		}
@@ -838,14 +865,14 @@ public class Project implements IProject {
 					retReac = (IReactor) thisReactorClass.newInstance();
 				}
 			} catch (InstantiationException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
 		this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
-		logger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
+		classLogger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
 
 		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
 				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
@@ -955,7 +982,7 @@ public class Project implements IProject {
 			// just pull to make sure we have the latest in case project was loaded
 			// but not published
 			if(outOfDate || this.lastPortalPublishDate == null) {
-				logger.info("Pulling Portals folder for project = " + this.projectId + ". Current portal out of date = " + outOfDate + ". Last portal publish date = " + this.lastPortalPublishDate);
+				classLogger.info("Pulling Portals folder for project = " + this.projectId + ". Current portal out of date = " + outOfDate + ". Last portal publish date = " + this.lastPortalPublishDate);
 				ClusterUtil.reactorPullProjectFolder(this, this.projectPortalFolder);
 			}
 			try {
@@ -997,10 +1024,10 @@ public class Project implements IProject {
 					this.publishedPortal = true;
 					this.republishPortal = false;
 					this.lastPortalPublishDate = new SemossDate(LocalDateTime.now());
-					logger.info("Project '" + SmssUtilities.getUniqueName(projectName, projectId) + "' has new last portal published date = " + this.lastPortalPublishDate);
+					classLogger.info("Project '" + SmssUtilities.getUniqueName(projectName, projectId) + "' has new last portal published date = " + this.lastPortalPublishDate);
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				this.publishedPortal = false;
 				this.lastPortalPublishDate = null;
 			}
@@ -1044,7 +1071,7 @@ public class Project implements IProject {
 				fw.flush();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -1101,9 +1128,9 @@ public class Project implements IProject {
 				return retReac;
 			}
 		} catch (InstantiationException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return retReac;
 	}
@@ -1121,7 +1148,7 @@ public class Project implements IProject {
 				try {
 					urls[i] = jars[i].toURI().toURL();
 				} catch (MalformedURLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to load jar file : " + jars[i].getName());
 				}
 			}
@@ -1146,9 +1173,9 @@ public class Project implements IProject {
 				retReac = (IReactor) thisReactorClass.newInstance();
 			}
 		} catch (InstantiationException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return retReac;
@@ -1214,9 +1241,9 @@ public class Project implements IProject {
 				return wrapper;
 			}
 		} catch (InstantiationException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return retReac;
 	}
@@ -1331,17 +1358,17 @@ public class Project implements IProject {
 			return finalCP;
 			
 		} catch (MavenInvocationException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(br != null) {
 				try {
 					br.close();
 				} catch(IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1405,7 +1432,7 @@ public class Project implements IProject {
 			  targetFolder = nodes.item(i).getNodeValue();
 			}
 		} catch (Exception e) {
-      	  logger.error(Constants.STACKTRACE, e);
+      	  classLogger.error(Constants.STACKTRACE, e);
 		}
 	    return targetFolder;
 	}
@@ -1516,7 +1543,7 @@ public class Project implements IProject {
 				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
 			}
 			
-			logger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.prop));
+			classLogger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.prop));
 			if(port != -1) {
 				this.port = port;
 			} else {
@@ -1527,7 +1554,7 @@ public class Project implements IProject {
 						this.port = Integer.parseInt(forcePort);
 					} catch(NumberFormatException e) {
 						// ignore
-						logger.warn("Project " + this.projectId + " has an invalid FORCE_PORT value");
+						classLogger.warn("Project " + this.projectId + " has an invalid FORCE_PORT value");
 						// just find a new port
 						this.port = Integer.parseInt(Utility.findOpenPort());
 					}
@@ -1539,7 +1566,7 @@ public class Project implements IProject {
 			//TODO: how do we account for chroot??
 			String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
 			if(cp == null) {
-				logger.info("No custom class path set");
+				classLogger.info("No custom class path set");
 			}
 			
 			Path mainCachePath = null;
@@ -1561,7 +1588,7 @@ public class Project implements IProject {
 					this.tcpServerProcess = Utility.startTCPServer(cp, this.tcpServerDirectory, this.port+"");
 				}
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			
 			// instrumenting the client class also now
@@ -1589,22 +1616,20 @@ public class Project implements IProject {
 						try 
 						{
 							tcpClient.wait();
-							logger.info("Setting the socket client ");
+							classLogger.info("Setting the socket client ");
 						} catch (InterruptedException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
 			} catch(Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
 
 	@Override
-	public String getCompileOutput() 
-	{
-		// TODO Auto-generated method stub
+	public String getCompileOutput() {
 		String finalOutput = null;
 		try {
 			String compilerOutput = AssetUtility.getProjectAssetFolder(this.projectId) + "/classes/compileerror.out";
@@ -1612,8 +1637,7 @@ public class Project implements IProject {
 			if(file.exists())
 				finalOutput = FileUtils.readFileToString(new File(compilerOutput));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		return finalOutput;
