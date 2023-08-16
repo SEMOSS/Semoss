@@ -5,21 +5,24 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.om.InsightFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
 public class DownloadAssetReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(DownloadAssetReactor.class);
+	
 	public DownloadAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
 	}
@@ -28,36 +31,45 @@ public class DownloadAssetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		// get base asset folder
+		String filePath = this.keyValue.get(this.keysToGet[0]);
+		if(filePath != null && filePath.startsWith("/")) {
+			filePath = filePath.substring(1);
+		}
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
-		String downloadPath = assetFolder;
-		// create path for a zip file
-		String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export"
-				+ DIR_SEPARATOR + "ZIPs";
-		String zipPath = OUTPUT_PATH + DIR_SEPARATOR + this.insight.getInsightName() + ".zip";
-		// if a specific file is specified for download
-		String relativeAssetPath =Utility.normalizePath(keyValue.get((keysToGet[0])));
-		if (relativeAssetPath != null && relativeAssetPath.length() > 0) {
-			downloadPath = assetFolder + DIR_SEPARATOR + relativeAssetPath;
-			File assetToDownload = new File(downloadPath);
-			if (!assetToDownload.exists()) {
-				NounMetadata error = NounMetadata.getErrorNounMessage("File does not exist");
-				SemossPixelException exception = new SemossPixelException(error);
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
-			}
-			// if the file to download is a dir it will be zipped
-			if (assetToDownload.isDirectory()) {
-				// zip asset folder to the zip path
-				zipFolder(downloadPath, zipPath);
-				// set download path to the zipPath
-				downloadPath = zipPath;
-			}
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false).replace("\\", "/");
 
+		File downloadF = null;
+		if(filePath != null) {
+			downloadF = new File(assetFolder + "/" + filePath);
 		} else {
-			// zip asset folder to the zip path
-			zipFolder(assetFolder, zipPath);
-			downloadPath = zipPath;
+			downloadF = new File(assetFolder);
+		}
+		
+		if(!downloadF.exists()) {
+			throw new IllegalArgumentException("Could not find file or directory with name " + filePath);
+		}
+
+		String downloadFileLocation = null;
+		if(downloadF.isDirectory()) {
+			// we need to make a zip
+			// and make sure its unique
+			// zip goes at same level as the directory
+			String zipFileLocation = Utility.getUniqueFilePath(downloadF.getParent(), downloadF.getName() + ".zip");
+			zipFolder(downloadF.getAbsolutePath(), zipFileLocation);
+			// the new download file location is now zipFileLocation
+			downloadFileLocation = zipFileLocation;
+			
+			
+			//TODO: add logic to add this to cloud
+			//TODO: add logic to add this to cloud
+			//TODO: add logic to add this to cloud
+			//TODO: add logic to add this to cloud
+			//TODO: add logic to add this to cloud
+			//TODO: add logic to add this to cloud
+
+			
+		} else {
+			downloadFileLocation = downloadF.getAbsolutePath();
 		}
 		
 		// store the insight file 
@@ -66,23 +78,25 @@ public class DownloadAssetReactor extends AbstractReactor {
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
-		insightFile.setFilePath(downloadPath);
+		insightFile.setFilePath(downloadFileLocation);
 		insightFile.setDeleteOnInsightClose(false);
 		this.insight.addExportFile(downloadKey, insightFile);
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		return retNoun;
 	}
 
+	/**
+	 * Zip the directory
+	 * @param folder
+	 * @param downloadPath
+	 */
 	private void zipFolder(String folder, String downloadPath) {
 		ZipOutputStream zos = null;
 		try {
 			zos = ZipUtils.zipFolder(folder, downloadPath);
 		} catch (IOException e) {
-			e.printStackTrace();
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to zip and download");
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to zip and download directory", e);
 		} finally {
 			try {
 				if (zos != null) {
@@ -90,11 +104,8 @@ public class DownloadAssetReactor extends AbstractReactor {
 					zos.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
-				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to zip and download");
-				SemossPixelException exception = new SemossPixelException(error);
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to zip and download directory", e);
 			}
 		}
 	}
