@@ -22,3 +22,13 @@ class Driver():
       answer = me.execQuery(query=query, insight_id=self.insight_id, **kwargs)
       response.append(answer)
     return response
+    
+    
+  def run_storage(self, path=None, engine_id="aaafaa3d-ec1a-4109-8889-8b7e17470aaa", num_iterations=1, **kwargs):
+    import gaas_gpt_storage as ggs
+    se = ggs.StorageEngine(engine_id=engine_id)
+    response = []
+    for ask_iter in range(0, num_iterations):
+      answer = se.listDetails(path=path, insight_id=self.insight_id, **kwargs)
+      response.append(answer)
+    return response

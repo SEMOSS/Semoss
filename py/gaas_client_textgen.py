@@ -26,18 +26,19 @@ class TextGenClient(BaseClient):
       template_name = f"{self.model_name}.default.nocontext"
     elif context is not None:
       template_name = f"{self.model_name}.default.context"      
-      
+        
     # generate the prompt
     if context is not None:
       mapping = {"question": question, "context":context}
     # merge kwargs
     mapping = mapping | kwargs
-    print(mapping)
+    #print(mapping)
     prompt = super().fill_template(template_name=template_name, **mapping)
 
     if prompt is None:
       prompt = question
 
+    print(prompt)
     # Add history if one is provided
     if history is not None:
       prompt = f"{prompt} {history}"
