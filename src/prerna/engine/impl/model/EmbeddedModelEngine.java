@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.om.Insight;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
@@ -93,5 +94,10 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		//Object output = pyt.runScript("i.ask(question='What is the capital of India ?')");
 		
 		//System.err.println(output);
+	}
+
+	@Override
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.EMBEDDED;
 	}
 }
