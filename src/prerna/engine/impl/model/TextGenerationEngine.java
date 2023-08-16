@@ -1,19 +1,13 @@
 package prerna.engine.impl.model;
 
-import java.io.File;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.commons.io.FilenameUtils;
-
+import prerna.engine.api.ModelTypeEnum;
 import prerna.om.Insight;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class TextGenerationEngine  extends AbstractModelEngine {
-
 
 	@Override
 	public String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters) {
@@ -56,6 +50,11 @@ public class TextGenerationEngine  extends AbstractModelEngine {
 		System.out.println(callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString());
 		return output+"";
+	}
+
+	@Override
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.TEXT_GENERATION;
 	}
 
 	

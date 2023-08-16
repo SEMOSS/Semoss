@@ -10,6 +10,7 @@ public interface IStorage extends IEngine {
 	String CATALOG_TYPE = "STORAGE";
 
 	// this is what the FE sends for the type of storage we are creating
+	// as a result, cannot be a key in the smss file
 	String STORAGE_NAME = "STORAGE_NAME";
 	
 	/**
