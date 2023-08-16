@@ -164,9 +164,15 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			}
 			
 			// pull some properties out for creating an smss if legacy format
-			projectId = prop.getProperty(Constants.ENGINE);
-			projectName = prop.getProperty(Constants.ENGINE_ALIAS);
-			projectType = prop.getProperty(Constants.ENGINE_TYPE);
+			if(isLegacy) {
+				projectId = prop.getProperty(Constants.ENGINE);
+				projectName = prop.getProperty(Constants.ENGINE_ALIAS);
+				projectType = prop.getProperty(Constants.ENGINE_TYPE);
+			} else {
+				projectId = prop.getProperty(Constants.PROJECT);
+				projectName = prop.getProperty(Constants.PROJECT_ALIAS);
+				projectType = prop.getProperty(Constants.PROJECT_TYPE);
+			}
 			hasPortal = Boolean.parseBoolean(prop.getProperty(Settings.PUBLIC_HOME_ENABLE));
 			portalName = prop.getProperty(Settings.PORTAL_NAME);
 			projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
