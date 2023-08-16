@@ -21,6 +21,9 @@ class OpenAiClient(BaseClient):
     assert self.endpoint is not None
     self.api_key = api_key
     self.available_models = []
+    self.chat_type = 'chat-completion'
+    if 'chat_type' in kwargs.keys():
+      self.chat_type = kwargs.pop('chat_type')
     
   def ask(self, question:str=None, context:str=None, template_name=None, history:list=None, page_size=100, max_new_tokens=100, stop_sequences=["#", ";"], temperature_val=0.01, top_p_val=0.5, **kwargs):
     openai_base = openai.api_base
@@ -30,12 +33,8 @@ class OpenAiClient(BaseClient):
     openai.api_base = self.endpoint
     # first we determine the type of completion, since this determines how we
     # structure the payload
-    chat_type = 'chat-completion'
-    if 'chat_type' in kwargs.keys():
-      chat_type = kwargs.pop('chat_type')
-
     final_query = "Please specify a valid completion type. Use 'chat-completion' or 'completion'"
-    if chat_type == 'chat-completion':
+    if self.chat_type == 'chat-completion':
       # the list to construct the payload from
       message_payload = []
 
@@ -62,7 +61,7 @@ class OpenAiClient(BaseClient):
       response = completion.choices[0].message.content
       final_query = response
 
-    elif chat_type == 'completion':
+    elif self.chat_type == 'completion':
       prompt = ""
       mapping = {"question": question}
 
@@ -87,7 +86,7 @@ class OpenAiClient(BaseClient):
       if history is not None:
         prompt = f"{prompt} {history}"
 
-      final_query = ""
+      final_query = question
       tokens = 0
       finish = False
       while tokens < max_new_tokens and not finish:
