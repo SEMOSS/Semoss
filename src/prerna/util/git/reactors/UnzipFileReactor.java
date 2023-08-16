@@ -3,8 +3,11 @@ package prerna.util.git.reactors;
 import java.io.File;
 import java.io.IOException;
 
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -49,6 +52,29 @@ public class UnzipFileReactor extends AbstractReactor {
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to unzip file. Detailed error = " + e.getMessage());
 		}
+		
+		if(ClusterUtil.IS_CLUSTER) {
+			//is it in the user space?
+			if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
+				AuthProvider provider = user.getPrimaryLogin();
+				String projectId = user.getAssetProjectId(provider);
+				if(projectId!=null && !(projectId.isEmpty())) {
+					IProject project = Utility.getUserAssetWorkspaceProject(projectId, true);
+					ClusterUtil.reactorPushUserWorkspace(project, true);
+				}
+			// is it in the insight space of a saved insight?
+			} else if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+				if(this.insight.isSavedInsight()) {
+					IProject project = Utility.getProject(this.insight.getProjectId());
+					ClusterUtil.reactorPushProjectFolder(project, zipFile.getParent());
+				}
+			// this is in the project space where space = project id
+			} else {
+				IProject project = Utility.getProject(space);
+				ClusterUtil.reactorPushProjectFolder(project, zipFile.getParent());
+			}
+		}
+		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
