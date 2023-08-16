@@ -827,38 +827,8 @@ public class Project implements IProject {
 		}
 		
 		IReactor retReac = null;
-		File javaDirectory = new File(this.projectAssetFolder + DIR_SEPARATOR + "java");
-		
-		// if there is no java.. dont even bother with this
-		// no need to spend time on any of this
-		if( !javaDirectory.exists() ) {
-			// dont need to keep setting this 
-			if(this.lastReactorCompilationDate == null) {
-				this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
-				classLogger.info("Project '" + projectId + "' does not have a Java folder. Will still set the last compilation date = " + this.lastReactorCompilationDate);
-			}
-			return null;
-		}
-		
-		File[] jars = javaDirectory.listFiles(new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String name) {
-				return name.endsWith(".jar");
-			}
-		});
-		File pomFile = new File(javaDirectory.getAbsolutePath() + DIR_SEPARATOR + "pom.xml");
-
-		boolean loadJars = jars != null && jars.length > 0;
-		boolean hasPom = pomFile.exists() && pomFile.isFile();
-		
-		if(loadJars) {
-			retReac =  getReactorFromJars(className, jars);
-		} else if(hasPom) {
-			retReac = getReactorsFromPom(className, pomFile);
-		}
-		// keep the old processing
-		else {
-			compileReactorsFromJavaFiles(customLoader);
+		// if we are not out of date, we can see if this exists
+		if(!outOfDate && this.lastReactorCompilationDate != null && projectSpecificHash != null) {
 			try {
 				if(projectSpecificHash.containsKey(className.toUpperCase())) {
 					Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
@@ -869,20 +839,63 @@ public class Project implements IProject {
 			} catch (IllegalAccessException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
+		} else {
+			// else we will see if we have java
+			File javaDirectory = new File(this.projectAssetFolder + DIR_SEPARATOR + "java");
+			
+			// if there is no java.. dont even bother with this
+			// no need to spend time on any of this
+			if( !javaDirectory.exists() ) {
+				// dont need to keep setting this 
+				if(this.lastReactorCompilationDate == null) {
+					this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
+					classLogger.info("Project '" + projectId + "' does not have a Java folder. Will still set the last compilation date = " + this.lastReactorCompilationDate);
+				}
+				return null;
+			}
+			
+			File[] jars = javaDirectory.listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.endsWith(".jar");
+				}
+			});
+			File pomFile = new File(javaDirectory.getAbsolutePath() + DIR_SEPARATOR + "pom.xml");
+
+			boolean loadJars = jars != null && jars.length > 0;
+			boolean hasPom = pomFile.exists() && pomFile.isFile();
+			
+			if(loadJars) {
+				retReac =  getReactorFromJars(className, jars);
+			} else if(hasPom) {
+				retReac = getReactorsFromPom(className, pomFile);
+			}
+			// keep the old processing
+			else {
+				compileReactorsFromJavaFiles(customLoader);
+				try {
+					if(projectSpecificHash.containsKey(className.toUpperCase())) {
+						Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
+						retReac = (IReactor) thisReactorClass.newInstance();
+					}
+				} catch (InstantiationException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				} catch (IllegalAccessException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+
+			this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
+			classLogger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
 		}
-
-		this.lastReactorCompilationDate = new SemossDate(LocalDateTime.now());
-		classLogger.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
-
+		
 		boolean useNettyPy = DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON) != null
 				&& DIHelper.getInstance().getProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
-
 		if (!useNettyPy) {
 			return retReac;
 		}
 		
 		// secondary check to execute reactor here
-		
 		if(executeReactorOnSocket() && ( 
 				(
 				DIHelper.getInstance().getLocalProp("core") == null || 
