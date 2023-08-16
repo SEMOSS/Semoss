@@ -17,13 +17,13 @@ import prerna.util.Utility;
 public class ProjectRReactor extends AbstractReactor {
 	
 	public ProjectRReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.CODE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.CODE.getKey(), ReactorKeysEnum.PROJECT.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
 			projectId = this.insight.getContextProjectId();
 			if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
@@ -33,7 +33,8 @@ public class ProjectRReactor extends AbstractReactor {
 		if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
-		String code = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
+		
+		String code = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
