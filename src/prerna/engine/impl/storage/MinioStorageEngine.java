@@ -70,6 +70,9 @@ public class MinioStorageEngine extends AbstractRCloneStorageEngine {
 	
 //	public static void main(String[] args) throws Exception {
 //		// docker run -p 9000:9000 -p 9001:9001 quay.io/minio/minio server /data --console-address ":9001"
+//		// download rclone https://rclone.org/downloads/
+//		// add the rclone folder to your path 
+//		// in a cmd prompt > rclone should be recognized as a command
 //		
 //		// these are not real/import access/secret - only for local docker
 //		Properties mockSmss = new Properties();
