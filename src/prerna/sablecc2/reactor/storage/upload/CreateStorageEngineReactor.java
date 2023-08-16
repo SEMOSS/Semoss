@@ -73,7 +73,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		
 		String storageName = getStorageName();
 		Map<String, String> storageDetails = getStorageDetails();
-		String storageTypeStr = storageDetails.get(IStorage.STORAGE_NAME);
+		String storageTypeStr = storageDetails.get(IStorage.STORAGE_TYPE);
 		if(storageTypeStr == null || (storageTypeStr=storageTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the storage type");
 		}
