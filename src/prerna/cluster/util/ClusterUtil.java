@@ -245,7 +245,7 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				AbstractCloudClient.getClient().pullInsightsDB(projectId);
-			} catch (IOException | InterruptedException e) {
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to check if project has been modified", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
@@ -261,7 +261,7 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				AbstractCloudClient.getClient().pushInsightDB(projectId);
-			} catch (IOException | InterruptedException e) {
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to check if project has been modified", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);

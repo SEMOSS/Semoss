@@ -1001,6 +1001,12 @@ public class AZClient extends AbstractCloudClient {
 			}
 		}
 	}
+	
+	@Override
+	public void pullProjectSmss(String projectId) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public void pullProject(String projectId) throws IOException, InterruptedException {
