@@ -10,7 +10,7 @@ public interface IModelEngine extends IEngine {
 
 	// this is what the FE sends for the type of storage we are creating
 	// as a result, cannot be a key in the smss file
-	String MODEL_NAME = "MODEL_NAME";
+	String MODEL_TYPE = "MODEL_TYPE";
 	
 	// main class that is responsible for controlling everything models
 	// hosting modes - embedded, inference_engine, FastChat, OpenAI
