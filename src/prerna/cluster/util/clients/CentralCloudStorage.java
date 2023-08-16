@@ -24,6 +24,7 @@ import prerna.engine.impl.storage.GoogleCloudStorageEngine;
 import prerna.engine.impl.storage.MinioStorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -194,6 +195,12 @@ public class CentralCloudStorage implements ICloudClient {
 			prop.put(propKey, clientProps.get(oldKey));
 		}
 	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Database
+	 */
 	
 	
 	@Override
@@ -645,6 +652,27 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
+	public void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath)
+			throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath)
+			throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Project
+	 */
+	
+	
+	@Override
 	public void pushProject(String projectId) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId, false);
 		if (project == null) {
@@ -783,7 +811,27 @@ public class CentralCloudStorage implements ICloudClient {
 			lock.unlock();
 			classLogger.info("Project " + aliasAndProjectId + " is unlocked");
 		}
+	}
+	
+	@Override
+	public void pullProjectSmss(String projectId) throws Exception {
+		// We need to push the file alias__appId.smss
+		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
 		
+		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
+
+		// synchronize on the app id
+		classLogger.info("Applying lock for " + aliasAndProjectId + " to push project smss");
+		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+		lock.lock();
+		classLogger.info("Project " + aliasAndProjectId + " is locked");
+		try {
+			storageEngine.copyToLocal(storageSmssFolder, PROJECT_FOLDER);
+		} finally {
+			lock.unlock();
+			classLogger.info("Project " + aliasAndProjectId + " is unlocked");
+		}
 	}
 	
 	@Override
@@ -812,29 +860,83 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pullInsightsDB(String projectId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pullInsightsDB(String projectId) throws Exception {
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
 		
+		String projectName = project.getProjectName();
+		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
+		String localProjectFolder = PROJECT_FOLDER + FILE_SEPARATOR + aliasAndProjectId;
+		String insightDbFileName = getInsightDB(project, localProjectFolder);
+
+		String storageProjectInsightFilePath = PROJECT_CONTAINER_PREFIX + projectId + "/" + insightDbFileName;
+		// synchronize on the app id
+		classLogger.info("Applying lock for " + aliasAndProjectId + " to pull insights db");
+		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+		lock.lock();
+		classLogger.info("Project " + aliasAndProjectId + " is locked");
+		try {
+			project.getInsightDatabase().close();
+			storageEngine.copyToLocal(storageProjectInsightFilePath, localProjectFolder);
+		}  finally {
+			try {
+				//open the insight db
+				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
+				if(insightDbLoc != null) {
+					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+				} else {
+					throw new IllegalArgumentException("Insight database was not able to be found");
+				}
+			}
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				classLogger.info("Project " + aliasAndProjectId + " is unlocked");
+			}
+		}
 	}
 
 	@Override
-	public void pushInsightDB(String projectId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pushInsightDB(String projectId) throws Exception {
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
 		
-	}
-
-	@Override
-	public void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		String projectName = project.getProjectName();
+		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
+		String localProjectFolder = PROJECT_FOLDER + FILE_SEPARATOR + aliasAndProjectId;
+		String insightDbFileName = getInsightDB(project, localProjectFolder);
+		String localProjectInsightDb = localProjectFolder + "/" + insightDbFileName;
 		
-	}
-
-	@Override
-	public void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
 		
+		// synchronize on the app id
+		classLogger.info("Applying lock for " + aliasAndProjectId + " to pull insights db");
+		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+		lock.lock();
+		classLogger.info("Project " + aliasAndProjectId + " is locked");
+		try {
+			project.getInsightDatabase().close();
+			storageEngine.copyToStorage(localProjectInsightDb, storageProjectFolder);
+		}  finally {
+			try {
+				//open the insight db
+				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
+				if(insightDbLoc != null) {
+					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+				} else {
+					throw new IllegalArgumentException("Insight database was not able to be found");
+				}
+			}
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				classLogger.info("Project " + aliasAndProjectId + " is unlocked");
+			}
+		}
 	}
 
 	@Override
@@ -850,6 +952,14 @@ public class CentralCloudStorage implements ICloudClient {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Insight
+	 */
+	
 
 	@Override
 	public void pushInsight(String projectId, String insightId) throws IOException, InterruptedException {
@@ -869,6 +979,12 @@ public class CentralCloudStorage implements ICloudClient {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * User
+	 */
 
 	@Override
 	public void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded)
@@ -882,25 +998,10 @@ public class CentralCloudStorage implements ICloudClient {
 		// TODO Auto-generated method stub
 		
 	}
-
-	@Override
-	public void fixLegacyDbStructure(String appId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void fixLegacyImageStructure() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void fixLegacyUserAssetStructure(String appId, boolean isAsset) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
 	
+	///////////////////////////////////////////////////////////////////////////////////
+
+	// utility methods
 	
 	/**
 	 * 
@@ -979,6 +1080,30 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		}
 		throw new IllegalArgumentException("There is no insight database for project: " + project.getProjectName());
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Legacy
+	 */
+
+	@Override
+	public void fixLegacyDbStructure(String appId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void fixLegacyImageStructure() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void fixLegacyUserAssetStructure(String appId, boolean isAsset) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	@Override

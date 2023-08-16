@@ -907,6 +907,12 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			}
 		}
 	}
+	
+	@Override
+	public void pullProjectSmss(String projectId) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public void deleteProject(String projectId) throws IOException, InterruptedException {
