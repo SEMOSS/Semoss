@@ -8,11 +8,9 @@ public interface IModelEngine extends IEngine {
 
 	String CATALOG_TYPE = "MODEL";
 
-	enum MODEL_TYPE
-	{
-		EMBEDDED,
-		PROCESS
-	}
+	// this is what the FE sends for the type of storage we are creating
+	// as a result, cannot be a key in the smss file
+	String MODEL_NAME = "MODEL_NAME";
 	
 	// main class that is responsible for controlling everything models
 	// hosting modes - embedded, inference_engine, FastChat, OpenAI
@@ -25,7 +23,7 @@ public interface IModelEngine extends IEngine {
 	// ModelDeployMatchFinder - finds it based on GPU memory etc. 
 	// StopModel
 	
-	public MODEL_TYPE getModelType();
+	public ModelTypeEnum getModelType();
 	
 	public void loadModel(String modelSmss);
 	

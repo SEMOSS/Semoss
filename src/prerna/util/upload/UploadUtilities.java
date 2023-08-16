@@ -70,9 +70,13 @@ public class UploadUtilities {
 	private static final Logger classLogger = LogManager.getLogger(UploadUtilities.class);
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String ENGINE_DIRECTORY;
+	private static final String DATABASE_DIRECTORY;
+	private static final String STORAGE_DIRECTORY;
+	private static final String MODEL_DIRECTORY;
 	static {
-		ENGINE_DIRECTORY = DIR_SEPARATOR + "db" + DIR_SEPARATOR;
+		DATABASE_DIRECTORY = DIR_SEPARATOR + Constants.DB_FOLDER + DIR_SEPARATOR;
+		STORAGE_DIRECTORY = DIR_SEPARATOR + Constants.DB_FOLDER + DIR_SEPARATOR;
+		MODEL_DIRECTORY = DIR_SEPARATOR + Constants.DB_FOLDER + DIR_SEPARATOR;
 	}
 	
 	public static final String INSIGHT_USAGE_STATS_INSIGHT_NAME = "View insight usage stats";
@@ -167,7 +171,7 @@ public class UploadUtilities {
 		
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		// need to make sure app folder doesn't already exist
-		String databaseLocation = baseFolder + ENGINE_DIRECTORY +  SmssUtilities.getUniqueName(engineName, engineId);
+		String databaseLocation = baseFolder + DATABASE_DIRECTORY +  SmssUtilities.getUniqueName(engineName, engineId);
 		File databaseFolder = new File(databaseLocation);
 		if(databaseFolder.exists()) {
 			throw new IOException("Engine folder already contains a database directory with the same name. "
@@ -200,7 +204,7 @@ public class UploadUtilities {
 		
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		// need to make sure app folder doesn't already exist
-		String databaseLocation = baseFolder + ENGINE_DIRECTORY +  SmssUtilities.getUniqueName(databaseName, databaseId);
+		String databaseLocation = baseFolder + DATABASE_DIRECTORY +  SmssUtilities.getUniqueName(databaseName, databaseId);
 		File databaseFolder = new File(databaseLocation);
 		if(databaseFolder.exists()) {
 			throw new IOException("Database folder already contains a database directory with the same name. "
@@ -215,7 +219,7 @@ public class UploadUtilities {
 	 */
 	public static File generateDatabaseFolder(String databaseId, String databaseName) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String databaseLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId);
+		String databaseLocation = baseFolder + DATABASE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId);
 		File databaseFolder = new File(databaseLocation);
 		databaseFolder.mkdirs();
 		return databaseFolder;
@@ -228,7 +232,7 @@ public class UploadUtilities {
 	 */
 	public static File generateOwlFile(String databaseId, String databaseName) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String owlLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId) + DIR_SEPARATOR + databaseName + "_OWL.OWL";
+		String owlLocation = baseFolder + DATABASE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId) + DIR_SEPARATOR + databaseName + "_OWL.OWL";
 		File owlFile = new File(owlLocation);
 		
 		FileWriter writer = null;
@@ -689,7 +693,7 @@ public class UploadUtilities {
 			// we will want to parameterize this
 			File f = new File(janusConfPath);
 			String fileBasePath = f.getParent();
-			janusConfPath = janusConfPath.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+			janusConfPath = janusConfPath.replace(fileBasePath, "@BaseFolder@" + DATABASE_DIRECTORY + "@ENGINE@");
 
 			if (janusConfPath.contains("\\")) {
 				janusConfPath = janusConfPath.replace("\\", "\\\\");
@@ -773,7 +777,7 @@ public class UploadUtilities {
 			if(tinkerDriverType != ImportOptions.TINKER_DRIVER.NEO4J) {
 				File f = new File(tinkerFilePath);
 				String fileBasePath = f.getParent();
-				tinkerFilePath = tinkerFilePath.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+				tinkerFilePath = tinkerFilePath.replace(fileBasePath, "@BaseFolder@" + DATABASE_DIRECTORY + "@ENGINE@");
 			}
 			if(tinkerFilePath.contains("\\")) {
 				tinkerFilePath = tinkerFilePath.replace("\\", "\\\\");
@@ -1077,7 +1081,7 @@ public class UploadUtilities {
 				File f = new File(host);
 				if(f.exists()) {
 					String fileBasePath = f.getParent();
-					connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+					connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + DATABASE_DIRECTORY + "@ENGINE@");
 				}
 			}
 			// connection details
@@ -1198,7 +1202,7 @@ public class UploadUtilities {
 	 */
 	private static String getDatabaseTempSmssLoc(String databaseId, String databaseName) {
 		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String dbTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId) + ".temp";
+		String dbTempSmssLoc = baseDirectory + DATABASE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId) + ".temp";
 		return dbTempSmssLoc;
 	}
 	
@@ -1211,7 +1215,7 @@ public class UploadUtilities {
 	 */
 	private static String getStorageTempSmssLoc(String storageId, String storageName) {
 		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String dbTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(storageName, storageId) + ".temp";
+		String dbTempSmssLoc = baseDirectory + STORAGE_DIRECTORY + SmssUtilities.getUniqueName(storageName, storageId) + ".temp";
 		return dbTempSmssLoc;
 	}
 	
@@ -1224,7 +1228,7 @@ public class UploadUtilities {
 	 */
 	private static String getModelTempSmssLoc(String modelId, String modelName) {
 		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String dbTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(modelName, modelId) + ".temp";
+		String dbTempSmssLoc = baseDirectory + MODEL_DIRECTORY + SmssUtilities.getUniqueName(modelName, modelId) + ".temp";
 		return dbTempSmssLoc;
 	}
 	
@@ -1288,6 +1292,68 @@ public class UploadUtilities {
 		}
 		
 		return storageTempSmss;
+	}
+	
+	/**
+	 * Create a temporary smss file for storage engine
+	 * @param modelId
+	 * @param modelName
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryModelSmss(String modelId, String modelName, String modelClassName, Map<String, String> properties) throws IOException {
+		String modelTempSmssLoc = getModelTempSmssLoc(modelId, modelName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File modelTempSmss = new File(modelTempSmssLoc);
+		if (modelTempSmss.exists()) {
+			modelTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+
+		FileReader fileRead = null;
+		BufferedReader bufferedReader = null;
+
+		try {
+			writer = new FileWriter(modelTempSmss);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultEngineSettings(bufferedWriter, modelId, modelName, modelClassName, newLine, tab);
+			bufferedWriter.write(newLine);
+			
+			for(String key : properties.keySet()) {
+				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key));
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Could not generate temporary smss file for model");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+				if (fileRead != null) {
+					fileRead.close();
+				}
+				if (bufferedReader != null) {
+					bufferedReader.close();
+				}
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
+		return modelTempSmss;
 	}
 	
 	/**
@@ -2150,7 +2216,7 @@ public class UploadUtilities {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyMMddHHmmssZ");
 		String dateName = sdf.format(currDate);
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String appLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId);
+		String appLocation = baseFolder + DATABASE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId);
 		String metaModelFilePath = appLocation + DIR_SEPARATOR + databaseName + "_" + csvFileName + "_" + dateName + "_PROP.json";
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(metamodel);
