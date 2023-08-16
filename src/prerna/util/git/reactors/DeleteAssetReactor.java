@@ -139,12 +139,16 @@ public class DeleteAssetReactor extends AbstractReactor {
 				}
 			// is it an insight asset change
 			} else if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
-				IProject project = Utility.getProject(this.insight.getProjectId());
-				ClusterUtil.reactorPushProjectFolder(project, baseFolderPath);
+				if(this.insight.isSavedInsight()) {
+					// we can limit the push the parent directory of the deleted content
+					IProject project = Utility.getProject(this.insight.getProjectId());
+					ClusterUtil.reactorPushProjectFolder(project, realFile.getParent());
+				}
 			// this is a project asset. space is the projectId
 			} else {
+				// we can limit the push the parent directory of the deleted content
 				IProject project = Utility.getProject(space);
-				ClusterUtil.reactorPushProjectFolder(project, baseFolderPath);
+				ClusterUtil.reactorPushProjectFolder(project, realFile.getParent());
 			}
 		}
 
