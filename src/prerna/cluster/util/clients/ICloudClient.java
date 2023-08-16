@@ -7,11 +7,12 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public interface ICloudClient {
 
-//	/**
-//	 * 
-//	 */
-//	void init();
-
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Database
+	 */
+	
 	/**
 	 * 
 	 * @param databaseId
@@ -103,6 +104,33 @@ public interface ICloudClient {
 	
 	/**
 	 * 
+	 * @param appId
+	 * @param absolutePath
+	 * @param remoteRelativePath
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param appId
+	 * @param absolutePath
+	 * @param remoteRelativePath
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+	
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Project
+	 */
+	
+	/**
+	 * 
 	 * @param projectId
 	 * @throws IOException
 	 * @throws InterruptedException
@@ -135,6 +163,15 @@ public interface ICloudClient {
 	void pushProjectSmss(String projectId) throws Exception;
 	
 	/**
+	 * Pull only the smss file for a project
+	 * 
+	 * @param projectId
+	 * @throws Exception
+	 */
+	void pullProjectSmss(String projectId) throws Exception;
+
+	
+	/**
 	 * 
 	 * @throws IOException
 	 * @throws InterruptedException
@@ -158,38 +195,16 @@ public interface ICloudClient {
 	/**
 	 * 
 	 * @param projectId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	void pullInsightsDB(String projectId) throws IOException, InterruptedException;
+	void pullInsightsDB(String projectId) throws Exception;
 	
 	/**
 	 * 
 	 * @param projectId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	void pushInsightDB(String projectId)  throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @param appId
-	 * @param absolutePath
-	 * @param remoteRelativePath
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @param appId
-	 * @param absolutePath
-	 * @param remoteRelativePath
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+	void pushInsightDB(String projectId)  throws Exception;
 
 	/**
 	 * 
@@ -211,6 +226,13 @@ public interface ICloudClient {
 	 */
 	void pullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
 
+
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Insight
+	 */
+	
 	/**
 	 * 
 	 * @param projectId
@@ -240,6 +262,13 @@ public interface ICloudClient {
 	 */
 	void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws IOException, InterruptedException;
 	
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * User
+	 */
+	
 	/**
 	 * 
 	 * @param projectId
@@ -259,6 +288,14 @@ public interface ICloudClient {
 	 */
 	void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException;
 
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Legacy
+	 */
+	
+	
 	/**
 	 * This is temporary - to fix old cloud deployments so the structure has the split between db and project
 	 * @param appId
