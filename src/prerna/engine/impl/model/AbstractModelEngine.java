@@ -331,11 +331,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public MODEL_TYPE getModelType() {
-		return MODEL_TYPE.PROCESS;
-	}
-	
-	@Override
 	public String getCatalogType(Properties smssProp) {
 		return IModelEngine.CATALOG_TYPE;
 	}
