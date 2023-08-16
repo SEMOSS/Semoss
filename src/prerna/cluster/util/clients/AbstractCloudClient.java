@@ -82,6 +82,14 @@ public abstract class AbstractCloudClient implements ICloudClient {
 	}
 
 	/**
+	 * Abstract method to create the r clone config
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	protected abstract String createRcloneConfig() throws IOException, InterruptedException;
+	
+	/**
 	 * 
 	 * @param rcloneConfig
 	 * @throws IOException
