@@ -73,7 +73,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		
 		String modelName = getModelName();
 		Map<String, String> modelDetails = getModelDetails();
-		String modelTypeStr = modelDetails.get(IModelEngine.MODEL_NAME);
+		String modelTypeStr = modelDetails.get(IModelEngine.MODEL_TYPE);
 		if(modelTypeStr == null || (modelTypeStr=modelTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
 		}
