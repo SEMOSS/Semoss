@@ -29,6 +29,7 @@ package prerna.util;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.apache.logging.log4j.LogManager;
@@ -39,7 +40,7 @@ import prerna.engine.api.IRDBMSEngine;
 public class ConnectionUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(ConnectionUtils.class);
-	
+
 	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con, Statement ps, ResultSet rs){
 		if(rs!=null){
 			try{
@@ -131,9 +132,24 @@ public class ConnectionUtils {
 	public static void closeConnection(Connection con){
 		closeAllConnections(con, null, null);
 	}
-	
+
 	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement ps){
 		closeAllConnectionsIfPooling(engine, ps, null);
+	}
+
+	/**
+	 * Commit all pending transactions on the connection
+	 * @param conn
+	 */
+	public static void commitConnection(Connection conn) {
+		try {
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred commiting the transaction to the database. Detailed message = "+ e.getMessage(), e);
+		}
 	}
 
 }
