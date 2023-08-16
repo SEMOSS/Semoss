@@ -477,8 +477,8 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				AbstractCloudClient.getClient().pushInsight(projectId, rdbmsId);
-			}  catch (IOException | InterruptedException e) {
-				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
+			}  catch (Exception e) {
+				NounMetadata noun = new NounMetadata("Failed to push insight folder", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -491,9 +491,9 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				AbstractCloudClient.getClient().pullInsight(projectId, rdbmsId);
-			}  catch (IOException | InterruptedException e) {
+			}  catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
+				NounMetadata noun = new NounMetadata("Failed to pull insight folder", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);

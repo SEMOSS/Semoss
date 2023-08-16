@@ -26,6 +26,7 @@ import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.test.TestUtilityMethods;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
@@ -962,22 +963,86 @@ public class CentralCloudStorage implements ICloudClient {
 	
 
 	@Override
-	public void pushInsight(String projectId, String insightId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pushInsight(String projectId, String insightId) throws Exception {
+		IProject project = Utility.getProject(projectId);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+
+		// only need to pull the insight folder - 99% the project is always already loaded to get to this point
+		String localInsightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
+		File insightFolder = new File(localInsightFolderPath);
+		if(!insightFolder.exists()) {
+			insightFolder.mkdirs();
+		}
+		String storageInsightFolder = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 		
+		classLogger.info("Pushing insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
+		storageEngine.syncLocalToStorage(localInsightFolderPath, storageInsightFolder);
+		classLogger.debug("Done pushing insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
 	}
 
 	@Override
-	public void pullInsight(String projectId, String insightId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pullInsight(String projectId, String insightId) throws Exception {
+		IProject project = Utility.getProject(projectId);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+
+		// only need to pull the insight folder - 99% the project is always already loaded to get to this point
+		String localInsightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
+		File insightFolder = new File(localInsightFolderPath);
+		if(!insightFolder.exists()) {
+			insightFolder.mkdirs();
+		}
+		String storageInsightFolder = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 		
+		classLogger.info("Pulling insight from remote=" + Utility.cleanLogString(storageInsightFolder) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+		storageEngine.syncStorageToLocal(storageInsightFolder, localInsightFolderPath);
+		classLogger.debug("Done pulling insight from remote=" + Utility.cleanLogString(storageInsightFolder) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
 	}
 
 	@Override
-	public void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+	public void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws Exception {
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		} 
+
+		String sharedRCloneConfig = null;
+		try {
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+			
+			String storageInsightFolder = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
+			// since extensions might be different, need to actually delete the old file by name
+			if(oldImageFileName != null) {
+				String storageOldFileToDelete = storageInsightFolder+"/"+oldImageFileName;
+				classLogger.info("Deleting old insight image from remote=" + Utility.cleanLogString(storageOldFileToDelete));
+				storageEngine.deleteFromStorage(storageOldFileToDelete, sharedRCloneConfig);
+				classLogger.debug("Done deleting old insight image from remote=" + Utility.cleanLogString(storageOldFileToDelete));
+			} else {
+				classLogger.info("No old insight image on remote to delete");
+			}
+
+			if(newImageFileName != null) {
+				String localInsightImageFilePath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId + "/" + newImageFileName);
+				classLogger.info("Pushing insight image from local=" + Utility.cleanLogString(localInsightImageFilePath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
+				storageEngine.copyToStorage(localInsightImageFilePath, storageInsightFolder, sharedRCloneConfig);
+				classLogger.debug("Done pushing insight image from local=" + Utility.cleanLogString(localInsightImageFilePath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
+			} else {
+				classLogger.info("No new insight image to add to remote");
+			}
+		} finally {
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
