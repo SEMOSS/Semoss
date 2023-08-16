@@ -237,19 +237,17 @@ public interface ICloudClient {
 	 * 
 	 * @param projectId
 	 * @param insightId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	void pushInsight(String projectId, String insightId) throws IOException, InterruptedException;
+	void pushInsight(String projectId, String insightId) throws Exception;
 
 	/**
 	 * 
 	 * @param projectId
 	 * @param insightId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	void pullInsight(String projectId, String insightId) throws IOException, InterruptedException;
+	void pullInsight(String projectId, String insightId) throws Exception;
 
 	/**
 	 * 
@@ -257,10 +255,9 @@ public interface ICloudClient {
 	 * @param insightId
 	 * @param oldImageFileName
 	 * @param newImageFileName
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws IOException, InterruptedException;
+	void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws Exception;
 	
 	
 	///////////////////////////////////////////////////////////////////////////////////
