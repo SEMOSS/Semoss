@@ -20,8 +20,7 @@ class TextGenClient(BaseClient):
           question:str=None, 
           context:str=None,
           history:list=[],
-          template_name:str=None, 
-          stop_sequences=["#", ";"],
+          template_name:str=None,
           **kwargs:dict
           )->str:
     # start the prompt as an empty string
@@ -59,7 +58,7 @@ class TextGenClient(BaseClient):
     #print(prompt)
     
     # ask the question and apply the additional params
-    response = self.client.generate(prompt, stop_sequences=stop_sequences, **kwargs)
+    response = self.client.generate(prompt, **kwargs)
     return response.generated_text
 
   def get_available_models(self)->list:
