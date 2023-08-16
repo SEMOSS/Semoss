@@ -4699,9 +4699,9 @@ public class Utility {
 		if(route == null || (route=route.trim()).isEmpty()) {
 			return null;
 		}
-
-		if(!route.startsWith("/")) {
-			route = "/"+route;
+		
+		if(route.startsWith("/")) {
+			route = route.substring(1);
 		}
 		if(route.endsWith("/")) {
 			route = route.substring(0, route.length()-1);
