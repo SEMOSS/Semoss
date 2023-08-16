@@ -3,6 +3,7 @@ package prerna.engine.impl.model;
 import java.util.Iterator;
 import java.util.Map;
 
+import prerna.engine.api.ModelTypeEnum;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
@@ -49,5 +50,10 @@ public class OpenAiEngine extends AbstractModelEngine {
 		System.out.println(callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString());
 		return (String) output;
+	}
+
+	@Override
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.OPEN_AI;
 	}
 }

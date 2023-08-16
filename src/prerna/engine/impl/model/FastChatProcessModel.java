@@ -9,9 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import prerna.engine.api.IModelEngine;
-import prerna.engine.api.IModelEngine.MODEL_TYPE;
-import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -137,5 +135,10 @@ public class FastChatProcessModel extends AbstractModelEngine {
 	public String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.FAST_CHAT;
 	}
 }
