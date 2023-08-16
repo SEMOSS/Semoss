@@ -151,10 +151,9 @@ public interface ICloudClient {
 	/**
 	 * 
 	 * @param projectId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	void deleteProject(String projectId) throws IOException, InterruptedException;
+	void deleteProject(String projectId) throws Exception;
 	
 	/**
 	 * 
@@ -292,14 +291,6 @@ public interface ICloudClient {
 	// TODO: need to make sep for db and project
 	List<String> listAllBlobContainers() throws IOException, InterruptedException; 
 
-	/**
-	 * 
-	 * @return
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	String createRcloneConfig() throws IOException, InterruptedException;
-	
 	/**
 	 * 
 	 * @param containerId
