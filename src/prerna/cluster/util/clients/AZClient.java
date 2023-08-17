@@ -1232,9 +1232,9 @@ public class AZClient extends AbstractCloudClient {
 	public void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded) throws IOException, InterruptedException {
 		IProject project = null;
 		if (projectAlreadyLoaded) {
-			project = Utility.getProject(projectId, false);
+			project = Utility.getUserAssetWorkspaceProject(projectId, isAsset);
 			if (project == null) {
-				throw new IllegalArgumentException("Project not found...");
+				throw new IllegalArgumentException("User asset/workspace project not found...");
 			}
 		}
 
@@ -1340,7 +1340,7 @@ public class AZClient extends AbstractCloudClient {
 	public void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException {
 		IProject project = Utility.getUserAssetWorkspaceProject(projectId, isAsset);
 		if (project == null) {
-			throw new IllegalArgumentException("Project not found...");
+			throw new IllegalArgumentException("User asset/workspace project not found...");
 		}
 
 		// We need to push the folder alias__appId and the file alias__appId.smss
