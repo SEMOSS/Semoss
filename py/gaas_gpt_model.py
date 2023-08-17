@@ -9,7 +9,7 @@ class ModelEngine(ServerProxy):
     self.insight_id = insight_id
     print("initialized")
    
-  def embeddings(self, question=None, insight_id=None):
+  def embeddings(self, question=None, insight_id=None, param_dict=None):
     assert question is not None
     if insight_id is None:
       insight_id = self.insight_id
@@ -21,8 +21,8 @@ class ModelEngine(ServerProxy):
                       engine_id=self.engine_id, 
                       insight_id=insight_id, 
                       method_name='embeddings', 
-                      method_args=[question],
-                      method_arg_types=['java.lang.String']
+                      method_args=[question, insight_id, param_dict],
+                      method_arg_types=['java.lang.String', 'prerna.om.Insight', 'java.util.Map']
                       )
     
     
