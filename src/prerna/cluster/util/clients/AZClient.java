@@ -548,7 +548,7 @@ public class AZClient extends AbstractCloudClient {
 
 
 	@Override
-	public void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
+	public void pullDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
 		IDatabase engine = Utility.getDatabase(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
@@ -586,9 +586,9 @@ public class AZClient extends AbstractCloudClient {
 	}
 
 	@Override
-	public void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getDatabase(appId, false);
-		if (engine == null) {
+	public void pushDatabaseFolder(String databaseId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
+		IDatabase database = Utility.getDatabase(databaseId, false);
+		if (database == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
 		String appRcloneConfig = null;
@@ -604,16 +604,16 @@ public class AZClient extends AbstractCloudClient {
 		// adding a lock for now, but there may be times we don't need one and other times we do
 		// reaching h2 db from version folder vs static assets in asset app
 		// synchronize on the app id
-		classLogger.info("Applying lock for " + appId + " to push folder " + remoteRelativePath);
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		classLogger.info("Applying lock for " + databaseId + " to push folder " + remoteRelativePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
-		classLogger.info("App "+ appId + " is locked");
+		classLogger.info("App "+ databaseId + " is locked");
 
 		try {
-			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + appId);
-			classLogger.info("Pushing folder for " + remoteRelativePath + " to remote=" + appId);
+			appRcloneConfig = createRcloneConfig(DB_CONTAINER_PREFIX + databaseId);
+			classLogger.info("Pushing folder for " + remoteRelativePath + " to remote=" + databaseId);
 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":"+DB_CONTAINER_PREFIX+appId+  "/" + remoteRelativePath);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":"+DB_CONTAINER_PREFIX+databaseId+  "/" + remoteRelativePath);
 		} finally {
 			try {
 				if (appRcloneConfig != null) {
@@ -623,7 +623,7 @@ public class AZClient extends AbstractCloudClient {
 			finally {
 				// always unlock regardless of errors
 				lock.unlock();
-				classLogger.info("App "+ appId + " is unlocked");
+				classLogger.info("App "+ databaseId + " is unlocked");
 			}
 		}
 	}

@@ -63,27 +63,27 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 	
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath) throws Exception {
+	public void syncLocalToStorage(String localPath, String storagePath) throws IOException, InterruptedException {
 		syncLocalToStorage(localPath, storagePath, null);
 	}
 	
 	@Override
-	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
+	public void syncStorageToLocal(String storagePath, String localPath) throws IOException, InterruptedException {
 		syncStorageToLocal(storagePath, localPath, null);
 	}
 	
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath) throws Exception {
+	public void copyToStorage(String localFilePath, String storageFolderPath) throws IOException, InterruptedException {
 		copyToStorage(localFilePath, storageFolderPath, null);
 	}
 
 	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
+	public void copyToLocal(String storageFilePath, String localFolderPath) throws IOException, InterruptedException {
 		copyToLocal(storageFilePath, localFolderPath, null);
 	}
 
 	@Override
-	public void deleteFromStorage(String storagePath) throws Exception {
+	public void deleteFromStorage(String storagePath) throws IOException, InterruptedException{
 		deleteFromStorage(storagePath, false, null);
 	}
 	
@@ -93,12 +93,12 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
+	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws IOException, InterruptedException {
 		deleteFromStorage(storagePath, leaveFolderStructure, null);
 	}
 	
 	@Override
-	public void deleteFolderFromStorage(String storageFolderPath) throws Exception {
+	public void deleteFolderFromStorage(String storageFolderPath) throws IOException, InterruptedException {
 		deleteFolderFromStorage(storageFolderPath, null);
 	}
 	
