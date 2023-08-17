@@ -261,7 +261,7 @@ public class InsertReactor extends AbstractReactor {
 	private void insertFileEngine(IRDBMSEngine database, AbstractSqlQueryUtil queryUtil, 
 			String initial, List<Object[]> valueCombinations, List<IQuerySelector> selectors, String userId) {
 		synchronized(database) {
-			ClusterUtil.reactorPullApp(database.getEngineId());
+			ClusterUtil.reactorPullDatabase(database.getEngineId());
 			
 			// determine if we can insert booleans as true/false
 			boolean allowBooleanType = queryUtil.allowBooleanDataType();

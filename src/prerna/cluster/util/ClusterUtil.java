@@ -1,30 +1,21 @@
 package prerna.cluster.util;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.clients.AbstractCloudClient;
+import prerna.cluster.util.clients.ICloudClient;
 import prerna.engine.api.IDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
@@ -106,36 +97,6 @@ public class ClusterUtil {
 	 * "storageAccount"; public static final String REDIS_TIMESTAMP = "timestamp";
 	 */
 
-	public static void reactorPushApp(Collection<String> appIds) {
-		if (ClusterUtil.IS_CLUSTER) {
-			for (String appId : appIds) {
-				reactorPushDatabase(appId);
-			}
-		}
-
-	}
-
-	public static JSONObject readJsonFromUrl(String url) throws IOException, JSONException {
-		InputStream is = new URL(url).openStream();
-		try {
-			BufferedReader rd = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")));
-			String jsonText = readAll(rd);
-			JSONObject json = new JSONObject(jsonText);
-			return json;
-		} finally {
-			is.close();
-		}
-	}
-
-	private static String readAll(Reader rd) throws IOException {
-		StringBuilder sb = new StringBuilder();
-		int cp;
-		while ((cp = rd.read()) != -1) {
-			sb.append((char) cp);
-		}
-		return sb.toString();
-	}
-
 	public static boolean isSchedulerExecutor() {
 		if (ClusterUtil.IS_CLUSTER) {
 			logger.info("Checking if pod is leader");
@@ -180,76 +141,94 @@ public class ClusterUtil {
 		}
 	}
 
-
-	public static void reactorPullApp(String appId) {
+	/**
+	 * 
+	 * @return
+	 */
+	public static ICloudClient getCentralStorageClient() {
+		return AbstractCloudClient.getClient();
+	}
+	
+	/**
+	 * 
+	 * @param databaseId
+	 */
+	public static void reactorPullDatabase(String databaseId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullDatabase(appId);
+				getCentralStorageClient().pullDatabase(databaseId);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to pull app to cloud storage", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to pull database '"+databaseId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 
-	public static void reactorPullApp(String appId, boolean appAlreadyLoaded) {
+	/**
+	 * 
+	 * @param databaseId
+	 * @param databaseAlreadyLoaded
+	 */
+	public static void reactorPullDatabase(String databaseId, boolean databaseAlreadyLoaded) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullDatabase(appId, appAlreadyLoaded);
+				getCentralStorageClient().pullDatabase(databaseId, databaseAlreadyLoaded);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to pull app to cloud storage", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to pull database '"+databaseId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 
-	public static void reactorPushDatabase(String appId) {
+	/**
+	 * 
+	 * @param databaseId
+	 */
+	public static void reactorPushDatabase(String databaseId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushDatabase(appId);
+				getCentralStorageClient().pushDatabase(databaseId);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push app to cloud storage", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to push database '"+databaseId+"' to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 	
-	public static void reactorPushDatabaseSmss(String appId) {
+	/**
+	 * 
+	 * @param databaseId
+	 */
+	public static void reactorPushDatabaseSmss(String databaseId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushDatabaseSmss(appId);
+				getCentralStorageClient().pushDatabaseSmss(databaseId);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push app smss to cloud storage", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to push database '"+databaseId+"'smss to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 */
 	public static void reactorPullInsightsDB(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullInsightsDB(projectId);
+				getCentralStorageClient().pullInsightsDB(projectId);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to check if project has been modified", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to pull project '"+projectId+"' insight database from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -257,15 +236,17 @@ public class ClusterUtil {
 		return;
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 */
 	public static void reactorPushInsightDB(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushInsightDB(projectId);
+				getCentralStorageClient().pushInsightDB(projectId);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to check if project has been modified", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to push project '"+projectId+"' insight database to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -273,15 +254,17 @@ public class ClusterUtil {
 		return;
 	}
 
+	/**
+	 * 
+	 * @param databaseId
+	 */
 	public static void reactorPullOwl(String databaseId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullOwl(databaseId);
+				getCentralStorageClient().pullOwl(databaseId);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to pull owl for database: " + databaseId, PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to pull owl for database '"+databaseId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -289,15 +272,17 @@ public class ClusterUtil {
 		return;
 	}
 
+	/**
+	 * 
+	 * @param databaseId
+	 */
 	public static void reactorPushOwl(String databaseId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushOwl(databaseId);
+				getCentralStorageClient().pushOwl(databaseId);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push owl for database: " + databaseId, PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to push owl for database '"+databaseId+"' to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -305,69 +290,86 @@ public class ClusterUtil {
 		return;
 	}
 
-	public static void reactorPushDatabaseFolder(IDatabase engine, String absolutePath) {
+	/**
+	 * 
+	 * @param database
+	 * @param absolutePath
+	 */
+	public static void reactorPushDatabaseFolder(IDatabase database, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
-
-			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+			String dbHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 					+ DIR_SEPARATOR + Constants.DB_FOLDER
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
-			Path appHomePath = Paths.get(appHome);
-			Path relative = appHomePath.relativize( Paths.get(absolutePath));
-			ClusterUtil.reactorPushDatabaseFolder(engine.getEngineId(),absolutePath, relative.toString());
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(database.getEngineName(), database.getEngineId());
+			Path dbHomePath = Paths.get(dbHome);
+			Path relative = dbHomePath.relativize( Paths.get(absolutePath));
+			ClusterUtil.reactorPushDatabaseFolder(database.getEngineId(),absolutePath, relative.toString());
 		}		
 	}
 
-	private static void reactorPushDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) {
+	/**
+	 * 
+	 * @param databaseId
+	 * @param absolutePath
+	 * @param remoteRelativePath
+	 */
+	private static void reactorPushDatabaseFolder(String databaseId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushDatabaseFolder(appId, absolutePath, remoteRelativePath);
-			}  catch (IOException | InterruptedException e) {
-				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				getCentralStorageClient().pushDatabaseFolder(databaseId, absolutePath, remoteRelativePath);
+			}  catch (Exception e) {
+				SemossPixelException err = new SemossPixelException("Failed to push database '"+databaseId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}		
 	}
 
-	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
-	public static void  reactorPullDatabaseFolder(IDatabase engine, String absolutePath) {
+	/**
+	 * 
+	 * @param database
+	 * @param absolutePath
+	 */
+	public static void  reactorPullDatabaseFolder(IDatabase database, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
-
-			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+			String dbHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 					+ DIR_SEPARATOR + Constants.DB_FOLDER
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
-			Path appHomePath = Paths.get(appHome);
-			Path relative = appHomePath.relativize( Paths.get(absolutePath));
-			ClusterUtil.reactorPullDatabaseFolder(engine.getEngineId(),absolutePath, relative.toString());
-
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(database.getEngineName(), database.getEngineId());
+			Path dbHomePath = Paths.get(dbHome);
+			Path relative = dbHomePath.relativize( Paths.get(absolutePath));
+			ClusterUtil.reactorPullDatabaseFolder(database.getEngineId(),absolutePath, relative.toString());
 		}		
 	}
 
-	//create a pull folder
-	public static void reactorPullDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) {
+	/**
+	 * 
+	 * @param databaseId
+	 * @param absolutePath
+	 * @param remoteRelativePath
+	 */
+	public static void reactorPullDatabaseFolder(String databaseId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullDatabaseFolder(appId, absolutePath, remoteRelativePath);
-			}  catch (IOException | InterruptedException e) {
+				getCentralStorageClient().pullDatabaseFolder(databaseId, absolutePath, remoteRelativePath);
+			}  catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to pull database '"+databaseId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
-		}		
+		}
 	}
 	
+	/**
+	 * 
+	 * @param projectId
+	 */
 	public static void reactorPushProject(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushProject(projectId);
-			} catch (IOException | InterruptedException e) {
+				getCentralStorageClient().pushProject(projectId);
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push project to cloud storage", PixelDataType.CONST_STRING,
+				NounMetadata noun = new NounMetadata("Failed to push project '"+projectId+"' to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -376,13 +378,17 @@ public class ClusterUtil {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param projectId
+	 */
 	public static void reactorPushProjectSmss(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushProjectSmss(projectId);
+				getCentralStorageClient().pushProjectSmss(projectId);
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push project smss to cloud storage", PixelDataType.CONST_STRING,
+				NounMetadata noun = new NounMetadata("Failed to push project '"+projectId+"' smss to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -391,12 +397,23 @@ public class ClusterUtil {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param project
+	 * @param absolutePath
+	 */
 	public static void  reactorPushProjectFolder(IProject project, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			reactorPushProjectFolder(project, absolutePath, null);
 		}		
 	}
 	
+	/**
+	 * 
+	 * @param project
+	 * @param absolutePath
+	 * @param relativePath
+	 */
 	public static void  reactorPushProjectFolder(IProject project, String absolutePath, String relativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			if(relativePath != null && !(relativePath=relativePath.trim()).isEmpty()) {
@@ -417,27 +434,41 @@ public class ClusterUtil {
 		}		
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 * @param absolutePath
+	 * @param remoteRelativePath
+	 */
 	public static void reactorPushProjectFolder(String projectId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushProjectFolder(projectId, absolutePath, remoteRelativePath);
-			}  catch (IOException | InterruptedException e) {
-				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				getCentralStorageClient().pushProjectFolder(projectId, absolutePath, remoteRelativePath);
+			}  catch (Exception e) {
+				SemossPixelException err = new SemossPixelException("Failed to push project '"+projectId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 
-	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
+	/**
+	 * 
+	 * @param project
+	 * @param absolutePath
+	 */
 	public static void  reactorPullProjectFolder(IProject project, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			reactorPullProjectFolder(project, absolutePath, null);
 		}		
 	}
 
+	/**
+	 * 
+	 * @param project
+	 * @param absolutePath
+	 * @param relativePath
+	 */
 	public static void  reactorPullProjectFolder(IProject project, String absolutePath, String relativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			if(relativePath != null && !(relativePath=relativePath.trim()).isEmpty()) {
@@ -457,81 +488,101 @@ public class ClusterUtil {
 		}		
 	}
 	
-	//create a pull folder
+	/**
+	 * 
+	 * @param projectId
+	 * @param absolutePath
+	 * @param remoteRelativePath
+	 */
 	public static void reactorPullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullProjectFolder(projectId, absolutePath, remoteRelativePath);
-			}  catch (IOException | InterruptedException e) {
+				getCentralStorageClient().pullProjectFolder(projectId, absolutePath, remoteRelativePath);
+			}  catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to pull project '"+projectId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 	
+	/**
+	 * 
+	 * @param projectId
+	 * @param rdbmsId
+	 */
 	public static void reactorPushInsight(String projectId, String rdbmsId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushInsight(projectId, rdbmsId);
+				getCentralStorageClient().pushInsight(projectId, rdbmsId);
 			}  catch (Exception e) {
-				NounMetadata noun = new NounMetadata("Failed to push insight folder", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to push project '"+projectId+"' insight '"+rdbmsId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 	
+	/**
+	 * 
+	 * @param projectId
+	 * @param rdbmsId
+	 */
 	public static void reactorPullInsight(String projectId, String rdbmsId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullInsight(projectId, rdbmsId);
+				getCentralStorageClient().pullInsight(projectId, rdbmsId);
 			}  catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to pull insight folder", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to pull project '"+projectId+"' insight '"+rdbmsId+"' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}		
 	}
 	
+	/**
+	 * 
+	 * @param project
+	 * @param isAsset
+	 */
 	public static void reactorPushUserWorkspace(IProject project, boolean isAsset) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushUserAssetOrWorkspace(project.getProjectId(), isAsset);
-			}  catch (IOException | InterruptedException e) {
+				getCentralStorageClient().pushUserAssetOrWorkspace(project.getProjectId(), isAsset);
+			}  catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push user/workplace project", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to push user/workplace project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 	
+	/**
+	 * 
+	 * @param project
+	 * @param isAsset
+	 */
 	public static void reactorPullUserWorkspace(IProject project, boolean isAsset) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullUserAssetOrWorkspace(project.getProjectId(), isAsset, false);
-			}  catch (IOException | InterruptedException e) {
+				getCentralStorageClient().pullUserAssetOrWorkspace(project.getProjectId(), isAsset, false);
+			}  catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to push user/workplace project", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to push user/workplace project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
 	}
 
+	/**
+	 * 
+	 * @param databaseId
+	 * @return
+	 */
 	public static File getDatabaseImage(String databaseId) {
 		File imageFile = null;
 		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases");
@@ -552,7 +603,7 @@ public class ClusterUtil {
 		else {
 			try {
 				//first try to pull the images folder, Return it after the pull, or else we make the file
-				AbstractCloudClient.getClient().pullDatabaseImageFolder();
+				getCentralStorageClient().pullDatabaseImageFolder();
 				//so i dont always know the extension, but every image should be named by the appid which means i need to search the folder for something like the file
 				images = imageFolder.listFiles(new FilenameFilter() {
 					@Override
@@ -572,7 +623,7 @@ public class ClusterUtil {
 					} else{
 						TextToGraphic.makeImage(databaseId, imageFilePath);
 					}
-					AbstractCloudClient.getClient().pushDatabaseImageFolder();
+					getCentralStorageClient().pushDatabaseImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
 				imageFile = new File(imageFilePath);
@@ -584,11 +635,9 @@ public class ClusterUtil {
 					imageFile = new File (stockImageDir);
 				}
 
-			} catch (IOException | InterruptedException e) {
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to fetch app image", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to fetch database image");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -596,6 +645,11 @@ public class ClusterUtil {
 		return imageFile;
 	}
 	
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
 	public static File getProjectImage(String projectId) {
 		File imageFile = null;
 		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects");
@@ -618,7 +672,7 @@ public class ClusterUtil {
 		else {
 			try {
 				// first try to pull the images folder, Return it after the pull, or else we make the file
-				AbstractCloudClient.getClient().pullProjectImageFolder();
+				getCentralStorageClient().pullProjectImageFolder();
 				// so i dont always know the extension, but every image should be named by the 
 				// projectId which means i need to search the folder for something like the file
 				images = imageFolder.listFiles(new FilenameFilter() {
@@ -639,7 +693,7 @@ public class ClusterUtil {
 					} else{
 						TextToGraphic.makeImage(projectId, imageFilePath);
 					}
-					AbstractCloudClient.getClient().pushProjectImageFolder();
+					getCentralStorageClient().pushProjectImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
 				imageFile = new File(imageFilePath);
@@ -651,10 +705,9 @@ public class ClusterUtil {
 					imageFile = new File (stockImageDir);
 				}
 
-			} catch (IOException | InterruptedException e) {
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to fetch project image", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
+				SemossPixelException err = new SemossPixelException("Failed to fetch project image");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -662,9 +715,25 @@ public class ClusterUtil {
 		return imageFile;
 	}
 
+	/**
+	 * 
+	 * @param folderPath
+	 */
+	public static void validateFolder(String folderPath){
+		List<File> subdirs = getSubdirs(folderPath);
+		for (File f : subdirs){
+			if(!(f.list().length>0)){
+				addHiddenFileToDir(f);
+			}
+		}
+	}
 
+	/**
+	 * 
+	 * @param path
+	 * @return
+	 */
 	public static List<File> getSubdirs(String path) {
-
 		File file = new File(path);
 		if (!file.isDirectory()){
 			throw new IllegalArgumentException("File path must be a directory");
@@ -684,35 +753,17 @@ public class ClusterUtil {
 		return subdirs;
 	}
 
+	/**
+	 * 
+	 * @param folder
+	 */
 	public static void addHiddenFileToDir(File folder){
 		File hiddenFile = new File(folder.getAbsolutePath() + DIR_SEPARATOR + Constants.HIDDEN_FILE_EXTENSION);
 		try {
 			hiddenFile.createNewFile();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
-
-	public static void validateFolder(String folderPath){
-		List<File> subdirs = getSubdirs(folderPath);
-		for (File f : subdirs){
-			if(!(f.list().length>0)){
-				//System.out.println(f.getAbsolutePath());
-				addHiddenFileToDir(f);
-			}
-		}
-	}
-
-	public static String getAppHome(IDatabase engine) {
-		return  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
-	}
-
-	public static String getAppHome(String engineId, String engineName) {
-		return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "db"
-						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engineId, engineName);
-			}
 
 }
