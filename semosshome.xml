@@ -19,12 +19,14 @@
         <include>form_builder_engine.smss</include>
         <include>LocalMasterDatabase**/*</include>
         <include>LocalMasterDatabase.smss</include>
+        <include>ModelInferenceLogsDatabase**/*</include>
+        <include>ModelInferenceLogsDatabase.smss</include>
         <include>security**/*</include>
         <include>security.smss</include>
         <include>scheduler**/*</include>
         <include>scheduler.smss</include>
-		<include>themes**/*</include>
-		<include>themes.smss</include>
+    		<include>themes**/*</include>
+    		<include>themes.smss</include>
         <include>foaf.xml</include>
         <include>UserTrackingDatabase**/*</include>
         <include>UserTrackingDatabase.smss</include>
