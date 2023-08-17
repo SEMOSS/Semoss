@@ -42,7 +42,7 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 				String roomId = (String) parameters.get("ROOM_ID");
 				parameters.remove("ROOM_ID");
 				if (Utility.isModelInferenceLogsEnabled()) { // have to check that inference logs are enabled so that query works
-					String history = getConversationHistory(roomId);
+					String history = getConversationHistory(insight.getUserId(), roomId);
 					if(history != null) //could still be null if its the first question in the convo
 						callMaker.append(",").append("history=").append(history);
 				}

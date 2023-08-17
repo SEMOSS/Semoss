@@ -281,39 +281,66 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		return resolvedString;
 	}
 	
-	public String getConversationHistory(String roomId, String userId){
-		// TODO make not a db call?
-		
-		List<Map<String, Object>> convoHistory = ModelInferenceLogsUtils.doRetrieveConversation(roomId, userId);
-				
-		StringBuilder convoList = new StringBuilder("[");
-		for (Map<String, Object> record : convoHistory) {
-			// Convert Map<String, Object> to Map<Object, Object>
-			
-			Object priorContent = record.get("MESSAGE_DATA");
-			String priorContentString = (String) priorContent;
-	        convoList.append(priorContentString).append(",");
+	public String getConversationHistoryFromInferenceLogs(String roomId, String userId){
+		List<Map<String, Object>> convoHistoryFromDb = ModelInferenceLogsUtils.doRetrieveConversation(userId, roomId, "ASC");
+		if (convoHistoryFromDb.size() > 0) {
+			for (Map<String, Object> record : convoHistoryFromDb) {
+				Object messageData = record.get("MESSAGE_DATA");
+				Map<String, Object> mapHistory = new HashMap<String, Object>();
+				if (record.get("MESSAGE_TYPE").equals("RESPONSE")) {
+
+					mapHistory.put(ROLE, "assistant");
+					mapHistory.put(MESSAGE_CONTENT, messageData);
+			            
+
+				} else {
+					mapHistory.put(ROLE, "user");
+					mapHistory.put(MESSAGE_CONTENT, messageData);
+				}
+		        chatHistory.get(roomId).add(mapHistory);
+			}
+			ArrayList<Map<String, Object>> convoHistory = chatHistory.get(roomId);
+			StringBuilder convoList = new StringBuilder("[");
+			boolean isFirstElement = true;
+			for (Map<String, Object> record : convoHistory) {
+				if (!isFirstElement) {
+					convoList.append(",");
+				} else {
+					isFirstElement = false;
+				}
+				Object priorContent = ModelInferenceLogsUtils.determineStringType(record);
+		        convoList.append(priorContent);
+			}
+			convoList.append("]");
+			return convoList.toString();
 		}
-		convoList.append("]");
-		return convoList.toString();
+		return null;
 	}
 	
-	public String getConversationHistory(String roomId){
+	public String getConversationHistory(String userId, String roomId){
 		if (keepConversationHistory){
 			if (chatHistory.containsKey(roomId)) {
 				ArrayList<Map<String, Object>> convoHistory = chatHistory.get(roomId);
 				StringBuilder convoList = new StringBuilder("[");
+				boolean isFirstElement = true;
 				for (Map<String, Object> record : convoHistory) {
+					if (!isFirstElement) {
+						convoList.append(",");
+					} else {
+						isFirstElement = false;
+					}
 					Object priorContent = ModelInferenceLogsUtils.determineStringType(record);
-			        convoList.append(priorContent).append(",");
+			        convoList.append(priorContent);
 				}
 				convoList.append("]");
 				return convoList.toString();
-			}
+			} 
 			else {
 				// we want to start a conversation
 				ArrayList<Map<String, Object>> userNewChat = new ArrayList<Map<String, Object>>();
 				chatHistory.put(roomId, userNewChat);
+				String dbConversation = getConversationHistoryFromInferenceLogs(roomId, userId);
+				return dbConversation;
 			}
 		}
 		return null;

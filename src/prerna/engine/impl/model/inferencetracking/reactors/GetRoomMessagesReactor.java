@@ -29,7 +29,7 @@ public class GetRoomMessagesReactor extends AbstractReactor {
             throw new IllegalArgumentException("You are not properly logged in");
         }
         String roomId = this.keyValue.get(this.keysToGet[0]);
-        List<Map<String, Object>> output = ModelInferenceLogsUtils.doRetrieveConversation(user.getPrimaryLoginToken().getId(), roomId);
+        List<Map<String, Object>> output = ModelInferenceLogsUtils.doRetrieveConversation(user.getPrimaryLoginToken().getId(), roomId, "ASC");
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
 	
