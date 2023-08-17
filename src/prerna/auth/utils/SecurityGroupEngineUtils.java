@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -19,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 
@@ -313,31 +315,36 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param groupId
 	 * @param groupType
-	 * @param databaseId
+	 * @param engineId
 	 * @param permission
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void addDatabaseGroupPermission(User user, String groupId, String groupType, String databaseId, String permission) throws IllegalAccessException {
-		if(!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
+	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId, String permission) throws IllegalAccessException {
+		if(!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
 		}
 		
-		if(getGroupDatabasePermission(groupId, groupType, databaseId) != null) {
-			throw new IllegalArgumentException("This group already has access to this database. Please edit the existing permission level.");
+		if(getGroupDatabasePermission(groupId, groupType, engineId) != null) {
+			throw new IllegalArgumentException("This group already has access to this engine. Please edit the existing permission level.");
 		}
 		
-		String query = "INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION) VALUES('"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(groupId) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "', "
-				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
-		
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement("INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION) VALUES(?,?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, engineId);
+			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding group permissions for this APP", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
