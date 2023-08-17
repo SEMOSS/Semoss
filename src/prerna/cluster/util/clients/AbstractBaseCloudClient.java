@@ -1411,7 +1411,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		if (projectAlreadyLoaded) {
 			project = Utility.getUserAssetWorkspaceProject(projectId, isAsset);
 			if (project == null) {
-				throw new IllegalArgumentException("Project not found...");
+				throw new IllegalArgumentException("User asset/workspace project not found...");
 			}
 		}
 		String smssContainer = projectId + SMSS_POSTFIX;
@@ -1495,7 +1495,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	public void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException {
 		IProject project = Utility.getUserAssetWorkspaceProject(projectId, isAsset);
 		if (project == null) {
-			throw new IllegalArgumentException("Project not found...");
+			throw new IllegalArgumentException("User asset/workspace project not found...");
 		}
 
 		String alias = project.getProjectName();
