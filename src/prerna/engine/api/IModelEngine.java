@@ -37,6 +37,8 @@ public interface IModelEngine extends IEngine {
 	// ask 
 	public String ask(String question, String context, Insight insight, Map <String, Object> parameters);
 	
+	public Object embeddings(String question, Insight insight, Map <String, Object> parameters);
+	
 	public void stopModel();
 	
 }
