@@ -42,7 +42,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     
     if self.insight_folder is not None:
       #print(f"starting to log in location {self.insight_folder}/log.txt")
-      self.log_file = open(f"{self.insight_folder}/log.txt", "a")
+      self.log_file = open(f"{self.insight_folder}/log.txt", "a", encoding='utf-8')
     print("Ready to start server")  
     print(f"Server is {self.server}")
   
@@ -126,7 +126,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
       # If this is a python payload 
       elif payload['operation'] == 'PYTHON':
         is_exception = False
-        print(f"Executing command {command}")
+        print(f"Executing command {command.encode('utf-8')}")
         # old smss calls
         if command.endswith(".py") or command.startswith('smssutil'):
           try:
@@ -134,12 +134,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
           except Exception as e:
             try:
               exec(command, globals(), self.my_var)
-              output = f"executed command {command}"
+              output = f"executed command {command.encode('utf-8')}"
             except Exception as e:
               print(e)
               output = str(e)
               is_exception = True
-          print(f"executing file.. {command}")
+          print(f"executing file.. {command.encode('utf-8')}")
           output = str(output)
           self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
 
@@ -156,7 +156,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             except Exception as e:
               try:
                 exec(command, globals(), self.my_var)
-                output = f"executed command {command}"
+                output = f"executed command {command.encode('utf-8')}"
               except Exception as e:
                 # user is probably trying to call a 'global' variable inside a function call
                 # add all user defined variables to globals
@@ -169,7 +169,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 except Exception as e:
                   try:
                     exec(command, globals(), self.my_var)
-                    output = f"executed command {command}"
+                    output = f"executed command {command.encode('utf-8')}"
                   except Exception as e:
                     output =  ''.join(tb.format_exception(None, e, e.__traceback__))
                 # remove all user defined variables to globals
@@ -197,9 +197,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
           condition.release()
       
       else:
-        output = f"This is a python only instance. Command {command} is not supported"
+        output = f"This is a python only instance. Command {command.encode('utf-8')} is not supported"
         output = str(output)
-        print(f"{command} = {output}")
+        print(f"{command.encode('utf-8')} = {output}")
         #output = "Response.. " + data.decode("utf-8")
         self.send_output(output, payload, operation=payload["operation"], response=True)
     except Exception as e:
