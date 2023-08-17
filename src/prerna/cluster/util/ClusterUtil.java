@@ -320,7 +320,7 @@ public class ClusterUtil {
 	private static void reactorPushDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pushEngineFolder(appId, absolutePath, remoteRelativePath);
+				AbstractCloudClient.getClient().pushDatabaseFolder(appId, absolutePath, remoteRelativePath);
 			}  catch (IOException | InterruptedException e) {
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
@@ -349,7 +349,7 @@ public class ClusterUtil {
 	public static void reactorPullDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AbstractCloudClient.getClient().pullEngineFolder(appId, absolutePath, remoteRelativePath);
+				AbstractCloudClient.getClient().pullDatabaseFolder(appId, absolutePath, remoteRelativePath);
 			}  catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
