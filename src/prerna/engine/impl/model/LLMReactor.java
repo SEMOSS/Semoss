@@ -39,9 +39,9 @@ public class LLMReactor extends AbstractReactor
 		if(paramMap == null)
 			paramMap = new HashMap<String, Object>();
 		
-		String output = eng.ask(question, context, this.insight, paramMap);
+		Map<String, String> output = eng.ask(question, context, this.insight, paramMap);
 		
-		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}	
 	
 	private Map<String, Object> getMap() 
