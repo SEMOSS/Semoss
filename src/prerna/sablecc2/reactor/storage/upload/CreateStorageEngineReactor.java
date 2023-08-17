@@ -93,12 +93,14 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			storage = (IStorage) Class.forName(storageClass).newInstance();
 			tempSmss = UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
 			
+
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
 			DIHelper.getInstance().setEngineProperty(storageId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 			storage.open(tempSmss.getAbsolutePath());			
 			
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
+			tempSmss.delete();
 			storage.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
 			SecurityEngineUtils.addEngine(storageId, !AbstractSecurityUtils.securityEnabled(), user);
