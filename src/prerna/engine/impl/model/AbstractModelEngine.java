@@ -148,13 +148,16 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public String ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+	public Map<String, String> ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		//Map<String, String> output = new HashMap<String, String>();
 		//TODO turn into threads
-		if(!this.socketClient.isConnected())
+		if(!this.socketClient.isConnected()) {
 			this.startServer();
+		}
 		
-		String response;
+		String response = null;
+		String messageId = UUID.randomUUID().toString();
+
 		if (Utility.isModelInferenceLogsEnabled()) {
 			if(parameters == null) {
 				parameters = new HashMap<String, Object>();
@@ -166,7 +169,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				parameters.put("ROOM_ID",roomId);
 			}
 			
-			String messageId = UUID.randomUUID().toString();
 			LocalDateTime inputTime = LocalDateTime.now();
 			response = askQuestion(question, context, insight, parameters);
 			LocalDateTime outputTime = LocalDateTime.now();
@@ -192,7 +194,11 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		} else {
 			response = askQuestion(question, context, insight, parameters);
 		}
-		return response;
+		
+		Map<String, String> retMap = new HashMap<>();
+		retMap.put("response", response);
+		retMap.put("messageId", messageId);
+		return retMap;
 	}
 
 	// Abstract method, child classes should construct their input / output here

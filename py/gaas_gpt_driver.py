@@ -9,7 +9,7 @@ class Driver():
     response = []
 
     for ask_iter in range(0, num_iterations):
-      answer = me.ask(question=question, insight_id=self.insight_id)
+      answer = me.ask(question=question, insight_id=self.insight_id)["response"]
       response.append(answer)
     return response
     

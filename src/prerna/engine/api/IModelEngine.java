@@ -35,7 +35,7 @@ public interface IModelEngine extends IEngine {
 	//public PyTranslator getClient();
 	
 	// ask 
-	public String ask(String question, String context, Insight insight, Map <String, Object> parameters);
+	public Map<String, String> ask(String question, String context, Insight insight, Map <String, Object> parameters);
 	
 	public Object embeddings(String question, Insight insight, Map <String, Object> parameters);
 	
