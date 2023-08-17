@@ -17,7 +17,7 @@ public class TextGenerationEngine  extends AbstractModelEngine {
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
 		callMaker.append("question=\"").append(question).append("\"");
 		if(context != null)
-			callMaker.append(",").append("context=").append(context);
+			callMaker.append(",").append("context=\"").append(context).append("\"");
 		
 		
 		if(parameters != null) {
