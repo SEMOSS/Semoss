@@ -380,7 +380,7 @@ public class ModelInferenceLogsUtils {
 		return true;
 	}
 	
-	public static List<Map<String, Object>> doRetrieveConversation(String userId, String roomId) {
+	public static List<Map<String, Object>> doRetrieveConversation(String userId, String roomId, String dateSort) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
@@ -388,7 +388,7 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__ROOM_ID", "==", roomId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "ask"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", "DESC"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", dateSort));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
