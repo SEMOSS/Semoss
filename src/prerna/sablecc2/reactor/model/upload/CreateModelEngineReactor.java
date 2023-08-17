@@ -99,6 +99,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
+			tempSmss.delete();
 			model.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(modelId, modelName, model, smssFile);
 			SecurityEngineUtils.addEngine(modelId, !AbstractSecurityUtils.securityEnabled(), user);
