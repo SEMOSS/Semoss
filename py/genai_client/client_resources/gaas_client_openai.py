@@ -25,7 +25,7 @@ class OpenAiClient(BaseClient):
     if 'chat_type' in kwargs.keys():
       self.chat_type = kwargs.pop('chat_type')
     
-  def ask(self, question:str=None, context:str=None, template_name=None, history:list=None, page_size=100, max_new_tokens=100, stop_sequences=["#", ";"], temperature_val=0.01, top_p_val=0.5, **kwargs):
+  def ask(self, question:str=None, context=None, template_name=None, history:list=None, page_size=100, max_new_tokens=100, stop_sequences=["#", ";"], temperature_val=0.01, top_p_val=0.5, **kwargs):
     openai_base = openai.api_base
     # forcing the api_key to a dummy value
     if openai.api_key is None:
@@ -37,29 +37,50 @@ class OpenAiClient(BaseClient):
     if self.chat_type == 'chat-completion':
       # the list to construct the payload from
       message_payload = []
+      if 'full_prompt' not in kwargs.keys():
+        # if the user provided context, use that. Otherwise, try to get it from the template
+        if context is not None:
+          if isinstance(context, str):
+            message_payload.append({"role": "system", "content": context})
+        else:
+          if template_name != None:
+            possibleContent = self.get_template(template_name=template_name)
+            if possibleContent != None:
+              message_payload.append({"role": "system", "content": possibleContent})
 
-      # if the user provided context, use that. Otherwise, try to get it from the template
-      if context is not None:
-        message_payload.append({"role": "system", "content": context})
+        # if history was added, then add it to the payload. Currently history is being like OpenAI prompts
+        if history is not None:
+          message_payload.extend(history)
+
+        # add the new question to the payload
+        if (question != None and len(question) > 0):
+          message_payload.append({"role": "user", "content": question})
+        
+        # add the message payload as a kwarg
+        kwargs['messages'] = message_payload
+        
+        completion = openai.ChatCompletion.create(model=self.model_name, **kwargs)
+        response = completion.choices[0].message.content
+        final_query = response
       else:
-        if template_name != None:
-          possibleContent = self.get_template(template_name=template_name)
-          if possibleContent != None:
-            message_payload.append({"role": "system", "content": possibleContent})
-
-      # if history was added, then add it to the payload. Currently history is being like OpenAI prompts
-      if history is not None:
-        message_payload.extend(history)
-
-      # add the new question to the payload
-      message_payload.append({"role": "user", "content": question})
-      
-      # add the message payload as a kwarg
-      kwargs['messages'] = message_payload
-      
-      completion = openai.ChatCompletion.create(model=self.model_name, **kwargs)
-      response = completion.choices[0].message.content
-      final_query = response
+        full_prompt = kwargs.pop('full_prompt')
+        if isinstance(full_prompt, list):
+          listOfDicts = set([isinstance(x, dict) for x in full_prompt]) == {True}
+          if (listOfDicts == False):
+            raise ValueError("The provided payload is not valid")
+          # now we have to check the key value pairs are valid
+          all_keys_set = {key for d in full_prompt for key in d.keys()}
+          validOpenAiDictKey = sorted(all_keys_set) == ['content', 'role']
+          if (validOpenAiDictKey == False):
+            raise ValueError("There are invalid OpenAI dictionary keys")
+          # add it the message payload
+          message_payload.extend(full_prompt)
+        
+        kwargs['messages'] = message_payload
+        print(message_payload)
+        completion = openai.ChatCompletion.create(model=self.model_name, **kwargs)
+        response = completion.choices[0].message.content
+        final_query = response
 
     elif self.chat_type == 'completion':
       prompt = ""
@@ -99,7 +120,14 @@ class OpenAiClient(BaseClient):
     openai.api_base = openai_base  
     return final_query
 
-    
+  def embeddings(self, question:str = None)->dict:
+    openai_base = openai.api_base
+    # forcing the api_key to a dummy value
+    if openai.api_key is None:
+      openai.api_key = self.api_key
+    openai.api_base = self.endpoint
+    return openai.Embedding.create(model=self.model_name, input=question)
+  
   def get_available_models(self)->list:
     if len(self.available_models) == 0:
       self.available_models = [model.get('root') for model in openai.Model.list()['data']]
