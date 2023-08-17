@@ -32,7 +32,7 @@ public class PushDatabaseToCloudReactor extends AbstractReactor {
 			}
 		}
 		
-		ClusterUtil.reactorPullApp(databaseId, Utility.isEngineLoaded(databaseId));
+		ClusterUtil.reactorPullDatabase(databaseId, Utility.isEngineLoaded(databaseId));
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
