@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
@@ -17,7 +18,7 @@ public class OpenAiEngine extends AbstractModelEngine {
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
 		callMaker.append("question=\"").append(question).append("\"");
 		if(context != null)
-			callMaker.append(",").append("context=").append(context);
+			callMaker.append(",").append("context=\"").append(context).append("\"");
 		
 		
 		if(parameters != null) {
@@ -42,7 +43,7 @@ public class OpenAiEngine extends AbstractModelEngine {
 				}
 				else
 				{
-					callMaker.append(value+"");
+					callMaker.append(ModelInferenceLogsUtils.determineStringType(value));
 				}
 			}
 		}
