@@ -30,6 +30,7 @@ import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
+
 public abstract class AbstractModelEngine implements IModelEngine {
 	
 	private static final String DIR_SEPERATOR = "/";
@@ -75,6 +76,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				setSmssProp(Utility.loadProperties(modelSmssFilePath));
 			}
 			if(this.generalEngineProp != null) {
+				this.engineId = generalEngineProp.getProperty(Constants.ENGINE);
+				this.engineName = generalEngineProp.getProperty(Constants.ENGINE_ALIAS);
+				
 				for (String var : requiredVars) {
 					if(!generalEngineProp.containsKey(var)) {
 						String randomString = "v_" + Utility.getRandomString(6);
@@ -86,9 +90,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					generalEngineProp.put(CUR_DIR, curDir);
 				}
 				if (!generalEngineProp.containsKey(ENGINE_DIR)) {
-					String engineName = generalEngineProp.getProperty(Constants.ENGINE_ALIAS);
-					String engineID = generalEngineProp.getProperty(Constants.ENGINE);
-					generalEngineProp.put("ENGINE_DIR", generalEngineProp.get(CUR_DIR) + "/" + engineName + "__" + engineID);
+					generalEngineProp.put("ENGINE_DIR", generalEngineProp.get(CUR_DIR) + "/" + this.engineName + "__" + this.engineId);
 				}
 				
 				keepConversationHistory = Boolean.parseBoolean((String) generalEngineProp.get("KEEP_CONTEXT"));
@@ -180,8 +182,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		        chatHistory.get(roomId).add(inputMap);
 		        chatHistory.get(roomId).add(outputMap);
 			}
-			
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, this, insight, question, inputTime, response, outputTime);
+			ModelEngineInferenceLogsWorker inferenceRecorder;
+			if (context != null) {
+				inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "ask", this, insight, context + "\n" + question, inputTime, response, outputTime);
+			} else {
+				inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "ask", this, insight, question, inputTime, response, outputTime);
+			}
 			inferenceRecorder.run();
 		} else {
 			response = askQuestion(question, context, insight, parameters);
@@ -191,6 +197,48 @@ public abstract class AbstractModelEngine implements IModelEngine {
 
 	// Abstract method, child classes should construct their input / output here
 	public abstract String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters);
+	
+	public Object embeddings(String question, Insight insight, Map <String, Object> parameters) {
+		if(!this.socketClient.isConnected())
+			this.startServer();
+		String varName = (String) generalEngineProp.get("VAR_NAME");
+	
+		StringBuilder callMaker = new StringBuilder().append(varName).append(".embeddings(");
+		callMaker.append("question=\"").append(question).append("\"").append(")");
+		Object output;
+		if (Utility.isModelInferenceLogsEnabled()) {
+			String roomId = null;
+			if(parameters != null) {
+				if (parameters.containsKey("ROOM_ID")) { 
+					roomId = (String) parameters.get("ROOM_ID");
+				}
+			}
+			// everything should be recorded so we always need a roomId
+			if (roomId == null) {
+				roomId = insight.getInsightId();
+			}
+			
+			String messageId = UUID.randomUUID().toString();
+			LocalDateTime inputTime = LocalDateTime.now();
+			output = pyt.runScript(callMaker.toString());
+			LocalDateTime outputTime = LocalDateTime.now();
+			
+			if (keepConversationHistory) {
+				Map<String, Object> inputMap = new HashMap<String, Object>();
+				Map<String, Object> outputMap = new HashMap<String, Object>();
+				inputMap.put(ROLE, "user");
+				inputMap.put(MESSAGE_CONTENT, question);
+				outputMap.put(ROLE, "assistant");
+				outputMap.put(MESSAGE_CONTENT, output);
+			}
+			
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "embeddings", this, insight, question, inputTime, ModelInferenceLogsUtils.determineStringType(output), outputTime);
+			inferenceRecorder.run();
+		} else {
+			output = pyt.runScript(callMaker.toString());
+		}
+		return output;
+	}
 	
 	@Override
 	public void stopModel() {
@@ -263,26 +311,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			}
 		}
 		return null;
-	}
-
-	
-	public void checkIfConversationExists (User user, String roomId, String projectId, String question){
-		// TODO make not a db call?
-		if (!ModelInferenceLogsUtils.doCheckConversationExists(roomId)) {
-			String roomName = generateRoomTitle(question);
-			ModelInferenceLogsUtils.doCreateNewConversation(roomId, roomName, "", 
-					   "{}", user.getPrimaryLoginToken().getId(), this.getModelType().toString(), true, projectId, this.getEngineId());
-			logger.info("New inference started by " + user.getPrimaryLoginToken().getUsername());
-		}
-	}
-	
-	//TODO 
-	public String generateRoomTitle(String originalQuestion) {
-		StringBuilder summarizeStatement = new StringBuilder("summarize \\\"");
-		summarizeStatement.append(originalQuestion);
-		summarizeStatement.append("\\\" in less than 8 words. Please exclude all punctuation from the response.");
-		String roomTitle = askQuestion(summarizeStatement.toString(), null, null, null);
-		return roomTitle;
 	}
 	
 	@Override
