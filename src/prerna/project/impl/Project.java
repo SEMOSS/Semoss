@@ -1293,9 +1293,6 @@ public class Project implements IProject {
 					mvnClassLoader.add(classpaths.get(classPathIndex));
 				}
 			}
-			
-//			// lastly add the classes folder
-//			mvnClassLoader.add(appRoot + File.pathSeparator + "classes/");
 		}
 	}
 	

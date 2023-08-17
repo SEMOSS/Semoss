@@ -16,6 +16,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IDatabase.DATABASE_TYPE;
 import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
@@ -262,7 +263,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws Exception {
+	public void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws IOException, InterruptedException {
 		if (dbType != RdbmsTypeEnum.SQLITE
 				&& dbType != RdbmsTypeEnum.H2_DB) {
 			throw new IllegalArgumentException("Unallowed database type. Must be either SQLITE or H2");
@@ -327,7 +328,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		}
 
-		// We need to push the folder alias__appId and the file alias__appId.smss
+		// We need to push the folder alias__databaseId and the file alias__databaseId.smss
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localDatabaseFolder = DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
@@ -352,7 +353,7 @@ public class CentralCloudStorage implements ICloudClient {
 				sharedRCloneConfig = storageEngine.createRCloneConfig();
 			}
 			
-			// List the smss directory to get the alias + app id
+			// List the smss directory to get the alias + database id
 			List<String> results = storageEngine.list(storageSmssFolder, sharedRCloneConfig);
 			boolean foundSmss = false;
 			for (String result : results) {
@@ -498,7 +499,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushDatabaseSmss(String databaseId) throws Exception {
+	public void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException {
 		// We need to push the file alias__appId.smss
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
@@ -521,7 +522,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushOwl(String databaseId) throws Exception {
+	public void pushOwl(String databaseId) throws IOException, InterruptedException {
 		IDatabase database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
@@ -574,7 +575,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pullOwl(String databaseId) throws Exception {
+	public void pullOwl(String databaseId) throws IOException, InterruptedException {
 		IDatabase database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
@@ -629,14 +630,44 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullDatabaseImageFolder() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+		String sharedRCloneConfig = null;
+		try {
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+			List<String> results = storageEngine.list(ClusterUtil.DB_IMAGES_BLOB, sharedRCloneConfig);
+			if(results.isEmpty()) {
+				fixLegacyImageStructure();
+				return;
+			}
+			
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String localImagesFolderPath = baseFolder + "/images/databases";
+			File imageFolder = new File(localImagesFolderPath);
+			if(!imageFolder.exists()) {
+				imageFolder.mkdirs();
+			}
+			storageEngine.copyToLocal(ClusterUtil.DB_IMAGES_BLOB, localImagesFolderPath);
+		} finally {
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 
 	@Override
 	public void pushDatabaseImageFolder() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String localImagesFolderPath = baseFolder + "/images/databases";
+		File localImageF = new File(localImagesFolderPath);
+		if(!localImageF.exists()) {
+			localImageF.mkdirs();
+		}
+		storageEngine.syncLocalToStorage(localImagesFolderPath, ClusterUtil.DB_IMAGES_BLOB);
 	}
 	
 	@Override
@@ -653,15 +684,13 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath)
-			throws IOException, InterruptedException {
+	public void pushDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath)
-			throws IOException, InterruptedException {
+	public void pullDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		
 	}
@@ -792,7 +821,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 	
 	@Override
-	public void pushProjectSmss(String projectId) throws Exception {
+	public void pushProjectSmss(String projectId) throws IOException, InterruptedException {
 		// We need to push the file alias__appId.smss
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
@@ -815,7 +844,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 	
 	@Override
-	public void pullProjectSmss(String projectId) throws Exception {
+	public void pullProjectSmss(String projectId) throws IOException, InterruptedException {
 		// We need to push the file alias__appId.smss
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
@@ -837,18 +866,43 @@ public class CentralCloudStorage implements ICloudClient {
 	
 	@Override
 	public void pullProjectImageFolder() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+		String sharedRCloneConfig = null;
+		try {
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String localImagesFolderPath = baseFolder + "/images/projects";
+			File localImageF = new File(localImagesFolderPath);
+			if(!localImageF.exists()) {
+				localImageF.mkdirs();
+			}
+			storageEngine.copyToLocal(ClusterUtil.PROJECT_IMAGES_BLOB, localImagesFolderPath);
+		} finally {
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 
 	@Override
 	public void pushProjectImageFolder() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String localImagesFolderPath = baseFolder + "/images/projects";
+		File localImageF = new File(localImagesFolderPath);
+		if(!localImageF.exists()) {
+			localImageF.mkdirs();
+		}
+		storageEngine.syncLocalToStorage(localImagesFolderPath, ClusterUtil.DB_IMAGES_BLOB);
 	}
-
+	
 	@Override
-	public void deleteProject(String projectId) throws Exception {
+	public void deleteProject(String projectId) throws IOException, InterruptedException {
 		String sharedRCloneConfig = null;
 		if(storageEngine.canReuseRcloneConfig()) {
 			sharedRCloneConfig = storageEngine.createRCloneConfig();
@@ -861,7 +915,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pullInsightsDB(String projectId) throws Exception {
+	public void pullInsightsDB(String projectId) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId, false);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -900,7 +954,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushInsightDB(String projectId) throws Exception {
+	public void pushInsightDB(String projectId) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId, false);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -941,18 +995,17 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushProjectFolder(String projectId, String absolutePath, String remoteRelativePath)
-			throws IOException, InterruptedException {
+	public void pullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
-		
+	
+	}
+	
+	@Override
+	public void pushProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+
 	}
 
-	@Override
-	public void pullProjectFolder(String projectId, String absolutePath, String remoteRelativePath)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
 	
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -963,7 +1016,7 @@ public class CentralCloudStorage implements ICloudClient {
 	
 
 	@Override
-	public void pushInsight(String projectId, String insightId) throws Exception {
+	public void pushInsight(String projectId, String insightId) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -983,7 +1036,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pullInsight(String projectId, String insightId) throws Exception {
+	public void pullInsight(String projectId, String insightId) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -1003,7 +1056,7 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws Exception {
+	public void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId, false);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -1154,18 +1207,113 @@ public class CentralCloudStorage implements ICloudClient {
 	 */
 
 	@Override
-	public void fixLegacyDbStructure(String appId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	@Deprecated
+	public void fixLegacyDbStructure(String legacyAppId) throws IOException, InterruptedException {
+		String sharedRCloneConfig = null;
+		String legacyStorageDatabaseFolder = legacyAppId;
+		String legacyStorageSmssFolder = legacyAppId + SMSS_POSTFIX;
 		
+		// We need to push the folder alias__databaseId and the file alias__databaseId.smss
+		String potentialDatabaseName = SecurityEngineUtils.getEngineAliasForId(legacyAppId);
+
+		classLogger.info("Applying lock to pull legacy app (database+insights) " + legacyAppId);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(legacyAppId);
+		lock.lock();
+		classLogger.info("App "+ legacyAppId + " is locked");
+		try {
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+			
+			// List the smss directory to get the alias + app id
+			List<String> results = storageEngine.list(legacyStorageSmssFolder, sharedRCloneConfig);
+			String storageSmssFileName = null;
+			boolean foundSmss = false;
+			for (String result : results) {
+				if (result.endsWith(".smss")) {
+					storageSmssFileName = result;
+					foundSmss = true;
+					break;
+				}
+			}
+		
+			if (!foundSmss) {
+				// IF STILL NOT FOUND... CANT HELP YOU
+				throw new IOException("Failed to pull legacy app (database+insights) with id " + legacyAppId + " and potential alias " + potentialDatabaseName);
+			}
+			String aliasAndAppId = storageSmssFileName.replaceAll(".smss", "");
+			String localDatabaseFolder = DATABASE_FOLDER + FILE_SEPARATOR + aliasAndAppId;
+			File localDatabaseF = new File(localDatabaseFolder);
+			if(!localDatabaseF.exists()) {
+				localDatabaseF.mkdirs();
+			}
+			classLogger.info("Pulling legacy app (database+insights) from remote=" + Utility.cleanLogString(legacyStorageDatabaseFolder) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
+			storageEngine.syncStorageToLocal(legacyStorageDatabaseFolder, localDatabaseFolder);
+			classLogger.debug("Done pulling legacy app (database+insights) from remote=" + Utility.cleanLogString(legacyStorageDatabaseFolder) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
+
+			// Now pull the smss
+			classLogger.info("Pulling smss from remote=" + legacyStorageSmssFolder + " to target=" + DATABASE_FOLDER);
+			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
+			storageEngine.copyToLocal(legacyStorageSmssFolder, DATABASE_FOLDER);
+			classLogger.debug("Done pulling from remote=" + legacyStorageSmssFolder + " to target=" + DATABASE_FOLDER);
+
+			LegacyToProjectRestructurerHelper fixer = new LegacyToProjectRestructurerHelper();
+			fixer.init();
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String dbDir = baseFolder + LegacyToProjectRestructurerHelper.ENGINE_DIRECTORY;
+			String projectDir = baseFolder + LegacyToProjectRestructurerHelper.PROJECT_DIRECTORY;
+			fixer.copyDataToNewFolderStructure(aliasAndAppId, projectDir, dbDir);
+			
+			Utility.loadDatabase(dbDir + "/" + storageSmssFileName, Utility.loadProperties(dbDir + "/" + storageSmssFileName));
+			Utility.loadProject(projectDir + "/" + storageSmssFileName, Utility.loadProperties(projectDir + "/" + storageSmssFileName));
+
+			// now push the new db and app into the right locations
+			pushDatabase(legacyAppId);
+			pushProject(legacyAppId);
+		} finally {
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("App "+ legacyAppId + " is unlocked");
+		}
 	}
 
 	@Override
+	@Deprecated
 	public void fixLegacyImageStructure() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+		String sharedRCloneConfig = null;
+		try {
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String localImagesFolderPath = baseFolder + "/images/databases";
+			File localImageF = new File(localImagesFolderPath);
+			localImageF.mkdir();
+			
+			// copy the images
+			// we will push these images to the new location
+			storageEngine.copyToLocal("semoss-imagecontainer", localImagesFolderPath, sharedRCloneConfig);
+			storageEngine.syncLocalToStorage(localImagesFolderPath, ClusterUtil.DB_IMAGES_BLOB, sharedRCloneConfig);
+		} finally {
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 
 	@Override
+	@Deprecated
 	public void fixLegacyUserAssetStructure(String appId, boolean isAsset) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		

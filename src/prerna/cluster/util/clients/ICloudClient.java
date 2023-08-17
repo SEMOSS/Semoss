@@ -104,23 +104,23 @@ public interface ICloudClient {
 	
 	/**
 	 * 
-	 * @param appId
+	 * @param databaseId
 	 * @param absolutePath
 	 * @param remoteRelativePath
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+	void pushDatabaseFolder(String databaseId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
 
 	/**
 	 * 
-	 * @param appId
+	 * @param databaseId
 	 * @param absolutePath
 	 * @param remoteRelativePath
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+	void pullDatabaseFolder(String databaseId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
 	
 	
 	///////////////////////////////////////////////////////////////////////////////////
