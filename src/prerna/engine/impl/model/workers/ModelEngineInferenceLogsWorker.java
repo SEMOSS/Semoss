@@ -1,7 +1,9 @@
 package prerna.engine.impl.model.workers;
 
 import prerna.om.Insight;
+import prerna.project.api.IProject;
 import prerna.sablecc2.reactor.job.JobReactor;
+import prerna.util.Utility;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -18,6 +20,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	
 	private String roomId;
 	private String messageId;
+	private String messageMethod;
     private AbstractModelEngine engine;
     private Insight insight;
     private String question;
@@ -25,7 +28,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     private String response;
     private LocalDateTime responseTime;
     
-    public ModelEngineInferenceLogsWorker(String roomId, String messageId,  AbstractModelEngine engine,
+    public ModelEngineInferenceLogsWorker(String roomId, String messageId, String messageMethod, AbstractModelEngine engine,
 			   Insight insight, 
 			   String question,
 			   LocalDateTime inputTime,
@@ -33,6 +36,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			   LocalDateTime responseTime) {
     	this.roomId = roomId;
     	this.messageId = messageId;
+    	this.messageMethod = messageMethod;
     	this.engine = engine;
     	this.insight = insight;
         this.question = question;
@@ -48,8 +52,18 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			sessionId = (String) insight.getVarStore().get(JobReactor.SESSION_KEY).getValue();
 		}
 		
-		// assumption, if project level, then they will be inferencing through a saved insight
-		String projectId = insight.getProjectId();
+		// assumption, if project level, then they will be inferencing through a saved insight or SetContext
+		String projectId = insight.getContextProjectId();
+		if (projectId == null) {
+			projectId = insight.getProjectId();
+		}
+		String projectName = null;
+		if (projectId != null) {
+			IProject project = Utility.getProject(projectId);
+			projectName = project.getProjectName();
+		}
+		
+		String insightId = insight.getInsightId();
 		User user = insight.getUser();
 		String userId = user.getPrimaryLoginToken().getId();
 		// TODO this could be insight id
@@ -62,9 +76,11 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		}
 		
 		if (!ModelInferenceLogsUtils.doCheckConversationExists(roomId)) {
-			String roomName = ModelInferenceLogsUtils.generateRoomTitle(engine, question);
-			ModelInferenceLogsUtils.doCreateNewConversation(roomId, roomName, "", 
-					   "{}", user.getPrimaryLoginToken().getId(), engine.getModelType().toString(), true, projectId, engine.getEngineId());
+			String roomName = null;
+			if (Boolean.parseBoolean((String) engine.getSmssProp().get("GENERATE_ROOM_NAME")) == true) {
+				roomName = ModelInferenceLogsUtils.generateRoomTitle(engine, question);
+			}
+			ModelInferenceLogsUtils.doCreateNewConversation(roomId, roomName, "", "{}", user.getPrimaryLoginToken().getId(), engine.getModelType().toString(), true, projectId, projectName, engine.getEngineId());
 		}
 				
 		if(engine.keepsConversationHistory()) {
@@ -74,10 +90,12 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					"INPUT",
 					ModelInferenceLogsUtils.constructPyDictFromMap(inputOutputMap),
+					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(question),
 					inputTime,
 					roomId,
 					engine.getEngineId(),
+					insightId,
 					sessionId,
 					userId
 					);
@@ -86,10 +104,12 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					"RESPONSE",
 					ModelInferenceLogsUtils.constructPyDictFromMap(inputOutputMap),
+					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(response),
 					responseTime,
 					roomId,
 					engine.getEngineId(),
+					insightId,
 					sessionId,
 					userId
 					);
@@ -97,20 +117,24 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					"INPUT",
 					null,
+					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(question),
 					inputTime,
 					roomId,
 					engine.getEngineId(),
+					insightId,
 					sessionId,
 					userId
 					);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					"RESPONSE",
 					null,
+					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(response),
 					responseTime,
 					roomId,
 					engine.getEngineId(),
+					insightId,
 					sessionId,
 					userId
 					);

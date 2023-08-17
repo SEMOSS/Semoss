@@ -3,13 +3,17 @@ package prerna.engine.impl.model;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
 public class OpenAiEngine extends AbstractModelEngine {
-		
+	private static final Logger logger = LogManager.getLogger(OpenAiEngine.class);
+
 	@Override
 	public String askQuestion(String question, String context, Insight insight, Map <String, Object> parameters) 
 	{
@@ -48,7 +52,7 @@ public class OpenAiEngine extends AbstractModelEngine {
 			}
 		}
 		callMaker.append(")");
-		System.out.println(callMaker.toString());
+		OpenAiEngine.logger.info("Running >>>" + callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString());
 		return (String) output;
 	}
