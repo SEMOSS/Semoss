@@ -1267,7 +1267,7 @@ public class UploadUtilities {
 			bufferedWriter.write(newLine);
 			
 			for(String key : properties.keySet()) {
-				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key));
+				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1329,7 +1329,7 @@ public class UploadUtilities {
 			bufferedWriter.write(newLine);
 			
 			for(String key : properties.keySet()) {
-				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key));
+				bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
