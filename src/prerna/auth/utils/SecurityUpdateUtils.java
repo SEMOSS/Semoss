@@ -24,6 +24,9 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -62,26 +65,44 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// see if the user was added by an admin
 		// this means it could be on the ID or the EMAIL
 		// but name is the admin_added_user constant
-		String query = "SELECT ID FROM SMSS_USER WHERE "
-				+ "(NAME='" + ADMIN_ADDED_USER + "' OR USERNAME='" + ADMIN_ADDED_USER + "')"
-				+ " AND "
+		SelectQueryStruct adminAddedUserQs = new SelectQueryStruct();
+		adminAddedUserQs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		AndQueryFilter nameAndIdMatchFiltre = new AndQueryFilter();
+		{
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "==", ADMIN_ADDED_USER));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", ADMIN_ADDED_USER));
+			nameAndIdMatchFiltre.addFilter(or);
+		}
+		{
+			// need to account for a null check on email
+			// since that is not necessarily required
+			// id is always required
+			if(newUser.getEmail() == null || newUser.getEmail().trim().isEmpty()) {
+				nameAndIdMatchFiltre.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getId()));
+			} else {
 				// this matching the ID field to the email because admin added user only sets the id field
-				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
+				OrQueryFilter or = new OrQueryFilter();
+				or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getId()));
+				or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getEmail()));
+				nameAndIdMatchFiltre.addFilter(or);
+			}
+		}
+		adminAddedUserQs.addExplicitFilter(nameAndIdMatchFiltre);
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, adminAddedUserQs);
 			if(wrapper.hasNext()) {
 				// this was the old id that was added when the admin 
-				String oldId = RdbmsQueryBuilder.escapeForSQLStatement(wrapper.next().getValues()[0].toString());
-				String newId = RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId());
+				String oldId = wrapper.next().getValues()[0].toString();
+				String newId = newUser.getId();
 				// this user was added by the user
 				// and we need to update
 				{
 					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 					java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
-					String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, LASTLOGIN=? "
-							+ "WHERE ID=?";
+					String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, LASTLOGIN=? WHERE ID=?";
 					PreparedStatement ps = null;
 					try {
 						int parameterIndex = 1;
@@ -186,11 +207,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 						java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
-						query = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN) "
+						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN) "
 								+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 						PreparedStatement ps = null;
 						try {
-							ps = securityDb.getPreparedStatement(query);
+							ps = securityDb.getPreparedStatement(insertQuery);
 							int parameterIndex = 1;
 							ps.setString(parameterIndex++, newUser.getId());
 							if(newUser.getName() == null) {
