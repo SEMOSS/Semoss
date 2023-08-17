@@ -73,7 +73,8 @@ public class ModelInferenceLogsOwlCreation {
 				Pair.of("AGENT_TYPE", "VARCHAR(50)"),
 				Pair.of("IS_ACTIVE",BOOLEAN_DATATYPE_NAME),
 				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.of("PROJECT_ID", "VARCHAR(255)"),
+				Pair.of("PROJECT_ID", "VARCHAR(50)"),
+				Pair.of("PROJECT_NAME", "VARCHAR(255)"),
 				Pair.of("AGENT_ID", "VARCHAR(50)")
 			);
 		
@@ -82,9 +83,11 @@ public class ModelInferenceLogsOwlCreation {
 				Pair.of("MESSAGE_TYPE", "VARCHAR(50)"),
 				Pair.of("MESSAGE_DATA", CLOB_DATATYPE_NAME),
 				Pair.of("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),
+				Pair.of("MESSAGE_METHOD", "VARCHAR(50)"),
 				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.of("ROOM_ID", "VARCHAR(50)"),
 				Pair.of("AGENT_ID", "VARCHAR(50)"),
+				Pair.of("INSIGHT_ID", "VARCHAR(50)"),
 				Pair.of("SESSIONID", "VARCHAR(255)"),
 				Pair.of("USER_ID", "VARCHAR(255)")
 			);

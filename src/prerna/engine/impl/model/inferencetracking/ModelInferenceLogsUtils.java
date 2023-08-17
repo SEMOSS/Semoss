@@ -48,8 +48,15 @@ public class ModelInferenceLogsUtils {
 	// the logs into model inference python list, since everything is python at this point.
     public static String constructPyDictFromMap(Map<String,Object> theMap) {
     	StringBuilder theDict = new StringBuilder("{");
+    	boolean isFirstElement = true;
     	for (Entry<String, Object> entry : theMap.entrySet()) {
-    		theDict.append(determineStringType(entry.getKey())).append(":").append(determineStringType(entry.getValue())).append(",");
+    		if (!isFirstElement) {
+    			theDict.append(",");
+    		} else {
+    			isFirstElement = false;
+    		}
+    		theDict.append(determineStringType(entry.getKey())).append(":").append(determineStringType(entry.getValue()));
+    		//theDict.append(determineStringType(entry.getKey())).append(":").append(determineStringType(entry.getValue())).append(",");
     	}
     	theDict.append("}");
     	return theDict.toString();
@@ -76,8 +83,14 @@ public class ModelInferenceLogsUtils {
     			list = (List<Object>) obj;
     		}
     		
+    		boolean isFirstElement = true;
 			for (Object subObj : list) {
-				theList.append(determineStringType(subObj)).append(",");
+				if (!isFirstElement) {
+					theList.append(",");
+	    		} else {
+	    			isFirstElement = false;
+	    		}
+				theList.append(determineStringType(subObj));
         	}
 			theList.append("]");
 			return theList.toString();
@@ -89,8 +102,14 @@ public class ModelInferenceLogsUtils {
     	} else if (obj instanceof Set<?>) {
     		StringBuilder theSet = new StringBuilder("{");
     		Set<?> set = (Set<?>) obj;
+    		boolean isFirstElement = true;
 			for (Object subObj : set) {
-				theSet.append(determineStringType(subObj)).append(",");
+				if (!isFirstElement) {
+					theSet.append(",");
+				} else {
+					isFirstElement = false;
+				}
+				theSet.append(determineStringType(subObj));
         	}
 			theSet.append("}");
 			return theSet.toString();
@@ -137,18 +156,18 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	public static String doCreateNewConversation(String roomName, String roomDescription, 
-			   String roomConfigData, String userId, String agentType, Boolean isActive, String projectId, String agentId) {
+			   String roomConfigData, String userId, String agentType, Boolean isActive, String projectId, String projectName, String agentId) {
 		String convoId = UUID.randomUUID().toString();
-		doCreateNewConversation(convoId, roomName, roomDescription, roomConfigData, userId, agentType, isActive, projectId, agentId);
+		doCreateNewConversation(convoId, roomName, roomDescription, roomConfigData, userId, agentType, isActive, projectId, projectName, agentId);
 		return convoId;
 	}
 	
 	public static void doCreateNewConversation(String roomId, String roomName, String roomDescription, 
-											   String roomConfigData, String userId, String agentType, Boolean isActive, String projectId, String agentId) {
+											   String roomConfigData, String userId, String agentType, Boolean isActive, String projectId, String projectName, String agentId) {
 		String query = "INSERT INTO ROOM (ROOM_ID, ROOM_NAME, "
 				+ "ROOM_DESCRIPTION, ROOM_CONFIG_DATA, USER_ID, AGENT_TYPE, IS_ACTIVE, "
-				+ "DATE_CREATED, PROJECT_ID, AGENT_ID) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, AGENT_ID) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		PreparedStatement ps = null;
 		try {
@@ -177,10 +196,11 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			ps.setString(index++, userId);
-			ps.setString(index++, userId);
+			ps.setString(index++, agentType);
 			ps.setBoolean(index++, isActive);
 			ps.setObject(index++, LocalDateTime.now());
 			ps.setString(index++, projectId);
+			ps.setString(index++, projectName);
 			ps.setString(index++, agentId);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -241,7 +261,7 @@ public class ModelInferenceLogsUtils {
 	
 	public static String doCreateNewAgent(String agentName, String agentDescription, String agentType,
 			String author) {
-		String agentId = "EMB_" + UUID.randomUUID().toString();
+		String agentId = UUID.randomUUID().toString();
 		doCreateNewAgent(agentId, agentName, agentDescription, agentType, author);
 		return agentId;
 	}
@@ -274,28 +294,32 @@ public class ModelInferenceLogsUtils {
 	public static void doRecordMessage(String messageId,
 									   String messageType,
 									   String messageData,
+									   String messageMethod,
 									   Integer tokenSize,
 									   String roomId,
 									   String agentId,
+									   String insightId,
 									   String sessionId,
 									   String userId) {
 		LocalDateTime dateCreated = LocalDateTime.now();
-		doRecordMessage(messageId, messageType, messageData, tokenSize, dateCreated, roomId, agentId, sessionId, userId);
+		doRecordMessage(messageId, messageType, messageData, messageMethod, tokenSize, dateCreated, roomId, agentId, insightId, sessionId, userId);
 	}
 	
 	public static void doRecordMessage(String messageId,
 									   String messageType,
 									   String messageData,
+									   String messageMethod,
 									   Integer tokenSize,
 									   LocalDateTime dateCreated,
 									   String roomId,
 									   String agentId,
+									   String insightId,
 									   String sessionId,
 									   String userId) {
 		boolean allowClob = modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
-		String query = "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_TOKENS,"
-			+ " DATE_CREATED, ROOM_ID, AGENT_ID, SESSIONID, USER_ID) " + 
-			"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		String query = "INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS,"
+			+ " DATE_CREATED, ROOM_ID, AGENT_ID, INSIGHT_ID, SESSIONID, USER_ID) " + 
+			"	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -313,10 +337,12 @@ public class ModelInferenceLogsUtils {
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
+			ps.setString(index++, messageMethod);
 			ps.setInt(index++, tokenSize);
 			ps.setObject(index++, dateCreated);
 			ps.setString(index++, roomId);
 			ps.setString(index++, agentId);
+			ps.setString(index++, insightId);
 			ps.setString(index++, sessionId);
 			ps.setString(index++, userId);
 			ps.execute();
