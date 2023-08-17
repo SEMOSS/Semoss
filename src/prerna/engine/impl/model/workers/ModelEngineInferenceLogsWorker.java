@@ -89,7 +89,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			inputOutputMap.put(MESSAGE_CONTENT, question);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					"INPUT",
-					question.replace("'", "\\'").replace("\n", "\\n"),
+					question.replace("'", "\'").replace("\n", "\n"),
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(question),
 					inputTime,
@@ -103,7 +103,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			inputOutputMap.put(MESSAGE_CONTENT, response);
 			ModelInferenceLogsUtils.doRecordMessage(messageId, 
 					"RESPONSE",
-					response.replace("'", "\\'").replace("\n", "\\n"),
+					response.replace("'", "\'").replace("\n", "\n"),
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(response),
 					responseTime,
