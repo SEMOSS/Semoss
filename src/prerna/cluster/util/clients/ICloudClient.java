@@ -19,7 +19,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushDatabase(String databaseId) throws Exception;
+	void pushDatabase(String databaseId) throws IOException, InterruptedException;
 	
 	/**
 	 * 
@@ -28,7 +28,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws Exception;
+	void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -36,7 +36,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullDatabase(String databaseId) throws Exception;
+	void pullDatabase(String databaseId) throws IOException, InterruptedException;
 	
 	/**
 	 * 
@@ -45,7 +45,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullDatabase(String databaseId, boolean databaseAlreadyLoaded) throws Exception; 
+	void pullDatabase(String databaseId, boolean databaseAlreadyLoaded) throws IOException, InterruptedException; 
 	
 	/**
 	 * 
@@ -54,7 +54,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws Exception;
+	void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException;
 
 	/**
 	 * Push only the SMSS file for a database
@@ -62,7 +62,7 @@ public interface ICloudClient {
 	 * @param databaseId
 	 * @throws Exception 
 	 */
-	void pushDatabaseSmss(String databaseId) throws Exception;
+	void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException;
 	
 	/**
 	 * 
@@ -70,7 +70,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushOwl(String databaseId) throws Exception;
+	void pushOwl(String databaseId) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -78,7 +78,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullOwl(String databaseId) throws Exception;
+	void pullOwl(String databaseId) throws IOException, InterruptedException;
 
 	/**
 	 * 
