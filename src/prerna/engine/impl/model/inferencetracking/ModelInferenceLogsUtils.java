@@ -356,28 +356,72 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 	
-	public static List<Map<String, Object>> doRetrieveConversation(String roomId, String userId) {
+	public static boolean doSetRoomToInactive(String userId, String roomId) {
+		Connection conn = connectToInferenceLogs();
+		String query = "UPDATE ROOM SET IS_ACTIVE = false WHERE USER_ID = ? AND ROOM_ID = ?";
+		try (PreparedStatement ps = conn.prepareStatement(query)) {
+			//ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, userId);
+			ps.setString(index++, roomId);
+			ps.executeUpdate();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		} finally {
+			if(modelInferenceLogsDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return true;
+	}
+	
+	public static List<Map<String, Object>> doRetrieveConversation(String userId, String roomId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__ROOM_ID", "==", roomId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
-		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", "ASC"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_METHOD", "==", "ask"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("MESSAGE__DATE_CREATED", "DESC"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 	
-	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
+	public static List<Map<String, Object>> getUserConversations(String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_DESCRIPTION"));
+		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-		if (projectId != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+	
+	// TODO add ability to swap out database
+	public static Connection connectToInferenceLogs() {
+		Connection connection = null;
+
+		try {
+			modelInferenceLogsDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB);
+			connection = modelInferenceLogsDb.getConnection();
+		} catch (SQLException se) {
+			logger.error(Constants.STACKTRACE, se);
+		} catch (Exception ex) {
+			logger.error(Constants.STACKTRACE, ex);
+		}
+
+		if (connection == null) {
+			throw new NullPointerException("Connection wasn't able to be created.");
+		}
+
+		return connection;
 	}
 	
 	public static void initModelInferenceLogsDatabase() throws SQLException, IOException {
