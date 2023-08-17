@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IDatabase.DATABASE_TYPE;
@@ -401,13 +402,15 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 
 			// Make the app directory (if it doesn't already exist)
-			File engineFolder = new File(Utility.normalizePath(localDatabaseFolder));
-			engineFolder.mkdirs(); 
+			File localDatabaseF = new File(Utility.normalizePath(localDatabaseFolder));
+			if(!localDatabaseF.exists() || !localDatabaseF.isDirectory()) {
+				localDatabaseF.mkdirs(); 
+			}
 
 			// Pull the contents of the app folder before the smss
-			classLogger.info("Pulling database from remote=" + Utility.cleanLogString(aliasAndDatabaseId) + " to target=" + engineFolder.getPath());
+			classLogger.info("Pulling database from remote=" + Utility.cleanLogString(aliasAndDatabaseId) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
 			storageEngine.syncStorageToLocal(storageDatabaseFolder, localDatabaseFolder, sharedRCloneConfig);
-			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(aliasAndDatabaseId) + " to target=" + engineFolder.getPath());
+			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(aliasAndDatabaseId) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
 
 			// Now pull the smss
 			classLogger.info("Pulling smss from remote=" + Utility.cleanLogString(storageSmssFolder) + " to target=" + DATABASE_FOLDER);
@@ -643,9 +646,9 @@ public class CentralCloudStorage implements ICloudClient {
 			
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String localImagesFolderPath = baseFolder + "/images/databases";
-			File imageFolder = new File(localImagesFolderPath);
-			if(!imageFolder.exists()) {
-				imageFolder.mkdirs();
+			File localImageF = new File(localImagesFolderPath);
+			if(!localImageF.exists() || !localImageF.isDirectory()) {
+				localImageF.mkdirs();
 			}
 			storageEngine.copyToLocal(ClusterUtil.DB_IMAGES_BLOB, localImagesFolderPath);
 		} finally {
@@ -664,7 +667,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String localImagesFolderPath = baseFolder + "/images/databases";
 		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists()) {
+		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
 		storageEngine.syncLocalToStorage(localImagesFolderPath, ClusterUtil.DB_IMAGES_BLOB);
@@ -684,15 +687,83 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pushDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IDatabase database = Utility.getDatabase(databaseId, false);
+		if (database == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
 		
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
+		
+		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
+
+		File absoluteFolder = new File(localAbsoluteFilePath);
+		if(absoluteFolder.isDirectory()) {
+			//this is adding a hidden file into every sub folder to make sure there is no empty directory
+			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
+		}
+		
+		String storageDatabaseFolderPath = DB_CONTAINER_PREFIX + databaseId;
+		if(storageRelativePath != null) {
+			storageDatabaseFolderPath = storageDatabaseFolderPath + "/" + storageRelativePath;
+		}
+		
+		// adding a lock for now, but there may be times we don't need one and other times we do
+		// reaching h2 db from version folder vs static assets in asset database
+		// might need to also close if embedded engine?
+		
+		classLogger.info("Applying lock for database " + aliasAndDatabaseId + " to push database relative folder " + storageRelativePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
+		lock.lock();
+		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
+		try {
+			classLogger.info("Pushing folder local=" + localAbsoluteFilePath + " to from remote=" + storageDatabaseFolderPath);
+			storageEngine.syncLocalToStorage(localAbsoluteFilePath, storageDatabaseFolderPath);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Database " + aliasAndDatabaseId + " is unlocked");
+		}
 	}
 
 	@Override
-	public void pullDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pullDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IDatabase database = Utility.getDatabase(databaseId, false);
+		if (database == null) {
+			throw new IllegalArgumentException("Database not found...");
+		}
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
 		
+		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
+		
+		String storageDatabaseFolderPath = DB_CONTAINER_PREFIX + databaseId;
+		if(storageRelativePath != null) {
+			storageDatabaseFolderPath = storageDatabaseFolderPath + "/" + storageRelativePath;
+		}
+		classLogger.info("Applying lock for database " + aliasAndDatabaseId + " to pull database relative folder " + storageRelativePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
+		lock.lock();
+		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
+		try {
+			classLogger.info("Pulling folder from remote=" + storageDatabaseFolderPath + " to local=" + localAbsoluteFilePath);
+			storageEngine.syncStorageToLocal(storageDatabaseFolderPath, localAbsoluteFilePath);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Database " + aliasAndDatabaseId + " is unlocked");
+		}
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -723,7 +794,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String sharedRCloneConfig = null;
 
 		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
-		String storageSmssFolder = DB_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
+		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
 		// synchronize on the project id
 		classLogger.info("Applying lock for " + aliasAndProjectId + " to push project");
@@ -784,7 +855,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String sharedRCloneConfig = null;
 
 		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
-		String storageSmssFolder = DB_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
+		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
 		// synchronize on the project id
 		classLogger.info("Applying lock for " + aliasAndProjectId + " to push project");
@@ -866,28 +937,13 @@ public class CentralCloudStorage implements ICloudClient {
 	
 	@Override
 	public void pullProjectImageFolder() throws IOException, InterruptedException {
-		String sharedRCloneConfig = null;
-		try {
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
-			}
-
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String localImagesFolderPath = baseFolder + "/images/projects";
-			File localImageF = new File(localImagesFolderPath);
-			if(!localImageF.exists()) {
-				localImageF.mkdirs();
-			}
-			storageEngine.copyToLocal(ClusterUtil.PROJECT_IMAGES_BLOB, localImagesFolderPath);
-		} finally {
-			if(sharedRCloneConfig != null) {
-				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
-				} catch(Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String localImagesFolderPath = baseFolder + "/images/projects";
+		File localImageF = new File(localImagesFolderPath);
+		if(!localImageF.exists() || !localImageF.isDirectory()) {
+			localImageF.mkdirs();
 		}
+		storageEngine.copyToLocal(ClusterUtil.PROJECT_IMAGES_BLOB, localImagesFolderPath);
 	}
 
 	@Override
@@ -895,7 +951,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String localImagesFolderPath = baseFolder + "/images/projects";
 		File localImageF = new File(localImagesFolderPath);
-		if(!localImageF.exists()) {
+		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
 		storageEngine.syncLocalToStorage(localImagesFolderPath, ClusterUtil.DB_IMAGES_BLOB);
@@ -995,18 +1051,87 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-	
+	public void pushProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
+		
+		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
+		
+		File absoluteFolder = new File(localAbsoluteFilePath);
+		if(absoluteFolder.isDirectory()) {
+			//this is adding a hidden file into every sub folder to make sure there is no empty directory
+			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
+		}
+		
+		String storageProjectFolderPath = PROJECT_CONTAINER_PREFIX + projectId;
+		if(storageRelativePath != null) {
+			storageProjectFolderPath = storageProjectFolderPath + "/" + storageRelativePath;
+		}
+		
+		// adding a lock for now, but there may be times we don't need one and other times we do
+		// reaching h2 db from version folder vs static assets in project...
+		
+		classLogger.info("Applying lock for project " + aliasAndProjectId + " to push project relative folder " + storageRelativePath);
+		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+		lock.lock();
+		classLogger.info("Project " + aliasAndProjectId + " is locked");
+		try {
+			classLogger.info("Pushing folder from local=" + localAbsoluteFilePath + " to remote=" + storageProjectFolderPath);
+			storageEngine.syncLocalToStorage(localAbsoluteFilePath, storageProjectFolderPath);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Project " + aliasAndProjectId + " is unlocked");
+		}
 	}
-	
+
 	@Override
-	public void pushProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-
+	public void pullProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IProject project = Utility.getProject(projectId, false);
+		if (project == null) {
+			throw new IllegalArgumentException("Project not found...");
+		}
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
+		
+		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
+		
+		String storageProjectFolderPath = PROJECT_CONTAINER_PREFIX + projectId;
+		if(storageRelativePath != null) {
+			storageProjectFolderPath = storageProjectFolderPath + "/" + storageRelativePath;
+		}
+		
+		// adding a lock for now, but there may be times we don't need one and other times we do
+		// reaching h2 db from version folder vs static assets in project...
+		
+		classLogger.info("Applying lock for project " + aliasAndProjectId + " to pull project relative folder " + storageRelativePath);
+		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+		lock.lock();
+		classLogger.info("Project " + aliasAndProjectId + " is locked");
+		try {
+			classLogger.info("Pulling folder from remote=" + storageProjectFolderPath + " to local=" + localAbsoluteFilePath);
+			storageEngine.syncStorageToLocal(storageProjectFolderPath, localAbsoluteFilePath);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Project " + aliasAndProjectId + " is unlocked");
+		}
 	}
 
-	
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	
@@ -1024,15 +1149,15 @@ public class CentralCloudStorage implements ICloudClient {
 
 		// only need to pull the insight folder - 99% the project is always already loaded to get to this point
 		String localInsightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
-		File insightFolder = new File(localInsightFolderPath);
-		if(!insightFolder.exists()) {
-			insightFolder.mkdirs();
+		File localInsightF = new File(localInsightFolderPath);
+		if(!localInsightF.exists() || !localInsightF.exists()) {
+			localInsightF.mkdirs();
 		}
 		String storageInsightFolder = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 		
-		classLogger.info("Pushing insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
+		classLogger.info("Pushing insight from local=" + Utility.cleanLogString(localInsightFolderPath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
 		storageEngine.syncLocalToStorage(localInsightFolderPath, storageInsightFolder);
-		classLogger.debug("Done pushing insight from local=" + Utility.cleanLogString(insightFolder.getPath()) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
+		classLogger.debug("Done pushing insight from local=" + Utility.cleanLogString(localInsightFolderPath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
 	}
 
 	@Override
@@ -1044,15 +1169,15 @@ public class CentralCloudStorage implements ICloudClient {
 
 		// only need to pull the insight folder - 99% the project is always already loaded to get to this point
 		String localInsightFolderPath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
-		File insightFolder = new File(localInsightFolderPath);
-		if(!insightFolder.exists()) {
-			insightFolder.mkdirs();
+		File localInsightF = new File(localInsightFolderPath);
+		if(!localInsightF.exists() || !localInsightF.exists()) {
+			localInsightF.mkdirs();
 		}
 		String storageInsightFolder = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 		
-		classLogger.info("Pulling insight from remote=" + Utility.cleanLogString(storageInsightFolder) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+		classLogger.info("Pulling insight from remote=" + Utility.cleanLogString(storageInsightFolder) + " to target=" + Utility.cleanLogString(localInsightFolderPath));
 		storageEngine.syncStorageToLocal(storageInsightFolder, localInsightFolderPath);
-		classLogger.debug("Done pulling insight from remote=" + Utility.cleanLogString(storageInsightFolder) + " to target=" + Utility.cleanLogString(insightFolder.getPath()));
+		classLogger.debug("Done pulling insight from remote=" + Utility.cleanLogString(storageInsightFolder) + " to target=" + Utility.cleanLogString(localInsightFolderPath));
 	}
 
 	@Override
@@ -1105,16 +1230,147 @@ public class CentralCloudStorage implements ICloudClient {
 	 */
 
 	@Override
-	public void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded) throws IOException, InterruptedException {
+		IProject project = null;
+		if (projectAlreadyLoaded) {
+			project = Utility.getUserAssetWorkspaceProject(projectId, isAsset);
+			if (project == null) {
+				throw new IllegalArgumentException("User asset/workspace project not found...");
+			}
+		}
+
+		// We need to push the folder alias__appId and the file alias__appId.smss
+		String alias = project.getProjectName();
+
+		String aliasAndUserAssetWorkspaceId = alias + "__" + projectId;
+		String localUserAndAssetFolder = USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetWorkspaceId;
+		String storageUserAssetWorkspaceFolder = USER_CONTAINER_PREFIX + projectId;
+		String storageSmssFolder = USER_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 		
+		String sharedRCloneConfig = null;
+		try {
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+			
+			List<String> results = storageEngine.list(storageSmssFolder, sharedRCloneConfig);
+			String smss = null;
+			for (String result : results) {
+				if (result.endsWith(".smss")) {
+					smss = result;
+					break;
+				}
+			}
+			if (smss == null) {
+				// assume this is for pulling a legacy asset/workspace
+				try {
+					fixLegacyUserAssetStructure(projectId, isAsset);
+				} catch(IOException | InterruptedException e) {
+					classLogger.info(Constants.STACKTRACE, e);
+					throw new IOException("Failed to pull legacy user asset/workspace with id=" + projectId);
+				}
+				
+				// try again
+				results = storageEngine.list(storageSmssFolder, sharedRCloneConfig);
+				for (String result : results) {
+					if (result.endsWith(".smss")) {
+						smss = result;
+						break;
+					}
+				}
+				
+				if (smss == null) {
+					throw new IOException("Failed to pull legacy user asset/workspace with id=" + projectId);
+				} else {
+					// we just fixed the structure and this was pulled and synched up
+					// can just return from here
+					return;
+				}
+			}
+
+			// Close the user asset/workspace project so that we can pull without file locks
+			try {
+				if (projectAlreadyLoaded) {
+					DIHelper.getInstance().removeProjectProperty(projectId);
+					project.close();
+				}
+
+				// Make the app directory (if it doesn't already exist)
+				File localUserAndAssetF = new File(localUserAndAssetFolder);
+				if(!localUserAndAssetF.exists() || !localUserAndAssetF.isDirectory()) {
+					localUserAndAssetF.mkdir(); 
+				}
+
+				// Pull the contents of the project folder before the smss
+				classLogger.info("Pulling user asset/workspace from remote=" + storageUserAssetWorkspaceFolder + " to target=" + localUserAndAssetFolder);
+				storageEngine.syncStorageToLocal(storageUserAssetWorkspaceFolder, localUserAndAssetFolder, sharedRCloneConfig);
+				classLogger.debug("Done pulling from remote=" + storageUserAssetWorkspaceFolder + " to target=" + localUserAndAssetFolder);
+
+				// Now pull the smss
+				classLogger.info("Pulling smss from remote=" + storageSmssFolder + " to target=" + USER_FOLDER);
+				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE USER FOLDER
+				storageEngine.copyToLocal(storageSmssFolder, USER_FOLDER, sharedRCloneConfig);
+				classLogger.debug("Done pulling from remote=" + storageSmssFolder + " to target=" + USER_FOLDER);
+			} finally {
+				// Re-open the project
+				if (projectAlreadyLoaded) {
+					Utility.getUserAssetWorkspaceProject(projectId, isAsset);
+				}
+			}
+		} finally {
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 
 	@Override
 	public void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
+		IProject project = Utility.getUserAssetWorkspaceProject(projectId, isAsset);
+		if (project == null) {
+			throw new IllegalArgumentException("User asset/workspace project not found...");
+		}
+
+		// We need to push the folder alias__appId and the file alias__appId.smss
+		String alias = project.getProjectName();
+		String aliasAndUserAssetWorkspaceId = alias + "__" + projectId;
+		String localUserAssetWorkspaceFolder = USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetWorkspaceId;
+		String localSmssFileName = aliasAndUserAssetWorkspaceId + ".smss";
+		String localSmssFilePath = USER_FOLDER + FILE_SEPARATOR + localSmssFileName;
+
+		String sharedRCloneConfig = null;
+
+		String storageUserAssetWorkspaceFolder = USER_CONTAINER_PREFIX + projectId;
+		String storageSmssFolder = USER_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
+
+		try {
+			DIHelper.getInstance().removeProjectProperty(projectId);
+			project.close();
+			
+			if(storageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			}
+			storageEngine.syncLocalToStorage(localUserAssetWorkspaceFolder, storageUserAssetWorkspaceFolder, sharedRCloneConfig);
+			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
+		} finally {
+			try {
+				// Re-open the project
+				Utility.getUserAssetWorkspaceProject(projectId, isAsset);
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1244,7 +1500,7 @@ public class CentralCloudStorage implements ICloudClient {
 			String aliasAndAppId = storageSmssFileName.replaceAll(".smss", "");
 			String localDatabaseFolder = DATABASE_FOLDER + FILE_SEPARATOR + aliasAndAppId;
 			File localDatabaseF = new File(localDatabaseFolder);
-			if(!localDatabaseF.exists()) {
+			if(!localDatabaseF.exists() || !localDatabaseF.isDirectory()) {
 				localDatabaseF.mkdirs();
 			}
 			classLogger.info("Pulling legacy app (database+insights) from remote=" + Utility.cleanLogString(legacyStorageDatabaseFolder) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
@@ -1295,7 +1551,9 @@ public class CentralCloudStorage implements ICloudClient {
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String localImagesFolderPath = baseFolder + "/images/databases";
 			File localImageF = new File(localImagesFolderPath);
-			localImageF.mkdir();
+			if(!localImageF.exists() || !localImageF.isDirectory()) {
+				localImageF.mkdirs();
+			}
 			
 			// copy the images
 			// we will push these images to the new location
@@ -1314,9 +1572,67 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	@Deprecated
-	public void fixLegacyUserAssetStructure(String appId, boolean isAsset) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void fixLegacyUserAssetStructure(String legacyAppId, boolean isAsset) throws IOException, InterruptedException {
+		String sharedRCloneConfig = null;
+		String legacyStorageUserAssetWorkspaceFolder = legacyAppId;
+		String legacyStorageSmssFolder = legacyAppId + SMSS_POSTFIX;
 		
+		try {
+			// List the smss directory to get the alias + app id
+			List<String> results = storageEngine.list(legacyStorageSmssFolder, sharedRCloneConfig);
+			String storageSmssFileName = null;
+			boolean foundSmss = false;
+			for (String result : results) {
+				if (result.endsWith(".smss")) {
+					storageSmssFileName = result;
+					foundSmss = true;
+					break;
+				}
+			}
+		
+			if (!foundSmss) {
+				// IF STILL NOT FOUND... CANT HELP YOU
+				throw new IOException("Failed to pull legacy user asset/workspace with with id " + legacyAppId);
+			}
+			String aliasAndAppId = storageSmssFileName.replaceAll(".smss", "");
+			String localUserAssetWorkspaceFolder = USER_FOLDER + FILE_SEPARATOR + aliasAndAppId;
+			File localUserAssetWorkspaceF = new File(localUserAssetWorkspaceFolder);
+			if(!localUserAssetWorkspaceF.exists() || !localUserAssetWorkspaceF.isDirectory()) {
+				localUserAssetWorkspaceF.mkdirs();
+			}
+			
+			classLogger.info("Pulling legacy user asset/workspace from remote=" + Utility.cleanLogString(legacyStorageUserAssetWorkspaceFolder) + " to target=" + Utility.cleanLogString(localUserAssetWorkspaceFolder));
+			storageEngine.syncStorageToLocal(legacyStorageUserAssetWorkspaceFolder, localUserAssetWorkspaceFolder);
+			classLogger.debug("Done pulling legacy user asset/workspace from remote=" + Utility.cleanLogString(legacyStorageUserAssetWorkspaceFolder) + " to target=" + Utility.cleanLogString(localUserAssetWorkspaceFolder));
+
+			// Now pull the smss
+			classLogger.info("Pulling smss from remote=" + legacyStorageSmssFolder + " to target=" + USER_FOLDER);
+			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
+			storageEngine.copyToLocal(legacyStorageSmssFolder, USER_FOLDER);
+			classLogger.debug("Done pulling from remote=" + legacyStorageSmssFolder + " to target=" + USER_FOLDER);
+			
+
+			LegacyToProjectRestructurerHelper fixer = new LegacyToProjectRestructurerHelper();
+			fixer.init();
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String dbDir = baseFolder + LegacyToProjectRestructurerHelper.ENGINE_DIRECTORY;
+			String userDir = baseFolder + LegacyToProjectRestructurerHelper.USER_DIRECTORY;
+			fixer.userCopyDataToNewFolderStructure(aliasAndAppId, userDir, dbDir, WorkspaceAssetUtils.isAssetProject(legacyAppId));
+			
+			// only load the project
+			Utility.loadProject(userDir + "/" + storageSmssFileName, Utility.loadProperties(userDir + "/" + storageSmssFileName));
+
+			// now push the project into the right locations
+			pushUserAssetOrWorkspace(legacyAppId, isAsset);
+		} finally {
+			if(sharedRCloneConfig != null) {
+				try {
+					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+				} catch(Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 	}
 	
 	@Override

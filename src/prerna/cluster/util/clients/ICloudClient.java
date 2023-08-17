@@ -105,22 +105,22 @@ public interface ICloudClient {
 	/**
 	 * 
 	 * @param databaseId
-	 * @param absolutePath
-	 * @param remoteRelativePath
+	 * @param localAbsoluteFilePath
+	 * @param storageRelativePath
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushDatabaseFolder(String databaseId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+	void pushDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
 
 	/**
 	 * 
 	 * @param databaseId
-	 * @param absolutePath
-	 * @param remoteRelativePath
+	 * @param localAbsoluteFilePath
+	 * @param storageRelativePath
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullDatabaseFolder(String databaseId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+	void pullDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
 	
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -209,22 +209,22 @@ public interface ICloudClient {
 	/**
 	 * 
 	 * @param projectId
-	 * @param absolutePath
-	 * @param remoteRelativePath
+	 * @param localAbsoluteFilePath
+	 * @param storageRelativePath
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+	void pushProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
 
 	/**
 	 * 
 	 * @param projectId
-	 * @param absolutePath
-	 * @param remoteRelativePath
+	 * @param localAbsoluteFilePath
+	 * @param storageRelativePath
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+	void pullProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
 
 
 	///////////////////////////////////////////////////////////////////////////////////
