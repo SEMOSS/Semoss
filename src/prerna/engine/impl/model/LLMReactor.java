@@ -28,7 +28,10 @@ public class LLMReactor extends AbstractReactor {
 		
 		String modelId = this.keyValue.get(this.keysToGet[0]);
 		String question = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
-		String context = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
+		String context = this.keyValue.get(this.keysToGet[2]);
+		if (context != null) {
+			context = Utility.decodeURIComponent(context);
+		}
 		
 		Map paramMap = getMap();
 		IModelEngine eng = Utility.getModel(modelId);
