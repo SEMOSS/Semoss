@@ -473,7 +473,7 @@ public class InsightCacheUtility {
 				+ Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId));
 		Path relative = projectFolder.relativize( Paths.get(folderDir));
 		if(pullCloud) {
-			ClusterUtil.reactorPullProjectFolder(projectId, folderDir, relative.toString());
+			ClusterUtil.pullProjectFolder(projectId, folderDir, relative.toString());
 		}
 
 		File folder = new File(Utility.normalizePath(folderDir)); 
@@ -508,7 +508,7 @@ public class InsightCacheUtility {
 		}
 		
 		if(pullCloud) {
-			ClusterUtil.reactorPushProjectFolder(projectId, folderDir, relative.toString());
+			ClusterUtil.pushProjectFolder(projectId, folderDir, relative.toString());
 		}
 	}
 	

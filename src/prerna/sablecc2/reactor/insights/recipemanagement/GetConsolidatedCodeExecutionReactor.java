@@ -59,7 +59,7 @@ public class GetConsolidatedCodeExecutionReactor extends AbstractReactor {
 			codeDir = AssetUtility.getAssetBasePath(this.insight, null, true) + "/codeConsolidation";
 			if(this.insight.isSavedInsight()) {
 				IProject project = Utility.getProject(this.insight.getProjectId());
-				ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId()));
+				ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId()));
 			}
 			
 			File codeD = new File(codeDir);
@@ -142,7 +142,7 @@ public class GetConsolidatedCodeExecutionReactor extends AbstractReactor {
 		
 		if(write && this.insight.isSavedInsight()) {
 			IProject project = Utility.getProject(this.insight.getProjectId());
-			ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId()));
+			ClusterUtil.pushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId()));
 		}
 		
 		List<String> retCode = new ArrayList<>();

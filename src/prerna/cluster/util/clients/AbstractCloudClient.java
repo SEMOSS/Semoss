@@ -45,6 +45,7 @@ public abstract class AbstractCloudClient implements ICloudClient {
 	 * Get the cloud client for this cluster
 	 * @return
 	 */
+	@Deprecated
 	public static AbstractCloudClient getClient() {
 		if(singleton != null) {
 			return singleton;

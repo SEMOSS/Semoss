@@ -73,7 +73,7 @@ public class CopyAppRepo extends AbstractReactor {
 		
 		try {
 			String databaseId = GitConsumer.makeDatabaseFromRemote(localDatabaseName, repository, logger);
-			ClusterUtil.reactorPushDatabase(databaseId);
+			ClusterUtil.pushDatabase(databaseId);
 			if(user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for(AuthProvider ap : logins) {
