@@ -111,13 +111,13 @@ public class CreateModelEngineReactor extends AbstractReactor {
 					SecurityEngineUtils.addDatabaseOwner(modelId, user.getAccessToken(ap).getId());
 				}
 			}
+			
+			ClusterUtil.pushModel(modelId);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(model, modelId, tempSmss, smssFile);
 		}
 		
-		ClusterUtil.pushDatabase(modelId);
-
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
