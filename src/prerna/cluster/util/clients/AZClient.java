@@ -1833,7 +1833,7 @@ public class AZClient extends AbstractCloudClient {
 	}
 
 	@Override
-	public void pushStorageSmss(String projectId) throws IOException, InterruptedException {
+	public void pushStorageSmss(String storageId) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		
 	}
