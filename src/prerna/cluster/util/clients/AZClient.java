@@ -502,6 +502,12 @@ public class AZClient extends AbstractCloudClient {
 	}
 	
 	@Override
+	public void pullDatabaseSmss(String databaseId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
 	public void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
 		IDatabase engine = Utility.getDatabase(databaseId, false);
 		if (engine == null) {
