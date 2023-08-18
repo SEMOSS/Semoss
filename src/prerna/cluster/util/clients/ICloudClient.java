@@ -100,7 +100,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void deleteDatabase(String databaseId) throws Exception;
+	void deleteDatabase(String databaseId) throws IOException, InterruptedException; 
 	
 	/**
 	 * 
@@ -160,7 +160,7 @@ public interface ICloudClient {
 	 * @param projectId
 	 * @throws Exception 
 	 */
-	void pushProjectSmss(String projectId) throws Exception;
+	void pushProjectSmss(String projectId) throws IOException, InterruptedException; 
 	
 	/**
 	 * Pull only the smss file for a project
@@ -168,7 +168,7 @@ public interface ICloudClient {
 	 * @param projectId
 	 * @throws Exception
 	 */
-	void pullProjectSmss(String projectId) throws Exception;
+	void pullProjectSmss(String projectId) throws IOException, InterruptedException; 
 
 	
 	/**
@@ -190,21 +190,21 @@ public interface ICloudClient {
 	 * @param projectId
 	 * @throws Exception 
 	 */
-	void deleteProject(String projectId) throws Exception;
+	void deleteProject(String projectId) throws IOException, InterruptedException; 
 	
 	/**
 	 * 
 	 * @param projectId
 	 * @throws Exception 
 	 */
-	void pullInsightsDB(String projectId) throws Exception;
+	void pullInsightsDB(String projectId) throws IOException, InterruptedException; 
 	
 	/**
 	 * 
 	 * @param projectId
 	 * @throws Exception 
 	 */
-	void pushInsightDB(String projectId)  throws Exception;
+	void pushInsightDB(String projectId) throws IOException, InterruptedException; 
 
 	/**
 	 * 
@@ -239,7 +239,7 @@ public interface ICloudClient {
 	 * @param insightId
 	 * @throws Exception 
 	 */
-	void pushInsight(String projectId, String insightId) throws Exception;
+	void pushInsight(String projectId, String insightId) throws IOException, InterruptedException; 
 
 	/**
 	 * 
@@ -247,7 +247,7 @@ public interface ICloudClient {
 	 * @param insightId
 	 * @throws Exception 
 	 */
-	void pullInsight(String projectId, String insightId) throws Exception;
+	void pullInsight(String projectId, String insightId) throws IOException, InterruptedException; 
 
 	/**
 	 * 
@@ -257,7 +257,7 @@ public interface ICloudClient {
 	 * @param newImageFileName
 	 * @throws Exception 
 	 */
-	void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws Exception;
+	void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws IOException, InterruptedException; 
 	
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -287,6 +287,105 @@ public interface ICloudClient {
 
 	
 	///////////////////////////////////////////////////////////////////////////////////
+	
+	
+	/*
+	 * Storage
+	 */
+	
+	/**
+	 * 
+	 * @param storageId
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pushStorage(String storageId) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param storageId
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullStorage(String storageId) throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param storageId
+	 * @param storageAlreadyLoaded
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullStorage(String storageId, boolean storageAlreadyLoaded) throws IOException, InterruptedException; 
+	
+	/**
+	 * Push only the smss file for a storage
+	 * 
+	 * @param projectId
+	 * @throws Exception 
+	 */
+	void pushStorageSmss(String projectId) throws IOException, InterruptedException; 
+	
+	/**
+	 * Pull only the smss file for a storage
+	 * 
+	 * @param storageId
+	 * @throws Exception
+	 */
+	void pullStorageSmss(String storageId) throws IOException, InterruptedException; 
+
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
+	/*
+	 * Model
+	 */
+	
+	/**
+	 * 
+	 * @param modelId
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pushModel(String modelId) throws IOException, InterruptedException;
+	
+	/**
+	 * 
+	 * @param modelId
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullModel(String modelId) throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param modelId
+	 * @param modelAlreadyLoaded
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullModel(String modelId, boolean modelAlreadyLoaded) throws IOException, InterruptedException; 
+	
+	/**
+	 * Push only the smss file for a model
+	 * 
+	 * @param modelId
+	 * @throws Exception 
+	 */
+	void pushModelSmss(String modelId) throws IOException, InterruptedException; 
+	
+	/**
+	 * Pull only the smss file for a model
+	 * 
+	 * @param modelId
+	 * @throws Exception
+	 */
+	void pullModelSmss(String modelId) throws IOException, InterruptedException; 
+	
+
+	///////////////////////////////////////////////////////////////////////////////////
+
 	
 	/*
 	 * Legacy
