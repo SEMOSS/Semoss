@@ -197,6 +197,7 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("You have specified an incorrect storage provider");
 		}
 		
+		props.put(Constants.ENGINE, "CENTRAL_CLOUD_STORAGE");
 		storageEngine.open(props);
 	}
 	
