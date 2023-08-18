@@ -848,7 +848,7 @@ public class AZClient extends AbstractCloudClient {
 		String fixedCloneConfig = null;
 		try {
 			rCloneConfig = createRcloneConfig("semoss-imagecontainer");
-			fixedCloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
+			fixedCloneConfig = createRcloneConfig(CentralCloudStorage.DB_IMAGES_BLOB);
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "databases";
 			File imageFolder = new File(imagesFolderPath);
@@ -856,7 +856,7 @@ public class AZClient extends AbstractCloudClient {
 			// first pull
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+"semoss-imagecontainer", imagesFolderPath);
 			// now push into the correct folder
-			runRcloneProcess(fixedCloneConfig, "rclone", "sync", imagesFolderPath, fixedCloneConfig+":"+ClusterUtil.DB_IMAGES_BLOB);
+			runRcloneProcess(fixedCloneConfig, "rclone", "sync", imagesFolderPath, fixedCloneConfig+":"+CentralCloudStorage.DB_IMAGES_BLOB);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1659,8 +1659,8 @@ public class AZClient extends AbstractCloudClient {
 	public void pullDatabaseImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
-			rCloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
-			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rCloneConfig+":"+ClusterUtil.DB_IMAGES_BLOB);
+			rCloneConfig = createRcloneConfig(CentralCloudStorage.DB_IMAGES_BLOB);
+			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rCloneConfig+":"+CentralCloudStorage.DB_IMAGES_BLOB);
 			if(results.isEmpty()) {
 				fixLegacyImageStructure();
 				return;
@@ -1670,7 +1670,7 @@ public class AZClient extends AbstractCloudClient {
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "databases";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":"+ClusterUtil.DB_IMAGES_BLOB, imagesFolderPath);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":"+CentralCloudStorage.DB_IMAGES_BLOB, imagesFolderPath);
 		}finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1682,12 +1682,12 @@ public class AZClient extends AbstractCloudClient {
 	public void pushDatabaseImageFolder() throws IOException, InterruptedException {
 		String appRcloneConfig = null;
 		try {
-			appRcloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
+			appRcloneConfig = createRcloneConfig(CentralCloudStorage.DB_IMAGES_BLOB);
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "databases";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync",imagesFolderPath,  appRcloneConfig + ":"+ClusterUtil.DB_IMAGES_BLOB);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync",imagesFolderPath,  appRcloneConfig + ":"+CentralCloudStorage.DB_IMAGES_BLOB);
 		}finally {
 			if (appRcloneConfig != null) {
 				deleteRcloneConfig(appRcloneConfig);
@@ -1699,12 +1699,12 @@ public class AZClient extends AbstractCloudClient {
 	public void pullProjectImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
-			rCloneConfig = createRcloneConfig(ClusterUtil.PROJECT_IMAGES_BLOB);
+			rCloneConfig = createRcloneConfig(CentralCloudStorage.PROJECT_IMAGES_BLOB);
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "projects";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":"+ClusterUtil.PROJECT_IMAGES_BLOB, imagesFolderPath);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":"+CentralCloudStorage.PROJECT_IMAGES_BLOB, imagesFolderPath);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1716,12 +1716,12 @@ public class AZClient extends AbstractCloudClient {
 	public void pushProjectImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
-			rCloneConfig = createRcloneConfig(ClusterUtil.PROJECT_IMAGES_BLOB);
+			rCloneConfig = createRcloneConfig(CentralCloudStorage.PROJECT_IMAGES_BLOB);
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "projects";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig + ":"+ClusterUtil.PROJECT_IMAGES_BLOB);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig + ":"+CentralCloudStorage.PROJECT_IMAGES_BLOB);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1856,6 +1856,18 @@ public class AZClient extends AbstractCloudClient {
 		
 	}
 	
+	@Override
+	public void pullStorageImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushStorageImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	
@@ -1899,6 +1911,18 @@ public class AZClient extends AbstractCloudClient {
 		
 	}
 	
+	@Override
+	public void pullModelImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushModelImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////////////////
@@ -1914,7 +1938,7 @@ public class AZClient extends AbstractCloudClient {
 	 */
 	private String createRcloneConfig(String container) throws IOException, InterruptedException {
 		if(!(container.startsWith(DB_CONTAINER_PREFIX) || container.startsWith(PROJECT_CONTAINER_PREFIX) || container.startsWith(USER_CONTAINER_PREFIX)
-				|| container.startsWith(ClusterUtil.DB_IMAGES_BLOB) || container.startsWith(ClusterUtil.PROJECT_IMAGES_BLOB))) {
+				|| container.startsWith(CentralCloudStorage.DB_IMAGES_BLOB) || container.startsWith(CentralCloudStorage.PROJECT_IMAGES_BLOB))) {
 			classLogger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
 			classLogger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
 			classLogger.warn("Requesting SAS but haven't defined the container prefix - likely an error");
