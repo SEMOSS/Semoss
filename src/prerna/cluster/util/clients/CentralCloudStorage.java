@@ -1257,9 +1257,26 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pushStorageSmss(String projectId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+	public void pushStorageSmss(String storageId) throws IOException, InterruptedException {
+		// We need to push the file alias__storageId.smss
+		String storageName = SecurityEngineUtils.getEngineAliasForId(storageId);
+		String aliasAndStorageId = SmssUtilities.getUniqueName(storageName, storageId);
+		String localSmssFileName = SmssUtilities.getUniqueName(storageName, storageId) + ".smss";
+		String localSmssFilePath = Utility.normalizePath(STORAGE_FOLDER + FILE_SEPARATOR + localSmssFileName);
 		
+		String storageSmssFolder = STORAGE_CONTAINER_PREFIX + storageId + SMSS_POSTFIX;
+
+		// synchronize on the app id
+		classLogger.info("Applying lock for " + aliasAndStorageId + " to push storage");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(storageId);
+		lock.lock();
+		classLogger.info("Storage " + aliasAndStorageId + " is locked");
+		try {
+			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+		} finally {
+			lock.unlock();
+			classLogger.info("Storage " + aliasAndStorageId + " is unlocked");
+		}
 	}
 
 	@Override
@@ -1293,8 +1310,25 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pushModelSmss(String modelId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		// We need to push the file alias__appId.smss
+		String modelName = SecurityEngineUtils.getEngineAliasForId(modelId);
+		String aliasAndModelId = SmssUtilities.getUniqueName(modelName, modelId);
+		String localSmssFileName = SmssUtilities.getUniqueName(modelName, modelId) + ".smss";
+		String localSmssFilePath = Utility.normalizePath(MODEL_FOLDER + FILE_SEPARATOR + localSmssFileName);
 		
+		String storageSmssFolder = MODEL_CONTAINER_PREFIX + modelId + SMSS_POSTFIX;
+
+		// synchronize on the app id
+		classLogger.info("Applying lock for " + aliasAndModelId + " to push model");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(modelId);
+		lock.lock();
+		classLogger.info("Model " + aliasAndModelId + " is locked");
+		try {
+			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+		} finally {
+			lock.unlock();
+			classLogger.info("Model " + aliasAndModelId + " is unlocked");
+		}
 	}
 
 	@Override
