@@ -65,6 +65,14 @@ public interface ICloudClient {
 	void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException;
 	
 	/**
+	 * Pull only the SMSS file for a database
+	 * 
+	 * @param databaseId
+	 * @throws Exception 
+	 */
+	void pullDatabaseSmss(String databaseId) throws IOException, InterruptedException;
+	
+	/**
 	 * 
 	 * @param databaseId
 	 * @throws IOException
