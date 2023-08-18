@@ -41,7 +41,6 @@
       <outputDirectory>model</outputDirectory>
     </fileSet>
     <fileSet>
-    <fileSet>
       <directory>project</directory>
       <outputDirectory>project</outputDirectory>
     </fileSet>
