@@ -16,6 +16,8 @@ import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.api.IStorage;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
@@ -227,7 +229,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 		DATABASE_TYPE databaseType = database.getDatabaseType();
 
-		// We need to push the folder alias__appId and the file alias__appId.smss
+		// We need to push the folder alias__databaseId and the file alias__databaseId.smss
 		String databaseName = null;
 		if (databaseType == DATABASE_TYPE.APP){
 			databaseName = database.getEngineName();
@@ -245,7 +247,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
 		String storageSmssFolder = DB_CONTAINER_PREFIX + databaseId + SMSS_POSTFIX;
 
-		// synchronize on the app id
+		// synchronize on the engine id
 		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to push database");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
@@ -287,14 +289,14 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("Database not found...");
 		}
 		
-		// We need to push the folder alias__appId and the file alias__appId.smss
+		// We need to push the folder alias__databaseId and the file alias__databaseId.smss
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localDatabaseFolder = DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
 		
 		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
 		
-		// synchronize on the app id
+		// synchronize on the engine id
 		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to push db file");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
@@ -351,7 +353,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 		String sharedRCloneConfig = null;
 
-		// synchronize on the app id
+		// synchronize on the engine id
 		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to push database");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
@@ -413,13 +415,13 @@ public class CentralCloudStorage implements ICloudClient {
 				database.close();
 			}
 
-			// Make the app directory (if it doesn't already exist)
+			// Make the database directory (if it doesn't already exist)
 			File localDatabaseF = new File(Utility.normalizePath(localDatabaseFolder));
 			if(!localDatabaseF.exists() || !localDatabaseF.isDirectory()) {
 				localDatabaseF.mkdirs(); 
 			}
 
-			// Pull the contents of the app folder before the smss
+			// Pull the contents of the database folder before the smss
 			classLogger.info("Pulling database from remote=" + Utility.cleanLogString(aliasAndDatabaseId) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
 			storageEngine.syncStorageToLocal(storageDatabaseFolder, localDatabaseFolder, sharedRCloneConfig);
 			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(aliasAndDatabaseId) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
@@ -470,7 +472,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 		String sharedRCloneConfig = null;
 
-		// synchronize on the app id
+		// synchronize on the engine id
 		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to pull database file");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
@@ -515,7 +517,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pushDatabaseSmss(String databaseId) throws IOException, InterruptedException {
-		// We need to push the file alias__appId.smss
+		// We need to push the file alias__databaseId.smss
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localSmssFileName = SmssUtilities.getUniqueName(databaseName, databaseId) + ".smss";
@@ -523,13 +525,34 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String storageSmssFolder = DB_CONTAINER_PREFIX + databaseId + SMSS_POSTFIX;
 
-		// synchronize on the app id
+		// synchronize on the engine id
 		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to push database");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
 		try {
 			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+		} finally {
+			lock.unlock();
+			classLogger.info("Database " + aliasAndDatabaseId + " is unlocked");
+		}
+	}
+	
+	@Override
+	public void pullDatabaseSmss(String databaseId) throws IOException, InterruptedException {
+		// We need to push the file alias__databaseId.smss
+		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
+		
+		String storageSmssFolder = DB_CONTAINER_PREFIX + databaseId + SMSS_POSTFIX;
+
+		// synchronize on the engine id
+		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to push database smss");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
+		lock.lock();
+		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
+		try {
+			storageEngine.copyToLocal(storageSmssFolder, DATABASE_FOLDER);
 		} finally {
 			lock.unlock();
 			classLogger.info("Database " + aliasAndDatabaseId + " is unlocked");
@@ -543,7 +566,6 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("Database not found...");
 		}
 		
-		// We need to push the file alias__appId.smss
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		File localOwlF = SmssUtilities.getOwlFile(database.getSmssProp());
@@ -555,7 +577,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 		String sharedRCloneConfig = null;
 
-		// synchronize on the app id
+		// synchronize on the engine id
 		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to push database owl and postions.json");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
@@ -596,7 +618,6 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("Database not found...");
 		}
 		
-		// We need to push the file alias__appId.smss
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localDatabaseFolder = DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
@@ -611,7 +632,7 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String sharedRCloneConfig = null;
 
-		// synchronize on the app id
+		// synchronize on the engine id
 		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to pull database owl and postions.json");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
 		lock.lock();
@@ -702,7 +723,7 @@ public class CentralCloudStorage implements ICloudClient {
 	public void pushDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
 		IDatabase database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
-			throw new IllegalArgumentException("App not found...");
+			throw new IllegalArgumentException("Database not found...");
 		}
 		
 		if(storageRelativePath != null) {
@@ -792,7 +813,7 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("Project not found...");
 		}
 
-		// We need to push the folder alias__appId and the file alias__appId.smss
+		// We need to push the folder alias__projectId and the file alias__projectId.smss
 		String alias = project.getProjectName();
 		if(alias == null) {
 			alias = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -853,7 +874,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		}
 
-		// We need to push the folder alias__appId and the file alias__appId.smss
+		// We need to push the folder alias__projectId and the file alias__projectId.smss
 		String alias = project.getProjectName();
 		if(alias == null) {
 			alias = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -905,7 +926,7 @@ public class CentralCloudStorage implements ICloudClient {
 	
 	@Override
 	public void pushProjectSmss(String projectId) throws IOException, InterruptedException {
-		// We need to push the file alias__appId.smss
+		// We need to push the file alias__projectId.smss
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
 		String localSmssFileName = SmssUtilities.getUniqueName(projectName, projectId) + ".smss";
@@ -913,7 +934,7 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
-		// synchronize on the app id
+		// synchronize on the project id
 		classLogger.info("Applying lock for " + aliasAndProjectId + " to push project smss");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
@@ -928,13 +949,13 @@ public class CentralCloudStorage implements ICloudClient {
 	
 	@Override
 	public void pullProjectSmss(String projectId) throws IOException, InterruptedException {
-		// We need to push the file alias__appId.smss
+		// We need to push the file alias__projectId.smss
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
 		
 		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
-		// synchronize on the app id
+		// synchronize on the project id
 		classLogger.info("Applying lock for " + aliasAndProjectId + " to push project smss");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
@@ -995,7 +1016,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String insightDbFileName = getInsightDB(project, localProjectFolder);
 
 		String storageProjectInsightFilePath = PROJECT_CONTAINER_PREFIX + projectId + "/" + insightDbFileName;
-		// synchronize on the app id
+		// synchronize on the project id
 		classLogger.info("Applying lock for " + aliasAndProjectId + " to pull insights db");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
@@ -1036,7 +1057,7 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
 		
-		// synchronize on the app id
+		// synchronize on the project id
 		classLogger.info("Applying lock for " + aliasAndProjectId + " to pull insights db");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
@@ -1254,8 +1275,45 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullStorage(String storageId, boolean storageAlreadyLoaded) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		IStorage storage = null;
+		if (storageAlreadyLoaded) {
+			storage = Utility.getStorage(storageId, false);
+			if (storage == null) {
+				throw new IllegalArgumentException("Storage not found...");
+			}
+		}
+
+		// We need to push the file alias__storageId.smss
+		String storageName = SecurityEngineUtils.getEngineAliasForId(storageId);
+		String aliasAndStorageId = SmssUtilities.getUniqueName(storageName, storageId);
+		String localSmssFileName = SmssUtilities.getUniqueName(storageName, storageId) + ".smss";
+		String localSmssFilePath = Utility.normalizePath(STORAGE_FOLDER + FILE_SEPARATOR + localSmssFileName);
 		
+		String storageSmssFolder = STORAGE_CONTAINER_PREFIX + storageId + SMSS_POSTFIX;
+
+		// synchronize on the engine id
+		classLogger.info("Applying lock for " + aliasAndStorageId + " to push database");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(storageId);
+		lock.lock();
+		classLogger.info("Storage "+ aliasAndStorageId + " is locked");
+		
+		try {
+			if(storage != null) {
+				DIHelper.getInstance().removeEngineProperty(storageId);
+				storage.close();
+			}
+			storageEngine.copyToLocal(storageSmssFolder, STORAGE_FOLDER);
+		} finally {
+			try {
+				// Re-open the storage
+				Utility.getStorage(storageId, false);
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Storage "+ aliasAndStorageId + " is unlocked");
+		}
 	}
 
 	@Override
@@ -1268,7 +1326,7 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String storageSmssFolder = STORAGE_CONTAINER_PREFIX + storageId + SMSS_POSTFIX;
 
-		// synchronize on the app id
+		// synchronize on the storage id
 		classLogger.info("Applying lock for " + aliasAndStorageId + " to push storage");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(storageId);
 		lock.lock();
@@ -1283,8 +1341,23 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullStorageSmss(String storageId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		// We need to push the file alias__storageId.smss
+		String storageName = SecurityEngineUtils.getEngineAliasForId(storageId);
+		String aliasAndStorageId = SmssUtilities.getUniqueName(storageName, storageId);
 		
+		String storageSmssFolder = STORAGE_CONTAINER_PREFIX + storageId + SMSS_POSTFIX;
+
+		// synchronize on the storage id
+		classLogger.info("Applying lock for " + aliasAndStorageId + " to push storage smss");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(storageId);
+		lock.lock();
+		classLogger.info("Storage " + aliasAndStorageId + " is locked");
+		try {
+			storageEngine.copyToLocal(storageSmssFolder, STORAGE_FOLDER);
+		} finally {
+			lock.unlock();
+			classLogger.info("Storage " + aliasAndStorageId + " is unlocked");
+		}
 	}
 	
 	@Override
@@ -1319,8 +1392,45 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullModel(String modelId, boolean modelAlreadyLoaded) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		IModelEngine model = null;
+		if (modelAlreadyLoaded) {
+			model = Utility.getModel(modelId, false);
+			if (model == null) {
+				throw new IllegalArgumentException("Model not found...");
+			}
+		}
+
+		// We need to push the file alias__storageId.smss
+		String modelName = SecurityEngineUtils.getEngineAliasForId(modelId);
+		String aliasAndModelId = SmssUtilities.getUniqueName(modelName, modelId);
+		String localSmssFileName = SmssUtilities.getUniqueName(modelName, modelId) + ".smss";
+		String localSmssFilePath = Utility.normalizePath(STORAGE_FOLDER + FILE_SEPARATOR + localSmssFileName);
 		
+		String modelSmssFolder = MODEL_CONTAINER_PREFIX + modelId + SMSS_POSTFIX;
+
+		// synchronize on the model id
+		classLogger.info("Applying lock for " + aliasAndModelId + " to push database");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(modelId);
+		lock.lock();
+		classLogger.info("Storage "+ aliasAndModelId + " is locked");
+		
+		try {
+			if(model != null) {
+				DIHelper.getInstance().removeEngineProperty(modelId);
+				model.close();
+			}
+			storageEngine.copyToLocal(modelSmssFolder, MODEL_FOLDER);
+		} finally {
+			try {
+				// Re-open the model
+				Utility.getModel(modelId, false);
+			} catch(Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Model "+ aliasAndModelId + " is unlocked");
+		}
 	}
 
 	@Override
@@ -1333,7 +1443,7 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String storageSmssFolder = MODEL_CONTAINER_PREFIX + modelId + SMSS_POSTFIX;
 
-		// synchronize on the app id
+		// synchronize on the model id
 		classLogger.info("Applying lock for " + aliasAndModelId + " to push model");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(modelId);
 		lock.lock();
@@ -1348,8 +1458,23 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullModelSmss(String modelId) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		// We need to push the file alias__modelId.smss
+		String modelName = SecurityEngineUtils.getEngineAliasForId(modelId);
+		String aliasAndModelId = SmssUtilities.getUniqueName(modelName, modelId);
 		
+		String storageSmssFolder = STORAGE_CONTAINER_PREFIX + modelId + SMSS_POSTFIX;
+
+		// synchronize on the engine id
+		classLogger.info("Applying lock for " + aliasAndModelId + " to push model smss");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(modelId);
+		lock.lock();
+		classLogger.info("Model " + aliasAndModelId + " is locked");
+		try {
+			storageEngine.copyToLocal(storageSmssFolder, MODEL_FOLDER);
+		} finally {
+			lock.unlock();
+			classLogger.info("Model " + aliasAndModelId + " is unlocked");
+		}
 	}
 	
 	@Override
@@ -1382,7 +1507,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		}
 
-		// We need to push the folder alias__appId and the file alias__appId.smss
+		// We need to push the folder alias__projectId and the file alias__projectId.smss
 		String alias = project.getProjectName();
 
 		String aliasAndUserAssetWorkspaceId = alias + "__" + projectId;
@@ -1438,7 +1563,7 @@ public class CentralCloudStorage implements ICloudClient {
 					project.close();
 				}
 
-				// Make the app directory (if it doesn't already exist)
+				// Make the user asset/workspace directory (if it doesn't already exist)
 				File localUserAndAssetF = new File(localUserAndAssetFolder);
 				if(!localUserAndAssetF.exists() || !localUserAndAssetF.isDirectory()) {
 					localUserAndAssetF.mkdir(); 
@@ -1478,7 +1603,7 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("User asset/workspace project not found...");
 		}
 
-		// We need to push the folder alias__appId and the file alias__appId.smss
+		// We need to push the folder alias__projectId and the file alias__projectId.smss
 		String alias = project.getProjectName();
 		String aliasAndUserAssetWorkspaceId = alias + "__" + projectId;
 		String localUserAssetWorkspaceFolder = USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetWorkspaceId;

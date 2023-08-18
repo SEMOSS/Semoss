@@ -540,6 +540,12 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			}
 		}
 	}
+	
+	@Override
+	public void pullDatabaseSmss(String databaseId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public void pullDatabase(String databaseId) throws IOException, InterruptedException {
