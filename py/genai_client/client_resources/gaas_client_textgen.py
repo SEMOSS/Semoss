@@ -3,6 +3,7 @@ from text_generation import Client
 import requests
 from genai_client.client_resources.gaas_client_base import BaseClient
 import inspect
+from string import Template
 
 class TextGenClient(BaseClient):
   params = list(inspect.signature(Client.generate).parameters.keys())[1:]
@@ -27,13 +28,17 @@ class TextGenClient(BaseClient):
     prompt = ""
     
     # TODO try to clean this up
-    # attempt to pull in the context
     content = []
+
+    # attempt to pull in the context
+    mapping = {"question": question} | kwargs
     if context != None:
+       # check if we have to fill the content/template passed in by the user
+       context = self.fill_context(context, **mapping)
        content = [context,'\n']
     else:
       if template_name != None:
-        possibleContent = self.get_template(template_name=template_name)
+        possibleContent = self.fill_template(template_name=template_name, **mapping)
         if possibleContent != None:
            content = [possibleContent,'\n']
 
@@ -55,11 +60,11 @@ class TextGenClient(BaseClient):
     # join all the inputs into a single string
     prompt = "".join(content)
 
-    #print(prompt)
+    print(prompt)
     
     # ask the question and apply the additional params
     response = self.client.generate(prompt, **kwargs)
-    return response.generated_text
+    return response.generated_text.strip()
 
   def get_available_models(self)->list:
     if len(self.available_models) == 0:

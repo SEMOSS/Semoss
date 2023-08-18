@@ -39,13 +39,16 @@ class BaseClient():
     with open(template_file, 'w') as f:
       json.dump(self.templates, f)
       
-  def fill_template(self, template_name=None, **args):
+  def fill_template(self, template_name=None, **kwargs):
     assert template_name is not None
     this_template = self.get_template(template_name)
     if this_template is not None:
-      template = Template(this_template)
-      #mapping = {'name': 'John Doe', 'site': 'StackAbuse.com'}
-      output = template.substitute(**args)
-      return output
+      return self.fill_context(this_template, **kwargs)
     else:
       return None
+  
+  # not, kwargs here is just a dictionary -- not a dictionary construction
+  def fill_context(self, theContext, **kwargs):
+    template = Template(theContext)
+    output = template.substitute(**kwargs)
+    return output
