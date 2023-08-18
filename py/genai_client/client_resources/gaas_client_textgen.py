@@ -22,6 +22,7 @@ class TextGenClient(BaseClient):
           context:str=None,
           history:list=[],
           template_name:str=None,
+          max_new_tokens:int=100,
           **kwargs:dict
           )->str:
     # start the prompt as an empty string
@@ -73,10 +74,10 @@ class TextGenClient(BaseClient):
 
     # join all the inputs into a single string
     prompt = "".join(content)
-    
+    print(prompt)
     # ask the question and apply the additional params
-    response = self.client.generate(prompt, **kwargs)
-    return response.generated_text.strip()
+    responses = self.client.generate_stream(prompt, max_new_tokens=max_new_tokens, **kwargs)
+    return ''.join(response.token.text for response in responses)
 
   def get_available_models(self)->list:
     if len(self.available_models) == 0:
