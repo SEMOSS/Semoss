@@ -148,9 +148,9 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				}
 			}
 			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("'")) {
-				rClonePath = "'"+rClonePath+"'";
-			}
+//			if(!rClonePath.startsWith("'")) {
+//				rClonePath = "'"+rClonePath+"'";
+//			}
 			List<String> results = runRcloneProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
 			return results;
 		} finally {
@@ -184,9 +184,9 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				}
 			}
 			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("'")) {
-				rClonePath = "'"+rClonePath+"'";
-			}
+//			if(!rClonePath.startsWith("'")) {
+//				rClonePath = "'"+rClonePath+"'";
+//			}
 			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, RCLONE, "lsjson", rClonePath, "--max-depth=1");
 			return results;
 		} finally {
@@ -224,13 +224,13 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			rClonePath += storagePath;
 			
 			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("'")) {
-				rClonePath = "'"+rClonePath+"'";
-			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!localPath.startsWith("'")) {
-				localPath = "'"+localPath+"'";
-			}
+//			if(!rClonePath.startsWith("'")) {
+//				rClonePath = "'"+rClonePath+"'";
+//			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!localPath.startsWith("'")) {
+//				localPath = "'"+localPath+"'";
+//			}
 			runRcloneTransferProcess(rCloneConfig, RCLONE, "sync", localPath, rClonePath);
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -268,13 +268,13 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			rClonePath += storagePath;
 			
 			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("'")) {
-				rClonePath = "'"+rClonePath+"'";
-			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!localPath.startsWith("'")) {
-				localPath = "'"+localPath+"'";
-			}
+//			if(!rClonePath.startsWith("'")) {
+//				rClonePath = "'"+rClonePath+"'";
+//			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!localPath.startsWith("'")) {
+//				localPath = "'"+localPath+"'";
+//			}
 			runRcloneTransferProcess(rCloneConfig, RCLONE, "sync", rClonePath, localPath);
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -310,14 +310,14 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			}
 			rClonePath += storageFolderPath;
 			
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("'")) {
-				rClonePath = "'"+rClonePath+"'";
-			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!localFilePath.startsWith("'")) {
-				localFilePath = "'"+localFilePath+"'";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("'")) {
+//				rClonePath = "'"+rClonePath+"'";
+//			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!localFilePath.startsWith("'")) {
+//				localFilePath = "'"+localFilePath+"'";
+//			}
 			runRcloneTransferProcess(rCloneConfig, RCLONE, "copy", localFilePath, rClonePath);
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -353,14 +353,14 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			}
 			rClonePath += storageFilePath;
 	
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("'")) {
-				rClonePath = "'"+rClonePath+"'";
-			}
-			// wrap in quotes just in case of spaces, etc.
-			if(!localFolderPath.startsWith("'")) {
-				localFolderPath = "'"+localFolderPath+"'";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("'")) {
+//				rClonePath = "'"+rClonePath+"'";
+//			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!localFolderPath.startsWith("'")) {
+//				localFolderPath = "'"+localFolderPath+"'";
+//			}
 			runRcloneTransferProcess(rCloneConfig, RCLONE, "copy", rClonePath, localFolderPath);
 		} finally {
 			if(delete && rCloneConfig != null) {
@@ -392,10 +392,10 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			}
 			rClonePath += storagePath;
 	
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("'")) {
-				rClonePath = "'"+rClonePath+"'";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("'")) {
+//				rClonePath = "'"+rClonePath+"'";
+//			}
 			
 			if(leaveFolderStructure) {
 				// always do delete
@@ -440,10 +440,10 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			}
 			rClonePath += storageFolderPath;
 	
-			// wrap in quotes just in case of spaces, etc.
-			if(!rClonePath.startsWith("'")) {
-				rClonePath = "'"+rClonePath+"'";
-			}
+//			// wrap in quotes just in case of spaces, etc.
+//			if(!rClonePath.startsWith("'")) {
+//				rClonePath = "'"+rClonePath+"'";
+//			}
 			
 			runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "purge", rClonePath);
 		} finally {
