@@ -126,16 +126,16 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		
 		// we have to pull the insight assets in case those changed since we last opened the insight
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId), rdbmsId);
+		ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId), rdbmsId);
 		Insight newInsight = null;
 		try {
 			newInsight = SecurityInsightUtils.getInsight(projectId, rdbmsId);
 		} catch (Exception e) {
 			logger.warn(Constants.STACKTRACE, e);
 			logger.info("Pulling project from cloud storage, projectId=" + projectId);
-			ClusterUtil.reactorPullInsightsDB(projectId);
+			ClusterUtil.pullInsightsDB(projectId);
 			// this is needed for the pipeline json
-			ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
+			ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 			try {
 				List<Insight> in = project.getInsight(rdbmsId + "");
 				newInsight = in.get(0);
@@ -280,7 +280,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 							+ DIR_SEPARATOR + "project"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), projectId));
 					String cacheFolder = InsightCacheUtility.getInsightCacheFolderPath(newInsight, paramValues);
 					Path relative = projectFolder.relativize( Paths.get(Utility.normalizePath(cacheFolder)));
-					ClusterUtil.reactorPushProjectFolder(projectId, cacheFolder, relative.toString());
+					ClusterUtil.pushProjectFolder(projectId, cacheFolder, relative.toString());
 				} catch(InsightEncryptionException e) {
 					additionalMetas.add(NounMetadata.getWarningNounMessage(e.getMessage()));
 					classLogger.error(Constants.STACKTRACE, e);

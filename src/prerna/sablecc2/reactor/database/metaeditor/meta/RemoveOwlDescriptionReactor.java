@@ -31,7 +31,7 @@ public class RemoveOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		String description = this.keyValue.get(this.keysToGet[3]);
 		
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
 			physicalUri = database.getPhysicalUriFromPixelSelector(concept);
@@ -52,7 +52,7 @@ public class RemoveOwlDescriptionReactor extends AbstractMetaEditorReactor {
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed descriptions : " + description, 

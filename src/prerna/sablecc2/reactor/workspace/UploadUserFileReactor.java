@@ -91,7 +91,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 
 		try {
 			FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + DIR_SEPARATOR + relativeFilePath + DIR_SEPARATOR + uploadedFile.getName()));
-			ClusterUtil.reactorPushDatabase(assetProjectId);
+			ClusterUtil.pushDatabase(assetProjectId);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Unable to copy file");

@@ -76,19 +76,18 @@ public class CommitAssetReactor extends AbstractReactor {
 				AuthProvider provider = user.getPrimaryLogin();
 				String projectId = user.getAssetProjectId(provider);
 				if(projectId!=null && !(projectId.isEmpty())) {
-					IProject project = Utility.getUserAssetWorkspaceProject(projectId, true);
-					ClusterUtil.reactorPushUserWorkspace(project, true);
+					ClusterUtil.pushUserWorkspace(projectId, true);
 				}
 			}
 		} else {
 			// if space is null or it is in the insight, push using insight id to get engine
 			if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
 				IProject project = Utility.getProject(this.insight.getProjectId());
-				ClusterUtil.reactorPushProjectFolder(project, assetFolder);
+				ClusterUtil.pushProjectFolder(project, assetFolder);
 			} else {
 				// this is a project asset. space is the projectId
 				IProject project = Utility.getProject(space);
-				ClusterUtil.reactorPushProjectFolder(project, assetFolder);
+				ClusterUtil.pushProjectFolder(project, assetFolder);
 			}
 		}
 

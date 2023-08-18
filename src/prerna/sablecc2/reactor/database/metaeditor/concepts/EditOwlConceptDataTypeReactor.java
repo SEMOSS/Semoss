@@ -45,7 +45,7 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 		String newAdditionalDataType = this.keyValue.get(this.keysToGet[3]);
 
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 
 		String conceptPhysicalURI = database.getPhysicalUriFromPixelSelector(concept);
@@ -83,7 +83,7 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully edited data type of " + concept + " to " + newDataType, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

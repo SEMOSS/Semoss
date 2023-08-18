@@ -32,7 +32,7 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String[] logicalNames = getLogicalNames();
 		
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
 			physicalUri = database.getPhysicalUriFromPixelSelector(concept);
@@ -52,7 +52,7 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

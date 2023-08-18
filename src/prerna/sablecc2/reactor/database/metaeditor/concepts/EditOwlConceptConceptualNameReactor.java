@@ -48,7 +48,7 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 		String newPixelURI = "http://semoss.org/ontologies/Concept/" + newPixelName;
 
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 
 		// make sure this name isn't currently present in the engine
@@ -91,7 +91,7 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully edited concept name from " + concept + " to " + newPixelName, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

@@ -35,7 +35,7 @@ public class PullProjectFolderFromCloudReactor extends AbstractReactor {
 		
 		IProject project = Utility.getProject(projectId);
 		String projectFolderPath = AssetUtility.getProjectBaseFolder(project.getProjectName(), projectId).replace("\\", "/");
-		ClusterUtil.reactorPullProjectFolder(project, projectFolderPath);
+		ClusterUtil.pullProjectFolder(project, projectFolderPath);
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}

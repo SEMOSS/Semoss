@@ -1593,6 +1593,12 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		
 	}
 	
+	@Override
+	public void deleteStorage(String storageId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	
@@ -1626,6 +1632,12 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 	@Override
 	public void pullModelSmss(String modelId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public void deleteModel(String modelId) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		
 	}
