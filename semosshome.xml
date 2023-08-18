@@ -33,6 +33,23 @@
       </includes>
     </fileSet>
     <fileSet>
+      <directory>storage</directory>
+      <outputDirectory>storage</outputDirectory>
+    </fileSet>
+   <fileSet>
+      <directory>model</directory>
+      <outputDirectory>model</outputDirectory>
+    </fileSet>
+    <fileSet>
+    <fileSet>
+      <directory>project</directory>
+      <outputDirectory>project</outputDirectory>
+    </fileSet>
+    <fileSet>
+      <directory>user</directory>
+      <outputDirectory>user</outputDirectory>
+    </fileSet>
+    <fileSet>
       <directory>export</directory>
       <outputDirectory>export</outputDirectory>
       <includes>
@@ -77,14 +94,6 @@
     <fileSet>
       <directory>upload</directory>
       <outputDirectory>upload</outputDirectory>
-    </fileSet>
-    <fileSet>
-      <directory>project</directory>
-      <outputDirectory>project</outputDirectory>
-    </fileSet>
-    <fileSet>
-      <directory>user</directory>
-      <outputDirectory>user</outputDirectory>
     </fileSet>
     <fileSet>
       <directory>WordNet-3.1</directory>
