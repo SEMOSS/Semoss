@@ -2410,7 +2410,7 @@ public class Utility {
 		String rawType = smssProp.get(Constants.ENGINE_TYPE).toString();
 		try {
 			IEngine emptyClass = (IEngine) Class.forName(rawType).newInstance();
-			engineType = emptyClass.getCatalogType(smssProp);
+			engineType = emptyClass.getCatalogType();
 			if(emptyClass instanceof IDatabase) {
 				syncToLocalMaster = true;
 			}
