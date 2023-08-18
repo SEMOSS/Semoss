@@ -349,6 +349,16 @@ public interface ICloudClient {
 	 */
 	void deleteStorage(String storageId) throws IOException, InterruptedException; 
 
+	/**
+	 * 
+	 */
+	void pullStorageImageFolder() throws IOException, InterruptedException; 
+	
+	
+	/**
+	 * 
+	 */
+	void pushStorageImageFolder() throws IOException, InterruptedException; 
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	
@@ -404,6 +414,16 @@ public interface ICloudClient {
 	 * @throws Exception
 	 */
 	void deleteModel(String modelId) throws IOException, InterruptedException; 
+	
+	/**
+	 * 
+	 */
+	void pullModelImageFolder() throws IOException, InterruptedException; 
+	
+	/**
+	 * 
+	 */
+	void pushModelImageFolder() throws IOException, InterruptedException; 
 	
 	///////////////////////////////////////////////////////////////////////////////////
 
