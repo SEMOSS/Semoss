@@ -15,7 +15,7 @@ SMSSStorageWatcher	prerna.util.SMSSStorageWatcher
 SMSSStorageWatcher_DIR	C:\\workspace\\Semoss_Dev\\storage
 SMSSStorageWatcher_EXT	.smss
 
-SMSSModelWatcher	prerna.util.SMSSWebWatcher
+SMSSModelWatcher	prerna.util.SMSSModelWatcher
 SMSSModelWatcher_DIR	C:\\workspace\\Semoss_Dev\\model
 SMSSModelWatcher_EXT	.smss
 
