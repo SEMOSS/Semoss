@@ -334,6 +334,13 @@ public interface ICloudClient {
 	 */
 	void pullStorageSmss(String storageId) throws IOException, InterruptedException; 
 
+	/**
+	 * 
+	 * @param storageId
+	 * @throws Exception
+	 */
+	void deleteStorage(String storageId) throws IOException, InterruptedException; 
+
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	
@@ -383,7 +390,13 @@ public interface ICloudClient {
 	 */
 	void pullModelSmss(String modelId) throws IOException, InterruptedException; 
 	
-
+	/**
+	 * 
+	 * @param modelId
+	 * @throws Exception
+	 */
+	void deleteModel(String modelId) throws IOException, InterruptedException; 
+	
 	///////////////////////////////////////////////////////////////////////////////////
 
 	
@@ -430,5 +443,6 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void deleteContainer(String containerId) throws IOException, InterruptedException; 
+	void deleteContainer(String containerId) throws IOException, InterruptedException;
+
 }

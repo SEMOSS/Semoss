@@ -31,7 +31,7 @@ public class ReloadDatabaseOwlReactor extends AbstractMetaEditorReactor {
 		databaseId = testDatabaseId(databaseId, true);
 
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		RDFFileSesameEngine oldOwlEngine = database.getBaseDataEngine();
 		// load a new owl engine from the file
 		RDFFileSesameEngine updatedOwlEngine = loadOwlEngineFile(databaseId);
@@ -43,7 +43,7 @@ public class ReloadDatabaseOwlReactor extends AbstractMetaEditorReactor {
 			oldOwlEngine.close();
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully reloaded database owl", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

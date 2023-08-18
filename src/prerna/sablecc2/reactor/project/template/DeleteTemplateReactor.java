@@ -29,9 +29,9 @@ public class DeleteTemplateReactor extends AbstractReactor {
 		String templateName = this.keyValue.get(ReactorKeysEnum.TEMPLATE_NAME.getKey());
 		
 		IProject project = Utility.getProject(projectId);
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		Map<String, String> templateDataMap = TemplateUtility.deleteTemplate(projectId, templateFile, templateName);
-		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.pushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 
 		// returning back the updated template information which will contain all the template
 		// information with template name as key and file name as the value

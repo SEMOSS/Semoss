@@ -10,7 +10,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.DeleteAppRunner;
+import prerna.cluster.util.DeleteDatabaseRunner;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -70,7 +70,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
-				Thread deleteAppThread = new Thread(new DeleteAppRunner(engineId));
+				Thread deleteAppThread = new Thread(new DeleteDatabaseRunner(engineId));
 				deleteAppThread.start();
 			}
 		}

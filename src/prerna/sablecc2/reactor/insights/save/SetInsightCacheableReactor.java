@@ -133,7 +133,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		if(cacheEncrypt != Boolean.parseBoolean(currentInsightDetails.get("cacheEncrypt")+"")) {
 			// delete the current cache
 			InsightCacheUtility.deleteCache(projectId, project.getProjectName(), existingId, null, false);
-			ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
+			ClusterUtil.pushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		}
 		
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);

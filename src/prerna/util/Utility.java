@@ -149,7 +149,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
-import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IEngine;
@@ -2665,7 +2664,7 @@ public class Utility {
 						mods.put(Settings.PUBLIC_HOME_ENABLE, "false");
 						Utility.addKeysAtLocationIntoPropertiesFile(smssFilePath, Constants.CONNECTION_URL, mods);
 						// push to cloud
-						ClusterUtil.reactorPushProjectSmss(projectId);
+						ClusterUtil.pushProjectSmss(projectId);
 					}
 				} catch(Exception e) {
 					//ignore
@@ -2885,12 +2884,7 @@ public class Utility {
 					// TODO >>>timb: need to pull sec and lmd each time. They also need
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						try {
-							AbstractCloudClient.getClient().pullProject(projectId);
-						} catch (IOException | InterruptedException e) {
-							logger.error(Constants.STACKTRACE, e);
-							return null;
-						}
+						ClusterUtil.pullProject(projectId);
 					}
 	
 					// Now that the app has been pulled, grab the smss file
@@ -2950,12 +2944,7 @@ public class Utility {
 				// TODO >>>timb: need to pull sec and lmd each time. They also need
 				// correct jdbcs...
 				if (ClusterUtil.IS_CLUSTER) {
-					try {
-						AbstractCloudClient.getClient().pullUserAssetOrWorkspace(projectId, isAsset, false);
-					} catch (IOException | InterruptedException e) {
-						logger.error(Constants.STACKTRACE, e);
-						return null;
-					}
+					ClusterUtil.pullUserWorkspace(projectId, isAsset, false);
 				}
 
 				// Now that the app has been pulled, grab the smss file
@@ -3011,13 +3000,13 @@ public class Utility {
 
 	/**
 	 * 
-	 * @param engineId - engine to get
+	 * @param databaseId - engine to get
 	 * @return
 	 * 
 	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IDatabase getDatabase(String engineId, boolean pullIfNeeded) {
-		IDatabase engine = null;
+	public static IDatabase getDatabase(String databaseId, boolean pullIfNeeded) {
+		IDatabase database = null;
 		
 		// Now that the database has been pulled, grab the smss file
 		String smssFile = null;
@@ -3027,7 +3016,7 @@ public class Utility {
 		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
 		{
 			// not sure why we need this after the first time but hey
-			smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+			smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
 		}
 		else // this is happening on the socket side
 		{
@@ -3037,9 +3026,9 @@ public class Utility {
 			// once reloaded it will be present in the DI Helper
 			// check DI Helper to see if this is needed
 			// if not try to figure if reload is required
-			if(DIHelper.getInstance().getEngineProperty(engineId) == null) // if already loaded.. no need to load again
+			if(DIHelper.getInstance().getEngineProperty(databaseId) == null) // if already loaded.. no need to load again
 			{
-				prop = getEngineDetails(engineId);
+				prop = getEngineDetails(databaseId);
 				if(prop != null)
 				{
 					reloadDB = true; 
@@ -3059,63 +3048,58 @@ public class Utility {
 		{
 			// If the engine has already been loaded, then return it
 			// Don't acquire the lock here, because that would slow things down
-			if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
-				engine = (IDatabase) DIHelper.getInstance().getEngineProperty(engineId);
+			if (DIHelper.getInstance().getEngineProperty(databaseId) != null) {
+				database = (IDatabase) DIHelper.getInstance().getEngineProperty(databaseId);
 			} else {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				logger.info("Applying lock for database " + Utility.cleanLogString(engineId) + " to pull app");
+				logger.info("Applying lock for database " + Utility.cleanLogString(databaseId) + " to pull");
 				ReentrantLock lock = null;
 				try {
-					lock = EngineSyncUtility.getEngineLock(engineId);
+					lock = EngineSyncUtility.getEngineLock(databaseId);
 					lock.lock();
-					logger.info("Database "+ Utility.cleanLogString(engineId) + " is locked");
+					logger.info("Database "+ Utility.cleanLogString(databaseId) + " is locked");
 		
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
 					// it doesn't go through this process again
-					if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
-						return (IDatabase) DIHelper.getInstance().getEngineProperty(engineId);
+					if (DIHelper.getInstance().getEngineProperty(databaseId) != null) {
+						return (IDatabase) DIHelper.getInstance().getEngineProperty(databaseId);
 					}
 					
 					// If in a clustered environment, then pull the app first
 					// TODO >>>timb: need to pull sec and lmd each time. They also need
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						try {
-							AbstractCloudClient.getClient().pullDatabase(engineId);
-						} catch (Exception e) {
-							logger.error(Constants.STACKTRACE, e);
-							return null;
-						}
+						ClusterUtil.pullDatabase(databaseId);
 					}
 					
 					// Now that the database has been pulled, grab the smss file
-					smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+					smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
 					
 					// Start up the engine using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
-						engine = Utility.loadDatabase(smssFile, Utility.loadProperties(smssFile));
+						database = Utility.loadDatabase(smssFile, Utility.loadProperties(smssFile));
 					}
 					else if(prop != null)
 					{
-						engine = Utility.loadDatabase(null, prop);	
+						database = Utility.loadDatabase(null, prop);	
 					} else {
-						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");
-						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(engineId) + "...");
+						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(databaseId) + "...");
+						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(databaseId) + "...");
+						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(databaseId) + "...");
+						logger.info("There is no SMSS File for the database " + Utility.cleanLogString(databaseId) + "...");
 					}
 	
 					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
 					// TODO >>>timb: remove node exists error or catch it
 					// TODO >>>cluster: tag
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-					if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase")
-							|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler") 
-							|| engineId.startsWith("UserTrackingDatabase") )) {
+					if (!(databaseId.startsWith("security") || databaseId.startsWith("LocalMasterDatabase")
+							|| databaseId.startsWith("form_builder_engine") || databaseId.startsWith("themes") || databaseId.startsWith("scheduler") 
+							|| databaseId.startsWith("UserTrackingDatabase") )) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
@@ -3136,7 +3120,7 @@ public class Utility {
 								
 								// we are in business
 								ZKClient client = ZKClient.getInstance();
-								client.publishDB(engineId + "@" + host);
+								client.publishDB(databaseId + "@" + host);
 							}
 						}
 					}
@@ -3144,7 +3128,7 @@ public class Utility {
 					// Make sure to unlock now
 					if(lock != null) {
 						lock.unlock();
-						logger.info("Database "+ Utility.cleanLogString(engineId) + " is unlocked");
+						logger.info("Database "+ Utility.cleanLogString(databaseId) + " is unlocked");
 					}
 				}
 			}
@@ -3152,9 +3136,9 @@ public class Utility {
 		}
 		else // this is happening on the socket side
 		{
-			engine = new EngineSocketWrapper(engineId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
+			database = new EngineSocketWrapper(databaseId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
 		}
-		return engine;
+		return database;
 	}
 	
 	/**
@@ -3219,12 +3203,12 @@ public class Utility {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				logger.info("Applying lock for database " + Utility.cleanLogString(storageId) + " to pull app");
+				logger.info("Applying lock for storage " + Utility.cleanLogString(storageId) + " to pull");
 				ReentrantLock lock = null;
 				try {
 					lock = EngineSyncUtility.getEngineLock(storageId);
 					lock.lock();
-					logger.info("Database "+ Utility.cleanLogString(storageId) + " is locked");
+					logger.info("Storage "+ Utility.cleanLogString(storageId) + " is locked");
 		
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
@@ -3237,12 +3221,7 @@ public class Utility {
 					// TODO >>>timb: need to pull sec and lmd each time. They also need
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						try {
-							AbstractCloudClient.getClient().pullDatabase(storageId);
-						} catch (Exception e) {
-							logger.error(Constants.STACKTRACE, e);
-							return null;
-						}
+						ClusterUtil.pullStorage(storageId);
 					}
 					
 					// Now that the database has been pulled, grab the smss file
@@ -3298,7 +3277,7 @@ public class Utility {
 					// Make sure to unlock now
 					if(lock != null) {
 						lock.unlock();
-						logger.info("Database "+ Utility.cleanLogString(storageId) + " is unlocked");
+						logger.info("Storage "+ Utility.cleanLogString(storageId) + " is unlocked");
 					}
 				}
 			}
@@ -3373,12 +3352,12 @@ public class Utility {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				logger.info("Applying lock for database " + Utility.cleanLogString(modelId) + " to pull app");
+				logger.info("Applying lock for model " + Utility.cleanLogString(modelId) + " to pull");
 				ReentrantLock lock = null;
 				try {
 					lock = EngineSyncUtility.getEngineLock(modelId);
 					lock.lock();
-					logger.info("Database "+ Utility.cleanLogString(modelId) + " is locked");
+					logger.info("Model "+ Utility.cleanLogString(modelId) + " is locked");
 		
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
@@ -3391,12 +3370,7 @@ public class Utility {
 					// TODO >>>timb: need to pull sec and lmd each time. They also need
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
-						try {
-							AbstractCloudClient.getClient().pullDatabase(modelId);
-						} catch (Exception e) {
-							logger.error(Constants.STACKTRACE, e);
-							return null;
-						}
+						ClusterUtil.pullModel(modelId);
 					}
 					
 					// Now that the database has been pulled, grab the smss file
@@ -3411,17 +3385,17 @@ public class Utility {
 					{
 						model = Utility.loadModel(null, prop);	
 					} else {
-						logger.info("There is no SMSS File for the storage " + Utility.cleanLogString(modelId) + "...");
-						logger.info("There is no SMSS File for the storage " + Utility.cleanLogString(modelId) + "...");
-						logger.info("There is no SMSS File for the storage " + Utility.cleanLogString(modelId) + "...");
-						logger.info("There is no SMSS File for the storage " + Utility.cleanLogString(modelId) + "...");
+						logger.info("There is no SMSS File for the model " + Utility.cleanLogString(modelId) + "...");
+						logger.info("There is no SMSS File for the model " + Utility.cleanLogString(modelId) + "...");
+						logger.info("There is no SMSS File for the model " + Utility.cleanLogString(modelId) + "...");
+						logger.info("There is no SMSS File for the model " + Utility.cleanLogString(modelId) + "...");
 					}
 	
 				} finally {
 					// Make sure to unlock now
 					if(lock != null) {
 						lock.unlock();
-						logger.info("Database "+ Utility.cleanLogString(modelId) + " is unlocked");
+						logger.info("Model "+ Utility.cleanLogString(modelId) + " is unlocked");
 					}
 				}
 			}

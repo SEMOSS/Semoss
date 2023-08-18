@@ -53,7 +53,7 @@ public class SetInsightThemeReactor extends AbstractInsightReactor {
 		
 		if(this.insight.isSavedInsight()) {
 			IProject project = Utility.getProject(insight.getProjectId());
-			ClusterUtil.reactorPushProjectFolder(project, versionFilePath);
+			ClusterUtil.pushProjectFolder(project, versionFilePath);
 		}
 		
 		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.INSIGHT_THEME);

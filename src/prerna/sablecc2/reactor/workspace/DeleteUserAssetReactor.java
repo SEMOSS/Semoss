@@ -74,7 +74,7 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 		}
 		
 		//When i get appId
-		ClusterUtil.reactorPushProject(assetProjectId);
+		ClusterUtil.pushProject(assetProjectId);
 
 		
 		return new NounMetadata(deleted, PixelDataType.BOOLEAN, PixelOperationType.USER_DIR);

@@ -1,7 +1,5 @@
 package prerna.cluster.util;
 
-import prerna.cluster.util.clients.AbstractCloudClient;
-
 public class DeleteProjectRunner implements Runnable {
 
 	private final String projectId;
@@ -13,7 +11,7 @@ public class DeleteProjectRunner implements Runnable {
 	@Override
 	public void run() {
 		try {
-			AbstractCloudClient.getClient().deleteProject(projectId);
+			ClusterUtil.deleteProject(projectId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

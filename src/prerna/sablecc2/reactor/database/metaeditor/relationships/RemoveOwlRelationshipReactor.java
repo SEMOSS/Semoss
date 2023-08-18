@@ -47,7 +47,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 			throw new IllegalArgumentException("Input values are not the same size");
 		}
 		
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
@@ -77,7 +77,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
 		// store user inputed values
 		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "removed");

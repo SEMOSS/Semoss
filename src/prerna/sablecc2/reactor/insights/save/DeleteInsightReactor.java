@@ -77,7 +77,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 //		ClusterUtil.reactorPullInsightsDB(projectId);
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(projectName, projectId));
+		ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(projectName, projectId));
 
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		int size = grs.size();
@@ -144,7 +144,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		}
 		
 //		ClusterUtil.reactorPushInsightDB(projectId);
-		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(projectName, projectId));
+		ClusterUtil.pushProjectFolder(project, AssetUtility.getProjectVersionFolder(projectName, projectId));
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);
 	}
 
