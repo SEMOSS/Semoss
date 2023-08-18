@@ -13,34 +13,31 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
-
-public class LLMReactor extends AbstractReactor
-{
-	public LLMReactor()
-	{
+public class LLMReactor extends AbstractReactor {
+	
+	public LLMReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), 
-				ReactorKeysEnum.COMMAND.getKey(), 
-				ReactorKeysEnum.CONTEXT.getKey(), 
+				ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(), 
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
 		this.keyRequired = new int[] {1, 1, 0, 0};
 	}
 	
 	// execute method - GREEDY translation
-	public NounMetadata execute()
-	{
+	public NounMetadata execute() {
 		organizeKeys();
 		
-		String modelId = this.getNounStore().getNoun(keysToGet[0]).get(0) + "";
-		String question = this.getNounStore().getNoun(keysToGet[1]).get(0) + "";
-		String context = getContext();
+		String modelId = this.keyValue.get(this.keysToGet[0]);
+		String question = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
+		String context = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
+		
 		Map paramMap = getMap();
 		IModelEngine eng = Utility.getModel(modelId);
 		//Map <String, Object> params = new HashMap<String, Object>();
-		if(paramMap == null)
+		if(paramMap == null) {
 			paramMap = new HashMap<String, Object>();
+		}
 		
 		Map<String, String> output = eng.ask(question, context, this.insight, paramMap);
-		
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}	
 	
@@ -60,14 +57,4 @@ public class LLMReactor extends AbstractReactor
         return null;
     }
 	
-	private String getContext() {
-		GenRowStruct contextGrs = this.store.getNoun(keysToGet[2]);
-		if(contextGrs != null && !contextGrs.isEmpty()) {
-            List<NounMetadata> contextInput = contextGrs.getNounsOfType(PixelDataType.CONST_STRING);
-            if(contextInput != null && !contextInput.isEmpty()) {
-                return (String) contextInput.get(0).getValue();
-            }
-        }
-		return null;
-	}
 }
