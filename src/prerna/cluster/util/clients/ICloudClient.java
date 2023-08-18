@@ -321,10 +321,10 @@ public interface ICloudClient {
 	/**
 	 * Push only the smss file for a storage
 	 * 
-	 * @param projectId
+	 * @param storageId
 	 * @throws Exception 
 	 */
-	void pushStorageSmss(String projectId) throws IOException, InterruptedException; 
+	void pushStorageSmss(String storageId) throws IOException, InterruptedException; 
 	
 	/**
 	 * Pull only the smss file for a storage
