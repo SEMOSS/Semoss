@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -40,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IDatabase;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.OwlPrettyPrintFixer;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
@@ -320,7 +322,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				}
 			}
 			
-			engines = SecurityEngineUtils.getAllEngineIds();
+			engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IDatabase.CATALOG_TYPE));
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
 					logger.info("Deleting the database engine from security..... " + Utility.cleanLogString(engine));
