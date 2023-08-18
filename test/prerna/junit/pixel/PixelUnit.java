@@ -266,15 +266,15 @@ public class PixelUnit {
 	private static void loadDatabases() throws Exception {
 
 		// Local master database
-		SMSSWebWatcher.loadNewDB(Constants.LOCAL_MASTER_DB_NAME + ".smss", BASE_DB_DIRECTORY);
+		SMSSWebWatcher.loadNewEngine(Constants.LOCAL_MASTER_DB_NAME + ".smss", BASE_DB_DIRECTORY);
 		MasterDatabaseUtility.initLocalMaster();
 
 		// Security
-		SMSSWebWatcher.loadNewDB(Constants.SECURITY_DB + ".smss", BASE_DB_DIRECTORY);
+		SMSSWebWatcher.loadNewEngine(Constants.SECURITY_DB + ".smss", BASE_DB_DIRECTORY);
 		AbstractSecurityUtils.loadSecurityDatabase();
 
 		// Themes
-		SMSSWebWatcher.loadNewDB(Constants.THEMING_DB + ".smss", BASE_DB_DIRECTORY);
+		SMSSWebWatcher.loadNewEngine(Constants.THEMING_DB + ".smss", BASE_DB_DIRECTORY);
 		AbstractThemeUtils.loadThemingDatabase();
 
 		// Add local databases (as defined in Local_DBs.prop) to Properties so that users can run tests on their local db's
@@ -378,7 +378,7 @@ public class PixelUnit {
 		for (String appId : existingAppIds) {
 
 			// First must catalog the db in order to call the getEngine
-			SMSSWebWatcher.catalogDB(alias + "__" + appId + ".smss", BASE_DB_DIRECTORY);
+			SMSSWebWatcher.catalogEngine(alias + "__" + appId + ".smss", BASE_DB_DIRECTORY);
 
 			IDatabase engine = Utility.getDatabase(appId);
 
