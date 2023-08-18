@@ -109,7 +109,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 //			updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
 //		}
 		
-		logger.info("Finished adding database = " + Utility.cleanLogString(engineId));
+		logger.info("Finished adding engine = " + Utility.cleanLogString(engineId));
 	}
 	
 	/**
