@@ -116,7 +116,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			cleanUpCreateNewError(model, modelId, tempSmss, smssFile);
 		}
 		
-		ClusterUtil.reactorPushDatabase(modelId);
+		ClusterUtil.pushDatabase(modelId);
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);

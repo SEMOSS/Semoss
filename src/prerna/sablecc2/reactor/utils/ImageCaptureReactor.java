@@ -71,7 +71,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 			}
 		}
 
-		ClusterUtil.reactorPushDatabase(projectId);
+		ClusterUtil.pushDatabase(projectId);
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}

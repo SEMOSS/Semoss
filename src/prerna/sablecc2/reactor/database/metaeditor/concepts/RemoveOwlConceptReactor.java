@@ -40,7 +40,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		// i need to delete the properties of this node
 		// and then everything related to this node
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 		String conceptPhysical = database.getPhysicalUriFromPixelSelector(concept);
 		List<String> properties = database.getPropertyUris4PhysicalUri(conceptPhysical);
@@ -149,7 +149,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

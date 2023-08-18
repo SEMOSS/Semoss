@@ -107,7 +107,7 @@ public class InitAppRepo extends GitBaseReactor {
 
 				GitCreator.makeRemoteFromDatabase(databaseId, databaseName, repository, username, "", syncDatabase, token);
 				
-				ClusterUtil.reactorPushDatabase(databaseId);
+				ClusterUtil.pushDatabase(databaseId);
 			}
 			logger.info("Congratulations! You have successfully created your database " + repository);
 		} catch(Exception e) {

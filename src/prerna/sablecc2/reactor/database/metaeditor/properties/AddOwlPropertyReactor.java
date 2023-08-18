@@ -56,7 +56,7 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 //		}
 
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		// make sure the concept exists
 		String conceptPhysicalUri = database.getPhysicalUriFromPixelSelector(concept);
 		if (conceptPhysicalUri == null) {
@@ -98,7 +98,7 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully added new property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

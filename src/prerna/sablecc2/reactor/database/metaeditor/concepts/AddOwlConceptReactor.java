@@ -42,7 +42,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 
 		// if RDBMS, we need to know the prim key of the column
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		String column = this.keyValue.get(this.keysToGet[2]);
 		if ((column == null || column.isEmpty()) && database.getDatabaseType() == DATABASE_TYPE.RDBMS) {
 			throw new IllegalArgumentException("Must define the column for the concept being added to the database metadata");
@@ -94,7 +94,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully added new concept", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

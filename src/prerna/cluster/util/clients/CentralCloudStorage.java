@@ -47,8 +47,10 @@ public class CentralCloudStorage implements ICloudClient {
 	public static final String PROJECT_BLOB = "semoss-project";
 	public static final String USER_BLOB = "semoss-user";
 	public static final String DB_IMAGES_BLOB = "semoss-dbimagecontainer";
+	public static final String STORAGE_IMAGES_BLOB = "semoss-storageimagecontainer";
+	public static final String MODEL_IMAGES_BLOB = "semoss-modelimagecontainer";
 	public static final String PROJECT_IMAGES_BLOB = "semoss-projectimagecontainer";
-	
+
 	private static ICloudClient instance = null;
 	private static AbstractRCloneStorageEngine storageEngine = null;
 	
@@ -1285,6 +1287,19 @@ public class CentralCloudStorage implements ICloudClient {
 		
 	}
 	
+	@Override
+	public void deleteStorage(String storageId) throws IOException, InterruptedException {
+		String sharedRCloneConfig = null;
+		if(storageEngine.canReuseRcloneConfig()) {
+			sharedRCloneConfig = storageEngine.createRCloneConfig();
+		}
+		String storageDatabaseFolder = STORAGE_CONTAINER_PREFIX + storageId;
+		String storageSmssFolder = STORAGE_CONTAINER_PREFIX + storageId + SMSS_POSTFIX;
+
+		storageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
+		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	
@@ -1334,6 +1349,20 @@ public class CentralCloudStorage implements ICloudClient {
 	@Override
 	public void pullModelSmss(String modelId) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public void deleteModel(String modelId) throws IOException, InterruptedException {
+		String sharedRCloneConfig = null;
+		if(storageEngine.canReuseRcloneConfig()) {
+			sharedRCloneConfig = storageEngine.createRCloneConfig();
+		}
+		String storageDatabaseFolder = MODEL_CONTAINER_PREFIX + modelId;
+		String storageSmssFolder = MODEL_CONTAINER_PREFIX + modelId + SMSS_POSTFIX;
+
+		storageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
+		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
 		
 	}
 	

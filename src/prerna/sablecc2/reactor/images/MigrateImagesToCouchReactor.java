@@ -21,7 +21,6 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.io.connector.couch.CouchException;
 import prerna.io.connector.couch.CouchUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -97,9 +96,9 @@ public class MigrateImagesToCouchReactor extends AbstractReactor {
 		}
 		if (repull) {
 			try {
-				AbstractCloudClient.getClient().pullDatabaseImageFolder();
-				AbstractCloudClient.getClient().pullProjectImageFolder();
-			} catch (IOException | InterruptedException e) {
+				ClusterUtil.pullDatabaseImageFolder();
+				ClusterUtil.pullProjectImageFolder();
+			} catch (Exception e) {
 				LOGGER.warn("Error pulling cloud image folders: " + e.getMessage(), e);
 				SemossPixelException err = new SemossPixelException(
 						new NounMetadata("Failed to pull images from cloud storage", PixelDataType.CONST_STRING,

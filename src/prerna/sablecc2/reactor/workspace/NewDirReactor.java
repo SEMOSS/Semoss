@@ -70,7 +70,7 @@ public class NewDirReactor extends AbstractReactor {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				ClusterUtil.reactorPushDatabase(assetProjectId);
+				ClusterUtil.pushDatabase(assetProjectId);
 			}
 		}
 

@@ -9,7 +9,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
@@ -46,9 +45,7 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 			User user = this.insight.getUser();
 			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
 			if (assetId != null && !(assetId.isEmpty())) {
-				
-				IProject assetProject = Utility.getUserAssetWorkspaceProject(assetId, true);
-				ClusterUtil.reactorPullUserWorkspace(assetProject, true);
+				ClusterUtil.pullUserWorkspace(assetId, true);
 				savePath = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
 
 				File assetDir = new File(savePath);
@@ -97,8 +94,7 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 			User user = this.insight.getUser();
 			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
 			if (assetId != null && !(assetId.isEmpty())) {
-				IProject assetProject = Utility.getUserAssetWorkspaceProject(assetId, true);
-				ClusterUtil.reactorPushUserWorkspace(assetProject, true);
+				ClusterUtil.pushUserWorkspace(assetId, true);
 			}
 		}
 		
