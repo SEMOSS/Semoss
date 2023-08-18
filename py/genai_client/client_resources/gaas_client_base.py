@@ -45,10 +45,17 @@ class BaseClient():
     if this_template is not None:
       return self.fill_context(this_template, **kwargs)
     else:
-      return None
+      return None, False
   
   # not, kwargs here is just a dictionary -- not a dictionary construction
   def fill_context(self, theContext, **kwargs):
     template = Template(theContext)
     output = template.substitute(**kwargs)
-    return output
+
+    # assumption -- if str substitution occures, then we dont need to user,system prompt ourselves
+    if output != theContext:
+      substitutions_made = True
+    else:
+      substitutions_made = False
+
+    return output, substitutions_made
