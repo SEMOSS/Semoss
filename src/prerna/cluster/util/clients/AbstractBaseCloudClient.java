@@ -991,8 +991,8 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	public void pullDatabaseImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
-			rCloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
-			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rCloneConfig+":"+BUCKET+"/"+ClusterUtil.DB_IMAGES_BLOB);
+			rCloneConfig = createRcloneConfig(CentralCloudStorage.DB_IMAGES_BLOB);
+			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf", rCloneConfig+":"+BUCKET+"/"+CentralCloudStorage.DB_IMAGES_BLOB);
 			if(results.isEmpty()) {
 				fixLegacyImageStructure();
 				return;
@@ -1001,7 +1001,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			String imagesFolderPath = ClusterUtil.IMAGES_FOLDER_PATH + FILE_SEPARATOR + "databases";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+BUCKET+"/"+ClusterUtil.DB_IMAGES_BLOB, imagesFolderPath);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+BUCKET+"/"+CentralCloudStorage.DB_IMAGES_BLOB, imagesFolderPath);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1013,11 +1013,11 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	public void pushDatabaseImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
-			rCloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
+			rCloneConfig = createRcloneConfig(CentralCloudStorage.DB_IMAGES_BLOB);
 			String imagesFolderPath = ClusterUtil.IMAGES_FOLDER_PATH + FILE_SEPARATOR + "databases";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig+":"+BUCKET+"/"+ClusterUtil.DB_IMAGES_BLOB);
+			runRcloneProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig+":"+BUCKET+"/"+CentralCloudStorage.DB_IMAGES_BLOB);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1029,11 +1029,11 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	public void pullProjectImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
-			rCloneConfig = createRcloneConfig(ClusterUtil.PROJECT_IMAGES_BLOB);
+			rCloneConfig = createRcloneConfig(CentralCloudStorage.PROJECT_IMAGES_BLOB);
 			String imagesFolderPath = ClusterUtil.IMAGES_FOLDER_PATH + FILE_SEPARATOR + "projects";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+BUCKET+"/"+ClusterUtil.PROJECT_IMAGES_BLOB, imagesFolderPath);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+BUCKET+"/"+CentralCloudStorage.PROJECT_IMAGES_BLOB, imagesFolderPath);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1045,11 +1045,11 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	public void pushProjectImageFolder() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
-			rCloneConfig = createRcloneConfig(ClusterUtil.PROJECT_IMAGES_BLOB);
+			rCloneConfig = createRcloneConfig(CentralCloudStorage.PROJECT_IMAGES_BLOB);
 			String imagesFolderPath = ClusterUtil.IMAGES_FOLDER_PATH + FILE_SEPARATOR + "projects";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig+":"+BUCKET+"/"+ClusterUtil.PROJECT_IMAGES_BLOB);
+			runRcloneProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig+":"+BUCKET+"/"+CentralCloudStorage.PROJECT_IMAGES_BLOB);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1293,7 +1293,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	public void fixLegacyImageStructure() throws IOException, InterruptedException {
 		String rCloneConfig = null;
 		try {
-			rCloneConfig = createRcloneConfig(ClusterUtil.DB_IMAGES_BLOB);
+			rCloneConfig = createRcloneConfig(CentralCloudStorage.DB_IMAGES_BLOB);
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "databases";
 			File imageFolder = new File(imagesFolderPath);
@@ -1301,7 +1301,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			// first pull
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+":"+BUCKET+"/semoss-imagecontainer", imagesFolderPath);
 			// now push into the correct folder
-			runRcloneProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig+":"+BUCKET+"/"+ClusterUtil.DB_IMAGES_BLOB);
+			runRcloneProcess(rCloneConfig, "rclone", "sync", imagesFolderPath, rCloneConfig+":"+BUCKET+"/"+CentralCloudStorage.DB_IMAGES_BLOB);
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -1604,6 +1604,18 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public void pullStorageImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushStorageImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
 
 	///////////////////////////////////////////////////////////////////////////////////
 	
@@ -1644,6 +1656,18 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	
 	@Override
 	public void deleteModel(String modelId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public void pullModelImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushModelImageFolder() throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		
 	}
