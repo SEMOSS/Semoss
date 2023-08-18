@@ -64,7 +64,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @return
 	 */
-	String getCatalogType(Properties smssProp);
+	String getCatalogType();
 	
 	/**
 	 * 
