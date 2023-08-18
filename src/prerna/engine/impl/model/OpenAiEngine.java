@@ -20,10 +20,9 @@ public class OpenAiEngine extends AbstractModelEngine {
 		String varName = (String) generalEngineProp.get("VAR_NAME");
 	
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
-		callMaker.append("question=\"").append(question).append("\"");
+		callMaker.append("question=\"").append(question.replace("\"", "\\\"")).append("\"");
 		if(context != null)
-			callMaker.append(",").append("context=\"").append(context).append("\"");
-		
+			callMaker.append(",").append("context=\"").append(context.replace("\"", "\\\"")).append("\"");	
 		
 		if(parameters != null) {
 			if (parameters.containsKey("ROOM_ID")) { //always have to remove roomId so we dont pass it to py client

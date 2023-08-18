@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.util.DIHelper;
 import prerna.util.Settings;
@@ -32,12 +33,11 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		String varName = (String) generalEngineProp.get(Settings.VAR_NAME);
 		
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
-		callMaker.append("question='").append(question).append("'");
+		callMaker.append("question=\"").append(question.replace("\"", "\\\"")).append("\"");
 		if(context != null)
-			callMaker.append(",").append("context='").append(context).append("'");
-	
-		if(parameters != null)
-		{
+			callMaker.append(",").append("context=\"").append(context.replace("\"", "\\\"")).append("\"");	
+		
+		if(parameters != null) {
 			if (parameters.containsKey("ROOM_ID")) { //always have to remove roomId so we dont pass it to py client
 				String roomId = (String) parameters.get("ROOM_ID");
 				parameters.remove("ROOM_ID");
@@ -47,10 +47,9 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 						callMaker.append(",").append("history=").append(history);
 				}
 			}
-			
+
 			Iterator <String> paramKeys = parameters.keySet().iterator();
-			while(paramKeys.hasNext())
-			{
+			while(paramKeys.hasNext()) {
 				String key = paramKeys.next();
 				callMaker.append(",").append(key).append("=");
 				Object value = parameters.get(key);
@@ -60,7 +59,7 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 				}
 				else
 				{
-					callMaker.append(value+"");
+					callMaker.append(ModelInferenceLogsUtils.determineStringType(value));
 				}
 			}
 		}
