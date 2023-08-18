@@ -3,6 +3,8 @@ package prerna.engine.impl.reactors;
 import java.util.HashMap;
 import java.util.Map;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.impl.model.LLMReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -10,15 +12,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.storage.StorageReactor;
-import prerna.util.DIHelper;
-import prerna.engine.impl.model.LLMReactor;
 
 public class GetEngineUsageReactor extends AbstractReactor {
 
-	private static final String TYPE = "TYPE";
 	private static final String PYTHON = "python";
 	private static final String JAVA = "java";
 	private static final String PIXEL = "pixel";
+	
 	AbstractReactor engineAbstractReactor;
 	
 	public GetEngineUsageReactor() {
@@ -31,7 +31,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		// get the selectors
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		String engineType = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + TYPE);
+		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
+		String engineType = (String) typeAndSubtype[0];
 		Map<String, String> outputMap;
 		switch(engineType) {
 			case "DATABASE":
