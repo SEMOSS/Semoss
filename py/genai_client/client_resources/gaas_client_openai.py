@@ -2,6 +2,7 @@
 import openai
 from genai_client.client_resources.gaas_client_base import BaseClient
 import json
+from string import Template
 
 class OpenAiClient(BaseClient):
   # template to use
@@ -39,12 +40,14 @@ class OpenAiClient(BaseClient):
       message_payload = []
       if 'full_prompt' not in kwargs.keys():
         # if the user provided context, use that. Otherwise, try to get it from the template
+        mapping = {"question": question} | kwargs
         if context is not None:
           if isinstance(context, str):
+            context = self.fill_context(context, **mapping)
             message_payload.append({"role": "system", "content": context})
         else:
           if template_name != None:
-            possibleContent = self.get_template(template_name=template_name)
+            possibleContent = self.fill_template(template_name=template_name, **mapping)
             if possibleContent != None:
               message_payload.append({"role": "system", "content": possibleContent})
 
