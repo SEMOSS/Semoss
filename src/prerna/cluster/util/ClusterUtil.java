@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cluster.util.clients.AbstractCloudClient;
+import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.cluster.util.clients.ICloudClient;
 import prerna.engine.api.IDatabase;
 import prerna.engine.impl.SmssUtilities;
@@ -144,9 +144,10 @@ public class ClusterUtil {
 	/**
 	 * 
 	 * @return
+	 * @throws Exception 
 	 */
-	public static ICloudClient getCentralStorageClient() {
-		return AbstractCloudClient.getClient();
+	public static ICloudClient getCentralStorageClient() throws Exception {
+		return CentralCloudStorage.getInstance();
 	}
 	
 	/**
