@@ -435,7 +435,7 @@ public class CentralCloudStorage implements ICloudClient {
 			// Catalog the db if it is new
 			if (!databaseAlreadyLoaded) {
 				classLogger.info("Synchronizing the database metadata for " + aliasAndDatabaseId);
-				SMSSWebWatcher.catalogDB(results.get(0), DATABASE_FOLDER);
+				SMSSWebWatcher.catalogEngine(results.get(0), DATABASE_FOLDER);
 			}
 		} finally {
 			try {
