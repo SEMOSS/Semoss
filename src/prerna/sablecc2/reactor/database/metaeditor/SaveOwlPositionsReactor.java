@@ -48,7 +48,7 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 		// write the json file in the database folder
 		// just put it in the same location as the OWL
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		File positionFile = database.getOwlPositionFile();
 		
 		FileWriter writer = null;
@@ -66,7 +66,7 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 				}
 			}
 		}
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 		// update the positions cache
 		EngineSyncUtility.setMetamodelPositions(databaseId, positions);
 		MasterDatabaseUtility.saveMetamodelPositions(databaseId, positions);

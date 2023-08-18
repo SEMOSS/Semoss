@@ -117,7 +117,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile);
 		}
 		
-		ClusterUtil.reactorPushDatabase(storageId);
+		ClusterUtil.pushDatabase(storageId);
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);

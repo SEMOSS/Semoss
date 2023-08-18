@@ -1,7 +1,6 @@
 package prerna.auth;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -21,7 +20,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.clients.AbstractCloudClient;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -268,15 +266,7 @@ public class User implements Serializable {
 
 		//TODO actually sync the pull, not sure pull it
 		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				AbstractCloudClient.getClient().pullUserAssetOrWorkspace(projectId, false, false);
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} catch (InterruptedException ie) {
-				// Restore interrupted state...
-				Thread.currentThread().interrupt();
-				logger.error(Constants.STACKTRACE, ie);
-			}
+			ClusterUtil.pullUserWorkspace(projectId, false, false);
 		}
 		
 		return this.workspaceProjectMap.get(token);
@@ -307,15 +297,7 @@ public class User implements Serializable {
 
 		//TODO actually sync the pull, not sure pull it
 		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				AbstractCloudClient.getClient().pullUserAssetOrWorkspace(projectId, true, false);
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} catch (InterruptedException ie) {
-				// Restore interrupted state...
-				Thread.currentThread().interrupt();
-				logger.error(Constants.STACKTRACE, ie);
-			}
+			ClusterUtil.pullUserWorkspace(projectId, true, false);
 		}
 
 		return this.assetProjectMap.get(token);

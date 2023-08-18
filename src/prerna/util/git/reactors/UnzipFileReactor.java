@@ -59,19 +59,18 @@ public class UnzipFileReactor extends AbstractReactor {
 				AuthProvider provider = user.getPrimaryLogin();
 				String projectId = user.getAssetProjectId(provider);
 				if(projectId!=null && !(projectId.isEmpty())) {
-					IProject project = Utility.getUserAssetWorkspaceProject(projectId, true);
-					ClusterUtil.reactorPushUserWorkspace(project, true);
+					ClusterUtil.pushUserWorkspace(projectId, true);
 				}
 			// is it in the insight space of a saved insight?
 			} else if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
 				if(this.insight.isSavedInsight()) {
 					IProject project = Utility.getProject(this.insight.getProjectId());
-					ClusterUtil.reactorPushProjectFolder(project, zipFile.getParent());
+					ClusterUtil.pushProjectFolder(project, zipFile.getParent());
 				}
 			// this is in the project space where space = project id
 			} else {
 				IProject project = Utility.getProject(space);
-				ClusterUtil.reactorPushProjectFolder(project, zipFile.getParent());
+				ClusterUtil.pushProjectFolder(project, zipFile.getParent());
 			}
 		}
 		

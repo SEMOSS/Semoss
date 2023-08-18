@@ -218,7 +218,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		// we can do normal clean up of files
 		// TODO:
 
-		ClusterUtil.reactorPushDatabase(this.databaseId);
+		ClusterUtil.pushDatabase(this.databaseId);
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), this.databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);

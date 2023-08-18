@@ -31,7 +31,7 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String[] logicalNames = getLogicalNames();
 		
 		IDatabase database = Utility.getDatabase(databaseId);
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		String physicalUri = null;
 		if (prop == null || prop.isEmpty()) {
 			physicalUri = database.getPhysicalUriFromPixelSelector(concept);
@@ -51,7 +51,7 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

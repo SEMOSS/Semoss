@@ -42,7 +42,7 @@ public class PublishProjectReactor extends AbstractReactor {
 		project.setRepublish(true);
 		if(release) {
 			SecurityProjectUtils.setPortalPublish(user, projectId);
-			ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId), 
+			ClusterUtil.pushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId), 
 					Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
 		}
 		
