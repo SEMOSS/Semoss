@@ -42,6 +42,8 @@ public class CentralCloudStorage implements ICloudClient {
 	private static final Logger classLogger = LogManager.getLogger(CentralCloudStorage.class);
 
 	public static final String DB_BLOB = "semoss-db";
+	public static final String STORAGE_BLOB = "semoss-storage";
+	public static final String MODEL_BLOB = "semoss-model";
 	public static final String PROJECT_BLOB = "semoss-project";
 	public static final String USER_BLOB = "semoss-user";
 	public static final String DB_IMAGES_BLOB = "semoss-dbimagecontainer";
@@ -54,11 +56,15 @@ public class CentralCloudStorage implements ICloudClient {
 	private static final String SMSS_POSTFIX = "-smss";
 
 	private static String DATABASE_FOLDER = null;
+	private static String STORAGE_FOLDER = null;
+	private static String MODEL_FOLDER = null;
 	private static String PROJECT_FOLDER = null;
 	private static String USER_FOLDER = null;
 	
 	// these can change based on the cloud client type
 	private static String DB_CONTAINER_PREFIX = "/" + DB_BLOB + "/";
+	private static String STORAGE_CONTAINER_PREFIX = "/" + STORAGE_BLOB + "/";
+	private static String MODEL_CONTAINER_PREFIX = "/" + MODEL_BLOB + "/";
 	private static String PROJECT_CONTAINER_PREFIX = "/" + PROJECT_BLOB + "/";
 	private static String USER_CONTAINER_PREFIX = "/" + USER_BLOB + "/";
 	
@@ -109,6 +115,8 @@ public class CentralCloudStorage implements ICloudClient {
 				
 				instance = new CentralCloudStorage();
 				CentralCloudStorage.DATABASE_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.DB_FOLDER;
+				CentralCloudStorage.STORAGE_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.STORAGE_FOLDER;
+				CentralCloudStorage.MODEL_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.MODEL_FOLDER;
 				CentralCloudStorage.PROJECT_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.PROJECT_FOLDER;
 				CentralCloudStorage.USER_FOLDER = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + Constants.USER_FOLDER;
 			}
@@ -130,6 +138,8 @@ public class CentralCloudStorage implements ICloudClient {
 			
 			// we have a different structure for AZ storage since it doesn't represent the blobs as folders
 			CentralCloudStorage.DB_CONTAINER_PREFIX = "db-";
+			CentralCloudStorage.STORAGE_CONTAINER_PREFIX = "semoss-storage";
+			CentralCloudStorage.MODEL_CONTAINER_PREFIX = "semoss-model";
 			CentralCloudStorage.PROJECT_CONTAINER_PREFIX = "project-";
 			CentralCloudStorage.USER_CONTAINER_PREFIX = "user-";
 			
@@ -1221,6 +1231,76 @@ public class CentralCloudStorage implements ICloudClient {
 				}
 			}
 		}
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
+	/*
+	 * Storage
+	 */
+	
+	@Override
+	public void pushStorage(String storageId) throws IOException, InterruptedException {
+		pushStorageSmss(storageId);
+	}
+
+	@Override
+	public void pullStorage(String storageId) throws IOException, InterruptedException {
+		pullStorage(storageId, false);
+	}
+
+	@Override
+	public void pullStorage(String storageId, boolean storageAlreadyLoaded) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushStorageSmss(String projectId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pullStorageSmss(String storageId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
+	/*
+	 * Model
+	 */
+
+	@Override
+	public void pushModel(String modelId) throws IOException, InterruptedException {
+		pushModelSmss(modelId);
+	}
+
+	@Override
+	public void pullModel(String modelId) throws IOException, InterruptedException {
+		pullModel(modelId, false);
+	}
+
+	@Override
+	public void pullModel(String modelId, boolean modelAlreadyLoaded) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushModelSmss(String modelId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pullModelSmss(String modelId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////

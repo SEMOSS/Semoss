@@ -909,7 +909,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 	}
 	
 	@Override
-	public void pullProjectSmss(String projectId) throws Exception {
+	public void pullProjectSmss(String projectId) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		
 	}
@@ -1555,5 +1555,79 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 			}
 		}
 	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
+	/*
+	 * Storage
+	 */
+	
+	@Override
+	public void pushStorage(String storageId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
 
+	@Override
+	public void pullStorage(String storageId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pullStorage(String storageId, boolean storageAlreadyLoaded) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushStorageSmss(String projectId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pullStorageSmss(String storageId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
+	/*
+	 * Model
+	 */
+
+	@Override
+	public void pushModel(String modelId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pullModel(String modelId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pullModel(String modelId, boolean modelAlreadyLoaded) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushModelSmss(String modelId) throws IOException, InterruptedException { 
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pullModelSmss(String modelId) throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+	
 }
