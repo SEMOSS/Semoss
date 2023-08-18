@@ -1397,7 +1397,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 */
 	public static void updateExecutionCount(String projectId, String insightId) {
-		String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND AND INSIGHTID=?";
+		String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND INSIGHTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
