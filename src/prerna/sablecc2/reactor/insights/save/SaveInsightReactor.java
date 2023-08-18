@@ -173,7 +173,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		IProject project = Utility.getProject(projectId);
 		
 		// pull the insights db again incase someone just saved something 
-		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
@@ -319,7 +319,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 		
 		// push only the insight folder
-		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId), newInsightId);
+		ClusterUtil.pushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId), newInsightId);
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		// TODO: delete app_ and only send project_

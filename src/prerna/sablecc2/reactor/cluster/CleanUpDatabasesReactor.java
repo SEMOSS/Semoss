@@ -125,7 +125,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 						
 						// Delete from cluster
 						try {
-							AbstractCloudClient.getClient().deleteDatabase(databaseId);
+							ClusterUtil.deleteDatabase(databaseId);
 							
 							// Successful cleanup
 							removedAppsMap.put(key, "removed");

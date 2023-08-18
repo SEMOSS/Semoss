@@ -97,13 +97,13 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 			
 			// push the compiled code
 			String projectVersionFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-			ClusterUtil.reactorPushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
+			ClusterUtil.pushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
 			
 			// might need to also push the classes folder
 			String projectAssetFolder = AssetUtility.getProjectVersionFolder(projectName, projectId) + "/" + Constants.ASSETS_FOLDER;
 			File compiledClasses = new File(projectAssetFolder + DIR_SEPARATOR + "classes");
 			if(compiledClasses.exists() && compiledClasses.isDirectory()) {
-				ClusterUtil.reactorPushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "classes");
+				ClusterUtil.pushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "classes");
 			}
 			
 			SecurityProjectUtils.setReactorCompilation(user, projectId);

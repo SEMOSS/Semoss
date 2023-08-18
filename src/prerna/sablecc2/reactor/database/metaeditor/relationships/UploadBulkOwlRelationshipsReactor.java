@@ -69,7 +69,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 			throw new IllegalArgumentException("Could not find the specified file");
 		}
 		
-		ClusterUtil.reactorPullOwl(databaseId);
+		ClusterUtil.pullOwl(databaseId);
 		
 		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
@@ -148,7 +148,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 			return noun;
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
-		ClusterUtil.reactorPushOwl(databaseId);
+		ClusterUtil.pushOwl(databaseId);
 		
 		if(sync) {
 			logger.info("Starting to remove exisitng metadata");

@@ -137,7 +137,7 @@ public class ExecQueryReactor extends AbstractReactor {
 				}
 			}
 
-			ClusterUtil.reactorPushDatabase(engine.getEngineId());
+			ClusterUtil.pushDatabase(engine.getEngineId());
 		} else {
 			try {
 				if (frame != null) {

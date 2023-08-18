@@ -282,7 +282,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 			}
 		}
 
-		ClusterUtil.reactorPushProject(projectId);
+		ClusterUtil.pushProject(projectId);
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);

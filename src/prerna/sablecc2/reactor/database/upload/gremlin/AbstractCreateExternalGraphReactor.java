@@ -112,7 +112,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 				}
 			}
 			
-			ClusterUtil.reactorPushDatabase(this.newDatabaseId);
+			ClusterUtil.pushDatabase(this.newDatabaseId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			error = true;

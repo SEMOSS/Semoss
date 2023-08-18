@@ -822,7 +822,7 @@ public class Project implements IProject {
 		// but not published
 		if(outOfDate || this.lastReactorCompilationDate == null) {
 			classLogger.info("Pulling Java folder for project = " + this.projectId + ". Current reactors out of date = " + outOfDate + ". Last compilation date = " + this.lastReactorCompilationDate);
-			ClusterUtil.reactorPullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
+			ClusterUtil.pullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
 			this.clearClassCache();
 		}
 		
@@ -996,7 +996,7 @@ public class Project implements IProject {
 			// but not published
 			if(outOfDate || this.lastPortalPublishDate == null) {
 				classLogger.info("Pulling Portals folder for project = " + this.projectId + ". Current portal out of date = " + outOfDate + ". Last portal publish date = " + this.lastPortalPublishDate);
-				ClusterUtil.reactorPullProjectFolder(this, this.projectPortalFolder);
+				ClusterUtil.pullProjectFolder(this, this.projectPortalFolder);
 			}
 			try {
 				if(this.republishPortal || outOfDate || (enableForProject && !this.publishedPortal)) {
