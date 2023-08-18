@@ -671,7 +671,7 @@ public class CentralCloudStorage implements ICloudClient {
 			if(storageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = storageEngine.createRCloneConfig();
 			}
-			List<String> results = storageEngine.list(ClusterUtil.DB_IMAGES_BLOB, sharedRCloneConfig);
+			List<String> results = storageEngine.list(CentralCloudStorage.DB_IMAGES_BLOB, sharedRCloneConfig);
 			if(results.isEmpty()) {
 				fixLegacyImageStructure();
 				return;
@@ -683,7 +683,7 @@ public class CentralCloudStorage implements ICloudClient {
 			if(!localImageF.exists() || !localImageF.isDirectory()) {
 				localImageF.mkdirs();
 			}
-			storageEngine.copyToLocal(ClusterUtil.DB_IMAGES_BLOB, localImagesFolderPath);
+			storageEngine.copyToLocal(CentralCloudStorage.DB_IMAGES_BLOB, localImagesFolderPath);
 		} finally {
 			if(sharedRCloneConfig != null) {
 				try {
@@ -703,7 +703,7 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.syncLocalToStorage(localImagesFolderPath, ClusterUtil.DB_IMAGES_BLOB);
+		storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.DB_IMAGES_BLOB);
 	}
 	
 	@Override
@@ -976,7 +976,7 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.copyToLocal(ClusterUtil.PROJECT_IMAGES_BLOB, localImagesFolderPath);
+		storageEngine.copyToLocal(CentralCloudStorage.PROJECT_IMAGES_BLOB, localImagesFolderPath);
 	}
 
 	@Override
@@ -987,7 +987,7 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.syncLocalToStorage(localImagesFolderPath, ClusterUtil.DB_IMAGES_BLOB);
+		storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.PROJECT_IMAGES_BLOB);
 	}
 	
 	@Override
@@ -1373,6 +1373,28 @@ public class CentralCloudStorage implements ICloudClient {
 		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
 	}
 	
+	@Override
+	public void pullStorageImageFolder() throws IOException, InterruptedException {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String localImagesFolderPath = baseFolder + "/images/storages";
+		File localImageF = new File(localImagesFolderPath);
+		if(!localImageF.exists() || !localImageF.isDirectory()) {
+			localImageF.mkdirs();
+		}
+		storageEngine.copyToLocal(CentralCloudStorage.STORAGE_IMAGES_BLOB, localImagesFolderPath);
+	}
+
+	@Override
+	public void pushStorageImageFolder() throws IOException, InterruptedException {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String localImagesFolderPath = baseFolder + "/images/storages";
+		File localImageF = new File(localImagesFolderPath);
+		if(!localImageF.exists() || !localImageF.isDirectory()) {
+			localImageF.mkdirs();
+		}
+		storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.STORAGE_IMAGES_BLOB);
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	
@@ -1488,7 +1510,28 @@ public class CentralCloudStorage implements ICloudClient {
 
 		storageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
 		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
-		
+	}
+	
+	@Override
+	public void pullModelImageFolder() throws IOException, InterruptedException {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String localImagesFolderPath = baseFolder + "/images/models";
+		File localImageF = new File(localImagesFolderPath);
+		if(!localImageF.exists() || !localImageF.isDirectory()) {
+			localImageF.mkdirs();
+		}
+		storageEngine.copyToLocal(CentralCloudStorage.MODEL_IMAGES_BLOB, localImagesFolderPath);
+	}
+
+	@Override
+	public void pushModelImageFolder() throws IOException, InterruptedException {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String localImagesFolderPath = baseFolder + "/images/models";
+		File localImageF = new File(localImagesFolderPath);
+		if(!localImageF.exists() || !localImageF.isDirectory()) {
+			localImageF.mkdirs();
+		}
+		storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.MODEL_IMAGES_BLOB);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1826,7 +1869,7 @@ public class CentralCloudStorage implements ICloudClient {
 			// copy the images
 			// we will push these images to the new location
 			storageEngine.copyToLocal("semoss-imagecontainer", localImagesFolderPath, sharedRCloneConfig);
-			storageEngine.syncLocalToStorage(localImagesFolderPath, ClusterUtil.DB_IMAGES_BLOB, sharedRCloneConfig);
+			storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.DB_IMAGES_BLOB, sharedRCloneConfig);
 		} finally {
 			if(sharedRCloneConfig != null) {
 				try {
