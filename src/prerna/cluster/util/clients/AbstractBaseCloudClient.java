@@ -632,7 +632,7 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 
 				// Catalog the db if it is new
 				if (!databaseAlreadyLoaded) {
-					SMSSWebWatcher.catalogDB(smss, dbFolder);
+					SMSSWebWatcher.catalogEngine(smss, dbFolder);
 				}
 			} finally {
 				// Re-open the database (if an existing app)
