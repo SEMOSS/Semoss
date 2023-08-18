@@ -125,7 +125,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		String rawType = smssProp.get(Constants.ENGINE_TYPE).toString();
 		try {
 			IEngine emptyClass = (IEngine) Class.forName(rawType).newInstance();
-			engineType = emptyClass.getCatalogType(smssProp);
+			engineType = emptyClass.getCatalogType();
 			engineSubType = emptyClass.getCatalogSubType(smssProp);
 		} catch(Exception e) {
 			logger.warn("Unknown class name = " + rawType);

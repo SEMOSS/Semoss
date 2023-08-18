@@ -17,7 +17,6 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.User;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -394,7 +393,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public String getCatalogType(Properties smssProp) {
+	public String getCatalogType() {
 		return IModelEngine.CATALOG_TYPE;
 	}
 	
