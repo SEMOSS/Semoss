@@ -157,12 +157,13 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 		String response = null;
 		String messageId = UUID.randomUUID().toString();
+		String roomId = null;
 
 		if (Utility.isModelInferenceLogsEnabled()) {
 			if(parameters == null) {
 				parameters = new HashMap<String, Object>();
 			}
-			String roomId = (String) parameters.get("ROOM_ID");
+			roomId = (String) parameters.get("ROOM_ID");
 			// everything should be recorded so we always need a roomId
 			if (roomId == null) {
 				roomId = UUID.randomUUID().toString();
@@ -198,6 +199,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		Map<String, String> retMap = new HashMap<>();
 		retMap.put("response", response);
 		retMap.put("messageId", messageId);
+		retMap.put("roomId", roomId);
 		return retMap;
 	}
 
