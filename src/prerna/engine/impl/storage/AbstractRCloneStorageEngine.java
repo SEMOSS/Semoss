@@ -545,7 +545,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	protected String getConfigPath(String rcloneConfig) {
 		if( rcloneConfigFolder == null) {
 			rcloneConfigFolder =  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-					+ FILE_SEPARATOR + Constants.DB_FOLDER + FILE_SEPARATOR + 
+					+ FILE_SEPARATOR + Constants.STORAGE_FOLDER + FILE_SEPARATOR + 
 					SmssUtilities.getUniqueName(this.engineName, this.engineId);
 			new File(rcloneConfig).mkdirs();
 		}
