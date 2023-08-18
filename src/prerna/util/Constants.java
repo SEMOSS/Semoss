@@ -371,7 +371,11 @@ public class Constants {
 
 	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
 	public static final String OWL = "OWL";
+	
+	// folder names on engines / projects
 	public static final String DB_FOLDER = "db";
+	public static final String STORAGE_FOLDER = "storage";
+	public static final String MODEL_FOLDER = "model";
 	public static final String PROJECT_FOLDER = "project";
 	public static final String APP_ROOT_FOLDER = "app_root";
 	public static final String ASSETS_FOLDER = "assets";
