@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -30,6 +31,9 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
@@ -133,6 +137,125 @@ public class ModelInferenceLogsUtils {
 		summarizeStatement.append("\\\" in less than 8 words. Please exclude all punctuation from the response.");
 		String roomTitle = engine.askQuestion(summarizeStatement.toString(), null, null, null);
 		return roomTitle;
+	}
+	
+	public static boolean userIsMessageAuthor(String userId, String messageId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector newSelector = new QueryFunctionSelector();
+		newSelector.setAlias("Counts");
+		newSelector.setFunction(QueryFunctionHelper.COUNT);
+		newSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID"));
+
+		qs.addSelector(newSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_ID", "==", messageId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs);
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val == null) {
+					return false;
+				}
+				int intVal = ((Number) val).intValue();
+				if(intVal > 0) {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		return false;
+	}
+	
+	public static void recordFeedback(String messageId, String feedbackText, boolean rating) {
+		if (feedbackExists(messageId)) {
+			updateFeedback(messageId, feedbackText, rating);
+		} else {
+			insertFeedback(messageId, feedbackText, rating);
+		}
+	}
+	
+	public static boolean feedbackExists(String messageId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector newSelector = new QueryFunctionSelector();
+		newSelector.setAlias("Counts");
+		newSelector.setFunction(QueryFunctionHelper.COUNT);
+		newSelector.addInnerSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));
+
+		qs.addSelector(newSelector);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs);
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val == null) {
+					return false;
+				}
+				int intVal = ((Number) val).intValue();
+				if(intVal > 0) {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		return false;
+	}
+	
+	public static void insertFeedback(String messageId, String feedbackText, boolean rating) {
+		String query = "INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) "
+				+ "VALUES (?, ?, ?, ?, ?)";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, messageId);
+			ps.setString(index++, "RESPONSE");
+			ps.setString(index++, feedbackText);
+			ps.setObject(index++, LocalDateTime.now());
+			ps.setBoolean(index++, rating);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			closeResources(modelInferenceLogsDb, null, ps, null);
+		}	
+	}
+	
+	public static void updateFeedback(String messageId, String feedbackText, boolean rating) {
+		String query = "UPDATE FEEDBACK SET FEEDBACK_TEXT =?, "
+				+ "FEEDBACK_DATE = ?, RATING = ? WHERE MESSAGE_ID = ? AND MESSAGE_TYPE = 'RESPONSE'";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, feedbackText);
+			ps.setObject(index++, LocalDateTime.now());
+			ps.setBoolean(index++, rating);
+			ps.setString(index++, messageId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			closeResources(modelInferenceLogsDb, null, ps, null);
+		}	
 	}
 	
 	public static void doCreateNewUser(User user) {
