@@ -274,6 +274,23 @@ public class ClusterUtil {
 	 * 
 	 * @param storageId
 	 */
+	public static void pushStorage(String storageId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pushStorage(storageId);
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to push storage '"+storageId+"' from cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param storageId
+	 */
 	public static void deleteStorage(String storageId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
@@ -316,6 +333,23 @@ public class ClusterUtil {
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull model '"+modelId+"' from cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param modelId
+	 */
+	public static void pushModel(String modelId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().pushModel(modelId);
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+				SemossPixelException err = new SemossPixelException("Failed to push model '"+modelId+"' from cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}

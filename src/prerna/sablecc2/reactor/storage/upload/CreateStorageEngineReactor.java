@@ -92,7 +92,6 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			String storageClass = storageType.getStorageClass();
 			storage = (IStorage) Class.forName(storageClass).newInstance();
 			tempSmss = UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
-			
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
 			DIHelper.getInstance().setEngineProperty(storageId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
@@ -112,13 +111,13 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 					SecurityEngineUtils.addDatabaseOwner(storageId, user.getAccessToken(ap).getId());
 				}
 			}
+			
+			ClusterUtil.pushStorage(storageId);
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile);
 		}
 		
-		ClusterUtil.pushDatabase(storageId);
-
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
