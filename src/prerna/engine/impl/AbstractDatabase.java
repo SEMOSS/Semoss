@@ -1077,7 +1077,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	}
 	
 	@Override
-	public String getCatalogType(Properties smssProp) {
+	public String getCatalogType() {
 		return IDatabase.CATALOG_TYPE;
 	}
 	
