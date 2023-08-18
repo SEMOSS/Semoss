@@ -72,21 +72,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		catalogDB(fileName, folderToWatch);
+		catalogEngine(fileName, folderToWatch);
 	}
 
 	/**
 	 * Returns an array of strings naming the files in the directory. Goes through list and loads an existing database.
 	 */
-	public String loadExistingDB(String fileName) {
-		return loadNewDB(fileName, folderToWatch);
+	public String loadExistingEngine(String fileName) {
+		return loadNewEngine(fileName, folderToWatch);
 	}
 
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */
-	public static String loadNewDB(String newFile, String folderToWatch) {
+	public static String loadNewEngine(String newFile, String folderToWatch) {
 		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 		String engineId = null;
 		try{
@@ -108,8 +108,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
 					logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 				} else {
-	//				String fileName = folderToWatch + "/" + newFile;
-	//				Utility.loadEngine(fileName, prop);
 					String filePath = folderToWatch + "/" + newFile;
 					Utility.catalogEngineByType(filePath, prop, engineId);
 				}
@@ -127,7 +125,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */	
-	public static String catalogDB(String newFile, String folderToWatch) {
+	public static String catalogEngine(String newFile, String folderToWatch) {
 		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 		String engineId = null;
 		try{
@@ -165,7 +163,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// find the local master
 		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
 		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
-		loadExistingDB(fileNames[localMasterIndex]);
+		loadExistingEngine(fileNames[localMasterIndex]);
 		// initialize the local master
 		try {
 			MasterDatabaseUtility.initLocalMaster();
@@ -180,7 +178,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// also need to load the security db
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		int securityIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, securityDBName);
-		loadExistingDB(fileNames[securityIndex]);
+		loadExistingEngine(fileNames[securityIndex]);
 		// initialize the security database
 		try {
 			AbstractSecurityUtils.loadSecurityDatabase();
@@ -195,7 +193,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String themingDbName = Constants.THEMING_DB + this.extension;
 		int themingDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, themingDbName);
 		if(themingDbNameIndex > -1) {
-			loadExistingDB(fileNames[themingDbNameIndex]);
+			loadExistingEngine(fileNames[themingDbNameIndex]);
 			// initialize the security database
 			try {
 				AbstractThemeUtils.loadThemingDatabase();
@@ -212,7 +210,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			String schedulerDbName = Constants.SCHEDULER_DB + this.extension;
 			int schedulerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, schedulerDbName);
 			if(schedulerDbNameIndex > -1) {
-				loadExistingDB(fileNames[schedulerDbNameIndex]);
+				loadExistingEngine(fileNames[schedulerDbNameIndex]);
 				// initialize the scheduler database
 				try {
 					SchedulerDatabaseUtility.startServer();
@@ -233,7 +231,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			int userTrackerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, userTrackerDBName);
 	
 			if (userTrackerDbNameIndex > -1) {
-				loadExistingDB(fileNames[userTrackerDbNameIndex]);
+				loadExistingEngine(fileNames[userTrackerDbNameIndex]);
 				try {
 					UserTrackingUtils.initUserTrackerDatabase();
 				} catch (Exception e) {
@@ -251,7 +249,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			int modelInferenceLogsDBNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, modelInferenceLogsDBName);
 	
 			if (modelInferenceLogsDBNameIndex > -1) {
-				loadExistingDB(fileNames[modelInferenceLogsDBNameIndex]);
+				loadExistingEngine(fileNames[modelInferenceLogsDBNameIndex]);
 				try {
 					ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
 				} catch (Exception e) {
@@ -302,11 +300,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				// I really dont want to load anything here
 				// I only want to keep track of what are the engine names and their corresponding SMSS files
 				// so we will catalog instead of load
-				String loadedEngineId = catalogDB(fileName, folderToWatch);
+				String loadedEngineId = catalogEngine(fileName, folderToWatch);
 				engineIds[fileIdx] = loadedEngineId;
 			} catch (RuntimeException ex) {
 				logger.error(Constants.STACKTRACE, ex);
-				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				logger.fatal("Database engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
 		
@@ -317,7 +315,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					logger.info("Deleting the engine from local master..... " + Utility.cleanLogString(engine));
+					logger.info("Deleting the database engine from local master..... " + Utility.cleanLogString(engine));
 					remover.deleteEngineRDBMS(engine);
 				}
 			}
@@ -325,7 +323,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			engines = SecurityEngineUtils.getAllEngineIds();
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					logger.info("Deleting the engine from security..... " + Utility.cleanLogString(engine));
+					logger.info("Deleting the database engine from security..... " + Utility.cleanLogString(engine));
 					SecurityEngineUtils.deleteEngine(engine);
 				}
 			}
