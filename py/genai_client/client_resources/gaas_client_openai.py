@@ -43,11 +43,11 @@ class OpenAiClient(BaseClient):
         mapping = {"question": question} | kwargs
         if context is not None:
           if isinstance(context, str):
-            context = self.fill_context(context, **mapping)
+            context = self.fill_context(context, **mapping)[0]
             message_payload.append({"role": "system", "content": context})
         else:
           if template_name != None:
-            possibleContent = self.fill_template(template_name=template_name, **mapping)
+            possibleContent = self.fill_template(template_name=template_name, **mapping)[0]
             if possibleContent != None:
               message_payload.append({"role": "system", "content": possibleContent})
 

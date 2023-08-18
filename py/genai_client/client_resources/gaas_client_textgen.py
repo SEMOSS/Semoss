@@ -30,37 +30,49 @@ class TextGenClient(BaseClient):
     # TODO try to clean this up
     content = []
 
+    # assert that the question is not None. We can do this or put an assert statement
+    if question is None:
+      return "Please ask me a question"
+
     # attempt to pull in the context
+    sub_occured = False
     mapping = {"question": question} | kwargs
     if context != None:
        # check if we have to fill the content/template passed in by the user
-       context = self.fill_context(context, **mapping)
+       context, sub_occured = self.fill_context(context, **mapping)
        content = [context,'\n']
     else:
       if template_name != None:
-        possibleContent = self.fill_template(template_name=template_name, **mapping)
+        possibleContent, sub_occured = self.fill_template(template_name=template_name, **mapping)
         if possibleContent != None:
            content = [possibleContent,'\n']
 
-    # Add history if one is provided
-    for statement in history:
+    # if substitution did not occure, they are only passing a context string like 'Your are a helpful Assistant'
+    if sub_occured == False:
+      # Add history if one is provided
+      for statement in history:
         content.append(statement['role'])
         content.append(':')
         content.append(statement['content'])
         content.append('\n')
     
-    # assert that the question is not None. We can do this or put an assert statement
-    if question is None:
-      return "Please ask me a question"
+      # append the user asked question to the content
+      content.append('user:')
+      content.append(question)
+      content.append('\n')
+      content.append('system:')
 
-    # append the user asked question to the content
-    content.append('user:')
-    content.append(question)
+    else: # oterhwise the gave how the want the response to come back, so we reverse order - history first
+      histContent = []
+      for statement in history:
+        histContent.append(statement['role'])
+        histContent.append(':')
+        histContent.append(statement['content'])
+        histContent.append('\n')
+      content = histContent + content
 
     # join all the inputs into a single string
     prompt = "".join(content)
-
-    print(prompt)
     
     # ask the question and apply the additional params
     response = self.client.generate(prompt, **kwargs)
