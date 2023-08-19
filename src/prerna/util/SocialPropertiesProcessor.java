@@ -512,7 +512,7 @@ public class SocialPropertiesProcessor {
 		}
 		this.imapEmailProps.setProperty("mail.store.protocol", "imaps");
 
-		String host = this.pop3EmailProps.getProperty("mail.imap.host");
+		String host = this.imapEmailProps.getProperty("mail.imap.host");
 		String username = getImapUsername();
 		String password = getImapPassword();
 
