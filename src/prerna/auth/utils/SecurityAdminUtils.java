@@ -195,7 +195,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUserEngines(String userId) throws IllegalArgumentException{
+	public List<Map<String, Object>> getAllUserEngines(String userId, List<String> engineTypes) throws IllegalArgumentException{
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID", "user_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "app_permission"));
@@ -203,6 +203,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "app_permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+		if(engineTypes != null && !engineTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+		}
 		qs.addRelation("ENGINEPERMISSION", "ENGINE", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 
@@ -1575,7 +1578,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
 		if(engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
-			qs.addRelation("ENGINEPERMISSION__ENGINEID", "inner.join", "ENGINE__ENGINEID");
+			qs.addRelation("ENGINEPERMISSION__ENGINEID", "ENGINE__ENGINEID", "inner.join");
 		}
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
@@ -1592,7 +1595,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
 		if(engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
-			qs.addRelation("ENGINEPERMISSION__ENGINEID", "inner.join", "ENGINE__ENGINEID");
+			qs.addRelation("ENGINEPERMISSION__ENGINEID", "ENGINE__ENGINEID", "inner.join");
 		}
 		Map<String, Boolean> values = new HashMap<>();
 		IRawSelectWrapper wrapper = null;
