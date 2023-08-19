@@ -14,7 +14,7 @@ public class GoogleCloudStorageEngine extends AbstractRCloneStorageEngine {
 
 	public static final String GCS_REGION = "GCS_REGION";
 	public static final String GCS_SERVICE_ACCOUNT_FILE_KEY = "GCS_SERVICE_ACCOUNT_FILE";
-	public static final String GCS_BUCKET_KEY = "GCP_BUCKET";
+	public static final String GCS_BUCKET_KEY = "GCS_BUCKET";
 
 	// specific values - while not final they shouldn't be modified
 	private String REGION = null;
