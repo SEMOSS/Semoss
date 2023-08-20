@@ -6,6 +6,8 @@ OWL	db/ModelInferenceLogsDatabase/ModelInferenceLogsDatabase_OWL.OWL
 PIXEL_UPDATE	true
 RDBMS_INSIGHTS	db/ModelInferenceLogsDatabase/insights_database
 
+DATABASE
+SCHEMA PUBLIC
 DRIVER	org.h2.Driver
 USERNAME	sa
 PASSWORD	
