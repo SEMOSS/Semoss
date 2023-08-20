@@ -64,6 +64,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		ignoreSmssList.add(Constants.THEMING_DB);
 		ignoreSmssList.add(Constants.SCHEDULER_DB);
 		ignoreSmssList.add(Constants.USER_TRACKING_DB);
+		ignoreSmssList.add(Constants.MODEL_INFERENCE_LOGS_DB);
+
 	}
 	
 	private static final Logger logger = LogManager.getLogger(SMSSWebWatcher.class);
@@ -288,13 +290,15 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String themeDBName = Constants.THEMING_DB + this.extension;
 		String schedulerDBName = Constants.SCHEDULER_DB + this.extension;
 		String userTrackingDBName = Constants.USER_TRACKING_DB + this.extension;
+		String modelInferenceLogsDB = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
 
 		// loop through and load all the engines
 		// but we will ignore the local master and security database
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
 				String fileName = fileNames[fileIdx];
-				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) || fileName.equals(schedulerDBName) || fileName.equals(userTrackingDBName)) {
+				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) 
+						|| fileName.equals(schedulerDBName) || fileName.equals(userTrackingDBName) || fileName.equals(modelInferenceLogsDB)) {
 					// again, ignore local master + security
 					continue;
 				}
