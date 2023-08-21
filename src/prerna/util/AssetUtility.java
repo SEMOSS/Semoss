@@ -136,7 +136,7 @@ public class AssetUtility {
 				}
 				IProject project = Utility.getProject(projectId);
 				String projectName = project.getProjectName();
-				assetFolder = getProjectBaseFolder(projectName, projectId);
+				assetFolder = getProjectAssetFolder(projectName, projectId);
 			}
 		} else if(in.isSavedInsight() && editRequired){
 			// we are about to send back the insight folder 
