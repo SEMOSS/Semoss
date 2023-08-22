@@ -1,5 +1,6 @@
 package prerna.sablecc2.om.task;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -43,8 +44,8 @@ public abstract class AbstractTaskOperation extends AbstractTask {
 	}
 	
 	@Override
-	public void cleanUp() {
-		this.innerTask.cleanUp();
+	public void close() throws IOException {
+		this.innerTask.close();
 	}
 	
 	@Override

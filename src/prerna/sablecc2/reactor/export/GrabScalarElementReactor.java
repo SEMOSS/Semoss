@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.io.IOException;
 import java.util.List;
 
 import prerna.sablecc2.om.GenRowStruct;
@@ -45,7 +46,11 @@ public class GrabScalarElementReactor extends AbstractReactor {
 		
 		boolean cleanUp = cleanUp();
 		if(cleanUp) {
-			task.cleanUp();
+			try {
+				task.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			this.insight.getTaskStore().removeTask(task.getId());
 		}
 		

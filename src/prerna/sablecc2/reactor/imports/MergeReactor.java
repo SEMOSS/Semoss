@@ -112,7 +112,11 @@ public class MergeReactor extends AbstractReactor {
 						classLogger.error(Constants.STACKTRACE, e);
 						throw new SemossPixelException(e.getMessage(), e);
 					} finally {
-						task.cleanUp();
+						try {
+							task.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				} else {
 					throw new IllegalArgumentException("Could not find any data input to merge into the frame");
@@ -292,7 +296,7 @@ public class MergeReactor extends AbstractReactor {
 							
 							qs.addImplicitFilter(SimpleQueryFilter.makeColToValFilter(rColumnJoin, "==", values, dataType));
 						} catch(Exception e) {
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 							throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");
 						}
 					}

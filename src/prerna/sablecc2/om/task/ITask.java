@@ -1,5 +1,6 @@
 package prerna.sablecc2.om.task;
 
+import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +13,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.export.IFormatter;
 
-public interface ITask extends Iterator<IHeadersDataRow> {
+public interface ITask extends Iterator<IHeadersDataRow>, Closeable {
 
 	/**
 	 * Basic operation to get a certain number of records from the data
@@ -64,8 +65,6 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	List<Map<String, Object>> getFilterInfo();
 
 	List<Object[]> flushOutIteratorAsGrid();
-	
-	void cleanUp();
 	
 	void setLogger(Logger logger);
 	
