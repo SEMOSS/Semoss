@@ -29,7 +29,6 @@ import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-
 public abstract class AbstractModelEngine implements IModelEngine {
 	
 	private static final String DIR_SEPERATOR = "/";
@@ -67,12 +66,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	private Map<String, ArrayList<Map<String, Object>>> chatHistory = new Hashtable<>();
 	
 	@Override
-	public void loadModel(String modelSmssFilePath) {
+	public void open(String smssFilePath) {
 		try {
-			if (modelSmssFilePath != null) {
-				logger.info("Loading Model - " + Utility.cleanLogString(FilenameUtils.getName(modelSmssFilePath)));
-				setSmssFilePath(modelSmssFilePath);
-				setSmssProp(Utility.loadProperties(modelSmssFilePath));
+			if (smssFilePath != null) {
+				logger.info("Loading Model - " + Utility.cleanLogString(FilenameUtils.getName(smssFilePath)));
+				setSmssFilePath(smssFilePath);
+				setSmssProp(Utility.loadProperties(smssFilePath));
 			}
 			if(this.generalEngineProp != null) {
 				this.engineId = generalEngineProp.getProperty(Constants.ENGINE);
@@ -85,7 +84,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					}
 				}
 				if (!generalEngineProp.containsKey(CUR_DIR)) {
-					String curDir = new File(modelSmssFilePath).getParent().replace(FILE_SEPARATOR, DIR_SEPERATOR);
+					String curDir = new File(smssFilePath).getParent().replace(FILE_SEPARATOR, DIR_SEPERATOR);
 					generalEngineProp.put(CUR_DIR, curDir);
 				}
 				if (!generalEngineProp.containsKey(ENGINE_DIR)) {
