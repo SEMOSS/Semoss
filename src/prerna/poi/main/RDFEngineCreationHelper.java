@@ -1,5 +1,6 @@
 package prerna.poi.main;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -132,7 +133,11 @@ public class RDFEngineCreationHelper {
 					e1.printStackTrace();
 				} finally {
 					if(containsIt != null) {
-						containsIt.cleanUp();
+						try {
+							containsIt.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 				

@@ -1,5 +1,6 @@
 package prerna.rdf.main;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.logging.log4j.LogManager;
@@ -10,6 +11,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -37,10 +39,14 @@ public class TestRDBMSInsights {
 				logger.info(Utility.cleanLogString(Arrays.toString(row.getRawValues())));
 			}
 		} catch (Exception e) {
-			logger.error("StackTrace: ", e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -56,7 +62,11 @@ public class TestRDBMSInsights {
 			logger.error("StackTrace: ", e);
 		} finally {
 			if (wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

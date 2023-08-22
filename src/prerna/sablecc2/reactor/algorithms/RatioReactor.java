@@ -381,7 +381,11 @@ public class RatioReactor extends AbstractFrameReactor {
 			logger.error(STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					logger.error(STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -419,7 +423,11 @@ public class RatioReactor extends AbstractFrameReactor {
 			logger.error(STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					logger.error(STACKTRACE, e);
+				}
 			}
 		}
 		

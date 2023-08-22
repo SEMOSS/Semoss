@@ -77,11 +77,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
 
- 		IRawSelectWrapper wrap = null;
+ 		IRawSelectWrapper wrapper = null;
 		try {
-			wrap = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrap.hasNext()) {
-				IHeadersDataRow dataRow = wrap.next();
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if (wrapper.hasNext()) {
+				IHeadersDataRow dataRow = wrapper.next();
 				Object[] values = dataRow.getValues();
 
 				int index = 0;
@@ -136,8 +136,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e1);
 		} 
 		finally {
-			if(wrap != null) {
-				wrap.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return null;
@@ -169,7 +173,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -199,7 +207,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -248,7 +260,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			
@@ -280,7 +296,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -450,7 +470,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getUserEditableInsights(User user, String projectId) {
 		String permission = SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
 		if(permission == null || permission.equals(AccessPermissionEnum.READ_ONLY.getPermission())) {
-			return new Vector<>();
+			return new ArrayList<>();
 		}
 		
 		// you are either an owner or an editor
@@ -529,7 +549,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -557,7 +581,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return retMap;
@@ -607,7 +635,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return false;
@@ -2409,7 +2441,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -2462,7 +2498,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -2692,7 +2732,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			throw e;
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

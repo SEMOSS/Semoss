@@ -7,15 +7,21 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class BaseDatabaseCreator {
+
+	private static final Logger classLogger = LogManager.getLogger(BaseDatabaseCreator.class);
 
 	public static final String TIME_KEY = "ENGINE:TIME";
 	public static final String TIME_URL = "http://semoss.org/ontologies/Concept/TimeStamp";
@@ -117,7 +123,7 @@ public class BaseDatabaseCreator {
 			}
 			this.baseEng.exportDB();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Error in writing OWL file");
 		}
 	}
@@ -136,7 +142,7 @@ public class BaseDatabaseCreator {
 			writer.flush();
 			return writer.toString();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Error in writing base engine db as OWL file");
 		}
 	}
@@ -160,10 +166,14 @@ public class BaseDatabaseCreator {
 				currTimes.add(cleanRow[1] + "");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

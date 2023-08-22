@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
@@ -195,11 +196,12 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		try {
 			tqr.close();
 		} catch (QueryEvaluationException e) {
 			logger.error(STACKTRACE, e);
+			throw new IOException(e);
 		}
 	}
 

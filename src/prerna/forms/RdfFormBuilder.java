@@ -1,5 +1,6 @@
 package prerna.forms;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -373,10 +374,14 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 					otherUris = true;
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper2 != null) {
-					wrapper2.cleanUp();
+					try {
+						wrapper2.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			
@@ -563,10 +568,14 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			upIt = WrapperManager.getInstance().getRawWrapper(this.engine , upQuery);
 			storeValues(upIt, upTriples);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(upIt != null) {
-				upIt.cleanUp();
+				try {
+					upIt.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -582,10 +591,14 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			downIt = WrapperManager.getInstance().getRawWrapper(this.engine , downQuery);
 			storeValues(downIt, downTriples);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(downIt != null) {
-				downIt.cleanUp();
+				try {
+					downIt.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -783,10 +796,14 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				oldVersion = Double.parseDouble(clean[1] + "");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

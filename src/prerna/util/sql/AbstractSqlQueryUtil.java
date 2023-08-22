@@ -72,6 +72,7 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -504,21 +505,21 @@ public abstract class AbstractSqlQueryUtil {
 				try {
 					is.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(isr != null) {
 				try {
 					isr.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1540,7 +1541,11 @@ public abstract class AbstractSqlQueryUtil {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -1569,7 +1574,11 @@ public abstract class AbstractSqlQueryUtil {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -1598,20 +1607,7 @@ public abstract class AbstractSqlQueryUtil {
 		} catch (SQLException e) {
 			return false;
 		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
 	}
 	
@@ -1637,7 +1633,11 @@ public abstract class AbstractSqlQueryUtil {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -1703,7 +1703,11 @@ public abstract class AbstractSqlQueryUtil {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

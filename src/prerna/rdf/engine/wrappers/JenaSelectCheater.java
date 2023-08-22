@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
@@ -127,7 +128,7 @@ public class JenaSelectCheater extends AbstractWrapper implements IConstructWrap
 	}
 
 	@Override
-	public void cleanUp() {
-		// Implement clean up
+	public void close() throws IOException {
+		
 	}
 }

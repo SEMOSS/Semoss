@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.database.upload.rdf;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -98,7 +99,11 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 			e.printStackTrace();
 		} finally {
 			if(iterator != null) {
-				iterator.cleanUp();
+				try {
+					iterator.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		

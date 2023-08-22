@@ -33,6 +33,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.beans.PropertyVetoException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -200,7 +201,11 @@ public class RelationFunction implements IAlgorithm {
 			e.printStackTrace();
 		} finally {
 			if(sjsw != null) {
-				sjsw.cleanUp();
+				try {
+					sjsw.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		

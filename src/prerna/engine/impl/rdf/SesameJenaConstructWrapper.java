@@ -343,12 +343,11 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 //		//System.out.println(" var " + sjcw.getVariables());
 //		
 //	}
-
+	
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		// TODO Auto-generated method stub
 		
 	}
-	
 
 }

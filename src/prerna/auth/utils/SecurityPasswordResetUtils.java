@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -61,8 +62,12 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
-				wrapper.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -88,8 +93,12 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
-				wrapper.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -172,11 +181,11 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__EMAIL"));
 		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_RESET__TOKEN", "==", token));
-		IRawSelectWrapper iterator = null;
+		IRawSelectWrapper wrapper = null;
 		try {
-			iterator = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(iterator.hasNext()) {
-				Object[] row = iterator.next().getValues();
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
 				dateTokenAdded = (SemossDate) row[0];
 				email = (String) row[1];
 				type = (String) row[2];
@@ -184,8 +193,12 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(iterator != null) {
-				iterator.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

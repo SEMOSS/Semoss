@@ -1,8 +1,11 @@
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
@@ -12,25 +15,23 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.neo4j.Neo4jEmbeddedEngine;
 import prerna.om.HeadersDataRow;
+import prerna.util.Constants;
 
-public class Neo4jWrapper extends AbstractWrapper implements IRawSelectWrapper{
+public class Neo4jWrapper extends AbstractWrapper implements IRawSelectWrapper {
+	
+	private static final Logger classLogger = LogManager.getLogger(Neo4jWrapper.class);
+
 	private Result result;
 	private Transaction transaction ;
 	protected SemossDataType[] types;
-
 	
 	@Override
 	public void execute() {
 		GraphDatabaseService dbService = ((Neo4jEmbeddedEngine) this.engine).getGraphDatabaseService();
-		try {
-			transaction = dbService.beginTx();
-			result = dbService.execute(this.query);
-			// get columns, types
-			setVariables();
-			
-		} finally {
-
-		}		
+		transaction = dbService.beginTx();
+		result = dbService.execute(this.query);
+		// get columns, types
+		setVariables();
 	}
 
 	private void setVariables() {
@@ -44,9 +45,9 @@ public class Neo4jWrapper extends AbstractWrapper implements IRawSelectWrapper{
 		}
 
 	}
-
+	
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		result.close();
 		transaction.close();
 	}
@@ -55,7 +56,11 @@ public class Neo4jWrapper extends AbstractWrapper implements IRawSelectWrapper{
 	public boolean hasNext() {
 		boolean next = result.hasNext();
 		if(!next) {
-			cleanUp();
+			try {
+				close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 		return next;
 	}

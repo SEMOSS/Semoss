@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
@@ -27,9 +29,12 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Owler extends AbstractOwler {
+
+	private static final Logger classLogger = LogManager.getLogger(Owler.class);
 
 	/**
 	 * Constructor for the class when we are creating a brand new OWL file
@@ -282,10 +287,14 @@ public class Owler extends AbstractOwler {
 					String propertyPhysicalUri = queryEngine.getPhysicalUriFromPixelSelector(selectorPixel);
 					this.engine.addToBaseEngine(propertyPhysicalUri, uniqueCountProp, uniqueRows, false);
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(it != null) {
-						it.cleanUp();
+						try {
+							it.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
@@ -390,13 +399,16 @@ public class Owler extends AbstractOwler {
 							executeRemoveQuery(headerRows, owlEngine);
 						}
 					} catch (Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(it != null) {
-							it.cleanUp();
+							try {
+								it.close();
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
 						}
 					}
-					
 				}
 
 				// repeat for upstream of prop
@@ -411,10 +423,14 @@ public class Owler extends AbstractOwler {
 							executeRemoveQuery(headerRows, owlEngine);
 						}
 					} catch (Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(it != null) {
-							it.cleanUp();
+							try {
+								it.close();
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
 						}
 					}
 				}
@@ -436,10 +452,14 @@ public class Owler extends AbstractOwler {
 						executeRemoveQuery(headerRows, owlEngine);
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(it != null) {
-						it.cleanUp();
+						try {
+							it.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
@@ -457,10 +477,14 @@ public class Owler extends AbstractOwler {
 						executeRemoveQuery(headerRows, owlEngine);
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(it != null) {
-						it.cleanUp();
+						try {
+							it.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
@@ -566,10 +590,14 @@ public class Owler extends AbstractOwler {
 					executeRemoveQuery(headerRows, owlEngine);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -585,10 +613,14 @@ public class Owler extends AbstractOwler {
 					executeRemoveQuery(headerRows, owlEngine);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -766,13 +798,16 @@ public class Owler extends AbstractOwler {
 						}
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-					if (it != null) {
-						it.cleanUp();
+					if(it != null) {
+						try {
+							it.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
-
 			}
 
 			// repeat for upstream of prop
@@ -799,10 +834,14 @@ public class Owler extends AbstractOwler {
 						}
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-					if (it != null) {
-						it.cleanUp();
+					if(it != null) {
+						try {
+							it.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
@@ -845,13 +884,16 @@ public class Owler extends AbstractOwler {
 						newTriplesToAdd.add(new Object[] { newConceptPhysicalUri, p, o, true });
 					}
 					storeTripleToDelete(headerRows, oldTriplesToDelete);
-
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				if (it != null) {
-					it.cleanUp();
+				if(it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -885,10 +927,14 @@ public class Owler extends AbstractOwler {
 					storeTripleToDelete(headerRows, oldTriplesToDelete);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				if (it != null) {
-					it.cleanUp();
+				if(it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -1020,10 +1066,14 @@ public class Owler extends AbstractOwler {
 					}
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -1044,10 +1094,14 @@ public class Owler extends AbstractOwler {
 					newTriplesToAdd.add(new Object[] { s, p, newPropPhysicalUri, true });
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}

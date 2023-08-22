@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -22,6 +23,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.imports.ImportUtility;
+import prerna.util.Constants;
 
 /**
  * This class lets user profile the data in a frame. It analyzes the data in a
@@ -35,7 +37,8 @@ import prerna.sablecc2.reactor.imports.ImportUtility;
 
 public class FrameProfileReactor extends AbstractFrameReactor{
 
-	private static final Logger logger = LogManager.getLogger(FrameProfileReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(FrameProfileReactor.class);
+	
 	private static final String DOUBLE_UNDERSCORE = "__";
 	private static final String NA = "NA";
 	private static final String DOUBLE_EQUALS = "==";
@@ -46,7 +49,7 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 	
 	@Override
 	public NounMetadata execute() {
-		logger.info("Starting Frame Profile execution.");
+		classLogger.info("Starting Frame Profile execution.");
 		
 		organizeKeys();
 		ITableDataFrame actFrame = getFrame();
@@ -109,7 +112,7 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 				row = getStringProfileDataOnFrame(actFrame, tableName, colName); 
 			}
 			newFrame.addRow(row, newHeaders);
-			logger.info("New row added to the new frame for column " + colName);
+			classLogger.info("New row added to the new frame for column " + colName);
 		}
 		
 		/*
@@ -117,9 +120,8 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		 */
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		this.insight.getVarStore().put(newFrameAlias, noun);
-		logger.info("New Frame created with alias and has been set in the insight**********" + newFrameAlias);
-		
-		logger.info("Completed execution of FrameProfileReactor.");
+		classLogger.info("New Frame created with alias and has been set in the insight**********" + newFrameAlias);
+		classLogger.info("Completed execution of FrameProfileReactor.");
 		return noun;
 	}
 	
@@ -205,14 +207,19 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 			if(blanksWrapper.hasNext()) {
 				blankCnts = ((Number)blanksWrapper.next().getValues()[0]).intValue();
 			}else {
-				logger.info("Blanks Wrapper is empty. No blanks!");
+				classLogger.info("Blanks Wrapper is empty. No blanks!");
 			}
 		}catch(Exception e) {
-			logger.error("Exception during execution of query." + e.getMessage());
+			classLogger.warn("Exception during execution of query." + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
 		}finally {
 			//Cleanup.
 			if(blanksWrapper != null) {
-				blanksWrapper.cleanUp();
+				try {
+					blanksWrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -243,13 +250,18 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 			if(uniqueWrapper.hasNext()) {
 				value = uniqueWrapper.next().getValues()[0];
 			}else {
-				logger.info("Unique Wrapper is empty. No unique elements.");
+				classLogger.info("Unique Wrapper is empty. No unique elements.");
 			}
 		} catch (Exception e) {
-			logger.error("Exception during execution of query." + e.getMessage());
+			classLogger.warn("Exception during execution of query." + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (uniqueWrapper != null) {
-				uniqueWrapper.cleanUp();
+				try {
+					uniqueWrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -289,13 +301,18 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 			if(nullWrapper.hasNext()) {
 				nullCount = ((Number) nullWrapper.next().getValues()[0]).intValue();
 			}else {
-				logger.info("Null Wrapper is empty. No null values.");
+				classLogger.info("Null Wrapper is empty. No null values.");
 			}
 		} catch (Exception e) {
-			logger.error("Exception during execution of query." + e.getMessage());
+			classLogger.warn("Exception during execution of query." + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
 		}finally {
 			if(nullWrapper != null) {
-				nullWrapper.cleanUp();
+				try {
+					nullWrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -333,10 +350,11 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 					row[offset + i] = String.valueOf(dataArr[i]);
 				}
 			}else {
-				logger.info("Wrapper for calculating unique/min/max/avg/sum is empty for column name " + colName);
+				classLogger.info("Wrapper for calculating unique/min/max/avg/sum is empty for column name " + colName);
 			}
 		}catch(Exception e) {
-			logger.error("Exception during execution of query." + e.getMessage());
+			classLogger.warn("Exception during execution of query." + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

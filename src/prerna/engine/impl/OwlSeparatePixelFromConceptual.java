@@ -9,6 +9,8 @@ import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDFS;
 
 import com.google.gson.Gson;
@@ -28,6 +30,8 @@ import prerna.util.gson.GsonUtility;
 @Deprecated
 public class OwlSeparatePixelFromConceptual {
 
+	private static final Logger logger = LogManager.getLogger(OwlSeparatePixelFromConceptual.class);
+	
 	public static void fixOwl(Properties prop) {
 		String uniqueAppName = SmssUtilities.getUniqueName(prop);
 		File owlFile = SmssUtilities.getOwlFile(prop);
@@ -44,7 +48,7 @@ public class OwlSeparatePixelFromConceptual {
 				try {
 					FileUtils.copyFile(owlFile, new File(owlFile.getAbsolutePath() + "_SaveCopy"));
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 				System.out.println("REQUIRE FIX FOR " + uniqueAppName);
 				System.out.println("REQUIRE FIX FOR " + uniqueAppName);
@@ -68,7 +72,7 @@ public class OwlSeparatePixelFromConceptual {
 					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName );
 					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName );
 					System.out.println("ERROR occurred TRYING TO FIX " + uniqueAppName );
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -176,7 +180,7 @@ public class OwlSeparatePixelFromConceptual {
 		try {
 			owler.export();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -395,10 +399,14 @@ public class OwlSeparatePixelFromConceptual {
 			wrapper = WrapperManager.getInstance().getRawWrapper(rfse, query);
 			return !wrapper.hasNext();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

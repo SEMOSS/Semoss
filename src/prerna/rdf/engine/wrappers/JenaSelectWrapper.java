@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -136,8 +137,7 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 	}
 
 	@Override
-	public void cleanUp() {
-		// TODO Auto-generated method stub
+	public void close() throws IOException {
 		
 	}
 }
