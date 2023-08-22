@@ -201,14 +201,10 @@ public class BasicIteratorTask extends AbstractTask {
 	}
 	
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		if(this.iterator instanceof IEngineWrapper) {
 			IEngineWrapper x = ((IEngineWrapper) this.iterator);
-			try {
-				x.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			x.close();
 		}
 
 //		// help java gc
@@ -229,7 +225,11 @@ public class BasicIteratorTask extends AbstractTask {
 	
 	@Override
 	public void reset() throws Exception {
-		cleanUp();
+		try {
+			close();
+		} catch(IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		if(this.qs != null) {
 			this.qs.setLimit(this.startLimit);
 			this.qs.setOffSet(this.startOffset);
@@ -250,7 +250,7 @@ public class BasicIteratorTask extends AbstractTask {
 			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) this.qs); //new ExcelFileIterator((ExcelQueryStruct) qs);
 		} else {
 			ITableDataFrame frame = this.qs.getFrame();
-			frame.setLogger(this.logger);
+			frame.setLogger(this.classLogger);
 			optimizeFrame(frame, this.qs.getCombinedOrderBy());
 			boolean taskOptionsExists; 
 			if (this.taskOptions != null && !(this.taskOptions.isEmpty())){
@@ -267,8 +267,8 @@ public class BasicIteratorTask extends AbstractTask {
 				prags.put(Constants.TASK_OPTIONS_EXIST, taskOptionsExists);
 				this.qs.setPragmap(prags);
 			}
-			if(this.logger != null) {
-				frame.setLogger(this.logger);
+			if(this.classLogger != null) {
+				frame.setLogger(this.classLogger);
 			}
 			iterator = frame.query(this.qs);
 		}
@@ -327,7 +327,7 @@ public class BasicIteratorTask extends AbstractTask {
 	public void optimizeQuery(int collectNum) throws Exception {
 		if(this.isOptimize) {
 			if(this.qs != null && !(this.qs instanceof HardSelectQueryStruct) ) {
-				this.logger.info(SelectQueryStruct.getExecutingQueryMessage(this.qs));
+				this.classLogger.info(SelectQueryStruct.getExecutingQueryMessage(this.qs));
 
 				// if no limit defined
 				if(this.startLimit < 0) {
@@ -363,7 +363,7 @@ public class BasicIteratorTask extends AbstractTask {
 					addedOrder = true;
 				}
 				generateIterator();
-				this.logger.info("Finished executing the query");
+				this.classLogger.info("Finished executing the query");
 				// we got the iterator
 				// if we added an order, remove it
 				if(addedOrder) {

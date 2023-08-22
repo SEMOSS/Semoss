@@ -31,7 +31,7 @@ public abstract class AbstractTask implements ITask {
 	// of the data
 	protected transient IFormatter formatter = null;
 	// logger
-	protected transient Logger logger;
+	protected transient Logger classLogger;
 	// internal offset
 	protected long internalOffset = 0;
 	// num to collect
@@ -234,7 +234,7 @@ public abstract class AbstractTask implements ITask {
 	
 	@Override
 	public void setLogger(Logger logger) {
-		this.logger = logger;
+		this.classLogger = logger;
 	}
 	
 	@Override

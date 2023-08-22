@@ -207,7 +207,11 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		} finally {
 			if(this.task != null) {
-				this.task.cleanUp();
+				try {
+					this.task.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}

@@ -83,7 +83,7 @@ public class ConstantDataTask extends AbstractTask {
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() {
 		this.outputData = null;
 	}
 
