@@ -95,7 +95,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
 			DIHelper.getInstance().setEngineProperty(modelId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-			model.loadModel(tempSmss.getAbsolutePath());			
+			model.open(tempSmss.getAbsolutePath());			
 			
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
