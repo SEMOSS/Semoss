@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -28,7 +28,7 @@ public class GetLocalSchemaReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DATABASE.getKey());
 		}
 		engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
-		IDatabase engine = Utility.getDatabase(engineId);
+		IDatabaseEngine engine = Utility.getDatabase(engineId);
 		Set<String> concepts = MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(engineId);
 
 		// tablename: [{name, type}]

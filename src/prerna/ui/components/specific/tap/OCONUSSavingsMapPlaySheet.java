@@ -34,7 +34,7 @@ import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
@@ -42,8 +42,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
-	private IDatabase tapCoreEngine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-	private IDatabase tapSite = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+	private IDatabaseEngine tapCoreEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+	private IDatabaseEngine tapSite = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 	
 	// Queries used for savings
 	private final String getBPProdQuery = "SELECT DISTINCT ?businessProcess ?Productivity WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MHS_GENESIS>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?businessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?businessProcess <http://semoss.org/ontologies/Relation/Contains/EA-Productivity> ?Productivity}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Supports> ?businessProcess}}";
@@ -245,7 +245,7 @@ public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 		this.dataHash = allHash;
 	}
 	
-	private ArrayList<Object[]> getInitialList(String query, IDatabase engine) {
+	private ArrayList<Object[]> getInitialList(String query, IDatabaseEngine engine) {
 		ArrayList<Object[]> finalList = new ArrayList<Object[]>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		names = sjsw.getVariables();

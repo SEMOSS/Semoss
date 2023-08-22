@@ -61,7 +61,7 @@ import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -215,7 +215,7 @@ public class RemoteSparqlEngine extends AbstractDatabase {
 	@Override
 	public DATABASE_TYPE getDatabaseType()
 	{
-		return IDatabase.DATABASE_TYPE.SESAME;
+		return IDatabaseEngine.DATABASE_TYPE.SESAME;
 	}
 
 	/**

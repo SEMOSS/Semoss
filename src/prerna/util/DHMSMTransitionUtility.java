@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 
@@ -88,7 +88,7 @@ public final class DHMSMTransitionUtility {
 	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE = "SELECT DISTINCT ?System ?Data ?GLTag ?Phase (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?Phase a <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLTag a <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} {?Data a <http://semoss.org/ontologies/Concept/DataObject>} {?Data <http://semoss.org/ontologies/Relation/Input> ?GLItem} } GROUP BY ?System ?GLTag ?Data ?Phase";
 	
 	
-	public static HashMap<String, ArrayList<String>> getDataToServiceHash(IDatabase engine) {
+	public static HashMap<String, ArrayList<String>> getDataToServiceHash(IDatabaseEngine engine) {
 		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, DATA_TO_SERVICE_QUERY);
@@ -112,7 +112,7 @@ public final class DHMSMTransitionUtility {
 		return retHash;
 	}
 
-	public static Map<String, Map<String, Map<String, Double>>> getSystemSelfReportedP2PCostByTagAndPhase(IDatabase futureCostEngine, IDatabase costEngine) {
+	public static Map<String, Map<String, Map<String, Double>>> getSystemSelfReportedP2PCostByTagAndPhase(IDatabaseEngine futureCostEngine, IDatabaseEngine costEngine) {
 		Map<String, Map<String, Double>> genericCosts = getGenericGLItemAndPhaseByAvgServ(costEngine);
 		Map<String, Map<String, Map<String, Double>>> retHash = new HashMap<String, Map<String, Map<String, Double>>>();
 		
@@ -169,7 +169,7 @@ public final class DHMSMTransitionUtility {
 		return retHash;
 	}
 
-	public static Map<String, Double> getSystemSelfReportedP2PCost(IDatabase futureCostEngine, IDatabase costEngine) {
+	public static Map<String, Double> getSystemSelfReportedP2PCost(IDatabaseEngine futureCostEngine, IDatabaseEngine costEngine) {
 		Map<String, Map<String, Double>> genericCosts = getGenericGLItemAndPhaseByAvgServ(costEngine);
 		
 		Map<String, Double> retHash = new HashMap<String, Double>();
@@ -328,15 +328,15 @@ public final class DHMSMTransitionUtility {
 //	}
 	
 	
-	public static Map<String, Map<String, String>> getProviderFutureICDFrequency(IDatabase engine) {
+	public static Map<String, Map<String, String>> getProviderFutureICDFrequency(IDatabaseEngine engine) {
 		return runFutureICDFreq(engine, DETERMINE_PROVIDER_FUTURE_ICD_FREQUENCY);
 	}
 
-	public static Map<String, Map<String, String>> getConsumerFutureICDFrequency(IDatabase engine) {
+	public static Map<String, Map<String, String>> getConsumerFutureICDFrequency(IDatabaseEngine engine) {
 		return runFutureICDFreq(engine, DETERMINE_CONSUMER_FUTURE_ICD_FREQUENCY);
 	}
 	
-	public static Map<String, Map<String, String>> runFutureICDFreq(IDatabase engine, String query) {
+	public static Map<String, Map<String, String>> runFutureICDFreq(IDatabaseEngine engine, String query) {
 		/*
 		 * This method is used to get the highest frequency for a given system with a data object
 		 * 
@@ -408,7 +408,7 @@ public final class DHMSMTransitionUtility {
 	/*
 	 * Return the DForm, DProt, and DFreq for a given icd
 	 */
-	public static String[] getExistingIcdRelUris(IDatabase engine, String systemInterfaceUri) {
+	public static String[] getExistingIcdRelUris(IDatabaseEngine engine, String systemInterfaceUri) {
 		String[] values = new String[3];
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, GET_EXISTING_ICD_RELS.replace("@SYSTEM_INTERFACE@", systemInterfaceUri));
@@ -428,7 +428,7 @@ public final class DHMSMTransitionUtility {
 		return values;
 	}
 
-	public static Set<String> getAllSelfReportedSystemURIs(IDatabase engine) {
+	public static Set<String> getAllSelfReportedSystemURIs(IDatabaseEngine engine) {
 		Set<String> retList = new HashSet<String>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_SYSTEMS);
@@ -442,7 +442,7 @@ public final class DHMSMTransitionUtility {
 		return retList;
 	}
 
-	public static Set<String> getAllSelfReportedSystemNames(IDatabase engine) {
+	public static Set<String> getAllSelfReportedSystemNames(IDatabaseEngine engine) {
 		Set<String> retList = new HashSet<String>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_SYSTEMS);
@@ -456,7 +456,7 @@ public final class DHMSMTransitionUtility {
 		return retList;
 	}
 
-	public static Set<String> getAllSelfReportedICDs(IDatabase engine) {
+	public static Set<String> getAllSelfReportedICDs(IDatabaseEngine engine) {
 		Set<String> retList = new HashSet<String>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_ICD_QUERY);
@@ -469,7 +469,7 @@ public final class DHMSMTransitionUtility {
 		return retList;
 	}
 
-	public static Set<String> getAllSelfReportedICDQuery(IDatabase engine) {
+	public static Set<String> getAllSelfReportedICDQuery(IDatabaseEngine engine) {
 		Set<String> retList = new HashSet<String>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_ICD_QUERY);
@@ -485,7 +485,7 @@ public final class DHMSMTransitionUtility {
 	/** 
 	 * Report type can be LPI, LPNI, High, or TBD
 	 */
-	public static Map<String,String> processReportTypeQuery(IDatabase engine) {
+	public static Map<String,String> processReportTypeQuery(IDatabaseEngine engine) {
 		Map<String,String> retMap = new HashMap<String,String>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_TYPE_QUERY);
@@ -500,7 +500,7 @@ public final class DHMSMTransitionUtility {
 		return retMap;
 	}
 
-	public static Set<String> processSysDataSOR(IDatabase engine){
+	public static Set<String> processSysDataSOR(IDatabaseEngine engine){
 		ISelectWrapper sorWrapper = Utility.processQuery(engine, SYS_SOR_DATA_CONCAT_QUERY);
 		String[] names = sorWrapper.getVariables();
 		Set<String> retSet = new HashSet<String>();
@@ -512,7 +512,7 @@ public final class DHMSMTransitionUtility {
 		return retSet;
 	}
 
-	public static HashMap<String, HashMap<String, Double>> getSysGLItem(IDatabase engine)
+	public static HashMap<String, HashMap<String, Double>> getSysGLItem(IDatabaseEngine engine)
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
 
@@ -541,7 +541,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static HashMap<String, HashMap<String, Double>> getAvgSysGLItem(IDatabase engine)
+	public static HashMap<String, HashMap<String, Double>> getAvgSysGLItem(IDatabaseEngine engine)
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
 
@@ -569,7 +569,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static HashMap<String, HashMap<String, Double>> getGenericGLItem(IDatabase engine)
+	public static HashMap<String, HashMap<String, Double>> getGenericGLItem(IDatabaseEngine engine)
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
 
@@ -596,7 +596,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static Map<String, String> getServiceToData(IDatabase engine)
+	public static Map<String, String> getServiceToData(IDatabaseEngine engine)
 	{
 		Map<String, String> dataHash = new HashMap<String, String>();
 
@@ -614,7 +614,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static Map<String, Map<String, Map<String, Map<String, Map<String, Double>>>>> getSysGLItemAndPhase(IDatabase engine)
+	public static Map<String, Map<String, Map<String, Map<String, Map<String, Double>>>>> getSysGLItemAndPhase(IDatabaseEngine engine)
 	{
 		Map<String, Map<String, Map<String, Map<String, Map<String, Double>>>>> dataHash = new HashMap<String, Map<String, Map<String, Map<String, Map<String, Double>>>>>();
 
@@ -681,7 +681,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static Map<String, Map<String, Map<String, Map<String, Double>>>> getAvgSysGLItemAndPhase(IDatabase engine)
+	public static Map<String, Map<String, Map<String, Map<String, Double>>>> getAvgSysGLItemAndPhase(IDatabaseEngine engine)
 	{
 		Map<String, Map<String, Map<String, Map<String, Double>>>> dataHash = new HashMap<String, Map<String, Map<String, Map<String, Double>>>>();
 
@@ -735,7 +735,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static Map<String, Map<String, Map<String, Double>>> getGenericGLItemAndPhase(IDatabase engine)
+	public static Map<String, Map<String, Map<String, Double>>> getGenericGLItemAndPhase(IDatabaseEngine engine)
 	{
 		Map<String, Map<String, Map<String, Double>>> dataHash = new HashMap<String, Map<String, Map<String, Double>>>();
 
@@ -777,7 +777,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static Map<String, Map<String, Map<String, Map<String, Double>>>> getSysGLItemAndPhaseByAvgServ(IDatabase engine)
+	public static Map<String, Map<String, Map<String, Map<String, Double>>>> getSysGLItemAndPhaseByAvgServ(IDatabaseEngine engine)
 	{
 		Map<String, Map<String, Map<String, Map<String, Double>>>> dataHash = new HashMap<String, Map<String, Map<String, Map<String, Double>>>>();
 
@@ -830,7 +830,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static Map<String, Map<String, Map<String, Double>>> getAvgSysGLItemAndPhaseByAvgServ(IDatabase engine)
+	public static Map<String, Map<String, Map<String, Double>>> getAvgSysGLItemAndPhaseByAvgServ(IDatabaseEngine engine)
 	{
 		Map<String, Map<String, Map<String, Double>>> dataHash = new HashMap<String, Map<String, Map<String, Double>>>();
 
@@ -872,7 +872,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static Map<String, Map<String, Double>> getGenericGLItemAndPhaseByAvgServ(IDatabase engine) {
+	public static Map<String, Map<String, Double>> getGenericGLItemAndPhaseByAvgServ(IDatabaseEngine engine) {
 		Map<String, Map<String, Double>> dataHash = new HashMap<String, Map<String, Double>>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, LOE_GENERIC_AND_PHASE_AVG_SERVICE_QUERY);
@@ -903,7 +903,7 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static HashSet<String> runVarListQuery(IDatabase engine, String query) 
+	public static HashSet<String> runVarListQuery(IDatabaseEngine engine, String query) 
 	{
 		HashSet<String> dataSet = new HashSet<String>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
@@ -919,7 +919,7 @@ public final class DHMSMTransitionUtility {
 		return dataSet;
 	}
 
-	public static HashSet<String> runRawVarListQuery(IDatabase engine, String query) 
+	public static HashSet<String> runRawVarListQuery(IDatabaseEngine engine, String query) 
 	{
 		HashSet<String> dataSet = new HashSet<String>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);

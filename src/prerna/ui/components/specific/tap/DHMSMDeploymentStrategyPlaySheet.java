@@ -48,7 +48,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import aurelienribon.ui.css.Style;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRestoreDefaultsListener;
@@ -116,7 +116,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	private String[] sysSavingsHeaders;
 	private ArrayList<Object[]> systemYearlySavings;
 	
-	private IDatabase coreEngine;
+	private IDatabaseEngine coreEngine;
 	public String portfolioEngineName;
 	public String siteEngineName;
 	public String coreEngineName;
@@ -145,7 +145,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 			this.siteEngineName = querySplit[2];
 		}
 		String coreEngineId = MasterDatabaseUtility.testDatabaseIdIfAlias(coreEngineName);
-		coreEngine = (IDatabase) Utility.getDatabase(coreEngineId);
+		coreEngine = (IDatabaseEngine) Utility.getDatabase(coreEngineId);
 	}
 	
 	/**

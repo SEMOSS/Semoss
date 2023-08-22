@@ -68,7 +68,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.configure.Me;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.forms.AbstractFormBuilder;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -286,7 +286,7 @@ public class PixelUnit {
 	}
 
 	private static void unloadDatabases() {
-		IDatabase formBuilder = Utility.getDatabase(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
+		IDatabaseEngine formBuilder = Utility.getDatabase(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
 		if (formBuilder != null) {
 			try {
 				formBuilder.close();
@@ -295,7 +295,7 @@ public class PixelUnit {
 			}
 		}
 
-		IDatabase localMaster = Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
+		IDatabaseEngine localMaster = Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
 		if (localMaster != null) {
 			try {
 				localMaster.close();
@@ -304,7 +304,7 @@ public class PixelUnit {
 			}
 		}
 
-		IDatabase security = Utility.getDatabase(Constants.SECURITY_DB);
+		IDatabaseEngine security = Utility.getDatabase(Constants.SECURITY_DB);
 		if (security != null) {
 			try {
 				security.close();
@@ -313,7 +313,7 @@ public class PixelUnit {
 			}
 		}
 
-		IDatabase themes = Utility.getDatabase(Constants.THEMING_DB);
+		IDatabaseEngine themes = Utility.getDatabase(Constants.THEMING_DB);
 		if (themes != null) {
 			try {
 				themes.close();
@@ -380,7 +380,7 @@ public class PixelUnit {
 			// First must catalog the db in order to call the getEngine
 			SMSSWebWatcher.catalogEngine(alias + "__" + appId + ".smss", BASE_DB_DIRECTORY);
 
-			IDatabase engine = Utility.getDatabase(appId);
+			IDatabaseEngine engine = Utility.getDatabase(appId);
 
 			// If a full-fledged engine, then delete the entire app
 			if (engine != null) {
@@ -406,7 +406,7 @@ public class PixelUnit {
 		aliasToAppId.put(alias, appId);
 
 		// Save the original state of the database
-		IDatabase engine = Utility.getDatabase(appId);
+		IDatabaseEngine engine = Utility.getDatabase(appId);
 		if (isRelationalDatabase(engine)) {
 			exportDatabaseToXml(alias);
 		}
@@ -417,7 +417,7 @@ public class PixelUnit {
 		if (appId != null) {
 
 			// If relational, delete the corresponding xml file
-			IDatabase engine = Utility.getDatabase(appId);
+			IDatabaseEngine engine = Utility.getDatabase(appId);
 			if (isRelationalDatabase(engine)) {
 				Path xmlFile = getXMLFileForAlias(alias);
 				try {
@@ -656,7 +656,7 @@ public class PixelUnit {
 		for (String alias : cleanTestDatabases) {
 			String appId = aliasToAppId.get(alias);
 			if (appId != null) {
-				IDatabase engine = Utility.getDatabase(appId);
+				IDatabaseEngine engine = Utility.getDatabase(appId);
 				if (isRelationalDatabase(engine)) {
 
 					// Cast to RDBMS to grab the connection details
@@ -699,8 +699,8 @@ public class PixelUnit {
 		this.cleanTestDatabases = cleanTestDatabases;
 	}
 
-	private static boolean isRelationalDatabase(IDatabase engine) {
-		return engine != null && engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS;
+	private static boolean isRelationalDatabase(IDatabaseEngine engine) {
+		return engine != null && engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS;
 	}
 
 	//////////////////////////////////////////////////////////////////////

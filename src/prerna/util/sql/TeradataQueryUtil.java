@@ -3,7 +3,7 @@ package prerna.util.sql;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.TeradataSqlInterpreter;
@@ -21,7 +21,7 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public IQueryInterpreter getInterpreter(IDatabase engine) {
+	public IQueryInterpreter getInterpreter(IDatabaseEngine engine) {
 		return new TeradataSqlInterpreter(engine);
 	}
 

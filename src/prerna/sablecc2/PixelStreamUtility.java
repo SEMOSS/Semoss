@@ -28,7 +28,7 @@ import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.IStorage;
+import prerna.engine.api.IStorageEngine;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -351,7 +351,7 @@ public class PixelStreamUtility {
 			// FE needs this to create proper QS
 			// this has no meaning for graphs
 			Map<String, String> storageData = new HashMap<>();
-			IStorage storage = (IStorage) noun.getValue();
+			IStorageEngine storage = (IStorageEngine) noun.getValue();
 			storageData.put("storageId", storage.getEngineId());
 			storageData.put("storageName", storage.getEngineName());
 

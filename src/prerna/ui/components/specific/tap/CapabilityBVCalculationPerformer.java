@@ -37,7 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -79,7 +79,7 @@ public class CapabilityBVCalculationPerformer implements IAlgorithm,Runnable{
 			
 			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			Object[] repos = (Object [])list.getSelectedValues();
-			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[0]+"");
+			IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
 			
 			Hashtable capBVHash = (Hashtable) DIHelper.getInstance().getLocalProp(Constants.CAPABILITY_BUSINESS_VALUE);
 			ArrayList<Double> capFutureBVs = (ArrayList<Double>) capBVHash.get(Constants.CAPABILITY_BUSINESS_VALUE+"Future"+Constants.CALC_MATRIX);
@@ -184,9 +184,9 @@ public class CapabilityBVCalculationPerformer implements IAlgorithm,Runnable{
 			
 			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			Object[] repos = (Object [])list.getSelectedValues();
-			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[0]+"");
+			IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
 			logger.info("Repository is " + repos);
-			FillCapabilityBVHash filler = new FillCapabilityBVHash(query, (IDatabase)engine);
+			FillCapabilityBVHash filler = new FillCapabilityBVHash(query, (IDatabaseEngine)engine);
 
 			Thread playThread = new Thread(filler);
 			playThread.run();

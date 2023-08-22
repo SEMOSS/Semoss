@@ -39,7 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -116,7 +116,7 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 
 
 			//SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 
 			String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
 			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
@@ -213,9 +213,9 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 			
 			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			Object[] repos = (Object [])list.getSelectedValues();
-			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[0]+"");
+			IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
 			logger.info("Repository is " + repos);
-			FillBVHash filler = new FillBVHash(query, (IDatabase)engine);
+			FillBVHash filler = new FillBVHash(query, (IDatabaseEngine)engine);
 			filler.run();
 			
 		}

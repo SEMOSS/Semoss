@@ -8,14 +8,14 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IStorage;
+import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public abstract class AbstractStorageEngine implements IStorage {
+public abstract class AbstractStorageEngine implements IStorageEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractDatabase.class);
 	
@@ -93,7 +93,7 @@ public abstract class AbstractStorageEngine implements IStorage {
 	
 	@Override
 	public String getCatalogType() {
-		return IStorage.CATALOG_TYPE;
+		return IStorageEngine.CATALOG_TYPE;
 	}
 	
 	@Override

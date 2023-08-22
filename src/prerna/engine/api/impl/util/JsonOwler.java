@@ -5,7 +5,7 @@ import org.openrdf.model.vocabulary.RDFS;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Utility;
 
 public class JsonOwler extends AbstractOwler {
@@ -18,7 +18,7 @@ public class JsonOwler extends AbstractOwler {
 	 * @param fileName				The location of the new OWL file
 	 * @param type					The type of the engine the OWL file is being created for
 	 */
-	public JsonOwler(String owlPath, IDatabase.DATABASE_TYPE type) {
+	public JsonOwler(String owlPath, IDatabaseEngine.DATABASE_TYPE type) {
 		super(owlPath, type);
 	}
 	
@@ -26,7 +26,7 @@ public class JsonOwler extends AbstractOwler {
 	 * Constructor for the class when we are adding to an existing OWL file
 	 * @param existingEngine		The engine we are adding to
 	 */
-	public JsonOwler(IDatabase existingEngine) {
+	public JsonOwler(IDatabaseEngine existingEngine) {
 		super(existingEngine);
 	}
 	

@@ -34,7 +34,7 @@ import java.util.Collections;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.poi.main.NodeLoadingSheetWriter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
@@ -53,7 +53,7 @@ public class ExportNodeLoadSheetsListener implements IChakraListener {
 		
 		//Get engine to export from
 		JComboBox exportDataSourceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
 
 		//Get all node types to be exported
 		ArrayList<String> nodeTypes = new ArrayList<String>();

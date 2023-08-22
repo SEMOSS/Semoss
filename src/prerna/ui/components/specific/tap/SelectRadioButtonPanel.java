@@ -42,7 +42,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -53,7 +53,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 @SuppressWarnings("serial")
 public class SelectRadioButtonPanel extends JPanel {
 	
-	public IDatabase engine;
+	public IDatabaseEngine engine;
 	public Hashtable<String, JRadioButton> radioIntegratedBoxHash = new Hashtable<String, JRadioButton>();
 	public Hashtable<String, JRadioButton> radioHybridBoxHash = new Hashtable<String, JRadioButton>();
 	public Hashtable<String, JRadioButton> radioManualBoxHash = new Hashtable<String, JRadioButton>();

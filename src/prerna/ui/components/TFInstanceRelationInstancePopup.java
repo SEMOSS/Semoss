@@ -42,7 +42,7 @@ import javax.swing.JMenu;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.SEMOSSVertex;
@@ -101,7 +101,7 @@ public class TFInstanceRelationInstancePopup extends JMenu implements MouseListe
 		// I am only going to get one repository
 		// hopefully they have selected one :)
 		String repo = repos[0] +"";
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repo);
 		// execute the query
 		// add all the relationships
 		// the relationship needs to have the subject - selected vertex

@@ -37,7 +37,7 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
@@ -70,7 +70,7 @@ public class VendorHeatMapBtnListener implements IChakraListener {
 		
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repo = repoList.getSelectedValues();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo[0]+"");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
 		
 		
 		String layoutValue = "prerna.ui.components.specific.tap.VendorHeatMapSheet";
@@ -105,7 +105,7 @@ public class VendorHeatMapBtnListener implements IChakraListener {
 			playSheet.setTitle("Question: " + "Vendor Heat Map");
 			playSheet.setQuestionID("Vendor_Heat_Map");
 			playSheet.setQuery(query);
-			playSheet.setRDFEngine((IDatabase)engine);
+			playSheet.setRDFEngine((IDatabaseEngine)engine);
 			JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 			playSheet.setJDesktopPane(pane);
 		}

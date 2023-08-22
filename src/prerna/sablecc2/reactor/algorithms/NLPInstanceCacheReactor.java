@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -151,7 +151,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		List<String> valueVector = new ArrayList<String>();
 
 		// a concept (or table) in RDBMS/R has no meaning - the data is in the properties (columns)
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		boolean ignoreData = MetadataUtility.ignoreConceptData(database.getDatabaseType());
 		
 		// loop through each column with in the app
@@ -246,7 +246,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		return noun;
 	}
 	
-	private void processSingleColumn(IDatabase database,
+	private void processSingleColumn(IDatabaseEngine database,
 			String colQs, 
 			String databaseId,
 			List<String> databaseIdVector, 

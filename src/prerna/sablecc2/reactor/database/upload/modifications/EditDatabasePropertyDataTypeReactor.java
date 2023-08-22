@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.upload.modifications;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineModifier;
 import prerna.engine.impl.modifications.EngineModificationFactory;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -47,7 +47,7 @@ public class EditDatabasePropertyDataTypeReactor extends AbstractReactor {
 		String newColumn = this.keyValue.get(this.keysToGet[2]);
 		String newColType = this.keyValue.get(this.keysToGet[3]);
 		
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		
 		// keep track of existing data type in case something goes wrong
 		

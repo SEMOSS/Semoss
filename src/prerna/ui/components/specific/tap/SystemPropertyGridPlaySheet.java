@@ -39,7 +39,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.InsightStore;
@@ -78,8 +78,8 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 		
 		boolean includeCost = true;
 		// Create engines to be queried on
-		IDatabase portfolioEngine = (IDatabase) DIHelper.getInstance().getLocalProp(tapPortfolio);
-		IDatabase costEngine = (IDatabase) DIHelper.getInstance().getLocalProp(tapCost);
+		IDatabaseEngine portfolioEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(tapPortfolio);
+		IDatabaseEngine costEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(tapCost);
 		
 		if (portfolioEngine != null) { // process cost query from portfolio (faster on smaller db)
 			costHash = processCostQuery(portfolioEngine);
@@ -138,7 +138,7 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 		}
 	}
 	
-	private Hashtable<String, Hashtable<String, Double>> processCostQuery(IDatabase engine) {
+	private Hashtable<String, Hashtable<String, Double>> processCostQuery(IDatabaseEngine engine) {
 		Hashtable<String, Hashtable<String, Double>> costHash = new Hashtable<String, Hashtable<String, Double>>();
 		
 		ISelectWrapper costWrapper = WrapperManager.getInstance().getSWrapper(engine, costQuery);

@@ -16,7 +16,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.cluster.util.clients.ICloudClient;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -535,7 +535,7 @@ public class ClusterUtil {
 	 * @param database
 	 * @param absolutePath
 	 */
-	public static void pushDatabaseFolder(IDatabase database, String absolutePath) {
+	public static void pushDatabaseFolder(IDatabaseEngine database, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			String dbHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 					+ DIR_SEPARATOR + Constants.DB_FOLDER
@@ -569,7 +569,7 @@ public class ClusterUtil {
 	 * @param database
 	 * @param absolutePath
 	 */
-	public static void  pullDatabaseFolder(IDatabase database, String absolutePath) {
+	public static void  pullDatabaseFolder(IDatabaseEngine database, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			String dbHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 					+ DIR_SEPARATOR + Constants.DB_FOLDER

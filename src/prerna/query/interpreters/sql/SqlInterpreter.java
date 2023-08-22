@@ -14,7 +14,7 @@ import org.openrdf.query.TupleQueryResult;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.AbstractQueryInterpreter;
@@ -73,7 +73,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 	// we can create a statement without an engine... 
 	// but everything needs to be the physical schema
-	protected transient IDatabase engine; 
+	protected transient IDatabaseEngine engine; 
 	protected transient ITableDataFrame frame;
 	protected AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
 
@@ -107,7 +107,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		
 	}
 
-	public SqlInterpreter(IDatabase engine) {
+	public SqlInterpreter(IDatabaseEngine engine) {
 		this.engine = engine;
 		this.queryUtil = ((IRDBMSEngine) engine).getQueryUtil();
 	}

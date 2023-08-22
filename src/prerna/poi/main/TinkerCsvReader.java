@@ -15,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -46,7 +46,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 	 * @throws FileWriterException
 	 * @throws HeaderClassException
 	 */
-	public IDatabase importFileWithOutConnection(ImportOptions options) throws FileNotFoundException, IOException {
+	public IDatabaseEngine importFileWithOutConnection(ImportOptions options) throws FileNotFoundException, IOException {
 
 		String smssLocation = options.getSMSSLocation();
 		String appName = options.getDbName();
@@ -439,7 +439,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		String semossBaseURI = owler.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-		Vertex vert = (Vertex) engine.doAction(IDatabase.ACTION_TYPE.VERTEX_UPSERT, new Object[] {nodeType, instanceName});
+		Vertex vert = (Vertex) engine.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] {nodeType, instanceName});
 		Set<String> vertProps = vert.keys();
 		for (String key : propHash.keySet()) {
 			if (!vertProps.contains(key)) {
@@ -464,16 +464,16 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		// upsert the subject vertex
 		Vertex startV = null;
 		try {
-			startV = (Vertex) engine.doAction(IDatabase.ACTION_TYPE.VERTEX_UPSERT, new Object[] { subjectNodeType, instanceSubjectName });
+			startV = (Vertex) engine.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { subjectNodeType, instanceSubjectName });
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
 		// upsert the object vertex
-		Vertex endV = (Vertex) engine.doAction(IDatabase.ACTION_TYPE.VERTEX_UPSERT,
+		Vertex endV = (Vertex) engine.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT,
 				new Object[] { objectNodeType, instanceObjectName });
 
 		// upsert the edge between them
-		engine.doAction(IDatabase.ACTION_TYPE.EDGE_UPSERT,
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.EDGE_UPSERT,
 				new Object[] { startV, subjectNodeType, endV, objectNodeType, propHash });
 
 	}

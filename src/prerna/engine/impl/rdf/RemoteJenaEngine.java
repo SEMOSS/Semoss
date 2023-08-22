@@ -45,7 +45,7 @@ import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -126,7 +126,7 @@ public class RemoteJenaEngine extends AbstractDatabase {
 
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabase.DATABASE_TYPE.JENA;
+		return IDatabaseEngine.DATABASE_TYPE.JENA;
 	}
 
 	/**

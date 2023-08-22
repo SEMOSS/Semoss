@@ -46,7 +46,7 @@ import javax.swing.JTextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.ui.components.MapComboBoxRenderer;
@@ -99,7 +99,7 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 			Vector<String> questionIds = new Vector<String>();
 			Vector<String> questionNames = null;
 
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(selectedVal);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(selectedVal);
 			IProject project = Utility.getProject(engine.getEngineId());
 			try
 			{

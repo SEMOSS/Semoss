@@ -18,7 +18,7 @@ import org.sqlite.SQLiteConfig.Pragma;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SQLiteSqlInterpreter;
@@ -37,7 +37,7 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public IQueryInterpreter getInterpreter(IDatabase engine) {
+	public IQueryInterpreter getInterpreter(IDatabaseEngine engine) {
 		return new SQLiteSqlInterpreter(engine);
 	}
 

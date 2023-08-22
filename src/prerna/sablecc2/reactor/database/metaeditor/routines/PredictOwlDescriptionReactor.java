@@ -7,7 +7,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
@@ -61,7 +61,7 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		String concept = getConcept();
 		String prop = getProperty();
 		
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		SemossDataType dataType = null;
 		String qsName = null;
 		if(prop == null || prop.isEmpty()) {

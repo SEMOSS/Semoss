@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -22,9 +22,9 @@ import prerna.util.Utility;
 public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 
 	private FutureInterfaceCostProcessor processor;
-	private IDatabase tapCost;
-	private IDatabase futureDB;
-	private IDatabase tapCore;
+	private IDatabaseEngine tapCost;
+	private IDatabaseEngine futureDB;
+	private IDatabaseEngine tapCore;
 	
 	private List<Object[]> relList = new ArrayList<Object[]>();
 	private List<Object[]> relPropList = new ArrayList<Object[]>();
@@ -81,7 +81,7 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 			throw new IOException("TAP_Core_Data engine not found");
 		}
 		processor = new FutureInterfaceCostProcessor();
-		processor.setCostEngines(new IDatabase[]{tapCost});
+		processor.setCostEngines(new IDatabaseEngine[]{tapCost});
 		processor.setCostFramework(COST_FRAMEWORK.P2P); // should define this via parameter
 		processor.getCostInfo();
 		
@@ -93,7 +93,7 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 
 	public void generateTriples() {
 		Set<String> selfReportedSystems = new HashSet<String>();
-		IDatabase futureDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureDB");
+		IDatabaseEngine futureDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(futureDB != null) {
 			selfReportedSystems = DHMSMTransitionUtility.getAllSelfReportedSystemNames(futureDB);
 		}

@@ -4,14 +4,14 @@ import java.util.Hashtable;
 
 import net.minidev.json.JSONArray;
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
 
 public class JsonWrapper implements IRawSelectWrapper {
 	
-	protected IDatabase engine;
+	protected IDatabaseEngine engine;
 	protected String separator = "_";
 	protected int numRows = -1;
 	protected int curRow = 0;
@@ -68,12 +68,12 @@ public class JsonWrapper implements IRawSelectWrapper {
 	}
 
 	@Override
-	public void setEngine(IDatabase engine) {
+	public void setEngine(IDatabaseEngine engine) {
 		this.engine = engine;
 	}
 
 	@Override
-	public IDatabase getEngine() {
+	public IDatabaseEngine getEngine() {
 		return this.engine;
 	}
 	

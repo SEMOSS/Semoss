@@ -43,7 +43,7 @@ import org.openrdf.repository.RepositoryException;
 
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
@@ -67,11 +67,11 @@ public class RDFEngineHelper {
 	 * @param objects 			Object.
 	 * @param ps 				Graph playsheet that allows properties to be added to the repository connection.
 	 */
-	public static void loadConceptHierarchy(IDatabase fromEngine, String subjects, String objects, GraphDataModel ps)
+	public static void loadConceptHierarchy(IDatabaseEngine fromEngine, String subjects, String objects, GraphDataModel ps)
 	{
 		String conceptHierarchyForSubject = "" ;
 
-		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			conceptHierarchyForSubject = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{" +
@@ -80,7 +80,7 @@ public class RDFEngineHelper {
 					"} BINDINGS ?Subject { " + subjects + objects + " } " +
 					"";
 		}
-		else if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
+		else if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
 		{
 			conceptHierarchyForSubject = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{VALUES ?Subject {" + subjects + objects + "}" +
@@ -99,12 +99,12 @@ public class RDFEngineHelper {
 	 * @param predicates 			Predicate.
 	 * @param ps 					Graph playsheet that allows properties to be added to the repository connection.
 	 */
-	public static void loadRelationHierarchy(IDatabase fromEngine, String predicates, GraphDataModel ps)
+	public static void loadRelationHierarchy(IDatabaseEngine fromEngine, String predicates, GraphDataModel ps)
 	{
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
 
-		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{" +
@@ -113,7 +113,7 @@ public class RDFEngineHelper {
 					"} BINDINGS ?Subject { " + predicates + " } " +
 					"";// relation hierarchy		
 		}
-		else if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
+		else if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{ VALUES ?Subject {" + predicates + "}" + 
@@ -133,12 +133,12 @@ public class RDFEngineHelper {
 	 * @param containsRelation 	String that shows the relation.
 	 * @param ps 				Graph playsheet that allows properties to be added to the repository connection.
 	 */
-	public static void loadPropertyHierarchy(IDatabase fromEngine, String predicates, String containsRelation, GraphDataModel ps)
+	public static void loadPropertyHierarchy(IDatabaseEngine fromEngine, String predicates, String containsRelation, GraphDataModel ps)
 	{
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
 
-		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{" +
@@ -147,7 +147,7 @@ public class RDFEngineHelper {
 					"} BINDINGS ?Subject { " + predicates + " } " +
 					"";// relation hierarchy
 		}
-		else if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
+		else if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{ VALUES ?Subject {" + predicates + "}" + 
@@ -169,11 +169,11 @@ public class RDFEngineHelper {
 	 * @param containsRelation 	String that shows the relation for the property query.
 	 * @param ps 				Graph playsheet that allows properties to be added to repository connection.
 	 */
-	public static void genPropertiesRemote(IDatabase fromEngine, String subjects, String objects, String predicates, String containsRelation, GraphDataModel ps)
+	public static void genPropertiesRemote(IDatabaseEngine fromEngine, String subjects, String objects, String predicates, String containsRelation, GraphDataModel ps)
 	{
 
 		String propertyQuery = "";
-		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME|| fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME|| fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			propertyQuery = "CONSTRUCT { ?Subject ?Predicate ?Object . ?Predicate ?type ?contains} WHERE {" +
 					"BIND(<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> AS ?type)"+
@@ -183,7 +183,7 @@ public class RDFEngineHelper {
 					"{?Subject ?Predicate ?Object}}" +
 					"BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects + " }";
 		}
-		else if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
+		else if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
 		{
 			propertyQuery = "CONSTRUCT { ?Subject ?Predicate ?Object. ?Predicate ?type ?contains} WHERE {" +
 					"VALUES ?Subject {" + subjects + " " + predicates + " " + objects + "}" +
@@ -207,7 +207,7 @@ public class RDFEngineHelper {
 	public static void genNodePropertiesLocal(RepositoryConnection rc, String containsRelation, GraphDataModel ps, Boolean subclassCreate)
 	{
 
-		IDatabase sesameEngine = new InMemorySesameEngine();
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
 		String propertyQuery =  "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE {" +
 				"{?Predicate " +"<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +  containsRelation + ";}" +
@@ -253,7 +253,7 @@ public class RDFEngineHelper {
 	public static void genEdgePropertiesLocal(RepositoryConnection rc, String containsRelation, GraphDataModel ps)
 	{
 
-		IDatabase sesameEngine = new InMemorySesameEngine();
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
 		String propertyQuery =  "SELECT ?edge ?prop ?value ?outNode ?inNode WHERE {" +
 				"{?prop " +"<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +  containsRelation + ";}" +
@@ -351,7 +351,7 @@ public class RDFEngineHelper {
 	 * @param query 		Query to be run.
 	 * @param ps 			Graph playsheet where sesame construct statement is stored.
 	 */
-	private static void addResultsToRC(IDatabase fromEngine, String query, GraphDataModel ps) {
+	private static void addResultsToRC(IDatabaseEngine fromEngine, String query, GraphDataModel ps) {
 		
 		IConstructWrapper sjsc = WrapperManager.getInstance().getCWrapper(fromEngine, query);
 
@@ -373,7 +373,7 @@ public class RDFEngineHelper {
 	 * @param fromEngine 	Engine where data is stored.
 	 * @param toRC 			Main interface for updating data in and performing queries on a Sesame repository.
 	 */
-	public static void addAllData(IDatabase fromEngine, RepositoryConnection toRC)
+	public static void addAllData(IDatabaseEngine fromEngine, RepositoryConnection toRC)
 	{
 		// same concept as the subject, but only for relations
 		String constructAllQuery = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
@@ -384,7 +384,7 @@ public class RDFEngineHelper {
 		addQueryData(fromEngine, toRC, constructAllQuery);
 	}
 	
-	public static void addQueryData(IDatabase fromEngine, RepositoryConnection toRC, String query){
+	public static void addQueryData(IDatabaseEngine fromEngine, RepositoryConnection toRC, String query){
 		
 		if(query == null){
 			query = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
@@ -402,7 +402,7 @@ public class RDFEngineHelper {
 		sjsc.execute();
 		*/
 		
-		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			try {
 				toRC.add(((SesameConstructWrapper)sjsc).gqr); // abstraction leak
@@ -426,7 +426,7 @@ public class RDFEngineHelper {
 	 * @param fromEngine 	Engine where data is stored.
 	 * @param toRC 			Main interface for updating data in and performing queries on a Sesame repository.
 	 */
-	public static void removeAllData(IDatabase fromEngine, RepositoryConnection toRC)
+	public static void removeAllData(IDatabaseEngine fromEngine, RepositoryConnection toRC)
 	{
 		// same concept as the subject, but only for relations
 		String constructAllQuery = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
@@ -441,7 +441,7 @@ public class RDFEngineHelper {
 		sjsc.setQuery(constructAllQuery);
 		sjsc.execute();
 		 */
-		if(fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+		if(fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			try {
 				toRC.remove(((SesameConstructWrapper)sjsc).gqr);

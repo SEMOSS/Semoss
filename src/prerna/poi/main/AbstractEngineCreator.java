@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.r.RNativeEngine;
@@ -29,7 +29,7 @@ public class AbstractEngineCreator {
 
 	private static final Logger logger = LogManager.getLogger(AbstractEngineCreator.class.getName());
 
-	protected IDatabase engine;
+	protected IDatabaseEngine engine;
 	// OWL variables
 	protected String owlFile = "";
 	protected Owler owler;
@@ -58,22 +58,22 @@ public class AbstractEngineCreator {
 	
 	protected void openRdfEngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewRdfEngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.SESAME, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.SESAME, this.customBaseURI);
 	}
 	
 	protected void openRdbmsEngineWithoutConnection(String appName, String engineID) throws Exception {
 		createNewRDBMSEngine(appName, engineID);
-		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.RDBMS, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
 	protected void openTinkerEngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewTinkerEngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.SESAME, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.SESAME, this.customBaseURI);
 	}
 	
 	protected void openREngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewREngine(appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.SESAME, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.SESAME, this.customBaseURI);
 	}
 	
 	private void createNewRDBMSEngine(String appName, String appID) throws Exception {
@@ -112,11 +112,11 @@ public class AbstractEngineCreator {
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
 		
 		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
 		
 	}
 	
@@ -139,7 +139,7 @@ public class AbstractEngineCreator {
 	//added for connect to external RDBMS workflow
 	protected void generateEngineFromRDBMSConnection(String schema, String appName, String appID) throws Exception {
 		connectToExternalRDBMSEngine(schema,appName, appID);
-		openOWLWithOutConnection(owlFile, IDatabase.DATABASE_TYPE.RDBMS, this.customBaseURI);
+		openOWLWithOutConnection(owlFile, IDatabaseEngine.DATABASE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
 //	//added for connect to external Impala workflow
@@ -241,7 +241,7 @@ public class AbstractEngineCreator {
 	 * 
 	 * @throws EngineException
 	 */
-	protected void openOWLWithOutConnection(String owlFile, IDatabase.DATABASE_TYPE dbType, String customBaseURI) {
+	protected void openOWLWithOutConnection(String owlFile, IDatabaseEngine.DATABASE_TYPE dbType, String customBaseURI) {
 		owler = new Owler(owlFile, dbType);
 		owler.addCustomBaseURI(customBaseURI);
 	}

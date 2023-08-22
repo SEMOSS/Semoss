@@ -6,7 +6,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -51,7 +51,7 @@ public class FindSemanticColumnOwlRelationshipsReactor extends AbstractMetaEdito
 		String[] packages = { "text2vec", "data.table", "lsa", "WikidataR", "XML", "RCurl", "stringr"};
 		rJavaTranslator.checkPackages(packages);
 		
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		
 		// get 2 lists
 		// of all table names

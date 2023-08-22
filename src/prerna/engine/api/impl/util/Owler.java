@@ -13,8 +13,8 @@ import org.openrdf.model.vocabulary.RDFS;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -37,7 +37,7 @@ public class Owler extends AbstractOwler {
 	 * @param fileName The location of the new OWL file
 	 * @param type     The type of the engine the OWL file is being created for
 	 */
-	public Owler(String owlPath, IDatabase.DATABASE_TYPE type) {
+	public Owler(String owlPath, IDatabaseEngine.DATABASE_TYPE type) {
 		super(owlPath, type);
 	}
 
@@ -46,7 +46,7 @@ public class Owler extends AbstractOwler {
 	 * 
 	 * @param existingEngine The engine we are adding to
 	 */
-	public Owler(IDatabase existingEngine) {
+	public Owler(IDatabaseEngine existingEngine) {
 		super(existingEngine);
 	}
 
@@ -182,7 +182,7 @@ public class Owler extends AbstractOwler {
 
 			// create the property URI
 			String property = null;
-			if (type == IDatabase.DATABASE_TYPE.SESAME) {
+			if (type == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 				// THIS IS BECAUSE OF LEGACY QUERIES!!!
 				property = BASE_PROPERTY_URI + "/" + propertyCol;
 			} else {
@@ -256,7 +256,7 @@ public class Owler extends AbstractOwler {
 	 * 
 	 * @param queryEngine
 	 */
-	public void addUniqueCounts(IDatabase queryEngine) {
+	public void addUniqueCounts(IDatabaseEngine queryEngine) {
 		String uniqueCountProp = SEMOSS_URI_PREFIX + DEFAULT_PROP_CLASS + "/UNIQUE";
 
 		List<String> pixelConcepts = queryEngine.getPixelConcepts();
@@ -351,7 +351,7 @@ public class Owler extends AbstractOwler {
 			// the base URI for the concept will be the baseNodeURI
 			String subject = BASE_NODE_URI + "/" + tableName;
 
-			IDatabase engine = Utility.getDatabase(appId);
+			IDatabaseEngine engine = Utility.getDatabase(appId);
 			RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 			String conceptPhysical = engine.getPhysicalUriFromPixelSelector(tableName);
 			List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysical);
@@ -546,7 +546,7 @@ public class Owler extends AbstractOwler {
 	public NounMetadata removeProp(String tableName, String propertyCol, String dataType, String adtlDataType, String conceptual) {
 		// create the property URI
 		String property = null;
-		if (type == IDatabase.DATABASE_TYPE.SESAME) {
+		if (type == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 			// THIS IS BECAUSE OF LEGACY QUERIES!!!
 			property = BASE_PROPERTY_URI + "/" + propertyCol;
 		} else {
@@ -660,7 +660,7 @@ public class Owler extends AbstractOwler {
 
 		// then we need to change the property name as well to point to the new table name
 
-		IDatabase engine = Utility.getDatabase(appId);
+		IDatabaseEngine engine = Utility.getDatabase(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String oldConceptPhysical = engine.getPhysicalUriFromPixelSelector(oldConceptName);
 		properties = engine.getPropertyUris4PhysicalUri(oldConceptPhysical);
@@ -936,7 +936,7 @@ public class Owler extends AbstractOwler {
 		// need to grab everything downstream of the node and edit it
 		// need to grab everything upstream of the node and edit it
 		
-		IDatabase engine = Utility.getDatabase(appId);
+		IDatabaseEngine engine = Utility.getDatabase(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String propPhysicalUri = BASE_PROPERTY_URI + "/" + oldPropName + "/" + tableName;
 		String newPropPhysicalUri = BASE_PROPERTY_URI + "/" + newPropName + "/" + tableName;
@@ -1080,7 +1080,7 @@ public class Owler extends AbstractOwler {
 
 	////////////////////////////////// UTILITY METHODS TO REMOVE FROM OWL //////////////////////////////////
 
-	private List<String[]> getPhysicalRelationships(IDatabase engine) {
+	private List<String[]> getPhysicalRelationships(IDatabaseEngine engine) {
 		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
 				+ "{?start <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?end <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"

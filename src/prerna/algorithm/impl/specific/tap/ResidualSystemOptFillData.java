@@ -33,7 +33,7 @@ import java.util.Arrays;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -78,9 +78,9 @@ public class ResidualSystemOptFillData{
 	private ArrayList<Integer> dataReducedTheaterIndex, dataReducedGarrisonIndex;
 	private ArrayList<Integer> bluReducedTheaterIndex, bluReducedGarrisonIndex;
 	
-	private IDatabase systemEngine;
-	private IDatabase costEngine;// = "TAP_Cost_Data";
-	private IDatabase siteEngine;// = "TAP_Site_Data";
+	private IDatabaseEngine systemEngine;
+	private IDatabaseEngine costEngine;// = "TAP_Cost_Data";
+	private IDatabaseEngine siteEngine;// = "TAP_Site_Data";
 	
 	private String sysListBindings;//, capListBindings;
 	private double hourlyRate = 150.0;
@@ -101,7 +101,7 @@ public class ResidualSystemOptFillData{
 		this.hourlyRate = hourlyRate;
 	}
 	
-	public void setEngines(IDatabase systemEngine, IDatabase costEngine, IDatabase siteEngine) {
+	public void setEngines(IDatabaseEngine systemEngine, IDatabaseEngine costEngine, IDatabaseEngine siteEngine) {
 		this.systemEngine = systemEngine;
 		this.costEngine = costEngine;
 		this.siteEngine = siteEngine;
@@ -360,7 +360,7 @@ public class ResidualSystemOptFillData{
 		return matrixToFill;
 	}
 	
-	private int[][] fillMatrixFromQuery(IDatabase engine, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
+	private int[][] fillMatrixFromQuery(IDatabaseEngine engine, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
 		ISelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
@@ -391,7 +391,7 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	
-	private double[][] fillMatrixFromQuery(IDatabase engine, String query,double[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
+	private double[][] fillMatrixFromQuery(IDatabaseEngine engine, String query,double[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
 		ISelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
@@ -438,7 +438,7 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	
-	private double[] fillVectorFromQuery(IDatabase engine, String query,double[] matrix,ArrayList<String> rowNames, boolean needsConversion) {
+	private double[] fillVectorFromQuery(IDatabaseEngine engine, String query,double[] matrix,ArrayList<String> rowNames, boolean needsConversion) {
 		ISelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
@@ -487,7 +487,7 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	
-	private String[] fillVectorFromQuery(IDatabase engine, String query,String[] matrix,ArrayList<String> rowNames, boolean valIsOne) {
+	private String[] fillVectorFromQuery(IDatabaseEngine engine, String query,String[] matrix,ArrayList<String> rowNames, boolean valIsOne) {
 		ISelectWrapper wrapper;
 		try {
 			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);

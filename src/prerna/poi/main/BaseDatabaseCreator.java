@@ -7,8 +7,8 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -31,7 +31,7 @@ public class BaseDatabaseCreator {
 	}
 
 	//open with connection
-	public BaseDatabaseCreator(IDatabase engine, String owlFile) {
+	public BaseDatabaseCreator(IDatabaseEngine engine, String owlFile) {
 		baseEng = engine.getBaseDataEngine();
 		baseEng.setFileName(owlFile);
 	}
@@ -57,7 +57,7 @@ public class BaseDatabaseCreator {
 			objValue = Utility.cleanString(objValue.toString(), false);
 		}
 		
-		baseEng.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
+		baseEng.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
 	}
 	
 	/**
@@ -81,7 +81,7 @@ public class BaseDatabaseCreator {
 			objValue = Utility.cleanString(objValue.toString(), false);
 		}
 		
-		baseEng.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
+		baseEng.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
 	}
 	
 	// set this as separate pieces as well
@@ -113,7 +113,7 @@ public class BaseDatabaseCreator {
 				deleteExisitngTimestamp();
 				Calendar cal = Calendar.getInstance();
 				String cleanObj = DATE_FORMATTER.format(cal.getTime());
-				baseEng.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
+				baseEng.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
 			this.baseEng.exportDB();
 		} catch (Exception e) {
@@ -130,7 +130,7 @@ public class BaseDatabaseCreator {
 				deleteExisitngTimestamp();
 				Calendar cal = Calendar.getInstance();
 				String cleanObj = DATE_FORMATTER.format(cal.getTime());
-				baseEng.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
+				baseEng.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
 			this.baseEng.exportDB(writer);
 			writer.flush();

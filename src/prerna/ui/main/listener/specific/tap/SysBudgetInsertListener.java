@@ -33,7 +33,7 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
@@ -69,7 +69,7 @@ public class SysBudgetInsertListener implements IChakraListener{
 		}
 		else{
 			BooleanProcessor boolProc = new BooleanProcessor();
-			boolProc.setEngine((IDatabase)DIHelper.getInstance().getLocalProp(tapEngineName));
+			boolProc.setEngine((IDatabaseEngine)DIHelper.getInstance().getLocalProp(tapEngineName));
 			boolProc.setQuery(budgetPropCheckQuery);
 			boolean propCheck = false;
 			try {
@@ -91,7 +91,7 @@ public class SysBudgetInsertListener implements IChakraListener{
 					//run delete
 					String deleteQuery = "DELETE {?s ?contains ?prop. ?propContains ?type ?contains} WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> AS ?propContains) BIND(<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> AS ?type) BIND(<http://semoss.org/ontologies/Relation/Contains> AS ?contains) {?s ?propContains ?prop ;} {?propContains ?type ?contains}}";
 					UpdateProcessor upProc = new UpdateProcessor();
-					upProc.setEngine((IDatabase)DIHelper.getInstance().getLocalProp(tapEngineName));
+					upProc.setEngine((IDatabaseEngine)DIHelper.getInstance().getLocalProp(tapEngineName));
 					upProc.setQuery(deleteQuery);
 					upProc.processQuery();
 					

@@ -1,7 +1,7 @@
 package prerna.ds.shared;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 
@@ -55,7 +55,7 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 	}
 
 	@Override
-	public void setEngine(IDatabase engine) {
+	public void setEngine(IDatabaseEngine engine) {
 		// TODO Auto-generated method stub
 
 	}
@@ -106,7 +106,7 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 	}
 
 	@Override
-	public IDatabase getEngine() {
+	public IDatabaseEngine getEngine() {
 		// TODO Auto-generated method stub
 		return null;
 	}

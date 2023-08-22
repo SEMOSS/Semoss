@@ -2,7 +2,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.Map;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.util.DHMSMTransitionUtility;
 
 public class FutureInterfaceCostProcessor extends AbstractFutureInterfaceCostProcessor{
@@ -18,7 +18,7 @@ public class FutureInterfaceCostProcessor extends AbstractFutureInterfaceCostPro
 	private Map<String, Map<String, Map<String, Double>>> avgLoeForSysGLItemAndPhaseHashByAvgSer;
 	private Map<String, Map<String, Double>> genericGLItemAndPhaseHashByAvgServ;
 	
-	private IDatabase[] engines;
+	private IDatabaseEngine[] engines;
 	
 	public FutureInterfaceCostProcessor() {
 
@@ -79,7 +79,7 @@ public class FutureInterfaceCostProcessor extends AbstractFutureInterfaceCostPro
 	}
 	
 	@Override
-	public void setCostEngines(IDatabase[] engines) {
+	public void setCostEngines(IDatabaseEngine[] engines) {
 		this.engines = engines;
 	}
 	

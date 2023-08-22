@@ -7,7 +7,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Utility;
 
@@ -48,7 +48,7 @@ public class TaxUtility {
 	 * @param aliasHashMap
 	 * @throws Exception 
 	 */
-	private static void execAliasToHashCodeQuery(IDatabase engine, String sql, Map<String, String> aliasHashMap) throws Exception {
+	private static void execAliasToHashCodeQuery(IDatabaseEngine engine, String sql, Map<String, String> aliasHashMap) throws Exception {
 		if(engine == null) {
 			return;
 		}
@@ -104,7 +104,7 @@ public class TaxUtility {
 		return sql.toString();
 	}
 	
-	public static double getLatestVersionForScenario(IDatabase engine, String clientID, double scenarioID) throws Exception {
+	public static double getLatestVersionForScenario(IDatabaseEngine engine, String clientID, double scenarioID) throws Exception {
 		double scenarioRet = 1.0;
 		String sql = "SELECT VERSION FROM INPUTCSV WHERE CLIENT_ID='" + "' AND SCENARIO=" + scenarioID + " ORDER BY VERSION DESC LIMIT 1";
 		Map<String, Object> queryRet = (Map<String, Object>)engine.execQuery(sql);

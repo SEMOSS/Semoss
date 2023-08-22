@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeSet;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.DIHelper;
@@ -42,7 +42,7 @@ public class QueryProcessor {
 	public static String[] getNames(String query, String engineName) {
 		String[] temp = null;
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
@@ -56,7 +56,7 @@ public class QueryProcessor {
 	public static ArrayList<String> getStringList(String query, String engineName) {
 		ArrayList<String> finalList = new ArrayList<String>();
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
@@ -73,7 +73,7 @@ public class QueryProcessor {
 	public static ArrayList<String> getRawStringList(String query, String engineName) {
 		ArrayList<String> finalList = new ArrayList<String>();
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
@@ -90,7 +90,7 @@ public class QueryProcessor {
 	public static HashMap<String, ArrayList<String>> getStringListMap(String query, String engineName) {
 		HashMap<String, ArrayList<String>> finalMap = new HashMap<String, ArrayList<String>>();
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
@@ -113,7 +113,7 @@ public class QueryProcessor {
 	public static HashMap<String, TreeSet<String>> getStringSetMap(String query, String engineName) {
 		HashMap<String, TreeSet<String>> finalMap = new HashMap<String, TreeSet<String>>();
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
@@ -136,7 +136,7 @@ public class QueryProcessor {
 	public static HashMap<String, String> getStringMap(String query, String engineName) {
 		HashMap<String, String> finalMap = new HashMap<String, String>();
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
@@ -161,7 +161,7 @@ public class QueryProcessor {
 	public static HashMap<String, ArrayList<String[]>> getStringTwoArrayListMap(String query, String engineName) {
 		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
@@ -183,7 +183,7 @@ public class QueryProcessor {
 	public static HashMap<String, HashMap<String, Double>> getDoubleMap(String query, String engineName) {
 		HashMap<String, HashMap<String, Double>> finalMap = new HashMap<String, HashMap<String, Double>>();
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
@@ -205,7 +205,7 @@ public class QueryProcessor {
 	public static HashMap<String, String[]> getStringTwoParameterMap(String query, String engineName) {
 		HashMap<String, String[]> finalMap = new HashMap<String, String[]>();
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
@@ -230,7 +230,7 @@ public class QueryProcessor {
 	public static Double getSingleCount(String query, String engineName) {
 		Double total = 0.0;
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			ISelectStatement sjss = sjsw.next();
@@ -253,7 +253,7 @@ public class QueryProcessor {
 	{
 		HashMap<String, Double> finalMap = new HashMap<String, Double>();
 		try {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {

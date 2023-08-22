@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.metaeditor.concepts;
 import java.util.List;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.AbstractOwler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,7 +47,7 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 
 		String newPixelURI = "http://semoss.org/ontologies/Concept/" + newPixelName;
 
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		ClusterUtil.pullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 
@@ -71,16 +71,16 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 			String newPropertyPixelUri = "http://semoss.org/ontologies/Relation/Contains/" + propPixelName + "/" + newPixelName;
 
 			// remove the current relationship
-			owlEngine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[] { propertyPhysicalUri, AbstractOwler.PIXEL_RELATION_URI, propertyPixelUri, true });
+			owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[] { propertyPhysicalUri, AbstractOwler.PIXEL_RELATION_URI, propertyPixelUri, true });
 			// add the new relationship
-			owlEngine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { propertyPhysicalUri, AbstractOwler.PIXEL_RELATION_URI, newPropertyPixelUri, true });
+			owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { propertyPhysicalUri, AbstractOwler.PIXEL_RELATION_URI, newPropertyPixelUri, true });
 		}
 
 		// now update the actual concept
 		// remove the current relationship
-		owlEngine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[] { conceptPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, existingPixelURI, true });
+		owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[] { conceptPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, existingPixelURI, true });
 		// add the new relationship
-		owlEngine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { conceptPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, newPixelURI, true });
+		owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { conceptPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, newPixelURI, true });
 
 		try {
 			owlEngine.exportDB();

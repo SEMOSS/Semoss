@@ -30,7 +30,7 @@ package prerna.ui.main.listener.impl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 
 /**
  * An abstract browser class for SPARQL functions.
@@ -38,7 +38,7 @@ import prerna.engine.api.IDatabase;
 public abstract class AbstractBrowserSPARQLFunction {
 
 	static final Logger logger = LogManager.getLogger(AbstractBrowserSPARQLFunction.class.getName());
-	IDatabase engine;
+	IDatabaseEngine engine;
 	
 	/**
 	 * Method invoke.  Overrides the invoke method from BrowserFunction.
@@ -52,7 +52,7 @@ public abstract class AbstractBrowserSPARQLFunction {
 	 * Method setEngine.  Sets the local engine to the IDatabase parameter.
 	 * @param engine IDatabase - The engine that the listener will access.
 	 */
-	public void setEngine(IDatabase engine){
+	public void setEngine(IDatabaseEngine engine){
 		this.engine = engine;
 	}
 }

@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.tax;
 
 import java.util.Map;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -17,7 +17,7 @@ public class SaveTaxScenarioReactor extends AbstractReactor {
 		return null;
 	}
 	
-	public static boolean addNewVersion(IDatabase engine, String clientID, double scenarioID, double latestVersion, double newVersion, Map<String, String> newValues) {
+	public static boolean addNewVersion(IDatabaseEngine engine, String clientID, double scenarioID, double latestVersion, double newVersion, Map<String, String> newValues) {
 		clientID = AbstractSqlQueryUtil.escapeForSQLStatement(clientID);
 		String sql = "Insert Into INPUTCSV (CLIENT_ID, SCENARIO, VERSION, FORMNAME, FIELDNAME, ALIAS_1, VALUE_1, TYPE_1, HASHCODE, WEIGHT, RETURNTYPE, COLUMN_1) "
 				+ "Select CLIENT_ID, SCENARIO, " + newVersion + ", FORMNAME, FIELDNAME, ALIAS_1, VALUE_1, TYPE_1, HASHCODE, WEIGHT, RETURNTYPE, COLUMN_1 From INPUTCSV "

@@ -13,7 +13,7 @@ import org.openrdf.model.vocabulary.RDFS;
 
 import com.google.gson.Gson;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.AbstractOwler;
@@ -115,7 +115,7 @@ public class OwlSeparatePixelFromConceptual {
 
 		deleteAllTriples(rfse);
 		
-		IDatabase.DATABASE_TYPE dbType = rdbms ? IDatabase.DATABASE_TYPE.RDBMS : IDatabase.DATABASE_TYPE.SESAME;
+		IDatabaseEngine.DATABASE_TYPE dbType = rdbms ? IDatabaseEngine.DATABASE_TYPE.RDBMS : IDatabaseEngine.DATABASE_TYPE.SESAME;
 		Owler owler = new Owler(owlFile.getAbsolutePath(), dbType);
 		
 		// add all the concepts and properties

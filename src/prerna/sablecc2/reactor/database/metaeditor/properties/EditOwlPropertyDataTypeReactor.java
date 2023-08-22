@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.metaeditor.properties;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,7 +49,7 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 				
 		String newAdditionalDataType = this.keyValue.get(this.keysToGet[4]);
 
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		ClusterUtil.pullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 		
@@ -66,9 +66,9 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 		// remove if current data type is present
 		String currentDataType = database.getDataTypes(propertyPhysicalURI);
 		if (currentDataType != null) {
-			owlEngine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, RDFS.CLASS.stringValue(), currentDataType, true});
+			owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, RDFS.CLASS.stringValue(), currentDataType, true});
 		}
-		owlEngine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, RDFS.CLASS.stringValue(), "TYPE:" + newDataType, true});
+		owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, RDFS.CLASS.stringValue(), "TYPE:" + newDataType, true});
 
 		if (newAdditionalDataType != null && !newAdditionalDataType.isEmpty()) {
 			newAdditionalDataType = newAdditionalDataType.trim();
@@ -78,9 +78,9 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 			String currentAdditionalDataType = database.getAdtlDataTypes(propertyPhysicalURI);
 			if (currentAdditionalDataType != null) {
 				currentAdditionalDataType = "ADTLTYPE:" + Owler.encodeAdtlDataType(currentAdditionalDataType);
-				owlEngine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, currentAdditionalDataType, false});
+				owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, currentAdditionalDataType, false});
 			}
-			owlEngine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject, false});
+			owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject, false});
 		}
 
 		try {
