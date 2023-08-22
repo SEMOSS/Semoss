@@ -1,5 +1,6 @@
 package prerna.query.interpreters;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
@@ -41,10 +44,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.qs.SubQueryExpression;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SparqlInterpreter extends AbstractQueryInterpreter {
 	
+	private static final Logger classLogger = LogManager.getLogger(SparqlInterpreter.class);
+
 	// string containing the return variable section of the query
 	private StringBuilder selectors;
 	// keep track of the selectors that are added
@@ -221,10 +227,14 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 					}
 				}
 			} catch(Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(innerTask != null) {
-					innerTask.cleanUp();
+					try {
+						innerTask.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			

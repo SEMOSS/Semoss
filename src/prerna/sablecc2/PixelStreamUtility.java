@@ -591,7 +591,11 @@ public class PixelStreamUtility {
 						pixelObj.setReturnedError(true);
 						
 						// close resources before returning
-						task.cleanUp();
+						try {
+							task.close();
+						} catch(IOException e2) {
+							logger.error(Constants.STACKTRACE, e2);
+						}
 						return;
 					}
 
@@ -656,7 +660,11 @@ public class PixelStreamUtility {
 				
 				// done with the task data
 				if(!task.hasNext()) {
-					task.cleanUp();
+					try {
+						task.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			// if we do not have a task

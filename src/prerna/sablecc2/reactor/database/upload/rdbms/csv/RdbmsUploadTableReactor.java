@@ -283,7 +283,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 	 * @param types
 	 * @param additionalTypes
 	 * @param clean
-	 * @param logger
+	 * @param classLogger
 	 * @throws IOException
 	 */
 	private void bulkInsertFile(IDatabaseEngine database, CSVFileHelper helper, final String TABLE_NAME,
