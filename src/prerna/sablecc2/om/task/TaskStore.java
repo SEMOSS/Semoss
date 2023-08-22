@@ -1,5 +1,6 @@
 package prerna.sablecc2.om.task;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -10,10 +11,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.util.Constants;
 
 public class TaskStore {
 
-	private static final Logger LOGGER = LogManager.getLogger(TaskStore.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(TaskStore.class);
 	
 	// store for the task
 	private Map<String, ITask> taskMap = new ConcurrentHashMap<String, ITask>(); 
@@ -21,7 +23,7 @@ public class TaskStore {
 	private AtomicInteger count = new AtomicInteger(0);
 
 	public String addTask(String taskId, ITask task) {
-		LOGGER.info("Adding new task = " + taskId);
+		classLogger.info("Adding new task = " + taskId);
 		this.taskMap.put(taskId, task);
 		return taskId;
 	}
@@ -39,7 +41,11 @@ public class TaskStore {
 	public void removeTask(String taskId) {
 		ITask task = this.taskMap.remove(taskId);
 		if(task != null) {
-			task.cleanUp();
+			try {
+				task.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 	}
 	
@@ -51,7 +57,11 @@ public class TaskStore {
 	public void clearAllTasks() {
 		for(String taskId : this.taskMap.keySet()) {
 			ITask task = this.taskMap.get(taskId);
-			task.cleanUp();
+			try {
+				task.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 		this.taskMap.clear();
 	}

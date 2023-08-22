@@ -485,7 +485,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @param dataTypesMap
 	 * @param additionalDataTypeMap
 	 * @param clean
-	 * @param logger
+	 * @param classLogger
 	 * @throws Exception 
 	 */
 	private void processSheet(IDatabaseEngine database, Owler owler, ExcelSheetFileIterator helper, boolean singleRange, 

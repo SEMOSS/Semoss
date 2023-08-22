@@ -190,7 +190,11 @@ public class ImportReactor extends AbstractReactor {
 				}
 			}
 			if(task != null) {
-				task.cleanUp();
+				try {
+					task.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}

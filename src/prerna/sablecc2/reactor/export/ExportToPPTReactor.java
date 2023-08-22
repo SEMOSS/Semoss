@@ -784,7 +784,11 @@ public class ExportToPPTReactor extends AbstractReactor {
 		boolean first = true;
 		MAX_TABLE_SIZE : while(task.hasNext()) {
 			if(counter++ > maxRows) {
-				task.cleanUp();
+				try {
+					task.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 				break MAX_TABLE_SIZE;
 			}
 			IHeadersDataRow headerRow = task.next();
