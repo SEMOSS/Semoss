@@ -1980,10 +1980,9 @@ public class CentralCloudStorage implements ICloudClient {
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String engineProp = baseFolder + "\\db\\diabetes sanjay and sarji__56af9395-64fd-40a2-b68c-bbd6961336a5.smss";
 			IDatabaseEngine sampleDb = new RDBMSNativeEngine();
-			sampleDb.openDB(engineProp);
+			sampleDb.open(engineProp);
 			DIHelper.getInstance().setEngineProperty("56af9395-64fd-40a2-b68c-bbd6961336a5", sampleDb);
 		}
-		
 		
 		ICloudClient centralStorage = CentralCloudStorage.getInstance();
 		centralStorage.pushDatabase("56af9395-64fd-40a2-b68c-bbd6961336a5");

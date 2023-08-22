@@ -73,7 +73,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		this.database = new BigDataEngine();
 		this.database.setEngineId(this.databaseId);
 		this.database.setEngineName(newDatabaseName);
-		this.database.openDB(this.tempSmss.getAbsolutePath());
+		this.database.open(this.tempSmss.getAbsolutePath());
 		String semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();

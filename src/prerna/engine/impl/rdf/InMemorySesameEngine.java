@@ -108,7 +108,7 @@ public class InMemorySesameEngine extends AbstractDatabase {
 	 * @param propFile contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
 	 * what type of engine is being instantiated.
 	 */
-	public void openDB(String propFile)
+	public void open(String smssFilePath)
 	{
 		// no meaning to this now
 	}
@@ -266,7 +266,7 @@ public class InMemorySesameEngine extends AbstractDatabase {
 	}
 
 	/**
-	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #openDB(String)} 
+	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #open(String)} 
 	 * is called and the connection becomes false when {@link #close()} is called.
 	
 	 * @return true if the engine is connected to its data store and false if it is not */

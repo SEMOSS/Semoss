@@ -84,7 +84,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
 		this.database.setSmssProp(props);
-		this.database.openDB(null);
+		this.database.open(null);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

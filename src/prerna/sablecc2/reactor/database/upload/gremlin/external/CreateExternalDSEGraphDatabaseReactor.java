@@ -60,7 +60,7 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 		DataStaxGraphEngine dseEngine = new DataStaxGraphEngine();
 		dseEngine.setEngineId(this.newDatabaseId);
 		dseEngine.setEngineName(this.newDatabaseName);
-		dseEngine.openDB(this.smssFile.getAbsolutePath());
+		dseEngine.open(this.smssFile.getAbsolutePath());
 		return dseEngine;
 	}
 

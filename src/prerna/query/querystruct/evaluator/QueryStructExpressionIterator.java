@@ -262,7 +262,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 //			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 //			IEngine coreEngine = new RDBMSNativeEngine();
 //			coreEngine.setEngineId("LocalMasterDatabase");
-//			coreEngine.openDB(engineProp);
+//			coreEngine.open(engineProp);
 //			coreEngine.setEngineId("LocalMasterDatabase");
 //			DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
 //		}
@@ -271,7 +271,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 //		String testEngine = "TinkerThis__cc2a91eb-548d-4970-91c3-7a043b783841";
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
 //		TinkerEngine coreEngine = new TinkerEngine();
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
 //		
 //		

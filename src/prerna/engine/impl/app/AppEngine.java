@@ -18,7 +18,8 @@ public class AppEngine extends AbstractDatabase {
 	 * Overriding the default behavior
 	 * Do not need to do anything except load the insights database
 	 */
-	public void openDB(String propFile) {
+	@Override
+	public void open(String propFile) {
 		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		setSmssFilePath(propFile);
 		

@@ -75,8 +75,8 @@ public class RNativeEngine extends AbstractDatabase {
 	private RDataTable dt;
 	
 	@Override
-	public void openDB(String propFile) {
-		super.openDB(propFile);
+	public void open(String smssFilePath) {
+		super.open(smssFilePath);
 
 		this.file = SmssUtilities.getDataFile(this.smssProp);
 		this.fileLocation = this.file.getAbsolutePath().replace('\\', '/');
