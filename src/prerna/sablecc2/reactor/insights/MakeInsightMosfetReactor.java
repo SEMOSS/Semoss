@@ -37,7 +37,7 @@ import prerna.util.git.GitUtils;
 
 public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 
-	private static final Logger logger = LogManager.getLogger(MakeInsightMosfetReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(MakeInsightMosfetReactor.class);
 
 	public MakeInsightMosfetReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
@@ -107,7 +107,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 					mosfet.write(mosfetPath, true);
 					numUpdated++;
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					numError++;
 				}
 				
@@ -136,7 +136,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 			try {
 				mosfet = generateMosfetFromInsight(project, rdbmsId);
 			} catch(IllegalArgumentException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 			
@@ -150,7 +150,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				mosfet.write(mosfetPath, true);
 				numUpdated++;
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				numError++;
 			}
 			
@@ -204,7 +204,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 						try {
 							pixelArrayIs = pixelArray.getAsciiStream();
 						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 					// flush input stream to string
@@ -215,10 +215,14 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 			}
 		} catch (Exception e1) {
-			logger.error(Constants.STACKTRACE, e1);
+			classLogger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -244,10 +248,14 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

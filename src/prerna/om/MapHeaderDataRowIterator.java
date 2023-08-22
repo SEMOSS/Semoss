@@ -1,5 +1,6 @@
 package prerna.om;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 import prerna.algorithm.api.SemossDataType;
@@ -64,7 +65,7 @@ public class MapHeaderDataRowIterator implements IRawSelectWrapper {
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		// TODO Auto-generated method stub
 		
 	}

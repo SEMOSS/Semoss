@@ -444,21 +444,21 @@ public class FormulaExtractor extends AbstractFileReader {
 				}
 			}
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
 				throw new FileNotFoundException(e.getMessage());
 			} else {
 				throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
 				throw new IOException("Could not read Excel file located at " + fileName);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
@@ -469,7 +469,7 @@ public class FormulaExtractor extends AbstractFileReader {
 				try {
 					poiReader.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					throw new IOException("Could not close Excel file stream");
 				}
 			}
@@ -478,7 +478,7 @@ public class FormulaExtractor extends AbstractFileReader {
 				try {
 					workbook.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					//throw new IOException("Could not close Excel workbook");
 				}
 			}
@@ -891,21 +891,21 @@ public class FormulaExtractor extends AbstractFileReader {
 			// load the Loader tab to determine which sheets to load
 			System.out.println("Complete.. !!" );;
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
 				throw new FileNotFoundException(e.getMessage());
 			} else {
 				throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
 				throw new IOException("Could not read Excel file located at " + fileName);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
@@ -916,7 +916,7 @@ public class FormulaExtractor extends AbstractFileReader {
 				try {
 					poiReader.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					throw new IOException("Could not close Excel file stream");
 				}
 			}
@@ -924,7 +924,7 @@ public class FormulaExtractor extends AbstractFileReader {
 				try {
 					workbook.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					//throw new IOException("Could not close Excel workbook");
 				}
 			}
@@ -1019,7 +1019,7 @@ public class FormulaExtractor extends AbstractFileReader {
 			engine.insertData(createString);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		// now I say process this table ?
 
@@ -1077,7 +1077,7 @@ public class FormulaExtractor extends AbstractFileReader {
 				} catch (Exception e) {
 					System.out.println("Insert query...  " + inserter + values);
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					System.exit(0);
 				}
 
@@ -1159,11 +1159,15 @@ public class FormulaExtractor extends AbstractFileReader {
 							isInsert = true;
 						}
 					}
-				} catch (Exception e1) {
-					e1.printStackTrace();
+				} catch (Exception e) {
+					logger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(wrapper != null) {
-						wrapper.cleanUp();
+						try {
+							wrapper.close();
+						} catch (IOException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 				
@@ -1201,7 +1205,7 @@ public class FormulaExtractor extends AbstractFileReader {
 						try {
 							engine.insertData(insert);
 						} catch (Exception e) {
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					} else {
 						// need to generate query to pull all existing information
@@ -1246,7 +1250,7 @@ public class FormulaExtractor extends AbstractFileReader {
 						try {
 							engine.insertData(insert);
 						} catch (Exception e) {
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					}
 				} else {
@@ -1256,7 +1260,7 @@ public class FormulaExtractor extends AbstractFileReader {
 					try {
 						engine.insertData(updateString + values);
 					} catch (Exception e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -1274,7 +1278,7 @@ public class FormulaExtractor extends AbstractFileReader {
 			try {
 				engine.insertData(createIndex);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			tempIndexAddedList.add(indexOnTable);
 			tempIndexDropList.add(dropIndex);
@@ -1292,7 +1296,7 @@ public class FormulaExtractor extends AbstractFileReader {
 				try {
 					engine.insertData(createIndex);
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 				tempIndexDropList.add(dropIndex);
 				tempIndexAddedList.add(indexOnTable);
@@ -1375,7 +1379,7 @@ public class FormulaExtractor extends AbstractFileReader {
 	//				engine.insertData(updateString + values);
 	//			} catch (Exception e) {
 	//				// TODO Auto-generated catch block
-	//				e.printStackTrace();
+	//				logger.error(Constants.STACKTRACE, e);
 	//				System.out.println("update query...  " + updateString + values);
 	//				System.exit(1);
 	//			}

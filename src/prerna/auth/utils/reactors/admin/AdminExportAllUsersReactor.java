@@ -1,7 +1,11 @@
 package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.UUID;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -22,6 +26,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class AdminExportAllUsersReactor extends ToExcelReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(AdminExportAllUsersReactor.class);
 
 	private static final String CLASS_NAME = AdminExportAllUsersReactor.class.getName();
 
@@ -101,11 +107,15 @@ public class AdminExportAllUsersReactor extends ToExcelReactor {
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 			return retNoun;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred retrieving the users. Message is : " + e.getMessage());
 		} finally {
 			if(iterator != null) {
-				iterator.cleanUp();
+				try {
+					iterator.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}

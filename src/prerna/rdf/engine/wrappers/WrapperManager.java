@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -239,7 +241,11 @@ public class WrapperManager {
 					if(logger.isDebugEnabled()) {
 						logger.error("Error occurred executing query on engine " + engine.getEngineId() + " with query = " + query);
 					}
-					returnWrapper.cleanUp();
+					try {
+						returnWrapper.close();
+					} catch(IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}

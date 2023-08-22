@@ -23,7 +23,7 @@ import prerna.util.Utility;
 
 public abstract class AbstractFormBuilder {
 
-	protected static final Logger LOGGER = LogManager.getLogger(AbstractFormBuilder.class.getName());
+	protected static final Logger logger = LogManager.getLogger(AbstractFormBuilder.class.getName());
 
 	public static final String FORM_BUILDER_ENGINE_NAME = "form_builder_engine";
 	protected static final String AUDIT_FORM_SUFFIX = "_FORM_LOG";
@@ -108,10 +108,14 @@ public abstract class AbstractFormBuilder {
 				permissionTableExists = true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -122,19 +126,19 @@ public abstract class AbstractFormBuilder {
 			owler.addProp("FORMS_USER_ACCESS", "INSTANCE_NAME", "VARCHAR(255)");
 			owler.addProp("FORMS_USER_ACCESS", "IS_SYS_ADMIN", "BOOLEAN");
 
-			LOGGER.info("CREATING PERMISSION TABLE!!!");
+			logger.info("CREATING PERMISSION TABLE!!!");
 			String query = RdbmsQueryBuilder.makeCreate("FORMS_USER_ACCESS", new String[]{"USER_ID", "INSTANCE_NAME", "IS_SYS_ADMIN"}, new String[]{"VARCHAR(100)", "VARCHAR(255)", "BOOLEAN"});
-			LOGGER.info("SQL SCRIPT >>> " + query);
+			logger.info("SQL SCRIPT >>> " + query);
 			try {
 				formEng.insertData(query);
-			} catch (Exception e1) {
-				e1.printStackTrace();
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
 			owler.commit();
 			try {
 				owler.export();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -150,10 +154,14 @@ public abstract class AbstractFormBuilder {
 				auditTableExists = true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -170,7 +178,7 @@ public abstract class AbstractFormBuilder {
 			owler.addProp(auditLogTableName, "PROP_VALUE", "CLOB");
 			owler.addProp(auditLogTableName, "TIME", "TIMESTAMP");
 
-			LOGGER.info("CREATING NEW AUDIT LOG!!!");
+			logger.info("CREATING NEW AUDIT LOG!!!");
 			StringBuilder createAuditTable = new StringBuilder("CREATE TABLE ");
 			createAuditTable.append(auditLogTableName).append("(ID IDENTITY, USER VARCHAR(255), ACTION VARCHAR(100), START_NODE VARCHAR(255), "
 					+ "REL_NAME VARCHAR(255), END_NODE VARCHAR(255), PROP_NAME VARCHAR(255), PROP_VALUE CLOB, TIME TIMESTAMP");
@@ -182,17 +190,17 @@ public abstract class AbstractFormBuilder {
 			}
 			createAuditTable.append(")");
 			String query = createAuditTable.toString();
-			LOGGER.info("SQL SCRIPT >>> " + Utility.cleanLogString(query));
+			logger.info("SQL SCRIPT >>> " + Utility.cleanLogString(query));
 			try {
 				this.formEng.insertData(query);
-			} catch (Exception e1) {
-				e1.printStackTrace();
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
 			owler.commit();
 			try {
 				owler.export();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		} else if(this.tagCols != null && this.tagCols.size() > 0){
 			// need to execute and get the columns for the table
@@ -210,10 +218,14 @@ public abstract class AbstractFormBuilder {
 					cols.add(wrapper.next().getValues()[0] + "");
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			// 2) find the cols that we need to add
@@ -230,19 +242,19 @@ public abstract class AbstractFormBuilder {
 			// 3) perform an update
 			if(colsToAdd.size() > 0) {
 				String alterQuery = RdbmsQueryBuilder.makeAlter(auditLogTableName, colsToAdd.toArray(new String[] {}), colsToAddTypes.toArray(new String[] {}));
-				LOGGER.info("ALTERING TABLE: " + Utility.cleanLogString(alterQuery));
+				logger.info("ALTERING TABLE: " + Utility.cleanLogString(alterQuery));
 				try {
 					this.formEng.insertData(alterQuery);
-				} catch (Exception e1) {
-					e1.printStackTrace();
+				} catch (Exception e) {
+					logger.error(Constants.STACKTRACE, e);
 				}
-				LOGGER.info("DONE ALTER TABLE");
+				logger.info("DONE ALTER TABLE");
 				
 				owler.commit();
 				try {
 					owler.export();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -314,7 +326,7 @@ public abstract class AbstractFormBuilder {
 		try {
 			this.formEng.insertData(insertLogStatement.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 

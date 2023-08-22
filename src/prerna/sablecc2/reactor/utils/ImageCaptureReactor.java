@@ -1,7 +1,9 @@
 package prerna.sablecc2.reactor.utils;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
@@ -18,9 +20,12 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ImageCaptureReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(ImageCaptureReactor.class);
 
 	private static final String CLASS_NAME = ImageCaptureReactor.class.getName();
 	// get the directory separator
@@ -64,10 +69,14 @@ public class ImageCaptureReactor extends AbstractReactor {
 				runImageCapture(feUrl, projectId, id, param, sessionId, waitTime);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if(wrapper!=null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -89,7 +98,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 		try {
 			insight = coreProject.getInsight(insightId).get(0);
 		} catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		if(insight instanceof OldInsight) {
 			return;
@@ -108,11 +117,11 @@ public class ImageCaptureReactor extends AbstractReactor {
 //					try {
 //						p.waitFor();
 //					} catch (InterruptedException e) {
-//						e.printStackTrace();
+//						classLogger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 //			} catch (IOException e) {
-//				e.printStackTrace();
+//				classLogger.error(Constants.STACKTRACE, e);
 //			} finally {
 //				// destroy it
 //				if(p != null) {

@@ -1430,15 +1430,15 @@ public class Utility {
 	 */
 	public static Vector<String> getVectorOfReturn(String query, IDatabaseEngine engine, Boolean raw) {
 		Vector<String> retArray = new Vector<>();
-		IRawSelectWrapper wrap = null;
+		IRawSelectWrapper wrapper = null;
 		try {
-			wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
-			while (wrap.hasNext()) {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+			while (wrapper.hasNext()) {
 				Object[] values = null;
 				if (raw) {
-					values = wrap.next().getRawValues();
+					values = wrapper.next().getRawValues();
 				} else {
-					values = wrap.next().getValues();
+					values = wrapper.next().getValues();
 				}
 
 				if (values[0] != null) {
@@ -1450,8 +1450,12 @@ public class Utility {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrap != null) {
-				wrap.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -1468,15 +1472,15 @@ public class Utility {
 	 */
 	public static Vector<String[]> getVectorArrayOfReturn(String query, IDatabaseEngine engine, Boolean raw) {
 		Vector<String[]> retArray = new Vector<>();
-		IRawSelectWrapper wrap = null;
+		IRawSelectWrapper wrapper = null;
 		try {
-			wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
-			while (wrap.hasNext()) {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+			while (wrapper.hasNext()) {
 				Object[] values = null;
 				if (raw) {
-					values = wrap.next().getRawValues();
+					values = wrapper.next().getRawValues();
 				} else {
-					values = wrap.next().getValues();
+					values = wrapper.next().getValues();
 				}
 
 				String[] valArray = new String[values.length];
@@ -1490,8 +1494,12 @@ public class Utility {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrap != null) {
-				wrap.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

@@ -290,7 +290,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -372,7 +376,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -661,7 +669,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				throw new IllegalArgumentException("Error occured creating the insights database");
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 				if(error) {
@@ -716,7 +728,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 			}
@@ -863,7 +879,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return retMap;
@@ -907,7 +927,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return false;
@@ -932,7 +956,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return false;
@@ -957,7 +985,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return null;
@@ -1004,7 +1036,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return null;
@@ -1113,7 +1149,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}		
 		return AccessPermissionEnum.READ_ONLY.getId();
@@ -1747,7 +1787,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -1775,7 +1819,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw e;
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}
@@ -1821,7 +1869,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw e;
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -2380,7 +2432,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}
@@ -2460,7 +2516,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}
@@ -2688,7 +2748,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return false;

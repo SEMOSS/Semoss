@@ -1,7 +1,11 @@
 package prerna.sablecc2.reactor.frame.filtermodel;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
@@ -23,8 +27,11 @@ import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
+import prerna.util.Constants;
 
 public class GetFrameFilterRange extends AbstractFilterReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetFrameFilterRange.class);
 
 	/**
 	 * Get the absolute min/max for the column and the relative min/max based on
@@ -85,7 +92,7 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 				try {
 					it = dataframe.query(qs);
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
 							new NounMetadata("Error occurred executing query before loading into frame", 
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -100,7 +107,7 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 				try {
 					importer.insertData();
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				}
 				// now store this
@@ -159,10 +166,14 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 				it = queryFrame.query(mathQS);
 				minMaxMap.put("absMin", it.next().getValues()[0]);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			// get the abs max when no filters are present
@@ -171,10 +182,14 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 				it = queryFrame.query(mathQS);
 				minMaxMap.put("absMax", it.next().getValues()[0]);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 
@@ -185,10 +200,14 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 				it = queryFrame.query(mathQS);
 				minMaxMap.put("max", it.next().getValues()[0]);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			// run for actual min
@@ -197,10 +216,14 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 				it = queryFrame.query(mathQS);
 				minMaxMap.put("min", it.next().getValues()[0]);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 

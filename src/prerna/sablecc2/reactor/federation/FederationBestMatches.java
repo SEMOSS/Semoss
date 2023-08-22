@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.federation;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -107,10 +108,14 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 			// write to file
 			 newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");
 		} catch (Exception e) {
-			logger.error("StackTrace: ", e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it2 != null) {
-				it2.cleanUp();
+				try {
+					it2.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

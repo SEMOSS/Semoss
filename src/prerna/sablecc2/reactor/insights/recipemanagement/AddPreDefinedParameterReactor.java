@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.insights.recipemanagement;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +30,8 @@ import prerna.util.Utility;
 
 public class AddPreDefinedParameterReactor extends AbstractInsightParameterReactor {
 
-	private static final Logger logger = LogManager.getLogger(AddPreDefinedParameterReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AddPreDefinedParameterReactor.class);
+	
 	private static String password = null;
 
 	public AddPreDefinedParameterReactor() {
@@ -139,10 +141,14 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 							paramList.add(paramMap);
 						}
 					} catch (Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(wrapper != null) {
-							wrapper.cleanUp();
+							try {
+								wrapper.close();
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
 						}
 					}
 				}

@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.algorithms;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -7,6 +8,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.ibm.icu.text.DecimalFormat;
@@ -23,6 +25,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
+import prerna.util.Constants;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 import weka.associations.Apriori;
@@ -33,6 +36,8 @@ import weka.core.Attribute;
 import weka.core.Instances;
 
 public class RunAssociatedLearningReactor extends AbstractFrameReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(RunAssociatedLearningReactor.class);
 
 	private static final String CLASS_NAME = RunAssociatedLearningReactor.class.getName();
 
@@ -121,11 +126,15 @@ public class RunAssociatedLearningReactor extends AbstractFrameReactor {
 			logger.info("Start converting frame into WEKA Instacnes data structure");
 			this.instancesData = WekaReactorHelper.genInstances(retHeaders, isNumeric, numRows);
 			this.instancesData = WekaReactorHelper.fillInstances(this.instancesData, it, this.isNumeric, logger);
-		} catch (Exception e1) {
-			e1.printStackTrace();
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -374,10 +383,14 @@ public class RunAssociatedLearningReactor extends AbstractFrameReactor {
 				return ((Number) countIt.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(countIt != null) {
-				countIt.cleanUp();
+				try {
+					countIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return 0;

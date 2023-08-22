@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -72,7 +73,11 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -125,7 +130,11 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -182,7 +191,11 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -256,7 +269,11 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing insight permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}		
 		
@@ -296,7 +313,11 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing insight permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -373,7 +394,11 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

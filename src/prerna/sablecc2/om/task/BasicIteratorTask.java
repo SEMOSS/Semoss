@@ -1,5 +1,6 @@
 package prerna.sablecc2.om.task;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -203,7 +204,11 @@ public class BasicIteratorTask extends AbstractTask {
 	public void cleanUp() {
 		if(this.iterator instanceof IEngineWrapper) {
 			IEngineWrapper x = ((IEngineWrapper) this.iterator);
-			x.cleanUp();
+			try {
+				x.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 //		// help java gc

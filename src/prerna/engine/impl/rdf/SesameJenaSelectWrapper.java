@@ -469,7 +469,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		// TODO Auto-generated method stub
 		
 	}

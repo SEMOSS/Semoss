@@ -92,7 +92,7 @@ public class InsightCachingTest {
 					counter++;
 					System.out.println(Arrays.toString(it.next().getValues()));
 				}
-				it.cleanUp();
+				it.close();
 			} else if(noun.getNounType() == PixelDataType.TASK) {
 				System.out.println(k + " ::: " + newVarStore.get(k));
 			} else {

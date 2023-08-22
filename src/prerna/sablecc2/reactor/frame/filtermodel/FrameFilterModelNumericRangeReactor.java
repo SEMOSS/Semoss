@@ -1,7 +1,11 @@
 package prerna.sablecc2.reactor.frame.filtermodel;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -18,8 +22,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
+import prerna.util.Constants;
 
 public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(FrameFilterModelNumericRangeReactor.class);
 
 	/**
 	 * Get the absolute min/max for the column and the relative min/max based on the filters
@@ -87,10 +94,14 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 				it = dataframe.query(mathQS);
 				minMaxMap.put("absMin", it.next().getValues()[0]);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			// get the abs max when no filters are present
@@ -99,10 +110,14 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 				it = dataframe.query(mathQS);
 				minMaxMap.put("absMax", it.next().getValues()[0]);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 
@@ -113,10 +128,14 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 				it = dataframe.query(mathQS);
 				minMaxMap.put("max", it.next().getValues()[0]);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			// run for actual min
@@ -125,10 +144,14 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 				it = dataframe.query(mathQS);
 				minMaxMap.put("min", it.next().getValues()[0]);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 

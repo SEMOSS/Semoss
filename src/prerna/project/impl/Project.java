@@ -532,14 +532,18 @@ public class Project implements IProject {
 					}
 					insightV.insertElementAt(in, counts.remove(0));
 				}
-			} catch(IllegalArgumentException e1) {
-				throw e1;
-			} catch (Exception e1) {
-				classLogger.error(Constants.STACKTRACE, e1);
+			} catch(IllegalArgumentException e) {
+				throw e;
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			} 
 			finally {
 				if(wrap != null) {
-					wrap.cleanUp();
+					try {
+						wrap.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -563,7 +567,11 @@ public class Project implements IProject {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrap != null) {
-				wrap.cleanUp();
+				try {
+					wrap.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return stringBuilder.toString();

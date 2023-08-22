@@ -1,9 +1,13 @@
 package prerna.sablecc2.reactor.frame.filtermodel;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -21,8 +25,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
+import prerna.util.Constants;
 
 public class GetPanelFilterStateReactor extends AbstractFilterReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetPanelFilterStateReactor.class);
 
 	/**
 	 * This reactor has many inputs
@@ -130,7 +137,11 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 			e1.printStackTrace();
 		} finally {
 			if(totalCountIt != null) {
-				totalCountIt.cleanUp();
+				try {
+					totalCountIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -157,10 +168,14 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 				options.add(allValuesIt.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(allValuesIt != null) {
-				allValuesIt.cleanUp();
+				try {
+					allValuesIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -198,10 +213,14 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 					selectedValues.add(unFilterValuesIt.next().getValues()[0]);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(unFilterValuesIt != null) {
-					unFilterValuesIt.cleanUp();
+					try {
+						unFilterValuesIt.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			
@@ -225,10 +244,14 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 				selectedCount = ((Number) numUnique).intValue();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(selectedCountIt != null) {
-				selectedCountIt.cleanUp();
+				try {
+					selectedCountIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
