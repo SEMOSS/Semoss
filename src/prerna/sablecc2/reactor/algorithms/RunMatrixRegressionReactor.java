@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.algorithms;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -32,7 +33,7 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 
-	private static final Logger logger = LogManager.getLogger(RunMatrixRegressionReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RunMatrixRegressionReactor.class);
 
 	private static final String CLASS_NAME = RunMatrixRegressionReactor.class.getName();
 
@@ -223,10 +224,14 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 				return ((Number) countIt.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(countIt != null) {
-				countIt.cleanUp();
+				try {
+					countIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return 0;

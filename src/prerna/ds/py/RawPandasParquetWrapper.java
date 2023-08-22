@@ -1,5 +1,7 @@
 package prerna.ds.py;
 
+import java.io.IOException;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -28,11 +30,11 @@ public class RawPandasParquetWrapper implements IRawSelectWrapper {
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		// TODO Auto-generated method stub
-
+		
 	}
-
+	
 	@Override
 	public void setEngine(IDatabaseEngine engine) {
 		// TODO Auto-generated method stub

@@ -280,7 +280,11 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			// return the header row
 			return new HeadersDataRow(headers, rawHeaders, row, row);
 		} else {
-			cleanUp();
+			try {
+				close();
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 		}
 
 		// no more results
@@ -332,7 +336,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 	
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		if(this.closedConnection) {
 			return;
 		}
@@ -470,7 +474,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		// and then reasign after we re-execute
 		boolean temp = this.closeConnectionAfterExecution;
 		this.closeConnectionAfterExecution = false;
-		cleanUp();
+		close();
 		this.closeConnectionAfterExecution = temp;
 		// execute again
 		execute();

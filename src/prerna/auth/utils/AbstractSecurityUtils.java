@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public abstract class AbstractSecurityUtils {
 
 	private static final Logger logger = LogManager.getLogger(AbstractSecurityUtils.class);
-	
+
 	static RDBMSNativeEngine securityDb;
 	static boolean securityEnabled = false;
 	@Deprecated
@@ -55,7 +56,7 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyProjectDelete = false;
 	static boolean adminOnlyProjectAddAccess = false;
 	static boolean adminOnlyProjectSetPublic = false;
-	
+
 	static boolean adminOnlyDatabaseAdd = false;
 	static boolean adminOnlyDatabaseDelete = false;
 	static boolean adminOnlyDatabaseAddAccess = false;
@@ -64,18 +65,18 @@ public abstract class AbstractSecurityUtils {
 
 	static boolean adminOnlyInsightSetPublic = false;
 	static boolean adminOnlyInsightAddAccess = false;
-	
+
 	static boolean adminOnlyInsightShare = false;
-	
+
 	static Gson securityGson = new GsonBuilder().disableHtmlEscaping().create();
-	
+
 	/**
 	 * Only used for static references
 	 */
 	AbstractSecurityUtils() {
-		
+
 	}
-	
+
 	public static void loadSecurityDatabase() throws Exception {
 		securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		SecurityOwlCreator owlCreator = new SecurityOwlCreator(securityDb);
@@ -84,130 +85,130 @@ public abstract class AbstractSecurityUtils {
 		}
 		// Update OWL
 		OwlSeparatePixelFromConceptual.fixOwl(securityDb.getSmssProp());
-		
+
 		initialize();
-		
+
 		Object security = DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED);
 		if(security == null) {
 			securityEnabled = false;
 		} else {
 			securityEnabled = (security instanceof Boolean && ((boolean) security) ) || (Boolean.parseBoolean(security.toString()));
 		}
-		
+
 		Object anonymousUsers = DIHelper.getInstance().getLocalProp(Constants.ANONYMOUS_USER_ALLOWED);
 		if(anonymousUsers == null) {
 			anonymousUsersEnabled = false;
 		} else {
 			anonymousUsersEnabled = (anonymousUsers instanceof Boolean && ((boolean) anonymousUsers) ) || (Boolean.parseBoolean(anonymousUsers.toString()));
 		}
-		
+
 		Object anonymousUsersData = DIHelper.getInstance().getLocalProp(Constants.ANONYMOUS_USER_UPLOAD_DATA);
 		if(anonymousUsersData == null) {
 			anonymousUsersUploadData = false;
 		} else {
 			anonymousUsersUploadData = (anonymousUsersData instanceof Boolean && ((boolean) anonymousUsersData) ) || (Boolean.parseBoolean(anonymousUsersData.toString()));
 		}
-		
+
 		Object adminSetsPublisher = DIHelper.getInstance().getLocalProp(Constants.ADMIN_SET_PUBLISHER);
 		if(adminSetsPublisher == null) {
 			adminSetPublisher = false;
 		} else {
 			adminSetPublisher = (adminSetsPublisher instanceof Boolean && ((boolean) adminSetsPublisher) ) || (Boolean.parseBoolean(adminSetsPublisher.toString()));
 		}
-		
+
 		Object adminSetsExporter = DIHelper.getInstance().getLocalProp(Constants.ADMIN_SET_EXPORTER);
 		if(adminSetsExporter == null) {
 			adminSetExporter = false;
 		} else {
 			adminSetExporter = (adminSetsExporter instanceof Boolean && ((boolean) adminSetsExporter) ) || (Boolean.parseBoolean(adminSetsExporter.toString()));
 		}
-		
+
 		adminOnlyProjectAdd = Utility.getApplicationAdminOnlyProjectAdd();
 		adminOnlyProjectDelete = Utility.getApplicationAdminOnlyProjectDelete();
 		adminOnlyProjectAddAccess = Utility.getApplicationAdminOnlyProjectAddAccess();
 		adminOnlyProjectSetPublic = Utility.getApplicationAdminOnlyProjectSetPublic();
-		
+
 		adminOnlyDatabaseAdd = Utility.getApplicationAdminOnlyDbAdd();
 		adminOnlyDatabaseDelete = Utility.getApplicationAdminOnlyDbDelete();
 		adminOnlyDatabaseAddAccess = Utility.getApplicationAdminOnlyDbAddAccess();
 		adminOnlyDatabaseSetPublic = Utility.getApplicationAdminOnlyDbSetPublic();
 		adminOnlyDatabaseSetDiscoverable = Utility.getApplicationAdminOnlyDbSetDiscoverable();
-		
+
 		adminOnlyInsightSetPublic = Utility.getApplicationAdminOnlyInsightSetPublic();
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
-		
+
 		adminOnlyInsightShare = Utility.getApplicationAdminOnlyInsightShare();
 	}
 
 	public static boolean securityEnabled() {
 		return securityEnabled;
 	}
-	
+
 	public static boolean anonymousUsersEnabled() {
 		return securityEnabled && anonymousUsersEnabled;
 	}
-	
+
 	public static boolean anonymousUserUploadData() {
 		return anonymousUsersEnabled() && anonymousUsersUploadData;
 	}
-	
+
 	@Deprecated
 	public static boolean adminSetPublisher() {
 		return securityEnabled && adminSetPublisher;
 	}
-	
+
 	public static boolean adminSetExporter() {
 		return securityEnabled && adminSetExporter;
 	}
-	
+
 	public static boolean adminOnlyProjectAdd() {
 		return securityEnabled && adminOnlyProjectAdd;
 	}
-	
+
 	public static boolean adminOnlyProjectDelete() {
 		return securityEnabled && adminOnlyProjectDelete;
 	}
-	
+
 	public static boolean adminOnlyProjectAddAccess() {
 		return securityEnabled && adminOnlyProjectAddAccess;
 	}
-	
+
 	public static boolean adminOnlyProjectSetPublic() {
 		return securityEnabled && adminOnlyProjectSetPublic;
 	}
-	
+
 	public static boolean adminOnlyEngineAdd() {
 		return securityEnabled && adminOnlyDatabaseAdd;
 	}
-	
+
 	public static boolean adminOnlyEngineDelete() {
 		return securityEnabled && adminOnlyDatabaseDelete;
 	}
-	
+
 	public static boolean adminOnlyEngineAddAccess() {
 		return securityEnabled && adminOnlyDatabaseAddAccess;
 	}
-	
+
 	public static boolean adminOnlyEngineSetPublic() {
 		return securityEnabled && adminOnlyDatabaseSetPublic;
 	}
-	
+
 	public static boolean adminOnlyEngineSetDiscoverable() {
 		return securityEnabled && adminOnlyDatabaseSetDiscoverable;
 	}
-	
+
 	public static boolean adminOnlyInsightSetPublic() {
 		return securityEnabled && adminOnlyInsightSetPublic;
 	}
-	
+
 	public static boolean adminOnlyInsightAddAccess() {
 		return securityEnabled && adminOnlyInsightAddAccess;
 	}
-	
+
 	public static boolean adminOnlyInsightShare() {
 		return securityEnabled && adminOnlyInsightShare;
 	}
-	
+
 	public static void initialize() throws Exception {
 		String database = securityDb.getDatabase();
 		String schema = securityDb.getSchema();
@@ -218,14 +219,14 @@ public abstract class AbstractSecurityUtils {
 		/*
 		 * Currently used
 		 */
-		
+
 		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
-		
+
 		// 2021-08-06
 		// on h2 when you renmae a column it doens't update/change anything on the index name
 		// also had some invalid indexes on certain tables
@@ -292,7 +293,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.removeData(sql);
 			}
 		}
-		
+
 		// ENGINE
 		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", 
 				"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", 
@@ -324,7 +325,7 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(addColumnSql);
 				}
 			}
-			
+
 			// if type columns exist, remove it - ADDED 07/18/2023
 			{
 				if(allCols.contains("TYPE") || allCols.contains("type")) {
@@ -333,22 +334,22 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(dropTypeColumn);
 				}
 			}
-			
+
 			securityDb.insertData("UPDATE ENGINE SET ENGINETYPE='"+IDatabaseEngine.CATALOG_TYPE+"' WHERE ENGINETYPE IS NULL");
 		}
 		if(allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
 			logger.info("Running sql " + sql);
 			securityDb.insertData(sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ENGINE_DISCOVERABLE_INDEX", "ENGINE", "DISCOVERABLE");
 			logger.info("Running sql " + sql);
 			securityDb.insertData(sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME");
 			logger.info("Running sql " + sql);
 			securityDb.insertData(sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
 			logger.info("Running sql " + sql);
 			securityDb.insertData(sql);
@@ -375,7 +376,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(sql);
 			}
 		}
-		
+
 		// ENGINEMETA
 		// check if column exists
 		// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
@@ -422,7 +423,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(sql);
 			}
 		}
-		
+
 		// ENGINEPERMISSION
 		colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE" };
 		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
@@ -461,19 +462,19 @@ public abstract class AbstractSecurityUtils {
 			String sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION");
 			logger.info("Running sql " + sql);
 			securityDb.insertData(sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY");
 			logger.info("Running sql " + sql);
 			securityDb.insertData(sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID");
 			logger.info("Running sql " + sql);
 			securityDb.insertData(sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE");
 			logger.info("Running sql " + sql);
 			securityDb.insertData(sql);
-			
+
 			sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID");
 			logger.info("Running sql " + sql);
 			securityDb.insertData(sql);
@@ -506,14 +507,14 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 
-		
+
 		/*
 		 * 
 		 * 
 		 * ADDING IN INITIAL PROJECT TABLES
 		 * 
 		 */
-		
+
 		// PROJECT
 		// Type and cost are the main questions - 
 		boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
@@ -522,7 +523,7 @@ public abstract class AbstractSecurityUtils {
 				"TYPE", "COST", "CATALOGNAME", 
 				"HASPORTAL", "PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
 				"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE"
-				};
+		};
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, 
 				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, 
 				"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
@@ -569,7 +570,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
 			}
 		}
-		
+
 		List<String> newProjectsAutoAdded = new ArrayList<>();
 		if(!projectExists) {
 			IRawSelectWrapper wrapper2 = null;
@@ -579,20 +580,24 @@ public abstract class AbstractSecurityUtils {
 					Object[] values = wrapper2.next().getValues();
 					// insert into project table
 					securityDb.insertData(queryUtil.insertIntoTable("PROJECT", colNames, types, new Object[]{values[1], values[0], values[2], values[3], null, null}));
-					
+
 					// store this so we also move over permissions
 					// this is the engine id which is the same as the project id
 					newProjectsAutoAdded.add(values[0] + "");
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper2 != null) {
-					wrapper2.cleanUp();
+					try {
+						wrapper2.close();
+					} catch(IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
-		
+
 		// PROJECTMETA
 		// check if column exists
 		colNames = new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" };
@@ -614,7 +619,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("PROJECTMETA_PROJECTID_INDEX", "PROJECTMETA", "PROJECTID"));
 			}
 		}
-		
+
 		// PROJECTPERMISSION
 		boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
 		colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE" };
@@ -629,7 +634,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("PROJECTPERMISSION", colNames, types));
 			}
 		}
-		
+
 		if(!projectPermissionExists) {
 			IRawSelectWrapper wrapper2 = null;
 			try {
@@ -643,10 +648,14 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper2 != null) {
-					wrapper2.cleanUp();
+					try {
+						wrapper2.close();
+					} catch(IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -675,7 +684,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
 			}
 		}
-		
+
 		/**
 		 * 
 		 * END PROJECT TABLES
@@ -720,8 +729,8 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
 			}			
 		}
-		
-		
+
+
 		// ASSETENGINE
 		colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
 		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
@@ -760,8 +769,8 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
 			}
 		}
-		
-		
+
+
 		// INSIGHT
 		colNames = new String[] { "PROJECTID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", 
 				"CACHEABLE", "CACHEMINUTES", "CACHECRON", "CACHEDON", "CACHEENCRYPT", "RECIPE", "SCHEMANAME" };
@@ -879,7 +888,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
 			}
 		}
-		
+
 		// INSIGHTMETA
 		colNames = new String[] { "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
@@ -917,7 +926,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
 			}
 		}
-		
+
 		// INSIGHTFRAMES
 		colNames = new String[] { "PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", "COLUMNTYPE", "ADDITIONALTYPE" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
@@ -942,7 +951,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTFRAMES_INSIGHTID_INDEX", "INSIGHTFRAMES", "INSIGHTID"));
 			}
 		}
-		
+
 		// Altering table to store additional types for frames. 
 		// added on 10-26-2022
 		List<String> insightFramesCols = queryUtil.getTableColumns(conn, "INSIGHTFRAMES", database, schema);
@@ -950,7 +959,7 @@ public abstract class AbstractSecurityUtils {
 			String addColumnSql = queryUtil.alterTableAddColumn("INSIGHTFRAMES", "ADDITIONALTYPE", "VARCHAR(255)");
 			securityDb.insertData(addColumnSql);
 		}
-		
+
 		// SMSS_USER
 		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", 
 				"ADMIN", "PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET", 
@@ -994,7 +1003,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
 			}
 		}
-		
+
 		/*
 		 * We need to store when a user comes in
 		 * if they are part of a group
@@ -1004,7 +1013,7 @@ public abstract class AbstractSecurityUtils {
 		 * We do not need to store the user -> group mapping (yet - will think about future custom groups)
 		 * The SOT will be the IDP that will give us the updated groups each time the user logs in
 		 */
-		
+
 		// GROUP TABLE
 		colNames = new String[] { "ID", "TYPE", "DESCRIPTION" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME };
@@ -1031,7 +1040,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(addDescriptionColumn);
 			}
 		}
-		
+
 		// GROUP DATABASE PERMISSION
 		// TODO::: look into how we want to allow user hiding of dbs that are assigned at group lvl
 		colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION" };
@@ -1045,7 +1054,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("GROUPENGINEPERMISSION", colNames, types));
 			}
 		}
-		
+
 		// GROUP PROJECT PERMISSION
 		// TODO::: look into how we want to allow user hiding of projects that are assigned at group lvl
 		colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION" };
@@ -1059,10 +1068,10 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("GROUPPROJECTPERMISSION", colNames, types));
 			}
 		}
-		
+
 		// GROUP INSIGHT PERMISSION
 		colNames = new String[] { "ID", "TYPE", "PROJECTID", "INSIGHTID", "PERMISSION" };
-		
+
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("GROUPINSIGHTPERMISSION", colNames, types));
@@ -1073,7 +1082,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("GROUPINSIGHTPERMISSION", colNames, types));
 			}
 		}
-		
+
 		// ACCESSREQUEST [LEGACY]
 		colNames = new String[] { "ID", "SUBMITTEDBY", "ENGINE", "PERMISSION" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
@@ -1086,7 +1095,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
 			}
 		}
-		
+
 		{
 			// 2023-08-03
 			// RENAME DATABASEACCESSREQUEST TO ENGINEACCESSREQUEST
@@ -1120,7 +1129,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(addIdColumn);
 			}
 		}
-		
+
 		// PROJECTACCESSREQUEST 
 		colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
@@ -1133,7 +1142,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("PROJECTACCESSREQUEST ", colNames, types));
 			}
 		}
-		
+
 		// INSIGHTACCESSREQUEST 
 		colNames = new String[] { "ID", "REQUEST_USERID", "REQUEST_TYPE", "REQUEST_TIMESTAMP", "PROJECTID", "INSIGHTID", "PERMISSION", "APPROVER_USERID", "APPROVER_TYPE", "APPROVER_DECISION", "APPROVER_TIMESTAMP" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)",  "VARCHAR(255)",  "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME};
@@ -1146,7 +1155,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("INSIGHTACCESSREQUEST ", colNames, types));
 			}
 		}
-		
+
 		// TOKEN
 		colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)" };
@@ -1177,7 +1186,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR"));
 			}
 		}
-		
+
 		// PERMISSION
 		colNames = new String[] { "ID", "NAME" };
 		types = new String[] { "INT", "VARCHAR(255)" };
@@ -1204,7 +1213,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
 			}
 		}
-		
+
 		{
 			IRawSelectWrapper wrapper = null;
 			try {
@@ -1223,14 +1232,18 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch(IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
-		
+
 		// PASSWORD RULES
 		colNames = new String[] { "PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
 				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT", "DAYS_TO_LOCK", "DAYS_TO_LOCK_WARNING" };
@@ -1258,10 +1271,14 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch(IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -1284,7 +1301,7 @@ public abstract class AbstractSecurityUtils {
 		if(queryUtil.tableExists(conn, "PERMISSION_RULES", database, schema)) {
 			securityDb.insertData(queryUtil.dropTable("PERMISSION_RULES"));
 		}
-		
+
 		// PASSWORD HISTORY
 		colNames = new String[] { "ID", "USERID", "TYPE", "PASSWORD", "SALT", "DATE_ADDED" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
@@ -1310,7 +1327,7 @@ public abstract class AbstractSecurityUtils {
 		if(queryUtil.tableExists(conn, "PASSWORD_RESUSE", database, schema)) {
 			securityDb.insertData(queryUtil.dropTable("PASSWORD_RESUSE"));
 		}
-		
+
 		// PASSWORD RESET
 		colNames = new String[] { "EMAIL", "TYPE", "TOKEN", "DATE_ADDED" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
@@ -1323,7 +1340,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("PASSWORD_RESET", colNames, types));
 			}
 		}
-		
+
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS);
 		for(String tableName : metaKeyTableNames) {
@@ -1359,10 +1376,14 @@ public abstract class AbstractSecurityUtils {
 						}
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(wrapper != null) {
-						wrapper.cleanUp();
+						try {
+							wrapper.close();
+						} catch(IOException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
@@ -1383,15 +1404,15 @@ public abstract class AbstractSecurityUtils {
 						}
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(wrapper != null) {
-						wrapper.cleanUp();
+						wrapper.close();
 					}
 				}
 			}
 		}
-		
+
 		// 2022-04-01
 		{
 			List<String> allCols = queryUtil.getTableColumns(conn, "API_KEY", database, schema);
@@ -1401,7 +1422,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.removeData(queryUtil.dropTable("API_KEY"));
 			}
 		}
-		
+
 		// apikey
 		// I am in dual mind whether to create this in security db or in 
 		// allows api keys to be set on insight
@@ -1418,86 +1439,86 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
 			}
 		}
-		
+
 		if(!conn.getAutoCommit()) {
 			conn.commit();
 		}
-		
+
 		// clean up the connection used for this method
 		if(securityDb.isConnectionPooling()) {
 			conn.close();
 		}
-		
+
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
-		
+
 		/*
 		 * Tables accounted for that we are not using yet...
 		 */
-		
-//		// USERGROUP
-//		colNames = new String[] { "groupid", "name", "owner" };
-//		types = new String[] { "int identity", "varchar(255)", "varchar(255)" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERGROUP", colNames, types));
-//		
-//		// GROUPMEMBERS
-//		colNames = new String[] {"groupmembersid", "groupid", "userid"};
-//		types = new String[] {"int identity", "integer", "varchar(255)"};
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPMEMBERS", colNames, types));
-//		
-//		// ENGINEGROUPMEMBERVISIBILITY
-//		colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid", "visibility" };
-//		types = new String[] { "int identity", "integer", "integer", "boolean" };
-//		defaultValues = new Object[]{null, null, null, true};
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEGROUPMEMBERVISIBILITY", colNames, types, defaultValues));
-//
-//		// GROUPENGINEPERMISSION
-//		colNames = new String[] {"groupenginepermissionid", "groupid", "permission", "engine"};
-//		types = new String[] {"int identity", "integer", "integer", "varchar(255)"};
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION", colNames, types));
-//		
-//		// FOREIGN KEYS FOR CASCASDE DELETE
-//		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPENGINEPERMISSION'");
-//		if(wrapper.hasNext()) {
-//			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
-//				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPENGINEPERMISSION FOREIGN KEY (GROUPENGINEPERMISSIONID) REFERENCES GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID) ON DELETE CASCADE;");
-//			}
-//		}
-//		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPMEMBERSID'");
-//		if(wrapper.hasNext()) {
-//			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
-//				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPMEMBERSID FOREIGN KEY (GROUPMEMBERSID) REFERENCES GROUPMEMBERS (GROUPMEMBERSID) ON DELETE CASCADE;");
-//			}
-//		}
-//				
-//		// GROUPINSIGHTPERMISSION
-//		colNames = new String[] { "groupid", "engineid", "insightid" };
-//		types = new String[] { "integer", "integer", "varchar(255)" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPINSIGHTPERMISSION", colNames, types));
 
-//		// INSIGHTEXECUTION
-//		colNames = new String[] { "user", "database", "insight", "count", "lastexecuted", "session" };
-//		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer", "date", "varchar(255)" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHTEXECUTION", colNames, types));
+		//		// USERGROUP
+		//		colNames = new String[] { "groupid", "name", "owner" };
+		//		types = new String[] { "int identity", "varchar(255)", "varchar(255)" };
+		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERGROUP", colNames, types));
+		//		
+		//		// GROUPMEMBERS
+		//		colNames = new String[] {"groupmembersid", "groupid", "userid"};
+		//		types = new String[] {"int identity", "integer", "varchar(255)"};
+		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPMEMBERS", colNames, types));
+		//		
+		//		// ENGINEGROUPMEMBERVISIBILITY
+		//		colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid", "visibility" };
+		//		types = new String[] { "int identity", "integer", "integer", "boolean" };
+		//		defaultValues = new Object[]{null, null, null, true};
+		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEGROUPMEMBERVISIBILITY", colNames, types, defaultValues));
+		//
+		//		// GROUPENGINEPERMISSION
+		//		colNames = new String[] {"groupenginepermissionid", "groupid", "permission", "engine"};
+		//		types = new String[] {"int identity", "integer", "integer", "varchar(255)"};
+		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION", colNames, types));
+		//		
+		//		// FOREIGN KEYS FOR CASCASDE DELETE
+		//		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPENGINEPERMISSION'");
+		//		if(wrapper.hasNext()) {
+		//			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
+		//				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPENGINEPERMISSION FOREIGN KEY (GROUPENGINEPERMISSIONID) REFERENCES GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID) ON DELETE CASCADE;");
+		//			}
+		//		}
+		//		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPMEMBERSID'");
+		//		if(wrapper.hasNext()) {
+		//			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
+		//				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPMEMBERSID FOREIGN KEY (GROUPMEMBERSID) REFERENCES GROUPMEMBERS (GROUPMEMBERSID) ON DELETE CASCADE;");
+		//			}
+		//		}
+		//				
+		//		// GROUPINSIGHTPERMISSION
+		//		colNames = new String[] { "groupid", "engineid", "insightid" };
+		//		types = new String[] { "integer", "integer", "varchar(255)" };
+		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPINSIGHTPERMISSION", colNames, types));
 
-//		// SEED
-//		colNames = new String[] { "id", "name", "databaseid", "tablename", "columnname", "rlsvalue", "rlsjavacode", "owner" };
-//		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", CLOB_DATATYPE_NAME, "varchar(255)" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames, types));
+		//		// INSIGHTEXECUTION
+		//		colNames = new String[] { "user", "database", "insight", "count", "lastexecuted", "session" };
+		//		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer", "date", "varchar(255)" };
+		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHTEXECUTION", colNames, types));
 
-//		// USERSEEDPERMISSION
-//		colNames = new String[] { "userid", "seedid" };
-//		types = new String[] { "varchar(255)", "integer" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERSEEDPERMISSION", colNames, types));
-		
-//		// GROUPSEEDPERMISSION
-//		colNames = new String[] { "groupid", "seedid" };
-//		types = new String[] { "integer", "integer" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
+		//		// SEED
+		//		colNames = new String[] { "id", "name", "databaseid", "tablename", "columnname", "rlsvalue", "rlsjavacode", "owner" };
+		//		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", CLOB_DATATYPE_NAME, "varchar(255)" };
+		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames, types));
+
+		//		// USERSEEDPERMISSION
+		//		colNames = new String[] { "userid", "seedid" };
+		//		types = new String[] { "varchar(255)", "integer" };
+		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERSEEDPERMISSION", colNames, types));
+
+		//		// GROUPSEEDPERMISSION
+		//		colNames = new String[] { "groupid", "seedid" };
+		//		types = new String[] { "integer", "integer" };
+		//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
 	}
-	
+
 	@Deprecated
 	private static void performSmssUserTemporaryUpdate(RDBMSNativeEngine securityDb,
 			AbstractSqlQueryUtil queryUtil,
@@ -1587,7 +1608,11 @@ public abstract class AbstractSecurityUtils {
 			}
 		} finally {
 			if(iterator != null) {
-				iterator.cleanUp();
+				try {
+					iterator.close();
+				} catch(IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		insertPs.executeBatch();
@@ -1609,13 +1634,13 @@ public abstract class AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return true;
 		}
-//		String userFilters = getUserFilters(user);
-//		String query = "SELECT * "
-//				+ "FROM ENGINE "
-//				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-//				+ "WHERE ENGINENAME='" + appName + "' AND PERMISSION IN (1,2) AND ENGINEPERMISSION.USERID IN " + userFilters;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
+		//		String userFilters = getUserFilters(user);
+		//		String query = "SELECT * "
+		//				+ "FROM ENGINE "
+		//				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+		//				+ "WHERE ENGINENAME='" + appName + "' AND PERMISSION IN (1,2) AND ENGINEPERMISSION.USERID IN " + userFilters;
+		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
@@ -1632,23 +1657,27 @@ public abstract class AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	public static boolean containsEngineName(String engineName) {
 		if(ignoreDatabase(engineName)) {
 			// dont add local master or security db to security db
 			return true;
 		}
-//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINENAME='" + appName + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINENAME='" + appName + "'";
+		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
@@ -1660,16 +1689,20 @@ public abstract class AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	public static boolean userContainsProjectName(User user, String projectName) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
@@ -1687,16 +1720,20 @@ public abstract class AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	public static boolean containsProjectName(String projectName) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
@@ -1708,24 +1745,28 @@ public abstract class AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	public static boolean containsDatabaseId(String databaseId) {
 		if(ignoreDatabase(databaseId)) {
 			// dont add local master or security db to security db
 			return true;
 		}
-//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
+		//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
+		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseId));
@@ -1736,25 +1777,29 @@ public abstract class AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
-		
+
 		return false;
 	}
-	
-	
+
+
 	public static boolean containsProjectId(String projectId) {
 		if(ignoreDatabase(projectId)) {
 			// dont add local master or security db to security db
 			return true;
 		}
-//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
+		//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
+		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
@@ -1765,17 +1810,21 @@ public abstract class AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
-		
+
 		return false;
 	}
-	
-	
+
+
 	public static boolean ignoreDatabase(String databaseId) {
 		if(databaseId.equals(Constants.LOCAL_MASTER_DB_NAME) || databaseId.equals(Constants.SECURITY_DB) || databaseId.equals(Constants.SCHEDULER_DB) || databaseId.equals(Constants.USER_TRACKING_DB) ) {
 			// dont add local master or security db to security db
@@ -1792,10 +1841,10 @@ public abstract class AbstractSecurityUtils {
 			Properties prop = Utility.loadProperties(smssFile);
 			return Boolean.parseBoolean(prop.get(Constants.IS_ASSET_APP) + "");
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Get default image for insight
 	 * @param databaseId
@@ -1806,14 +1855,14 @@ public abstract class AbstractSecurityUtils {
 		String imageDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/images/stock/";
 		String layout = null;
 
-//		String query = "SELECT LAYOUT FROM INSIGHT WHERE INSIGHT.ENGINEID='" + appId + "' AND INSIGHT.INSIGHTID='" + insightId + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
+		//		String query = "SELECT LAYOUT FROM INSIGHT WHERE INSIGHT.ENGINEID='" + appId + "' AND INSIGHT.INSIGHTID='" + insightId + "'";
+		//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
-		
+
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -1821,18 +1870,22 @@ public abstract class AbstractSecurityUtils {
 				layout = wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
-		
+
 		// if no layout defined, also return the default
 		if(layout == null) {
 			return new File(imageDir + "color-logo.png");
 		}
-		
+
 		if(layout.equalsIgnoreCase("area")) {
 			return new File(imageDir + "area.png");
 		} else if(layout.equalsIgnoreCase("column")) {
@@ -1893,16 +1946,16 @@ public abstract class AbstractSecurityUtils {
 			return new File(imageDir + "color-logo.png");
 		}
 	}
-	
+
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
-	
-	
+
+
 	/*
 	 * Utility methods
 	 */
-	
+
 	static String createFilter(String... filterValues) {
 		StringBuilder b = new StringBuilder();
 		boolean hasData = false;
@@ -1919,7 +1972,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		return b.toString();
 	}
-	
+
 	static String createFilter(Collection<String> filterValues) {
 		if(filterValues.isEmpty()) {
 			return " IN () ";
@@ -1940,7 +1993,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		return b.toString();
 	}
-	
+
 	/**
 	 * Get all ids from user object
 	 * @param user
@@ -1962,7 +2015,7 @@ public abstract class AbstractSecurityUtils {
 		b.append(")");
 		return b.toString();
 	}
-	
+
 	/**
 	 * Get a vector of the user ids
 	 * @param user
@@ -1976,15 +2029,15 @@ public abstract class AbstractSecurityUtils {
 				filters.add(user.getAccessToken(thisLogin).getId());
 			}
 		}
-		
+
 		return filters;
 	}
-	
+
 	////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////
-	
+
 	/**
 	 * Returns a list of values given a query with one column/variable.
 	 * @param query		Query to be executed
@@ -2010,16 +2063,20 @@ public abstract class AbstractSecurityUtils {
 				ret.add(rowData);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
 		return ret;
 	}
-	
+
 	/**
 	 * Returns a list of values given a query with one column/variable.
 	 * @param qs		Query Struct to be executed
@@ -2036,26 +2093,30 @@ public abstract class AbstractSecurityUtils {
 				Object[] values = row.getValues();
 				Map<String, Object> rowData = new HashMap<String, Object>();
 				for(int idx = 0; idx < headers.length; idx++){
-//					if(values[idx] == null) {
-//						rowData.put(headers[idx].toLowerCase(), "null");
-//					} else {
-						rowData.put(headers[idx].toLowerCase(), values[idx]);
-//					}
+					//					if(values[idx] == null) {
+					//						rowData.put(headers[idx].toLowerCase(), "null");
+					//					} else {
+					rowData.put(headers[idx].toLowerCase(), values[idx]);
+					//					}
 				}
 				ret.add(rowData);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
 		return ret;
 	}
-	
-	
+
+
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
@@ -2070,7 +2131,7 @@ public abstract class AbstractSecurityUtils {
 			throw new IllegalArgumentException("This email already exists. Please login");
 		}
 	}
-	
+
 	public static void validPassword(String userId, AuthProvider type, String password) throws Exception {
 		if(password == null || password.isEmpty()) {
 			throw new IllegalArgumentException("Password cannot be empty. ");
@@ -2080,7 +2141,7 @@ public abstract class AbstractSecurityUtils {
 			throw new IllegalArgumentException("Cannot reuse old password. ");
 		}
 	}
-	
+
 	public static String formatPhone(String phone) throws Exception {
 		if (phone != null && !phone.isEmpty()) {
 			if (!phone.matches("[\\d\\s.()-]+")) {
@@ -2094,7 +2155,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		return phone;
 	}
-	
+
 	/**
 	 * Current salt generation by BCrypt
 	 * @return salt

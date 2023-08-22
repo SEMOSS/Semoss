@@ -1,11 +1,15 @@
 package prerna.sablecc2.reactor.legacy.playsheets;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -25,6 +29,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GetPlaysheetParamsReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetPlaysheetParamsReactor.class);
 
 	private static final String PARAMETER_ID_PARAM_KEY = "@PARAMETER_ID";
 	// "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID = '" + PARAMETER_ID_PARAM_KEY + "'";
@@ -181,10 +187,14 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrap != null) {
-				wrap.cleanUp();
+				try {
+					wrap.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

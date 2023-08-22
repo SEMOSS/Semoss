@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -72,7 +73,11 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -124,7 +129,11 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -180,7 +189,11 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -253,7 +266,11 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing project permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}		
 
@@ -292,7 +309,11 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Failed to retrieve existing project permissions for user", e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -367,7 +388,11 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

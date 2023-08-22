@@ -1,5 +1,6 @@
 package prerna.ds;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -165,13 +166,13 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		return TinkerFrame.TINKER_NAME;
 	}
 	
-	
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		try {
 			baseIterator.close();
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+			throw new IOException("Unable to close traversal with message = " + e.getMessage());
 		}
 	}
 	
@@ -204,7 +205,11 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 
 	@Override
 	public void reset() {
-		cleanUp();
+		try {
+			close();
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
 		this.interp.reset();
 		this.baseIterator = this.interp.composeIterator();
 	}

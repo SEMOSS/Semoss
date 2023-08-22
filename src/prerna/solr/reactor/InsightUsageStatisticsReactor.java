@@ -1,7 +1,11 @@
 package prerna.solr.reactor;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -25,6 +29,8 @@ import prerna.util.Utility;
 
 public class InsightUsageStatisticsReactor extends AbstractReactor {
 	
+	private static final Logger classLogger = LogManager.getLogger(InsightUsageStatisticsReactor.class);
+
 	private static List<String> META_KEYS_LIST = new Vector<String>();
 	static {
 		META_KEYS_LIST.add("description");
@@ -93,11 +99,15 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			IImporter importer = ImportFactory.getImporter(newFrame, qs, wrapper);
 			importer.insertData();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("There was an error in executing the retrieving and loading the insight query statistics", e);
 		} finally {
 			if(wrapper!=null) {
-			wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -131,7 +141,7 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 //			
 //			retNouns.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
 //		} catch (Exception e) {
-//			e.printStackTrace();
+//			classLogger.error(Constants.STACKTRACE, e);
 //			throw new IllegalArgumentException("There was an error in querying the data frame with the loaded insight query statistics", e);
 //		}
 //		

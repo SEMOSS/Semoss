@@ -1,5 +1,6 @@
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -26,13 +27,14 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
-	private static final Logger LOGGER = LogManager.getLogger(RawSesameSelectWrapper.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(RawSesameSelectWrapper.class.getName());
+	
 	private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'");
-
 	private TupleQueryResult tqr = null;
 
 	@Override
@@ -51,7 +53,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				tqr.close();
 			}
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return retBool;
 	}
@@ -74,7 +76,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 
 			return new HeadersDataRow(headers, cleanRow, rawRow);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return null;
@@ -109,7 +111,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				headers[colIndex] = columnLabel;
 			}
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 	}
@@ -142,7 +144,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 							SemossDate date = new SemossDate(d, "yyyy-MM-dd HH:mm:ss");
 							return date;
 						} catch (ParseException e) {
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 						return null;
 					} 
@@ -154,7 +156,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					} 
 					// else double
 					else{
-						LOGGER.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
+						classLogger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
 						return new Double(((Literal)val).doubleValue());
 					}
 				} else {
@@ -162,7 +164,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					return ((Literal)val).getLabel();
 				}
 			} else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal) {
-				LOGGER.debug("Class is " + val.getClass());
+				classLogger.debug("Class is " + val.getClass());
 				return new Double(((Literal)val).doubleValue());
 			}
 
@@ -171,7 +173,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				return Utility.getInstanceName(value);
 			}
 		} catch(RuntimeException ex) {
-			LOGGER.debug(ex);
+			classLogger.debug(ex);
 		}
 		return val;
 	}
@@ -196,7 +198,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					}
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				this.types = new SemossDataType[this.numColumns];
 				for(int i = 0; i < this.numColumns; i++) {
 					this.types[i] = SemossDataType.STRING;
@@ -207,11 +209,12 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		try {
 			tqr.close();
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException(e);
 		}
 	}
 
@@ -230,7 +233,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					}
 				}
 			} catch (QueryEvaluationException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -244,7 +247,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 
 	@Override
 	public void reset() throws Exception {
-		cleanUp();
+		close();
 		execute();
 	}
 	

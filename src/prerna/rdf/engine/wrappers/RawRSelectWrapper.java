@@ -1,5 +1,7 @@
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RIterator;
 import prerna.engine.api.IHeadersDataRow;
@@ -64,7 +66,7 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		this.output.cleanUp();
 	}
 	

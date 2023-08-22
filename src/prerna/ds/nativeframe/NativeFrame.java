@@ -143,7 +143,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -176,7 +180,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -210,7 +218,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return values.toArray(new Double[values.size()]);
@@ -243,7 +255,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -297,7 +313,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -542,24 +562,28 @@ public class NativeFrame extends AbstractTableDataFrame {
 		
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
-		IRawSelectWrapper wrapper = null;
+		IRawSelectWrapper it = null;
 		try {
-			wrapper = query(qs);
-			while(wrapper.hasNext()) {
-				data.add( Arrays.asList(wrapper.next().getValues()) );
+			it = query(qs);
+			while(it.hasNext()) {
+				data.add( Arrays.asList(it.next().getValues()) );
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error executing sql: " + query);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if(it != null) {
+				try {
+					it.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
 		retMap.put("data", data);
-		retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr( wrapper.getTypes()) );
-		retMap.put("columns", wrapper.getHeaders());
+		retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr( it.getTypes()) );
+		retMap.put("columns", it.getHeaders());
 		return retMap;
 	}
 

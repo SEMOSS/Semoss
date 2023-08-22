@@ -115,8 +115,8 @@ public class RemoteSesameConstructWrapper extends AbstractWrapper implements ICo
 	}
 
 	@Override
-	public void cleanUp() {
-		remoteWrapperProxy.cleanUp();
+	public void close() throws IOException {
+		remoteWrapperProxy.close();
 	}
 
 }

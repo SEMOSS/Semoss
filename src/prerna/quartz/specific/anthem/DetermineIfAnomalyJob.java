@@ -1,5 +1,6 @@
 package prerna.quartz.specific.anthem;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +40,11 @@ public class DetermineIfAnomalyJob implements org.quartz.Job {
 			e.printStackTrace();
 		} finally {
 			if(iteratorResults != null) {
-				iteratorResults.cleanUp();
+				try {
+					iteratorResults.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		

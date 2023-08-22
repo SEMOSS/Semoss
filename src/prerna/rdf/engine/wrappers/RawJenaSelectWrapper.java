@@ -1,5 +1,6 @@
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -131,8 +132,8 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	}
 
 	@Override
-	public void cleanUp() {
-		// there is no close on this rs object...
+	public void close() throws IOException {
+		
 	}
 	
 	@Override
@@ -164,7 +165,7 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	
 	@Override
 	public void reset() throws Exception {
-		cleanUp();
+		close();
 		execute();
 	}
 

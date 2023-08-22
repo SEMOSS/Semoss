@@ -1,9 +1,13 @@
 package prerna.sablecc2.reactor.frame.filtermodel;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
@@ -26,8 +30,11 @@ import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
+import prerna.util.Constants;
 
 public class GetFrameFilterStateReactor extends AbstractFilterReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetFrameFilterStateReactor.class);
 
 	/**
 	 * This reactor has many inputs
@@ -115,7 +122,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				try {
 					it = dataframe.query(qs);
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
 							new NounMetadata("Error occurred executing query before loading into frame", 
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -130,7 +137,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				try {
 					importer.insertData();
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				}
 				// now store this
@@ -191,10 +198,14 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				totalCount = ((Number) numUnique).intValue();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(totalCountIt != null) {
-				totalCountIt.cleanUp();
+				try {
+					totalCountIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -224,10 +235,14 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				options.add(allValuesIt.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(allValuesIt != null) {
-				allValuesIt.cleanUp();
+				try {
+					allValuesIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		retMap.put("options", options);
@@ -263,10 +278,14 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				selectedValues.add(unFilterValuesIt.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(unFilterValuesIt != null) {
-				unFilterValuesIt.cleanUp();
+				try {
+					unFilterValuesIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -286,10 +305,14 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				selectedCount = ((Number) numUnique).intValue();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(selectedCountIt != null) {
-				selectedCountIt.cleanUp();
+				try {
+					selectedCountIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		retMap.put("selectedCount", selectedCount);

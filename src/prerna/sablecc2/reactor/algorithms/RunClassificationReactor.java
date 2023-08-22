@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.algorithms;
 
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ import weka.core.Instances;
 
 public class RunClassificationReactor extends AbstractFrameReactor {
 
-	private static final Logger logger = LogManager.getLogger(RunClassificationReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RunClassificationReactor.class);
 
 	private static final String CLASS_NAME = RunClassificationReactor.class.getName();
 	private static final String CLASSIFICATION_COLUMN = "classify";
@@ -112,11 +113,15 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 			data = WekaReactorHelper.genInstances(retHeaders, isNumeric, numRows);
 			data = WekaReactorHelper.fillInstances(data, it, isNumeric, logger);
 			logger.info("Done converting frame into WEKA Instacnes data structure");
-		} catch (Exception e1) {
-			logger.error(Constants.STACKTRACE, e1);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -232,10 +237,14 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 				return ((Number) countIt.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(countIt != null) {
-				countIt.cleanUp();
+				try {
+					countIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

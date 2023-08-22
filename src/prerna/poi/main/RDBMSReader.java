@@ -552,7 +552,11 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		
@@ -661,7 +665,11 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					e.printStackTrace();
 				} finally {
 					if(indexInfo != null) {
-						indexInfo.cleanUp();
+						try {
+							indexInfo.close();
+						} catch(IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 				if(indexName.startsWith("CUST_")){
@@ -675,7 +683,11 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -772,7 +784,13 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				try {
 					wrapper = WrapperManager.getInstance().getRawWrapper(engine, verifyTable);
 					if(wrapper.hasNext()) {
-						wrapper.cleanUp();
+						if(wrapper != null) {
+							try {
+								wrapper.close();
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
 					} else {
 						//This REALLY shouldnt happen, but its here just in case...
 						logger.error("**** Error***** occurred during database clean up on table " + Utility.cleanLogString(tableName));
@@ -782,7 +800,11 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					e.printStackTrace();
 				} finally {
 					if(wrapper != null) {
-						wrapper.cleanUp();
+						try {
+							wrapper.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 

@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -344,7 +345,11 @@ public class ResidualSystemOptFillData{
 			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -384,7 +389,11 @@ public class ResidualSystemOptFillData{
 			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 
@@ -431,7 +440,11 @@ public class ResidualSystemOptFillData{
 			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		
@@ -480,7 +493,11 @@ public class ResidualSystemOptFillData{
 			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		

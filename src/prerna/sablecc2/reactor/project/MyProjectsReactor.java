@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.project;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +22,7 @@ import prerna.util.Constants;
 
 public class MyProjectsReactor extends AbstractReactor {
 	
-	private static final Logger logger = LogManager.getLogger(MyProjectsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(MyProjectsReactor.class);
 
 	public MyProjectsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
@@ -96,10 +97,14 @@ public class MyProjectsReactor extends AbstractReactor {
 					}
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
