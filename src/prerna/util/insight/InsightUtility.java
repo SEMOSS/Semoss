@@ -236,7 +236,11 @@ public class InsightUtility {
 			// get the task object
 			ITask task = (ITask) noun.getValue();
 			// close it
-			task.cleanUp();
+			try {
+				task.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_VARIABLE);
@@ -610,7 +614,7 @@ public class InsightUtility {
 		try {
 			serialization = adapter.toJson(sheet);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Exeption occurred generate the sheet state with error: " + e.getMessage());
 		}
 		
@@ -635,7 +639,7 @@ public class InsightUtility {
 		try {
 			serialization = adapter.toJson(panel);
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Exeption occurred generate the panel state with error: " + e.getMessage());
 		}
 		
@@ -962,7 +966,7 @@ public class InsightUtility {
 							rDeleter.append(newName).append(", ");
 						}
 					} catch (Exception e)  {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
