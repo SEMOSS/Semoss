@@ -26,7 +26,7 @@ public class InsightCachingTest {
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + coreName + ".smss";
 //		IEngine coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId(coreName.split("__")[1]);
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty(coreName.split("__")[1], coreEngine);
 //		
 //		Insight in = new Insight();

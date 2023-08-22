@@ -11,9 +11,10 @@ public class RemoteSemossEngine extends AbstractDatabase {
 
 	private String remoteAddress;
 	
-	public void openDB(String propFile) {
+	@Override
+	public void open(String smssFilePath) {
 		this.baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		setSmssFilePath(propFile);
+		setSmssFilePath(smssFilePath);
 		
 		// get id & name
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);

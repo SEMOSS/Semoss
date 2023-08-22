@@ -64,7 +64,7 @@ public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraph
 		JanusEngine janusEngine = new JanusEngine();
 		janusEngine.setEngineId(this.newDatabaseId);
 		janusEngine.setEngineName(this.newDatabaseName);
-		janusEngine.openDB(this.smssFile.getAbsolutePath());
+		janusEngine.open(this.smssFile.getAbsolutePath());
 		return janusEngine;
 	}
 

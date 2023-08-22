@@ -403,7 +403,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		
 		// close the connection to the insights
 		// if the engine is not already loaded 
-		// since the openDb method will load it
+		// since the open method will load it
 		if(!projectLoaded && rne != null) {
 			rne.close();
 		}

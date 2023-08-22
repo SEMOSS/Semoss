@@ -13,8 +13,8 @@ public class JanusEngine extends TinkerEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(JanusEngine.class);
 
 	@Override
-	public void openDB(String propFile) {
-		super.openDB(propFile);
+	public void open(String smssFilePath) {
+		super.open(smssFilePath);
 		String janusConfFilePath = SmssUtilities.getJanusFile(smssProp).getAbsolutePath();
 		try {
 			LOGGER.info("Opening graph: " + Utility.cleanLogString(janusConfFilePath));

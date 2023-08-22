@@ -92,7 +92,7 @@
 //			engine.setEngineName(newAppName);
 //			engine.setOWL(newOwlFile.getAbsolutePath());
 //			engine.setPropFile(newSmssFile);
-//			engine.openDB(newSmssFile);
+//			engine.open(newSmssFile);
 //
 //		} catch (Exception e) {
 //			e.printStackTrace();
@@ -111,7 +111,7 @@
 //				engine.setEngineName(oldAppName);
 //				engine.setOWL(oldOwlFile.getAbsolutePath());
 //				engine.setPropFile(oldSmssFile);
-//				engine.openDB(oldSmssFile);
+//				engine.open(oldSmssFile);
 //			} catch (Exception e1) {
 //				e1.printStackTrace();
 //			}

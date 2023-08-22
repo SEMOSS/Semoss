@@ -22,13 +22,13 @@ public class MHSGenesisScheduleUpdater {
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 //		IDatabase coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 //		
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
 //		coreEngine = new BigDataEngine();
 //		coreEngine.setEngineId("TAP_Site_Data");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
 //		
 //		// update site assignments
