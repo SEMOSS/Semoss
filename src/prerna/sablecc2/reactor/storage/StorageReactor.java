@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.storage;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IStorage;
+import prerna.engine.api.IStorageEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -35,7 +35,7 @@ public class StorageReactor extends AbstractReactor {
 			}
 		}
 		
-		IStorage storage = Utility.getStorage(storageId);
+		IStorageEngine storage = Utility.getStorage(storageId);
 		return new NounMetadata(storage, PixelDataType.STORAGE);
 	}
 	

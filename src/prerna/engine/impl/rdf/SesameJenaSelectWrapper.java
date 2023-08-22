@@ -47,8 +47,8 @@ import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
 import prerna.util.Utility;
 
@@ -60,9 +60,9 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 	
 	public transient TupleQueryResult tqr = null;
 	transient ResultSet rs = null;
-	transient DATABASE_TYPE databaseType = IDatabase.DATABASE_TYPE.SESAME;
+	transient DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
 	transient QuerySolution curSt = null;	
-	transient public IDatabase engine = null;
+	transient public IDatabaseEngine engine = null;
 	transient String query = null;
 	static final Logger logger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
 	transient SesameJenaSelectWrapper remoteWrapperProxy = null;
@@ -79,11 +79,11 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 	 * Method setEngine.  Sets the engine type.
 	 * @param engine IDatabase - The engine type being set.
 	 */
-	public void setEngine(IDatabase engine)
+	public void setEngine(IDatabaseEngine engine)
 	{
 		logger.debug("Set the engine " );
 		this.engine = engine;
-		if(engine == null) databaseType = IDatabase.DATABASE_TYPE.JENA;
+		if(engine == null) databaseType = IDatabaseEngine.DATABASE_TYPE.JENA;
 		else databaseType = engine.getDatabaseType();
 	}
 	
@@ -103,11 +103,11 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 	 */
 	public void executeQuery() throws Exception
 	{
-		if(databaseType == IDatabase.DATABASE_TYPE.SESAME)
+		if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
 			tqr = (TupleQueryResult) engine.execQuery(query);
-		else if(databaseType == IDatabase.DATABASE_TYPE.JENA)
+		else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			rs = (ResultSet) engine.execQuery(query);
-		else if(databaseType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+		else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			// get the actual SesameJenaConstructWrapper from the engine
 			// this is json output
@@ -128,19 +128,19 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 		try {
 			if(var == null)
 			{
-				if(databaseType == IDatabase.DATABASE_TYPE.SESAME)
+				if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
 				{
 					var = new String[tqr.getBindingNames().size()];
 					List <String> names = tqr.getBindingNames();
 					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
 				}
-				else if(databaseType == IDatabase.DATABASE_TYPE.JENA)
+				else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 				{
 					var = new String[rs.getResultVars().size()];
 					List <String> names = rs.getResultVars();
 					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
 				}
-				else if(databaseType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+				else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 				{
 					var = remoteWrapperProxy.getVariables();
 				}
@@ -164,17 +164,17 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 		try
 		{
 			logger.debug("Checking for next " );
-			if(databaseType == IDatabase.DATABASE_TYPE.SESAME)
+			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
 			{
 				retBool = tqr.hasNext();
 				if(!retBool)
 					tqr.close();
 			}
-			else if(databaseType == IDatabase.DATABASE_TYPE.JENA)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
 				retBool = rs.hasNext();
 			}
-			else if(databaseType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				if(retSt != null) // this means they have not picked it up yet
 					return true;
@@ -226,14 +226,14 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 		SesameJenaSelectStatement thisSt = null;
 		try
 		{
-			if(databaseType == IDatabase.DATABASE_TYPE.SESAME)
+			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
 			{
 				thisSt = new SesameJenaSelectStatement();
 				logger.debug("Adding a sesame statement ");
 				BindingSet bs = tqr.next();
 				thisSt = getSJSSfromBinding(bs);
 			}
-			else if(databaseType == IDatabase.DATABASE_TYPE.JENA)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
 				thisSt = new SesameJenaSelectStatement();
 			    QuerySolution row = rs.nextSolution();
@@ -262,7 +262,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 				}
 			    logger.debug("Adding a JENA statement ");
 			}
-			else if(databaseType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				thisSt = retSt;
 				retSt = null;
@@ -342,7 +342,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 		ArrayList<String> checker = new ArrayList<String>();
 		try
 		{
-			if(databaseType == IDatabase.DATABASE_TYPE.SESAME)
+			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
 			{
 				logger.debug("Adding a sesame statement ");
 				BindingSet bs = tqr.next();
@@ -378,7 +378,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 				//need to figure out what the checker should hold
 				//checker.add(bs.getValue(var[0])+""+ bs.getValue(var[1])+bs.getValue(var[3]));
 			}
-			else if (databaseType == IDatabase.DATABASE_TYPE.JENA)
+			else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
 			    QuerySolution row = rs.nextSolution();
 			    curSt = row;
@@ -393,7 +393,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 				}
 			    logger.debug("Adding a JENA statement ");
 			}
-			else if(databaseType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				// I need to pull from remote
 				// this is just so stupid to call its own

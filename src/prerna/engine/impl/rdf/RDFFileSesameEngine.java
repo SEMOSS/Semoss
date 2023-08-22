@@ -73,7 +73,7 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import com.bigdata.rdf.model.BigdataLiteralImpl;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
@@ -249,7 +249,7 @@ public class RDFFileSesameEngine extends AbstractDatabase {
 	@Override
 	public DATABASE_TYPE getDatabaseType()
 	{
-		return IDatabase.DATABASE_TYPE.SESAME;
+		return IDatabaseEngine.DATABASE_TYPE.SESAME;
 	}
 
 	/**

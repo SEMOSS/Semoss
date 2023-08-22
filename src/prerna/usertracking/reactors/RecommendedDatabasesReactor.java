@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -28,7 +28,7 @@ public class RecommendedDatabasesReactor extends AbstractReactor {
 		}
 		
 		List<String> eTypes = new ArrayList<>();
-		eTypes.add(IDatabase.CATALOG_TYPE);
+		eTypes.add(IDatabaseEngine.CATALOG_TYPE);
 		
 		String numDisplay = this.keyValue.get(this.keysToGet[0]);
 		if (numDisplay == null) {

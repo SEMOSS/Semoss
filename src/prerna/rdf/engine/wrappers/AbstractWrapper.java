@@ -31,7 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IRemoteQueryable;
 import prerna.util.Utility;
@@ -40,7 +40,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 
 	private static final Logger logger = LogManager.getLogger(AbstractWrapper.class);
 	
-	protected transient IDatabase engine = null;
+	protected transient IDatabaseEngine engine = null;
 	protected transient String query = null;
 
 	/*
@@ -103,13 +103,13 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	}
 	
 	@Override
-	public void setEngine(IDatabase engine) {
+	public void setEngine(IDatabaseEngine engine) {
 		logger.debug("Set the engine to " + engine.getEngineId());
 		this.engine = engine;
 	}
 	
 	@Override
-	public IDatabase getEngine() {
+	public IDatabaseEngine getEngine() {
 		return this.engine;
 	}
 

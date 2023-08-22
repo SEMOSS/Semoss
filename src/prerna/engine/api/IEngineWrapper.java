@@ -55,13 +55,13 @@ public interface IEngineWrapper {
 	 * Set the engine
 	 * @param engine
 	 */
-	void setEngine(IDatabase engine);
+	void setEngine(IDatabaseEngine engine);
 
 	/**
 	 * Get the engine
 	 * @return
 	 */
-	public IDatabase getEngine();
+	public IDatabaseEngine getEngine();
 
 //	/**
 //	 * 

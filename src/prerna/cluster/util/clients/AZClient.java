@@ -33,8 +33,8 @@ import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.AZStorageListener;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
@@ -193,7 +193,7 @@ public class AZClient extends AbstractCloudClient {
 	
 	@Override
 	public void pullOwl(String databaseId) throws IOException, InterruptedException{
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -243,7 +243,7 @@ public class AZClient extends AbstractCloudClient {
 
 	@Override
 	public void pushOwl(String databaseId) throws IOException, InterruptedException{
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -394,7 +394,7 @@ public class AZClient extends AbstractCloudClient {
 
 	@Override
 	public void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws IOException, InterruptedException {
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -509,7 +509,7 @@ public class AZClient extends AbstractCloudClient {
 	
 	@Override
 	public void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine engine = Utility.getDatabase(databaseId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -555,7 +555,7 @@ public class AZClient extends AbstractCloudClient {
 
 	@Override
 	public void pullDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getDatabase(appId, false);
+		IDatabaseEngine engine = Utility.getDatabase(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -593,7 +593,7 @@ public class AZClient extends AbstractCloudClient {
 
 	@Override
 	public void pushDatabaseFolder(String databaseId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException {
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -1449,7 +1449,7 @@ public class AZClient extends AbstractCloudClient {
 	//////////////////////////////////////// Push ////////////////////////////////////////////
 
 	public void pushDatabase(String databaseId) throws IOException, InterruptedException {
-		IDatabase engine = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine engine = Utility.getDatabase(databaseId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -1544,7 +1544,7 @@ public class AZClient extends AbstractCloudClient {
 	}
 
 	public void pullDatabase(String databaseId, boolean databaseAlreadyLoaded) throws IOException, InterruptedException {
-		IDatabase database = null;
+		IDatabaseEngine database = null;
 		if (databaseAlreadyLoaded) {
 			database = Utility.getDatabase(databaseId, false);
 			if (database == null) {

@@ -50,7 +50,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.engine.impl.MetaHelper;
@@ -127,23 +127,23 @@ public class AddToMasterDB {
 
             // grab the engine type
             // if it is RDBMS vs RDF
-            IDatabase.DATABASE_TYPE dbType = null;
+            IDatabaseEngine.DATABASE_TYPE dbType = null;
             String engineTypeString = null;
             String propEngType = prop.getProperty("ENGINE_TYPE");
             if (propEngType.contains("RDBMS") || propEngType.contains("Impala")) {
-                dbType = IDatabase.DATABASE_TYPE.RDBMS;
+                dbType = IDatabaseEngine.DATABASE_TYPE.RDBMS;
                 engineTypeString = "TYPE:RDBMS";
             } else if (propEngType.contains("Tinker")) {
-                dbType = IDatabase.DATABASE_TYPE.TINKER;
+                dbType = IDatabaseEngine.DATABASE_TYPE.TINKER;
                 engineTypeString = "TYPE:TINKER";
             } else if (propEngType.contains("RNative")) {
-                dbType = IDatabase.DATABASE_TYPE.R; // process it as a flat file I bet
+                dbType = IDatabaseEngine.DATABASE_TYPE.R; // process it as a flat file I bet
                 engineTypeString = "TYPE:R";
             } else if (propEngType.contains("Janus")) {
-                dbType = IDatabase.DATABASE_TYPE.JANUS_GRAPH;
+                dbType = IDatabaseEngine.DATABASE_TYPE.JANUS_GRAPH;
                 engineTypeString = "TYPE:JANUS_GRAPH";
             } else {
-                dbType = IDatabase.DATABASE_TYPE.SESAME;
+                dbType = IDatabaseEngine.DATABASE_TYPE.SESAME;
                 engineTypeString = "TYPE:RDF";
             }
 
@@ -245,7 +245,7 @@ public class AddToMasterDB {
      * @throws SQLException 
      */
     private void masterConcept(PreparedStatement conceptPs, PreparedStatement engineConceptPs, PreparedStatement conceptMetaDataPs, 
-    		String engineName, String conceptPhysicalUri, MetaHelper helper, IDatabase.DATABASE_TYPE dbType) throws SQLException {
+    		String engineName, String conceptPhysicalUri, MetaHelper helper, IDatabaseEngine.DATABASE_TYPE dbType) throws SQLException {
     	int parameterIndex = 1;
     	
         // I need to add the concept into the CONCEPT table
@@ -412,7 +412,7 @@ public class AddToMasterDB {
     private void masterProperty(PreparedStatement conceptPs, PreparedStatement engineConceptPs, PreparedStatement conceptMetaDataPs, 
     		String engineName, String conceptPhysicalUri, String propertyPhysicalUri,
             String parentEngineConceptGuid, String parentPhysicalName, String parentConceptGuid,
-            String parentSemossName, MetaHelper helper, IDatabase.DATABASE_TYPE dbType) throws SQLException {
+            String parentSemossName, MetaHelper helper, IDatabaseEngine.DATABASE_TYPE dbType) throws SQLException {
     	int parameterIndex = 1;
         // I need to add the property into the CONCEPT table
         // The CONCEPT table is engine agnostic
@@ -495,7 +495,7 @@ public class AddToMasterDB {
         // need to account for differences in how this is stored between
         // rdbms vs. graph databases
         String propertyPhysicalInstance = null;
-        if (dbType == IDatabase.DATABASE_TYPE.RDBMS || dbType == IDatabase.DATABASE_TYPE.R) {
+        if (dbType == IDatabaseEngine.DATABASE_TYPE.RDBMS || dbType == IDatabaseEngine.DATABASE_TYPE.R) {
             propertyPhysicalInstance = Utility.getClassName(propertyPhysicalUri);
         }
         if (propertyPhysicalInstance == null || propertyPhysicalInstance.equalsIgnoreCase("Contains")) {
@@ -843,7 +843,7 @@ public class AddToMasterDB {
 
         // load the local master database
         Properties localMasterProp = loadEngineProp(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME);
-        IDatabase localMaster = Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME), localMasterProp);
+        IDatabaseEngine localMaster = Utility.loadDatabase(determineSmssPath(DB_DIRECTORY, Constants.LOCAL_MASTER_DB_NAME), localMasterProp);
 
         // test loading in a new engine to the master database
 

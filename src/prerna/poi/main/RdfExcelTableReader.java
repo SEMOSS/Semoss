@@ -47,7 +47,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.vocabulary.RDF;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
@@ -82,7 +82,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @return 
 	 * @throws IOException 
 	 */
-	public IDatabase importFileWithOutConnection(ImportOptions options) throws IOException {
+	public IDatabaseEngine importFileWithOutConnection(ImportOptions options) throws IOException {
 		
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
@@ -519,7 +519,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 					}
 
 					propURI = basePropURI+"/" + property;
-					engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
+					engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
 					//					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
 					//basePropURIHash.put(propURI,  propURI);
 					//basePropRelations.put(propURI,  parentURI); // would need this if we were doing edge properties... but we are not any longer

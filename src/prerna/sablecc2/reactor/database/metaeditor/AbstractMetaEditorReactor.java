@@ -18,8 +18,8 @@ import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.SmssUtilities;
@@ -67,7 +67,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	}
 
 	protected Owler getOWLER(String appId) {
-		IDatabase app = Utility.getDatabase(appId);
+		IDatabaseEngine app = Utility.getDatabase(appId);
 
 		return new Owler(app);
 	}
@@ -79,13 +79,13 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 * @param engine
 	 * @param owler
 	 */
-	protected void setOwlerValues(IDatabase engine, Owler owler) {
+	protected void setOwlerValues(IDatabaseEngine engine, Owler owler) {
 		Hashtable<String, String> conceptHash = new Hashtable<>();
 		Hashtable<String, String> propHash = new Hashtable<>();
 		Hashtable<String, String> relationHash = new Hashtable<>();
 
-		boolean isRdbms = (engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS
-				|| engine.getDatabaseType() == IDatabase.DATABASE_TYPE.IMPALA);
+		boolean isRdbms = (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
+				|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.IMPALA);
 
 		List<String> concepts = engine.getPhysicalConcepts();
 		for (String cUri : concepts) {
@@ -197,7 +197,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 * contains the column But the first list table will repeat for each column so
 	 * that they match based on index
 	 */
-	protected List<String>[] getTablesAndColumnsList(IDatabase app, List<String> tableFilters) {
+	protected List<String>[] getTablesAndColumnsList(IDatabaseEngine app, List<String> tableFilters) {
 		// store 2 lists
 		// of all table names
 		// and column names

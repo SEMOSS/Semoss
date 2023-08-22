@@ -1,7 +1,7 @@
 package prerna.util.sql;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.query.interpreters.sql.CassandraSqlInterpreter;
 
 public class CassandraQueryUtil extends AnsiSqlQueryUtil {
@@ -17,7 +17,7 @@ public class CassandraQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public CassandraSqlInterpreter getInterpreter(IDatabase engine) {
+	public CassandraSqlInterpreter getInterpreter(IDatabaseEngine engine) {
 		return new CassandraSqlInterpreter(engine);
 	}
 

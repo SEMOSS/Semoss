@@ -40,7 +40,7 @@ import org.openrdf.model.URI;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
@@ -49,7 +49,7 @@ public class TinkerGraphDataModel {
 
 	private static final Logger logger = LogManager.getLogger(TinkerGraphDataModel.class.getName());
 
-	public void fillModel(String query, IDatabase engine, TinkerFrame tf){
+	public void fillModel(String query, IDatabaseEngine engine, TinkerFrame tf){
 		long start = System.currentTimeMillis();
 		processData(query, engine, tf);
 		long end = System.currentTimeMillis();
@@ -57,7 +57,7 @@ public class TinkerGraphDataModel {
 		logger.info(">>>>>> TOTAL TIME: " + (end-start) + " ms");
 	}
 
-	private void processData(String query, IDatabase engine, TinkerFrame tf) {
+	private void processData(String query, IDatabaseEngine engine, TinkerFrame tf) {
 		// load the base filter hash
 		// this will be used to ignore the triples
 		// that are purely metdata oriented from the tinkerframe

@@ -11,7 +11,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteEngineRunner;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.sablecc2.om.GenRowStruct;
@@ -94,7 +94,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 		engineIds = engineIds.replace(engineId + ";", "");
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
 
-		if(IDatabase.CATALOG_TYPE.equals(engineType)) {
+		if(IDatabaseEngine.CATALOG_TYPE.equals(engineType)) {
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
 			remover.deleteEngineRDBMS(engineId);
 		}

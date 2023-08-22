@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.legacy.playsheets;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
@@ -30,7 +30,7 @@ public class LegacyInsightDatabaseUtility {
 	 * @param insightId
 	 * @return
 	 */
-	public static List<SEMOSSParam> getParamsFromInsightId(IDatabase insightRdbms, String insightId) {
+	public static List<SEMOSSParam> getParamsFromInsightId(IDatabaseEngine insightRdbms, String insightId) {
 		String query = GET_ALL_PARAMS_FOR_QUESTION_ID.replace(QUESTION_ID_FK_PARAM_KEY, insightId);
 		List<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
 		IRawSelectWrapper wrap = null;
@@ -94,7 +94,7 @@ public class LegacyInsightDatabaseUtility {
 	}
 	
 	
-	public static Vector<SEMOSSParam> getParamsFromParamIds(IDatabase insightRdbms, String... paramIds) {
+	public static Vector<SEMOSSParam> getParamsFromParamIds(IDatabaseEngine insightRdbms, String... paramIds) {
 		String pIdString = "";
 		int numIDs = paramIds.length;
 		for(int i = 0; i < numIDs; i++) {

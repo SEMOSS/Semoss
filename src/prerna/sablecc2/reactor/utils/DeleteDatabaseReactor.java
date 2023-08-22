@@ -11,7 +11,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteEngineRunner;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -69,7 +69,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 				}
 			}
 
-			IDatabase database = Utility.getDatabase(databaseId);
+			IDatabaseEngine database = Utility.getDatabase(databaseId);
 			deleteDatabase(database);
 			EngineSyncUtility.clearEngineCache(databaseId);
 			
@@ -90,7 +90,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 	 * @param database
 	 * @return
 	 */
-	private boolean deleteDatabase(IDatabase database) {
+	private boolean deleteDatabase(IDatabaseEngine database) {
 		String databaseId = database.getEngineId();
 		database.delete();
 

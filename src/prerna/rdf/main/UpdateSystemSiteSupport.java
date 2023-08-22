@@ -9,7 +9,7 @@ import java.util.Set;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -82,7 +82,7 @@ public class UpdateSystemSiteSupport {
 //		pEng.commit();
 //	}
 	
-	private static void performReplacement(IDatabase eng, List<Object[]> addTriples, List<Object[]> deleteTriples, Object[] values, String newSiteName) {
+	private static void performReplacement(IDatabaseEngine eng, List<Object[]> addTriples, List<Object[]> deleteTriples, Object[] values, String newSiteName) {
 		String sysSiteGl = values[0].toString();
 		String sys = values[1].toString();
 		String dcsite = values[2].toString();
@@ -283,7 +283,7 @@ public class UpdateSystemSiteSupport {
 		return retMap;
 	}
 
-	private static void deleteAllRDFConnectionsToConcept(IDatabase eng, Set<String> uriBindingList, List<Object[]> deleteTriples) {
+	private static void deleteAllRDFConnectionsToConcept(IDatabaseEngine eng, Set<String> uriBindingList, List<Object[]> deleteTriples) {
 		String[] queries = new String[]{
 				generateDeleteAllRDFConnectionsToConceptQuery(uriBindingList, true),
 				generateDeleteAllRDFConnectionsToConceptQuery(uriBindingList, false)};
@@ -375,7 +375,7 @@ public class UpdateSystemSiteSupport {
 		return query.toString();
 	}
 
-	private static void removeRDFNodeAndAllProps(IDatabase eng, Set<String> uriBindingList, List<Object[]> deleteTriples) {
+	private static void removeRDFNodeAndAllProps(IDatabaseEngine eng, Set<String> uriBindingList, List<Object[]> deleteTriples) {
 		if(uriBindingList.isEmpty()) {
 			return;
 		}

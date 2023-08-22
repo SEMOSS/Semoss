@@ -36,7 +36,7 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -60,7 +60,7 @@ public class ClusterEngine extends AbstractDatabase {
 	RepositoryConnection rc = null;
 		
 	// database names
-	Hashtable <String, IDatabase> engineHash = new Hashtable<String, IDatabase>();
+	Hashtable <String, IDatabaseEngine> engineHash = new Hashtable<String, IDatabaseEngine>();
 	
 	// You register a database with the name server
 	// in this case you register an engine

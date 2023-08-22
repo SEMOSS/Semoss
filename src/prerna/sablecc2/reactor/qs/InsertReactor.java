@@ -17,7 +17,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -69,7 +69,7 @@ public class InsertReactor extends AbstractReactor {
 		if(qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
-				IDatabase engine = qs.retrieveQueryStructEngine();
+				IDatabaseEngine engine = qs.retrieveQueryStructEngine();
 				if(!(engine instanceof IRDBMSEngine)) {
 					throw new IllegalArgumentException("Insert query only works for rdbms databases");
 				}
@@ -428,7 +428,7 @@ public class InsertReactor extends AbstractReactor {
 	 * @param tableName
 	 * @return
 	 */
-	private String getPrimKey(IDatabase engine, String tableName) {
+	private String getPrimKey(IDatabaseEngine engine, String tableName) {
 		String physicalUri = engine.getPhysicalUriFromPixelSelector(tableName);
 		return engine.getLegacyPrimKey4Table(physicalUri);
 	}

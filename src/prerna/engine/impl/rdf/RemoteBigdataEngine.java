@@ -64,7 +64,7 @@ import com.bigdata.rdf.model.BigdataLiteralImpl;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.remote.BigdataSailRemoteRepository;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -255,7 +255,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 	@Override
 	public DATABASE_TYPE getDatabaseType()
 	{
-		return IDatabase.DATABASE_TYPE.SESAME;
+		return IDatabaseEngine.DATABASE_TYPE.SESAME;
 	}
 
 	/**

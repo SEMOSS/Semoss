@@ -25,7 +25,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -2215,7 +2215,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
 		List<String> engineTypes = new ArrayList<>();
-		engineTypes.add(IDatabase.CATALOG_TYPE);
+		engineTypes.add(IDatabaseEngine.CATALOG_TYPE);
 		return getAllEngineList(engineTypes, databaseFilters, null, null, null, null);
 	}
 	

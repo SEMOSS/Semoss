@@ -1,7 +1,7 @@
 package prerna.util.sql;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.HiveSqlInterpreter;
 
@@ -18,7 +18,7 @@ public class HiveQueryUtil  extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public IQueryInterpreter getInterpreter(IDatabase engine) {
+	public IQueryInterpreter getInterpreter(IDatabaseEngine engine) {
 		return new HiveSqlInterpreter(engine);
 	}
 

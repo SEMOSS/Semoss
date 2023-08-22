@@ -7,7 +7,7 @@ import java.util.Hashtable;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -33,7 +33,7 @@ public class OWLERLineage {
 	
 	// need to know the database type due to differences in URIs when the
 	// database is RDF vs. RDBMS
-	private IDatabase.DATABASE_TYPE type = null;
+	private IDatabaseEngine.DATABASE_TYPE type = null;
 	// the engine here is a wrapper around a RDFFileSesameEngine which helps with adding the URIs into the engine
 	private BaseDatabaseCreator engine = null;
 	// file name for the location of the OWL file to write to
@@ -44,7 +44,7 @@ public class OWLERLineage {
 	 * @param fileName				The location of the new OWL file
 	 * @param type					The type of the engine the OWL file is being created for
 	 */
-	public OWLERLineage(String owlPath, IDatabase.DATABASE_TYPE type) {
+	public OWLERLineage(String owlPath, IDatabaseEngine.DATABASE_TYPE type) {
 		this.owlPath = owlPath;
 		this.type = type;
 		
@@ -63,7 +63,7 @@ public class OWLERLineage {
 	 * @param existingEngine		The engine we are adding to
 	 * @param fileName				The location of the OWL file
 	 */
-	public OWLERLineage(IDatabase existingEngine, String owlPath) {
+	public OWLERLineage(IDatabaseEngine existingEngine, String owlPath) {
 		this.owlPath = owlPath;
 		this.engine = new BaseDatabaseCreator(existingEngine, owlPath);
 	}
@@ -195,7 +195,7 @@ public class OWLERLineage {
 
 		TestUtilityMethods.loadDIHelper();
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IDatabase coreEngine = new BigDataEngine();
+		IDatabaseEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);

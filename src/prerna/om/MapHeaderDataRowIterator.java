@@ -3,7 +3,7 @@ package prerna.om;
 import java.util.Iterator;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.InMemStore;
@@ -70,13 +70,13 @@ public class MapHeaderDataRowIterator implements IRawSelectWrapper {
 	}
 
 	@Override
-	public void setEngine(IDatabase engine) {
+	public void setEngine(IDatabaseEngine engine) {
 		// TODO Auto-generated method stub
 		
 	}
 	
 	@Override
-	public IDatabase getEngine() {
+	public IDatabaseEngine getEngine() {
 		// TODO Auto-generated method stub
 		return null;
 	}

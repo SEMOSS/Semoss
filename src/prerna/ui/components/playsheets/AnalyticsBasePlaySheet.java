@@ -38,7 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -48,10 +48,10 @@ import prerna.util.Utility;
 
 public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	
-	private IDatabase engine;
+	private IDatabaseEngine engine;
 	private static final Logger LOGGER = LogManager.getLogger(AnalyticsBasePlaySheet.class.getName());
 
-	public AnalyticsBasePlaySheet(IDatabase engine) {
+	public AnalyticsBasePlaySheet(IDatabaseEngine engine) {
 		this.engine = engine;
 	}
 	
@@ -59,7 +59,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		
 	}
 	
-	public void setEngine(IDatabase engine) {
+	public void setEngine(IDatabaseEngine engine) {
 		this.engine = engine;
 	}
 	
@@ -70,7 +70,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		getMostInfluentialInstancesForAllTypes(engine);
 	}
 
-	public Hashtable<String, Object> generateScatter(IDatabase engine) {
+	public Hashtable<String, Object> generateScatter(IDatabaseEngine engine) {
 		final String getConceptListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} }";
 		final String getConceptsAndInstanceCountsQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?instance) AS ?count) WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} } GROUP BY ?entity";
 		final String getConceptsAndPropCountsQuery = "SELECT DISTINCT ?nodeType (COUNT(DISTINCT ?entity) AS ?entityCount) WHERE { {?nodeType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop } } GROUP BY ?nodeType";
@@ -179,7 +179,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		return allData;
 	}
 	
-	private Hashtable<String, Hashtable<String, Object>> addToAllData(IDatabase engine, String query, String key, Hashtable<String, Hashtable<String, Object>> allData) {
+	private Hashtable<String, Hashtable<String, Object>> addToAllData(IDatabaseEngine engine, String query, String key, Hashtable<String, Hashtable<String, Object>> allData) {
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
@@ -229,7 +229,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		return allData;
 	}
 	
-	public List<Hashtable<String, String>> getQuestionsWithoutParams(IDatabase engine) {
+	public List<Hashtable<String, String>> getQuestionsWithoutParams(IDatabaseEngine engine) {
 		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?perspective ?question ?viz WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>} {?engine <http://semoss.org/ontologies/Relation/Engine:Perspective> ?perspective} {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?perspective <http://semoss.org/ontologies/Relation/Perspective:Insight> ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?question} {?insight <http://semoss.org/ontologies/Relation/Contains/Layout> ?viz} MINUS{ {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } }";
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
@@ -259,7 +259,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		return retList;
 	}
 	
-	public List<Hashtable<String, String>> getQuestionsForParam(IDatabase engine, String typeURI) {
+	public List<Hashtable<String, String>> getQuestionsForParam(IDatabaseEngine engine, String typeURI) {
 		final String getInsightsWithParamsQuery = "SELECT DISTINCT ?perspective ?question ?viz WHERE { BIND(<@ENTITY_TYPE@> AS ?entity) BIND(<@ENGINE_NAME@> AS ?engine) {?perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>} {?engine <http://semoss.org/ontologies/Relation/Engine:Perspective> ?perspective} {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?perspective <http://semoss.org/ontologies/Relation/Perspective:Insight> ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?question} {?insight <http://semoss.org/ontologies/Relation/Contains/Layout> ?viz} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} }";
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
@@ -290,19 +290,19 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		return retList;
 	}
 	
-	public List<Hashtable<String, String>> getMostInfluentialInstancesForAllTypes(IDatabase engine) {
+	public List<Hashtable<String, String>> getMostInfluentialInstancesForAllTypes(IDatabaseEngine engine) {
 		final String getMostConncectedInstancesQuery = "SELECT DISTINCT ?entity ?instance (COUNT(?inRel) + COUNT(?outRel) AS ?edgeCount) WHERE { { FILTER (STR(?entity)!='http://semoss.org/ontologies/Concept') {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} {?instance <http://www.w3.org/2000/01/rdf-schema#label> ?instanceLabel2} {?node2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?relLabel2} {?node2 ?inRel ?instance} } UNION { FILTER (STR(?entity)!='http://semoss.org/ontologies/Concept') {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} {?instance <http://www.w3.org/2000/01/rdf-schema#label> ?instanceLabel1} {?node1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?relLabel1} {?instance ?outRel ?node1} } } GROUP BY ?entity ?instance ORDER BY DESC(?edgeCount) LIMIT 10";
 		return mostConnectedInstancesProcessing(engine, getMostConncectedInstancesQuery);
 	}
 	
-	public List<Hashtable<String, String>> getMostInfluentialInstancesForSpecificTypes(IDatabase engine, String typeURI) {
+	public List<Hashtable<String, String>> getMostInfluentialInstancesForSpecificTypes(IDatabaseEngine engine, String typeURI) {
 		final String getMostConnectedInstancesWithType = "SELECT DISTINCT ?type ?entity (COUNT(?inRel) + COUNT(?outRel) AS ?edgeCount) WHERE { BIND(<@NODE_URI@> AS ?type) { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?node2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?label2} {?node2 ?inRel ?entity} } UNION { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?node1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?label1} {?entity ?outRel ?node1} } } GROUP BY ?entity ?type ORDER BY DESC(?edgeCount) LIMIT 10";
 		
 		String query = getMostConnectedInstancesWithType.replaceAll("@NODE_URI@", typeURI);
 		return mostConnectedInstancesProcessing(engine, query);
 	}
 
-	private List<Hashtable<String, String>> mostConnectedInstancesProcessing(IDatabase engine, String query) {
+	private List<Hashtable<String, String>> mostConnectedInstancesProcessing(IDatabaseEngine engine, String query) {
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
@@ -324,7 +324,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		return retList;
 	}
 	
-	public List<Hashtable<String, Object>> getLargestOutliers(IDatabase engine, String typeURI) {
+	public List<Hashtable<String, Object>> getLargestOutliers(IDatabaseEngine engine, String typeURI) {
 		LOGGER.info("Constructing query to look get all properties for instances of type " + typeURI + "...");
 		final String basePropQuery = "SELECT DISTINCT ?@TYPE@ @PROPERTIES@ WHERE { {?@TYPE@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@TYPE_URI@>} @PROP_TRIPLES@ }";
 		final String propListQuery = "SELECT DISTINCT ?prop WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@TYPE_URI@>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?entity ?prop ?val} }";
@@ -442,7 +442,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		return retList;
 	}
 	
-	public List<Hashtable<String, Object>> getConnectionMap(IDatabase engine, String instanceURI) {
+	public List<Hashtable<String, Object>> getConnectionMap(IDatabaseEngine engine, String instanceURI) {
 		final String baseQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT ?rel) AS ?count) ?direction ?description WHERE { { SELECT DISTINCT ?type ?rel ?direction ?description WHERE { FILTER(?type != <http://semoss.org/ontologies/Concept>) BIND(<@INSTANCE_URI@> AS ?instance) {?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?rel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?node ?rel ?instance} BIND('in' AS ?direction) BIND(CONCAT( REPLACE(STR(?type), '.*/', ''), ' To ', REPLACE(STR(?instance), '.*/', '')) AS ?description) } } UNION { SELECT DISTINCT ?type ?rel ?direction ?description WHERE { FILTER(?type != <http://semoss.org/ontologies/Concept>) BIND(<@INSTANCE_URI@> AS ?instance) {?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?rel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?instance ?rel ?node} BIND('out' AS ?direction) BIND(CONCAT( REPLACE(STR(?instance), '.*/', ''), ' To ', REPLACE(STR(?type), '.*/', '')) AS ?description)} } } GROUP BY ?type ?direction ?description ORDER BY DESC(?count)";
 		
 		String query = baseQuery.replaceAll("@INSTANCE_URI@", instanceURI);
@@ -470,7 +470,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	
-	public List<Hashtable<String, String>> getPropertiesForInstance(IDatabase engine, String instanceURI) {
+	public List<Hashtable<String, String>> getPropertiesForInstance(IDatabaseEngine engine, String instanceURI) {
 		final String getPropertiesForInstance = "SELECT DISTINCT ?entity ?prop WHERE { BIND(<@INSTANCE_URI@> AS ?source) {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop } } ORDER BY ?entity";
 
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
