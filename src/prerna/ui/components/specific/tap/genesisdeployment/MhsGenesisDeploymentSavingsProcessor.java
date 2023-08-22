@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap.genesisdeployment;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -539,10 +540,12 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			e1.printStackTrace();
 		} finally {
 			if(rawIterator != null) {
-				rawIterator.cleanUp();
+				try {
+					rawIterator.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
-			
-			
 		}
 
 		return mainSustainmentFrame;
@@ -592,7 +595,11 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			e1.printStackTrace();
 		} finally {
 			if(rawIterator != null) {
-				rawIterator.cleanUp();
+				try {
+					rawIterator.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 
@@ -643,7 +650,11 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			e1.printStackTrace();
 		} finally {
 			if(rawWrapper != null) {
-				rawWrapper.cleanUp();
+				try {
+					rawWrapper.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 
@@ -829,7 +840,11 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			e.printStackTrace();
 		} finally {
 			if(rawWrapper != null) {
-				rawWrapper.cleanUp();
+				try {
+					rawWrapper.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 
@@ -858,7 +873,11 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				e.printStackTrace();
 			} finally {
 				if(rawWrapper != null) {
-					rawWrapper.cleanUp();
+					try {
+						rawWrapper.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 			waveSiteSystemBuilder.append("}");
@@ -1048,7 +1067,11 @@ public class MhsGenesisDeploymentSavingsProcessor {
 					e1.printStackTrace();
 				} finally {
 					if(rawWrapper != null) {
-						rawWrapper.cleanUp();
+						try {
+							rawWrapper.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}

@@ -1,5 +1,6 @@
 package prerna.usertracking;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -179,7 +180,11 @@ public class EngineUsageUtils extends UserTrackingUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -216,7 +221,11 @@ public class EngineUsageUtils extends UserTrackingUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

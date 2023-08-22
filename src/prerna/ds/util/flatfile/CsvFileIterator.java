@@ -1,5 +1,6 @@
 package prerna.ds.util.flatfile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -135,10 +136,10 @@ public class CsvFileIterator extends AbstractFileIterator {
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		this.helper.clear();
 	}
-
+	
 	public CSVFileHelper getHelper() {
 		return this.helper;
 	}

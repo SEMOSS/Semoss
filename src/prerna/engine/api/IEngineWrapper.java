@@ -27,7 +27,10 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-public interface IEngineWrapper {
+import java.io.Closeable;
+import java.io.IOException;
+
+public interface IEngineWrapper extends Closeable {
 
 	/**
 	 * This method needs to be called to actually run the query
@@ -45,11 +48,6 @@ public interface IEngineWrapper {
 	 * @return
 	 */
 	String getQuery();
-	
-	/**
-	 * Clean up the data source
-	 */
-	void cleanUp();
 	
 	/**
 	 * Set the engine

@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -121,7 +122,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -190,7 +195,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -210,17 +219,21 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		fun.setFunction(QueryFunctionHelper.COUNT);
 		qs.addSelector(fun);
 		
-		IRawSelectWrapper it = null;
+		IRawSelectWrapper wrapper = null;
 		try {
-			it = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(it.hasNext()) {
-				userCount = ((Number) it.next().getValues()[0]).intValue();
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				userCount = ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(it != null) {
-				it.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -298,7 +311,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -324,7 +341,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -383,7 +404,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -414,7 +439,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -434,7 +463,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -454,7 +487,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

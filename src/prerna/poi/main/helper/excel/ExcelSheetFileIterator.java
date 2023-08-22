@@ -1,5 +1,6 @@
 package prerna.poi.main.helper.excel;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -375,10 +376,11 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	public void reset() {
 		// TODO Auto-generated method stub
 	}
-
+	
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		// TODO Auto-generated method stub
+		
 	}
 
 	public ExcelQueryStruct getQs() {

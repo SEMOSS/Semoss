@@ -1,5 +1,6 @@
 package prerna.rdf.main;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -85,7 +86,11 @@ public class MHSGenesisScheduleUpdater {
 			e.printStackTrace();
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		
@@ -139,7 +144,11 @@ public class MHSGenesisScheduleUpdater {
 			e.printStackTrace();
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}

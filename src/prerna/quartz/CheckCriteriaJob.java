@@ -1,5 +1,6 @@
 package prerna.quartz;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -56,11 +57,15 @@ public class CheckCriteriaJob implements org.quartz.Job {
 			while (iteratorResults.hasNext()) {
 				resultsList.add(iteratorResults.next().getRawValues());
 			}
-		} catch (Exception e1) {
-			e1.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			if(iteratorResults != null) {
-				iteratorResults.cleanUp();
+				try {
+					iteratorResults.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 

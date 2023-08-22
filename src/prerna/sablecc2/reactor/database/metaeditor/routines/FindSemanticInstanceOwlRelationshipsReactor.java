@@ -1,8 +1,10 @@
 package prerna.sablecc2.reactor.database.metaeditor.routines;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
@@ -18,9 +20,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.database.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEditorReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(FindSemanticInstanceOwlRelationshipsReactor.class);
 
 	private static final String CLASS_NAME = FindSemanticInstanceOwlRelationshipsReactor.class.getName();
 
@@ -106,10 +111,14 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 							colValues.add(value);
 						}
 					} catch (Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(wrapper != null) {
-							wrapper.cleanUp();
+							try {
+								wrapper.close();
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
 						}
 					}
 					sampleInstances.add(colValues);

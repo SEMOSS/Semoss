@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -223,11 +224,12 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		try {
 			tqr.close();
 		} catch (QueryEvaluationException e) {
 			e.printStackTrace();
+			throw new IOException(e);
 		}
 	}
 	

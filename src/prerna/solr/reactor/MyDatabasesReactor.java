@@ -1,5 +1,6 @@
 package prerna.solr.reactor;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +23,7 @@ import prerna.util.Constants;
 
 public class MyDatabasesReactor extends AbstractReactor {
 	
-	private static final Logger logger = LogManager.getLogger(MyDatabasesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(MyDatabasesReactor.class);
 
 	public MyDatabasesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
@@ -107,10 +108,14 @@ public class MyDatabasesReactor extends AbstractReactor {
 						}
 					}
 				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-					if(wrapper != null) {
-						wrapper.cleanUp();
+					if(wrapper!=null) {
+						try {
+							wrapper.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			} 
@@ -128,10 +133,14 @@ public class MyDatabasesReactor extends AbstractReactor {
 						res.put("upvotes", upvotes);
 					}
 				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-					if(wrapper != null) {
-						wrapper.cleanUp();
+					if(wrapper!=null) {
+						try {
+							wrapper.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}

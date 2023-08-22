@@ -1,5 +1,6 @@
 package prerna.query.querystruct.evaluator;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,7 +28,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	 * So if there is math or something else that needs to be done, we are doing it programmatically through Java
 	 */
 	
-	private static final Logger logger = LogManager.getLogger(QueryStructExpressionIterator.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(QueryStructExpressionIterator.class.getName());
 	
 	private List<IHeadersDataRow> processedData;
 	private int processedDataSize;
@@ -202,13 +203,13 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	}
 
 	@Override
-	public void cleanUp() {
-		this.subIt.cleanUp();
+	public void close() throws IOException {
+		this.subIt.close();
 	}
 
 	@Override
 	public void reset() throws Exception {
-		cleanUp();
+		close();
 		this.subIt.reset();
 		execute();
 	}

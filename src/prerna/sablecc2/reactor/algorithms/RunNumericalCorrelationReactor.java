@@ -1,10 +1,12 @@
 package prerna.sablecc2.reactor.algorithms;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
@@ -21,10 +23,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
+import prerna.util.Constants;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(RunNumericalCorrelationReactor.class);
 
 	private static final String CLASS_NAME = RunNumericalCorrelationReactor.class.getName();
 
@@ -64,10 +69,14 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 			correlationData = runCorrelation(it, numCols, missingVal, logger);
 			logger.info("Done iterating through data to determine correlation");
 		} catch (Exception e) {
-			logger.error("StackTrace: ", e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

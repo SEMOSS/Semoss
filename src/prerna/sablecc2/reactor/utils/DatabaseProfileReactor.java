@@ -1,7 +1,11 @@
 package prerna.sablecc2.reactor.utils;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
@@ -30,9 +34,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.imports.ImportUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DatabaseProfileReactor extends AbstractFrameReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DatabaseProfileReactor.class);
 
 	public DatabaseProfileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPTS.getKey() };
@@ -155,10 +162,14 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 				blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(blankIt != null) {
-				blankIt.cleanUp();
+				try {
+					blankIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		retRow[2] = blankCount + "";
@@ -168,14 +179,22 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 
 		// get null values count
 		long nullCount = 0;
-		IRawSelectWrapper nullIt;
+		IRawSelectWrapper nullIt = null;
 		try {
 			nullIt = WrapperManager.getInstance().getRawWrapper(database, qs_nulls);
 			if (nullIt.hasNext()) {
 				nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(nullIt != null) {
+				try {
+					nullIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		retRow[8] = nullCount + "";
 		return retRow;
@@ -248,10 +267,14 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 				retRow[7] = values[4] + "";
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -280,12 +303,20 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		}
 		// get null values count
 		long nullCount = 0;
-		IRawSelectWrapper nullIt;
+		IRawSelectWrapper nullIt = null;
 		try {
 			nullIt = WrapperManager.getInstance().getRawWrapper(database, qs_nulls);
 			nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(nullIt != null) {
+				try {
+					nullIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		retRow[8] = "" + nullCount;
 		return retRow;
@@ -308,10 +339,14 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			Object value = it.next().getValues()[0];
 			return value;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

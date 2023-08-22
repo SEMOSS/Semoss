@@ -1,5 +1,7 @@
 package prerna.ds.shared;
 
+import java.io.IOException;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -49,9 +51,9 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		// TODO Auto-generated method stub
-
+		
 	}
 
 	@Override

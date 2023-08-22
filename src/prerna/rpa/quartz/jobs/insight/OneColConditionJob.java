@@ -1,5 +1,6 @@
 package prerna.rpa.quartz.jobs.insight;
 
+import java.io.IOException;
 import java.text.Collator;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -143,7 +144,11 @@ public class OneColConditionJob implements org.quartz.InterruptableJob {
 			e1.printStackTrace();
 		} finally {
 			if(iterator != null) {
-				iterator.cleanUp();
+				try {
+					iterator.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		

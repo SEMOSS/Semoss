@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.convert;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -99,7 +100,11 @@ public class ConvertReactor extends AbstractFrameReactor {
 			}
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		// merge existing metadata

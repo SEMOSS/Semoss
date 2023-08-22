@@ -1,10 +1,13 @@
 package prerna.auth.utils;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -26,6 +29,8 @@ import prerna.util.Utility;
 
 public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	
+	private static final Logger logger = LogManager.getLogger(WorkspaceAssetUtils.class);
+
 	public static final String WORKSPACE_APP_NAME = "Workspace";
 	public static final String ASSET_APP_NAME = "Asset";
 	public static final String HIDDEN_FILE = ".semoss";
@@ -212,10 +217,14 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				return rs.toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -261,10 +270,14 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				//return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -299,10 +312,14 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				return isAssetProject(projectId);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -323,10 +340,14 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

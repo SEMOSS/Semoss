@@ -1,5 +1,6 @@
 package prerna.rdf.main;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -257,7 +258,11 @@ public class AnonymizedTapCoreGenerator {
 			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		System.out.println("Done execution");
