@@ -51,6 +51,8 @@ import prerna.util.gson.GenRowFiltersAdapter;
 
 public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
+	private static final Logger classLogger = LogManager.getLogger(AbstractTableDataFrame.class);
+	
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	@Deprecated
@@ -214,11 +216,15 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			nRowIt = query(qs1);
 			nRow = ((Number) nRowIt.next().getValues()[0]).longValue();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		} finally {
 			if(nRowIt != null) {
-				nRowIt.cleanUp();
+				try {
+					nRowIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -247,11 +253,15 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			uniqueNRowIt = query(qs2);
 			uniqueNRow = ((Number) uniqueNRowIt.next().getValues()[0]).longValue();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		} finally {
 			if(uniqueNRowIt != null) {
-				uniqueNRowIt.cleanUp();
+				try {
+					uniqueNRowIt.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -321,11 +331,15 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -347,11 +361,15 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				values.add( ((Number) it.next().getValues()[0]).doubleValue());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -403,10 +421,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 					return ((Number) it.next().getValues()[0]).doubleValue();
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			
@@ -459,10 +481,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 					return ((Number) it.next().getValues()[0]).doubleValue();
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -718,11 +744,15 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				data.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -796,10 +826,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				return ((Number) numUnique).intValue();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return 0;

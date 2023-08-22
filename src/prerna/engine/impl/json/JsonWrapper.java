@@ -1,5 +1,6 @@
 package prerna.engine.impl.json;
 
+import java.io.IOException;
 import java.util.Hashtable;
 
 import net.minidev.json.JSONArray;
@@ -126,7 +127,7 @@ public class JsonWrapper implements IRawSelectWrapper {
 	}
 	
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		// TODO Auto-generated method stub
 		
 	}

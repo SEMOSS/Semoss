@@ -1,6 +1,7 @@
 package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -120,7 +121,11 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -128,7 +133,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 		try {
 			conn.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		long end = System.currentTimeMillis();
 		return new NounMetadata("Time to finish = " + (end - start) + "ms", PixelDataType.CONST_STRING);

@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.database;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IRawSelectWrapper;
@@ -20,6 +22,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -27,6 +30,8 @@ import prerna.util.sql.AbstractSqlQueryUtil;
  * Adds an ID column to a table in a database
  */
 public class GenerateIdColumnReactor extends AbstractReactor {
+	
+	private static final Logger classLogger = LogManager.getLogger(GenerateIdColumnReactor.class);
 	protected transient Logger logger;
 
 	public GenerateIdColumnReactor() {
@@ -133,18 +138,22 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 			noun.addAdditionalReturn(getSuccess("Successfully added id column: " + newColumn + " to " + tableName));
 			return noun;
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to add id column: " + e.getMessage());
 		} finally {
 			if (iterator != null) {
-				iterator.cleanUp();
+				try {
+					iterator.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 			
 			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

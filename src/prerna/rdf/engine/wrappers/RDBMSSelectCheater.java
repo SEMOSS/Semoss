@@ -252,16 +252,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 	}
 
 	@Override
-	public void cleanUp() {
-		try {
-			this.rs.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		try {
-			this.stmt.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+	public void close() {
+		ConnectionUtils.closeAllConnections(null, stmt, rs);
 	}
 }

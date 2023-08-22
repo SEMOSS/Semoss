@@ -1,8 +1,10 @@
 package prerna.sablecc2.reactor.database.metaeditor.routines;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
@@ -17,11 +19,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.database.metaeditor.AbstractMetaEditorReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.wikidata.WikiLogicalNameExtractor;
 
 public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(PredictOwlLogicalNamesReactor.class);
 	private static final String CLASS_NAME = PredictOwlLogicalNamesReactor.class.getName();
 	
 	/**
@@ -85,10 +89,14 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 					values.add(value.toString());
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			
@@ -103,7 +111,7 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 				logicalNames.addAll(extractor.getLogicalNames(value));
 			} catch (Exception e) {
 				logger.info("ERROR ::: Could not process input = " + Utility.cleanLogString(value));
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		// return only the top 5 results

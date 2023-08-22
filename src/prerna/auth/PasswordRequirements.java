@@ -1,7 +1,11 @@
 package prerna.auth;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -24,6 +28,8 @@ public class PasswordRequirements {
 	// allow users to change their own password
 	// prevent password reuse
 	//		# of passwords to remember
+
+	private static final Logger classLogger = LogManager.getLogger(PasswordRequirements.class);
 
 	private static PasswordRequirements instance = null;
 
@@ -96,11 +102,15 @@ public class PasswordRequirements {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
 			if(iterator != null) {
-				iterator.cleanUp();
+				try {
+					iterator.close();
+				} catch(IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}

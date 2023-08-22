@@ -1,7 +1,11 @@
 package prerna.sablecc2.reactor.legacy.playsheets;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -10,8 +14,11 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 
 public class LegacyInsightDatabaseUtility {
+
+	private static final Logger classLogger = LogManager.getLogger(LegacyInsightDatabaseUtility.class);
 
 	// get param information when i have the question id
 	private static final String QUESTION_ID_FK_PARAM_KEY = "@QUESTION_ID_FK_VALUES@";
@@ -33,12 +40,12 @@ public class LegacyInsightDatabaseUtility {
 	public static List<SEMOSSParam> getParamsFromInsightId(IDatabaseEngine insightRdbms, String insightId) {
 		String query = GET_ALL_PARAMS_FOR_QUESTION_ID.replace(QUESTION_ID_FK_PARAM_KEY, insightId);
 		List<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
-		IRawSelectWrapper wrap = null;
+		IRawSelectWrapper wrapper = null;
 		try {
-			wrap = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
-			while(wrap.hasNext()) {
+			wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
+			while(wrapper.hasNext()) {
 				// get a bunch of options
-				IHeadersDataRow ss = wrap.next();
+				IHeadersDataRow ss = wrapper.next();
 				Object[] dataRow = ss.getValues();
 				String label = dataRow[0] + "";
 				SEMOSSParam param = new SEMOSSParam();
@@ -83,10 +90,14 @@ public class LegacyInsightDatabaseUtility {
 				retParam.add(param);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrap != null) {
-				wrap.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

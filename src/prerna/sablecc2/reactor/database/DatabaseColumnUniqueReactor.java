@@ -1,9 +1,13 @@
 package prerna.sablecc2.reactor.database;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -20,9 +24,12 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DatabaseColumnUniqueReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DatabaseColumnUniqueReactor.class);
 
 	public DatabaseColumnUniqueReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.COLUMNS.getKey()};
@@ -74,11 +81,15 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 				it = WrapperManager.getInstance().getRawWrapper(engine, qs1);
 				nRow = it.getNumRows();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -103,11 +114,15 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 				it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 				uniqueNRow = it.getNumRows();
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}

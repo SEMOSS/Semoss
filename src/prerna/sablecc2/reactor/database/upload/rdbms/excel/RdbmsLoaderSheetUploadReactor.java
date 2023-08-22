@@ -633,7 +633,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 					e.printStackTrace();
 				} finally {
 					if(wrapper != null) {
-						wrapper.cleanUp();
+						try {
+							wrapper.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 

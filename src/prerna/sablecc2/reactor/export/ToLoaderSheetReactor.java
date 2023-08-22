@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.export;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,6 +13,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -49,6 +51,7 @@ import prerna.util.Utility;
 
 public class ToLoaderSheetReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(QueryRowCountReactor.class);
 	private static final String CLASS_NAME = ToLoaderSheetReactor.class.getName();
 	
 	public ToLoaderSheetReactor() {
@@ -133,10 +136,14 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 				writeNodePropSheet(engine, workbook, dateCellStyle, timeStampCellStyle, doubleCellStyle, iterator, physicalConceptName, properties);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(iterator != null) {
-					iterator.cleanUp();
+					try {
+						iterator.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			logger.info("Finsihed node sheet for concept = " + conceptPixelName);
@@ -154,10 +161,14 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
 					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, doubleCellStyle, iterator, rel, edgeProps);
 				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(iterator != null) {
-						iterator.cleanUp();
+						try {
+							iterator.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 				logger.info("Finished rel sheet for " + Utility.cleanLogString(Arrays.toString(rel)));
@@ -181,10 +192,14 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, doubleCellStyle, iterator, rel, new ArrayList<String>());
 				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(iterator != null) {
-						iterator.cleanUp();
+						try {
+							iterator.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 				logger.info("Finished rel sheet for " + Utility.cleanLogString(Arrays.toString(rel)));
@@ -470,10 +485,14 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				props.add(it.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

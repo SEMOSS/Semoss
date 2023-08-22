@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -25,9 +26,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.database.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(AddBulkOwlRelationshipsReactor.class);
 
 	private static final String CLASS_NAME = AddBulkOwlRelationshipsReactor.class.getName();
 	private static final String PROP_MAX = "propagation";
@@ -119,10 +123,14 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 				counter++;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(iterator != null) {
-				iterator.cleanUp();
+				try {
+					iterator.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -136,7 +144,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		try {
 			owler.export();
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships", 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -269,11 +277,15 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		} finally {
 			if(iterator != null) {
-				iterator.cleanUp();
+				try {
+					iterator.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

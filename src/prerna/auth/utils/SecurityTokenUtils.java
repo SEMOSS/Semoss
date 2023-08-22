@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SecurityTokenUtils extends AbstractSecurityUtils {
@@ -43,19 +45,19 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(ldt), cal);
 			ps.execute();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 				if(securityDb.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -84,19 +86,19 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			ps.execute();
 			logger.debug("Adding new token=" + tokenValue + " for ip=" + ipAddr);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 				if(securityDb.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -123,10 +125,14 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

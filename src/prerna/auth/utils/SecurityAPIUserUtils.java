@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -96,8 +97,12 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
-				wrapper.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

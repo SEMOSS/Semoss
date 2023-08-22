@@ -1,9 +1,11 @@
 package prerna.sablecc2.reactor.federation;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -27,6 +29,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class FuzzyMatchesReactor extends AbstractRFrameReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(FuzzyMatchesReactor.class);
 
 	private static final String CLASS_NAME = FuzzyMatchesReactor.class.getName();
 
@@ -121,11 +125,15 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 					String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 					newFile = Utility.writeResultToFile(newFileLoc, it2, null, "\t");
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				} finally {
 					if(iterator != null) {
-						iterator.cleanUp();
+						try {
+							iterator.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 				String loadFileRScript = RSyntaxHelper.getFReadSyntax(rCol2, newFile.getAbsolutePath(), "\t");

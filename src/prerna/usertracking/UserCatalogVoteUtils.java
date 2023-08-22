@@ -1,5 +1,6 @@
 package prerna.usertracking;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -79,8 +80,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -137,8 +142,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -192,8 +201,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -228,8 +241,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

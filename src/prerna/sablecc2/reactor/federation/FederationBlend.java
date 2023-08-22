@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.federation;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +41,6 @@ import prerna.util.Utility;
 public class FederationBlend extends AbstractRFrameReactor {
 	private static final Logger logger = LogManager.getLogger(FederationBlend.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
 	public static final String JOIN_TYPE = "joinType";
 	public static final String FRAME_COLUMN = "frameCol";
 	public static final String ADDITIONAL_COLS = "additionalCols";
@@ -242,10 +242,14 @@ public class FederationBlend extends AbstractRFrameReactor {
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 			newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 

@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Statement;
@@ -80,11 +82,12 @@ public class SesameConstructWrapper extends AbstractWrapper implements IConstruc
 	}
 
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		try {
 			gqr.close();
 		} catch (QueryEvaluationException e) {
 			e.printStackTrace();
+			throw new IOException(e);
 		}
 	}
 }

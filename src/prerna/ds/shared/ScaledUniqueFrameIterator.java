@@ -1,10 +1,14 @@
 package prerna.ds.shared;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -16,9 +20,12 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 
+	private static final Logger classLogger = LogManager.getLogger(ScaledUniqueFrameIterator.class);
+	
 	private ITableDataFrame frame;
 	private String uniqueColumnName;
 	private SelectQueryStruct qs;
@@ -125,10 +132,14 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 					retData.add(it.next().getValues());
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			
