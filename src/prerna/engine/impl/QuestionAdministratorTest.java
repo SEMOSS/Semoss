@@ -56,7 +56,7 @@
 //	public void testInsightMakeUpStringParsedCorrectly() {
 //		String engineProp = "C:\\workspace\\Semoss\\db\\Movie_DB.smss";
 //		BigDataEngine movieDB = new BigDataEngine();
-//		movieDB.openDB(engineProp);
+//		movieDB.open(engineProp);
 //		movieDB.setEngineName("Movie_DB");
 //		DIHelper.getInstance().setLocalProperty("Movie_DB", movieDB);
 //
@@ -87,7 +87,7 @@
 //		TestUtilityMethods.loadDIHelper();
 //		String engineProp = "C:\\workspace\\Semoss\\db\\Movie_DB.smss";
 //		BigDataEngine movieDB = new BigDataEngine();
-//		movieDB.openDB(engineProp);
+//		movieDB.open(engineProp);
 //		movieDB.setEngineName("Movie_DB");
 //		DIHelper.getInstance().setLocalProperty("Movie_DB", movieDB);
 //		

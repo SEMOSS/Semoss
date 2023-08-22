@@ -442,13 +442,13 @@
 //		String engineProp = "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 //		IEngine coreEngine = new BigDataEngine();
 //		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 //		
 //		engineProp = "C:\\workspace2\\Semoss_Dev\\db\\TAP_Core_Data.smss";
 //		coreEngine = new BigDataEngine();
 //		coreEngine.setEngineId("TAP_Core_Data");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
 //		
 //		InsightsConverter2 converter = new InsightsConverter2(coreEngine);

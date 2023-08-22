@@ -682,7 +682,7 @@ public class PixelUnit {
 								e);
 						testDatabasesAreClean = false;
 					} finally {
-						rdbms.openDB(null);
+						rdbms.open(null);
 					}
 				} else {
 					classLogger.warn("Cannot clean database with the alias " + alias + ", database is not an RDBMS.");

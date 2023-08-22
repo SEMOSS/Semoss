@@ -7,7 +7,7 @@ public class UpdateTapCoreDates {
 //
 //		String tapCoreSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
 //		BigDataEngine engine = new BigDataEngine();
-//		engine.openDB(tapCoreSmss);
+//		engine.open(tapCoreSmss);
 //		
 //		String[] systemProps = new String[] {
 //			"ATO_Date",

@@ -112,7 +112,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
 		this.database.setSmssProp(props);
-		this.database.openDB(null);
+		this.database.open(null);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

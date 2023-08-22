@@ -68,7 +68,7 @@ public class UpdateToEmail {
 //			
 //			IEngine formEngine = new RDBMSNativeEngine();
 //			formEngine.setEngineId("form_builder_engine");
-//			formEngine.openDB(form_builder_engine_smss);
+//			formEngine.open(form_builder_engine_smss);
 //			DIHelper.getInstance().setLocalProperty("form_builder_engine", formEngine);
 //			
 //			// update the other tables
@@ -154,7 +154,7 @@ public class UpdateToEmail {
 //		System.out.println("Need to also update the forms tap core database");
 //		IEngine formsTapCore = new BigDataEngine();
 //		formsTapCore.setEngineId(forms_tap_core_id);
-//		formsTapCore.openDB(forms_tap_core_smss);
+//		formsTapCore.open(forms_tap_core_smss);
 //		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", formsTapCore);
 //		
 //		{

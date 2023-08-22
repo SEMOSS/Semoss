@@ -197,13 +197,13 @@ public class OWLERLineage {
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IDatabaseEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 		
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 		coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("Movie_RDBMS");
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 
  		OWLERLineage owler = new OWLERLineage(coreEngine, coreEngine.getOWL());

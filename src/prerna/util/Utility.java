@@ -2480,7 +2480,7 @@ public class Utility {
 			if(smssFilePath == null) {
 				engine.setSmssProp(prop);
 			}
-			engine.openDB(smssFilePath);
+			engine.open(smssFilePath);
 
 			// set the engine in DIHelper
 			DIHelper.getInstance().setEngineProperty(engineId, engine);

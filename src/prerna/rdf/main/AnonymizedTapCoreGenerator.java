@@ -46,7 +46,7 @@ public class AnonymizedTapCoreGenerator {
 //
 //		{
 //			BigDataEngine engine = new BigDataEngine();
-//			engine.openDB(tapCoreSmss);
+//			engine.open(tapCoreSmss);
 //
 //			// get a list of all the systems
 //			SelectQueryStruct qs = new SelectQueryStruct();
@@ -92,13 +92,13 @@ public class AnonymizedTapCoreGenerator {
 //		
 //		if(runForTapSite) {
 //			BigDataEngine engine = new BigDataEngine();
-//			engine.openDB(tapSiteSmss);
+//			engine.open(tapSiteSmss);
 //			runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
 //		}
 //		
 //		if(runforTapPortfolio) {
 //			BigDataEngine engine = new BigDataEngine();
-//			engine.openDB(tapPortfolioSmss);
+//			engine.open(tapPortfolioSmss);
 //			runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
 //		}
 //

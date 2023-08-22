@@ -39,7 +39,7 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 		insightEngine.setSmssProp(prop);
 		// opening will work since we directly injected the prop map
 		// this way i do not need to write it to disk and then recreate it later
-		insightEngine.openDB(null);
+		insightEngine.open(null);
 		insightEngine.setBasic(true);
 		SmssUtilities.runInsightCreateTableQueries(insightEngine);
 		
