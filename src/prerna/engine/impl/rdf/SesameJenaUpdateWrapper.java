@@ -34,7 +34,7 @@ import org.openrdf.query.GraphQueryResult;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 
 /**
  * Insert and delete queries.  This will set the graph query result for the sesame.
@@ -44,8 +44,8 @@ public class SesameJenaUpdateWrapper {
 	GraphQueryResult gqr = null;
 	Model model = null;	
 	StmtIterator si = null;	
-	IDatabase engine = null;
-	IDatabase.DATABASE_TYPE engineType = IDatabase.DATABASE_TYPE.SESAME;
+	IDatabaseEngine engine = null;
+	IDatabaseEngine.DATABASE_TYPE engineType = IDatabaseEngine.DATABASE_TYPE.SESAME;
 	String query = null;
 
 	com.hp.hpl.jena.rdf.model.Statement curSt = null;
@@ -65,7 +65,7 @@ public class SesameJenaUpdateWrapper {
 	 * Method setEngine. Sets the engine.
 	 * @param engine IDatabase - The engine that this is being set to.
 	 */
-	public void setEngine(IDatabase engine)
+	public void setEngine(IDatabaseEngine engine)
 	{
 		this.engine = engine;
 		engineType = engine.getDatabaseType();

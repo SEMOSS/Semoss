@@ -13,8 +13,8 @@ import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -165,7 +165,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating database metadata");
-		Owler owler = new Owler(owlFile.getAbsolutePath(), IDatabase.DATABASE_TYPE.RDBMS);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), IDatabaseEngine.DATABASE_TYPE.RDBMS);
 		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
@@ -286,7 +286,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 	 * @param logger
 	 * @throws IOException
 	 */
-	private void bulkInsertFile(IDatabase database, CSVFileHelper helper, final String TABLE_NAME,
+	private void bulkInsertFile(IDatabaseEngine database, CSVFileHelper helper, final String TABLE_NAME,
 			String[] headers, SemossDataType[] types, String[] additionalTypes, 
 			boolean clean) throws IOException {
 

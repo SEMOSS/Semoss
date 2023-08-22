@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -81,9 +81,9 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 	}
 
 	public List<Object> getParamOptions(IProject project, String parameterID) {
-		IDatabase insightRDBMS = project.getInsightDatabase();
+		IDatabaseEngine insightRDBMS = project.getInsightDatabase();
 		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
-		IDatabase mainEngine = Utility.getDatabase(project.getProjectId());
+		IDatabaseEngine mainEngine = Utility.getDatabase(project.getProjectId());
 		
 		String query = GET_INFO_FOR_PARAM.replace(PARAMETER_ID_PARAM_KEY, parameterID);
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
@@ -135,7 +135,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 				if(paramQuery != null && !paramQuery.isEmpty()) {
 					//TODO: rdbms has type as null... this is confusing given the other comments here....
 					if(type != null && !type.isEmpty()) {
-						if (mainEngine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS) {
+						if (mainEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
 							if (type.contains(":")) {
 								String[] typeArray = type.split(":");
 								type = typeArray[1];
@@ -167,7 +167,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 	 * @param query
 	 * @return
 	 */
-	public List<Object> getRawValues(IDatabase engine, String query) {
+	public List<Object> getRawValues(IDatabaseEngine engine, String query) {
 		List<Object> ret = new Vector<Object>();
 		IRawSelectWrapper wrap = null;
 		try {

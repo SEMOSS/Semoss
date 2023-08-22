@@ -59,7 +59,7 @@ import com.hp.hpl.jena.rdf.model.Resource;
 
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdf.InMemoryJenaEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
@@ -121,7 +121,7 @@ public class GraphDataModel implements IDataMaker {
 	Hashtable<String, SEMOSSVertex> incrementalVertPropStore = null;
 	Hashtable<String, SEMOSSEdge> incrementalEdgeStore = null;
 
-	IDatabase coreEngine;
+	IDatabaseEngine coreEngine;
 	String coreQuery;
 	
 	
@@ -153,7 +153,7 @@ public class GraphDataModel implements IDataMaker {
 		return this.search;
 	}
 
-	public void overlayData(String query, IDatabase engine){
+	public void overlayData(String query, IDatabaseEngine engine){
 
 		subjects = new StringBuffer(""); // remove from the old one
 		objects = new StringBuffer(""); // remove fromt he old one
@@ -182,7 +182,7 @@ public class GraphDataModel implements IDataMaker {
 		processTraverseCourse();
 	}
 	
-	public void overlayData(Iterator<IConstructStatement> it, IDatabase engine){
+	public void overlayData(Iterator<IConstructStatement> it, IDatabaseEngine engine){
 
 		subjects = new StringBuffer(""); // remove from the old one
 		objects = new StringBuffer(""); // remove fromt he old one
@@ -211,7 +211,7 @@ public class GraphDataModel implements IDataMaker {
 		processTraverseCourse();
 	}
 
-	public void createModel(String query, IDatabase engine){
+	public void createModel(String query, IDatabaseEngine engine){
 		if(method == CREATION_METHOD.OVERLAY){
 			overlayData(query, engine);
 		}
@@ -223,7 +223,7 @@ public class GraphDataModel implements IDataMaker {
 	//it will use the rc to create edge and node properties
 	//and then nodes and edges
 	boolean test = true;
-	public void fillStoresFromModel(IDatabase engine){
+	public void fillStoresFromModel(IDatabaseEngine engine){
 		if(rc!=null){
 			if(containsRelation == null)
 				containsRelation = findContainsRelation();
@@ -232,8 +232,8 @@ public class GraphDataModel implements IDataMaker {
 			RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this, subclassCreate);
 			RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
 
-			boolean isRDF = (engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA || 
-					engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
+			boolean isRDF = (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA || 
+					engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
 
 			String baseConceptSelectQuery = null;
 			// the queries below needs to be instrumented later to come from engine
@@ -255,7 +255,7 @@ public class GraphDataModel implements IDataMaker {
 							"BIND(\"\" AS ?Object)" +
 							"}";
 			}
-			else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
+			else if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS)
 			{
 				// change the query here
 				baseConceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {"
@@ -297,7 +297,7 @@ public class GraphDataModel implements IDataMaker {
 
 
 			}
-			else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
+			else if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS)
 			{
 				predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {"
 						+ "{?Subject ?Predicate ?Object} "
@@ -315,7 +315,7 @@ public class GraphDataModel implements IDataMaker {
 		}
 	}
 	
-	public void processData(Iterator<IConstructStatement> sjw, IDatabase engine) {
+	public void processData(Iterator<IConstructStatement> sjw, IDatabaseEngine engine) {
 		/*logger.debug("Query is " + query);
 		sjw.setEngine(engine);
 		sjw.setQuery(query);
@@ -384,26 +384,26 @@ public class GraphDataModel implements IDataMaker {
 				//predData.addPredicateAvailable(st.getPredicate());//, st.getPredicate());
 
 				if(subjects.indexOf("(<" + st.getSubject() + ">)") < 0) {
-					if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS) // RDBMS because the the in memory is RDBMS
+					if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS) // RDBMS because the the in memory is RDBMS
 						subjects.append("(<").append(st.getSubject()).append(">)");
-					else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
+					else if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
 						subjects.append("<").append(st.getSubject()).append(">");
 					// do the block for RDBMS - For RDBMS - What I really need are the instances - actually I dont need anything
 				}
 
 				if(predicates.indexOf("(<" + st.getPredicate() +">)") < 0) {
-					if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
+					if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS)
 						predicates.append("(<").append(st.getPredicate()).append(">)");
-					else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
+					else if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
 						predicates.append("<").append(st.getPredicate()).append(">");
 				}
 
 				//TODO: need to find a way to do this for jena too
 				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal)) {			
 					if(objects.indexOf("(<" + obj +">)") < 0) {
-						if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.RDBMS)
+						if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS)
 							objects.append("(<" + obj +">)");
-						else if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA)
+						else if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
 							objects.append("<" + obj +">");
 					}
 				}
@@ -427,8 +427,8 @@ public class GraphDataModel implements IDataMaker {
 				logger.info("done with processing base data");
 				// load the concept linkages
 				// the concept linkages are a combination of the base relationships and what is on the file
-				boolean isRDF = (engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabase.DATABASE_TYPE.JENA || 
-						engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
+				boolean isRDF = (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME || engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA || 
+						engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
 				boolean loadHierarchy = !(subjects.length()==0 && predicates.length()==0 && objects.length()==0) && isRDF; // Load Hierarchy if and only if this is a RDF Engine - else dont worry about it
 				if(loadHierarchy) {
 					try {
@@ -493,7 +493,7 @@ public class GraphDataModel implements IDataMaker {
 		modelCounter++;
 	}
 
-	public void processData(String query, IDatabase engine) {
+	public void processData(String query, IDatabaseEngine engine) {
 		this.coreEngine = engine; // right now we need this for logical names... really shouldn't be needed in this class at all
 		this.coreQuery = query;
 
@@ -765,7 +765,7 @@ public class GraphDataModel implements IDataMaker {
 		//IDatabase jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
-		IDatabase jenaEngine = new InMemorySesameEngine();
+		IDatabaseEngine jenaEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
 
@@ -816,7 +816,7 @@ public class GraphDataModel implements IDataMaker {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		IDatabase sesameEngine = new InMemorySesameEngine();
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(lastRC);
 		RDFEngineHelper.removeAllData(sesameEngine, rc);
 		//jenaModel.remove(lastModel);
@@ -834,7 +834,7 @@ public class GraphDataModel implements IDataMaker {
 		RepositoryConnection newRC = rcStore.elementAt(modelCounter-1);
 		//add redo model from repository connection
 
-		IDatabase sesameEngine = new InMemorySesameEngine();
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(newRC);
 		RDFEngineHelper.addAllData(sesameEngine, rc);
 		//jenaModel.add(newModel);
@@ -872,7 +872,7 @@ public class GraphDataModel implements IDataMaker {
 		//IDatabase jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
-		IDatabase jenaEngine = new InMemorySesameEngine();
+		IDatabaseEngine jenaEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
@@ -926,7 +926,7 @@ public class GraphDataModel implements IDataMaker {
 		//IDatabase jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
-		IDatabase jenaEngine = new InMemorySesameEngine();
+		IDatabaseEngine jenaEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
@@ -1162,7 +1162,7 @@ public class GraphDataModel implements IDataMaker {
 		return jenaModel;
 	}
 
-	public void removeView(String query, IDatabase engine){
+	public void removeView(String query, IDatabaseEngine engine){
 		// this will extend it
 		// i.e. Checks to see if the node is available
 		// if the node is not already there then this predicate wont be added
@@ -1223,7 +1223,7 @@ public class GraphDataModel implements IDataMaker {
 
 	}
 
-	public void loadBaseData(IDatabase engine){
+	public void loadBaseData(IDatabaseEngine engine){
 		// now add the base relationships to the metamodel
 		// this links the hierarchy that tool needs to the metamodel being queried
 		// eventually this could be a SPIN
@@ -1279,7 +1279,7 @@ public class GraphDataModel implements IDataMaker {
 		return false;
 	}
 
-	public IDatabase getEngine(){
+	public IDatabaseEngine getEngine(){
 		return this.coreEngine;
 	}
 

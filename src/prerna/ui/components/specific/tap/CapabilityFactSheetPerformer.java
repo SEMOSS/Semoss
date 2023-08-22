@@ -35,7 +35,7 @@ import java.util.Hashtable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -59,7 +59,7 @@ public class CapabilityFactSheetPerformer {
 	 * @return list 		ArrayList<ArrayList<Object>> containing the results of the query 
 	 */
 	public ArrayList<Object> runListQuery(String engineName, String query) {
-		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -101,7 +101,7 @@ public class CapabilityFactSheetPerformer {
 	 * @return list 		ArrayList<ArrayList<Object>> containing the results of the query 
 	 */
 	public ArrayList<ArrayList<Object>> runQuery(String engineName, String query) {
-		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		
@@ -508,7 +508,7 @@ public class CapabilityFactSheetPerformer {
 	 */
 	public Hashtable processSystemQueries(String capabilityName) {
 		DHMSMHelper dhelp = new DHMSMHelper();
-		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(tapCoreDB);
+		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
 		dhelp.runData(engine);
 		
 		ArrayList<ArrayList<String>> capProvideSysProvideResultsList = dhelp.getSysAndData(capabilityName, "C", "C");

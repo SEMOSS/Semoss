@@ -44,7 +44,7 @@ import javax.swing.JToggleButton;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.project.api.IProject;
@@ -94,7 +94,7 @@ public class QuestionListener implements IChakraListener {
 			// get the selected repository
 			List<String> selectedValuesList = list.getSelectedValuesList();
 			String selectedEngine = selectedValuesList.get(selectedValuesList.size()-1).toString();
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(selectedEngine);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
 
 			IProject project = Utility.getProject(engine.getEngineId());
 			OldInsight in = (OldInsight) project.getInsight(questionID).get(0);

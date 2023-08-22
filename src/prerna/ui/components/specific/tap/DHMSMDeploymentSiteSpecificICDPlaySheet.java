@@ -34,7 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.ArrayUtilityMethods;
@@ -108,7 +108,7 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 			siteData = DHMSMDeploymentHelper.getSysAtSitesInDeploymentPlan(engine);
 		}
 		if(centrallyDeployedSystems == null) {
-			IDatabase tapCoreDB = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			IDatabaseEngine tapCoreDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			centrallyDeployedSystems = DHMSMDeploymentHelper.getCentrallyDeployedSystems(tapCoreDB);
 		}
 	}

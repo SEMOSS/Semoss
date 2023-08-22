@@ -30,14 +30,14 @@ package prerna.ui.components.specific.tap;
 import java.io.IOException;
 import java.util.HashSet;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 
 public class AllDHMSMIntegrationTransitionCostProcessor {
 
 	public void runAllReports() throws IOException {
-		IDatabase TAP_Core_Data = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		IDatabaseEngine TAP_Core_Data = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(TAP_Core_Data == null) {
 			throw new IOException("Database not found");
 		}

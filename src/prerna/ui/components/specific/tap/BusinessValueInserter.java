@@ -8,7 +8,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.UpdateProcessor;
 import prerna.util.DIHelper;
 
@@ -35,7 +35,7 @@ public class BusinessValueInserter {
 	 *            Name of property
 	 */
 	private void inserter(HashMap<String, Double> bvHash, String propName) {
-		IDatabase tapCoreData = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		IDatabaseEngine tapCoreData = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		
 		// Loop through entire hashmap and create a giant insert query to be run by UpdateProcessor
 		String insertQuery = prepareInsert(bvHash, propName);

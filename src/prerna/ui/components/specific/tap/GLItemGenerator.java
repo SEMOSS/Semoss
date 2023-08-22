@@ -35,7 +35,7 @@ import java.util.Vector;
 
 import javax.swing.JList;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.POIWriter;
@@ -1280,7 +1280,7 @@ public class GLItemGenerator {
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo[0]+"");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
@@ -1332,7 +1332,7 @@ public class GLItemGenerator {
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

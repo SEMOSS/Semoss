@@ -17,7 +17,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -48,7 +48,7 @@ public class WebScrapeEngine extends JsonAPIEngine {
 	
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabase.DATABASE_TYPE.WEB;
+		return IDatabaseEngine.DATABASE_TYPE.WEB;
 	}
 	
 	@Override

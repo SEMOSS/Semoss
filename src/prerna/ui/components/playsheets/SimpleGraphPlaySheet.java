@@ -33,7 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.URI;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.engine.impl.rdf.SesameJenaConstructStatement;
 import prerna.engine.impl.rdf.SesameJenaConstructWrapper;
@@ -90,14 +90,14 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 	
 				if(subjects.indexOf(st.getSubject()) < 0)
 				{
-					if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME)
+					if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME)
 						subjects.append("(<" + st.getSubject() + ">)");
 					else
 						subjects.append("<" + st.getSubject() + ">");
 				}
 				if(predicates.indexOf(st.getPredicate()) < 0)
 				{
-					if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME)
+					if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME)
 						predicates.append("(<" + st.getPredicate() +">)");
 					else
 						predicates.append( "<" + st.getPredicate() +">");
@@ -107,7 +107,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 				{			
 					if(objects.indexOf(obj+"") < 0)
 					{
-						if(engine.getDatabaseType() == IDatabase.DATABASE_TYPE.SESAME)
+						if(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME)
 							objects.append("(<" + obj +">)");
 						else
 							objects.append("<" + obj +">");
@@ -165,7 +165,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 		//IDatabase jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
-		IDatabase jenaEngine = new InMemorySesameEngine();
+		IDatabaseEngine jenaEngine = new InMemorySesameEngine();
 //		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
@@ -230,7 +230,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 		//IDatabase jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
-		IDatabase jenaEngine = new InMemorySesameEngine();
+		IDatabaseEngine jenaEngine = new InMemorySesameEngine();
 //		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();

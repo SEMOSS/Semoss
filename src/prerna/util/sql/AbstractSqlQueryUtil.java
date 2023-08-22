@@ -61,7 +61,7 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.Owler;
@@ -358,7 +358,7 @@ public abstract class AbstractSqlQueryUtil {
 		return AbstractSqlQueryUtil.PASSWORD;
 	}
 
-	public IQueryInterpreter getInterpreter(IDatabase engine) {
+	public IQueryInterpreter getInterpreter(IDatabaseEngine engine) {
 		return new SqlInterpreter(engine);
 	}
 
@@ -1528,7 +1528,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public boolean tableExists(IDatabase engine, String tableName, String database, String schema) {
+	public boolean tableExists(IDatabaseEngine engine, String tableName, String database, String schema) {
 		String query = this.tableExistsQuery(tableName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1557,7 +1557,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public boolean indexExists(IDatabase engine, String indexName, String tableName, String database, String schema) {
+	public boolean indexExists(IDatabaseEngine engine, String indexName, String tableName, String database, String schema) {
 		String indexCheckQ = this.getIndexDetails(indexName, tableName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1625,7 +1625,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public boolean tableConstraintExists(IDatabase engine, String constraintName, String tableName, String database, String schema) {
+	public boolean tableConstraintExists(IDatabaseEngine engine, String constraintName, String tableName, String database, String schema) {
 		String query = this.tableConstraintExistsQuery(constraintName, tableName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1691,7 +1691,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param schema
 	 * @return
 	 */
-	public boolean referentialConstraintExists(IDatabase engine, String constraintName, String database, String schema) {
+	public boolean referentialConstraintExists(IDatabaseEngine engine, String constraintName, String database, String schema) {
 		String query = this.referentialConstraintExistsQuery(constraintName, database, schema);
 		IRawSelectWrapper wrapper = null;
 		try {

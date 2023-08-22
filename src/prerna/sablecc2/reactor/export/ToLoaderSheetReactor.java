@@ -26,8 +26,8 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.date.SemossDate;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -69,7 +69,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to specify the app to export");
 		}
 		String appId = MasterDatabaseUtility.testDatabaseIdIfAlias(app);
-		IDatabase engine = Utility.getDatabase(appId);
+		IDatabaseEngine engine = Utility.getDatabase(appId);
 		if(engine == null) {
 			throw new IllegalArgumentException("Cannot find the specified app");
 		}
@@ -215,7 +215,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	}
 	
 	public static void writeNodePropSheet(
-			IDatabase engine, 
+			IDatabaseEngine engine, 
 			Workbook workbook,
 			CellStyle dateCellStyle,
 			CellStyle timeStampCellStyle,
@@ -310,7 +310,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	}
 	
 	public static void writeRelationshipSheet(
-			IDatabase engine, 
+			IDatabaseEngine engine, 
 			Workbook workbook, 
 			CellStyle dateCellStyle,
 			CellStyle timeStampCellStyle,
@@ -424,7 +424,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		loader.setColumnWidth(1, 5_000);
 	}
 	
-	public static String generateSparqlQuery(IDatabase engine, String startNode, String endNode, String relName, List<String> edgeProps) {
+	public static String generateSparqlQuery(IDatabaseEngine engine, String startNode, String endNode, String relName, List<String> edgeProps) {
 		String query = null;
 		if(edgeProps.isEmpty()) {
 			query = "select distinct ?start ?end where { "
@@ -452,7 +452,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		return query;
 	}
 	
-	public static List<String> getEdgeProperties(IDatabase engine, String startNode, String endNode, String relName) {
+	public static List<String> getEdgeProperties(IDatabaseEngine engine, String startNode, String endNode, String relName) {
 		String startQ = "select distinct ?propUri where { "
 				+ "{?start a <" + startNode + ">}"
 				+ "{?end a <" + endNode + ">}"

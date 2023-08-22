@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -51,7 +51,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		setOwlerValues(database, owler);
 		
 		for(int i = 0; i < size; i++) {

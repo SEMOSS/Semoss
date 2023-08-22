@@ -1,6 +1,6 @@
 package prerna.engine.impl.rdbms;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.ImpalaSqlInterpreter;
 
@@ -36,7 +36,7 @@ public class ImpalaEngine extends RDBMSNativeEngine {
 	
 	@Deprecated
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabase.DATABASE_TYPE.IMPALA;
+		return IDatabaseEngine.DATABASE_TYPE.IMPALA;
 	}
 
 }

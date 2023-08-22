@@ -36,7 +36,7 @@ import javax.swing.JComponent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.poi.main.RelationshipLoadingSheetWriter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
@@ -57,7 +57,7 @@ public class ExportRelationshipsLoadSheetsListener implements IChakraListener {
 	public void actionPerformed(ActionEvent arg0) {
 		
 		JComboBox exportDataSourceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
 		
 		ArrayList<String[]> relationships = new ArrayList<String[]>();
 		for(int i = 1; i <= Constants.MAX_EXPORTS; i++) {

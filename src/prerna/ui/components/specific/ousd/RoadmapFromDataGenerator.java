@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -13,7 +13,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
 	OUSDTimeline timeline = new OUSDTimeline();
-	IDatabase roadmapEngine;
+	IDatabaseEngine roadmapEngine;
 	String sysOwner;
 
 	String systemBindings;
@@ -22,7 +22,7 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 	double interfaceSustainmentPercent = 0.18;
 
 	@Override
-	public void createTimeline(IDatabase engine, String owner){
+	public void createTimeline(IDatabaseEngine engine, String owner){
 		roadmapEngine = engine;
 		sysOwner = owner;			
 		queryForRoadmap();
@@ -220,7 +220,7 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 	}
 
 	@Override
-	public void createTimeline(IDatabase engine){
+	public void createTimeline(IDatabaseEngine engine){
 		createTimeline(engine, "DFAS");
 	}
 }

@@ -30,7 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -43,7 +43,7 @@ public class EAFunctionalGapHelper {
 	Double activityDataSum = 0.0;
 	Double activityBLUSum = 0.0;
 	
-	ArrayList<String> getStringList(String query, IDatabase engine) {
+	ArrayList<String> getStringList(String query, IDatabaseEngine engine) {
 		ArrayList<String> finalList = new ArrayList<String>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -54,7 +54,7 @@ public class EAFunctionalGapHelper {
 		return finalList;
 	}
 	
-	HashMap<String, ArrayList<String>> getStringListMap(String query, IDatabase engine) {
+	HashMap<String, ArrayList<String>> getStringListMap(String query, IDatabaseEngine engine) {
 		HashMap<String, ArrayList<String>> finalMap = new HashMap<String, ArrayList<String>>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -72,7 +72,7 @@ public class EAFunctionalGapHelper {
 		return finalMap;
 	}
 	
-	HashMap<String, ArrayList<String>> getRawOCONListMap(String query, IDatabase engine) {
+	HashMap<String, ArrayList<String>> getRawOCONListMap(String query, IDatabaseEngine engine) {
 		HashMap<String, ArrayList<String>> finalMap = new HashMap<String, ArrayList<String>>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -90,7 +90,7 @@ public class EAFunctionalGapHelper {
 		return finalMap;
 	}
 	
-	HashMap<String, String> getStringMap(String query, IDatabase engine) {
+	HashMap<String, String> getStringMap(String query, IDatabaseEngine engine) {
 		HashMap<String, String> finalMap = new HashMap<String, String>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -103,7 +103,7 @@ public class EAFunctionalGapHelper {
 		return finalMap;
 	}
 	
-	HashMap<String, String> getBPProdMap(String query, IDatabase engine) {
+	HashMap<String, String> getBPProdMap(String query, IDatabaseEngine engine) {
 		HashMap<String, String> finalMap = new HashMap<String, String>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -116,7 +116,7 @@ public class EAFunctionalGapHelper {
 		return finalMap;
 	}
 	
-	HashMap<String, String> getWaveMap(String query, IDatabase engine) {
+	HashMap<String, String> getWaveMap(String query, IDatabaseEngine engine) {
 		HashMap<String, String> finalMap = new HashMap<String, String>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -133,7 +133,7 @@ public class EAFunctionalGapHelper {
 		return finalMap;
 	}
 	
-	HashMap<String, ArrayList<String[]>> getStringListArrayMap(String query, IDatabase engine) {
+	HashMap<String, ArrayList<String[]>> getStringListArrayMap(String query, IDatabaseEngine engine) {
 		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -150,7 +150,7 @@ public class EAFunctionalGapHelper {
 		return finalMap;
 	}
 	
-	HashMap<String, ArrayList<String[]>> getRawOCONArrayMap(String query, IDatabase engine) {
+	HashMap<String, ArrayList<String[]>> getRawOCONArrayMap(String query, IDatabaseEngine engine) {
 		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -197,7 +197,7 @@ public class EAFunctionalGapHelper {
 	}
 	
 	// Effectiveness methods
-	HashMap<String, String[]> getFGPropArray(String query, IDatabase engine) {
+	HashMap<String, String[]> getFGPropArray(String query, IDatabaseEngine engine) {
 		HashMap<String, String[]> fgMap = new HashMap<String, String[]>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -210,7 +210,7 @@ public class EAFunctionalGapHelper {
 		return fgMap;
 	}
 	
-	HashMap<String, HashMap<String, Double>> getDoubleMap(String query, IDatabase engine) {
+	HashMap<String, HashMap<String, Double>> getDoubleMap(String query, IDatabaseEngine engine) {
 		HashMap<String, HashMap<String, Double>> finalMap = new HashMap<String, HashMap<String, Double>>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -227,7 +227,7 @@ public class EAFunctionalGapHelper {
 		return finalMap;
 	}
 	
-	Double getTotalCount(String query, IDatabase engine) {
+	Double getTotalCount(String query, IDatabaseEngine engine) {
 		Double total = 0.0;
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] values = sjsw.getVariables();
@@ -359,7 +359,7 @@ public class EAFunctionalGapHelper {
 		HashMap<String, Double> fccCost = new HashMap<String, Double>();
 		String siteEngineName = "TAP_Site_Data";
 		String fccQuery = "SELECT DISTINCT ?FCC (SUM(?TotalCost) AS ?Cost) WHERE { SELECT DISTINCT ?MTF ?FCC ?TotalCost WHERE{ {?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>}{?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}} GROUP BY ?FCC";
-		IDatabase siteEngine = (IDatabase) DIHelper.getInstance().getLocalProp(siteEngineName);
+		IDatabaseEngine siteEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
 		
 		/*
 		 * ISelectWrapper siteWrapper = new ISelectWrapper(); if (siteEngine == null) {
@@ -393,7 +393,7 @@ public class EAFunctionalGapHelper {
 	HashMap<String, HashMap<String, Double>> getCostPerYear() {
 		HashMap<String, HashMap<String, Double>> fccCost = new HashMap<String, HashMap<String, Double>>();
 		String siteEngineName = "TAP_Site_Data";
-		IDatabase siteEngine = (IDatabase) DIHelper.getInstance().getLocalProp(siteEngineName);
+		IDatabaseEngine siteEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
 		String fccmtfYearQuery = "SELECT DISTINCT ?FCCMTF ?Year WHERE {{?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}} ORDER BY ASC(?Year)";
 		String fccmtfCostQuery = "SELECT DISTINCT ?FCCMTF ?TotalCost WHERE {{?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}";
 		HashMap<String, String> fccmtfYear = getStringMap(fccmtfYearQuery, siteEngine);

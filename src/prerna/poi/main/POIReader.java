@@ -52,7 +52,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.openrdf.sail.SailException;
 
 import prerna.date.SemossDate;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.excel.ExcelParsing;
@@ -136,7 +136,7 @@ public class POIReader extends AbstractFileReader {
 	 * @throws FileWriterException
 	 * @throws InvalidUploadFormatException
 	 */
-	public IDatabase importFileWithOutConnection(ImportOptions options)
+	public IDatabaseEngine importFileWithOutConnection(ImportOptions options)
 			throws FileNotFoundException, IOException {
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
@@ -177,7 +177,7 @@ public class POIReader extends AbstractFileReader {
 		return engine;
 	}
 
-	public IDatabase importFileWithOutConnectionRDBMS(ImportOptions options) throws FileNotFoundException, IOException {
+	public IDatabaseEngine importFileWithOutConnectionRDBMS(ImportOptions options) throws FileNotFoundException, IOException {
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
 		String fileNames = options.getFileLocations();
@@ -251,7 +251,7 @@ public class POIReader extends AbstractFileReader {
 			String parentURI = owler.addConcept( Utility.cleanString(row.getCell(0).toString(), true) );
 			String childURI = owler.addConcept( Utility.cleanString(row.getCell(1).toString(), true) );
 			// add triples to engine
-			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{childURI, pred, parentURI, true});
+			engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childURI, pred, parentURI, true});
 			// add triples to OWL
 			owler.addSubclass(childNode, parentNode);
 		}

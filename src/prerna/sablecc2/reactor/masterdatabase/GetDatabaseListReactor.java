@@ -6,8 +6,8 @@ import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -51,8 +51,8 @@ public class GetDatabaseListReactor extends AbstractReactor {
 		// create filters
 		List<String> appTypeFilter = new Vector<String>();
 		for(String appFilter : retTypes) {
-			DATABASE_TYPE dbType = IDatabase.DATABASE_TYPE.valueOf(appFilter);
-			if(dbType == IDatabase.DATABASE_TYPE.RDBMS) {
+			DATABASE_TYPE dbType = IDatabaseEngine.DATABASE_TYPE.valueOf(appFilter);
+			if(dbType == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
 				// grab lower level rdbms types to filter
 				for( RdbmsTypeEnum rdbmsType: RdbmsTypeEnum.values()) {
 					appTypeFilter.add(rdbmsType.getLabel());

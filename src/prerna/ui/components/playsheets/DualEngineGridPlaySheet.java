@@ -42,7 +42,7 @@ import javax.swing.JDesktopPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -60,8 +60,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	String query2;
 	String engineName1;
 	String engineName2;
-	IDatabase engine1;
-	IDatabase engine2;
+	IDatabaseEngine engine1;
+	IDatabaseEngine engine2;
 	LinkedHashMap<Object, ArrayList<Object[]>> dataHash1 = new LinkedHashMap<Object, ArrayList<Object[]>>();
 	LinkedHashMap<Object, ArrayList<Object[]>> dataHash2 = new LinkedHashMap<Object, ArrayList<Object[]>>();
 	private int names1size;
@@ -78,7 +78,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
-	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabase)}, and {@link #setTitle(String)} so that the play 
+	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabaseEngine)}, and {@link #setTitle(String)} so that the play 
 	 * sheet is displayed correctly when the view is first created.  It generally creates the model for visualization from 
 	 * the specified engine, then creates the visualization, and finally displays it on the specified desktop pane
 	 * 
@@ -277,11 +277,11 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			String token = queryTokens.nextToken();
 			if (queryIdx == 0){
 				this.engineName1 = token;
-				this.engine1 = (IDatabase) DIHelper.getInstance().getLocalProp(engineName1);
+				this.engine1 = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName1);
 			}
 			else if (queryIdx == 1){
 				this.engineName2 = token;
-				this.engine2 = (IDatabase) DIHelper.getInstance().getLocalProp(engineName2);
+				this.engine2 = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName2);
 			}
 			else if (queryIdx == 2)
 				this.query1 = token;

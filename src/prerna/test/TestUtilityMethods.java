@@ -9,7 +9,7 @@ import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -57,7 +57,7 @@ public final class TestUtilityMethods {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		String engineProp = baseFolder + "\\db\\LocalMasterDatabase.smss";
-		IDatabase coreEngine = new RDBMSNativeEngine();
+		IDatabaseEngine coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("LocalMasterDatabase");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setEngineProperty("LocalMasterDatabase", coreEngine);

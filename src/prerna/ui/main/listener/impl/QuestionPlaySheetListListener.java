@@ -36,7 +36,7 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.om.OldInsight;
 import prerna.project.api.IProject;
 import prerna.ui.components.MapComboBoxRenderer;
@@ -76,7 +76,7 @@ public class QuestionPlaySheetListListener implements IChakraListener {
 					JComboBox<String> questionDBSelector = (JComboBox<String>) DIHelper.getInstance()
 							.getLocalProp(Constants.QUESTION_DB_SELECTOR);
 					String engineName = (String) questionDBSelector.getSelectedItem();
-					IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+					IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 					IProject project = Utility.getProject(engine.getEngineId());
 					OldInsight in = (OldInsight) project.getInsight(questionId).get(0);
 					questionLayoutField.setText(in.getOutput());

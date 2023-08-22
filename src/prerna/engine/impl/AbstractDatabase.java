@@ -51,7 +51,7 @@ import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -74,7 +74,7 @@ import prerna.util.Utility;
  * An Abstract Engine that sets up the base constructs needed to create an
  * engine.
  */
-public abstract class AbstractDatabase implements IDatabase {
+public abstract class AbstractDatabase implements IDatabaseEngine {
 
 	/**
 	 * Static members
@@ -535,7 +535,7 @@ public abstract class AbstractDatabase implements IDatabase {
 		return this.baseDataEngine.execQuery(query);
 	}
 
-	public String getMethodName(IDatabase.ACTION_TYPE actionType){
+	public String getMethodName(IDatabaseEngine.ACTION_TYPE actionType){
 		String retString = "";
 		switch(actionType) {
 		case ADD_STATEMENT: {
@@ -567,7 +567,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	}
 
 
-	public Object doAction(IDatabase.ACTION_TYPE actionType, Object[] args){
+	public Object doAction(IDatabaseEngine.ACTION_TYPE actionType, Object[] args){
 		// Iterate through methods on the engine -- do this on startup
 		// Find the method on the engine that matches the action type passed in
 		// pass the arguments and let it run
@@ -651,7 +651,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	
 	@Override
 	public Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery) {
-		IDatabase engine = this;
+		IDatabaseEngine engine = this;
 		if(!isDbQuery){
 			engine = this.baseDataEngine;
 		} 
@@ -1078,7 +1078,7 @@ public abstract class AbstractDatabase implements IDatabase {
 	
 	@Override
 	public String getCatalogType() {
-		return IDatabase.CATALOG_TYPE;
+		return IDatabaseEngine.CATALOG_TYPE;
 	}
 	
 	@Override

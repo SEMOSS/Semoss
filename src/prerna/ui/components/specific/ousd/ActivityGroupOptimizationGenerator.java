@@ -12,7 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import lpsolve.LpSolveException;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 
 public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
@@ -24,7 +24,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	boolean constraints = false;
 	
 	OUSDTimeline timeline = new OUSDTimeline();
-	IDatabase roadmapEngine;
+	IDatabaseEngine roadmapEngine;
 	String sysOwner;
 	ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
 	private String cleanActInsightString = "What clean groups can activities supporting a given E2E be put into?";
@@ -64,7 +64,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	List<Map<String, Double>> sustainmentMap = new ArrayList<Map<String, Double>>();
 
 	@Override
-	public void createTimeline(IDatabase engine, String owner){
+	public void createTimeline(IDatabaseEngine engine, String owner){
 		roadmapEngine = engine;
 		sysOwner = owner;
 		runOptimization();
@@ -549,7 +549,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	}
 
 	@Override
-	public void createTimeline(IDatabase engine) {
+	public void createTimeline(IDatabaseEngine engine) {
 		createTimeline(engine, "DFAS");
 	}
 

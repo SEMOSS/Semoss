@@ -16,7 +16,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.clients.AbstractCloudClient;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -105,7 +105,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 			for (String databaseId : databaseIds) {
 				String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
 				String key = alias + "__" + databaseId; 
-				IDatabase engine = null;
+				IDatabaseEngine engine = null;
 				try {
 					engine = Utility.getDatabase(databaseId);
 				} catch (Exception e) {

@@ -45,7 +45,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -64,7 +64,7 @@ public class RelationshipLoadingSheetWriter {
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	
-	public void writeRelationshipLoadingSheets(IDatabase engine, ArrayList<String[]> relationships) {
+	public void writeRelationshipLoadingSheets(IDatabaseEngine engine, ArrayList<String[]> relationships) {
 		
 		Hashtable<String, Vector<String[]>> hash = queryData(engine, relationships);
 		
@@ -114,7 +114,7 @@ public class RelationshipLoadingSheetWriter {
 			Utility.showMessage("Exported relationships successfully: " + fileLoc);
 	}
 
-	private Hashtable<String, Vector<String[]>> queryData(IDatabase engine, ArrayList<String[]> relationships) {
+	private Hashtable<String, Vector<String[]>> queryData(IDatabaseEngine engine, ArrayList<String[]> relationships) {
 
 		Hashtable<String, Vector<String[]>> hash = new Hashtable<String, Vector<String[]>>();
 		//Iterate through each relationship, grab data, store in hashtable

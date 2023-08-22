@@ -39,13 +39,13 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.main.listener.specific.tap.HighSystemCheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
 
 @SuppressWarnings("serial")
 public class DHMSMHighSystemSelectPanel extends JPanel {
-	public IDatabase engine;
+	public IDatabaseEngine engine;
 	String header = "Select Systems:";
 	public JCheckBox allSysCheckBox, ehrCoreCheckBox;
 	public SelectScrollList sysSelectDropDown;

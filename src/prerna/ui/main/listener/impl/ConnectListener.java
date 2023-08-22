@@ -37,7 +37,7 @@ import javax.swing.JTextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -73,7 +73,7 @@ public class ConnectListener implements IChakraListener {
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
 			String repoName = repos[repoIndex] +"";
-			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repoName);
+			IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repoName);
 			if(!engine.isConnected())
 			{
 				logger.info("Attempting to Connect " + repoName);

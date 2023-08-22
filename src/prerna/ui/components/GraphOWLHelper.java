@@ -31,7 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.engine.impl.rdf.SesameJenaConstructStatement;
 import prerna.engine.impl.rdf.SesameJenaSelectCheater;
@@ -55,7 +55,7 @@ public class GraphOWLHelper {
 	 */
 	public static void loadConceptHierarchy(RepositoryConnection rc, String subjects, String objects, GraphDataModel ps) throws Exception
 	{
-		IDatabase sesameEngine = new InMemorySesameEngine();
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
 		String conceptHierarchyForSubject = "SELECT ?Subject ?Predicate ?Object WHERE " +
 			"{" +
@@ -94,7 +94,7 @@ public class GraphOWLHelper {
 	 */
 	public static void loadRelationHierarchy(RepositoryConnection rc, String predicates, GraphDataModel ps) throws Exception
 	{
-		IDatabase sesameEngine = new InMemorySesameEngine();
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "SELECT ?Subject ?Predicate ?Object WHERE " +
@@ -134,7 +134,7 @@ public class GraphOWLHelper {
 	 */
 	public static void loadPropertyHierarchy(RepositoryConnection rc, String predicates, String containsRelation, GraphDataModel ps) throws Exception
 	{
-		IDatabase sesameEngine = new InMemorySesameEngine();
+		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "SELECT ?Subject ?Predicate ?Object WHERE " +

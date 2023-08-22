@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.upload.modifications;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineModifier;
 import prerna.engine.impl.modifications.EngineModificationFactory;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -54,7 +54,7 @@ public class AddDatabaseIndexReactor extends AbstractReactor {
 		}
 		boolean forceIndex = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[4]));
 		
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);
 		if(modifier == null) {
 			throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");

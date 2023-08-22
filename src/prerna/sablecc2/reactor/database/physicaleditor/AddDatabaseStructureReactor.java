@@ -11,7 +11,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -57,7 +57,7 @@ public class AddDatabaseStructureReactor extends AbstractReactor {
 		// table > column > type
 		Map<String, Map<String, String>> updates = getAdditions();
 		
-		IDatabase engine = Utility.getDatabase(databaseId);
+		IDatabaseEngine engine = Utility.getDatabase(databaseId);
 		if(!(engine instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("This operation only works on relational databases");
 		}

@@ -36,7 +36,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import edu.uci.ics.jung.graph.DelegateForest;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -74,7 +74,7 @@ public class SubclassingMapGenerator {
 	}
 	
 	//engine is the baseDataEngine (OWL file)
-	public Map<String, Map> processSubclassing(IDatabase engine) {
+	public Map<String, Map> processSubclassing(IDatabaseEngine engine) {
 		final String GET_SUBCLASSED_CONCEPTS = "SELECT DISTINCT ?parent ?child WHERE { FILTER(?parent != <http://semoss.org/ontologies/Concept>) FILTER(?child != <http://semoss.org/ontologies/Concept>) FILTER(?parent != ?child) {?parent <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?parent} }";		
 		
 		ISelectWrapper sjsw = Utility.processQuery(engine, GET_SUBCLASSED_CONCEPTS);

@@ -38,7 +38,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.specific.tap.QueryProcessor;
 import prerna.ui.helpers.EntityFiller;
@@ -55,7 +55,7 @@ public class DistanceDownstreamInserter {
 	static final Logger logger = LogManager.getLogger(DistanceDownstreamInserter.class.getName());
 	String RELATION_URI = null;
 	String PROP_URI = null;
-	IDatabase engine;
+	IDatabaseEngine engine;
 	double depreciationRate;
 	double appreciationRate;
 
@@ -151,7 +151,7 @@ public class DistanceDownstreamInserter {
 	 * Sets the engine.
 	 * @param e IDatabase		Engine to be set.
 	 */
-	public void setEngine(IDatabase e){
+	public void setEngine(IDatabaseEngine e){
 		this.engine = e;
 	}
 	

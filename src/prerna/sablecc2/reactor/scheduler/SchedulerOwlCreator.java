@@ -106,8 +106,8 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Utility;
@@ -115,7 +115,7 @@ import prerna.util.Utility;
 public class SchedulerOwlCreator {
 	
 	private static List<String> conceptsRequired = new Vector<>();
-	private IDatabase schedulerDb;
+	private IDatabaseEngine schedulerDb;
 
 	static {
 		conceptsRequired.add(QRTZ_CALENDARS);
@@ -135,7 +135,7 @@ public class SchedulerOwlCreator {
 		conceptsRequired.add(SMSS_JOB_TAGS);
 	}
 
-	public SchedulerOwlCreator(IDatabase schedulerDb) {
+	public SchedulerOwlCreator(IDatabaseEngine schedulerDb) {
 		this.schedulerDb = schedulerDb;
 	}
 

@@ -45,7 +45,7 @@ import javax.swing.JTextField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.ReportSheetWriter;
@@ -122,7 +122,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 			
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo[0]+"");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
 
 		//for each individual sheet add to hash with output as name of sheet.
 		
@@ -219,7 +219,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 		String query="SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?Phase <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase> ;}{?System ?Phase ?LifeCycle ;}} BINDINGS ?LifeCycle {(<http://health.mil/ontologies/Concept/LifeCycle/Retired_(Not_Supported)>)}";
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo[0]+"");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
 
 		ArrayList<String> decomSystems = new ArrayList<String>();
 		String[] names=null;

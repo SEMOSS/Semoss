@@ -36,7 +36,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.helpers.EntityFillerForSubClass;
@@ -93,7 +93,7 @@ public class LoadSheetExportClearAllListener implements IChakraListener {
 			ParamComboBox subjectNodeTypeComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + i);
 			boxes.add(subjectNodeTypeComboBox);
 		}
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repo);
 		EntityFillerForSubClass entityFillerSC = new EntityFillerForSubClass();
 		entityFillerSC.boxes = boxes;
 		entityFillerSC.engine = engine;

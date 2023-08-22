@@ -12,7 +12,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -67,7 +67,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	private static final String OFFSET = "SKIP";
 	private static final String LIMIT = "LIMIT";
 
-	protected transient IDatabase engine;
+	protected transient IDatabaseEngine engine;
 	// identify the name for the type of the name
 	protected Map<String, String> typeMap;
 	// identify the name for the vertex label
@@ -394,7 +394,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 
 	//////////////////////////////////// start adding filters
 	//////////////////////////////////// ////////////////////////////////////
-	public void addFilters(List<IQueryFilter> filters, StringBuilder builder, boolean useAlias, IDatabase engine) {
+	public void addFilters(List<IQueryFilter> filters, StringBuilder builder, boolean useAlias, IDatabaseEngine engine) {
 		for (IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter, useAlias, engine);
 			if (filterSyntax != null) {
@@ -406,7 +406,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 
-	private StringBuilder processFilter(IQueryFilter filter, boolean useAlias, IDatabase engine) {
+	private StringBuilder processFilter(IQueryFilter filter, boolean useAlias, IDatabaseEngine engine) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
 		if (filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 			return processSimpleQueryFilter((SimpleQueryFilter) filter, useAlias);

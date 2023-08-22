@@ -6,7 +6,7 @@ import java.util.Map;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Utility;
@@ -76,7 +76,7 @@ public class RdbmsUploadReactorUtility {
 	 * @param types
 	 * @throws IOException 
 	 */
-	public static String[] createNewTable(IDatabase engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types, boolean replace) throws Exception {
+	public static String[] createNewTable(IDatabaseEngine engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types, boolean replace) throws Exception {
 		// we need to add the identity column
 		int size = types.length;
 		String[] sqlTypes = new String[size + 1];
@@ -126,7 +126,7 @@ public class RdbmsUploadReactorUtility {
 	 * @param columnName
 	 * @throws IOException 
 	 */
-	public static void addIndex(IDatabase engine, String tableName, String columnName) throws Exception {
+	public static void addIndex(IDatabaseEngine engine, String tableName, String columnName) throws Exception {
 		String indexName = columnName.toUpperCase() + "_INDEX";
 		String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + columnName.toUpperCase() + ")";
 		engine.insertData(indexSql);

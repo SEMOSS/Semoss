@@ -43,8 +43,8 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
 import prerna.util.Utility;
 
@@ -57,8 +57,8 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 	public transient GraphQueryResult gqr = null;	
 	transient Model model = null;
 	transient StmtIterator si = null;	
-	public transient IDatabase engine = null;
-	transient DATABASE_TYPE databaseType = IDatabase.DATABASE_TYPE.SESAME;
+	public transient IDatabaseEngine engine = null;
+	transient DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
 	transient String query = null;
 	transient com.hp.hpl.jena.rdf.model.Statement curSt = null;
 	transient SesameJenaConstructStatement retSt = null;
@@ -86,7 +86,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 	 * Method setEngine. Sets the engine.
 	 * @param engine IDatabase - The engine that this is being set to.
 	 */
-	public void setEngine(IDatabase engine)
+	public void setEngine(IDatabaseEngine engine)
 	{
 		this.engine = engine;
 		databaseType = engine.getDatabaseType();
@@ -108,16 +108,16 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 	public void execute() throws Exception
 	{
 		try {
-			if(databaseType == IDatabase.DATABASE_TYPE.SESAME)
+			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
 			{
 				gqr = (GraphQueryResult)engine.execQuery(this.query);
 			}
-			else if (databaseType == IDatabase.DATABASE_TYPE.JENA)
+			else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
 				model = (Model)engine.execQuery(query);
 				setModel(model);
 			}
-			else if(databaseType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				// get the actual SesameJenaConstructWrapper from the engine
 				// this is json output
@@ -151,20 +151,20 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 		try
 		{
 			logger.debug("Checking for next " );
-			if(databaseType == IDatabase.DATABASE_TYPE.SESAME)
+			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
 			{
 				retBool = gqr.hasNext();
 				if(!retBool)
 					gqr.close();
 			}
-			else if(databaseType == IDatabase.DATABASE_TYPE.JENA)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
 				retBool = si.hasNext();
 				if(!retBool)
 					si.close();
 			}
 			// need to include an engine type remote so that it can pull it through REST API
-			else if(databaseType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				if(retSt != null) // they have not picked it up yet
 					return true;
@@ -248,7 +248,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 		SesameJenaConstructStatement thisSt = null;
 		try
 		{
-			if(databaseType == IDatabase.DATABASE_TYPE.SESAME)
+			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
 			{
 				thisSt = new SesameJenaConstructStatement();
 				logger.debug("Adding a sesame statement ");
@@ -258,7 +258,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 				thisSt.setPredicate(stmt.getPredicate() + "");
 				
 			}
-			else if(databaseType == IDatabase.DATABASE_TYPE.JENA)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
 			{
 				thisSt = new SesameJenaConstructStatement();
 				com.hp.hpl.jena.rdf.model.Statement stmt = si.next();
@@ -282,7 +282,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 				else
 					thisSt.setObject(stmt.getObject());
 			}
-			else if(databaseType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
+			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
 				thisSt = retSt;
 				retSt = null;

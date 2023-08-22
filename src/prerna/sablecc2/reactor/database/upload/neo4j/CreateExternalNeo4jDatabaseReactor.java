@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.upload.neo4j;
 import java.io.File;
 import java.io.IOException;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.neo4j.Neo4jEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -68,7 +68,7 @@ public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGr
 	}
 
 	@Override
-	protected IDatabase generateEngine() {
+	protected IDatabaseEngine generateEngine() {
 		Neo4jEngine neo4jDatabase = new Neo4jEngine();
 		neo4jDatabase.setEngineId(this.newDatabaseId);
 		neo4jDatabase.setEngineName(this.newDatabaseName);

@@ -34,7 +34,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -49,11 +49,11 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 	private static final Logger logger = LogManager.getLogger(SysDHMSMInfoAtSitePlaySheet.class.getName());
 	private String GET_SYSTEMS_AT_SITE = "SELECT DISTINCT ?DCSite ?System WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite;} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } ORDER BY ?DCSite";
 	private String tapSiteDB = "TAP_Site_Data";
-	private IDatabase tapSiteEngine;
+	private IDatabaseEngine tapSiteEngine;
 
 	private String GET_SYSTEM_INFO = "SELECT DISTINCT ?System ?Disposition WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> ?Disposition} {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved'))}";
 	private String tapCoreDB = "TAP_Core_Data";
-	private IDatabase tapCoreEngine;
+	private IDatabaseEngine tapCoreEngine;
 
 	private Hashtable<String, Hashtable<String, Integer>> dataToAdd = new Hashtable<String, Hashtable<String, Integer>>();
 
@@ -75,8 +75,8 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 		//checking to see if databases are loaded
 		try
 		{
-			tapCoreEngine = (IDatabase) DIHelper.getInstance().getLocalProp(tapCoreDB);
-			tapSiteEngine = (IDatabase) DIHelper.getInstance().getLocalProp(tapSiteDB);
+			tapCoreEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(tapCoreDB);
+			tapSiteEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(tapSiteDB);
 			if(tapCoreEngine == null || tapSiteEngine==null)
 				throw new NullPointerException();
 		} catch (NullPointerException e) {

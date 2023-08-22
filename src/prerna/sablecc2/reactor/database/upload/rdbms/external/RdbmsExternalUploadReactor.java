@@ -27,8 +27,8 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -70,7 +70,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	protected transient Logger logger;
 	protected transient String databaseId;
 	protected transient String databaseName;
-	protected transient IDatabase database;
+	protected transient IDatabaseEngine database;
 	protected transient File databaseFolder;
 	protected transient File tempSmss;
 	protected transient File smssFile;
@@ -124,7 +124,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		if (databaseId != null && userPassedExisting != null) {
 			existingDatabase = Boolean.parseBoolean(userPassedExisting);
 			
-			IDatabase database = Utility.getDatabase(databaseId);
+			IDatabaseEngine database = Utility.getDatabase(databaseId);
 			if(database instanceof IRDBMSEngine) {
 				nativeDatabase = (IRDBMSEngine) database;
 			} else {
@@ -468,7 +468,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 	}
 
-	private List<String[]> getPhysicalRelationships(IDatabase database) {
+	private List<String[]> getPhysicalRelationships(IDatabaseEngine database) {
 		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
 				+ "{?start <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?end <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"

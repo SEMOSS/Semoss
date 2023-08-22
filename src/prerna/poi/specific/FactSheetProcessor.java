@@ -38,7 +38,7 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -86,7 +86,7 @@ public class FactSheetProcessor {
 	 */
 	public ArrayList runQuery(String engineName, String query) {
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -124,7 +124,7 @@ public class FactSheetProcessor {
 	 */
 	public ArrayList runLifeCycleQuery(String engineName, String query) {
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -182,7 +182,7 @@ public class FactSheetProcessor {
 		ArrayList<String> list = new ArrayList<String>();
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repo = (Object[]) repoList.getSelectedValues();
-		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(tapCoreEngine + "");
+		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(tapCoreEngine + "");
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
