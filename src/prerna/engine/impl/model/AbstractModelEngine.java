@@ -95,7 +95,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				keepConversationHistory = Boolean.parseBoolean((String) generalEngineProp.get("KEEP_CONTEXT"));
 				
 				// create a generic folder
-				this.workingDirecotry = "EM_MODEL_" + Utility.getRandomString(6);
+				this.workingDirecotry = "MODEL_" + Utility.getRandomString(6);
 				this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirecotry;
 				this.cacheFolder = new File(workingDirectoryBasePath);
 				
@@ -163,6 +163,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				parameters = new HashMap<String, Object>();
 			}
 			roomId = (String) parameters.get("ROOM_ID");
+
 			// everything should be recorded so we always need a roomId
 			if (roomId == null) {
 				roomId = UUID.randomUUID().toString();
@@ -180,16 +181,13 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				inputMap.put(MESSAGE_CONTENT, question);
 				outputMap.put(ROLE, "assistant");
 				outputMap.put(MESSAGE_CONTENT, response);
-		            
-		        chatHistory.get(roomId).add(inputMap);
-		        chatHistory.get(roomId).add(outputMap);
+		        
+				if (chatHistory.containsKey(roomId)) {
+			        chatHistory.get(roomId).add(inputMap);
+			        chatHistory.get(roomId).add(outputMap);
+				}
 			}
-			ModelEngineInferenceLogsWorker inferenceRecorder;
-			if (context != null) {
-				inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "ask", this, insight, context + "\n" + question, inputTime, response, outputTime);
-			} else {
-				inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "ask", this, insight, question, inputTime, response, outputTime);
-			}
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "ask", this, insight, context, question, inputTime, response, outputTime);
 			inferenceRecorder.run();
 		} else {
 			response = askQuestion(question, context, insight, parameters);
@@ -239,7 +237,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				outputMap.put(MESSAGE_CONTENT, output);
 			}
 			
-			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "embeddings", this, insight, question, inputTime, ModelInferenceLogsUtils.determineStringType(output), outputTime);
+			ModelEngineInferenceLogsWorker inferenceRecorder = new ModelEngineInferenceLogsWorker(roomId, messageId, "embeddings", this, insight, null, question, inputTime, ModelInferenceLogsUtils.determineStringType(output), outputTime);
 			inferenceRecorder.run();
 		} else {
 			output = pyt.runScript(callMaker.toString());
