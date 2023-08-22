@@ -440,7 +440,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 //		engine.setDatabase("Movie_DB");
 //		engine.setEngineId("Movie_DB");
 //		
-//		engine.openDB(null);
+//		engine.open(null);
 //		
 ////		System.out.println("Perspectives is .... " + engine.getPerspectives());
 //		

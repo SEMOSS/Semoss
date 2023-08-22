@@ -53,7 +53,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\FutureDB.smss";
 //		BigDataEngine coreEngine = new BigDataEngine();
 //		coreEngine.setEngineName("FutureDB");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		//TODO: put in correct db name
 //		coreEngine.setEngineName("FutureDB");
 //		DIHelper.getInstance().getCoreProp().setProperty("FutureDB_OWL", "C:\\workspace\\Semoss_Dev\\db\\FutureDB\\FutureDB_OWL.OWL");
@@ -62,7 +62,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\FutureCostDB.smss";
 //		coreEngine = new BigDataEngine();
 //		coreEngine.setEngineName("FutureCostDB");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		//TODO: put in correct db name
 //		coreEngine.setEngineName("FutureCostDB");
 //		DIHelper.getInstance().getCoreProp().setProperty("FutureCostDB_OWL", "C:\\workspace\\Semoss_Dev\\db\\FutureCostDB\\FutureCostDB_OWL.OWL");
@@ -71,7 +71,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
 //		coreEngine = new BigDataEngine();
 //		coreEngine.setEngineName("TAP_Core_Data");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		//TODO: put in correct db name
 //		coreEngine.setEngineName("TAP_Core_Data");
 //		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
@@ -79,7 +79,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Cost_Data.smss";
 //		coreEngine = new BigDataEngine();
 //		coreEngine.setEngineName("TAP_Cost_Data");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		//TODO: put in correct db name
 //		coreEngine.setEngineName("TAP_Cost_Data");
 //		DIHelper.getInstance().setLocalProperty("TAP_Cost_Data", coreEngine);

@@ -151,7 +151,7 @@
 //		PropertyConfigurator.configure(workingDir + "/log4j.prop");
 //
 //		reader.loadBDProperties(bdPropFile);
-//		reader.openDB();
+//		reader.open();
 //
 //		reader.openOWLWithOutConnection();
 //		ArrayList<String> files = new ArrayList<String>();
@@ -340,7 +340,7 @@
 //		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 //		createTypes();
 //		loadBDProperties(bdPropFile);
-//		openDB();
+//		open();
 //		openOWLWithOutConnection();
 //		for(int i = 0; i<files.length;i++)
 //		{
@@ -1113,7 +1113,7 @@
 //	 * Creates the database based on the engine properties 
 //	 * @throws RepositoryException 
 //	 */
-//	public void openDB() throws RepositoryException 
+//	public void open() throws RepositoryException 
 //	{
 //		// create database based on engine properties
 //		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");

@@ -1996,7 +1996,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("Movie_RDBMS");
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 	}
 

@@ -29,37 +29,37 @@ public class Compiler
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IDatabaseEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 
 		//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Input.smss";
 		//		coreEngine = new RDBMSNativeEngine();
 		//		coreEngine.setEngineName("Input");
-		//		coreEngine.openDB(engineProp);
+		//		coreEngine.open(engineProp);
 		//		DIHelper.getInstance().setLocalProperty("Input", coreEngine);
 		//
 		//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Proposal.smss";
 		//		coreEngine = new RDBMSNativeEngine();
 		//		coreEngine.setEngineName("Proposal");
-		//		coreEngine.openDB(engineProp);
+		//		coreEngine.open(engineProp);
 		//		DIHelper.getInstance().setLocalProperty("Proposal", coreEngine);
 
 		//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 		//		coreEngine = new RDBMSNativeEngine();
 		//		coreEngine.setEngineName("Movie_RDBMS");
-		//		coreEngine.openDB(engineProp);
+		//		coreEngine.open(engineProp);
 		//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
 		coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("MinInput");
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinProposal.smss";
 		coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("MinProposal");
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		DIHelper.getInstance().setLocalProperty("MinProposal", coreEngine);
 
 		String expression = ""

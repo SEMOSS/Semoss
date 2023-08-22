@@ -434,7 +434,7 @@
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + engineName + ".smss";
 //		IEngine coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId(engineName);
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty(engineName, coreEngine);
 //		
 //		// create the pkql to add data into the insight

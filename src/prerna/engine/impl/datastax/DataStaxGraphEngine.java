@@ -28,8 +28,8 @@ public class DataStaxGraphEngine extends AbstractDatabase {
 	private Map<String, String> nameMap = new HashMap<String, String>();
 
 	@Override
-	public void openDB(String propFile) {
-		super.openDB(propFile);
+	public void open(String propFile) {
+		super.open(propFile);
 		setSmssFilePath(propFile);
 		String host = this.smssProp.getProperty("HOST");
 		String port = this.smssProp.getProperty("PORT");

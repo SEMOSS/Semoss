@@ -72,7 +72,7 @@ public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGr
 		Neo4jEngine neo4jDatabase = new Neo4jEngine();
 		neo4jDatabase.setEngineId(this.newDatabaseId);
 		neo4jDatabase.setEngineName(this.newDatabaseName);
-		neo4jDatabase.openDB(this.smssFile.getAbsolutePath());
+		neo4jDatabase.open(this.smssFile.getAbsolutePath());
 		return neo4jDatabase;
 	}
 

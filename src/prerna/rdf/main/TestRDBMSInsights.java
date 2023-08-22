@@ -20,13 +20,12 @@ public class TestRDBMSInsights {
 	private static final Logger logger = LogManager.getLogger(TestRDBMSInsights.class);
 
 	public static void main(String[] args) {
-		
 		TestUtilityMethods.loadDIHelper();
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\ab.smss";
 		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("ab");
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		DIHelper.getInstance().setLocalProperty("ab", coreEngine);
 		
 		String query = "select * from customers";
@@ -74,7 +73,7 @@ public class TestRDBMSInsights {
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\test_this.smss";
 //		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineName("test_this");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("test_this", coreEngine);
 //		
 //		String query = "SELECT DISTINCT ?relation where "
@@ -103,7 +102,7 @@ public class TestRDBMSInsights {
 //
 //		prerna.engine.impl.rdf.BigDataEngine e = new prerna.engine.impl.rdf.BigDataEngine();
 //		String propFile = "C:\\workspace\\Semoss\\db\\Movie_DB.smss";
-//		e.openDB(propFile);
+//		e.open(propFile);
 //		
 //		Vector<SEMOSSParam> results2 = e.getParams("Movie_DB_18");
 //		for(SEMOSSParam r : results2) {

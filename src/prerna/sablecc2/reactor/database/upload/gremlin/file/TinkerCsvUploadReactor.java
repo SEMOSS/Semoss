@@ -84,7 +84,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		this.database = new TinkerEngine();
 		this.database.setEngineId(this.databaseId);
 		this.database.setEngineName(newDatabaseName);
-		this.database.openDB(this.tempSmss.getAbsolutePath());
+		this.database.open(this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

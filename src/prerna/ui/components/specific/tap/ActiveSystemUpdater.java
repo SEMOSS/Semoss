@@ -74,21 +74,21 @@ public class ActiveSystemUpdater {
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 //		IDatabase coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId("LocalMasterDatabase");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		coreEngine.setEngineId("LocalMasterDatabase");
 //		DIHelper.getInstance().setDbProperty("LocalMasterDatabase", coreEngine);
 //
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\security.smss";
 //		coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId("security");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setDbProperty("security", coreEngine);
 //		AbstractSecurityUtils.loadSecurityDatabase();
 //
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
 //		coreEngine = new BigDataEngine();
 //		coreEngine.setEngineId("TAP_Core_Data");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		coreEngine.setEngineId("TAP_Core_Data");
 //		DIHelper.getInstance().setDbProperty("TAP_Core_Data", coreEngine);
 //		DIHelper.getInstance().setDbProperty("TAP_Core_Data" +"_"+ Constants.OWL, coreEngine.getOWL());

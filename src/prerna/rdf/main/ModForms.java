@@ -21,7 +21,7 @@ class ModForms {
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";
 		BigDataEngine formsEngine = new BigDataEngine();
-		formsEngine.openDB(engineProp);
+		formsEngine.open(engineProp);
 		formsEngine.setEngineId("Forms_TAP_Core_Data");
 		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", formsEngine);
 

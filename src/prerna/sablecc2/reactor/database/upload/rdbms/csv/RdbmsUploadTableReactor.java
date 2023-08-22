@@ -115,7 +115,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
 		this.database.setSmssProp(props);
-		this.database.openDB(null);
+		this.database.open(null);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -492,7 +492,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 //		String databaseProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 //		IDatabase coreDatabase = new RDBMSNativeEngine();
 //		coreDatabase.setEngineId("LocalMasterDatabase");
-//		coreDatabase.openDB(engineProp);
+//		coreDatabase.open(engineProp);
 //		coreDatabase.setEngineId("LocalMasterDatabase");
 //		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreDatabase);
 //

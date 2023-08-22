@@ -131,7 +131,7 @@ public class ClusterEngine extends AbstractDatabase {
 //		Properties dbProp = writePropFile();
 //		this.insightRdbms = new RDBMSNativeEngine();
 //		this.insightRdbms.setProp(dbProp);;
-//		this.insightRdbms.openDB(null);
+//		this.insightRdbms.open(null);
 //	}
 //	
 	

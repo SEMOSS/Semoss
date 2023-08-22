@@ -74,7 +74,7 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 		TinkerEngine tinkerEng = new TinkerEngine();
 		tinkerEng.setEngineId(this.newDatabaseId);
 		tinkerEng.setEngineName(this.newDatabaseName);
-		tinkerEng.openDB(this.smssFile.getAbsolutePath());
+		tinkerEng.open(this.smssFile.getAbsolutePath());
 		return tinkerEng;
 	}
 

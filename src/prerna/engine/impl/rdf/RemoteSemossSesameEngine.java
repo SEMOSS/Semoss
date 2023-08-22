@@ -68,7 +68,7 @@
 //
 //	private static final String STACKTRACE = "StackTrace: ";
 //	// things this needs to override
-//	// OpenDB
+//	// open
 //	// close
 //	// Querying of the result
 //	boolean connected = false;
@@ -78,7 +78,7 @@
 //	
 //	
 //	
-//	public void openDB(String propFile)
+//	public void open(String propFile)
 //	{
 //		// the propfile will typically have 
 //		// the remote base URI
@@ -108,7 +108,7 @@
 //						File dirFolder = new File(baseFolder +"/db/" + prop.getProperty("ENGINE"));
 //						if(dirFolder.isDirectory()) // this exists return
 //						{
-//							super.openDB(propFile); 
+//							super.open(propFile); 
 //							return;
 //						}
 //						else
@@ -132,7 +132,7 @@
 ////				Properties dbProp = writePropFile();
 ////				this.insightRdbms = new RDBMSNativeEngine();
 ////				this.insightRdbms.setProp(dbProp);;
-////				this.insightRdbms.openDB(null);
+////				this.insightRdbms.open(null);
 //				
 //				// new - load from abstract method and then run through queries
 ////				loadInsightsRdbms();
