@@ -84,15 +84,13 @@ public class RemoteSparqlEngine extends AbstractDatabase {
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
 	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
 	 * least defining the data store.
-	 * @param propFile contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
+	 * @param smssFilePath contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
 	 * what type of engine is being instantiated.
 	 */
 	@Override
-	public void openDB(String propFile)
-	{
-		try
-		{
-			super.openDB(propFile);
+	public void open(String smssFilePath) {
+		try {
+			super.open(smssFilePath);
 			
 			String sparqlQEndpoint = smssProp.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
 			String sparqlUEndpoint = smssProp.getProperty(Constants.SPARQL_UPDATE_ENDPOINT);
@@ -283,7 +281,7 @@ public class RemoteSparqlEngine extends AbstractDatabase {
 	}
 
 	/**
-	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #openDB(String)} 
+	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #open(String)} 
 	 * is called and the connection becomes false when {@link #close()} is called.
 	
 	 * @return true if the engine is connected to its data store and false if it is not */

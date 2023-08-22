@@ -33,8 +33,8 @@ public class Neo4jEmbeddedEngine extends AbstractDatabase {
 	protected boolean useLabel = false;
 
 	@Override
-	public void openDB(String propFile) {
-		super.openDB(propFile);
+	public void open(String propFile) {
+		super.open(propFile);
 		// get type map
 		String typeMapStr = this.smssProp.getProperty(Constants.TYPE_MAP);
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {

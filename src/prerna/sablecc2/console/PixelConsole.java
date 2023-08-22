@@ -73,44 +73,44 @@ public class PixelConsole {
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 //		IEngine coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 		
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
 //		coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineName("MinInput");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
 //		
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinImpact.smss";
 //		coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineName("MinImpact");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("MinImpact", coreEngine);
 		
 
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";
 //		coreEngine = new BigDataEngine();
 //		coreEngine.setEngineName("Forms_TAP_Core_Data");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", coreEngine);
 
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 //		coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId("Movie_RDBMS");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 //		
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDF.smss";
 //		coreEngine = new BigDataEngine();
 //		coreEngine.setEngineId("Movie_RDF");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("Movie_RDF", coreEngine);
 //		
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
 //		coreEngine = new BigDataEngine();
 //		coreEngine.setEngineName("TAP_Core_Data");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
 	}
 }

@@ -126,9 +126,9 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	private String fileCreateString = null;
 
 	@Override
-	public void openDB(String propFile)
+	public void open(String smssFilePath)
 	{
-		if(propFile == null && this.smssProp == null){
+		if(smssFilePath == null && this.smssProp == null){
 			if(dataSource != null){
 				try{
 					this.engineConn = getConnection();
@@ -150,7 +150,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			// I need to see if the connection pool has been initiated
 			// if not initiate the connection pool
 			if(this.smssProp == null) {
-				setSmssFilePath(propFile);
+				setSmssFilePath(smssFilePath);
 			} else {
 				setSmssProp(this.smssProp);
 			}
@@ -158,7 +158,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			if(!this.smssProp.containsKey("TEMP")) { 
 				// not temp, in which case, this engine has a insights rdbms and an owl
 				// so call super to open them and set them in the engine
-				super.openDB(propFile);
+				super.open(smssFilePath);
 			}
 
 			// grab the values from the prop file 
@@ -187,8 +187,8 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 			// but some will have it as accessKey/secretKey
 			// so accounting for that here
 			this.userName = smssProp.getProperty(queryUtil.getConnectionUserKey());
-			if(propFile != null) {
-				this.password = decryptPass(propFile, false);
+			if(smssFilePath != null) {
+				this.password = decryptPass(smssFilePath, false);
 			} 
 			if(this.password == null) {
 				this.password = smssProp.containsKey(queryUtil.getConnectionPasswordKey()) ? smssProp.getProperty(queryUtil.getConnectionPasswordKey()) : "";

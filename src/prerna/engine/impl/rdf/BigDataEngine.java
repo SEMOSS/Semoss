@@ -93,9 +93,9 @@ public class BigDataEngine extends AbstractDatabase {
 	 * what type of engine is being instantiated.
 	 */
 	@Override
-	public void openDB(String smssPropFile) {
+	public void open(String smssPropFile) {
 		try {			
-			super.openDB(smssPropFile);
+			super.open(smssPropFile);
 			String fileName = SmssUtilities.getSysTapJnl(smssProp).getAbsolutePath();
 			smssProp.put("com.bigdata.journal.AbstractJournal.file", fileName);
 			bdSail = new BigdataSail(smssProp);
@@ -261,7 +261,7 @@ public class BigDataEngine extends AbstractDatabase {
 	}
 
 	/**
-	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #openDB(String)} 
+	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #open(String)} 
 	 * is called and the connection becomes false when {@link #close()} is called.	
 	 * @return true if the engine is connected to its data store and false if it is not */
 	@Override

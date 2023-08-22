@@ -112,13 +112,13 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 //		IEngine coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 //
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie.smss";
 //		coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineId("Movie");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("Movie", coreEngine);
 //
 //		RDBMSNativeEngine insightEngine = coreEngine.getInsightDatabase();

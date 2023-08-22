@@ -47,7 +47,7 @@ public class ReloadDatabaseReactor extends AbstractReactor {
 		}
 		database.setSmssProp(null);
 		try {
-			database.openDB(smssFilePath);
+			database.open(smssFilePath);
 		} catch (Exception e1) {
 			throw new IllegalArgumentException("An error occurred reloading the database. Please reach out to an administrator for assistance");
 		}

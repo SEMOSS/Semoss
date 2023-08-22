@@ -43,8 +43,9 @@ public class TinkerEngine extends AbstractDatabase {
 	protected Map<String, String> nameMap = new HashMap<>();
 	protected boolean useLabel = false;
 	
-	public void openDB(String propFile) {
-		super.openDB(propFile);
+	@Override
+	public void open(String propFile) {
+		super.open(propFile);
 		// get type map
 		String typeMapStr = this.smssProp.getProperty("TYPE_MAP");
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {

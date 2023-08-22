@@ -66,7 +66,7 @@
 //		String engineName = "Movie_DB";
 //		String smssLocation = "C:\\workspace\\Semoss\\db\\Movie_DB.smss";
 //		BigDataEngine bd = new BigDataEngine();
-//		bd.openDB(smssLocation); // TODO: does this work?
+//		bd.open(smssLocation); // TODO: does this work?
 //		InsightsConverter test = new InsightsConverter();
 //		//set paths
 //		String xmlFilePath = "C:\\workspace\\Semoss\\db\\Movie_DB\\Movie_DB_Questions.XML";
@@ -88,7 +88,7 @@
 //	public RDBMSNativeEngine generateNewInsightsRDBMS(String engineN) {
 //		String dbProp = writePropFile(engineN);
 //		RDBMSNativeEngine insightRDBMSEngine = new RDBMSNativeEngine();
-//		insightRDBMSEngine.openDB(dbProp);
+//		insightRDBMSEngine.open(dbProp);
 //		generateTables(insightRDBMSEngine);
 //		
 //		FileUtils.delete(dbProp);
@@ -310,7 +310,7 @@
 //	private void createXMLEngine(String xmlPath) {
 //		this.insightBaseXML = new RDFFileSesameEngine();
 //		insightBaseXML.setFileName(xmlPath);
-//		insightBaseXML.openDB(null);
+//		insightBaseXML.open(null);
 //	}
 //
 //	public void setEngineName(String engineName) {

@@ -185,7 +185,7 @@ public class HTMLTable {
 //		TestUtilityMethods.loadAll("C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\RDF_Map.prop");
 //		String engineProp = "C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\db\\movTst__92cf8a9f-c66d-4af1-ad9b-ef7a8f014dbe.smss";
 //		RDBMSNativeEngine engine = new RDBMSNativeEngine();
-//		engine.openDB(engineProp);
+//		engine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("92cf8a9f-c66d-4af1-ad9b-ef7a8f014dbe", engine);
 //		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 //		qs.setQuery("Select * From MOVIES LIMIT 10");

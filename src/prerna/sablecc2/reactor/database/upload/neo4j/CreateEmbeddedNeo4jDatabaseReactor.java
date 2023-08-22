@@ -37,7 +37,7 @@ public class CreateEmbeddedNeo4jDatabaseReactor extends AbstractCreateExternalGr
 		Neo4jEmbeddedEngine neo4jDatabase = new Neo4jEmbeddedEngine();
 		neo4jDatabase.setEngineId(this.newDatabaseId);
 		neo4jDatabase.setEngineName(this.newDatabaseName);
-		neo4jDatabase.openDB(this.smssFile.getAbsolutePath());
+		neo4jDatabase.open(this.smssFile.getAbsolutePath());
 		return neo4jDatabase;
 	}
 	}

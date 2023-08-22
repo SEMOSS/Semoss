@@ -85,8 +85,8 @@
 //	}
 //	
 //	@Override
-//	public void openDB(String propFile) {
-//		super.openDB(propFile);
+//	public void open(String propFile) {
+//		super.open(propFile);
 //		String solrBaseURL = prop.get(Constants.SOLR_URL).toString();
 //		String solrCoreName = prop.get(Constants.SOLR_CORE_NAME).toString();
 //		setConnectionDetails(solrBaseURL, solrCoreName);

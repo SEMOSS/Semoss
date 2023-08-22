@@ -238,7 +238,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 //			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 //			IDatabase coreEngine = new RDBMSNativeEngine();
 //			coreEngine.setEngineId("LocalMasterDatabase");
-//			coreEngine.openDB(engineProp);
+//			coreEngine.open(engineProp);
 //			coreEngine.setEngineId("LocalMasterDatabase");
 //			DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
 //		}
@@ -247,7 +247,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 //		String testEngine = "TinkerThis__cc2a91eb-548d-4970-91c3-7a043b783841";
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
 //		TinkerEngine coreEngine = new TinkerEngine();
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
 //		
 //		
