@@ -10,7 +10,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.DeleteDatabaseRunner;
+import prerna.cluster.util.DeleteEngineRunner;
 import prerna.engine.api.IDatabase;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -62,15 +62,15 @@ public class DeleteEngineReactor extends AbstractReactor {
 			if(AbstractSecurityUtils.securityEnabled()) {
 				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			} 
-			
 			IEngine engine = Utility.getEngine(engineId);
-			deleteEngines(engine);
+			String engineType = engine.getCatalogType();
+			deleteEngines(engine, engineType);
 			EngineSyncUtility.clearEngineCache(engineId);
 			UserTrackingUtils.deleteDatabase(engineId);
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
-				Thread deleteAppThread = new Thread(new DeleteDatabaseRunner(engineId));
+				Thread deleteAppThread = new Thread(new DeleteEngineRunner(engineId, engineType));
 				deleteAppThread.start();
 			}
 		}
@@ -83,7 +83,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 	 * @param engine
 	 * @return
 	 */
-	private boolean deleteEngines(IEngine engine) {
+	private boolean deleteEngines(IEngine engine, String engineType) {
 		String engineId = engine.getEngineId();
 		engine.delete();
 
@@ -94,10 +94,11 @@ public class DeleteEngineReactor extends AbstractReactor {
 		engineIds = engineIds.replace(engineId + ";", "");
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
 
-		if(engine instanceof IDatabase) {
+		if(IDatabase.CATALOG_TYPE.equals(engineType)) {
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
 			remover.deleteEngineRDBMS(engineId);
 		}
+		
 		SecurityEngineUtils.deleteEngine(engineId);
 		return true;
 	}
