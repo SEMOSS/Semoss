@@ -2614,7 +2614,7 @@ public class Utility {
 
 			// create and open the class
 			engine = (IModelEngine) Class.forName(engineClass).newInstance();
-			engine.loadModel(smssFilePath);
+			engine.open(smssFilePath);
 			engine.startServer();
 			
 			// set the engine in DIHelper
