@@ -70,7 +70,7 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		return output+"";
 	}
 	
-	public static void main(String [] args)
+	public static void main(String [] args) throws Exception
 	{
 		String smssFilePath = "c:/users/pkapaleeswaran/workspacej3/SemossDev/db/PolicyBot.smss";
 		
