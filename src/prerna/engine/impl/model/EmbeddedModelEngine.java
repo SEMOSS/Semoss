@@ -72,12 +72,12 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 	
 	public static void main(String [] args)
 	{
-		String propFile = "c:/users/pkapaleeswaran/workspacej3/SemossDev/db/PolicyBot.smss";
+		String smssFilePath = "c:/users/pkapaleeswaran/workspacej3/SemossDev/db/PolicyBot.smss";
 		
 		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_MAP.prop");
 		
 		IModelEngine eng = new EmbeddedModelEngine();
-		eng.loadModel(propFile);
+		eng.open(smssFilePath);
 		eng.startServer();
 		
 		Map <String, Object> params = new HashMap<String, Object>();

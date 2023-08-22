@@ -7,9 +7,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,8 +17,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.common.collect.ImmutableMap;
 
-
-import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -37,12 +33,12 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
     private ImmutableMap<String, String> possibleInputs = getLauncherArgs();
 	
 	@Override
-	public void loadModel(String modelSmssFilePath) {
+	public void open(String smssFilePath) {
 		try {
-			if (modelSmssFilePath != null) {
-				logger.info("Loading Model - " + Utility.cleanLogString(FilenameUtils.getName(modelSmssFilePath)));
-				setSmssFilePath(modelSmssFilePath);
-				setSmssProp(Utility.loadProperties(modelSmssFilePath));
+			if (smssFilePath != null) {
+				logger.info("Loading Model - " + Utility.cleanLogString(FilenameUtils.getName(smssFilePath)));
+				setSmssFilePath(smssFilePath);
+				setSmssProp(Utility.loadProperties(smssFilePath));
 			}
 			for (String launcherArg : possibleInputs.keySet()) {
 				String propArg = (String) generalEngineProp.get(launcherArg);
