@@ -5,6 +5,7 @@ import prerna.project.api.IProject;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.util.Utility;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,12 +25,14 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     private AbstractModelEngine engine;
     private Insight insight;
     private String question;
+    private String context;
     private LocalDateTime inputTime;
     private String response;
     private LocalDateTime responseTime;
     
     public ModelEngineInferenceLogsWorker(String roomId, String messageId, String messageMethod, AbstractModelEngine engine,
 			   Insight insight, 
+			   String context,
 			   String question,
 			   LocalDateTime inputTime,
 			   String response,
@@ -39,6 +42,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     	this.messageMethod = messageMethod;
     	this.engine = engine;
     	this.insight = insight;
+    	this.context = context;
         this.question = question;
         this.inputTime = inputTime;
         this.response = response;
@@ -68,19 +72,25 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		String userId = user.getPrimaryLoginToken().getId();
 		// TODO this could be insight id
 		
-		
+        Duration duration = Duration.between(inputTime, responseTime);
+        long millisecondsDifference = duration.toMillis();
+        Double millisecondsDouble = (double) millisecondsDifference;
+
+        
 		// TODO this needs to be moved to wherever we "publish" a new LLM/agent
 		if (!ModelInferenceLogsUtils.doModelIsRegistered(engine.getEngineId())) {
 			ModelInferenceLogsUtils.doCreateNewAgent(engine.getEngineId(), engine.getEngineName(), null, 
 					engine.getModelType().toString(), user.getPrimaryLoginToken().getId());
 		}
 		
-		if (!ModelInferenceLogsUtils.doCheckConversationExists(roomId)) {
+		if (roomId != null && !ModelInferenceLogsUtils.doCheckConversationExists(roomId)) {
 			String roomName = null;
 			if (Boolean.parseBoolean((String) engine.getSmssProp().get("GENERATE_ROOM_NAME")) == true) {
 				roomName = ModelInferenceLogsUtils.generateRoomTitle(engine, question);
+			} else {
+				roomName = question.substring(0, Math.min(question.length(), 100));
 			}
-			ModelInferenceLogsUtils.doCreateNewConversation(roomId, roomName, "", "{}", user.getPrimaryLoginToken().getId(), engine.getModelType().toString(), true, projectId, projectName, engine.getEngineId());
+			ModelInferenceLogsUtils.doCreateNewConversation(roomId, roomName, this.context, user.getPrimaryLoginToken().getId(), engine.getModelType().toString(), true, projectId, projectName, engine.getEngineId());
 		}
 				
 		if(engine.keepsConversationHistory()) {
@@ -92,6 +102,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					question.replace("'", "\'").replace("\n", "\n"),
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(question),
+					millisecondsDouble,
 					inputTime,
 					roomId,
 					engine.getEngineId(),
@@ -106,6 +117,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					response.replace("'", "\'").replace("\n", "\n"),
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(response),
+					millisecondsDouble,
 					responseTime,
 					roomId,
 					engine.getEngineId(),
@@ -119,6 +131,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					null,
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(question),
+					millisecondsDouble,
 					inputTime,
 					roomId,
 					engine.getEngineId(),
@@ -131,6 +144,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 					null,
 					this.messageMethod,
 					ModelInferenceLogsUtils.getTokenSizeString(response),
+					millisecondsDouble,
 					responseTime,
 					roomId,
 					engine.getEngineId(),

@@ -1,8 +1,5 @@
 package prerna.engine.impl.model.inferencetracking.reactors;
 
-import java.util.List;
-import java.util.Map;
-
 import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -39,6 +36,10 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals("messageId")) {
 			return "The unique identififer for the I/O betweeen a user and the LLM response";
+		} else if (key.equals("feedbackText")) {
+			return "Additional feedback in the form of text to decribe the issue/benefits of the response";
+		} else if (key.equals("rating")) {
+			return "true/false value to indicate if the reponse was helpful or not";
 		} 
 		return super.getDescriptionForKey(key);
 	}

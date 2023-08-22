@@ -55,6 +55,7 @@ public class ModelInferenceLogsOwlCreation {
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
+		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
 		this.agentColumns = Arrays.asList(
 				Pair.of("AGENT_ID", "VARCHAR(50)"),
 				Pair.of("AGENT_NAME", "VARCHAR(255)"),
@@ -67,8 +68,8 @@ public class ModelInferenceLogsOwlCreation {
 		this.roomColumns = Arrays.asList(
 				Pair.of("ROOM_ID", "VARCHAR(50)"),
 				Pair.of("ROOM_NAME", "VARCHAR(255)"),
-				Pair.of("ROOM_DESCRIPTION", "VARCHAR(255)"),
-				Pair.of("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
+				Pair.of("ROOM_CONTEXT", "VARCHAR(255)"),
+				//Pair.of("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
 				Pair.of("USER_ID", "VARCHAR(255)"),
 				Pair.of("AGENT_TYPE", "VARCHAR(50)"),
 				Pair.of("IS_ACTIVE",BOOLEAN_DATATYPE_NAME),
@@ -84,6 +85,7 @@ public class ModelInferenceLogsOwlCreation {
 				Pair.of("MESSAGE_DATA", CLOB_DATATYPE_NAME),
 				Pair.of("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),
 				Pair.of("MESSAGE_METHOD", "VARCHAR(50)"),
+				Pair.of("RESPONSE_TIME", DOUBLE_DATATYPE_NAME),
 				Pair.of("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.of("ROOM_ID", "VARCHAR(50)"),
 				Pair.of("AGENT_ID", "VARCHAR(50)"),
