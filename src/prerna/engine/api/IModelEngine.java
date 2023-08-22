@@ -25,13 +25,10 @@ public interface IModelEngine extends IEngine {
 	
 	public ModelTypeEnum getModelType();
 	
+	//TODO change this to startModel() 
 	/**
 	 * 
-	 * @param smssFilePath
 	 */
-	public void open(String smssFilePath);
-	
-	//TODO change this to startModel() 
 	public void startServer();
 	
 	// need to change this to model client
