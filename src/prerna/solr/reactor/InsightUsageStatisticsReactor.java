@@ -7,7 +7,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -86,7 +86,7 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			qs = SecurityInsightUtils.searchInsightsUsage(pFilters, searchTerm, tagFilters);
 		}
 		
-		IDatabase securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+		IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);

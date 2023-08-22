@@ -20,8 +20,8 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -43,7 +43,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 	protected transient String newDatabaseId;
 	protected transient String newDatabaseName;
-	protected transient IDatabase database;
+	protected transient IDatabaseEngine database;
 	protected transient File databaseFolder;
 	protected transient File tempSmss;
 	protected transient File smssFile;
@@ -362,6 +362,6 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 	
 	protected abstract File generateTempSmss(File owlFile) throws IOException;
 	
-	protected abstract IDatabase generateEngine();
+	protected abstract IDatabaseEngine generateEngine();
 	
 }

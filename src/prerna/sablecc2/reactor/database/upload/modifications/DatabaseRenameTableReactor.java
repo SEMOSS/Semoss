@@ -6,7 +6,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineModifier;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.modifications.EngineModificationFactory;
@@ -50,7 +50,7 @@ public class DatabaseRenameTableReactor extends AbstractReactor {
 		String table = this.keyValue.get(this.keysToGet[1]);
 		String newTable = this.keyValue.get(this.keysToGet[2]);
 		
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		Owler owler = new Owler(database);
 		boolean dbUpdate = false;
 		IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);

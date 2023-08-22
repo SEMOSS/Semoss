@@ -425,7 +425,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return prerna.engine.api.IDatabase.DATABASE_TYPE.JSON;
+		return prerna.engine.api.IDatabaseEngine.DATABASE_TYPE.JSON;
 	}
 
 	@Override

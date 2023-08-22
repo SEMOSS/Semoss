@@ -11,7 +11,7 @@ import org.openrdf.model.vocabulary.RDFS;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.poi.main.BaseDatabaseCreator;
 
 public abstract class AbstractOwler {
@@ -46,7 +46,7 @@ public abstract class AbstractOwler {
 	protected Set<String> pixelNames = new HashSet<String>();
 	// need to know the database type due to differences in URIs when the
 	// database is RDF vs. RDBMS
-	protected IDatabase.DATABASE_TYPE type = null;
+	protected IDatabaseEngine.DATABASE_TYPE type = null;
 	
 	
 	// the engine here is a wrapper around a RDFFileSesameEngine which helps with adding the URIs into the engine
@@ -59,7 +59,7 @@ public abstract class AbstractOwler {
 	 * @param fileName				The location of the new OWL file
 	 * @param type					The type of the engine the OWL file is being created for
 	 */
-	public AbstractOwler(String owlPath, IDatabase.DATABASE_TYPE type) {
+	public AbstractOwler(String owlPath, IDatabaseEngine.DATABASE_TYPE type) {
 		this.owlPath = owlPath;
 		this.type = type;
 
@@ -77,7 +77,7 @@ public abstract class AbstractOwler {
 	 * Constructor for the class when we are adding to an existing OWL file
 	 * @param existingEngine		The engine we are adding to
 	 */
-	public AbstractOwler(IDatabase existingEngine) {
+	public AbstractOwler(IDatabaseEngine existingEngine) {
 		this.owlPath = existingEngine.getOWL();
 		this.type = existingEngine.getDatabaseType();
 		engine = new BaseDatabaseCreator(existingEngine, owlPath);

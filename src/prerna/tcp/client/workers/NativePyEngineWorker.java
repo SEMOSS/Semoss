@@ -14,7 +14,7 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -70,7 +70,7 @@ public class NativePyEngineWorker implements Runnable {
 				{
 					engine = Utility.getDatabase(engineId);
 					{
-						IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper((IDatabase)engine, ps.payload[0] + "");
+						IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper((IDatabaseEngine)engine, ps.payload[0] + "");
 						wrapper.execute();
 						{
 							// do the logic of converting it into 

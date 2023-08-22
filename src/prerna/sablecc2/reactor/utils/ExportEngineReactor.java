@@ -14,7 +14,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
@@ -65,7 +65,7 @@ public class ExportEngineReactor extends AbstractReactor {
 		boolean closed = false;
 		try {
 			IEngine engine = Utility.getEngine(engineId);
-			if(engine instanceof IDatabase) {
+			if(engine instanceof IDatabaseEngine) {
 				logger.info("Stopping the database engine... ");
 				DIHelper.getInstance().removeEngineProperty(engineId);
 				try {

@@ -44,8 +44,8 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import cern.colt.Arrays;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -103,7 +103,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 		
 	}
 	
-	public void processData(IDatabase engine, File sourceFolder){
+	public void processData(IDatabaseEngine engine, File sourceFolder){
 		LOGGER.info("SELECTED DATABASE ENGINE::: " + engine.getEngineId());
 		LOGGER.info("SELECTED SOURCE FOLDER ::: " + Utility.cleanLogString(sourceFolder.getName()));
 
@@ -134,7 +134,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 		LOGGER.info("************* Finished processData");
 	}
 	
-	private void changeSystemsStatus(IDatabase engine, ArrayList<String> listToFilterOn, String query){
+	private void changeSystemsStatus(IDatabaseEngine engine, ArrayList<String> listToFilterOn, String query){
 		final String PROP_URI = "http://semoss.org/ontologies/Relation/Contains/Status";
 		final String REVIEW_VALUE = "Reviewed";
 		final String PUSHED_VALUE = "Pushed";
@@ -205,7 +205,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 		engine.commit();
 	}
 	
-	private void processTaskerSourceFile(IDatabase engine, File sourceFolder){
+	private void processTaskerSourceFile(IDatabaseEngine engine, File sourceFolder){
 		LOGGER.info("********** Begin - updating Tasker File");
 		try{
 			HashMap<String, HashMap<String,String>> map = getSystemInfoForSystems(engine);
@@ -269,7 +269,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 		LOGGER.info("********** Done - updating Tasker File");		
 	}
 	
-	private void processBLUFile(IDatabase engine, File sourceFolder){
+	private void processBLUFile(IDatabaseEngine engine, File sourceFolder){
 		LOGGER.info("********** Begin - updating System BLU");
 		try{
 			//LOGGER.info("********** Querying for BLU");
@@ -294,7 +294,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 		LOGGER.info("********** Done - updating System BLU");
 	}
 
-	private void processSiteFile(IDatabase engine, File sourceFolder){
+	private void processSiteFile(IDatabaseEngine engine, File sourceFolder){
 		LOGGER.info("********** Begin - updating System Deployments");
 		try{
 			//LOGGER.info("********** Querying for Site");
@@ -348,7 +348,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 //
 //	}
 	
-	private void processSysDataFile(IDatabase engine, File sourceFolder){
+	private void processSysDataFile(IDatabaseEngine engine, File sourceFolder){
 		LOGGER.info("********** Begin - updating Data Objects");
 		try{
 			//LOGGER.info("********** Querying for System Interfaces");

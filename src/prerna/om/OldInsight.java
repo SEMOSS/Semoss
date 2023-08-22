@@ -34,7 +34,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
@@ -74,9 +74,9 @@ public class OldInsight extends Insight {
 	@Deprecated
 	private String engineName;
 	
-	private transient IDatabase mainEngine;
+	private transient IDatabaseEngine mainEngine;
 	private transient IProject mainProject;										// the main engine where the insight is stored
-	private transient IDatabase makeupEngine;										// the in-memory engine created to store the data maker components and transformations for the insight
+	private transient IDatabaseEngine makeupEngine;										// the in-memory engine created to store the data maker components and transformations for the insight
 	private transient IPlaySheet playSheet;										// the playsheet for the insight
 	private transient Map<String, String> dataTableAlign;						// the data table align for the insight corresponding to the playsheet
 	private transient Gson gson = new Gson();
@@ -103,7 +103,7 @@ public class OldInsight extends Insight {
 	 * @param dataMakerName					The name of the data maker
 	 * @param layout						The layout to view the insight
 	 */
-	public OldInsight(IDatabase mainEngine, String dataMakerName, String layout){
+	public OldInsight(IDatabaseEngine mainEngine, String dataMakerName, String layout){
 		this.mainEngine = mainEngine;
 		// NEED THE ID TO BE THE SAME IN THIS SITUATION!!!
 		// the main engine has the same id as the main project
@@ -193,7 +193,7 @@ public class OldInsight extends Insight {
 	 * Gets the makeup engine that contains the insight makeup
 	 * @return
 	 */
-	public IDatabase getMakeupEngine() {
+	public IDatabaseEngine getMakeupEngine() {
 		return this.makeupEngine;
 	}
 	
@@ -287,7 +287,7 @@ public class OldInsight extends Insight {
 	 * @param makeupEng
 	 * @return
 	 */
-	public List<DataMakerComponent> digestNTriples(IDatabase makeupEng){
+	public List<DataMakerComponent> digestNTriples(IDatabaseEngine makeupEng){
 		logger.debug("Creating data component array from makeup engine");
 		List<DataMakerComponent> dmCompVec = new Vector<>();
 		String countQuery = "SELECT (COUNT(DISTINCT(?Component)) AS ?Count) WHERE {?Component a <http://semoss.org/ontologies/Concept/Component>. BIND('x' AS ?x) } GROUP BY ?x";
@@ -380,7 +380,7 @@ public class OldInsight extends Insight {
 	 * @param preTrans				The preTransformation URI
 	 * @param compId				The name of the component to make sure the preTransforamtion has the correct id
 	 */
-	private void addPreTrans(DataMakerComponent dmc, IDatabase makeupEng, Object preTrans, String compId){
+	private void addPreTrans(DataMakerComponent dmc, IDatabaseEngine makeupEng, Object preTrans, String compId){
 		logger.info("adding pre trans :::: " + preTrans);
 		Map<String, Object> props = getProperties(preTrans+"", makeupEng);
 		String type = props.get(ISEMOSSTransformation.TYPE) + "";
@@ -399,7 +399,7 @@ public class OldInsight extends Insight {
 	 * @param postTrans				The postTransformation URI
 	 * @param compId				The name of the component to make sure the postTransformation has the correct id
 	 */
-	private void addPostTrans(DataMakerComponent dmc, IDatabase makeupEng, Object postTrans, String compId){
+	private void addPostTrans(DataMakerComponent dmc, IDatabaseEngine makeupEng, Object postTrans, String compId){
 		logger.info("adding post trans :::: " + postTrans);
 		Map<String, Object> props = getProperties(postTrans+"", makeupEng);
 		String type = props.get(ISEMOSSTransformation.TYPE) + "";
@@ -418,7 +418,7 @@ public class OldInsight extends Insight {
 	 * @param preTrans				The Action URI
 	 * @param compId				The name of the component to make sure the Action has the correct id
 	 */
-	private void addAction(DataMakerComponent dmc, IDatabase makeupEng, Object action, String compId){
+	private void addAction(DataMakerComponent dmc, IDatabaseEngine makeupEng, Object action, String compId){
 		logger.info("adding action :::: " + action);
 		Map<String, Object> props = getProperties(action+"", makeupEng);
 		String type = props.get(ISEMOSSAction.TYPE) + "";
@@ -436,7 +436,7 @@ public class OldInsight extends Insight {
 	 * @param makeupEng			The makeupEngine containing the N-Triples information regarding the insight
 	 * @return
 	 */
-	private Map<String, Object> getProperties(String uri, IDatabase makeupEng){
+	private Map<String, Object> getProperties(String uri, IDatabaseEngine makeupEng){
 		String propQuery = "SELECT ?Value WHERE { BIND(<" + 
 				uri + 
 				"> AS ?obj) {?obj <http://semoss.org/ontologies/Relation/Contains/propMap> ?Value}}";
@@ -903,7 +903,7 @@ public class OldInsight extends Insight {
 			String rdbmsId = getRdbmsId();
 			if(rdbmsId != null && !rdbmsId.isEmpty()) {
 				String query = "SELECT UI_DATA FROM UI WHERE QUESTION_ID_FK='" + rdbmsId + "'";
-				IDatabase insightDb = this.mainProject.getInsightDatabase();
+				IDatabaseEngine insightDb = this.mainProject.getInsightDatabase();
 				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightDb, query);
 				String[] names = wrapper.getVariables();
 				while(wrapper.hasNext()) {
@@ -949,7 +949,7 @@ public class OldInsight extends Insight {
 		}
 	}
 	
-	public void setMainEngine(IDatabase engine) {
+	public void setMainEngine(IDatabaseEngine engine) {
 		this.mainEngine = engine;
 	} 
 	

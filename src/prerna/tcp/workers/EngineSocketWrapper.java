@@ -2,7 +2,7 @@ package prerna.tcp.workers;
 
 import java.util.Vector;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
@@ -108,7 +108,7 @@ public class EngineSocketWrapper extends AbstractDatabase {
 		if(retStruct.ex != null)
 			throw new RuntimeException(retStruct.ex);
 		
-		return (IDatabase.DATABASE_TYPE)retStruct.payload[0];
+		return (IDatabaseEngine.DATABASE_TYPE)retStruct.payload[0];
 	}
 
 	@Override

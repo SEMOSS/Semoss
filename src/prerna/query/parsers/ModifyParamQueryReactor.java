@@ -1,7 +1,7 @@
 package prerna.query.parsers;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -56,7 +56,7 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 
 		// execute query to get the alias name
 		String updatedQuery = "select * from (" + query + ") t12345 where 1=0;";
-		IDatabase engine = this.qs.retrieveQueryStructEngine();
+		IDatabaseEngine engine = this.qs.retrieveQueryStructEngine();
 		IRDBMSEngine rdbms = null;
 		if(engine instanceof IRDBMSEngine) {
 			rdbms = (IRDBMSEngine) engine;

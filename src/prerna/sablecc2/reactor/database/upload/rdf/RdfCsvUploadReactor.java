@@ -14,7 +14,7 @@ import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
@@ -78,10 +78,10 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		this.database.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		this.database.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
 		sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		this.database.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		this.database.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -224,7 +224,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 	 * Create all the triples associated with the relationships specified in the prop file
 	 * @throws IOException 
 	 */
-	private void processRelationships(IDatabase database, Owler owler, CSVFileHelper helper, List<String> headers, SemossDataType[] dataTypes, Map<String, Object> metamodel) {
+	private void processRelationships(IDatabaseEngine database, Owler owler, CSVFileHelper helper, List<String> headers, SemossDataType[] dataTypes, Map<String, Object> metamodel) {
 		// TODO user subjects
 		// parse metamodel
 		String customBaseURI = UploadInputUtility.getCustomBaseURI(this.store);

@@ -49,7 +49,7 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -290,7 +290,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabase.DATABASE_TYPE.RDBMS;
+		return IDatabaseEngine.DATABASE_TYPE.RDBMS;
 	}
 
 	@Override

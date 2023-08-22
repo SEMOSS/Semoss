@@ -24,7 +24,7 @@ import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.IStorageEngine;
+import prerna.engine.api.IStorageMount;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.CopyObject;
@@ -86,7 +86,7 @@ public class User implements Serializable {
 	private Map<String, String> projectIdMap = new HashMap<>();
 	private Map<String, String> engineIdMap = new HashMap<>();
 	private Map<String, StringBuffer> varMap = new HashMap<>();
-	private transient Map<String, IStorageEngine> externalMounts = new HashMap<String, IStorageEngine>();
+	private transient Map<String, IStorageMount> externalMounts = new HashMap<>();
 	
 	private boolean anonymous;
 	private String anonymousId;
@@ -827,7 +827,7 @@ public class User implements Serializable {
 		return this.varMap;
 	}
 	
-	public void addExternalMount(String name, IStorageEngine mountHelper)
+	public void addExternalMount(String name, IStorageMount mountHelper)
 	{
 		// name is what is recorded
 		externalMounts.put(name, mountHelper);
@@ -853,7 +853,7 @@ public class User implements Serializable {
 		// at some point I need to also set a watcher to ferret things back and forth
 	}
 	
-	public Map<String, IStorageEngine> getExternalMounts() {
+	public Map<String, IStorageMount> getExternalMounts() {
 		return this.externalMounts;
 	}
 

@@ -22,7 +22,7 @@ import org.eclipse.jgit.lib.ProgressMonitor;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.MosfetFile;
@@ -362,7 +362,7 @@ public class GitConsumer {
 	 * @param versionFolder
 	 */
 	private static void loadMosfetFiles(IProject project, String versionFolder, Logger logger) {
-		IDatabase insightsDb = project.getInsightDatabase();
+		IDatabaseEngine insightsDb = project.getInsightDatabase();
 
 		List<String> addFilesPath = new Vector<>();
 		List<String> modFilesPath = new Vector<>();

@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.Owler;
@@ -67,7 +67,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 //		boolean isRdbms = (engine.getEngineType() == IDatabase.ENGINE_TYPE.RDBMS || 
 //				engine.getEngineType() == IDatabase.ENGINE_TYPE.IMPALA);
 		setOwlerValues(database, owler);

@@ -55,7 +55,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.sail.SailException;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -223,7 +223,7 @@ public class FormulaExtractor extends AbstractFileReader {
 		return engine;
 	}*/
 	//Restructuring
-	public IDatabase importFileWithOutConnection(ImportOptions options)
+	public IDatabaseEngine importFileWithOutConnection(ImportOptions options)
 			throws FileNotFoundException, IOException {
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
@@ -302,7 +302,7 @@ public class FormulaExtractor extends AbstractFileReader {
 	}*/
 
 	//Restructing
-	public IDatabase importFileWithOutConnectionRDBMS(ImportOptions options)
+	public IDatabaseEngine importFileWithOutConnectionRDBMS(ImportOptions options)
 			throws FileNotFoundException, IOException {
 
 		String smssLocation = options.getSMSSLocation();
@@ -381,7 +381,7 @@ public class FormulaExtractor extends AbstractFileReader {
 			String parentURI = owler.addConcept( Utility.cleanString(row.getCell(0).toString(), true) );
 			String childURI = owler.addConcept( Utility.cleanString(row.getCell(1).toString(), true) );
 			// add triples to engine
-			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{childURI, pred, parentURI, true});
+			engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childURI, pred, parentURI, true});
 			// add triples to OWL
 			owler.addSubclass(childNode, parentNode);
 			//			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, parentNode, true});

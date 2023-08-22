@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.nameserver.utility.MetamodelVertex;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,7 +27,7 @@ public class GetOwlMetamodelReactor extends AbstractMetaEditorReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
 		databaseId = testDatabaseId(databaseId, false);
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		Map<String, Object[]> metamodelObject = database.getMetamodel();
 		Object[] nodes = metamodelObject.get("nodes");
 		Object[] relationships = metamodelObject.get("edges");

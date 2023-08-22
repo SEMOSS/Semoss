@@ -36,7 +36,7 @@ import prerna.engine.impl.MetaHelper;
  * so that they can be used without first recognizing what specific engine class it is.  A lot of different classes call on 
  * IEngine to refer to a specific engine, including, most notably, ProcessQueryListener.
  */
-public interface IDatabase extends IExplorable, IEngine {
+public interface IDatabaseEngine extends IExplorable, IEngine {
 	
 	String CATALOG_TYPE = "DATABASE";
 	
@@ -140,7 +140,7 @@ public interface IDatabase extends IExplorable, IEngine {
 	 * @param args Arguments needed for that action
 	 * @return Object based on the type of action
 	 */
-	Object doAction(IDatabase.ACTION_TYPE actionType, Object[] args);
+	Object doAction(IDatabaseEngine.ACTION_TYPE actionType, Object[] args);
 	
 	/**
 	 * Gets the UDF - user defined functions in this data catalog
