@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -29,6 +30,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
+
+	private static final Logger classLogger = LogManager.getLogger(AbstractRJavaTranslator.class);
 
 	Insight insight = null;
 	Logger logger = null;
@@ -376,10 +379,14 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				instanceList.add(values);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -542,7 +549,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			FileUtils.writeStringToFile(scriptFile, script);
 			this.executeEmptyRDirect("source(\"" + scriptPath + "\", local=TRUE)");
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(!removePathVariables.isEmpty()) {

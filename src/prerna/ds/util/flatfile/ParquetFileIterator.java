@@ -1,32 +1,14 @@
 package prerna.ds.util.flatfile;
 
+import java.io.IOException;
 import java.util.List;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.ParquetFileHelper;
-import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ParquetQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ArrayUtilityMethods;
-//
-//import java.util.Arrays;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.stream.Collectors;
-//
-//import org.apache.poi.ss.usermodel.Cell;
-//import org.apache.poi.ss.usermodel.Row;
-//import org.apache.poi.ss.usermodel.Sheet;
-//
-//import prerna.algorithm.api.SemossDataType;
-//import prerna.date.SemossDate;
-//import prerna.ds.util.flatfile.AbstractFileIterator;
-//import prerna.poi.main.helper.FileHelperUtil;
-//import prerna.query.querystruct.ParquetQueryStruct;
-//import prerna.query.querystruct.selectors.IQuerySelector;
-//import prerna.query.querystruct.selectors.QueryColumnSelector;
-//import prerna.util.ArrayUtilityMethods;
 
 public class ParquetFileIterator extends AbstractFileIterator {
 
@@ -131,11 +113,13 @@ public class ParquetFileIterator extends AbstractFileIterator {
 	public void reset() throws Exception {
 		// TODO Auto-generated method stub
 	}
+	
 	@Override
-	public void cleanUp() {
+	public void close() throws IOException {
 		// TODO Auto-generated method stub
 		
 	}
+	
 	@Override
 	public void getNextRow() {
 		// TODO Auto-generated method stub

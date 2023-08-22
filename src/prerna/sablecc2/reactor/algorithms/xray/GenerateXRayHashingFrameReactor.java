@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.algorithms.xray;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +29,7 @@ import prerna.util.Utility;
 public class GenerateXRayHashingFrameReactor extends AbstractRFrameReactor {
 
 	public static final String CLASS_NAME = GenerateXRayHashingFrameReactor.class.getName();
-	public static final Logger logger = LogManager.getLogger(CLASS_NAME);
+	public static final Logger classLogger = LogManager.getLogger(CLASS_NAME);
 
 	public static final String FILES_KEY = "files";
 	public static final String STATUS_KEY = "status";
@@ -164,7 +165,7 @@ public class GenerateXRayHashingFrameReactor extends AbstractRFrameReactor {
 			
 			String outputFile = this.folderPath + "/" + Utility.normalizePath(outputFileName);
 			if(!override && new File(outputFile).exists()) {
-				logger.info("Hash already exists for " + Utility.cleanLogString(table));
+				classLogger.info("Hash already exists for " + Utility.cleanLogString(table));
 				
 				// add to list of files used
 				fileNames.add(outputFileName);
@@ -189,19 +190,23 @@ public class GenerateXRayHashingFrameReactor extends AbstractRFrameReactor {
 					this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(randomFrame, f.getAbsolutePath(), "\t"));
 					// run the script which also outputs the file
 					// we care about the file name since we use that to split to know the source
-					logger.info("Generating hash for " + Utility.cleanLogString(table));
+					classLogger.info("Generating hash for " + Utility.cleanLogString(table));
 					this.rJavaTranslator.executeEmptyR("encode_instances(" + randomFrame + ", \"" + outputFile + "\")");
-					logger.info("Done generating hash");
+					classLogger.info("Done generating hash");
 				} finally {
 					if(f.exists()) {
 						f.delete();
 					}
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -229,7 +234,7 @@ public class GenerateXRayHashingFrameReactor extends AbstractRFrameReactor {
 			outputFileName += ".tsv";
 			String outputFile = this.folderPath + "/" + Utility.normalizePath(outputFileName);
 			if(!override && new File(outputFile).exists()) {
-				logger.info("Hash already exists for " + Utility.cleanLogString(selector));
+				classLogger.info("Hash already exists for " + Utility.cleanLogString(selector));
 				
 				// add to list of files used
 				fileNames.add(outputFileName);
@@ -241,7 +246,7 @@ public class GenerateXRayHashingFrameReactor extends AbstractRFrameReactor {
 			fileNames.add(outputFileName);
 			status.add("new");
 			
-			logger.info("Querying data for " + Utility.cleanLogString(selector));
+			classLogger.info("Querying data for " + Utility.cleanLogString(selector));
 			SelectQueryStruct qs = new SelectQueryStruct();
 			qs.mergeImplicitFilters(frame.getFrameFilters());
 			qs.addSelector(new QueryColumnSelector(selector));
@@ -257,19 +262,23 @@ public class GenerateXRayHashingFrameReactor extends AbstractRFrameReactor {
 					this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(randomFrame, f.getAbsolutePath(), "\t"));
 					// run the script which also outputs the file
 					// we care about the file name since we use that to split to know the source
-					logger.info("Generating hash for " + Utility.cleanLogString(selector));
+					classLogger.info("Generating hash for " + Utility.cleanLogString(selector));
 					this.rJavaTranslator.executeEmptyR("encode_instances(" + randomFrame + ", \"" + outputFile + "\")");
-					logger.info("Done generating hash");
+					classLogger.info("Done generating hash");
 				} finally {
 					if(f.exists()) {
 						f.delete();
 					}
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}	

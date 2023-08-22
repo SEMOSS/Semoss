@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,11 +22,11 @@ public class QueryRowCountReactor  extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(QueryRowCountReactor.class);
 	private static final String CLASS_NAME = QueryRowCountReactor.class.getName();
-	
+
 	public QueryRowCountReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_STRUCT.getKey()};
 	}
-	
+
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		SelectQueryStruct qs = getQs();
@@ -35,13 +36,7 @@ public class QueryRowCountReactor  extends AbstractReactor {
 		}
 		IRawSelectWrapper iterator = null;
 		try {
-			 iterator = WrapperManager.getInstance().getRawWrapper(engine, qs, true);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred retrieving the query with message " + e.getMessage());
-		}
-		
-		try {
+			iterator = WrapperManager.getInstance().getRawWrapper(engine, qs, true);
 			long start = System.currentTimeMillis();
 			logger.info("Query Row Count : Executing query on engine " + engine.getEngineId());
 			long numRows = iterator.getNumRows();
@@ -50,7 +45,19 @@ public class QueryRowCountReactor  extends AbstractReactor {
 			return new NounMetadata(numRows, PixelDataType.CONST_INT, PixelOperationType.QUERY_ROW_COUNT);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred retrieving the count of the query with message " + e.getMessage());
+			if(iterator == null) {
+				throw new IllegalArgumentException("Error occurred retrieving the query with message " + e.getMessage());
+			} else {
+				throw new IllegalArgumentException("Error occurred retrieving the count of the query with message " + e.getMessage());
+			}
+		} finally {
+			if(iterator != null) {
+				try {
+					iterator.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 
@@ -74,11 +81,11 @@ public class QueryRowCountReactor  extends AbstractReactor {
 				qs = (SelectQueryStruct) noun.getValue();
 			}
 		}
-		
+
 		if(qs == null) {
 			throw new IllegalArgumentException("Must pass in a database query to get the row count");
 		}
-		
+
 		return qs;
 	}
 

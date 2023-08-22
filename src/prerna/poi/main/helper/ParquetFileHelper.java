@@ -55,9 +55,9 @@ public class ParquetFileHelper {
 	// TODO do I need this for api reads?
 	private int maxColumns = 1_000_000;
 	private int maxCharsPerColumn = 1_000_000;
-	
 
-	public ParquetFileHelper() {		
+	public ParquetFileHelper() {
+		
 	}
 	
 	public static boolean isParquetFile(String filePath) {

@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -85,11 +87,10 @@ public class JenaConstructWrapper extends AbstractWrapper implements IConstructW
 		// TODO Auto-generated method stub
 		return si.hasNext();
 	}
-
+	
 	@Override
-	public void cleanUp() {
-		// TODO Auto-generated method stub
-		
+	public void close() throws IOException {
+		si.close();
 	}
 
 }

@@ -1,5 +1,6 @@
 package prerna.util;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,8 +48,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -71,8 +76,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -89,8 +98,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -114,8 +127,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -144,8 +161,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -174,8 +195,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -201,8 +226,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -221,8 +250,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -242,8 +275,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -274,8 +311,12 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

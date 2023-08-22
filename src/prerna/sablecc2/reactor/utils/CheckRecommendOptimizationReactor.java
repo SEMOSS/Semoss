@@ -1,6 +1,10 @@
 package prerna.sablecc2.reactor.utils;
 
+import java.io.IOException;
 import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
@@ -15,9 +19,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class CheckRecommendOptimizationReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(CheckRecommendOptimizationReactor.class);
 
 	public CheckRecommendOptimizationReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
@@ -71,10 +78,14 @@ public class CheckRecommendOptimizationReactor extends AbstractReactor {
 							return new NounMetadata(false, PixelDataType.BOOLEAN);
 						}
 					} catch (Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(it != null) {
-							it.cleanUp();
+							try {
+								it.close();
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
 						}
 					}
 					return new NounMetadata(false, PixelDataType.BOOLEAN);

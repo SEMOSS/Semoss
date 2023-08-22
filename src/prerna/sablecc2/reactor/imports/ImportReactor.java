@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.imports;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -182,7 +183,11 @@ public class ImportReactor extends AbstractReactor {
 		} finally {
 			// always clean up the iterator
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 			if(task != null) {
 				task.cleanUp();

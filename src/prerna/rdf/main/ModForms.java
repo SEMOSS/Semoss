@@ -1,5 +1,6 @@
 package prerna.rdf.main;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -157,7 +158,11 @@ class ModForms {
 			e.printStackTrace();
 		} finally {
 			if(manager != null) {
-				manager.cleanUp();
+				try {
+					manager.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		

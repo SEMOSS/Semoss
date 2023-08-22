@@ -1,6 +1,10 @@
 package prerna.sablecc2.reactor.database.metaeditor.concepts;
 
+import java.io.IOException;
 import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
@@ -13,10 +17,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.database.metaeditor.AbstractMetaEditorReactor;
+import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(RemoveOwlConceptReactor.class);
 
 	public RemoveOwlConceptReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey() };
@@ -62,10 +69,14 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 						executeRemoveQuery(headerRows, owlEngine);
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if (it != null) {
-						it.cleanUp();
+						try {
+							it.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
@@ -82,10 +93,14 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 						executeRemoveQuery(headerRows, owlEngine);
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if (it != null) {
-						it.cleanUp();
+						try {
+							it.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 			}
@@ -107,10 +122,14 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 					executeRemoveQuery(headerRows, owlEngine);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if (it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -128,10 +147,14 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 					executeRemoveQuery(headerRows, owlEngine);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if (it != null) {
-					it.cleanUp();
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 		}
@@ -143,7 +166,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		try {
 			owlEngine.exportDB();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to remove the desired concept", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;

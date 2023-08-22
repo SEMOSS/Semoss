@@ -1,9 +1,15 @@
 package prerna.query.parsers;
 
+import java.io.IOException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -11,8 +17,11 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.util.Constants;
 
 public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(RDBMSNativeEngine.class);
 
 	public ModifyParamQueryReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.QUERY_KEY.getKey()};
@@ -81,11 +90,15 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 		} catch(SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Error in executing the param query for the insight");
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

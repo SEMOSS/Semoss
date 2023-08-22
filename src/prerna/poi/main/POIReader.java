@@ -973,7 +973,11 @@ public class POIReader extends AbstractFileReader {
 					e1.printStackTrace();
 				} finally {
 					if(wrapper != null) {
-						wrapper.cleanUp();
+						try {
+							wrapper.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 

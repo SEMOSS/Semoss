@@ -1,12 +1,14 @@
 package prerna.sablecc2.reactor.algorithms.xray;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -31,6 +33,7 @@ import prerna.util.Utility;
 public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 
 	public static final String CLASS_NAME = GenerateXRayHashingReactor.class.getName();
+	public static final Logger classLogger = LogManager.getLogger(CLASS_NAME);
 
 	public static final String FILES_KEY = "files";
 	public static final String STATUS_KEY = "status";
@@ -191,10 +194,14 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 							}
 						}
 					} catch (Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(wrapper != null) {
-							wrapper.cleanUp();
+							try {
+								wrapper.close();
+							} catch(IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
 						}
 					}
 				}
@@ -255,10 +262,14 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 							}
 						}
 					} catch (Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(wrapper != null) {
-							wrapper.cleanUp();
+							try {
+								wrapper.close();
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
+							}
 						}
 					}
 				}

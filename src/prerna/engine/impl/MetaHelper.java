@@ -1,6 +1,7 @@
 package prerna.engine.impl;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Hashtable;
 import java.util.List;
@@ -167,18 +168,22 @@ public class MetaHelper implements IExplorable {
 	@Override
 	public String getNodeBaseUri() {
 		String baseUri = null;
-		IRawSelectWrapper wrap = null;
+		IRawSelectWrapper wrapper = null;
 		try {
-			wrap = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, GET_BASE_URI_FROM_OWL);
-			if(wrap.hasNext()) {
-				IHeadersDataRow data = wrap.next();
+			wrapper = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, GET_BASE_URI_FROM_OWL);
+			if(wrapper.hasNext()) {
+				IHeadersDataRow data = wrapper.next();
 				baseUri = data.getRawValues()[0] + "";
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrap != null) {
-				wrap.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -234,7 +239,11 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -268,7 +277,11 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -291,7 +304,11 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -329,7 +346,11 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -376,7 +397,11 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -416,7 +441,11 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
@@ -684,8 +713,12 @@ public class MetaHelper implements IExplorable {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
-				wrapper.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return null;
@@ -709,11 +742,11 @@ public class MetaHelper implements IExplorable {
 					+ "	}"
 					+ " }";
 		
-		IRawSelectWrapper it = null;
+		IRawSelectWrapper wrapper = null;
 		try {
-			it = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
-			while(it.hasNext()) {
-				Object[] raw = it.next().getRawValues();
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+			while(wrapper.hasNext()) {
+				Object[] raw = wrapper.next().getRawValues();
 				if(raw[1].toString().contains("concept")) {
 					return Utility.getInstanceName(raw[0].toString());
 				} else {
@@ -725,8 +758,12 @@ public class MetaHelper implements IExplorable {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (it != null) {
-				it.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -750,8 +787,12 @@ public class MetaHelper implements IExplorable {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (wrapper != null) {
-				wrapper.cleanUp();
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return conceptualName;
@@ -775,7 +816,11 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -799,7 +844,11 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -824,7 +873,11 @@ public class MetaHelper implements IExplorable {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		

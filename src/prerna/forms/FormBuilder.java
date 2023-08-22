@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
@@ -30,6 +32,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public final class FormBuilder {
+
+	private static final Logger classLogger = LogManager.getLogger(FormBuilder.class);
 
 	public static final String FORM_BUILDER_ENGINE_NAME = "form_builder_engine";
 	public static final String AUDIT_FORM_SUFFIX = "_FORM_LOG";
@@ -69,10 +73,14 @@ public final class FormBuilder {
 				auditTableExists = true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -81,7 +89,7 @@ public final class FormBuilder {
 			try {
 				formEng.insertData(createAuditTable);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -809,7 +817,7 @@ public final class FormBuilder {
 					try {
 						engine.insertData(updateQuery);
 					} catch (Exception e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 					if(!tablesToRemoveDuplicates.contains(tableName)) {
 						tablesToRemoveDuplicates.add(tableName);
@@ -821,7 +829,7 @@ public final class FormBuilder {
 				try {
 					engine.insertData(insertQuery);
 				} catch (Exception e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -953,7 +961,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		// insert the new relationship
@@ -973,7 +981,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		// set all the values in the foreign key column to the new value we are adding
@@ -982,7 +990,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		// remove the duplicated
@@ -992,7 +1000,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		// add all the values from the temp table into the table we care about
@@ -1000,7 +1008,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		// drop the temp table
@@ -1008,7 +1016,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -1025,7 +1033,7 @@ public final class FormBuilder {
 			try {
 				engine.insertData(queryBuilder.toString());
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -1057,7 +1065,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		// alter the table to add a column for the new foreign key value we are adding
@@ -1065,7 +1073,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		// set all the values in the foreign key column to the new value we are adding
@@ -1074,7 +1082,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		//TODO: is it possible to have duplicates at this point????
@@ -1085,7 +1093,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		// drop the temp table
@@ -1093,7 +1101,7 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -1116,21 +1124,21 @@ public final class FormBuilder {
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		queryBuilder.append("DROP TABLE ").append(tableName);
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 		queryBuilder.append("ALTER TABLE ").append(tableName).append(TEMP_EXTENSION).append(" RENAME TO ").append(tableName);
 		try {
 			engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		queryBuilder.setLength(0);
 	}
@@ -1173,7 +1181,7 @@ public final class FormBuilder {
 					try {
 						dateValue = GENERIC_DF.parse(propertyValue + "");
 					} catch (ParseException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Input value, " + propertyValue + " for column " + propNames.get(i) + " cannot be parsed as a date.");
 					}
 					propertyValue = SIMPLE_DATE_DF.format(dateValue);
@@ -1185,7 +1193,7 @@ public final class FormBuilder {
 					try {
 						dateValue = GENERIC_DF.parse(propertyValue + "");
 					} catch (ParseException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Input value, " + propertyValue + " for column " + propNames.get(i) + " cannot be parsed as a date.");
 					}
 					propertyValue = DATE_DF.format(dateValue);
@@ -1231,7 +1239,7 @@ public final class FormBuilder {
 				try {
 					dateValue = GENERIC_DF.parse(propertyValue + "");
 				} catch (ParseException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Input value, " + propertyValue + " for column " + propNames.get(i) + " cannot be parsed as a date.");
 				}
 				propertyValue = SIMPLE_DATE_DF.format(dateValue);
@@ -1243,7 +1251,7 @@ public final class FormBuilder {
 				try {
 					dateValue = GENERIC_DF.parse(propertyValue + "");
 				} catch (ParseException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Input value, " + propertyValue + " for column " + propNames.get(i) + " cannot be parsed as a date.");
 				}
 				propertyValue = DATE_DF.format(dateValue);
@@ -1285,7 +1293,7 @@ public final class FormBuilder {
 		try {
 			formEng.insertData(insertLogStatement.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

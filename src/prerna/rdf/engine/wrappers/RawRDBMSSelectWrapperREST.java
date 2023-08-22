@@ -1,5 +1,6 @@
 package prerna.rdf.engine.wrappers;
 
+import java.io.IOException;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.Date;
@@ -11,6 +12,9 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
@@ -19,9 +23,12 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
 import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.util.ConnectionUtils;
+import prerna.util.Constants;
 
 // TODO >>>timb: so right now this is the only wrapper extending this class, will need RestEngine
 public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IRawSelectWrapper {
+
+	private static final Logger classLogger = LogManager.getLogger(AbstractWrapper.class.getName());
 
 	protected Connection conn = null;
 	protected Statement stmt = null;
@@ -56,7 +63,7 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 			// go through and collect the metadata around the query
 			setVariables();
 		} catch (Exception e){
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			if(this.useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, stmt, rs);
 			} else {
@@ -96,10 +103,8 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 			if(currRow != null) {
 				return true;
 			}
-
-
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return false;
@@ -154,7 +159,11 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 			// return the header row
 			return new HeadersDataRow(headers, rawHeaders, row, row);
 		} else {
-			cleanUp();
+			try {
+				close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 
 		// no more results
@@ -183,7 +192,7 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 				types[colIndex-1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -215,14 +224,14 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 				this.rs.close();
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		try {
 			if(this.stmt != null) {
 				this.stmt.close();
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		if(this.closeConnectionAfterExecution) {
 			try {
@@ -230,7 +239,7 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 					this.conn.close();
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		this.closedConnection = true;
@@ -244,7 +253,7 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 			try {
 				query = parser.processQuery(this.query);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				query = this.query;
 			}
 			query = "select count(*) from (" + query + ") t";
@@ -257,20 +266,20 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 					this.numRows = rs.getLong(1);
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(rs != null) {
 					try {
 						rs.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -291,7 +300,11 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 		// and then reasign after we re-execute
 		boolean temp = this.closeConnectionAfterExecution;
 		this.closeConnectionAfterExecution = false;
-		cleanUp();
+		try {
+			close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		this.closeConnectionAfterExecution = temp;
 		// execute again
 		execute();
@@ -312,7 +325,7 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 			this.rs = this.stmt.executeQuery(query);
 			setVariables();
 		} catch(Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			if(closeIfFail) {
 				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 			}

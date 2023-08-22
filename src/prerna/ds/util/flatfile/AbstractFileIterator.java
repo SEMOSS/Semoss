@@ -1,7 +1,11 @@
 package prerna.ds.util.flatfile;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -9,9 +13,12 @@ import prerna.ds.util.IFileIterator;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractFileIterator implements IFileIterator {
+
+	private static final Logger classLogger = LogManager.getLogger(AbstractFileIterator.class);
 
 	/*
 	 * Trying to hold a common interface between loading via csv file
@@ -52,7 +59,11 @@ public abstract class AbstractFileIterator implements IFileIterator {
 				getNextRow();
 				if(nextRow == null) {
 					// drops the file connection
-					cleanUp();
+					try {
+						close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 					return false;
 				}
 			}
@@ -64,7 +75,11 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		}
 		if(nextRow == null) {
 			// drops the file connection
-			cleanUp();
+			try {
+				close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 			return false;
 		}
 		return true;
@@ -139,7 +154,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		try {
 			reset();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		getNextRow();
 		return overLimit;
@@ -166,7 +181,11 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	}
 	
 	public void deleteFile() {
-		cleanUp();
+		try {
+			close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		File file = new File(this.fileLocation);
 		file.delete();
 	}

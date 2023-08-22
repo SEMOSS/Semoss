@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.imports;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -339,7 +340,11 @@ public class MergeReactor extends AbstractReactor {
 			return frame;
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch(IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}

@@ -1,16 +1,23 @@
 package prerna.engine.impl;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Properties;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 
 @Deprecated
 public class OwlPrettyPrintFixer {
+
+	private static final Logger logger = LogManager.getLogger(OwlPrettyPrintFixer.class);
 
 	@Deprecated
 	public static void fixOwl(Properties prop) {
@@ -37,11 +44,15 @@ public class OwlPrettyPrintFixer {
 					rfse.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{badTriples[0], badTriples[1], badTriples[2], true});
 					rfse.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{badTriples[0], conceptualRel, badTriples[2], true});
 				}
-			} catch (Exception e1) {
-				e1.printStackTrace();
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
-					wrapper.cleanUp();
+					try {
+						wrapper.close();
+					} catch (IOException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			
@@ -49,7 +60,7 @@ public class OwlPrettyPrintFixer {
 				try {
 					rfse.exportDB();
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

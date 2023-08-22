@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -575,7 +576,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return false;
@@ -1268,7 +1273,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}
@@ -1348,7 +1357,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}
@@ -1545,7 +1558,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -1607,7 +1624,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throw e;
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -1710,7 +1731,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
-				wrapper.cleanUp();
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		return false;

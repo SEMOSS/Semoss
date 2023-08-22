@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
@@ -34,6 +35,8 @@ import prerna.util.Utility;
 import prerna.util.upload.UploadInputUtility;
 
 public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(UploadBulkOwlRelationshipsReactor.class);
 
 	private static final String CLASS_NAME = UploadBulkOwlRelationshipsReactor.class.getName();
 	private static final String SYNC_WITH_LOCALMASTER = "sync";
@@ -82,11 +85,15 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		try {
 			it = getExcelIterator(filePath);
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -129,10 +136,14 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 				counter++;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
-				it.cleanUp();
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		
@@ -141,7 +152,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		try {
 			owler.export();
 		} catch (IOException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships", 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
