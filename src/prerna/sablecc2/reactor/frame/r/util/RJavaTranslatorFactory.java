@@ -107,7 +107,7 @@ public class RJavaTranslatorFactory {
 	/**
 	 * Get a new RJavaTranslator based on if we are using rserve or jri
 	 * @param insight
-	 * @param logger
+	 * @param classLogger
 	 * @return
 	 */
 	public static void initRConnection() {

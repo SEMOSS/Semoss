@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.py;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -43,6 +46,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	
 	// need to see this https://stackoverflow.com/questions/46220167/add-columns-to-pivot-table-with-pandas
 	
+	private static final Logger classLogger = LogManager.getLogger(CollectPivotReactor.class);
+
 	private static final String NEW_LINE = "\n";
 	
 	private static String curEncoding = null;
@@ -312,7 +317,11 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		}
 		
 		// close the original task
-		this.task.cleanUp();
+		try {
+			this.task.close();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}

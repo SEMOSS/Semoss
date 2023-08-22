@@ -1,10 +1,14 @@
 package prerna.query.interpreters;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
@@ -33,10 +37,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.qs.SubQueryExpression;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PandasInterpreter extends AbstractQueryInterpreter {
+
+	private static final Logger classLogger = LogManager.getLogger(PandasInterpreter.class);
 
 	private String frameName = null;
 	private String wrapperFrameName = null;
@@ -839,10 +846,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					}
 				}
 			} catch(Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(innerTask != null) {
-					innerTask.cleanUp();
+					try {
+						innerTask.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			

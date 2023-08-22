@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -47,6 +48,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ToExcelReactor extends TaskBuilderReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(ToExcelReactor.class);
 
 	private static final String CLASS_NAME = ToExcelReactor.class.getName();
 	
@@ -98,7 +101,11 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			buildTask();
 		} finally {
 			if(this.task != null) {
-				this.task.cleanUp();
+				try {
+					this.task.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 		// store the insight file 

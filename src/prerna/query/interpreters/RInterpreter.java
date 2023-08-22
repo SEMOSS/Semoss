@@ -1,5 +1,6 @@
 package prerna.query.interpreters;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.qs.SubQueryExpression;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RInterpreter extends AbstractQueryInterpreter {
@@ -463,10 +465,14 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					}
 				}
 			} catch(Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(innerTask != null) {
-					innerTask.cleanUp();
+					try {
+						innerTask.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 			
