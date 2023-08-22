@@ -12,7 +12,7 @@ import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
@@ -471,7 +471,7 @@ public class SQLQueryUtils {
 	public static NativeFrame subQueryNativeFrame(SelectQueryStruct queryStruct) {
 		NativeFrame emptyFrame = null;
 		try {
-			IDatabase engine = queryStruct.retrieveQueryStructEngine();
+			IDatabaseEngine engine = queryStruct.retrieveQueryStructEngine();
 			IQueryInterpreter interp = engine.getQueryInterpreter();
 
 			SqlParser2 parser = new SqlParser2();

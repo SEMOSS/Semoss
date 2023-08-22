@@ -5,7 +5,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -29,7 +29,7 @@ public class QueryRowCountReactor  extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		SelectQueryStruct qs = getQs();
-		IDatabase engine = qs.retrieveQueryStructEngine();
+		IDatabaseEngine engine = qs.retrieveQueryStructEngine();
 		if(engine == null) {
 			throw new IllegalArgumentException("Can only predict the row count for Basic Iterators - currently do not handle map operations");
 		}

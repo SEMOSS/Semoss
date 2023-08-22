@@ -14,10 +14,10 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.api.IStorage;
+import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
@@ -223,7 +223,7 @@ public class CentralCloudStorage implements ICloudClient {
 	
 	@Override
 	public void pushDatabase(String databaseId) throws IOException, InterruptedException {
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -285,7 +285,7 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("Unallowed database type. Must be either SQLITE or H2");
 		}
 		
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -336,7 +336,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullDatabase(String databaseId, boolean databaseAlreadyLoaded) throws IOException, InterruptedException {
-		IDatabase database = null;
+		IDatabaseEngine database = null;
 		if (databaseAlreadyLoaded) {
 			database = Utility.getDatabase(databaseId, false);
 			if (database == null) {
@@ -461,7 +461,7 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("Unallowed database type. Must be either SQLITE or H2");
 		}
 		
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -562,7 +562,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pushOwl(String databaseId) throws IOException, InterruptedException {
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -614,7 +614,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullOwl(String databaseId) throws IOException, InterruptedException {
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -722,7 +722,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pushDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -768,7 +768,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullDatabaseFolder(String databaseId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
-		IDatabase database = Utility.getDatabase(databaseId, false);
+		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
@@ -1276,7 +1276,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pullStorage(String storageId, boolean storageAlreadyLoaded) throws IOException, InterruptedException {
-		IStorage storage = null;
+		IStorageEngine storage = null;
 		if (storageAlreadyLoaded) {
 			storage = Utility.getStorage(storageId, false);
 			if (storage == null) {
@@ -1979,7 +1979,7 @@ public class CentralCloudStorage implements ICloudClient {
 		{
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String engineProp = baseFolder + "\\db\\diabetes sanjay and sarji__56af9395-64fd-40a2-b68c-bbd6961336a5.smss";
-			IDatabase sampleDb = new RDBMSNativeEngine();
+			IDatabaseEngine sampleDb = new RDBMSNativeEngine();
 			sampleDb.openDB(engineProp);
 			DIHelper.getInstance().setEngineProperty("56af9395-64fd-40a2-b68c-bbd6961336a5", sampleDb);
 		}

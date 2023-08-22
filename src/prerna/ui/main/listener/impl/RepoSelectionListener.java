@@ -39,7 +39,7 @@ import javax.swing.event.ListSelectionListener;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.project.api.IProject;
 import prerna.ui.components.specific.tap.ServiceSelectPanel;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
@@ -96,7 +96,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 			// need a method in the DIHelper which loads a properties file first
 			// and then loads perspectives etc.
 			// once this is done.. keep the core properties pointed to it / need to modify the calls on process query listener etc.
-			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(selectedValue);
+			IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(selectedValue);
 			IProject project = Utility.getProject(engine.getEngineId());
 			Vector<String> perspectives = project.getPerspectives();
 			Collections.sort(perspectives);
@@ -138,7 +138,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 			
 			try{
 				ServiceSelectPanel transitionSerPanel = (ServiceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.TRANSITION_SERVICE_PANEL);
-				transitionSerPanel.engine=(IDatabase)DIHelper.getInstance().getLocalProp(selectedValue);
+				transitionSerPanel.engine=(IDatabaseEngine)DIHelper.getInstance().getLocalProp(selectedValue);
 				transitionSerPanel.getServices();
 			}
 			catch(RuntimeException ex){
@@ -146,7 +146,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 			}
 			try{
 				SourceSelectPanel sourceSelPanel = (SourceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.SOURCE_SELECT_PANEL);
-				sourceSelPanel.engine=(IDatabase)DIHelper.getInstance().getLocalProp(selectedValue);
+				sourceSelPanel.engine=(IDatabaseEngine)DIHelper.getInstance().getLocalProp(selectedValue);
 				sourceSelPanel.getCapabilities();
 			}catch(Exception ex){
 				logger.debug(ex);}

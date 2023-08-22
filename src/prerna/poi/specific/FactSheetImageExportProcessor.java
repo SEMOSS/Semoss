@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -46,7 +46,7 @@ public class FactSheetImageExportProcessor {
 	public void runImageExport() {
 		//Select Systems
 		ArrayList<String> sysList = new ArrayList<String>();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 
 		//for services
 		String query = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?Owner}}ORDER BY ?System BINDINGS ?Owner {(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}";

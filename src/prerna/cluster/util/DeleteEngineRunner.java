@@ -3,9 +3,9 @@ package prerna.cluster.util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.api.IStorage;
+import prerna.engine.api.IStorageEngine;
 import prerna.util.Constants;
 
 public class DeleteEngineRunner implements Runnable {
@@ -23,9 +23,9 @@ public class DeleteEngineRunner implements Runnable {
 	@Override
 	public void run() {
 		try {
-			if(IDatabase.CATALOG_TYPE.equals(ENGINE_TYPE)) {
+			if(IDatabaseEngine.CATALOG_TYPE.equals(ENGINE_TYPE)) {
 				ClusterUtil.deleteDatabase(ENGINE_ID);
-			} else if(IStorage.CATALOG_TYPE.equals(ENGINE_TYPE)) {
+			} else if(IStorageEngine.CATALOG_TYPE.equals(ENGINE_TYPE)) {
 				ClusterUtil.deleteStorage(ENGINE_ID);
 			} else if(IModelEngine.CATALOG_TYPE.equals(ENGINE_TYPE)) {
 				ClusterUtil.deleteModel(ENGINE_ID);

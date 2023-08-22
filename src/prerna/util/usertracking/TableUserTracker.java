@@ -17,7 +17,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -373,7 +373,7 @@ public class TableUserTracker implements IUserTracker {
 		
 		QUERY_STRUCT_TYPE type = qs.getQsType();
 		if(type == QUERY_STRUCT_TYPE.ENGINE) {
-			IDatabase engine = qs.retrieveQueryStructEngine();
+			IDatabaseEngine engine = qs.retrieveQueryStructEngine();
 			String engineId = engine.getEngineId();
 			String engineName = engine.getEngineName();
 			
@@ -578,7 +578,7 @@ public class TableUserTracker implements IUserTracker {
 			}
 			
 		} else if(type == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			IDatabase engine = qs.retrieveQueryStructEngine();
+			IDatabaseEngine engine = qs.retrieveQueryStructEngine();
 			String engineId = engine.getEngineId();
 			String engineName = engine.getEngineName();
 			
@@ -778,7 +778,7 @@ public class TableUserTracker implements IUserTracker {
 			// Not really an engineID (drag and drop...)
 			return null;
 		}
-		IDatabase engine = Utility.getDatabase(engineId);
+		IDatabaseEngine engine = Utility.getDatabase(engineId);
 		if(engine != null) {
 			RDFFileSesameEngine owlEngine = ((AbstractDatabase) engine).getBaseDataEngine();
 			

@@ -32,7 +32,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.ui.comparison.specific.tap.GenericDBComparisonWriter;
@@ -56,8 +56,8 @@ public class DatabaseComparisonListener implements IChakraListener
 		String oldDBName = oldDBComboBox.getSelectedItem() + "";
 		
 		// get associated engines
-		IDatabase newDB = (IDatabase) DIHelper.getInstance().getLocalProp(newDBName);
-		IDatabase oldDB = (IDatabase) DIHelper.getInstance().getLocalProp(oldDBName);
+		IDatabaseEngine newDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(newDBName);
+		IDatabaseEngine oldDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(oldDBName);
 		
 		RDFFileSesameEngine newMetaDB = ((AbstractDatabase) newDB).getBaseDataEngine();
 		RDFFileSesameEngine oldMetaDB = ((AbstractDatabase) oldDB).getBaseDataEngine();

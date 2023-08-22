@@ -50,7 +50,7 @@ import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.repository.sail.SailTupleQuery;
 import org.openrdf.repository.sparql.query.SPARQLQueryBindingSet;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 
 public class QueryBuilderHelper {
 	ValueFactory vf = null;
@@ -79,7 +79,7 @@ public class QueryBuilderHelper {
 	// and the other entity is selected <bind> <outputclass2> <instancename2>
 	// when the property is selected same thing
 	
-	public void setEngine(IDatabase engine)
+	public void setEngine(IDatabaseEngine engine)
 	{
 		// will set the engine
 	}

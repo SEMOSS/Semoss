@@ -34,7 +34,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -62,7 +62,7 @@ public class ComparisonHeatMap extends BrowserPlaySheet {
 		
 		Hashtable<String, Object> simValuesHash = new Hashtable<String, Object>();
 		for(;i < length; i++) {
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(databaseArr[i]);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(databaseArr[i]);
 			ISelectWrapper sjsw = Utility.processQuery(engine, queryArr[i]);
 			Hashtable<String, List<String>> queryData = runQuery(sjsw);
 			simValuesHash = runComparison(queryData, simValuesHash);

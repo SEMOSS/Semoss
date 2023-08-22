@@ -22,7 +22,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -58,7 +58,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 	protected transient Logger logger;
 	protected transient String databaseId;
 	protected transient String databaseName;
-	protected transient IDatabase database;
+	protected transient IDatabaseEngine database;
 	protected transient File databaseFolder;
 	protected transient File tempSmss;
 	protected transient File smssFile;

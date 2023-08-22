@@ -33,7 +33,7 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.TablePlaySheet;
@@ -52,7 +52,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends TablePlayS
 		int counter = 0;
 		String sysOwner = this.query;
 		lpiSysQuery = lpiSysQuery.replace("@SYS_OWNER@", sysOwner);
-		IDatabase tapCoreData = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		IDatabaseEngine tapCoreData = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if (tapCoreData == null) {
 			Utility.showError(
 					"Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");

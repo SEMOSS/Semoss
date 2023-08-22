@@ -41,7 +41,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.rdbms.h2.H2Frame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -53,9 +53,9 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 	private static final Logger LOGGER = LogManager.getLogger(MhsGenesisDeploymentSavingsProcessor.class.getName());
 
-	protected IDatabase tapPortfolio;
-	protected IDatabase tapSite;
-	protected IDatabase tapCore;
+	protected IDatabaseEngine tapPortfolio;
+	protected IDatabaseEngine tapSite;
+	protected IDatabaseEngine tapCore;
 
 	protected String hpSystemFilterStr = null;
 
@@ -237,9 +237,9 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	/////////////////////////////////////////////////////////////////////////////////////////////
 
 	public void runSupportQueries() {
-		this.tapPortfolio = (IDatabase) Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Portfolio"));
-		this.tapSite = (IDatabase) Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Site_Data"));
-		this.tapCore = (IDatabase) Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Core_Data"));
+		this.tapPortfolio = (IDatabaseEngine) Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Portfolio"));
+		this.tapSite = (IDatabaseEngine) Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Site_Data"));
+		this.tapCore = (IDatabaseEngine) Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Core_Data"));
 
 		this.waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(tapSite);
 		// calculate the wave start/end dates
@@ -607,7 +607,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	private H2Frame appendSystemSustainmentInfo(H2Frame mainSustainmentFrame, double[] inflationArr) {
 		LOGGER.info("Running query to get the systems and their costs");
 
-		IDatabase tapPortfolio = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Portfolio"));
+		IDatabaseEngine tapPortfolio = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Portfolio"));
 		String systemSustainmentBudgetQuery = "SELECT DISTINCT ?System ?FY (SUM(?Cost) AS ?Cost) WHERE { "
 				+ "BIND(<http://health.mil/ontologies/Concept/GLTag/Grand_Total> AS ?OMTag) "
 				+ "{?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} "
@@ -815,7 +815,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		String[] waveSiteSystemHeaders = new String[]{"Wave","HostSiteAndFloater","System"};
 		H2Frame mainSustainmentFrame2 = new H2Frame(waveSiteSystemHeaders);
 		// execute the query
-		IDatabase tapSite = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Site_Data"));
+		IDatabaseEngine tapSite = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Site_Data"));
 		Map<String, SemossDataType> dataTypes = new Hashtable<String, SemossDataType>();
 		dataTypes.put("Wave", SemossDataType.STRING);
 		dataTypes.put("HostSiteAndFloater", SemossDataType.STRING);
@@ -846,7 +846,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		if(this.hpSystemFilterStr == null) {
 			final String systemFilterQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved')) }";
 			// this will run and get the list of system with the requierd set of property values
-			IDatabase tapCore = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Core_Data"));
+			IDatabaseEngine tapCore = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Core_Data"));
 			StringBuilder waveSiteSystemBuilder = new StringBuilder(" BINDINGS ?System {");
 			IRawSelectWrapper rawWrapper = null;
 			try {
@@ -893,7 +893,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			this.systemSiteSustainmentFrame = new H2Frame();
 			this.systemSiteSustainmentFrame.addNewColumn(headers, dataTypes, this.systemSiteSustainmentFrame.getName());
 
-			IDatabase tapPortfolio = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Portfolio"));
+			IDatabaseEngine tapPortfolio = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Portfolio"));
 			String[] systemSiteSustainmentQueryArr = new String[2];
 			systemSiteSustainmentQueryArr[0] = "SELECT DISTINCT ?System ?Site ?Cost ?FYTag WHERE { "
 					+ "{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
@@ -1102,7 +1102,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		return percentRealized;
 	}
 
-	public IDatabase getTapSite() {
+	public IDatabaseEngine getTapSite() {
 		return tapSite;
 	}
 

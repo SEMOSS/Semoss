@@ -42,7 +42,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator;
 import prerna.ds.util.flatfile.CsvFileIterator;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
@@ -172,7 +172,7 @@ public class RNativeEngine extends AbstractDatabase {
 
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabase.DATABASE_TYPE.R;
+		return IDatabaseEngine.DATABASE_TYPE.R;
 	}
 
 	@Override

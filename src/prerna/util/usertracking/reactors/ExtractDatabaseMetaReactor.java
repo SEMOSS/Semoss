@@ -5,8 +5,8 @@ import java.util.List;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -52,7 +52,7 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 		}
 		
 		boolean descriptions = getDescriptionsBool();
-		IDatabase engine = Utility.getDatabase(engineId);
+		IDatabaseEngine engine = Utility.getDatabase(engineId);
 
 		// validate engine exists
 		if (engine == null) {

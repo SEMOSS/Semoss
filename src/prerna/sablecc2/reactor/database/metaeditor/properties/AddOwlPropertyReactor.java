@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
@@ -55,7 +55,7 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 //			conceptual = conceptual.replaceAll("_{2,}", "_");
 //		}
 
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		ClusterUtil.pullOwl(databaseId);
 		// make sure the concept exists
 		String conceptPhysicalUri = database.getPhysicalUriFromPixelSelector(concept);

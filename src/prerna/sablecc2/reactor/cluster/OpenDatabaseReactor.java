@@ -6,7 +6,7 @@ import java.util.Map;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -33,7 +33,7 @@ public class OpenDatabaseReactor extends AbstractReactor {
 			Map<String, Object> returnMap = new HashMap<String, Object>();
 			returnMap.put("database_name", "NEWSEMOSSAPP");
 			returnMap.put("database_id", databaseId);
-			returnMap.put("database_type", IDatabase.DATABASE_TYPE.APP.toString());
+			returnMap.put("database_type", IDatabaseEngine.DATABASE_TYPE.APP.toString());
 			returnMap.put("database_subtype", "");
 			returnMap.put("database_cost", "");	
 			return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_DATABASE);
@@ -51,7 +51,7 @@ public class OpenDatabaseReactor extends AbstractReactor {
 			}
 		}
 		
-		IDatabase engine = Utility.getDatabase(databaseId);
+		IDatabaseEngine engine = Utility.getDatabase(databaseId);
 		if(engine == null) {
 			throw new IllegalArgumentException("Could not find or load database = " + databaseId);
 		}

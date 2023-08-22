@@ -6,7 +6,7 @@ import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -23,7 +23,7 @@ public class GetDatabaseMetaValuesReactor extends AbstractReactor {
     @Override
     public NounMetadata execute() {
     	List<String> eTypes = new ArrayList<>();
-		eTypes.add(IDatabase.CATALOG_TYPE);
+		eTypes.add(IDatabaseEngine.CATALOG_TYPE);
 		
         List<String> dbList = null;
         if(AbstractSecurityUtils.securityEnabled()) {

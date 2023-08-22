@@ -5,7 +5,7 @@ import java.util.Map;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -37,7 +37,7 @@ public class UpdateFormReactor extends AbstractReactor {
 		String databaseName = this.store.getNoun(this.keysToGet[0]).get(0) + "";
 		Map<String, Object> engineHash = (Map<String, Object>) this.store.getNoun(FORM_DATA).get(0);
 
-		IDatabase engine = Utility.getDatabase(databaseName);
+		IDatabaseEngine engine = Utility.getDatabase(databaseName);
 		AbstractFormBuilder formbuilder = FormFactory.getFormBuilder(engine);
 		try {
 			formbuilder.commitFormData(engineHash, userId);

@@ -24,7 +24,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.ds.TinkerFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
@@ -128,7 +128,7 @@ public class TinkerEngine extends AbstractDatabase {
 
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabase.DATABASE_TYPE.TINKER;
+		return IDatabaseEngine.DATABASE_TYPE.TINKER;
 	}
 
 	@Override

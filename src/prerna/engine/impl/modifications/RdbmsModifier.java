@@ -2,7 +2,7 @@ package prerna.engine.impl.modifications;
 
 import java.sql.SQLException;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineModifier;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -17,7 +17,7 @@ public class RdbmsModifier implements IEngineModifier {
 	private String schmea = null;
 	
 	@Override
-	public void setEngine(IDatabase engine) {
+	public void setEngine(IDatabaseEngine engine) {
 		this.engine = (RDBMSNativeEngine) engine;
 		this.queryUtil = this.engine.getQueryUtil();
 		this.database = this.engine.getDatabase();

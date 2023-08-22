@@ -17,9 +17,9 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -335,7 +335,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @throws Exception
 	 */
 	private void processExcelSheets(
-			IDatabase database, 
+			IDatabaseEngine database, 
 			Owler owler, 
 			ExcelWorkbookFileHelper helper, 
 			Map<String, Map<String, Map<String, String>>> dataTypesMap, 
@@ -488,7 +488,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @param logger
 	 * @throws Exception 
 	 */
-	private void processSheet(IDatabase database, Owler owler, ExcelSheetFileIterator helper, boolean singleRange, 
+	private void processSheet(IDatabaseEngine database, Owler owler, ExcelSheetFileIterator helper, boolean singleRange, 
 			Map<String, String> descriptions, Map<String, List<String>> logicalNames, 
 			String sheet, String uniqueColumnName, 
 			boolean clean, boolean replace) throws Exception {
@@ -532,7 +532,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, descriptions, logicalNames);
 	}
 
-	private void bulkInsertSheet(IDatabase database, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
+	private void bulkInsertSheet(IDatabaseEngine database, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
 			SemossDataType[] types, String[] additionalTypes, boolean clean, Logger logger) throws IOException {
 
 		// now we need to loop through the excel sheet and cast to the appropriate type and insert

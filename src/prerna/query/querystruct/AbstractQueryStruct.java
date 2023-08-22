@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -80,7 +80,7 @@ public abstract class AbstractQueryStruct {
 	protected transient ITableDataFrame frame;
 	protected String frameName;
 	protected String frameType;
-	protected transient IDatabase engine;
+	protected transient IDatabaseEngine engine;
 	protected String engineId;
 	protected Boolean bigDataEngine = false;
 	// frame filters stored at runtime
@@ -341,15 +341,15 @@ public abstract class AbstractQueryStruct {
 		return this.engineId;
 	}
 	
-	public void setEngine(IDatabase engine) {
+	public void setEngine(IDatabaseEngine engine) {
 		this.engine = engine;
 	}
 	
-	public IDatabase getEngine() {
+	public IDatabaseEngine getEngine() {
 		return this.engine;
 	}
 	
-	public IDatabase retrieveQueryStructEngine() {
+	public IDatabaseEngine retrieveQueryStructEngine() {
 		if(this.engine == null && this.engineId != null) {
 			this.engine = Utility.getDatabase(this.engineId);
 		}

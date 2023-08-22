@@ -30,7 +30,7 @@ package prerna.ui.components.specific.tap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.helpers.EntityFiller;
 import prerna.util.DIHelper;
@@ -83,7 +83,7 @@ public class SystemListComboBox extends ParamComboBox implements Runnable {
 		
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
-			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+			IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 			logger.info("Repository is " + repos[repoIndex]);
 			
 			EntityFiller filler = new EntityFiller();

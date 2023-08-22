@@ -4,7 +4,7 @@ import org.janusgraph.core.JanusGraphFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Utility;
 
@@ -27,7 +27,7 @@ public class JanusEngine extends TinkerEngine {
 	
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabase.DATABASE_TYPE.JANUS_GRAPH;
+		return IDatabaseEngine.DATABASE_TYPE.JANUS_GRAPH;
 	}
 
 }

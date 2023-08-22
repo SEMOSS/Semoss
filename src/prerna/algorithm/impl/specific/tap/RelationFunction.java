@@ -43,7 +43,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -58,7 +58,7 @@ public class RelationFunction implements IAlgorithm {
 
 	static final Logger logger = LogManager.getLogger(RelationFunction.class.getName());
 	RelationPlaySheet playSheet;
-	IDatabase engine;
+	IDatabaseEngine engine;
 	String[] names; 
 
 	ArrayList<String> rowNames = new ArrayList<String>();
@@ -163,7 +163,7 @@ public class RelationFunction implements IAlgorithm {
 		return null;
 	}
 
-	public void setRDFEngine(IDatabase engine) {
+	public void setRDFEngine(IDatabaseEngine engine) {
 		this.engine = engine;	
 	}
 

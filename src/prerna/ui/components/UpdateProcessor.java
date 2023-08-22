@@ -32,7 +32,7 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.util.Constants;
@@ -45,7 +45,7 @@ public class UpdateProcessor {
 
 	static final Logger logger = LogManager.getLogger(UpdateProcessor.class.getName());
 	String query;
-	IDatabase engine;
+	IDatabaseEngine engine;
 	
 	/**
 	 * Constructor for UpdateProcessor.
@@ -70,7 +70,7 @@ public class UpdateProcessor {
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
 				//get specific engine
-				IDatabase selectedEngine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+				IDatabaseEngine selectedEngine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 				logger.info("Selecting repository " + repos[repoIndex]);
 				
 				if(selectedEngine instanceof BigDataEngine) {
@@ -115,7 +115,7 @@ public class UpdateProcessor {
 	 * Sets the engine.
 	 * @param e 	Engine to be set.
 	 */
-	public void setEngine(IDatabase e){
+	public void setEngine(IDatabaseEngine e){
 		engine = e;
 	}
 	

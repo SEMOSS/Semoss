@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -50,7 +50,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		
 	}
 
-	public NoOuterJoinSqlInterpreter(IDatabase engine) {
+	public NoOuterJoinSqlInterpreter(IDatabaseEngine engine) {
 		super(engine);
 	}
 	

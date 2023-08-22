@@ -35,7 +35,7 @@ import java.util.Map.Entry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -66,7 +66,7 @@ public class SimilarityFunctions {
 		// once created find the binding names
 		// compose a array
 		// and then create filter data and a table
-		IDatabase engine = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias(dbName));
+		IDatabaseEngine engine = Utility.getDatabase(MasterDatabaseUtility.testDatabaseIdIfAlias(dbName));
 		list = new ArrayList();
 		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

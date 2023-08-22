@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.metaeditor.properties;
 import java.util.List;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.AbstractOwler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.PixelDataType;
@@ -52,7 +52,7 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		
 		String newPixelURI = "http://semoss.org/ontologies/Relation/Contains/" + newPixelName + "/" + concept;
 
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		ClusterUtil.pullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 		
@@ -74,9 +74,9 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		}
 		
 		// remove the current relationship
-		owlEngine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, pixelURI, true});
+		owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, pixelURI, true});
 		// add the new relationship
-		owlEngine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, newPixelURI, true});
+		owlEngine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, newPixelURI, true});
 		
 		try {
 			owlEngine.exportDB();

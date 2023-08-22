@@ -13,7 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.rdbms.h2.H2Frame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.test.TestUtilityMethods;
@@ -659,7 +659,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		TestUtilityMethods.loadDIHelper();
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
-		IDatabase coreEngine = new BigDataEngine();
+		IDatabaseEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineId("TAP_Core_Data");
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineId("TAP_Core_Data");

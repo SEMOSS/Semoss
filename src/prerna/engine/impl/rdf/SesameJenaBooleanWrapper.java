@@ -34,8 +34,8 @@ import org.openrdf.query.GraphQueryResult;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 
 /**
  * This helps insert and delete boolean queries to the database.
@@ -45,8 +45,8 @@ public class SesameJenaBooleanWrapper {
 	GraphQueryResult gqr = null;
 	Model model = null;	
 	StmtIterator si = null;	
-	IDatabase engine = null;	
-	DATABASE_TYPE databaseType = IDatabase.DATABASE_TYPE.SESAME;
+	IDatabaseEngine engine = null;	
+	DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
 	String query = null;
 	com.hp.hpl.jena.rdf.model.Statement curSt = null;
 	
@@ -65,7 +65,7 @@ public class SesameJenaBooleanWrapper {
 	 * Method setEngine. Sets the engine.
 	 * @param engine IDatabase - The engine that this is being set to.
 	 */
-	public void setEngine(IDatabase engine)
+	public void setEngine(IDatabaseEngine engine)
 	{
 		this.engine = engine;
 		databaseType = engine.getDatabaseType();

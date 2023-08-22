@@ -40,7 +40,7 @@ import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
 import aurelienribon.ui.css.Style;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.SelectScrollList;
@@ -48,7 +48,7 @@ import prerna.util.DIHelper;
 
 @SuppressWarnings("serial")
 public class DHMSMDataBLUSelectPanel extends JPanel {
-	public IDatabase engine;
+	public IDatabaseEngine engine;
 	
 	public JLabel lblDataSelectHeader,lblBLUSelectHeader;
 	public SelectScrollList dataSelectDropDown,bluSelectDropDown;
@@ -167,7 +167,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 	
 	public Vector<String> makeListFromQuery(String type, String query)
 	{
-		engine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		EntityFiller filler = new EntityFiller();
 		filler.engineName = engine.getEngineId();
 		filler.type = "Capability";

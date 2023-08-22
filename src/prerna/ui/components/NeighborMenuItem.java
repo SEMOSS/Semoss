@@ -33,7 +33,7 @@ import javax.swing.JMenuItem;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -49,7 +49,7 @@ import prerna.util.DIHelper;
  */
 public class NeighborMenuItem extends JMenuItem{
 	String query; 
-	IDatabase engine = null;
+	IDatabaseEngine engine = null;
 	String predicateURI = null;
 	String name = null;
 	
@@ -61,7 +61,7 @@ public class NeighborMenuItem extends JMenuItem{
 	 * @param query String
 	 * @param engine IDatabase
 	 */
-	public NeighborMenuItem(String name, String query, IDatabase engine)
+	public NeighborMenuItem(String name, String query, IDatabaseEngine engine)
 	{
 		super(name);
 		this.name = name;

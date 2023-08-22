@@ -36,7 +36,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -255,7 +255,7 @@ public class SysDecommissionOptimizationFunctions {
 //		removeSystemsWithNoSite();
 		sortSysList();
 		
-		sysToDispositionHash = DHMSMTransitionUtility.processReportTypeQuery((IDatabase) DIHelper.getInstance().getLocalProp(coreDB));
+		sysToDispositionHash = DHMSMTransitionUtility.processReportTypeQuery((IDatabaseEngine) DIHelper.getInstance().getLocalProp(coreDB));
 
 //		ArrayList <Object []> systemSustainmentCostList = createData(coreDB,systemSustainmentCostQuery);
 //		processSystemSustainmentCostHash(systemSustainmentCostList);
@@ -566,7 +566,7 @@ public class SysDecommissionOptimizationFunctions {
 	public ArrayList <Object []> createData(String engineName, String query) {
 		
 		ArrayList <Object []> list = new ArrayList<Object[]>();
-		IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+		IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

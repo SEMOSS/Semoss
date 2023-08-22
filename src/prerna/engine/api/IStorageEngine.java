@@ -1,44 +1,105 @@
 package prerna.engine.api;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
-public interface IStorageEngine {
+public interface IStorageEngine extends IEngine {
 
-	// set any of the properties needed to open this engine
-	public void setProperty(String key, String value);
+	String CATALOG_TYPE = "STORAGE";
+
+	// this is what the FE sends for the type of storage we are creating
+	// as a result, cannot be a key in the smss file
+	String STORAGE_TYPE = "STORAGE_TYPE";
 	
-	// opens the storage
-	public void openLocation();
-	
-	// browse a directory
-	// first array 
-	/*
-	 * 		retHash.put("FILE_LIST", files);
-		retHash.put("DIR_LIST", directories);
-		retHash.put("FILE_DATE", fileDates);
-		retHash.put("DIR_DATE", dirDates);
+	/**
+	 * 
+	 * @return
 	 */
-	// format [{path=classes/compileerror.out, name=compileerror.out, lastModified=05/08/2020 13:27:09, type=out}, {path=classes/prerna/, name=prerna, lastModified=05/08/2020 12:32:08, type=directory}]
-	public List <Map<String, Object>>  browse(String startDir);
+	StorageTypeEnum getStorageType();
 	
+	/**
+	 * 
+	 * @param smssProp
+	 */
+	void open(String smssFilePath) throws Exception;
 	
-	// add a file
-	// if the newname is null then this will use the same as the local file name
-	public void addFile(String localFileName, String location, String newname);
+	/**
+	 * 
+	 * @param smssProp
+	 */
+	void open(Properties smssProp) throws Exception;
+
+	/**
+	 * 
+	 * @param path
+	 * @return
+	 * @throws Exception 
+	 */
+	List<String> list(String path) throws Exception;
 	
-	// delete a particular file
-	public void deleteLocation(String location);
+	/**
+	 * 
+	 * @param path
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	List<Map<String, Object>> listDetails(String path) throws Exception;
 	
-	// replaces the file
-	public void replaceFile(String localFileName, String storedFile);
+	/**
+	 * 
+	 * @param localFilePath
+	 * @param storagePath
+	 * @throws Exception
+	 */
+	void syncLocalToStorage(String localPath, String storagePath) throws Exception;
 	
-	// create a new file
-	// this may not work for things like amazon S3 where the folder is just the name
-	public void createLocation(String baseLocation, String nameOfNewFile);
+	/**
+	 * 
+	 * @param storagePath
+	 * @param localPath
+	 * @throws Exception
+	 */
+	void syncStorageToLocal(String storagePath, String localPath) throws Exception;
 	
-	// copy file to a given location
-	// remote location to local location
-	public void copyFile(String remlocation, String localLocation);
+	/**
+	 * 
+	 * @param localFilePath
+	 * @param storageFolderPath
+	 * @throws Exception
+	 */
+	void copyToStorage(String localFilePath, String storageFolderPath) throws Exception;
+	
+	/**
+	 * 
+	 * @param storageFilePath
+	 * @param localFolderPath
+	 * @throws Exception
+	 */
+	void copyToLocal(String storageFilePath, String localFolderPath) throws Exception;
+
+	/**
+	 * 
+	 * @param storageFilePath
+	 * @throws Exception
+	 */
+	void deleteFromStorage(String storagePath) throws Exception;
+
+	/**
+	 * 
+	 * @param storagePath
+	 * @param leaveFolderStructure
+	 * @throws Exception
+	 */
+	void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception;
+
+	/**
+	 * 
+	 * @param storageFolderPath
+	 * @throws Exception
+	 */
+	void deleteFolderFromStorage(String storageFolderPath) throws Exception;
 	
 }

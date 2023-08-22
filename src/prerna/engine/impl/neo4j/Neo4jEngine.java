@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.CypherInterpreter;
@@ -66,7 +66,7 @@ public class Neo4jEngine extends AbstractDatabase {
 	
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabase.DATABASE_TYPE.NEO4J;
+		return IDatabaseEngine.DATABASE_TYPE.NEO4J;
 	}
 	
 	@Override

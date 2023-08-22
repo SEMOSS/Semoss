@@ -8,8 +8,8 @@ import java.util.Vector;
 
 import com.hp.hpl.jena.vocabulary.RDF;
 
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
@@ -49,7 +49,7 @@ public class MHSGenesisScheduleUpdater {
 //		coreEngine.commit();
 //	}
 
-	private static void updateSiteToWave(IDatabase engine) {
+	private static void updateSiteToWave(IDatabaseEngine engine) {
 		List<String> updateSites = new Vector<String>();
 		updateSites.add("LEMOORE");
 		updateSites.add("MOUNTAIN_HOME_AFB");
@@ -121,7 +121,7 @@ public class MHSGenesisScheduleUpdater {
 		}
 	}
 
-	private static void deleteWaveToYearQuarter(IDatabase engine) {
+	private static void deleteWaveToYearQuarter(IDatabaseEngine engine) {
 		String q = "select distinct ?wave ?rel ?yearquarter where {"
 				+ "{?wave a <http://semoss.org/ontologies/Concept/Wave>} "
 				+ "{?yearquarter a <http://semoss.org/ontologies/Concept/Year-Quarter>}"
@@ -144,7 +144,7 @@ public class MHSGenesisScheduleUpdater {
 		}
 	}
 	
-	private static void addWaveToYearQuarter(IDatabase coreEngine) {
+	private static void addWaveToYearQuarter(IDatabaseEngine coreEngine) {
 		// add BeginsOn
 		Map<String, String> addOn = new HashMap<String, String>();
 		addOn.put("IOC", 	"Q4FY2016");
@@ -203,7 +203,7 @@ public class MHSGenesisScheduleUpdater {
 
 	}
 	
-	private static void processWaveYear(IDatabase engine, Map<String, String> waveToYearMap, String relName) {
+	private static void processWaveYear(IDatabaseEngine engine, Map<String, String> waveToYearMap, String relName) {
 		for(String wave : waveToYearMap.keySet()) {
 			String yearQuarter = waveToYearMap.get(wave);
 			
@@ -328,7 +328,7 @@ public class MHSGenesisScheduleUpdater {
 		}
 	}
 	
-	private static void deleteRel(IDatabase engine, Object[] rel) {
+	private static void deleteRel(IDatabaseEngine engine, Object[] rel) {
 		Object[] del = new Object[4];
 		del[0] = rel[0].toString();
 		del[1] = rel[1].toString();
@@ -337,7 +337,7 @@ public class MHSGenesisScheduleUpdater {
 		engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, del);
 	}
 	
-	private static void addRel(IDatabase engine, Object[] rel) {
+	private static void addRel(IDatabaseEngine engine, Object[] rel) {
 		Object[] del = new Object[4];
 		del[0] = rel[0];
 		del[1] = rel[1];

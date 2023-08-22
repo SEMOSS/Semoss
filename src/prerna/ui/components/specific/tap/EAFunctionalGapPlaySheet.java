@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -40,7 +40,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class EAFunctionalGapPlaySheet extends GridPlaySheet {
-	private IDatabase tapCoreEngine = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+	private IDatabaseEngine tapCoreEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 	
 	private final String getEHRDataQuery = "SELECT DISTINCT ?data WHERE {{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?system ?provide ?data}} UNION {{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}{?provide <http://semoss.org/ontologies/Relation/Contains/SOR> 'Yes'}{?system ?provide ?data}}}} BINDINGS ?system {(<http://health.mil/ontologies/Concept/System/AHLTA>)(<http://health.mil/ontologies/Concept/System/CHCS>)(<http://health.mil/ontologies/Concept/System/CIS-Essentris>)}";
 	private final String getEHRBLUQuery = "SELECT DISTINCT ?blu WHERE {{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?system <http://semoss.org/ontologies/Relation/Provide> ?blu}} BINDINGS ?system {(<http://health.mil/ontologies/Concept/System/AHLTA>)(<http://health.mil/ontologies/Concept/System/CHCS>)(<http://health.mil/ontologies/Concept/System/CIS-Essentris>)}";
@@ -408,7 +408,7 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 		HashMap<String, Double> fccCost = new HashMap<String, Double>();
 		String siteEngineName = "TAP_Site_Data";
 		String fccQuery = "SELECT DISTINCT ?FCC (SUM(?TotalCost) AS ?Cost) WHERE { SELECT DISTINCT ?MTF ?FCC ?TotalCost WHERE{ {?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>}{?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}} GROUP BY ?FCC";
-		IDatabase siteEngine = (IDatabase) DIHelper.getInstance().getLocalProp(siteEngineName);
+		IDatabaseEngine siteEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
 		
 		ISelectWrapper siteWrapper = WrapperManager.getInstance().getSWrapper(siteEngine, fccQuery);
 		
