@@ -76,15 +76,6 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	}; 
 	
 	/**
-	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
-	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
-	 * least defining the data store.
-	 * @param smssFilePath contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
-	 * what type of engine is being instantiated.
-	 */
-	void open(String smssFilePath) throws Exception;
-
-	/**
 	 * Runs the passed string query against the engine.  The query passed must be in the structure that the specific engine implementation
 	 * requires
 	 * @param query the string version of the SELECT query to be run against the engine
