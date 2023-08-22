@@ -91,7 +91,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		
 		logger.info(stepCounter + ". Create database store...");
 		this.database = new RNativeEngine();
-		this.database.openDB(this.tempSmss.getAbsolutePath());
+		this.database.open(this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 	}

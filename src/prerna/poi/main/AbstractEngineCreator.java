@@ -36,18 +36,18 @@ public class AbstractEngineCreator {
 	
 	protected String semossURI;
 	protected String customBaseURI = "";
-	protected String dbPropFile;
+	protected String smssPropFile;
 
 	// sadly need to keep RDBMS specific object
 	protected AbstractSqlQueryUtil queryUtil;
 	// keep conversion from user input to sql datatypes
 	protected Map<String, String> sqlHash = new Hashtable<String, String>();
 	
-	protected void prepEngineCreator(String customBase, String owlFile, String dbPropFile) {
+	protected void prepEngineCreator(String customBase, String owlFile, String smssPropFile) {
 		//make location of the owl file in the dbname folder
 		this.owlFile = owlFile; 
 		// location of dbPropFile
-		this.dbPropFile = dbPropFile;
+		this.smssPropFile = smssPropFile;
 		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 		if(customBase != null && !customBase.equals("")) {
 			customBaseURI = customBase.trim();
@@ -100,14 +100,14 @@ public class AbstractEngineCreator {
 		prop.put(Constants.ENGINE_ALIAS, appName);
 		prop.put("TEMP", "TRUE");
 		engine.setSmssProp(prop);
-		engine.openDB(null);
+		engine.open(null);
 	}
 
 	private void createNewRdfEngine(String appName, String appID) throws Exception {
 		engine = new BigDataEngine();
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);
-		engine.openDB(dbPropFile);
+		engine.open(smssPropFile);
 		
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();
@@ -124,7 +124,7 @@ public class AbstractEngineCreator {
 		engine = new TinkerEngine();
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);
-		engine.openDB(dbPropFile);
+		engine.open(smssPropFile);
 		
 	}
 	
@@ -132,8 +132,7 @@ public class AbstractEngineCreator {
 		engine = new RNativeEngine();
 		engine.setEngineName(appName);
 		engine.setEngineId(appID);
-		engine.openDB(dbPropFile);
-		
+		engine.open(smssPropFile);
 	}
 	
 	//added for connect to external RDBMS workflow
@@ -171,8 +170,7 @@ public class AbstractEngineCreator {
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
 		((AbstractDatabase) engine).setSmssProp(prop);
-		engine.openDB(null);
-		
+		engine.open(null);
 	}
 
 //	//added for connect to external Impala workflow
@@ -198,7 +196,7 @@ public class AbstractEngineCreator {
 //		prop.put("TEMP", "TRUE");
 //		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
 //		((AbstractEngine) engine).setProp(prop);
-//		engine.openDB(null);
+//		engine.open(null);
 //	}
 
 	protected void openEngineWithConnection(String engineId) {

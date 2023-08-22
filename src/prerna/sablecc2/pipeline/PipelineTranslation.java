@@ -466,7 +466,7 @@ public class PipelineTranslation extends LazyTranslation {
 //	public static void main(String[] args) throws Exception {
 ////		TestUtilityMethods.loadAll("C:\\workspace2\\Semoss_Dev\\RDF_Map.prop");
 ////		IEngine coreEngine = new RDBMSNativeEngine();
-////		coreEngine.openDB("C:\\workspace2\\Semoss_Dev\\db\\MovieDatesH2__f77ba49e-a8a3-41bd-94c5-91d0a3103bbb.smss");
+////		coreEngine.open("C:\\workspace2\\Semoss_Dev\\db\\MovieDatesH2__f77ba49e-a8a3-41bd-94c5-91d0a3103bbb.smss");
 ////		DIHelper.getInstance().setLocalProperty(coreEngine.getEngineId(), coreEngine);
 //
 //		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");

@@ -260,7 +260,7 @@ public class ProjectHelper {
 		prop.put("TEMP", true);
 		
 		insightsRdbms.setSmssProp(prop);
-		insightsRdbms.openDB(null);
+		insightsRdbms.open(null);
 		insightsRdbms.setEngineId(projectId + "_INSIGHTS_RDBMS");
 
 		AbstractSqlQueryUtil queryUtil = insightsRdbms.getQueryUtil();

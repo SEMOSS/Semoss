@@ -147,13 +147,13 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 //		String engineProp = "C:/Users/laurlai/workspace/Semoss/db/LocalMasterDatabase.smss";
 //		IEngine coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 //
 //		engineProp = "C:/Users/laurlai/workspace/Semoss/db/MovieDB.smss";
 //		coreEngine = new RDBMSNativeEngine();
 //		coreEngine.setEngineName("MovieDB");
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("MovieDB", coreEngine);
 		
 		

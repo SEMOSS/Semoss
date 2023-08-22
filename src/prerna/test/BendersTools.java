@@ -62,7 +62,7 @@
 //				if(prop.getProperty("MAP") != null) {
 //					engine.addProperty("MAP", prop.getProperty("MAP"));
 //				}
-//				engine.openDB(engineLocation);
+//				engine.open(engineLocation);
 //				engine.setDreamer(prop.getProperty(Constants.DREAMER));
 ////				engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
 //				

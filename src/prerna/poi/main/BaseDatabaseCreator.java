@@ -32,7 +32,7 @@ public class BaseDatabaseCreator {
 	//open without connection
 	public BaseDatabaseCreator(String owlFile) {
 		baseEng = new RDFFileSesameEngine();
-		baseEng.openDB(null);
+		baseEng.open(null);
 		baseEng.setFileName(owlFile);
 	}
 

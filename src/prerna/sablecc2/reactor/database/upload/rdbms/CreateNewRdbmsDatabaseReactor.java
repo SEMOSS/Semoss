@@ -227,7 +227,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
 		prop.put("TEMP", "TRUE");
 		database.setSmssProp(prop);
-		database.openDB(null);
+		database.open(null);
 		if (!database.isConnected()) {
 			throw new IllegalArgumentException("Unable to connect to external database");
 		}

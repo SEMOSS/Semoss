@@ -65,7 +65,8 @@ public class JsonAPIEngine extends AbstractDatabase {
 	
 	Object document = null;
 
-	public void openDB(String propFile) {
+	@Override
+	public void open(String propFile) {
 		try {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			Hashtable <String, String> paramHash = new Hashtable <>();

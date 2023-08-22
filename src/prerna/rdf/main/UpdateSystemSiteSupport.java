@@ -28,7 +28,7 @@ public class UpdateSystemSiteSupport {
 //		
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
 //		IDatabase pEng = new BigDataEngine();
-//		pEng.openDB(engineProp);
+//		pEng.open(engineProp);
 //		pEng.setEngineId("TAP_Portfolio");
 //		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", pEng);
 //

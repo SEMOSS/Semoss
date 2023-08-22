@@ -767,21 +767,21 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		String engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Core_Data.smss";
 		IDatabaseEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineId("TAP_Core_Data");
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		coreEngine.setEngineId("TAP_Core_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
 
 		engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Site_Data.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineId("TAP_Site_Data");
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		coreEngine.setEngineId("TAP_Site_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
 
 		engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Portfolio.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineId("TAP_Portfolio");
-		coreEngine.openDB(engineProp);
+		coreEngine.open(engineProp);
 		coreEngine.setEngineId("TAP_Portfolio");
 		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", coreEngine);
 

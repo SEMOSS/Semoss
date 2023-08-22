@@ -127,7 +127,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
 		this.database.setSmssProp(props);
-		this.database.openDB(null);
+		this.database.open(null);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -828,12 +828,12 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 //		
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 //		IDatabase coreEngine = new H2EmbeddedServerEngine();
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
 //		
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\security.smss";
 //		coreEngine = new H2EmbeddedServerEngine();
-//		coreEngine.openDB(engineProp);
+//		coreEngine.open(engineProp);
 //		DIHelper.getInstance().setLocalProperty("security", coreEngine);
 //		AbstractSecurityUtils.loadSecurityDatabase();
 //
