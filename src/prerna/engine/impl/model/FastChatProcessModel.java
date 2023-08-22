@@ -27,12 +27,12 @@ public class FastChatProcessModel extends AbstractModelEngine {
     private Process process;
     
 	@Override
-	public void loadModel(String modelSmss) {
+	public void open(String smssFilePath) {
 		// TODO Auto-generated method stub
 		// starts the model
 		try {
 			generalEngineProp = new Properties();
-			File file = new File(modelSmss);
+			File file = new File(smssFilePath);
 			
 			generalEngineProp.load(new FileInputStream(file));
 			
