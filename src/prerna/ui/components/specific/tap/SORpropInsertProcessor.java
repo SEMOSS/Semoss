@@ -37,7 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -47,7 +47,7 @@ import prerna.util.Utility;
 public class SORpropInsertProcessor extends AggregationHelper {
 	
 	private static final Logger logger = LogManager.getLogger(SORpropInsertProcessor.class);
-	private IDatabase coreDB;
+	private IDatabaseEngine coreDB;
 	
 	private String tapCoreBaseURI = "http://health.mil/ontologies/Relation/";
 	
@@ -229,10 +229,10 @@ public class SORpropInsertProcessor extends AggregationHelper {
 	}
 	
 	public void setInsertCoreDB(String insertEngine) {
-		this.coreDB = (IDatabase) DIHelper.getInstance().getLocalProp(insertEngine);
+		this.coreDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(insertEngine);
 	}
 	
-	public Hashtable<String, Set<String>> getQueryResultHash(IDatabase db, String query) {
+	public Hashtable<String, Set<String>> getQueryResultHash(IDatabaseEngine db, String query) {
 		ISelectWrapper queryDataWrapper = Utility.processQuery(db, query);
 		Hashtable<String, Set<String>> queryDataHash = hashTableResultProcessor(queryDataWrapper);
 		return queryDataHash;

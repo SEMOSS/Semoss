@@ -40,7 +40,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.ui.components.specific.tap.QueryProcessor;
@@ -276,14 +276,14 @@ public class BaseFormsDataProcessor {
 		return workbook;
 	}
 	
-	protected ArrayList<String> getReviewedSystems(IDatabase engine, String queryToRun){
+	protected ArrayList<String> getReviewedSystems(IDatabaseEngine engine, String queryToRun){
 		//get the list of reviewed systems
 		ArrayList<String> listToPopulate = QueryProcessor.getStringList(queryToRun, engine.getEngineId());
 		LOGGER.info(listToPopulate.toString());
 		return listToPopulate;
 	}
 	
-	protected HashMap<String, HashMap<String,String>> getSystemInfoForSystems(IDatabase engine){
+	protected HashMap<String, HashMap<String,String>> getSystemInfoForSystems(IDatabaseEngine engine){
 		HashMap<String, HashMap<String,String>> systemInfoMap = queryDataForProperties(SYSTEM_INFORMATION_QUERY, NONSERVICES_REVIEWED_SYSTEMS_LIST, engine);
 		LOGGER.info("The info pulled for system information is: " + systemInfoMap.toString());
 		return systemInfoMap;
@@ -367,7 +367,7 @@ public class BaseFormsDataProcessor {
 	 * param listToFilterOn: The arraylist of values to use to filter for. Each value replaces the generic bind value in the query
 	 * param engine: The database to pull the data from
 	 */
-	protected static HashMap<String, HashMap<String,String>> queryDataForProperties(String query, ArrayList<String> listToFilterOn, IDatabase engine) {
+	protected static HashMap<String, HashMap<String,String>> queryDataForProperties(String query, ArrayList<String> listToFilterOn, IDatabaseEngine engine) {
 		//create a hashmap to return and store the data pulled for chosen systems
 		HashMap<String, HashMap<String,String>> consolidatedMapping = new HashMap<String, HashMap<String,String>>();
 		String localQuery = "";
@@ -392,7 +392,7 @@ public class BaseFormsDataProcessor {
 	 * param listToFilterOn: The arraylist of values to use to filter for. Each value replaces the generic bind value in the query
 	 * param engine: The database to pull the data from
 	 */
-	protected static HashMap<String, ArrayList<String>> getDataForNodes(String query, IDatabase engine, ArrayList<String> listToFilterOn) {
+	protected static HashMap<String, ArrayList<String>> getDataForNodes(String query, IDatabaseEngine engine, ArrayList<String> listToFilterOn) {
 		//create a hashmap to return and store the data pulled for chosen systems
 		HashMap<String, ArrayList<String>> consolidatedMapping = new HashMap<String, ArrayList<String>>();
 		String localQuery = "";
@@ -416,7 +416,7 @@ public class BaseFormsDataProcessor {
 	 * @param engine: The database to pull the data from
 	 * @return 
 	 */
-	protected static HashMap<String, HashMap<String, HashMap<String,String>>> getDataForTables(String query, ArrayList<String> listToFilterOn, IDatabase engine) {
+	protected static HashMap<String, HashMap<String, HashMap<String,String>>> getDataForTables(String query, ArrayList<String> listToFilterOn, IDatabaseEngine engine) {
 		//create a hashmap to return and store the data pulled for chosen systems
 		HashMap<String, HashMap<String, HashMap<String, String>>> consolidatedMapping = new HashMap<String, HashMap<String, HashMap<String, String>>>();
 		String localQuery = "";
@@ -543,7 +543,7 @@ public class BaseFormsDataProcessor {
 	 * param reviewedList: The list of systems to change the status for
 	 * param engine: the database to change the statuses in
 	 */
-	protected void changeStatus(ArrayList<String> reviewedList, IDatabase engine) {
+	protected void changeStatus(ArrayList<String> reviewedList, IDatabaseEngine engine) {
 		//TODO: Talk to Maher about changing a property in a database. Wrote down a method he's used in FormBuilder
 //		engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{nodeURI, propURI, propVal, false});
 	}
@@ -559,7 +559,7 @@ public class BaseFormsDataProcessor {
 		HashMap<String, HashMap<String, String>> finalMap = new HashMap<String, HashMap<String, String>>();
 		try {
 			//here is where the data get pulled from the BE
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			//loop through each row returned
@@ -597,7 +597,7 @@ public class BaseFormsDataProcessor {
 		HashMap<String, HashMap<String, HashMap<String, String>>> finalMap = new HashMap<String, HashMap<String, HashMap<String, String>>>();
 		try {
 			//here is where the data get pulled from the BE
-			IDatabase engine = (IDatabase) DIHelper.getInstance().getLocalProp(engineName);
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			//loop through each row returned

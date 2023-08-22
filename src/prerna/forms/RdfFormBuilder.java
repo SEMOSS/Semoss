@@ -15,7 +15,7 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.date.SemossDate;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
@@ -28,7 +28,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 
 	/////////////////////////////////////////////RDF CODE/////////////////////////////////////////////
 
-	protected RdfFormBuilder(IDatabase engine) {
+	protected RdfFormBuilder(IDatabaseEngine engine) {
 		super(engine);
 	}
 
@@ -126,8 +126,8 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 					// TODO: trying to account for more FE issues - delete original value being sent
 					// TODO: trying to account for more FE issues - delete original value being sent
 					// TODO: trying to account for more FE issues - delete original value being sent
-					this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
-					this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, Utility.cleanString(propertyValue.toString(), true, false, true), false});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, Utility.cleanString(propertyValue.toString(), true, false, true), false});
 
 					if(propertyValue instanceof String) {
 						// check if string val is a date
@@ -157,13 +157,13 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 
 					if(propertyValue instanceof Date) {
 						Date propDateValue = (Date) propertyValue;
-						this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propDateValue, false});
+						this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propDateValue, false});
 						propDateValue.setHours(12);
-						this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propDateValue, false});
+						this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propDateValue, false});
 						propDateValue.setHours(0);
-						this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propDateValue, false});
+						this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propDateValue, false});
 					} else {
-						this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
+						this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
 					}
 					
 					if(propertyValue instanceof String) {
@@ -172,7 +172,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 						// TODO: trying to account for more FE issues
 						try {
 							Double maybeThisIsANumber = Double.parseDouble(propertyValue.toString().trim());
-							this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, maybeThisIsANumber, false});
+							this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, maybeThisIsANumber, false});
 						} catch(NumberFormatException e) {
 							// do nothing
 						}
@@ -180,13 +180,13 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 					// ugh... we need to push forms
 					// values being passed are not properly keeping track of things that have underscores and things that don't
 					// just going to try both versions
-					this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, Utility.cleanString(propertyValue.toString(), true, false, true), false});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, Utility.cleanString(propertyValue.toString(), true, false, true), false});
 
 					// add audit log statement
 					Calendar cal = Calendar.getInstance();
 					String currTime = DATE_DF.format(cal.getTime());
 					addAuditLog(REMOVE, instanceConceptURI, "", "", propertyURI, propertyValue + "", currTime);
-					this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyURI, RDF.TYPE, propertyBaseURI, true});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyURI, RDF.TYPE, propertyBaseURI, true});
 				}
 			}
 		}
@@ -206,20 +206,20 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			instanceRel = startNode + ":" + endNode;
 			instanceRelationshipURI =  baseURI + "/Relation/" + relationType + "/" + instanceRel;
 
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceSubjectURI, RDF.TYPE, subject, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceObjectURI, RDF.TYPE, object, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceSubjectURI, relationBaseURI, instanceObjectURI, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceSubjectURI, baseRelationshipURI, instanceObjectURI, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceSubjectURI, instanceRelationshipURI, instanceObjectURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceSubjectURI, RDF.TYPE, subject, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceObjectURI, RDF.TYPE, object, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceSubjectURI, relationBaseURI, instanceObjectURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceSubjectURI, baseRelationshipURI, instanceObjectURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceSubjectURI, instanceRelationshipURI, instanceObjectURI, true});
 			// add audit log statement
 			Calendar cal = Calendar.getInstance();
 			String currTime = DATE_DF.format(cal.getTime());
 			addAuditLog(ADD, instanceSubjectURI, baseRelationshipURI, instanceObjectURI, "", "", currTime);
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{baseRelationshipURI, RDFS.SUBPROPERTYOF, relationBaseURI, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDFS.SUBPROPERTYOF, baseRelationshipURI, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDFS.SUBPROPERTYOF, relationBaseURI, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDF.TYPE, RDF.PROPERTY, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDFS.LABEL, instanceRel, false});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{baseRelationshipURI, RDFS.SUBPROPERTYOF, relationBaseURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDFS.SUBPROPERTYOF, baseRelationshipURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDFS.SUBPROPERTYOF, relationBaseURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDF.TYPE, RDF.PROPERTY, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDFS.LABEL, instanceRel, false});
 
 
 			// add relationship properties
@@ -241,12 +241,12 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 					}
 					propertyURI = property.get("propertyName").toString();
 
-					this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, propertyURI, propertyValue, false});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, propertyURI, propertyValue, false});
 					// add audit log statement
 					cal = Calendar.getInstance();
 					currTime = DATE_DF.format(cal.getTime());
 					addAuditLog(ADD, "", instanceRelationshipURI, "", propertyURI, propertyValue + "", currTime);
-					this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyURI, RDF.TYPE, propertyBaseURI, true});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyURI, RDF.TYPE, propertyBaseURI, true});
 				}
 			}
 		}
@@ -258,8 +258,8 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			conceptValue = Utility.cleanString(concept.get("conceptValue").toString(), true);
 
 			instanceConceptURI = baseURI + "/Concept/" + Utility.getInstanceName(conceptType) + "/" + conceptValue;
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceConceptURI, RDF.TYPE, conceptType, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceConceptURI, RDFS.LABEL, conceptValue, false});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceConceptURI, RDF.TYPE, conceptType, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceConceptURI, RDFS.LABEL, conceptValue, false});
 			if(concept.containsKey("properties")) {
 				List<HashMap<String, Object>> properties = (List<HashMap<String, Object>>) concept.get("properties");
 
@@ -295,12 +295,12 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 					}
 					propertyURI = property.get("propertyName").toString();
 
-					this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
 					// add audit log statement
 					Calendar cal = Calendar.getInstance();
 					String currTime = DATE_DF.format(cal.getTime());
 					addAuditLog(ADD, instanceConceptURI, "", "", propertyURI, propertyValue + "", currTime);
-					this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyURI, RDF.TYPE, propertyBaseURI, true});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyURI, RDF.TYPE, propertyBaseURI, true});
 				}
 			}
 		}
@@ -347,9 +347,9 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			Object propURI = ss.getRawVar(names[4]);
 			Object propVal = ss.getVar(names[5]);
 
-			this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, predURI, objURI, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, baseRelationshipURI, objURI, true});
-			this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, baseRelationURI, objURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, predURI, objURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, baseRelationshipURI, objURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, baseRelationURI, objURI, true});
 			// add audit log statement
 			Calendar cal = Calendar.getInstance();
 			String currTime = DATE_DF.format(cal.getTime());
@@ -381,14 +381,14 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			}
 			
 			if(!otherUris) {
-				this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationshipURI, true});
-				this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationURI, true});
-				this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDF.TYPE, RDF.PROPERTY, true});
+				this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationshipURI, true});
+				this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationURI, true});
+				this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDF.TYPE, RDF.PROPERTY, true});
 				if(label != null && !label.toString().isEmpty()) {
-					this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.LABEL, label.toString(), false});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.LABEL, label.toString(), false});
 				}
 				if(propURI != null && !propURI.toString().isEmpty()) {
-					this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, propURI.toString(), propVal, false});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, propURI.toString(), propVal, false});
 					// add audit log statement
 					currTime = DATE_DF.format(cal.getTime());
 					addAuditLog(REMOVE, "", predURI, "", propURI.toString(), propVal + "", currTime);
@@ -418,16 +418,16 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				Object propURI = ss.getRawVar(names[4]);
 				Object propVal = ss.getVar(names[5]);
 
-				this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, predURI, objURI, true});
+				this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, predURI, objURI, true});
 				// add audit log statement
 				Calendar cal = Calendar.getInstance();
 				String currTime = DATE_DF.format(cal.getTime());
 				addAuditLog(REMOVE, subURI, predURI, objURI, "", "", currTime);
 				if(label != null && !label.toString().isEmpty()) {
-					this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.LABEL, label, false});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.LABEL, label, false});
 				}
 				if(propURI != null && !propURI.toString().isEmpty()) {
-					this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, propURI, propVal, false});
+					this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, propURI, propVal, false});
 					// add audit log statement
 					cal = Calendar.getInstance();
 					currTime = DATE_DF.format(cal.getTime());
@@ -446,12 +446,12 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 
 						// delete the sub properties around the instance
 						String baseRelationURI = baseRel + "/" + relType;
-						this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRel, true});
-						this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationURI, true});
-						this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDF.TYPE, RDF.PROPERTY, true});
+						this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRel, true});
+						this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationURI, true});
+						this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDF.TYPE, RDF.PROPERTY, true});
 
 						// and delete the base rel directly between the subject and object
-						this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, baseRelationURI, objURI, true});
+						this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{subURI, baseRelationURI, objURI, true});
 					}
 				}
 			}
@@ -522,7 +522,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			String propURI = ss.getRawVar(names[1]) + "";
 			Object propVal = ss.getVar(names[2]);
 
-			this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{nodeURI, propURI, propVal, false});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{nodeURI, propURI, propVal, false});
 			// add audit log statement
 			Calendar cal = Calendar.getInstance();
 			String currTime = DATE_DF.format(cal.getTime());
@@ -533,12 +533,12 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 		String semossBaseConcept = "http://semoss.org/ontologies/Concept";
 		for(String nodeURI : uriBindingList) {
 			String typeURI = semossBaseConcept + "/" + Utility.getClassName(nodeURI);
-			this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{nodeURI, RDF.TYPE, typeURI, true});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{nodeURI, RDF.TYPE, typeURI, true});
 			// add audit log statement
 			Calendar cal = Calendar.getInstance();
 			String currTime = DATE_DF.format(cal.getTime());
 			addAuditLog(REMOVE, nodeURI, "", "", "", "", currTime);
-			this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{nodeURI, RDFS.LABEL, Utility.getInstanceName(nodeURI), false});
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{nodeURI, RDFS.LABEL, Utility.getInstanceName(nodeURI), false});
 		}
 	}
 
@@ -625,7 +625,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				statement[3] = false;
 			}
 
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, statement);
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 
 			// add audit log statement
 			Calendar cal = Calendar.getInstance();
@@ -645,7 +645,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			statement[2] = newUri;
 			statement[3] = data[3];
 
-			this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, statement);
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 
 			// add audit log statement
 			Calendar cal = Calendar.getInstance();
@@ -670,7 +670,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			} catch (Exception e) {
 				// ignore
 			}
-			this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, statement);
+			this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
 
 			// add audit log statement
 			Calendar cal = Calendar.getInstance();
@@ -755,7 +755,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				// otherwise, you will get double quotes around stuff
 				statement[2] = clean[1];
 				statement[3] = false;
-				this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, statement);
+				this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
 				// audit
 				currTime = DATE_DF.format(cal.getTime());
 				addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
@@ -767,14 +767,14 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				} else {
 					statement[2] = clean[2];
 				}
-				this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, statement);
+				this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
 				// audit
 				currTime = DATE_DF.format(cal.getTime());
 				addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
 
 				statement[1] = userPropUri;
 				statement[2] = clean[3];
-				this.engine.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, statement);
+				this.engine.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
 				// audit
 				currTime = DATE_DF.format(cal.getTime());
 				addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
@@ -801,7 +801,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 		statement[1] = versionPropUri;
 		statement[2] = newVersion;
 		statement[3] = false;
-		this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, statement);
+		this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 		// audit
 		currTime = DATE_DF.format(cal.getTime());
 		addAuditLog(ADD, instanceUri, "", "", versionPropUri, newVersion + "", currTime);
@@ -809,14 +809,14 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 		// repeat for other props
 		statement[1] = userPropUri;
 		statement[2] = this.user;
-		this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, statement);
+		this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 		// audit
 		currTime = DATE_DF.format(cal.getTime());
 		addAuditLog(ADD,instanceUri, "", "", userPropUri, this.user, currTime);
 
 		statement[1] = timePropUri;
 		statement[2] = cal.getTime();
-		this.engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, statement);
+		this.engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 		// audit
 		currTime = DATE_DF.format(cal.getTime());
 		addAuditLog(ADD, instanceUri, "", "", timePropUri, currTime, currTime);

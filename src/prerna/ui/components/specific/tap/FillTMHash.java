@@ -38,7 +38,7 @@ import javax.swing.JOptionPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -53,7 +53,7 @@ import prerna.util.Utility;
 public class FillTMHash extends GridPlaySheet{
 
 	String query = null;
-	IDatabase engine = null;
+	IDatabaseEngine engine = null;
 	public Hashtable<String, Object> TMhash = new Hashtable<String, Object>();
 	ISelectWrapper wrapper;
 	ArrayList <String []> list;
@@ -69,7 +69,7 @@ public class FillTMHash extends GridPlaySheet{
 	 * @param engine IDatabase
 	 */
 	public void setEngine (String query,
-			IDatabase engine) {
+			IDatabaseEngine engine) {
 		this.query = query;
 		this.engine = engine;
 	}
@@ -103,7 +103,7 @@ public class FillTMHash extends GridPlaySheet{
 		//set the engine to selected database
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repos = (Object [])list.getSelectedValues();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[0]+"");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
 		logger.info("Repository is " + repos);
 		
 		//run through all queries
@@ -115,7 +115,7 @@ public class FillTMHash extends GridPlaySheet{
 				failedQuery = query;
 				break;
 			}
-			setEngine(query, (IDatabase)engine);
+			setEngine(query, (IDatabaseEngine)engine);
 			fillWithSelect();
 
 		}

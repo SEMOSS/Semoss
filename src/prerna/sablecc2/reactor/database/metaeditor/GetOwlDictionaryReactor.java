@@ -12,7 +12,7 @@ import org.semarglproject.vocab.RDF;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -38,7 +38,7 @@ public class GetOwlDictionaryReactor extends AbstractMetaEditorReactor {
 		// we have some ordering requirements
 		// so can't just flush these results straight to the FE
 		
-		IDatabase database = Utility.getDatabase(databaseId).getBaseDataEngine();
+		IDatabaseEngine database = Utility.getDatabase(databaseId).getBaseDataEngine();
 		String query = "SELECT DISTINCT "
 				+ "?URI "
 				+ "(COALESCE(?DESCRIPTION, '') AS ?desc) "

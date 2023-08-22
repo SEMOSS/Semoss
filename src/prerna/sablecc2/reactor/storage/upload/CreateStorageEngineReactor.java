@@ -16,7 +16,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IStorage;
+import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -73,7 +73,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		
 		String storageName = getStorageName();
 		Map<String, String> storageDetails = getStorageDetails();
-		String storageTypeStr = storageDetails.get(IStorage.STORAGE_TYPE);
+		String storageTypeStr = storageDetails.get(IStorageEngine.STORAGE_TYPE);
 		if(storageTypeStr == null || (storageTypeStr=storageTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the storage type");
 		}
@@ -87,10 +87,10 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		String storageId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
-		IStorage storage = null;
+		IStorageEngine storage = null;
 		try {
 			String storageClass = storageType.getStorageClass();
-			storage = (IStorage) Class.forName(storageClass).newInstance();
+			storage = (IStorageEngine) Class.forName(storageClass).newInstance();
 			tempSmss = UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
@@ -125,7 +125,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	/**
 	 * Delete all the corresponding files that are generated from the upload the failed
 	 */
-	private void cleanUpCreateNewError(IStorage storage, String storageId, File tempSmss, File smssFile) {
+	private void cleanUpCreateNewError(IStorageEngine storage, String storageId, File tempSmss, File smssFile) {
 		try {
 			// close the DB so we can delete it
 			if (storage != null) {

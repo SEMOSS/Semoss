@@ -5,7 +5,7 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
@@ -55,7 +55,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 		
 		IProject coreProject = Utility.getProject(projectId);
 		// loop through the insights
-		IDatabase insightsEng = coreProject.getInsightDatabase();
+		IDatabaseEngine insightsEng = coreProject.getInsightDatabase();
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng, "select distinct id from question_id");

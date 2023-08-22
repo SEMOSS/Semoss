@@ -2,7 +2,7 @@ package prerna.util;
 
 import java.io.IOException;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -15,7 +15,7 @@ public class CSVToOwlMaker {
 	 * @param owlFileLocation
 	 * @param dbType
 	 */
-	public void makeFlatOwl(String csvFile, String owlFileLocation, IDatabase.DATABASE_TYPE dbType, boolean addUniqueId) {
+	public void makeFlatOwl(String csvFile, String owlFileLocation, IDatabaseEngine.DATABASE_TYPE dbType, boolean addUniqueId) {
 		// get the headers + types + additional types
 		// based on the csv parsing
 		// and then generate a new OWL file
@@ -57,6 +57,6 @@ public class CSVToOwlMaker {
 		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
 		String owlFile = "C:/Users/pkapaleeswaran/workspacej3/datasets/MovieOWL.OWL";
 		CSVToOwlMaker maker = new CSVToOwlMaker();
-		maker.makeFlatOwl(fileName, owlFile, IDatabase.DATABASE_TYPE.RDBMS, true);
+		maker.makeFlatOwl(fileName, owlFile, IDatabaseEngine.DATABASE_TYPE.RDBMS, true);
 	}
 }

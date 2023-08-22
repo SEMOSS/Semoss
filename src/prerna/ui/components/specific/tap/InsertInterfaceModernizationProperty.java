@@ -35,7 +35,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
@@ -48,13 +48,13 @@ public class InsertInterfaceModernizationProperty {
 	private final String sysURIPrefix = "http://health.mil/ontologies/Concept/System/";
 	private final String costPropertyURI = "http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost";
 
-	private IDatabase tapCore;
+	private IDatabaseEngine tapCore;
 	double costPerHr = 150.0;
 
 	public void insert() throws IOException
 	{
 		try{
-			tapCore = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			tapCore = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(tapCore==null)
 				throw new IOException("Database not found");
 		} catch(IOException e) {
@@ -66,17 +66,17 @@ public class InsertInterfaceModernizationProperty {
 
 	private void generateCost() throws IOException 
 	{
-		IDatabase tapCost = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		IDatabaseEngine tapCost = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(tapCost == null) {
 			throw new IOException("TAP_Cost_Data Database not found");
 		}
 
-		IDatabase futureDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureDB");
+		IDatabaseEngine futureDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(futureDB == null) {
 			throw new IOException("FutureDB Database not found");
 		}
 		
-		IDatabase futureCostDB = (IDatabase) DIHelper.getInstance().getLocalProp("FutureCostDB");
+		IDatabaseEngine futureCostDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("FutureCostDB");
 		if(futureCostDB == null) {
 			throw new IOException("FutureDB Database not found");
 		}
@@ -98,12 +98,12 @@ public class InsertInterfaceModernizationProperty {
 			loe = loe * costPerHr;
 			addProperty(sysURIPrefix.concat(sysName), costPropertyURI, loe, false);
 		}
-		tapCore.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{costPropertyURI, RDF.TYPE, "http://semoss.org/ontolgoies/Relation/Contains"});
+		tapCore.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{costPropertyURI, RDF.TYPE, "http://semoss.org/ontolgoies/Relation/Contains"});
 		tapCore.commit();
 	}
 
 	private void addProperty(String sub, String pred, Object obj, boolean concept_triple) {
-		tapCore.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, concept_triple});
+		tapCore.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, concept_triple});
 		System.out.println(sub + " >>> " + pred + " >>> " + obj);
 	}
 }

@@ -38,7 +38,7 @@ import javax.swing.JDesktopPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -50,13 +50,13 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 	private static final Logger logger = LogManager.getLogger(LPIFutureInterfaceIdentification.class.getName());
 	String statusQuery;
 	String statusQueryEngineName;
-	IDatabase statusEngine;
+	IDatabaseEngine statusEngine;
 	String DHMSMQuery;
 	String DHMSMQueryEngineName;
-	IDatabase DHMSMEngine;
+	IDatabaseEngine DHMSMEngine;
 	String lpiSorQuery;
 	String lpiSorQueryEngineName;
-	IDatabase lpiSorEngine;
+	IDatabaseEngine lpiSorEngine;
 	String statusKey = "Status";
 	String dataKey = "Data";
 	String statusCheck = "Needed but not Present";
@@ -77,7 +77,7 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
-	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabase)}, and {@link #setTitle(String)} so that the play 
+	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabaseEngine)}, and {@link #setTitle(String)} so that the play 
 	 * sheet is displayed correctly when the view is first created.  It generally creates the model for visualization from 
 	 * the specified engine, then creates the visualization, and finally displays it on the specified desktop pane
 	 * 
@@ -250,15 +250,15 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 			String token = queryTokens.nextToken();
 			if (queryIdx == 0){
 				this.statusQueryEngineName = token;
-				this.statusEngine = (IDatabase) DIHelper.getInstance().getLocalProp(statusQueryEngineName);
+				this.statusEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(statusQueryEngineName);
 			}
 			else if (queryIdx == 1){
 				this.DHMSMQueryEngineName = token;
-				this.DHMSMEngine = (IDatabase) DIHelper.getInstance().getLocalProp(DHMSMQueryEngineName);
+				this.DHMSMEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(DHMSMQueryEngineName);
 			}
 			else if (queryIdx == 2){
 				this.lpiSorQueryEngineName = token;
-				this.lpiSorEngine = (IDatabase) DIHelper.getInstance().getLocalProp(lpiSorQueryEngineName);
+				this.lpiSorEngine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(lpiSorQueryEngineName);
 			}
 			else if (queryIdx == 3){
 				System.out.println("query 1 " + token);

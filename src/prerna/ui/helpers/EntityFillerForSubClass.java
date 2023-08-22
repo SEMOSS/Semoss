@@ -36,7 +36,7 @@ import java.util.Vector;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.DIHelper;
@@ -48,7 +48,7 @@ import prerna.util.Utility;
 public class EntityFillerForSubClass implements Runnable {
 	public ArrayList<JComboBox> boxes;
 	public String parent;
-	public IDatabase engine;
+	public IDatabaseEngine engine;
 	public String engineName;
 	String sparqlQuery = "SELECT ?entity WHERE {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <"; 
 	

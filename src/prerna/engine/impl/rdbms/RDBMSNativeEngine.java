@@ -55,7 +55,7 @@ import org.openrdf.query.TupleQueryResult;
 import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.SmssUtilities;
@@ -568,7 +568,7 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
-		return IDatabase.DATABASE_TYPE.RDBMS;
+		return IDatabaseEngine.DATABASE_TYPE.RDBMS;
 	}
 
 	@Override

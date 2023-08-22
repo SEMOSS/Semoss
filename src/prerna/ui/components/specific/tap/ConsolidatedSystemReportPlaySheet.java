@@ -38,8 +38,8 @@ import javax.swing.JOptionPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.ConsolidatedSystemReportWriter;
@@ -77,7 +77,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 	Hashtable<String, Object> interfaceModHashtable = new Hashtable<String, Object>(); //systemName -> cost
 	Hashtable<String, Object> diacapHashtable = new Hashtable<String, Object>(); //systemName -> diacapDate
 
-	private IDatabase TAP_Portfolio;
+	private IDatabaseEngine TAP_Portfolio;
 	
 	@Override
 	public void createView(){
@@ -89,7 +89,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		
 		//check for portfolio data
 		try {
-			TAP_Portfolio = (IDatabase) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
+			TAP_Portfolio = (IDatabaseEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
 		} catch (RuntimeException ex) {
 			ex.printStackTrace();
 		}
@@ -194,7 +194,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 	}
 	
 	// query must return two variables... will be put in key->value
-	private Hashtable<String, Object> getHashtable(String passedQuery, String bindingsNames, IDatabase passedEngine){
+	private Hashtable<String, Object> getHashtable(String passedQuery, String bindingsNames, IDatabaseEngine passedEngine){
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 
 		passedQuery = passedQuery.replace("@BINDINGS_STRING@", bindingsNames);
@@ -210,7 +210,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		return retHash;
 	}
 	
-	private Hashtable<String, Hashtable<String, Double>> getBudgetHashtable(String passedQuery, String bindingsNames, IDatabase passedEngine){
+	private Hashtable<String, Hashtable<String, Double>> getBudgetHashtable(String passedQuery, String bindingsNames, IDatabaseEngine passedEngine){
 		Hashtable<String, Hashtable<String, Double>> retHash = new Hashtable<String, Hashtable<String, Double>>();
 
 		passedQuery = passedQuery.replace("@BINDINGS_STRING@", bindingsNames);
@@ -251,7 +251,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		return retArray;
 	}
 
-	private ISelectWrapper processSelectQuery(IDatabase engine, String query){
+	private ISelectWrapper processSelectQuery(IDatabaseEngine engine, String query){
 		logger.info("PROCESSING SELECT QUERY: " + Utility.cleanLogString(query));
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

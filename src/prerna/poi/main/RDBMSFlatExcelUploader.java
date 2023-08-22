@@ -16,8 +16,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
 import cern.colt.Arrays;
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.ACTION_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.XLFileHelper;
@@ -102,7 +102,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * @return									The new engine created
 	 * @throws IOException 
 	 */
-	public IDatabase importFileWithOutConnection(ImportOptions options) throws IOException {
+	public IDatabaseEngine importFileWithOutConnection(ImportOptions options) throws IOException {
 		String smssLocation = options.getSMSSLocation();
 		String appName = options.getDbName();
 		String fileLocations = options.getFileLocations();

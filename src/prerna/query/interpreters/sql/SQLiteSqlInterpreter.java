@@ -3,7 +3,7 @@ package prerna.query.interpreters.sql;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 
 public class SQLiteSqlInterpreter extends H2SqlInterpreter {
 
@@ -11,7 +11,7 @@ public class SQLiteSqlInterpreter extends H2SqlInterpreter {
 		
 	}
 
-	public SQLiteSqlInterpreter(IDatabase engine) {
+	public SQLiteSqlInterpreter(IDatabaseEngine engine) {
 		super(engine);
 	}
 	

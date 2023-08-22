@@ -47,7 +47,7 @@ import javax.swing.JToggleButton;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.ParamComboBox;
@@ -155,7 +155,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
-				IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+				IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 //				String question = id + QuestionPlaySheetStore.getInstance().getIDCount();
 				String question = id + InsightStore.idCount;
 				// use the layout to load the sheet later

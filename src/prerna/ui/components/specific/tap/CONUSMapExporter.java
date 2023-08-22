@@ -37,7 +37,7 @@ import javax.swing.JDesktopPane;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.InsightStore;
@@ -71,7 +71,7 @@ public class CONUSMapExporter {
 	public ArrayList<String> systemsInSiteDB()
 	{
 		ArrayList<String> systemsInSite = new ArrayList<String>();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}} ORDER BY ?System";		
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
@@ -107,7 +107,7 @@ public class CONUSMapExporter {
 	{
 		String fileLoc = "";
 		
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		String id = "CONUS_Map";
 //		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
 //		String layoutValue = "prerna.ui.components.playsheets.CONUSMapPlaySheet";
@@ -126,7 +126,7 @@ public class CONUSMapExporter {
 
 				CONUSMapPlaySheet playSheet = new CONUSMapPlaySheet();					
 				playSheet.setQuery(query);
-				playSheet.setRDFEngine((IDatabase) engine);
+				playSheet.setRDFEngine((IDatabaseEngine) engine);
 				playSheet.setQuestionID(id);
 				JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 				playSheet.setJDesktopPane(pane);

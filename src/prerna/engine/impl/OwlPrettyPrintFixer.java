@@ -3,7 +3,7 @@ package prerna.engine.impl;
 import java.io.File;
 import java.util.Properties;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -34,8 +34,8 @@ public class OwlPrettyPrintFixer {
 				while(wrapper.hasNext()) {
 					write = true;
 					Object[] badTriples = wrapper.next().getRawValues();
-					rfse.doAction(IDatabase.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{badTriples[0], badTriples[1], badTriples[2], true});
-					rfse.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{badTriples[0], conceptualRel, badTriples[2], true});
+					rfse.doAction(IDatabaseEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{badTriples[0], badTriples[1], badTriples[2], true});
+					rfse.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{badTriples[0], conceptualRel, badTriples[2], true});
 				}
 			} catch (Exception e1) {
 				e1.printStackTrace();

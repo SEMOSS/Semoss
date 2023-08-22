@@ -11,7 +11,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.sablecc2.om.PixelDataType;
@@ -40,7 +40,7 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		databaseId = testDatabaseId(databaseId, false);
 		List<String> filters = getTableFilters();
 
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		
 		Map<String, List<String>> tableToCol = new TreeMap<String, List<String>>();
 		// grab all the concepts

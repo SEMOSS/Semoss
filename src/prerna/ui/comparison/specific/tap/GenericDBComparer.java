@@ -34,7 +34,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
@@ -48,15 +48,15 @@ public class GenericDBComparer
 {
 	private static final Logger LOGGER = LogManager.getLogger(GenericDBComparer.class.getName());
 	
-	private IDatabase newDB;
-	private IDatabase oldDB;
-	private IDatabase newMetaDB;
-	private IDatabase oldMetaDB;
+	private IDatabaseEngine newDB;
+	private IDatabaseEngine oldDB;
+	private IDatabaseEngine newMetaDB;
+	private IDatabaseEngine oldMetaDB;
 	
 	private String newDBName;
 	private String oldDBName;
 	
-	public GenericDBComparer(IDatabase newDB, IDatabase oldDB, IDatabase newMetaDB, IDatabase oldMetaDB)
+	public GenericDBComparer(IDatabaseEngine newDB, IDatabaseEngine oldDB, IDatabaseEngine newMetaDB, IDatabaseEngine oldMetaDB)
 	{
 		this.newDB = newDB;
 		this.oldDB = oldDB;

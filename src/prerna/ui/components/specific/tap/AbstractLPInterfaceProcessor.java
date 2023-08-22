@@ -3,7 +3,7 @@ package prerna.ui.components.specific.tap;
 import java.util.Iterator;
 import java.util.Map;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 
 public abstract class AbstractLPInterfaceProcessor {
 
@@ -30,14 +30,14 @@ public abstract class AbstractLPInterfaceProcessor {
 	
 	protected static final String DOWNSTREAM_KEY = "Downstream";
 	
-	protected IDatabase engine;
+	protected IDatabaseEngine engine;
 	
 	public AbstractLPInterfaceProcessor() {
 		downstreamQuery = DEFAULT_DOWNSTREAMSTREAM_QUERY;
 		upstreamQuery = DEFAULT_UPSTREAM_QUERY;
 	}
 	
-	public void setEngine(IDatabase engine) {
+	public void setEngine(IDatabaseEngine engine) {
 		this.engine = engine;
 	}
 	

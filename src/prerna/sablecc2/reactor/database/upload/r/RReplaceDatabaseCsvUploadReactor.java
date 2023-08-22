@@ -13,7 +13,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -94,11 +94,11 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 		try {
 			// get existing database
 			logger.info("Get existing database");
-			IDatabase database = Utility.getDatabase(databaseId, true);
+			IDatabaseEngine database = Utility.getDatabase(databaseId, true);
 			if (database == null) {
 				throw new IllegalArgumentException("Couldn't find the database " + databaseId + " to append data into");
 			}
-			if(database.getDatabaseType() != IDatabase.DATABASE_TYPE.R) {
+			if(database.getDatabaseType() != IDatabaseEngine.DATABASE_TYPE.R) {
 				throw new IllegalArgumentException("Database must be an existing R database");
 			}
 			logger.info("Done");

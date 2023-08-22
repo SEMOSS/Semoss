@@ -14,7 +14,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -43,7 +43,7 @@ public class AuditDatabase {
 	private Connection conn;
 	private AbstractSqlQueryUtil queryUtil;
 
-	private IDatabase database;
+	private IDatabaseEngine database;
 	private String databaseId;
 	private String databaseName;
 
@@ -61,7 +61,7 @@ public class AuditDatabase {
 	 * @param databaseId
 	 * @param databaseName
 	 */
-	public void init(IDatabase database, String databaseId, String databaseName) {
+	public void init(IDatabaseEngine database, String databaseId, String databaseName) {
 		this.database = database;
 		this.databaseId = databaseId;
 		this.databaseName = databaseName;

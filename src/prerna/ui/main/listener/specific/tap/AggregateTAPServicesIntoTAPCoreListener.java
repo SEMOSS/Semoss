@@ -35,7 +35,7 @@ import javax.swing.JComponent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.specific.tap.ServicesAggregationProcessor;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.ConstantsTAP;
@@ -55,8 +55,8 @@ public class AggregateTAPServicesIntoTAPCoreListener extends AbstractListener{
 		String coreDbName = coreDbComboBox.getSelectedItem() + "";
 
 		//get associated engines
-		IDatabase servicesDB = (IDatabase) DIHelper.getInstance().getLocalProp(servicesDbName);
-		IDatabase coreDB = (IDatabase) DIHelper.getInstance().getLocalProp(coreDbName);
+		IDatabaseEngine servicesDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(servicesDbName);
+		IDatabaseEngine coreDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(coreDbName);
 
 		//send to processor
 		logger.info("Aggregating " + servicesDbName + " into " + coreDbName);

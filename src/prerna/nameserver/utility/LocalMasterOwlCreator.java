@@ -5,8 +5,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.engine.api.IDatabase;
-import prerna.engine.api.IDatabase.DATABASE_TYPE;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Utility;
@@ -26,9 +26,9 @@ public class LocalMasterOwlCreator {
 		conceptsRequired.add("METAMODELPOSITION");
 	}
 	
-	private IDatabase localMasterDb;
+	private IDatabaseEngine localMasterDb;
 	
-	public LocalMasterOwlCreator(IDatabase localMasterDb) {
+	public LocalMasterOwlCreator(IDatabaseEngine localMasterDb) {
 		this.localMasterDb = localMasterDb;
 	}
 	

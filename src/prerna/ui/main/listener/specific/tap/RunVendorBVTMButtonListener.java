@@ -34,7 +34,7 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
@@ -65,7 +65,7 @@ public class RunVendorBVTMButtonListener implements IChakraListener{
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object [] repos = (Object [])list.getSelectedValues();
 		String repo = repos[0] +"";
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo);
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repo);
 		if(!repo.toLowerCase().contains("vendor"))
 		{
 			Utility.showError("The database does not contain the required elements");

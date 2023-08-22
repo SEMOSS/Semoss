@@ -36,7 +36,7 @@ import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -102,21 +102,21 @@ public class ServiceICDCostAnalyzer {
 		addBindingToQueries(systems);
 		
 		//there are upstream icd counts and downstream icd counts next two query processes combines both
-		ISelectWrapper sjswQuery = processQuery(icdCountQueryUpstream, (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
+		ISelectWrapper sjswQuery = processQuery(icdCountQueryUpstream, (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
 		processDataSerICD(sjswQuery);
-		sjswQuery = processQuery(icdCountQueryDownstream, (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
+		sjswQuery = processQuery(icdCountQueryDownstream, (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
 		processDataSerICD(sjswQuery);
 		
 		//organizes dataobjects and services
-		sjswQuery = processQuery(dataSerCountQuery, (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
+		sjswQuery = processQuery(dataSerCountQuery, (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
 		processSerForDataCount(sjswQuery);
 		
 		//get generic service costs
-		sjswQuery = processQuery(serGenericCostQuery, (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Cost_Data"));
+		sjswQuery = processQuery(serGenericCostQuery, (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Cost_Data"));
 		processGenericSerCost(sjswQuery);
 		
 		//get system specific service costs
-		sjswQuery = processQuery(serCostQuery, (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Cost_Data"));
+		sjswQuery = processQuery(serCostQuery, (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Cost_Data"));
 		processDataSerCost(sjswQuery);
 		
 		ArrayList<Object[]> outputList = processData();
@@ -238,7 +238,7 @@ public class ServiceICDCostAnalyzer {
 	}
 	
 	
-	private ISelectWrapper processQuery(String query, IDatabase engine){
+	private ISelectWrapper processQuery(String query, IDatabaseEngine engine){
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

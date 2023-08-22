@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.database.metaeditor.properties;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -39,7 +39,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 			throw new IllegalArgumentException("Must define the property being added to the database metadata");
 		}
 		// if RDBMS, we need to know the prime key of the column
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		ClusterUtil.pullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 		String physicalPropUri = database.getPhysicalUriFromPixelSelector(concept + "__" + column);

@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public interface IRCloneStorage extends IStorage {
+public interface IRCloneStorage extends IStorageEngine {
 
 	/**
 	 * Determine if a shared/created r clone config can be shared between methods

@@ -48,7 +48,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
 
@@ -103,7 +103,7 @@ public class BrowserPlaySheet extends TablePlaySheet {
 	
 	/**
 	 * This is the function that is used to create the first view of any play sheet. It often uses a lot of the variables previously set on the play
-	 * sheet, such as {@link #setQuery(String)}, {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabase)}, and {@link #setTitle(String)}
+	 * sheet, such as {@link #setQuery(String)}, {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IDatabaseEngine)}, and {@link #setTitle(String)}
 	 * so that the play sheet is displayed correctly when the view is first created. It generally creates the model for visualization from the
 	 * specified engine, then creates the visualization, and finally displays it on the specified desktop pane
 	 * 

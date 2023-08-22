@@ -36,7 +36,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 
 import prerna.algorithm.impl.DistanceDownstreamInserter;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
@@ -119,7 +119,7 @@ public class InsertDownstreamButtonListener implements IChakraListener {
 				
 				DistanceDownstreamInserter inserter = new DistanceDownstreamInserter();
 				String eng = (String) ((JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST)).getSelectedValues()[0];
-				inserter.setEngine((IDatabase) DIHelper.getInstance().getLocalProp(eng));
+				inserter.setEngine((IDatabaseEngine) DIHelper.getInstance().getLocalProp(eng));
 				inserter.setAppAndDep(appValue, depValue);
 				inserter.insertAllDataDownstream();
 				
@@ -146,7 +146,7 @@ public class InsertDownstreamButtonListener implements IChakraListener {
 		} else {
 			DistanceDownstreamInserter inserter = new DistanceDownstreamInserter();
 			String eng = (String) ((JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST)).getSelectedValues()[0];
-			inserter.setEngine((IDatabase) DIHelper.getInstance().getLocalProp(eng));
+			inserter.setEngine((IDatabaseEngine) DIHelper.getInstance().getLocalProp(eng));
 			inserter.setAppAndDep(appValue, depValue);
 			inserter.insertAllDataDownstream();
 			

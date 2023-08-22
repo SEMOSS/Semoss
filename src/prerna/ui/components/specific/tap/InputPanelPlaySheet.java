@@ -47,7 +47,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.event.InternalFrameEvent;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.ui.main.listener.impl.PlaySheetListener;
@@ -79,7 +79,7 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 	public JPanel overallAlysMetricsPanel, overallAlysChartPanel;
 	public JTextArea consoleArea = new JTextArea();
 
-	public IDatabase engine;//TODO might not need
+	public IDatabaseEngine engine;//TODO might not need
 	
 
 	/**
@@ -331,7 +331,7 @@ public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 	 * @param engine 	Set engine.
 	 */
 	@Override
-	public void setRDFEngine(IDatabase engine) {
+	public void setRDFEngine(IDatabaseEngine engine) {
 		this.engine = engine;
 	}
 

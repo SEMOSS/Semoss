@@ -53,7 +53,7 @@ import org.apache.commons.math3.random.Well1024a;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.OptChartUtilityMethods;
 import prerna.ui.components.specific.tap.QueryProcessor;
@@ -85,14 +85,14 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 	private int[] provideDataBLUNow;
 	private int[] provideDataBLUFuture;
 	
-	private IDatabase systemEngine;
-	private IDatabase siteEngine;
-	private IDatabase costEngine;
+	private IDatabaseEngine systemEngine;
+	private IDatabaseEngine siteEngine;
+	private IDatabaseEngine costEngine;
 	
 	private String capability, system, geoCapability;
 	private ArrayList<String> geoSpatialMapSystemList;
 	
-	public void setEngines(IDatabase systemEngine, IDatabase siteEngine, IDatabase costEngine) {
+	public void setEngines(IDatabaseEngine systemEngine, IDatabaseEngine siteEngine, IDatabaseEngine costEngine) {
 		this.systemEngine = systemEngine;
 		this.siteEngine = siteEngine;
 		this.costEngine = costEngine;

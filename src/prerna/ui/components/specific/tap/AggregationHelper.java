@@ -47,7 +47,7 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
@@ -70,7 +70,7 @@ public class AggregationHelper implements IAggregationHelper {
 	public String errorMessage = "";
 
 	// Fundamental Methods
-	public void processData(IDatabase engine, HashMap<String, HashMap<String, Object>> data)
+	public void processData(IDatabaseEngine engine, HashMap<String, HashMap<String, Object>> data)
 	{
 		for( String sub : data.keySet())
 		{
@@ -92,7 +92,7 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 	}
 	
-	public void deleteData(IDatabase engine, HashMap<String, HashMap<String, Object>> data)
+	public void deleteData(IDatabaseEngine engine, HashMap<String, HashMap<String, Object>> data)
 	{
 		for( String sub : data.keySet())
 		{
@@ -120,7 +120,7 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 	}
 	
-	public void processInstancePropOnRelationshipData(List<Object[]> data, IDatabase engine){
+	public void processInstancePropOnRelationshipData(List<Object[]> data, IDatabaseEngine engine){
 		Set<String> storePropURI = new HashSet<String>();
 		for(Object[] triple: data){
 			storePropURI.add(triple[1].toString());
@@ -133,7 +133,7 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 	}
 	
-	public void processInstancePropOnNodeData(List<Object[]> data, IDatabase engine){
+	public void processInstancePropOnNodeData(List<Object[]> data, IDatabaseEngine engine){
 		Set<String> storePropURI = new HashSet<String>();
 		for(Object[] triple: data){
 			storePropURI.add(triple[1].toString());
@@ -146,21 +146,21 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 	}
 
-	public void processNewSubclass(IDatabase engine, String parentType, String childType)
+	public void processNewSubclass(IDatabaseEngine engine, String parentType, String childType)
 	{
 		String subclassOf = RDFS.SUBCLASSOF.toString();
 		( (BigDataEngine) engine).addStatement(new Object[]{childType, subclassOf, parentType, true});
 		LOGGER.info("ADDING NEW SUBCLASS TRIPLE: " + childType + ">>>>>" + subclassOf + ">>>>>" + parentType + ">>>>>");
 	}
 	
-	public void processActiveSystemSubclassing(IDatabase engine, Set<String> data){
+	public void processActiveSystemSubclassing(IDatabaseEngine engine, Set<String> data){
 		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/System", "http://semoss.org/ontologies/Concept/ActiveSystem");
 		for(String sysURI : data) {
 			processNewConceptsAtInstanceLevel(engine, sysURI, "http://semoss.org/ontologies/Concept/ActiveSystem");
 		}
 	}
 
-	public void processNewConcepts(IDatabase engine, String newConceptType)
+	public void processNewConcepts(IDatabaseEngine engine, String newConceptType)
 	{
 		String concept = "http://semoss.org/ontologies/Concept";
 		String subclassOf = RDFS.SUBCLASSOF.toString();
@@ -171,7 +171,7 @@ public class AggregationHelper implements IAggregationHelper {
 		LOGGER.info(Utility.cleanLogString("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>"));
 	}
 
-	public void processNewRelationships(IDatabase engine, String newRelationshipType) 
+	public void processNewRelationships(IDatabaseEngine engine, String newRelationshipType) 
 	{
 		String relation = "http://semoss.org/ontologies/Relation";
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
@@ -182,14 +182,14 @@ public class AggregationHelper implements IAggregationHelper {
 		LOGGER.info(Utility.cleanLogString("ADDING NEW RELATIONSHIP TRIPLE: " + newRelationshipType + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>"));
 	}
 	
-	public void processNewConceptsAtInstanceLevel(IDatabase engine, String subject, String object)
+	public void processNewConceptsAtInstanceLevel(IDatabaseEngine engine, String subject, String object)
 	{
 		String pred = RDF.TYPE.toString();
 		((BigDataEngine) engine).addStatement(new Object[]{subject, pred, object, true});
 		LOGGER.info(Utility.cleanLogString("ADDING CONCEPT INSTANCE TYPE TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>"));				
 	}
 
-	public void processNewRelationshipsAtInstanceLevel(IDatabase engine, String subject, String object) 
+	public void processNewRelationshipsAtInstanceLevel(IDatabaseEngine engine, String subject, String object) 
 	{
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 		((BigDataEngine) engine).addStatement(new Object[]{subject, subpropertyOf, object, true});
@@ -238,7 +238,7 @@ public class AggregationHelper implements IAggregationHelper {
 		}		
 	}
 	
-	public void processAllConceptTypeTriples(IDatabase engine)
+	public void processAllConceptTypeTriples(IDatabaseEngine engine)
 	{
 		for(String newConcept : allConcepts.keySet()) {
 			processNewConcepts(engine, newConcept);
@@ -263,7 +263,7 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 	}
 	
-	public void processAllRelationshipSubpropTriples(IDatabase engine)
+	public void processAllRelationshipSubpropTriples(IDatabaseEngine engine)
 	{
 		for(String newRelationship : allRelations.keySet()) {
 			processNewRelationships(engine, newRelationship);
@@ -281,14 +281,14 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 	}
 	
-	public void processLabel(IDatabase engine) {
+	public void processLabel(IDatabaseEngine engine) {
 		String label = RDFS.LABEL.toString();
 		for(String instanceNodeURI : allLabels.keySet()) {
 			((BigDataEngine) engine).addStatement(new Object[]{instanceNodeURI, label, allLabels.get(instanceNodeURI), false});
 		}
 	}
 	
-	public void writeToOWL(IDatabase engine)
+	public void writeToOWL(IDatabaseEngine engine)
 	{
 		// get the path to the owlFile
 		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineId() +"_" + Constants.OWL); 
@@ -342,7 +342,7 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 	}
 	
-	public void writeToOWL(IDatabase engine, HashMap<String, HashMap<String, Set<String>>> baseRelations) throws RepositoryException, RDFHandlerException 
+	public void writeToOWL(IDatabaseEngine engine, HashMap<String, HashMap<String, Set<String>>> baseRelations) throws RepositoryException, RDFHandlerException 
 	{
 		// get the path to the owlFile
 		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineId() +"_" + Constants.OWL); 

@@ -33,7 +33,7 @@ import javax.swing.JMenuItem;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -48,7 +48,7 @@ import prerna.util.DIHelper;
  */
 public class NeighborQueryBuilderMenuItem extends JMenuItem{
 	DataMakerComponent data; 
-	IDatabase engine = null;
+	IDatabaseEngine engine = null;
 	String name = null;
 	
 	static final Logger logger = LogManager.getLogger(NeighborQueryBuilderMenuItem.class.getName());
@@ -59,7 +59,7 @@ public class NeighborQueryBuilderMenuItem extends JMenuItem{
 	 * @param query String
 	 * @param engine IDatabase
 	 */
-	public NeighborQueryBuilderMenuItem(String name, DataMakerComponent data, IDatabase engine)
+	public NeighborQueryBuilderMenuItem(String name, DataMakerComponent data, IDatabaseEngine engine)
 	{
 		super(name);
 		this.name = name;

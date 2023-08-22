@@ -6,7 +6,7 @@ import java.util.Map;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.util.IFileIterator;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.util.Utility;
@@ -200,13 +200,13 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	}
 	
 	@Override
-	public void setEngine(IDatabase engine) {
+	public void setEngine(IDatabaseEngine engine) {
 		// TODO Auto-generated method stub
 		
 	}
 	
 	@Override
-	public IDatabase getEngine() {
+	public IDatabaseEngine getEngine() {
 		// TODO Auto-generated method stub
 		return null;
 	}

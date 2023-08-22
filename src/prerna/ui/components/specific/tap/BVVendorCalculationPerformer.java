@@ -32,7 +32,7 @@ import java.util.Hashtable;
 import java.util.StringTokenizer;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.UpdateProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -129,11 +129,11 @@ public class BVVendorCalculationPerformer extends BVCalculationPerformer impleme
 		StringTokenizer queryTokens = new StringTokenizer(MultipleQueries, "+++");
 		while(queryTokens.hasMoreElements()){
 			String query = (String) queryTokens.nextElement();
-			IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(query.toLowerCase().contains("vendor"))
-				engine = (IDatabase)DIHelper.getInstance().getLocalProp("VendorSelection");
+				engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp("VendorSelection");
 			logger.info("Repository is " + engine);
-			FillBVHash filler = new FillBVHash(query, (IDatabase)engine);
+			FillBVHash filler = new FillBVHash(query, (IDatabaseEngine)engine);
 
 			Thread playThread = new Thread(filler);
 			playThread.start();

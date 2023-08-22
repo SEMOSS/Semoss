@@ -13,7 +13,7 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.sail.SailException;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -27,21 +27,21 @@ public class RdfUploadReactorUtility {
 		
 	}
 
-	public static void loadMetadataIntoEngine(IDatabase engine, Owler owler) {
+	public static void loadMetadataIntoEngine(IDatabaseEngine engine, Owler owler) {
 		Hashtable<String, String> hash = owler.getConceptHash();
 		String object = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_NODE_CLASS;
 		for(String concept : hash.keySet()) {
-			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(concept), RDFS.SUBCLASSOF + "", object, true});
+			engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(concept), RDFS.SUBCLASSOF + "", object, true});
 		}
 		hash = owler.getRelationHash();
 		object = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_RELATION_CLASS;
 		for(String relation : hash.keySet()) {
-			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(relation), RDFS.SUBPROPERTYOF + "", object, true});
+			engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(relation), RDFS.SUBPROPERTYOF + "", object, true});
 		}
 		hash = owler.getPropHash();
 		object = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_PROP_CLASS;
 		for(String prop : hash.keySet()) {
-			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(prop), RDF.TYPE + "", object, true});
+			engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(prop), RDF.TYPE + "", object, true});
 		}
 	}
 	
@@ -54,7 +54,7 @@ public class RdfUploadReactorUtility {
 	 * @param relName							String containing the name of the relationship between the subject and object
 	 * @param propHash							Hashtable that contains all properties
 	 */
-	public static void createRelationship(IDatabase engine, Owler owler, String baseUri, String subjectNodeType, String objectNodeType, String instanceSubjectName, String instanceObjectName, String relName, Hashtable<String, Object> propHash) {
+	public static void createRelationship(IDatabaseEngine engine, Owler owler, String baseUri, String subjectNodeType, String objectNodeType, String instanceSubjectName, String instanceObjectName, String relName, Hashtable<String, Object> propHash) {
 		subjectNodeType = Utility.cleanString(subjectNodeType, true);
 		objectNodeType = Utility.cleanString(objectNodeType, true);
 
@@ -72,14 +72,14 @@ public class RdfUploadReactorUtility {
 		// create the full URI for the subject instance
 		// add type and label triples to database
 		String subjectNodeURI = subjectInstanceBaseURI + "/" + instanceSubjectName; 
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDF.TYPE, subjectSemossBaseURI, true });
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDFS.LABEL, instanceSubjectName, false });
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDF.TYPE, subjectSemossBaseURI, true });
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDFS.LABEL, instanceSubjectName, false });
 
 		// create the full URI for the object instance
 		// add type and label triples to database
 		String objectNodeURI = objectInstanceBaseURI + "/" + instanceObjectName; 
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { objectNodeURI, RDF.TYPE, objectSemossBaseURI, true });
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT,new Object[] { objectNodeURI, RDFS.LABEL, instanceObjectName, false });
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { objectNodeURI, RDF.TYPE, objectSemossBaseURI, true });
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT,new Object[] { objectNodeURI, RDFS.LABEL, instanceObjectName, false });
 
 		// generate URIs for the relationship
 		relName = Utility.cleanPredicateString(relName);
@@ -90,27 +90,27 @@ public class RdfUploadReactorUtility {
 		// create instance value of relationship and add instance relationship,
 		// subproperty, and label triples
 		String instanceRelURI = relInstanceBaseURI + "/" + instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName;
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.SUBPROPERTYOF, relSemossBaseURI, true });
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.LABEL, 
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.SUBPROPERTYOF, relSemossBaseURI, true });
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceRelURI, RDFS.LABEL, 
 				instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName, false });
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, instanceRelURI, objectNodeURI, true });
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, instanceRelURI, objectNodeURI, true });
 
 		addProperties(engine, owler, "", instanceRelURI, propHash);
 	}
 	
-	public static void addNodeProperties(IDatabase engine, Owler owler, String baseUri, String nodeType, String instanceName, Hashtable<String, Object> propHash) {
+	public static void addNodeProperties(IDatabaseEngine engine, Owler owler, String baseUri, String nodeType, String instanceName, Hashtable<String, Object> propHash) {
 		//create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
 		nodeType = Utility.cleanString(nodeType, true); 
 		String semossBaseURI = owler.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(baseUri, nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
 		addProperties(engine, owler, nodeType, subjectNodeURI, propHash);
 	}
 	
-	public static void addProperties(IDatabase engine, Owler owler, String subjectNodeType, String instanceURI, Hashtable<String, Object> propHash) {
+	public static void addProperties(IDatabaseEngine engine, Owler owler, String subjectNodeType, String instanceURI, Hashtable<String, Object> propHash) {
 		// add all properties
 		Enumeration<String> propKeys = propHash.keys();
 
@@ -121,11 +121,11 @@ public class RdfUploadReactorUtility {
 			String key = propKeys.nextElement().toString();
 			String propURI = basePropURI + "/" + Utility.cleanString(key, true);
 			// logger.info("Processing Property " + key + " for " + instanceURI);
-			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { propURI, RDF.TYPE, basePropURI, true });
+			engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { propURI, RDF.TYPE, basePropURI, true });
 			if (propHash.get(key) instanceof Number) {
 				Double value = ((Number) propHash.get(key)).doubleValue();
 				// logger.info("Processing Double value " + value);
-				engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.doubleValue(), false });
+				engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.doubleValue(), false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "DOUBLE");
 				}
@@ -141,14 +141,14 @@ public class RdfUploadReactorUtility {
 					continue;
 				}
 				// logger.info("Processing Date value " + dateFormatted);
-				engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, dateFormatted, false });
+				engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, dateFormatted, false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "DATE");
 				}
 			} else if (propHash.get(key) instanceof Boolean) {
 				Boolean value = (Boolean) propHash.get(key);
 				// logger.info("Processing Boolean value " + value);
-				engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.booleanValue(), false });
+				engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.booleanValue(), false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "BOOLEAN");
 				}
@@ -163,7 +163,7 @@ public class RdfUploadReactorUtility {
 				} else {
 					String cleanValue = Utility.cleanString(value, true, false, true);
 					// logger.info("Processing String value " + cleanValue);
-					engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, cleanValue, false });
+					engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, cleanValue, false });
 				}
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "STRING");
@@ -177,15 +177,15 @@ public class RdfUploadReactorUtility {
 	 * @param basePropURI 		String containing the base URI of the property at SEMOSS level
 	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
 	 */
-	public static void insertCurrentDate(IDatabase engine, String propInstanceURI, String basePropURI, String subjectNodeURI) {
+	public static void insertCurrentDate(IDatabaseEngine engine, String propInstanceURI, String basePropURI, String subjectNodeURI) {
 		Date dValue = new Date();
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 		String date = df.format(dValue);
 		Date dateFormatted;
 		try {
 			dateFormatted = df.parse(date);
-			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propInstanceURI, RDF.TYPE, basePropURI, true});
-			engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propInstanceURI, dateFormatted, false});
+			engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propInstanceURI, RDF.TYPE, basePropURI, true});
+			engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propInstanceURI, dateFormatted, false});
 		} catch (ParseException e) {
 //			logger.error("ERROR: could not parse date: " + date);
 		}
@@ -211,17 +211,17 @@ public class RdfUploadReactorUtility {
 	 * @param basePropURI 		String containing the base URI of the property at SEMOSS level
 	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
 	 */
-	public static void insertCurrentUser(IDatabase engine, String propURI, String basePropURI, String subjectNodeURI) {
+	public static void insertCurrentUser(IDatabaseEngine engine, String propURI, String basePropURI, String subjectNodeURI) {
 		String cleanValue = System.getProperty("user.name");
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
-		engine.doAction(IDatabase.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
+		engine.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
 	}
 	
 	/**
 	 * Delete all the triples from the database
 	 * @param engine
 	 */
-	public static void deleteAllTriples(IDatabase engine) {
+	public static void deleteAllTriples(IDatabaseEngine engine) {
 		long start = System.currentTimeMillis();
 		LOGGER.info("Starting to delete all triples from database " + engine.getEngineName() + "_" + engine.getEngineId());
 		// null is equiv. to a wildcard for removeStatements method

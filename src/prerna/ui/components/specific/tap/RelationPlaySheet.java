@@ -53,7 +53,7 @@ import javax.swing.border.BevelBorder;
 import javax.swing.event.InternalFrameEvent;
 
 import aurelienribon.ui.css.Style;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -81,7 +81,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	// public DHMSMCapabilitySelectPanel capabilitySelectPanel;
 	public DHMSMDataSelectPanel dataSelectPanel;
 	
-	public IDatabase engine;
+	public IDatabaseEngine engine;
 	
 	public JScrollPane ctlScrollPane;
 	public JPanel ctlPanel;
@@ -400,7 +400,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		
 	}
 	@Override
-	public void setRDFEngine(IDatabase engine) {
+	public void setRDFEngine(IDatabaseEngine engine) {
 		this.engine = engine;
 		
 	}

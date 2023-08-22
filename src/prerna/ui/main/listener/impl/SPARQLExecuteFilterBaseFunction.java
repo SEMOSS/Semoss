@@ -30,7 +30,7 @@ package prerna.ui.main.listener.impl;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -104,7 +104,7 @@ public class SPARQLExecuteFilterBaseFunction extends AbstractBrowserSPARQLFuncti
 	 * @param selectedEngine IDatabase
 	
 	 * @return ArrayList<Object[]> */
-	private ArrayList<Object[]> processSelect(String query, IDatabase selectedEngine){
+	private ArrayList<Object[]> processSelect(String query, IDatabaseEngine selectedEngine){
 		ArrayList<Object[]> list = new ArrayList<Object[]>();
 		
 		//create the update wrapper, set the variables, and let it run

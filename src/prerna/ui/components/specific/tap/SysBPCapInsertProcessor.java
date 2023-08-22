@@ -35,7 +35,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -48,7 +48,7 @@ import prerna.util.Utility;
 public class SysBPCapInsertProcessor extends AggregationHelper {
 	
 	private static final Logger logger = LogManager.getLogger(SysBPCapInsertProcessor.class);
-	private IDatabase coreDB;
+	private IDatabaseEngine coreDB;
 
 	public final String DATAC = "Data";
 	public final String BLU = "BLU";
@@ -162,7 +162,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		processRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash, false);
 	}
 	
-	public void genStorageInformation(IDatabase db, String infoType) {
+	public void genStorageInformation(IDatabaseEngine db, String infoType) {
 		HashMap<String, Set<String>> systemDataHash = getQueryResultHash(db, SYSTEM_DATA_QUERY);
 		HashMap<String, Set<String>> systemBLUHash = getQueryResultHash(db, SYSTEM_BLU_QUERY);	
 		if (infoType.equals("BusinessProcess")) {
@@ -177,7 +177,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		}
 	}
 	
-	public HashMap<String, Set<String>> getQueryResultHash(IDatabase db, String query) {
+	public HashMap<String, Set<String>> getQueryResultHash(IDatabaseEngine db, String query) {
 		HashMap<String, Set<String>> queryDataHash = new HashMap<>();
 		ISelectWrapper queryDataWrapper = Utility.processQuery(db, query);
 		queryDataHash = hashTableResultProcessor(queryDataWrapper);
@@ -302,6 +302,6 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 
 	
 	public void setInsertCoreDB(String insertEngine) {
-		this.coreDB = (IDatabase) DIHelper.getInstance().getLocalProp(insertEngine);
+		this.coreDB = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(insertEngine);
 	}
 }

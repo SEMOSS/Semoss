@@ -38,7 +38,7 @@ import java.util.Set;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractDatabase;
@@ -55,9 +55,9 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 	private final String REMOVED_ICD_TYPE = "http://semoss.org/ontologies/Concept/ProposedDecommissionedSystemInterface";
 	private final String ICD_TYPE = "http://semoss.org/ontologies/Concept/SystemInterface";
 
-	private IDatabase tapCore;
-	private IDatabase futureState;
-	private IDatabase futureCostState;
+	private IDatabaseEngine tapCore;
+	private IDatabaseEngine futureState;
+	private IDatabaseEngine futureCostState;
 
 	private List<Object[]> relList;
 	private List<Object[]> relPropList;
@@ -81,21 +81,21 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 
 	}
 
-	public CreateFutureStateDHMSMDatabase(IDatabase tapCore, IDatabase futureState, IDatabase futureCostState) {
+	public CreateFutureStateDHMSMDatabase(IDatabaseEngine tapCore, IDatabaseEngine futureState, IDatabaseEngine futureCostState) {
 		this.tapCore = tapCore;
 		this.futureState = futureState;
 		this.futureCostState = futureCostState;
 	}
 
-	public void setTapCore(IDatabase tapCore) {
+	public void setTapCore(IDatabaseEngine tapCore) {
 		this.tapCore = tapCore;
 	}
 
-	public void setFutureState(IDatabase futureState) {
+	public void setFutureState(IDatabaseEngine futureState) {
 		this.futureState = futureState;
 	}
 
-	public void setFutureCostState(IDatabase futureCostState) {
+	public void setFutureCostState(IDatabaseEngine futureCostState) {
 		this.futureCostState = futureCostState;
 	}
 
@@ -189,7 +189,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		((AbstractDatabase) futureState).createBaseRelationEngine();
 	}
 
-	public void processGlItemsSubclassing(IDatabase engine, Set<String> data) {
+	public void processGlItemsSubclassing(IDatabaseEngine engine, Set<String> data) {
 		processNewConcepts(engine, "http://semoss.org/ontologies/Concept/GLItem");
 		processNewConcepts(engine, "http://semoss.org/ontologies/Concept/TransitionGLItem");
 		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/GLItem", "http://semoss.org/ontologies/Concept/TransitionGLItem");

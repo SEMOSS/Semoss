@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.upload.modifications;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineModifier;
 import prerna.engine.impl.modifications.EngineModificationFactory;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -49,7 +49,7 @@ public class RemoveDatabaseColumnReactor extends AbstractReactor {
 
 		// we need to store the values existing in the OWL in case 
 		// something goes wrong
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		
 		
 		// update the owl for any database

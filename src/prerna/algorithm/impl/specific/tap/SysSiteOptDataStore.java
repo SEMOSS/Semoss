@@ -33,7 +33,7 @@ import java.util.Arrays;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -62,7 +62,7 @@ public class SysSiteOptDataStore{
 		this.systemForceDecomArr = systemForceDecomArr;
 	}
 	
-	public void fillSysSiteOptDataStores(ArrayList<String> sysList, ArrayList<String> allSysList, ArrayList<String> dataList,ArrayList<String> bluList,ArrayList<String> siteList, IDatabase systemEngine, IDatabase siteEngine, double centralPercOfBudget, double trainingPerc, Boolean localSystems) {
+	public void fillSysSiteOptDataStores(ArrayList<String> sysList, ArrayList<String> allSysList, ArrayList<String> dataList,ArrayList<String> bluList,ArrayList<String> siteList, IDatabaseEngine systemEngine, IDatabaseEngine siteEngine, double centralPercOfBudget, double trainingPerc, Boolean localSystems) {
 				
 		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";
 
@@ -78,7 +78,7 @@ public class SysSiteOptDataStore{
 	}
 	
 	//TODO move somewhere else
-	public void fillSiteLatLon(ArrayList<String> siteList, IDatabase siteEngine) {
+	public void fillSiteLatLon(ArrayList<String> siteList, IDatabaseEngine siteEngine) {
 		String siteListBindings = "{" + SysOptUtilityMethods.makeBindingString("DCSite",siteList) + "}";
 
 		String lonQuery = "SELECT DISTINCT ?DCSite ?lon WHERE { {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DCSite <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}} BINDINGS ?DCSite "+siteListBindings;
@@ -90,7 +90,7 @@ public class SysSiteOptDataStore{
 	}
 
 	
-	private void fillSystemFunctionality(ArrayList<String> sysList,ArrayList<String> dataList,ArrayList<String> bluList,IDatabase systemEngine) {
+	private void fillSystemFunctionality(ArrayList<String> sysList,ArrayList<String> dataList,ArrayList<String> bluList,IDatabaseEngine systemEngine) {
 		systemDataMatrix = SysOptUtilityMethods.createEmptyIntMatrix(sysList.size(),dataList.size());
 		systemBLUMatrix = SysOptUtilityMethods.createEmptyIntMatrix(sysList.size(),bluList.size());
 
@@ -111,7 +111,7 @@ public class SysSiteOptDataStore{
 
 	}
 	
-	private void fillSystemHasUpstreamInterface(ArrayList<String> sysList, ArrayList<String> allSysList, IDatabase systemEngine) {
+	private void fillSystemHasUpstreamInterface(ArrayList<String> sysList, ArrayList<String> allSysList, IDatabaseEngine systemEngine) {
 		String query = "SELECT DISTINCT ?System (COUNT(?ICD) AS ?NumUpstream) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?UpstreamSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?UpstreamSystem <http://semoss.org/ontologies/Relation/Provide> ?ICD} } GROUP BY ?System BINDINGS ?UpstreamSystem @SYSTEM-BINDINGS@";
 
 		String allSysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",allSysList) + "}";
@@ -129,7 +129,7 @@ public class SysSiteOptDataStore{
 		}
 	}
 
-	private void fillSystemSite(ArrayList<String> sysList, ArrayList<String> siteList, IDatabase siteEngine) {
+	private void fillSystemSite(ArrayList<String> sysList, ArrayList<String> siteList, IDatabaseEngine siteEngine) {
 		systemSiteMatrix = SysOptUtilityMethods.createEmptyIntMatrix(sysList.size(),siteList.size());
 		String query = "SELECT DISTINCT ?System ?Site WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;}{?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?Site;}{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } BINDINGS ?System @SYSTEM-BINDINGS@";
 
@@ -137,7 +137,7 @@ public class SysSiteOptDataStore{
 		systemSiteMatrix = SysOptUtilityMethods.fillMatrixFromQuery(siteEngine,query,systemSiteMatrix,sysList,siteList);
 	}
 	
-	private void fillLocalSystemCost(ArrayList<String> sysList, IDatabase systemEngine, double centralPercOfBudget, double deploymentFactor, double interfacePercOfDeployment, double trainingPerc) {
+	private void fillLocalSystemCost(ArrayList<String> sysList, IDatabaseEngine systemEngine, double centralPercOfBudget, double deploymentFactor, double interfacePercOfDeployment, double trainingPerc) {
 
 String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?sys <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}}BINDINGS ?sys @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
@@ -174,7 +174,7 @@ String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <
 		
 	}
 	
-	private void fillCentralSystemCost(ArrayList<String> sysList, IDatabase systemEngine, double centralPercOfBudget, double deploymentFactor, double interfacePercOfDeployment, double trainingPerc, int numSites) {
+	private void fillCentralSystemCost(ArrayList<String> sysList, IDatabaseEngine systemEngine, double centralPercOfBudget, double deploymentFactor, double interfacePercOfDeployment, double trainingPerc, int numSites) {
 
 		String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?sys <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}}BINDINGS ?sys @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
@@ -194,7 +194,7 @@ String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <
 		}
 	}
 
-	private void fillSystemTheaterGarrison(ArrayList<String> sysList, IDatabase systemEngine,boolean includeTheater,boolean includeGarrison)
+	private void fillSystemTheaterGarrison(ArrayList<String> sysList, IDatabaseEngine systemEngine,boolean includeTheater,boolean includeGarrison)
 	{
 		String query = "SELECT DISTINCT ?System ?GT WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}} BINDINGS ?System @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
@@ -252,7 +252,7 @@ String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <
 		return matrixToFill;
 	}	
 	
-	private double[] createArrayFromQuery(IDatabase engine, String query, ArrayList<String> rowNames) {
+	private double[] createArrayFromQuery(IDatabaseEngine engine, String query, ArrayList<String> rowNames) {
 		double[] arr = new double[rowNames.size()];
 		Arrays.fill(arr, 0);
 

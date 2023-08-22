@@ -2,7 +2,7 @@ package prerna.engine.api.impl.util;
 
 import java.util.List;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.util.Utility;
 
@@ -12,10 +12,10 @@ public class MetadataUtility {
 		
 	}
 	
-	public static boolean ignoreConceptData(IDatabase.DATABASE_TYPE type) {
-		return type == IDatabase.DATABASE_TYPE.RDBMS
-				|| type == IDatabase.DATABASE_TYPE.R
-				|| type == IDatabase.DATABASE_TYPE.IMPALA
+	public static boolean ignoreConceptData(IDatabaseEngine.DATABASE_TYPE type) {
+		return type == IDatabaseEngine.DATABASE_TYPE.RDBMS
+				|| type == IDatabaseEngine.DATABASE_TYPE.R
+				|| type == IDatabaseEngine.DATABASE_TYPE.IMPALA
 //				|| type == IDatabase.ENGINE_TYPE.JMES_API
 				;
 	}
@@ -28,7 +28,7 @@ public class MetadataUtility {
 		if(eType.equals("RDF")) {
 			eType = "SESAME";
 		}
-		return ignoreConceptData(IDatabase.DATABASE_TYPE.valueOf(eType));
+		return ignoreConceptData(IDatabaseEngine.DATABASE_TYPE.valueOf(eType));
 	}
 	
 	/**
@@ -38,7 +38,7 @@ public class MetadataUtility {
 	 * @param propertyName
 	 * @return
 	 */
-	public static boolean propertyExistsForConcept(IDatabase engine, String conceptPhysicalUri, String propertyName) {
+	public static boolean propertyExistsForConcept(IDatabaseEngine engine, String conceptPhysicalUri, String propertyName) {
 		List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysicalUri);
 		for(String prop : properties) {
 			if(propertyName.equalsIgnoreCase(Utility.getInstanceName(prop))) {

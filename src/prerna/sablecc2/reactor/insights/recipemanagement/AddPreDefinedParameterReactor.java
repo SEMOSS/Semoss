@@ -12,7 +12,7 @@ import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
@@ -81,7 +81,7 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 						"Database " + databaseId + " does not exist or user does not have access to database");
 			}
 		}
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		for (Object exportVar : exportVariables) {
 			Map<String, Object> exportParam = (Map<String, Object>) exportVar;
 			if (exportParam.get("type") != null && exportParam.get("list") != null) {

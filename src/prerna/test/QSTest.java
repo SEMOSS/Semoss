@@ -23,7 +23,7 @@ import org.junit.Test;
 import com.ibm.icu.util.StringTokenizer;
 
 import prerna.ds.py.PyExecutorThread;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
@@ -170,9 +170,9 @@ public class QSTest {
 	}
 	
 	// load and give you a particular engine
-	public IDatabase loadEngine(String engineID)
+	public IDatabaseEngine loadEngine(String engineID)
 	{
-		IDatabase retEngine = null;
+		IDatabaseEngine retEngine = null;
 		
 		return retEngine;
 	}

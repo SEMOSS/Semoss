@@ -40,7 +40,7 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -60,7 +60,7 @@ public class ActiveSystemUpdater {
 	
 	static final Logger logger = LogManager.getLogger(ActiveSystemUpdater.class.getName());
 	
-	IDatabase engine = null;
+	IDatabaseEngine engine = null;
 	// specific URIs that do not change
 	static String subclassURI = Constants.SUBCLASS_URI;
 	static String typeURI = Constants.TYPE_URI;
@@ -260,12 +260,12 @@ public class ActiveSystemUpdater {
 	 */
 	public void addToOWL(String engineName) throws RepositoryException, RDFHandlerException 
 	{
-		engine = (IDatabase)DIHelper.getInstance().getEngineProperty(engineName);
+		engine = (IDatabaseEngine)DIHelper.getInstance().getEngineProperty(engineName);
 		
 		// get the path to the owlFile
 		String owlFileLocation = (String)DIHelper.getInstance().getEngineProperty(engineName +"_"+Constants.OWL);
 		
-		IDatabase baseRelEngine = engine.getBaseDataEngine();
+		IDatabaseEngine baseRelEngine = engine.getBaseDataEngine();
 		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
 		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
 		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
@@ -298,7 +298,7 @@ public class ActiveSystemUpdater {
 	 * @param engineName	String containing the name of the engine
 	 */
 	public void setEngine(String engineName){
-		this.engine = (IDatabase)DIHelper.getInstance().getEngineProperty(engineName);
+		this.engine = (IDatabaseEngine)DIHelper.getInstance().getEngineProperty(engineName);
 	}
 	
 	/**

@@ -42,7 +42,7 @@ import java.util.Map;
 import javax.swing.JCheckBox;
 import javax.swing.JList;
 
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -432,7 +432,7 @@ public class EstimationCalculationFunctions {
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo[0]+"");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -457,7 +457,7 @@ public class EstimationCalculationFunctions {
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repo[0]+"");
+		IDatabaseEngine engine = (IDatabaseEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 

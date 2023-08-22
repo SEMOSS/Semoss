@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.database.metaeditor.concepts;
 import java.util.List;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IDatabase;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -39,7 +39,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		// since we are deleting the node
 		// i need to delete the properties of this node
 		// and then everything related to this node
-		IDatabase database = Utility.getDatabase(databaseId);
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		ClusterUtil.pullOwl(databaseId);
 		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 		String conceptPhysical = database.getPhysicalUriFromPixelSelector(concept);

@@ -5,7 +5,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IStorage;
+import prerna.engine.api.IStorageEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,7 +24,7 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		IStorage storage = getStorage();
+		IStorageEngine storage = getStorage();
 		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
 		
 		try {
@@ -36,15 +36,15 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 		}
 	}
 	
-	private IStorage getStorage() {
+	private IStorageEngine getStorage() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
-			return (IStorage) grs.get(0);
+			return (IStorageEngine) grs.get(0);
 		}
 		
 		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
 		if(storageInputs != null && !storageInputs.isEmpty()) {
-			return (IStorage) storageInputs.get(0).getValue();
+			return (IStorageEngine) storageInputs.get(0).getValue();
 		}
 		
 		throw new NullPointerException("No storage engine defined");
