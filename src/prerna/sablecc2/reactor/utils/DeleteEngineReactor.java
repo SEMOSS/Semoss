@@ -15,7 +15,6 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteEngineRunner;
-import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.sablecc2.om.GenRowStruct;
@@ -69,7 +68,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			} 
 			IEngine engine = Utility.getEngine(engineId);
-			String engineType = engine.getCatalogType();
+			IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 			deleteEngines(engine, engineType);
 			EngineSyncUtility.clearEngineCache(engineId);
 			UserTrackingUtils.deleteEngine(engineId);
@@ -89,11 +88,11 @@ public class DeleteEngineReactor extends AbstractReactor {
 	 * @param engine
 	 * @return
 	 */
-	private boolean deleteEngines(IEngine engine, String engineType) {
+	private boolean deleteEngines(IEngine engine, IEngine.CATALOG_TYPE engineType) {
 		String engineId = engine.getEngineId();
 		UploadUtilities.removeEngineFromDIHelper(engineId);
 		// remove from local master if database
-		if(IDatabaseEngine.CATALOG_TYPE.equals(engineType)) {
+		if(IEngine.CATALOG_TYPE.DATABASE == engineType) {
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
 			remover.deleteEngineRDBMS(engineId);
 		}

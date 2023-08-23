@@ -2414,7 +2414,7 @@ public class Utility {
 		boolean syncToLocalMaster = false;
 
 		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
-		String engineType = null;
+		IEngine.CATALOG_TYPE engineType = null;
 		String rawType = smssProp.get(Constants.ENGINE_TYPE).toString();
 		try {
 			IEngine emptyClass = (IEngine) Class.forName(rawType).newInstance();
@@ -2984,12 +2984,12 @@ public class Utility {
 	
 	public static IEngine getEngine(String engineId) {
 		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
-		String type = (String) typeAndSubtype[0];
-		if(IDatabaseEngine.CATALOG_TYPE.equalsIgnoreCase(type)) {
+		IEngine.CATALOG_TYPE type = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
 			return getDatabase(engineId);
-		} else if(IStorageEngine.CATALOG_TYPE.equalsIgnoreCase(type)) {
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
 			return getStorage(engineId);
-		} else if(IModelEngine.CATALOG_TYPE.equalsIgnoreCase(type)) {
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
 			return getModel(engineId);
 		}
 		

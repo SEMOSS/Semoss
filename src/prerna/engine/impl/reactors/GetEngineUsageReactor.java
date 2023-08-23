@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.LLMReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -32,16 +33,16 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
-		String engineType = (String) typeAndSubtype[0];
+		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
 		Map<String, String> outputMap;
 		switch(engineType) {
-			case "DATABASE":
+			case DATABASE:
 				outputMap = getDatabaseUsage(engineId);
 				break;
-			case "STORAGE":
+			case STORAGE:
 				outputMap = getStorageUsage(engineId);
 				break;
-			case "MODEL":
+			case MODEL:
 				outputMap = getModelUsage(engineId);
 				break;
 			default:
