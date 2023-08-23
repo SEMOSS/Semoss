@@ -35,8 +35,11 @@ public class ClusterUtil {
 	
 	private static final Logger logger = LogManager.getLogger(ClusterUtil.class);
 
+	@Deprecated
 	public static final String DB_BLOB = "semoss-db";
+	@Deprecated
 	public static final String PROJECT_BLOB = "semoss-project";
+	@Deprecated
 	public static final String USER_BLOB = "semoss-user";
 	
 	private static final String IS_CLUSTER_KEY = "SEMOSS_IS_CLUSTER";

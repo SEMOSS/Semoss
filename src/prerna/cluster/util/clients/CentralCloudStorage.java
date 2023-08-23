@@ -16,6 +16,7 @@ import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
@@ -212,6 +213,46 @@ public class CentralCloudStorage implements ICloudClient {
 		if(clientProps.get(oldKey) != null) {
 			prop.put(propKey, clientProps.get(oldKey));
 		}
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public String getPrefixForEngine(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return DB_CONTAINER_PREFIX;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return STORAGE_CONTAINER_PREFIX;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return MODEL_CONTAINER_PREFIX;
+		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
+			return PROJECT_CONTAINER_PREFIX;
+		}
+		
+		throw new IllegalArgumentException("Unhandled engine type = " + type);
+	}
+	
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public String getEngineSmssDirectory(IEngine.CATALOG_TYPE type) {
+		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+			return DATABASE_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+			return STORAGE_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+			return MODEL_FOLDER;
+		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
+			return PROJECT_FOLDER;
+		}
+		
+		throw new IllegalArgumentException("Unhandled engine type = " + type);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////

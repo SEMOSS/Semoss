@@ -53,6 +53,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
@@ -1705,9 +1706,8 @@ public class Project implements IProject {
 	}
 
 	@Override
-	public String getCatalogType() {
-		// TODO Auto-generated method stub
-		return null;
+	public IEngine.CATALOG_TYPE getCatalogType() {
+		return IEngine.CATALOG_TYPE.PROJECT;
 	}
 
 	@Override

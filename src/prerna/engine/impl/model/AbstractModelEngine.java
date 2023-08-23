@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
@@ -397,8 +398,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public String getCatalogType() {
-		return IModelEngine.CATALOG_TYPE;
+	public IEngine.CATALOG_TYPE getCatalogType() {
+		return IEngine.CATALOG_TYPE.MODEL;
 	}
 	
 	@Override
