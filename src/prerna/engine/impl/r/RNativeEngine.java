@@ -203,8 +203,9 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 	}
 
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		this.dt.close();
+		super.close();
 	}
 
 	@Override
@@ -215,18 +216,6 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 	@Override
 	public void commit() {
 		// not implemented for R
-	}
-
-	@Override
-	public void delete() {
-		classLogger.debug("Deleting R Engine: " + this.engineName + "__" + this.engineId);
-		try {
-			close();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		// clean up SMSS and DB files/folder
-		super.delete();
 	}
 
 	@Override
@@ -264,4 +253,10 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 	public void directLoad(AbstractRJavaTranslator otherTranslator, String assignVar, String rScript) {
 		AbstractRJavaTranslator.loadDataBetweenEnv(otherTranslator, assignVar, this.rJavaTranslator, rScript);
 	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
+	
 }

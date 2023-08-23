@@ -192,5 +192,10 @@ public class ClusterEngine extends AbstractDatabaseEngine {
 		prop.put("TEMP", "TRUE");
 		return prop;
 	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		return true;
+	}
 
 }
