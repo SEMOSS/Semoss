@@ -18,14 +18,14 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.CypherInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class Neo4jEmbeddedEngine extends AbstractDatabase {
+public class Neo4jEmbeddedEngine extends AbstractDatabaseEngine {
 	
 	private static final Logger classLogger = LoggerFactory.getLogger(Neo4jEmbeddedEngine.class);
 	

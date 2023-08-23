@@ -41,7 +41,7 @@ import org.openrdf.rio.RDFHandlerException;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.Utility;
@@ -142,7 +142,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		((BigDataEngine) futureCostState).infer();
 		writeToOWL(futureCostState, baseFutureCostRelations);
 		// update base filter hash
-		((AbstractDatabase) futureCostState).createBaseRelationEngine();
+		((AbstractDatabaseEngine) futureCostState).createBaseRelationEngine();
 	}
 
 	public void createFutureStateDB() throws IOException, RepositoryException, RDFHandlerException {
@@ -186,7 +186,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		((BigDataEngine) futureState).infer();
 		writeToOWL(futureState, baseFutureRelations);
 		// update base filter hash
-		((AbstractDatabase) futureState).createBaseRelationEngine();
+		((AbstractDatabaseEngine) futureState).createBaseRelationEngine();
 	}
 
 	public void processGlItemsSubclassing(IDatabaseEngine engine, Set<String> data) {

@@ -6,11 +6,11 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
 
 @Deprecated // this is replaced by projects
-public class AppEngine extends AbstractDatabase {
+public class AppEngine extends AbstractDatabaseEngine {
 
 	private static final Logger LOGGER = LogManager.getLogger(AppEngine.class);
 	

@@ -60,7 +60,7 @@ import com.hp.hpl.jena.rdf.model.Resource;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.rdf.InMemoryJenaEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -1228,14 +1228,14 @@ public class GraphDataModel implements IDataMaker {
 		// this links the hierarchy that tool needs to the metamodel being queried
 		// eventually this could be a SPIN
 		// need to get the engine name and jam it - Done Baby
-		if(!loadedOWLS.containsKey(engine.getEngineId()) && engine instanceof AbstractDatabase) {
+		if(!loadedOWLS.containsKey(engine.getEngineId()) && engine instanceof AbstractDatabaseEngine) {
 			if(this.baseRelEngine == null){
-				this.baseRelEngine = ((AbstractDatabase)engine).getBaseDataEngine();
+				this.baseRelEngine = ((AbstractDatabaseEngine)engine).getBaseDataEngine();
 			} else {
-				RDFEngineHelper.addAllData(((AbstractDatabase)engine).getBaseDataEngine(), this.baseRelEngine.getRc());
+				RDFEngineHelper.addAllData(((AbstractDatabaseEngine)engine).getBaseDataEngine(), this.baseRelEngine.getRc());
 			}
 
-			this.baseFilterHash.putAll(((AbstractDatabase)engine).getBaseHash());
+			this.baseFilterHash.putAll(((AbstractDatabaseEngine)engine).getBaseHash());
 
 			RDFEngineHelper.addAllData(baseRelEngine, rc);
 			loadedOWLS.put(engine.getEngineId(), engine.getEngineId());

@@ -44,7 +44,7 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -58,7 +58,7 @@ import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class RNativeEngine extends AbstractDatabase {
+public class RNativeEngine extends AbstractDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(RNativeEngine.class.getName());
 
