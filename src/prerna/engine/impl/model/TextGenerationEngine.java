@@ -12,7 +12,7 @@ public class TextGenerationEngine  extends AbstractModelEngine {
 	@Override
 	public String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters) {
 		
-		String varName = (String) generalEngineProp.get("VAR_NAME");
+		String varName = (String) smssProp.get("VAR_NAME");
 		
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
 		callMaker.append("question=\"").append(question.replace("\"", "\\\"")).append("\"");

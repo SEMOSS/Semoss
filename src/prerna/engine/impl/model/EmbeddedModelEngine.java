@@ -30,7 +30,7 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		if(!this.socketClient.isConnected())
 			this.startServer();
 		
-		String varName = (String) generalEngineProp.get(Settings.VAR_NAME);
+		String varName = (String) smssProp.get(Settings.VAR_NAME);
 		
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
 		callMaker.append("question=\"").append(question.replace("\"", "\\\"")).append("\"");
@@ -70,6 +70,12 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		return output+"";
 	}
 	
+	@Override
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.EMBEDDED;
+	}
+	
+	
 	public static void main(String [] args) throws Exception
 	{
 		String smssFilePath = "c:/users/pkapaleeswaran/workspacej3/SemossDev/db/PolicyBot.smss";
@@ -93,10 +99,5 @@ public class EmbeddedModelEngine extends AbstractModelEngine {
 		//Object output = pyt.runScript("i.ask(question='What is the capital of India ?')");
 		
 		//System.err.println(output);
-	}
-
-	@Override
-	public ModelTypeEnum getModelType() {
-		return ModelTypeEnum.EMBEDDED;
 	}
 }

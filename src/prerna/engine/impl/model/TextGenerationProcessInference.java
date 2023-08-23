@@ -41,7 +41,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 				setSmssProp(Utility.loadProperties(smssFilePath));
 			}
 			for (String launcherArg : possibleInputs.keySet()) {
-				String propArg = (String) generalEngineProp.get(launcherArg);
+				String propArg = (String) smssProp.get(launcherArg);
 				if(propArg != null && !propArg.isEmpty()){
 					this.launchArguments.put(launcherArg,propArg);
 				}
@@ -66,8 +66,8 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 				this.controllerAddress = this.workerAddress + ":" + this.inferencePort;
 			}
 			
-			if (!this.generalEngineProp.containsKey("ENDPOINT")) {
-				this.generalEngineProp.put("ENDPOINT", this.controllerAddress);
+			if (!this.smssProp.containsKey("ENDPOINT")) {
+				this.smssProp.put("ENDPOINT", this.controllerAddress);
 			} 
 			
 			// create a generic folder
@@ -80,7 +80,7 @@ public class TextGenerationProcessInference extends TextGenerationEngine {
 				cacheFolder.mkdir();
 			
 			// vars for string substitution
-			vars = new HashMap(generalEngineProp);
+			vars = new HashMap(smssProp);
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Unable to load model details from the SMSS file");
