@@ -12,7 +12,6 @@ import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,7 +21,6 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -31,9 +29,10 @@ import prerna.util.Utility;
 
 public abstract class AbstractModelEngine implements IModelEngine {
 	
+	private static final Logger classLogger = LogManager.getLogger(AbstractModelEngine.class);
+
 	private static final String DIR_SEPERATOR = "/";
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final Logger logger = LogManager.getLogger(AbstractModelEngine.class);
 	
 	public static final String PY_COMMAND_SEPARATOR = ";";
 	public static final String CUR_DIR = "CUR_DIR";
@@ -43,13 +42,13 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	
 	protected String engineId = null;
 	protected String engineName = null;
-	protected boolean keepConversationHistory = false;
 	
-	//TODO think through this
-	protected Properties generalEngineProp = null;
+	protected Properties smssProp = null;
 	protected String smssFilePath = null;
-	protected String [] requiredVars = new String [] {Settings.VAR_NAME, Settings.PROMPT_STOPPER};
 	
+	protected String [] requiredVars = new String [] {Settings.VAR_NAME, Settings.PROMPT_STOPPER};
+	protected boolean keepConversationHistory = false;
+
 	// python server
 	TCPPyTranslator pyt = null;
 	NativePySocketClient socketClient = null;
@@ -66,49 +65,45 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	private Map<String, ArrayList<Map<String, Object>>> chatHistory = new Hashtable<>();
 	
 	@Override
-	public void open(String smssFilePath) {
-		try {
-			if (smssFilePath != null) {
-				logger.info("Loading Model - " + Utility.cleanLogString(FilenameUtils.getName(smssFilePath)));
-				setSmssFilePath(smssFilePath);
-				setSmssProp(Utility.loadProperties(smssFilePath));
+	public void open(String smssFilePath) throws Exception {
+		setSmssFilePath(smssFilePath);
+		this.open(Utility.loadProperties(smssFilePath));
+	}
+	
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		setSmssProp(smssProp);
+		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
+		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
+		
+		for (String var : requiredVars) {
+			if(!this.smssProp.containsKey(var)) {
+				String randomString = "v_" + Utility.getRandomString(6);
+				this.smssProp.put(var, randomString);
 			}
-			if(this.generalEngineProp != null) {
-				this.engineId = generalEngineProp.getProperty(Constants.ENGINE);
-				this.engineName = generalEngineProp.getProperty(Constants.ENGINE_ALIAS);
-				
-				for (String var : requiredVars) {
-					if(!generalEngineProp.containsKey(var)) {
-						String randomString = "v_" + Utility.getRandomString(6);
-						generalEngineProp.put(var, randomString);
-					}
-				}
-				if (!generalEngineProp.containsKey(CUR_DIR)) {
-					String curDir = new File(smssFilePath).getParent().replace(FILE_SEPARATOR, DIR_SEPERATOR);
-					generalEngineProp.put(CUR_DIR, curDir);
-				}
-				if (!generalEngineProp.containsKey(ENGINE_DIR)) {
-					generalEngineProp.put("ENGINE_DIR", generalEngineProp.get(CUR_DIR) + "/" + this.engineName + "__" + this.engineId);
-				}
-				
-				keepConversationHistory = Boolean.parseBoolean((String) generalEngineProp.get("KEEP_CONTEXT"));
-				
-				// create a generic folder
-				this.workingDirecotry = "MODEL_" + Utility.getRandomString(6);
-				this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirecotry;
-				this.cacheFolder = new File(workingDirectoryBasePath);
-				
-				// make the folder if one does not exist
-				if(!cacheFolder.exists())
-					cacheFolder.mkdir();
-				
-				// vars for string substitution
-				vars = new HashMap(generalEngineProp);
-			}
-		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Unable to load model details from the SMSS file");
 		}
+		if (!this.smssProp.containsKey(CUR_DIR)) {
+			String curDir = new File(smssFilePath).getParent().replace(FILE_SEPARATOR, DIR_SEPERATOR);
+			this.smssProp.put(CUR_DIR, curDir);
+		}
+		if (!this.smssProp.containsKey(ENGINE_DIR)) {
+			this.smssProp.put("ENGINE_DIR", this.smssProp.get(CUR_DIR) + "/" + this.engineName + "__" + this.engineId);
+		}
+		
+		this.keepConversationHistory = Boolean.parseBoolean(this.smssProp.getProperty("KEEP_CONTEXT"));
+		
+		// create a generic folder
+		this.workingDirecotry = "MODEL_" + Utility.getRandomString(6);
+		this.workingDirectoryBasePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + workingDirecotry;
+		this.cacheFolder = new File(workingDirectoryBasePath);
+		
+		// make the folder if one does not exist
+		if(!this.cacheFolder.exists()) {
+			this.cacheFolder.mkdir();
+		}
+			
+		// vars for string substitution
+		this.vars = new HashMap(this.smssProp);
 	}
 
 	@Override
@@ -118,7 +113,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		// get the startup command and parameters - at some point we need a better way than the command
 		
 		// execute all the basic commands
-		String initCommands = (String) generalEngineProp.get(Constants.INIT_MODEL_ENGINE);
+		String initCommands = (String) smssProp.get(Constants.INIT_MODEL_ENGINE);
 		
 		// break the commands seperated by ;
 		String [] commands = initCommands.split(PY_COMMAND_SEPARATOR);
@@ -205,7 +200,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	public Object embeddings(String question, Insight insight, Map <String, Object> parameters) {
 		if(!this.socketClient.isConnected())
 			this.startServer();
-		String varName = (String) generalEngineProp.get("VAR_NAME");
+		String varName = (String) smssProp.get("VAR_NAME");
 	
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".embeddings(");
 		callMaker.append("question=\"").append(question).append("\"").append(")");
@@ -250,7 +245,7 @@ public abstract class AbstractModelEngine implements IModelEngine {
 			socketClient.crash();
 			FileUtils.deleteDirectory(cacheFolder);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -264,9 +259,9 @@ public abstract class AbstractModelEngine implements IModelEngine {
 				try 
 				{
 					socketClient.wait();
-					logger.info("Setting the socket client ");
+					classLogger.info("Setting the socket client ");
 				} catch (InterruptedException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}								
 			}
 		}
@@ -376,17 +371,17 @@ public abstract class AbstractModelEngine implements IModelEngine {
 
 	@Override
 	public void setSmssProp(Properties smssProp) {
-		this.generalEngineProp = smssProp;
+		this.smssProp = smssProp;
 	}
 
 	@Override
 	public Properties getSmssProp() {
-		return this.generalEngineProp;
+		return this.smssProp;
 	}
 
 	@Override
 	public Properties getOrigSmssProp() {
-		return this.generalEngineProp;
+		return this.smssProp;
 	}
 
 	@Override
