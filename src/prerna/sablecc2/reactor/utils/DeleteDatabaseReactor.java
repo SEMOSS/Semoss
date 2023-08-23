@@ -1,7 +1,11 @@
 package prerna.sablecc2.reactor.utils;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -22,12 +26,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
+import prerna.util.upload.UploadUtilities;
 
 @Deprecated
 public class DeleteDatabaseReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DeleteDatabaseReactor.class);
 
 	public DeleteDatabaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
@@ -73,7 +79,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 			deleteDatabase(database);
 			EngineSyncUtility.clearEngineCache(databaseId);
 			
-			UserTrackingUtils.deleteDatabase(databaseId);
+			UserTrackingUtils.deleteEngine(databaseId);
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
@@ -91,19 +97,21 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 	 * @return
 	 */
 	private boolean deleteDatabase(IDatabaseEngine database) {
-		String databaseId = database.getEngineId();
-		database.delete();
-
-		// remove from dihelper... this is absurd
-		String databaseIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		databaseIds = databaseIds.replace(";" + databaseId, "");
-		// in case it was the first databases loaded
-		databaseIds = databaseIds.replace(databaseId + ";", "");
-		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, databaseIds);
-
+		String engineId = database.getEngineId();
+		UploadUtilities.removeEngineFromDIHelper(engineId);
+		// remove from local master if database
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
-		remover.deleteEngineRDBMS(databaseId);
-		SecurityEngineUtils.deleteEngine(databaseId);
+		remover.deleteEngineRDBMS(engineId);
+		// remove from security
+		SecurityEngineUtils.deleteEngine(engineId);
+		// remove from user tracking
+		UserTrackingUtils.deleteEngine(engineId);
+		
+		try {
+			database.delete();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		return true;
 	}
 

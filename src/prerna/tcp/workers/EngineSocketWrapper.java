@@ -128,5 +128,23 @@ public class EngineSocketWrapper extends AbstractDatabaseEngine {
 		
 		return (Vector<Object>)retStruct.payload[0];
 	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.ENGINE;
+		ps.methodName = methodName;
+		ps.hasReturn = false;
+		ps.objId = engineId;
+		ps.response = false;
+	
+		PayloadStruct retStruct = ssh.writeResponse(ps);
+		
+		if(retStruct.ex != null)
+			throw new RuntimeException(retStruct.ex);
+		
+		return (boolean)retStruct.payload[0];
+	}
 
 }

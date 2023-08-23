@@ -1,6 +1,7 @@
 package prerna.engine.api;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.Properties;
 
 public interface IEngine extends Closeable {
@@ -94,7 +95,14 @@ public interface IEngine extends Closeable {
 	
 	/**
 	 * Deletes the engine and any stored configuration
+	 * @throws IOException 
 	 */
-	void delete();
+	void delete() throws IOException;
+	
+	/**
+	 * Does this engine hold any file locks that would require a close to export/perform other operations
+	 * @return
+	 */
+	boolean holdsFileLocks();
 	
 }

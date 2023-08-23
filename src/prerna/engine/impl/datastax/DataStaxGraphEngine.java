@@ -131,5 +131,10 @@ public class DataStaxGraphEngine extends AbstractDatabaseEngine {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
 
 }

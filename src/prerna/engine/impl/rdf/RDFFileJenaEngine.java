@@ -71,9 +71,10 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
+	 * @throws IOException 
 	 */
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		super.close();
 		jenaModel.close();
 		classLogger.info("Closing the database to the file " + Utility.cleanLogString(propFile));		
@@ -122,6 +123,11 @@ public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	@Override
 	public DATABASE_TYPE getDatabaseType() {
 		return IDatabaseEngine.DATABASE_TYPE.JENA;
+	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		return true;
 	}
 
 	/**

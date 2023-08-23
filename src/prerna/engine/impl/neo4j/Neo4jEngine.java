@@ -151,11 +151,15 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 	}
 	
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		super.close();
 		ConnectionUtils.closeConnection(this.conn);
 	}
-	
+
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
 	
 }
 
