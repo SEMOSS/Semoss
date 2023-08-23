@@ -2982,15 +2982,30 @@ public class Utility {
 		return project;
 	}
 	
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
 	public static IEngine getEngine(String engineId) {
+		return getEngine(engineId, true);
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
 		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 		IEngine.CATALOG_TYPE type = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
 		if(IEngine.CATALOG_TYPE.DATABASE == type) {
-			return getDatabase(engineId);
+			return getDatabase(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
-			return getStorage(engineId);
+			return getStorage(engineId, pullIfNeeded);
 		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
-			return getModel(engineId);
+			return getModel(engineId, pullIfNeeded);
 		}
 		
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
