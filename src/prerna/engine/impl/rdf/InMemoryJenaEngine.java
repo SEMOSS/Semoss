@@ -151,4 +151,9 @@ public class InMemoryJenaEngine extends AbstractDatabaseEngine {
 		// This does nothing
 		
 	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
 }

@@ -205,9 +205,10 @@ public class BaseDatabaseCreator {
 	}
 
 	/**
+	 * @throws IOException 
 	 * 
 	 */
-	public void closeBaseEng() {
+	public void closeBaseEng() throws IOException {
 		this.baseEng.close();
 	}
 	

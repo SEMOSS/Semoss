@@ -250,35 +250,14 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		if(this.baseDataEngine != null) {
-			classLogger.debug("closing its owl engine ");
+			classLogger.debug("Closing the owl engine");
 			this.baseDataEngine.close();
 		}
-//		if(this.insightRdbms != null) {
-//			logger.debug("closing its insight engine ");
-//			this.insightRdbms.close();
-//		}
 		if (auditDatabase != null) {
+			classLogger.debug("Closing the audit database engine");
 			auditDatabase.close();
-		}
-		
-		// remove the symbolic link
-		if(this.engineId != null && this.engineName != null)
-		{
-			String public_home = DIHelper.getInstance().getProperty(Constants.PUBLIC_HOME);
-			if(public_home != null)
-			{
-				String fileName = public_home + java.nio.file.FileSystems.getDefault().getSeparator() + engineName + "__" + engineId;
-				File file = new File(Utility.normalizePath(fileName));
-				
-				try {
-					if(file.exists() && Files.isSymbolicLink(Paths.get(Utility.normalizePath(fileName))))
-						FileUtils.forceDelete(file);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 	
@@ -600,10 +579,15 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 
 	@Override
-	public void delete() {
+	public void delete() throws IOException {
 		classLogger.debug("Delete database engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		this.close();
-
+		try {
+			this.close();
+		} catch(IOException e) {
+			classLogger.warn("Error occurred trying to close the connection");
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
 		File engineFolder = null;
 		File owlFile = SmssUtilities.getOwlFile(this.smssProp);
 		String folderName = null;

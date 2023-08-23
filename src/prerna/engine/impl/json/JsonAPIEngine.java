@@ -757,4 +757,10 @@ public class JsonAPIEngine extends AbstractDatabaseEngine {
 	public IQueryInterpreter getQueryInterpreter(){
 		return new JsonInterpreter(this);
 	}
+
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
+	
 }

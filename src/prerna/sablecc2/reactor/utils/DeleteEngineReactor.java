@@ -1,7 +1,11 @@
 package prerna.sablecc2.reactor.utils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -22,11 +26,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
+import prerna.util.upload.UploadUtilities;
 
 public class DeleteEngineReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DeleteEngineReactor.class);
 
 	public DeleteEngineReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
@@ -66,7 +72,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 			String engineType = engine.getCatalogType();
 			deleteEngines(engine, engineType);
 			EngineSyncUtility.clearEngineCache(engineId);
-			UserTrackingUtils.deleteDatabase(engineId);
+			UserTrackingUtils.deleteEngine(engineId);
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
@@ -85,21 +91,24 @@ public class DeleteEngineReactor extends AbstractReactor {
 	 */
 	private boolean deleteEngines(IEngine engine, String engineType) {
 		String engineId = engine.getEngineId();
-		engine.delete();
-
-		// remove from dihelper... this is absurd
-		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		engineIds = engineIds.replace(";" + engineId, "");
-		// in case it was the first databases loaded
-		engineIds = engineIds.replace(engineId + ";", "");
-		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
-
+		UploadUtilities.removeEngineFromDIHelper(engineId);
+		// remove from local master if database
 		if(IDatabaseEngine.CATALOG_TYPE.equals(engineType)) {
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
 			remover.deleteEngineRDBMS(engineId);
 		}
-		
+		// remove from security
 		SecurityEngineUtils.deleteEngine(engineId);
+		// remove from user tracking
+		UserTrackingUtils.deleteEngine(engineId);
+		
+		// now try to actually remove from disk
+		try {
+			engine.delete();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		
 		return true;
 	}
 

@@ -50,6 +50,11 @@ public class RemoteSemossEngine extends AbstractDatabaseEngine {
 	}
 
 	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
+	
+	@Override
 	public DATABASE_TYPE getDatabaseType() {
 		return DATABASE_TYPE.REMOTE_SEMOSS;
 	}
