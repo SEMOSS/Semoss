@@ -39,7 +39,7 @@ public class GetProjectSMSSReactor extends AbstractReactor {
 		}
 				
 		IProject project = Utility.getProject(projectId);
-		String currentSmssFileLocation = project.getProjectSmssFilePath();
+		String currentSmssFileLocation = project.getSmssFilePath();
 		File currentSmssFile = new File(currentSmssFileLocation);
 		
 		if(!currentSmssFile.exists() || !currentSmssFile.isFile()) {
