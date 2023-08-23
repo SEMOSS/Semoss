@@ -1,7 +1,6 @@
 package prerna.engine.api;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Properties;
 
 public interface IEngine extends Closeable {
@@ -63,7 +62,7 @@ public interface IEngine extends Closeable {
 	String getSmssFilePath();
 	
 	/**
-	 * Reloads the prop file
+	 * Sets the properties object
 	 * @param prop
 	 */
 	void setSmssProp(Properties smssProp);
@@ -75,7 +74,8 @@ public interface IEngine extends Closeable {
 	Properties getSmssProp();
 
 	/**
-	 * Get the original prop file content - w/o additional alterations during opening db
+	 * Get the original prop file content - w/o additional alterations during opening 
+	 * (change primarily happens in H2 Server DB where we alter the connection URL to tcp with dynamic open port)
 	 * @return
 	 */
 	Properties getOrigSmssProp();
@@ -96,25 +96,5 @@ public interface IEngine extends Closeable {
 	 * Deletes the engine and any stored configuration
 	 */
 	void delete();
-	
-	/**
-	 * Closes the connection associated with the engine.  This will prevent further changes from being made and 
-	 * ends any transactions
-	 */
-	@Override
-	void close() throws IOException;
-	
-//	/**
-//	 * Load the SMSS file and create the connection to the engine
-//	 * @param smssFilePath
-//	 */
-//	void connect(String smssFilePath) throws Exception;
-//	
-//	/**
-//	 * Use the properties in the prop file (the in-memory representation of the smss file) 
-//	 * to connec to the engine
-//	 * @param prop
-//	 */
-//	void connect(Properties prop) throws Exception;
 	
 }
