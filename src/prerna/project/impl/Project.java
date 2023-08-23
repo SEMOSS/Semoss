@@ -151,7 +151,7 @@ public class Project implements IProject {
 	private int port = -1;
 	
 	@Override
-	public void openProject(String projectSmssFilePath) {
+	public void openProject(String projectSmssFilePath) throws Exception {
 		this.projectSmssFilePath = projectSmssFilePath;
 		this.prop = Utility.loadProperties(projectSmssFilePath);
 		this.projectId = prop.getProperty(Constants.PROJECT);
@@ -223,8 +223,9 @@ public class Project implements IProject {
 
 	/**
 	 * Load the insights database
+	 * @throws Exception 
 	 */
-	protected void loadInsightsRdbms() {
+	protected void loadInsightsRdbms() throws Exception {
 		// load the rdbms insights db
 		this.insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(this.prop).getAbsolutePath();
 		
@@ -233,12 +234,6 @@ public class Project implements IProject {
 		if(insightDatabaseLoc != null) {
 			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.prop, classLogger);
 		}
-		
-//		// yay! even more updates
-//		if(this.insightRdbms != null) {
-//			// update explore an instance query!!!
-//			updateExploreInstanceQuery(this.insightRdbms);
-//		}
 	}
 	
 	@Override

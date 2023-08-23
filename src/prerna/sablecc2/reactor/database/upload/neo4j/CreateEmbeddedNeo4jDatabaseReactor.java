@@ -33,7 +33,7 @@ public class CreateEmbeddedNeo4jDatabaseReactor extends AbstractCreateExternalGr
 				this.newDatabaseId, this.newDatabaseName, owlFile, this.filePath, this.typeMap, this.nameMap, useLabel());	}
 
 	@Override
-	protected IDatabaseEngine generateEngine() {
+	protected IDatabaseEngine generateEngine() throws Exception {
 		Neo4jEmbeddedEngine neo4jDatabase = new Neo4jEmbeddedEngine();
 		neo4jDatabase.setEngineId(this.newDatabaseId);
 		neo4jDatabase.setEngineName(this.newDatabaseName);

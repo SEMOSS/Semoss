@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -26,22 +27,23 @@ import prerna.util.Utility;
 
 public class Neo4jEmbeddedEngine extends AbstractDatabase {
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(Neo4jEmbeddedEngine.class);
+	private static final Logger classLogger = LoggerFactory.getLogger(Neo4jEmbeddedEngine.class);
+	
 	private GraphDatabaseService db;
 	protected Map<String, String> typeMap = new HashMap<String, String>();
 	protected Map<String, String> nameMap = new HashMap<String, String>();
 	protected boolean useLabel = false;
 
 	@Override
-	public void open(String propFile) {
-		super.open(propFile);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 		// get type map
 		String typeMapStr = this.smssProp.getProperty(Constants.TYPE_MAP);
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		// get the name map
@@ -50,7 +52,7 @@ public class Neo4jEmbeddedEngine extends AbstractDatabase {
 			try {
 				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if (smssProp.containsKey(Constants.TINKER_USE_LABEL)) {
@@ -60,11 +62,11 @@ public class Neo4jEmbeddedEngine extends AbstractDatabase {
 
 		String neo4jFile = SmssUtilities.getNeo4jFile(smssProp).getAbsolutePath();
 		try {
-			LOGGER.info("Opening neo4j graph: " + Utility.cleanLogString(neo4jFile));
+			classLogger.info("Opening neo4j graph: " + Utility.cleanLogString(neo4jFile));
 			db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(neo4jFile));
-			LOGGER.info("Done neo4j opening graph: " + Utility.cleanLogString(neo4jFile));
+			classLogger.info("Done neo4j opening graph: " + Utility.cleanLogString(neo4jFile));
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

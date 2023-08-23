@@ -58,8 +58,9 @@ public abstract class AbstractOwler {
 	 * Constructor for the class when we are creating a brand new OWL file
 	 * @param fileName				The location of the new OWL file
 	 * @param type					The type of the engine the OWL file is being created for
+	 * @throws Exception 
 	 */
-	public AbstractOwler(String owlPath, IDatabaseEngine.DATABASE_TYPE type) {
+	public AbstractOwler(String owlPath, IDatabaseEngine.DATABASE_TYPE type) throws Exception {
 		this.owlPath = owlPath;
 		this.type = type;
 

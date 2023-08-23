@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.utils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
@@ -9,6 +8,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
@@ -24,6 +24,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.project.DownloadProjectInsightsReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.ProjectSyncUtility;
@@ -31,6 +32,8 @@ import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
 public class ExportProjectReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DownloadProjectInsightsReactor.class);
 
 	private static final String CLASS_NAME = ExportProjectReactor.class.getName();
 
@@ -81,7 +84,13 @@ public class ExportProjectReactor extends AbstractReactor {
 				
 				if(ClusterUtil.IS_CLUSTER) {
 					logger.info("Creating insight database ...");
-					File insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
+					File insightsFile = null;
+					try {
+						insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Error occurred attemping to generate the insights database for this project");
+					}
 					logger.info("Done creating insight database ...");
 
 					// zip project folder minus insights
@@ -108,10 +117,8 @@ public class ExportProjectReactor extends AbstractReactor {
 				ZipUtils.addToZipFile(smss, zos);
 				logger.info("Done zipping project smss files...");
 
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				try {
 					if (zos != null) {
@@ -119,7 +126,7 @@ public class ExportProjectReactor extends AbstractReactor {
 						zos.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 

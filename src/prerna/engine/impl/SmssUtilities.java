@@ -672,8 +672,9 @@ public class SmssUtilities {
 	 * @param projectId
 	 * @param projectName
 	 * @return
+	 * @throws Exception 
 	 */
-	public static RDBMSNativeEngine generateInsightsDatabase(String projectId, String projectName) {
+	public static RDBMSNativeEngine generateInsightsDatabase(String projectId, String projectName) throws Exception {
 		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if(rdbmsTypeStr == null) {
 			// default will be h2
@@ -681,31 +682,25 @@ public class SmssUtilities {
 		}
 		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 
-		Properties prop = new Properties();
-
+		Properties insightSmssProp = new Properties();
 		/*
 		 * This must be either H2 or SQLite
 		 */
-
 		String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
-		prop.put(Constants.CONNECTION_URL, connectionUrl);
+		insightSmssProp.put(Constants.CONNECTION_URL, connectionUrl);
 		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
 			// sqlite has no username/password
-			prop.put(Constants.USERNAME, "");
-			prop.put(Constants.PASSWORD, "");
+			insightSmssProp.put(Constants.USERNAME, "");
+			insightSmssProp.put(Constants.PASSWORD, "");
 		} else {
-			prop.put(Constants.USERNAME, "sa");
-			prop.put(Constants.PASSWORD, "");
+			insightSmssProp.put(Constants.USERNAME, "sa");
+			insightSmssProp.put(Constants.PASSWORD, "");
 		}
-		prop.put(Constants.DRIVER, rdbmsType.getDriver());
-		prop.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
-		prop.put("TEMP", "TRUE");
+		insightSmssProp.put(Constants.DRIVER, rdbmsType.getDriver());
+		insightSmssProp.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
-		insightEngine.setSmssProp(prop);
-		// opening will work since we directly injected the prop map
-		// this way i do not need to write it to disk and then recreate it later
-		insightEngine.open(null);
 		insightEngine.setBasic(true);
+		insightEngine.open(insightSmssProp);
 
 		runInsightCreateTableQueries(insightEngine);
 		return insightEngine;

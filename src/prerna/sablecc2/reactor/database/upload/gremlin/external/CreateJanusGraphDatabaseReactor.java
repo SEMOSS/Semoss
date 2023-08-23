@@ -60,7 +60,7 @@ public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraph
 	}
 
 	@Override
-	protected IDatabaseEngine generateEngine() {
+	protected IDatabaseEngine generateEngine() throws Exception {
 		JanusEngine janusEngine = new JanusEngine();
 		janusEngine.setEngineId(this.newDatabaseId);
 		janusEngine.setEngineName(this.newDatabaseName);

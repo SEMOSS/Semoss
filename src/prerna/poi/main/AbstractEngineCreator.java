@@ -12,7 +12,6 @@ import org.openrdf.model.vocabulary.RDF;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.AbstractDatabase;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -99,8 +98,7 @@ public class AbstractEngineCreator {
 		prop.put(Constants.ENGINE, appID);
 		prop.put(Constants.ENGINE_ALIAS, appName);
 		prop.put("TEMP", "TRUE");
-		engine.setSmssProp(prop);
-		engine.open(null);
+		engine.open(prop);
 	}
 
 	private void createNewRdfEngine(String appName, String appID) throws Exception {
@@ -169,8 +167,7 @@ public class AbstractEngineCreator {
 		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
-		((AbstractDatabase) engine).setSmssProp(prop);
-		engine.open(null);
+		engine.open(prop);
 	}
 
 //	//added for connect to external Impala workflow
@@ -236,10 +233,11 @@ public class AbstractEngineCreator {
 	/**
 	 * Creates a repository connection to be put all the base relationship data
 	 * to create the OWL file
+	 * @throws Exception 
 	 * 
 	 * @throws EngineException
 	 */
-	protected void openOWLWithOutConnection(String owlFile, IDatabaseEngine.DATABASE_TYPE dbType, String customBaseURI) {
+	protected void openOWLWithOutConnection(String owlFile, IDatabaseEngine.DATABASE_TYPE dbType, String customBaseURI) throws Exception {
 		owler = new Owler(owlFile, dbType);
 		owler.addCustomBaseURI(customBaseURI);
 	}

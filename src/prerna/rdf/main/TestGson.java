@@ -9,7 +9,7 @@ import prerna.util.DIHelper;
 
 class TestGson {
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper();
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";

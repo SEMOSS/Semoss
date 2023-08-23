@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.slf4j.Logger;
@@ -29,22 +30,23 @@ import prerna.util.Utility;
  */
 public class Neo4jEngine extends AbstractDatabase {
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(Neo4jEngine.class);
+	private static final Logger classLogger = LoggerFactory.getLogger(Neo4jEngine.class);
+	
 	protected Map<String, String> typeMap = new HashMap<String, String>();
 	protected Map<String, String> nameMap = new HashMap<String, String>();
 	protected boolean useLabel = false;
 	private Connection conn;
 
 	@Override
-	public void open(String propFile) {
-		super.open(propFile);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 		// get type map
 		String typeMapStr = this.smssProp.getProperty(Constants.TYPE_MAP);
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		// get the name map
@@ -53,7 +55,7 @@ public class Neo4jEngine extends AbstractDatabase {
 			try {
 				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if (smssProp.containsKey(Constants.TINKER_USE_LABEL)) {
@@ -87,16 +89,16 @@ public class Neo4jEngine extends AbstractDatabase {
 			map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
 			return map;
 		} catch (Exception e) {
-			LOGGER.error("Error executing cypher query = " + Utility.cleanLogString(query));
-			LOGGER.error("Error message = " + e.getMessage());
-			e.printStackTrace();
+			classLogger.error("Error executing cypher query = " + Utility.cleanLogString(query));
+			classLogger.error("Error message = " + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(stmt != null) {
 		        	  try {
 						stmt.close();
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 		        }
 		}
@@ -113,17 +115,17 @@ public class Neo4jEngine extends AbstractDatabase {
 	public Connection getGraphDatabaseConnection() {
 		try {
 			if (this.conn == null || this.conn.isClosed()) {
-				LOGGER.info("Opening neo4j graph: ");
+				classLogger.info("Opening neo4j graph: ");
 				Class.forName("org.neo4j.jdbc.bolt.BoltDriver").newInstance();
 				String connectionURL = smssProp.getProperty(Constants.CONNECTION_URL);
 				String username = smssProp.getProperty(Constants.USERNAME);
 				String password = smssProp.getProperty(Constants.PASSWORD);
-				LOGGER.info("Connecting to remote graph: " + Utility.cleanLogString(connectionURL));
+				classLogger.info("Connecting to remote graph: " + Utility.cleanLogString(connectionURL));
 				conn = DriverManager.getConnection(connectionURL, username, password);
-				LOGGER.info("Done neo4j opening graph: ");
+				classLogger.info("Done neo4j opening graph: ");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return this.conn;
 	}

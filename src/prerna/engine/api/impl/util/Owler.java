@@ -41,8 +41,9 @@ public class Owler extends AbstractOwler {
 	 * 
 	 * @param fileName The location of the new OWL file
 	 * @param type     The type of the engine the OWL file is being created for
+	 * @throws Exception 
 	 */
-	public Owler(String owlPath, IDatabaseEngine.DATABASE_TYPE type) {
+	public Owler(String owlPath, IDatabaseEngine.DATABASE_TYPE type) throws Exception {
 		super(owlPath, type);
 	}
 
