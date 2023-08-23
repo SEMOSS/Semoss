@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.Properties;
 import java.util.Vector;
 
 import prerna.engine.impl.MetaHelper;
@@ -74,6 +75,12 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 		VERTEX_UPSERT, // this is for tinker
 		EDGE_UPSERT // this is for tinker
 	}; 
+	
+	/**
+	 * 
+	 * @param smssProp
+	 */
+	void open(Properties smssProp) throws Exception;
 	
 	/**
 	 * Runs the passed string query against the engine.  The query passed must be in the structure that the specific engine implementation

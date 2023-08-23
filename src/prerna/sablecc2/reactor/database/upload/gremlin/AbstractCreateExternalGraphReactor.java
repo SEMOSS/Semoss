@@ -362,6 +362,6 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 	
 	protected abstract File generateTempSmss(File owlFile) throws IOException;
 	
-	protected abstract IDatabaseEngine generateEngine();
+	protected abstract IDatabaseEngine generateEngine() throws Exception;
 	
 }

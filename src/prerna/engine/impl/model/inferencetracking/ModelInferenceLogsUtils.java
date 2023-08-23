@@ -561,7 +561,7 @@ public class ModelInferenceLogsUtils {
 		return connection;
 	}
 	
-	public static void initModelInferenceLogsDatabase() throws SQLException, IOException {
+	public static void initModelInferenceLogsDatabase() throws Exception {
 		modelInferenceLogsDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB);
 		ModelInferenceLogsOwlCreation modelInfCreator = new ModelInferenceLogsOwlCreation(modelInferenceLogsDb);
 		if(modelInfCreator.needsRemake()) {

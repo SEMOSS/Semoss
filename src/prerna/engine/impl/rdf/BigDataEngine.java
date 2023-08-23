@@ -35,6 +35,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -85,35 +86,24 @@ public class BigDataEngine extends AbstractDatabase {
 	boolean connected = false;
 	private InferenceEngine ie = null;
 
-	/**
-	 * Opens a database as defined by its smssProperties file.  What is included in the smssProperties file is dependent on the type of 
-	 * engine that is being initiated.  This is the function that first initializes an engine with the smssProperty file at the very 
-	 * least defining the data store.
-	 * @param smssPropFile contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
-	 * what type of engine is being instantiated.
-	 */
 	@Override
-	public void open(String smssPropFile) {
-		try {			
-			super.open(smssPropFile);
-			String fileName = SmssUtilities.getSysTapJnl(smssProp).getAbsolutePath();
-			smssProp.put("com.bigdata.journal.AbstractJournal.file", fileName);
-			bdSail = new BigdataSail(smssProp);
-			BigdataSailRepository repo = new BigdataSailRepository(bdSail);
-			repo.initialize();
-			// need to grab the connection to get the inference engine
-			BigdataSailConnection rwConnection = bdSail.getConnection();
-			ie = rwConnection.getTripleStore().getInferenceEngine();
-			// close the connection since we use the rc/sc directly from sesame api
-			rwConnection.close();
-			
-			rc = repo.getUnisolatedConnection();
-			sc = rc.getSailConnection();
-			vf = bdSail.getValueFactory();
-			this.connected = true;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		String fileName = SmssUtilities.getSysTapJnl(smssProp).getAbsolutePath();
+		smssProp.put("com.bigdata.journal.AbstractJournal.file", fileName);
+		bdSail = new BigdataSail(smssProp);
+		BigdataSailRepository repo = new BigdataSailRepository(bdSail);
+		repo.initialize();
+		// need to grab the connection to get the inference engine
+		BigdataSailConnection rwConnection = bdSail.getConnection();
+		ie = rwConnection.getTripleStore().getInferenceEngine();
+		// close the connection since we use the rc/sc directly from sesame api
+		rwConnection.close();
+		
+		rc = repo.getUnisolatedConnection();
+		sc = rc.getSailConnection();
+		vf = bdSail.getValueFactory();
+		this.connected = true;
 	}
 
 	/**

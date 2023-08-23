@@ -1,7 +1,6 @@
 package prerna.util;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
@@ -14,7 +13,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class RecreateInsightsDatabaseFromMosfetFiles {
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
 		String mainDirectory = null;
 		String connUrl = null;
 		if(args.length == 0) {
@@ -27,20 +26,17 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 		build(mainDirectory, connUrl);
 	}
 
-	private static void build(String mainDirectory, String connectionUrl) throws IOException {
-		Properties prop = new Properties();
-		prop.put(Constants.CONNECTION_URL, connectionUrl);
-		prop.put(Constants.USERNAME, "sa");
-		prop.put(Constants.PASSWORD, "");
-		prop.put(Constants.DRIVER, RdbmsTypeEnum.H2_DB.getDriver());
-		prop.put(Constants.RDBMS_TYPE, RdbmsTypeEnum.H2_DB.getLabel());
-		prop.put("TEMP", "TRUE");
+	private static void build(String mainDirectory, String connectionUrl) throws Exception {
+		Properties insightSmssProp = new Properties();
+		insightSmssProp.put(Constants.CONNECTION_URL, connectionUrl);
+		insightSmssProp.put(Constants.USERNAME, "sa");
+		insightSmssProp.put(Constants.PASSWORD, "");
+		insightSmssProp.put(Constants.DRIVER, RdbmsTypeEnum.H2_DB.getDriver());
+		insightSmssProp.put(Constants.RDBMS_TYPE, RdbmsTypeEnum.H2_DB.getLabel());
+		insightSmssProp.put("TEMP", "TRUE");
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
-		insightEngine.setSmssProp(prop);
-		// opening will work since we directly injected the prop map
-		// this way i do not need to write it to disk and then recreate it later
-		insightEngine.open(null);
 		insightEngine.setBasic(true);
+		insightEngine.open(insightSmssProp);
 		SmssUtilities.runInsightCreateTableQueries(insightEngine);
 		
 		// main directory has insight folders inside of it

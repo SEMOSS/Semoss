@@ -3,6 +3,9 @@ package prerna.sablecc2.reactor.project;
 import java.io.File;
 import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.InsightFile;
 import prerna.sablecc2.om.PixelDataType;
@@ -10,8 +13,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 
 public class DownloadProjectInsightsReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DownloadProjectInsightsReactor.class);
 
 	/*
 	 * This class is used to construct a new project
@@ -27,7 +33,13 @@ public class DownloadProjectInsightsReactor extends AbstractReactor {
 		this.organizeKeys();
 		
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		File insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
+		File insightsFile = null;
+		try {
+			insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred attemping to generate the insights database for this project");
+		}
 		
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();

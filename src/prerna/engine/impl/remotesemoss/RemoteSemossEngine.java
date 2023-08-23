@@ -4,7 +4,6 @@ import java.util.Vector;
 
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 // TODO >>>timb: REST - either replace with rest remote or remove this
 public class RemoteSemossEngine extends AbstractDatabase {
@@ -13,13 +12,10 @@ public class RemoteSemossEngine extends AbstractDatabase {
 	
 	@Override
 	public void open(String smssFilePath) {
-		this.baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		setSmssFilePath(smssFilePath);
-		
 		// get id & name
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
-		
 		this.remoteAddress = this.smssProp.getProperty("REMOTE_ADDRESS");
 	}
 	

@@ -75,7 +75,8 @@ import prerna.util.Utility;
  */
 public class RemoteBigdataEngine extends AbstractDatabase {
 
-	private static final Logger logger = LogManager.getLogger(RemoteBigdataEngine.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(RemoteBigdataEngine.class.getName());
+	
 	BigdataSail bdSail = null;
 	Properties rdfMap = null;
 	RepositoryConnection rc = null;
@@ -85,66 +86,31 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 	String dateURI = "http://www.w3.org/2001/XMLSchema#dateTime";
 	String intURI = "http://www.w3.org/2001/XMLSchema#int";
 
-	
-	/**
-	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
-	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
-	 * least defining the data store.
-	 * @param smssFilePath contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
-	 * what type of engine is being instantiated.
-	 */
 	@Override
-	public void open(String smssFilePath) {
-		try {
-			super.open(smssFilePath);
-			
-			String sparqlQEndpoint = smssProp.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
-			String sparqlUEndpoint = smssProp.getProperty(Constants.SPARQL_UPDATE_ENDPOINT);
-			
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		
+		String sparqlQEndpoint = this.smssProp.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
+		String sparqlUEndpoint = this.smssProp.getProperty(Constants.SPARQL_UPDATE_ENDPOINT);
+		BigdataSailRemoteRepository repo = new BigdataSailRemoteRepository(sparqlUEndpoint);
+		repo.initialize();
 
-			BigdataSailRemoteRepository repo = new BigdataSailRemoteRepository(sparqlUEndpoint);
-			repo.initialize();
-			
-			//SPARQLRepository repo = new SPARQLRepository(sparqlQEndpoint);
-			Hashtable <String, String> myMap = new Hashtable<String,String>();
-			myMap.put("apikey","d0184dd3-fb6b-4228-9302-1c6e62b01465");
-			
-			//System.err.println("Host is " + sparqlQEndpoint);
-			//HTTPRepository hRepo = new HTTPRepository(sparqlQEndpoint);
-			//hRepo.setPreferredRDFFormat(RDFFormat.forMIMEType("application/x-www-form-urlencoded"));
-//			hRepo.
-			//hRepo.initialize();
-			
-			
-			rc = repo.getConnection();
-			vf = new ValueFactoryImpl();
-			
-			
-//			InferenceEngine ie = new InferenceEngine(rc.getRepository());
-			
-			//rc = new SPARQLConnection(repo, sparqlQEndpoint, sparqlUEndpoint);
-			
-			// test
-//            testIt();
-			
-	
-			// logger.info("ie forward chaining " + ie);
-			// need to convert to constants
-			String dbcmFile = smssProp.getProperty(Constants.DBCM_Prop);
-			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			
-			dbcmFile = workingDir + "/" + dbcmFile;
-			rdfMap = DIHelper.getInstance().getCoreProp();
-			
-			this.connected = true;
-			// return g;
-		}catch(RuntimeException ignored)
-		{
-			ignored.printStackTrace();
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		//SPARQLRepository repo = new SPARQLRepository(sparqlQEndpoint);
+		Hashtable <String, String> myMap = new Hashtable<String,String>();
+		myMap.put("apikey","d0184dd3-fb6b-4228-9302-1c6e62b01465");
+		
+		rc = repo.getConnection();
+		vf = new ValueFactoryImpl();
+
+		// logger.info("ie forward chaining " + ie);
+		// need to convert to constants
+		String dbcmFile = this.smssProp.getProperty(Constants.DBCM_Prop);
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		
+		dbcmFile = workingDir + "/" + dbcmFile;
+		rdfMap = DIHelper.getInstance().getCoreProp();
+		
+		this.connected = true;
 	}
 	
 //	/**
@@ -175,7 +141,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 			bdSail.shutDown();
 			connected = false;
 		} catch (SailException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// ng.shutdown();
 	}
@@ -191,7 +157,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 
 		try {
 			Query fullQuery = rc.prepareQuery(QueryLanguage.SPARQL, query);
-			logger.debug("\nSPARQL: " + Utility.cleanLogString(query));
+			classLogger.debug("\nSPARQL: " + Utility.cleanLogString(query));
 			fullQuery.setIncludeInferred(true /* includeInferred */);
 			if(fullQuery instanceof TupleQuery){
 				TupleQueryResult sparqlResults = ((TupleQuery) fullQuery).evaluate();
@@ -206,11 +172,11 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 				return bool;
 			}
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -228,7 +194,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 		try {
 			up = rc.prepareUpdate(QueryLanguage.SPARQL, query);
 			//sc.addStatement(vf.createURI("<http://semoss.org/ontologies/Concept/Service/tom2>"),vf.createURI("<http://semoss.org/ontologies/Relation/Exposes>"),vf.createURI("<http://semoss.org/ontologies/Concept/BusinessLogicUnit/tom1>"));
-			logger.debug("\nSPARQL: " + query);
+			classLogger.debug("\nSPARQL: " + query);
 			//tq.setIncludeInferred(true /* includeInferred */);
 			//tq.evaluate();
 			//rc.setAutoCommit(false);
@@ -239,13 +205,13 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 //			sc.commit();
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (UpdateExecutionException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -264,7 +230,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 	{
 		try {
 			TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, sparqlQuery);
-			logger.debug("\nSPARQL: " + sparqlQuery);
+			classLogger.debug("\nSPARQL: " + sparqlQuery);
 //			tq.setIncludeInferred(true /* includeInferred */);
 			TupleQueryResult sparqlResults = tq.evaluate();
 			Vector<Object> retVec = new Vector<Object>();
@@ -286,11 +252,11 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 			}
 			return retVec;
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -352,12 +318,12 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 				{
 					if(object.getClass() == new Double(1).getClass())
 					{
-						logger.debug("Found Double " + object);
+						classLogger.debug("Found Double " + object);
 //						graph.add(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 					}
 					else if(object.getClass() == new Date(1).getClass())
 					{
-						logger.debug("Found Date " + object);
+						classLogger.debug("Found Date " + object);
 						DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 						String date = df.format(object);
 						URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
@@ -365,7 +331,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 					}
 					else
 					{
-						logger.debug("Found String " + object);
+						classLogger.debug("Found String " + object);
 						String value = object + "";
 						// try to see if it already has properties then add to it
 						String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
@@ -384,7 +350,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 		try {
 			rc.add(graph);
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -396,7 +362,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 		try {
 			rc.commit();
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -420,7 +386,7 @@ public class RemoteBigdataEngine extends AbstractDatabase {
 	@Override
 	public void delete() {
 		// this does nothing
-		logger.info("Cannot delete remote engine");
+		classLogger.info("Cannot delete remote engine");
 	}
 
 }

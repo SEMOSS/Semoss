@@ -40,6 +40,16 @@ public interface IEngine extends Closeable {
 	 */
 	void open(String smssFilePath) throws Exception;
 	
+//	/**
+//	 * Opens an engine as defined by its properties file.  
+//	 * What is included in the properties file is dependent on the type of engine that is being initiated.  
+//	 * It also includes the ENGINE and ENGINE_ALIAS which coincide with the engineId and engineName
+//	 * This is the function that first initializes the connection to the engine or at least defines how to connect if done in lazy fashion.
+//
+//	 * @param smssProp				The properties object loaded from the smss file containing the engine connection details
+//	 */
+//	void open(Properties smssProp) throws Exception;
+	
 	/**
 	 * 
 	 * @param smssFilePath

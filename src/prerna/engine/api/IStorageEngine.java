@@ -25,6 +25,7 @@ public interface IStorageEngine extends IEngine {
 	 */
 	void open(Properties smssProp) throws Exception;
 
+
 	/**
 	 * 
 	 * @param path

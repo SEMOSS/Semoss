@@ -28,7 +28,6 @@
 package prerna.util;
 
 import java.io.File;
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -218,13 +217,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				// initialize the scheduler database
 				try {
 					SchedulerDatabaseUtility.startServer();
-				} catch (SQLException sqe) {
+				} catch (Exception sqe) {
 					// we couldn't initialize the db remove it from DIHelper
 					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
 					logger.error(Constants.STACKTRACE, sqe);
-				} catch (IOException e) {
-					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
-					logger.error(Constants.STACKTRACE, e);
 				}
 			}	
 		}

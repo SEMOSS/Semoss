@@ -96,7 +96,6 @@ public abstract class AbstractDatabase implements IDatabaseEngine {
 	 * Class members
 	 */
 	
-	protected String baseFolder = null;
 	protected String smssFilePath = null;
 	protected CaseInsensitiveProperties origSmssProp = null;
 	protected CaseInsensitiveProperties smssProp = null;
@@ -128,7 +127,7 @@ public abstract class AbstractDatabase implements IDatabaseEngine {
 	private AuditDatabase auditDatabase = null;
 
 	/**
-	 * This is if we have a connection but no OWL or INSIGHTS DB
+	 * This is if we have a connection but no OWL
 	 */
 	private boolean isBasic = false;
 
@@ -138,94 +137,95 @@ public abstract class AbstractDatabase implements IDatabaseEngine {
 	 * initiated. This is the function that first initializes an engine with the
 	 * property file at the very least defining the data store.
 	 * 
-	 * @param propFile
+	 * @param smssFilePath
 	 *            contains all information regarding the data store and how the
 	 *            engine should be instantiated. Dependent on what type of
 	 *            engine is being instantiated.
 	 */
 	@Override
-	public void open(String propFile) {
-		try {
-			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			if(propFile != null) {
-				classLogger.info("Opening DB - " + Utility.cleanLogString(FilenameUtils.getName(propFile)));
-				setSmssFilePath(propFile);
-			}
-			if(this.smssProp != null) {
-				// grab the main properties
-				this.engineId = smssProp.getProperty(Constants.ENGINE);
-				this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
-				
-				ISecrets secretStore = SecretsFactory.getSecretConnector();
-				if(secretStore != null) {
-					Map<String, String> engineSecrets = secretStore.getDatabaseSecrets(this.engineName, this.engineId);
-					if(engineSecrets != null && !engineSecrets.isEmpty()) {
-						this.smssProp.putAll(engineSecrets);
-					}
-				}
-				
-				// do the piece of encrypting here
-				boolean encryptFile = false;
-				if(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) != null) {
-					encryptFile = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) + "");
-				}
-				// if not at application level, are we doing at app level
-				if(!encryptFile && smssProp.containsKey(Constants.ENCRYPT_SMSS)) {
-					encryptFile = Boolean.parseBoolean(smssProp.getProperty(Constants.ENCRYPT_SMSS));
-				}
-				
-				if(encryptFile && this.smssProp.containsKey(Constants.PASSWORD) && 
-					!((String)this.smssProp.get(Constants.PASSWORD)).equalsIgnoreCase("encrypted password")) {
-					smssProp = encryptPropFile(propFile);
-				}
-				
-				// load the rdf owl db
-				String owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
-				if(owlFile != null) {
-					File owlF = new File(owlFile);
-					// need a check here to say if I am asking this to be remade or keep what it is
-					if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
-						// the process of remake will start here
-						// see if the usefile is there
-						if(this.smssProp.containsKey(DATA_FILE)) {
-							String owlFileName = null;
-							String dataFile = SmssUtilities.getDataFile(this.smssProp).getAbsolutePath();
-							if(owlFile.equals("REMAKE")) {
-								// we will make the name
-								File dF = new File(dataFile);
-								owlFileName = this.engineName + "_OWL.OWL";
-								owlFile = dF.getParentFile() + DIR_SEPARATOR + owlFileName;
-							} else {
-								owlFileName = FilenameUtils.getName(owlFile);
-							}
-							
-							owlFile = generateOwlFromFlatFile(dataFile, owlFile, owlFileName);
-						} 
-//						else {
-//							owlFile = null;
-//						}
-					}
-					// set the owl file
-					if(owlFile != null) {
-						owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
-						classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
-						setOWL(owlFile);
-					}
-				}
-				
-//				// load the rdbms insights db
-//				loadInsightsRdbms();
-				
-				// load properties object for db
-				File engineProps = SmssUtilities.getEngineProperties(this.smssProp);
-				if (engineProps != null) {
-					this.generalEngineProp = Utility.loadProperties(engineProps.getAbsolutePath());
-				}
-			}
-		} catch (RuntimeException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} 
+	public void open(String smssFilePath) throws Exception {
+		setSmssFilePath(smssFilePath);
+		this.open(Utility.loadProperties(smssFilePath));
+	}
+	
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		// if smss prop is empty
+		// then no metadata is associated with this database
+		if(smssProp.isEmpty()) {
+			return;
+		}
+		// this sets this.smssProp and this.origSmssProp
+		setSmssProp(smssProp);
 		
+		// grab the main properties
+		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
+		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
+		
+		if(this.isBasic) {
+			// if this is a basic database, we dont care about the OWL or any other SMSS values
+			return;
+		}
+		
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		if(secretStore != null) {
+			Map<String, String> engineSecrets = secretStore.getDatabaseSecrets(this.engineName, this.engineId);
+			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+				this.smssProp.putAll(engineSecrets);
+			}
+		}
+		
+		// do the piece of encrypting here
+		boolean encryptFile = false;
+		if(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) != null) {
+			encryptFile = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) + "");
+		}
+		// if not at application level, are we doing at app level
+		if(!encryptFile && this.smssProp.containsKey(Constants.ENCRYPT_SMSS)) {
+			encryptFile = Boolean.parseBoolean(smssProp.getProperty(Constants.ENCRYPT_SMSS));
+		}
+		
+		if(this.smssFilePath != null && encryptFile && this.smssProp.containsKey(Constants.PASSWORD) && 
+			!((String)this.smssProp.get(Constants.PASSWORD)).equalsIgnoreCase("encrypted password")) {
+			this.smssProp = encryptPropFile(this.smssFilePath);
+		}
+		
+		// load the rdf owl db
+		String owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
+		if(owlFile != null) {
+			File owlF = new File(owlFile);
+			// need a check here to say if I am asking this to be remade or keep what it is
+			if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
+				// the process of remake will start here
+				// see if the usefile is there
+				if(this.smssProp.containsKey(DATA_FILE)) {
+					String owlFileName = null;
+					String dataFile = SmssUtilities.getDataFile(this.smssProp).getAbsolutePath();
+					if(owlFile.equals("REMAKE")) {
+						// we will make the name
+						File dF = new File(dataFile);
+						owlFileName = this.engineName + "_OWL.OWL";
+						owlFile = dF.getParentFile() + DIR_SEPARATOR + owlFileName;
+					} else {
+						owlFileName = FilenameUtils.getName(owlFile);
+					}
+					
+					owlFile = generateOwlFromFlatFile(dataFile, owlFile, owlFileName);
+				} 
+			}
+			// set the owl file
+			if(owlFile != null) {
+				owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
+				classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
+				setOWL(owlFile);
+			}
+		}
+		
+		// load properties object for db
+		File engineProps = SmssUtilities.getEngineProperties(this.smssProp);
+		if (engineProps != null) {
+			this.generalEngineProp = Utility.loadProperties(engineProps.getAbsolutePath());
+		}
 	}
 	
 	/**
@@ -234,8 +234,9 @@ public abstract class AbstractDatabase implements IDatabaseEngine {
 	 * @param owlFile
 	 * @param owlFileName
 	 * @return
+	 * @throws Exception 
 	 */
-	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) {
+	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) throws Exception {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
 		maker.makeFlatOwl(dataFile, owlFile, getDatabaseType(), true);
 		if(owlFile.equals("REMAKE")) {
@@ -446,21 +447,24 @@ public abstract class AbstractDatabase implements IDatabaseEngine {
 					getEngineName()	+ "_OWL.OWL"; 
 		}
 		baseRelEngine.setFileName(this.owlFileLocation);
-		baseRelEngine.open(null);
-		if(smssProp != null) {
-			addProperty(Constants.OWL, owlFileLocation);
-		}
-
 		try {
-			baseHash.putAll(RDFEngineHelper.createBaseFilterHash(baseRelEngine.getRc()));
+			baseRelEngine.open(new Properties());
+			if(this.smssProp != null) {
+				addProperty(Constants.OWL, owlFileLocation);
+			}
+			try {
+				baseHash.putAll(RDFEngineHelper.createBaseFilterHash(baseRelEngine.getRc()));
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			setBaseHash(baseHash);
+			baseRelEngine.commit();
+			setBaseData(baseRelEngine);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+			classLogger.warn("Error occurred loading the OWL file for the database");
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		setBaseHash(baseHash);
-
-		baseRelEngine.commit();
-		setBaseData(baseRelEngine);
 	}
 
 	// gets the from neighborhood for a given node
@@ -491,8 +495,6 @@ public abstract class AbstractDatabase implements IDatabaseEngine {
 	@Override
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
-		this.origSmssProp = new CaseInsensitiveProperties(Utility.loadProperties(smssFilePath));
-		this.smssProp = new CaseInsensitiveProperties(this.origSmssProp);
 	}
 	
 	@Override
