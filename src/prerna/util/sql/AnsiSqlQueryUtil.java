@@ -19,7 +19,6 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
