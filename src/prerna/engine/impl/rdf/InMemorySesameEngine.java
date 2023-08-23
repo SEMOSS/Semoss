@@ -34,6 +34,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -85,8 +86,7 @@ public class InMemorySesameEngine extends AbstractDatabase {
 	 * Method setRepositoryConnection. Sets the repository connection.
 	 * @param rc RepositoryConnection. The repository connection that this is being set to.
 	 */
-	public void setRepositoryConnection(RepositoryConnection rc) 
-	{
+	public void setRepositoryConnection(RepositoryConnection rc) {
 		this.rc = rc;
 		this.sc = ((SailRepositoryConnection) rc).getSailConnection();
 		this.vf = rc.getValueFactory();
@@ -96,20 +96,16 @@ public class InMemorySesameEngine extends AbstractDatabase {
 	/**
 	 * Method getRepositoryConnection.  Gets the repository connection.	
 	 * @return RepositoryConnection - the connection to the repository.*/
-	public RepositoryConnection getRepositoryConnection()
-	{
+	public RepositoryConnection getRepositoryConnection() {
 		return this.rc;
 	}
 	
-	/**
-	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
-	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
-	 * least defining the data store.
-	 * @param propFile contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
-	 * what type of engine is being instantiated.
-	 */
-	public void open(String smssFilePath)
-	{
+	public void open(String smssFilePath) {
+		// no meaning to this now
+	}
+	
+	@Override
+	public void open(Properties smssProp) {
 		// no meaning to this now
 	}
 	

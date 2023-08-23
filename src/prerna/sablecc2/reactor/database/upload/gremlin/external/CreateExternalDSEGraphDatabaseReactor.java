@@ -56,7 +56,7 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 	}
 
 	@Override
-	protected IDatabaseEngine generateEngine() {
+	protected IDatabaseEngine generateEngine() throws Exception {
 		DataStaxGraphEngine dseEngine = new DataStaxGraphEngine();
 		dseEngine.setEngineId(this.newDatabaseId);
 		dseEngine.setEngineName(this.newDatabaseName);

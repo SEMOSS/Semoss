@@ -19,7 +19,7 @@ public class TestRDBMSInsights {
 
 	private static final Logger logger = LogManager.getLogger(TestRDBMSInsights.class);
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper();
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\ab.smss";

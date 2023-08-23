@@ -3,6 +3,7 @@ package prerna.engine.impl.datastax;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
@@ -28,9 +29,8 @@ public class DataStaxGraphEngine extends AbstractDatabase {
 	private Map<String, String> nameMap = new HashMap<String, String>();
 
 	@Override
-	public void open(String propFile) {
-		super.open(propFile);
-		setSmssFilePath(propFile);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 		String host = this.smssProp.getProperty("HOST");
 		String port = this.smssProp.getProperty("PORT");
 		String username = this.smssProp.getProperty("USERNAME");

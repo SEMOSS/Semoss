@@ -1,6 +1,5 @@
 package prerna.usertracking;
 
-import java.io.IOException;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -316,13 +315,11 @@ public class UserTrackingUtils {
 
 	/**
 	 * 
-	 * @throws SQLException
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	public static void initUserTrackerDatabase() throws SQLException, IOException {
+	public static void initUserTrackerDatabase() throws Exception {
 		userTrackingDb = (IRDBMSEngine) Utility.getDatabase(Constants.USER_TRACKING_DB);
 		UserTrackingOwlCreator utoc = new UserTrackingOwlCreator(userTrackingDb);
-
 		if (utoc.needsRemake()) {
 			utoc.remakeOwl();
 		}

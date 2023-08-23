@@ -68,7 +68,7 @@ public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGr
 	}
 
 	@Override
-	protected IDatabaseEngine generateEngine() {
+	protected IDatabaseEngine generateEngine() throws Exception {
 		Neo4jEngine neo4jDatabase = new Neo4jEngine();
 		neo4jDatabase.setEngineId(this.newDatabaseId);
 		neo4jDatabase.setEngineName(this.newDatabaseName);

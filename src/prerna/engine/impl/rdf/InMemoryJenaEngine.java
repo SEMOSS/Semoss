@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
+import java.util.Properties;
 import java.util.Vector;
 
 import com.hp.hpl.jena.query.QueryExecution;
@@ -45,16 +46,14 @@ public class InMemoryJenaEngine extends AbstractDatabase {
 
 	Model jenaModel = null;
 
-	/**
-	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
-	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
-	 * least defining the data store.
-	 * @param propFile contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
-	 * what type of engine is being instantiated.
-	 */
 	@Override
 	public void open(String propFile) {
-		
+		// does nothing .. have to set model directly
+	}
+	
+	@Override
+	public void open(Properties smssProp) {
+		// does nothing .. have to set model directly
 	}
 
 	/**
