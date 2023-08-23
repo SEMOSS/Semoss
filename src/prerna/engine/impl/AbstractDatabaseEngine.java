@@ -839,7 +839,6 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 		return positionFile;
 	}
 	
-	// load the prop file
 	@Override
 	public void setSmssProp(Properties smssProp) {
 		if(smssProp instanceof CaseInsensitiveProperties) {

@@ -113,7 +113,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		tempSmss.delete();
 		
 		// Update engine smss file location
-		project.openProject(smssFile.getAbsolutePath());
+		project.open(smssFile.getAbsolutePath());
 			
 		if (ClusterUtil.IS_CLUSTER) {
 			ClusterUtil.pushUserWorkspace(projectId, isAsset);
