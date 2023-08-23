@@ -15,7 +15,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IStorageEngine;
@@ -55,7 +54,7 @@ public class CentralCloudStorage implements ICloudClient {
 	public static final String PROJECT_IMAGES_BLOB = "semoss-projectimagecontainer";
 
 	private static ICloudClient instance = null;
-	private static AbstractRCloneStorageEngine storageEngine = null;
+	private static AbstractRCloneStorageEngine centralStorageEngine = null;
 	
 	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String SMSS_POSTFIX = "-smss";
@@ -136,7 +135,7 @@ public class CentralCloudStorage implements ICloudClient {
 		AppCloudClientProperties clientProps = new AppCloudClientProperties();
 		if(ClusterUtil.STORAGE_PROVIDER == null || ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AZURE")){
 			
-			storageEngine = new AzureBlobStorageEngine();
+			centralStorageEngine = new AzureBlobStorageEngine();
 			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_ACCOUNT_NAME, clientProps, AbstractClientBuilder.AZ_NAME);
 			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_PRIMARY_KEY, clientProps, AbstractClientBuilder.AZ_KEY);
 			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_CONN_STRING, clientProps, AbstractClientBuilder.AZ_CONN_STRING);
@@ -152,7 +151,7 @@ public class CentralCloudStorage implements ICloudClient {
 		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AWS") ||
 				ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("S3")){
 			
-			storageEngine = new S3StorageEngine();
+			centralStorageEngine = new S3StorageEngine();
 			propertiesMigratePut(props, S3StorageEngine.S3_REGION_KEY, clientProps, AbstractClientBuilder.S3_REGION_KEY);
 			propertiesMigratePut(props, S3StorageEngine.S3_BUCKET_KEY, clientProps, AbstractClientBuilder.S3_BUCKET_KEY);
 			propertiesMigratePut(props, S3StorageEngine.S3_ACCESS_KEY, clientProps, AbstractClientBuilder.S3_ACCESS_KEY);
@@ -161,7 +160,7 @@ public class CentralCloudStorage implements ICloudClient {
 		} 
 		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("MINIO")){
 			
-			storageEngine = new MinioStorageEngine();
+			centralStorageEngine = new MinioStorageEngine();
 			propertiesMigratePut(props, MinioStorageEngine.MINIO_REGION_KEY, clientProps, AbstractClientBuilder.S3_REGION_KEY);
 			propertiesMigratePut(props, MinioStorageEngine.MINIO_BUCKET_KEY, clientProps, AbstractClientBuilder.S3_BUCKET_KEY);
 			propertiesMigratePut(props, MinioStorageEngine.MINIO_ACCESS_KEY, clientProps, AbstractClientBuilder.S3_ACCESS_KEY);
@@ -188,7 +187,7 @@ public class CentralCloudStorage implements ICloudClient {
 				ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("GCP") ||
 				ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("GOOGLE")){
 			
-			storageEngine = new GoogleCloudStorageEngine();
+			centralStorageEngine = new GoogleCloudStorageEngine();
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_REGION, clientProps, AbstractClientBuilder.GCP_REGION_KEY);
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_FILE_KEY, clientProps, AbstractClientBuilder.GCP_SERVICE_ACCOUNT_FILE_KEY);
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_BUCKET_KEY, clientProps, AbstractClientBuilder.GCP_BUCKET_KEY);
@@ -199,7 +198,7 @@ public class CentralCloudStorage implements ICloudClient {
 		}
 		
 		props.put(Constants.ENGINE, "CENTRAL_CLOUD_STORAGE");
-		storageEngine.open(props);
+		centralStorageEngine.open(props);
 	}
 	
 	/**
@@ -222,7 +221,7 @@ public class CentralCloudStorage implements ICloudClient {
 	 * @param type
 	 * @return
 	 */
-	public String getPrefixForEngine(IEngine.CATALOG_TYPE type) {
+	public String getStoragePrefixForEngine(IEngine.CATALOG_TYPE type) {
 		if(IEngine.CATALOG_TYPE.DATABASE == type) {
 			return DB_CONTAINER_PREFIX;
 		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
@@ -241,7 +240,7 @@ public class CentralCloudStorage implements ICloudClient {
 	 * @param type
 	 * @return
 	 */
-	public String getEngineSmssDirectory(IEngine.CATALOG_TYPE type) {
+	public String getEngineBaseDirectory(IEngine.CATALOG_TYPE type) {
 		if(IEngine.CATALOG_TYPE.DATABASE == type) {
 			return DATABASE_FOLDER;
 		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
@@ -257,68 +256,91 @@ public class CentralCloudStorage implements ICloudClient {
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	
-	/*
-	 * Database
-	 */
-	
 	
 	@Override
 	public void pushDatabase(String databaseId) throws IOException, InterruptedException {
-		IDatabaseEngine database = Utility.getDatabase(databaseId, false);
-		if (database == null) {
-			throw new IllegalArgumentException("Database not found...");
+		pushEngine(databaseId);
+	}
+	
+	@Override
+	public void pushStorage(String storageId) throws IOException, InterruptedException {
+		pushEngine(storageId);
+	}
+	
+	@Override
+	public void pushModel(String modelId) throws IOException, InterruptedException {
+		pushEngine(modelId);
+	}
+	
+	public void pushEngine(String engineId) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
 		}
 
-		DATABASE_TYPE databaseType = database.getDatabaseType();
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 
-		// We need to push the folder alias__databaseId and the file alias__databaseId.smss
-		String databaseName = null;
-		if (databaseType == DATABASE_TYPE.APP){
-			databaseName = database.getEngineName();
-		} else{
-			databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+		
+		String localEngineBaseFolder = getEngineBaseDirectory(engineType);
+		String localEngineFolder = localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId;
+		{
+			// lets make sure this exists
+			File localEngineF = new File(localEngineFolder);
+			if(!localEngineF.exists() || !localEngineF.isDirectory()) {
+				localEngineF.mkdirs();
+				ClusterUtil.validateFolder(localEngineFolder);
+			}
 		}
-
-		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
-		String localDatabaseFolder = DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
-		String localSmssFileName = aliasAndDatabaseId + ".smss";
-		String localSmssFilePath = DATABASE_FOLDER + FILE_SEPARATOR + localSmssFileName;
+		String localSmssFileName = aliasAndEngineId + ".smss";
+		String localSmssFilePath = localEngineBaseFolder + FILE_SEPARATOR + localSmssFileName;
 
 		String sharedRCloneConfig = null;
 
-		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
-		String storageSmssFolder = DB_CONTAINER_PREFIX + databaseId + SMSS_POSTFIX;
+		String storageContainerPrefix = getStoragePrefixForEngine(engineType);
+		String storageEngineFolder = storageContainerPrefix + engineId;
+		String storageSmssFolder = storageContainerPrefix + engineId + SMSS_POSTFIX;
 
 		// synchronize on the engine id
-		classLogger.info("Applying lock for " + aliasAndDatabaseId + " to push database");
-		ReentrantLock lock = EngineSyncUtility.getEngineLock(databaseId);
+		classLogger.info("Applying lock for " + aliasAndEngineId + " to push engine " + aliasAndEngineId);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 		lock.lock();
-		classLogger.info("Database "+ aliasAndDatabaseId + " is locked");
+		classLogger.info("Engine "+ aliasAndEngineId + " is locked");
 		try {
-			DIHelper.getInstance().removeEngineProperty(databaseId);
-			database.close();
-			
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(engine.holdsFileLocks()) {
+				DIHelper.getInstance().removeEngineProperty(engineId);
+				engine.close();
 			}
-			storageEngine.syncLocalToStorage(localDatabaseFolder, storageDatabaseFolder, sharedRCloneConfig);
-			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
+			
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
+			}
+			centralStorageEngine.syncLocalToStorage(localEngineFolder, storageEngineFolder, sharedRCloneConfig);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
 		} finally {
 			try {
-				// Re-open the database
-				Utility.getDatabase(databaseId, false);
+				// Re-open the engine
+				if(engine.holdsFileLocks()) {
+					Utility.getEngine(engineId, false);
+				}
 				if(sharedRCloneConfig != null) {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				}
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 			// always unlock regardless of errors
 			lock.unlock();
-			classLogger.info("Database "+ aliasAndDatabaseId + " is unlocked");
+			classLogger.info("Engine "+ aliasAndEngineId + " is unlocked");
 		}
 	}
-
+	
+	/*
+	 * Database
+	 */
+	
+	
 	@Override
 	public void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws IOException, InterruptedException {
 		if (dbType != RdbmsTypeEnum.SQLITE
@@ -355,7 +377,7 @@ public class CentralCloudStorage implements ICloudClient {
 				dbFiles = getH2File(localDatabaseFolder);
 			}
 			for (String dbFileName : dbFiles) {
-				storageEngine.copyToStorage(localDatabaseFolder+"/"+dbFileName, storageDatabaseFolder);
+				centralStorageEngine.copyToStorage(localDatabaseFolder+"/"+dbFileName, storageDatabaseFolder);
 			}
 		} finally {
 			try {
@@ -406,12 +428,12 @@ public class CentralCloudStorage implements ICloudClient {
 				DIHelper.getInstance().removeEngineProperty(databaseId);
 				database.close();
 			}
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			
 			// List the smss directory to get the alias + database id
-			List<String> results = storageEngine.list(storageSmssFolder, sharedRCloneConfig);
+			List<String> results = centralStorageEngine.list(storageSmssFolder, sharedRCloneConfig);
 			boolean foundSmss = false;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
@@ -433,7 +455,7 @@ public class CentralCloudStorage implements ICloudClient {
 				}
 				
 				// try again
-				results = storageEngine.list(storageSmssFolder, sharedRCloneConfig);
+				results = centralStorageEngine.list(storageSmssFolder, sharedRCloneConfig);
 				for (String result : results) {
 					if (result.endsWith(".smss")) {
 						foundSmss = true;
@@ -465,13 +487,13 @@ public class CentralCloudStorage implements ICloudClient {
 
 			// Pull the contents of the database folder before the smss
 			classLogger.info("Pulling database from remote=" + Utility.cleanLogString(aliasAndDatabaseId) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
-			storageEngine.syncStorageToLocal(storageDatabaseFolder, localDatabaseFolder, sharedRCloneConfig);
+			centralStorageEngine.syncStorageToLocal(storageDatabaseFolder, localDatabaseFolder, sharedRCloneConfig);
 			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(aliasAndDatabaseId) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
 
 			// Now pull the smss
 			classLogger.info("Pulling smss from remote=" + Utility.cleanLogString(storageSmssFolder) + " to target=" + DATABASE_FOLDER);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-			storageEngine.copyToLocal(storageSmssFolder, DATABASE_FOLDER, sharedRCloneConfig);
+			centralStorageEngine.copyToLocal(storageSmssFolder, DATABASE_FOLDER, sharedRCloneConfig);
 			classLogger.debug("Done pulling from remote=" + Utility.cleanLogString(storageSmssFolder) + " to target=" + DATABASE_FOLDER);
 
 			// Catalog the db if it is new
@@ -484,7 +506,7 @@ public class CentralCloudStorage implements ICloudClient {
 				// Re-open the database
 				Utility.getDatabase(databaseId, false);
 				if(sharedRCloneConfig != null) {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				}
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -523,13 +545,13 @@ public class CentralCloudStorage implements ICloudClient {
 			DIHelper.getInstance().removeEngineProperty(databaseId);
 			database.close();
 			
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			
 			classLogger.info("Pulling database files for " + aliasAndDatabaseId + " from remote=" + databaseId);
 			List<String> filesToPull = new ArrayList<>();
-			List<String> cloudFiles = storageEngine.list(storageDatabaseFolder, sharedRCloneConfig);
+			List<String> cloudFiles = centralStorageEngine.list(storageDatabaseFolder, sharedRCloneConfig);
 			for(String cloudF : cloudFiles) {
 				if(rdbmsType == RdbmsTypeEnum.SQLITE && cloudF.endsWith(".sqlite")) {
 					filesToPull.add(cloudF);	
@@ -539,14 +561,14 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 			
 			for(String fileToPull : filesToPull) {
-				storageEngine.copyToLocal(storageDatabaseFolder+"/"+fileToPull, localDatabaseFolder, sharedRCloneConfig);
+				centralStorageEngine.copyToLocal(storageDatabaseFolder+"/"+fileToPull, localDatabaseFolder, sharedRCloneConfig);
 			}
 		} finally {
 			try {
 				// Re-open the database
 				Utility.getDatabase(databaseId, false);
 				if(sharedRCloneConfig != null) {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				}
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -573,7 +595,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
 		try {
-			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
 		} finally {
 			lock.unlock();
 			classLogger.info("Database " + aliasAndDatabaseId + " is unlocked");
@@ -594,7 +616,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
 		try {
-			storageEngine.copyToLocal(storageSmssFolder, DATABASE_FOLDER);
+			centralStorageEngine.copyToLocal(storageSmssFolder, DATABASE_FOLDER);
 		} finally {
 			lock.unlock();
 			classLogger.info("Database " + aliasAndDatabaseId + " is unlocked");
@@ -625,14 +647,14 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
 		try {
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			//close the owl
 			database.getBaseDataEngine().close();
-			storageEngine.copyToStorage(localOwlFile, storageDatabaseFolder, sharedRCloneConfig);
+			centralStorageEngine.copyToStorage(localOwlFile, storageDatabaseFolder, sharedRCloneConfig);
 			if(hasPositionFile) {
-				storageEngine.copyToStorage(localOwlPositionFile, storageDatabaseFolder, sharedRCloneConfig);
+				centralStorageEngine.copyToStorage(localOwlPositionFile, storageDatabaseFolder, sharedRCloneConfig);
 			}
 		} finally {
 			try {
@@ -642,7 +664,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 			if(sharedRCloneConfig != null) {
 				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch(Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -680,13 +702,13 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
 		try {
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			//close the owl
 			database.getBaseDataEngine().close();
-			storageEngine.copyToLocal(storageDatabaseOwl, localDatabaseFolder);
-			storageEngine.copyToLocal(storageDatabaseOwlPosition, localDatabaseFolder);
+			centralStorageEngine.copyToLocal(storageDatabaseOwl, localDatabaseFolder);
+			centralStorageEngine.copyToLocal(storageDatabaseOwlPosition, localDatabaseFolder);
 		} finally {
 			try {
 				database.setOWL(localOwlFile);
@@ -695,7 +717,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 			if(sharedRCloneConfig != null) {
 				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch(Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -710,10 +732,10 @@ public class CentralCloudStorage implements ICloudClient {
 	public void pullDatabaseImageFolder() throws IOException, InterruptedException {
 		String sharedRCloneConfig = null;
 		try {
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			List<String> results = storageEngine.list(CentralCloudStorage.DB_IMAGES_BLOB, sharedRCloneConfig);
+			List<String> results = centralStorageEngine.list(CentralCloudStorage.DB_IMAGES_BLOB, sharedRCloneConfig);
 			if(results.isEmpty()) {
 				fixLegacyImageStructure();
 				return;
@@ -725,11 +747,11 @@ public class CentralCloudStorage implements ICloudClient {
 			if(!localImageF.exists() || !localImageF.isDirectory()) {
 				localImageF.mkdirs();
 			}
-			storageEngine.copyToLocal(CentralCloudStorage.DB_IMAGES_BLOB, localImagesFolderPath);
+			centralStorageEngine.copyToLocal(CentralCloudStorage.DB_IMAGES_BLOB, localImagesFolderPath);
 		} finally {
 			if(sharedRCloneConfig != null) {
 				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch(Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -745,20 +767,20 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.DB_IMAGES_BLOB);
+		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.DB_IMAGES_BLOB);
 	}
 	
 	@Override
 	public void deleteDatabase(String databaseId) throws IOException, InterruptedException {
 		String sharedRCloneConfig = null;
-		if(storageEngine.canReuseRcloneConfig()) {
-			sharedRCloneConfig = storageEngine.createRCloneConfig();
+		if(centralStorageEngine.canReuseRcloneConfig()) {
+			sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 		}
 		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
 		String storageSmssFolder = DB_CONTAINER_PREFIX + databaseId + SMSS_POSTFIX;
 
-		storageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
-		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
 	}
 
 	@Override
@@ -799,7 +821,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
 		try {
 			classLogger.info("Pushing folder local=" + localAbsoluteFilePath + " to from remote=" + storageDatabaseFolderPath);
-			storageEngine.syncLocalToStorage(localAbsoluteFilePath, storageDatabaseFolderPath);
+			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageDatabaseFolderPath);
 		} finally {
 			// always unlock regardless of errors
 			lock.unlock();
@@ -833,7 +855,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
 		try {
 			classLogger.info("Pulling folder from remote=" + storageDatabaseFolderPath + " to local=" + localAbsoluteFilePath);
-			storageEngine.syncStorageToLocal(storageDatabaseFolderPath, localAbsoluteFilePath);
+			centralStorageEngine.syncStorageToLocal(storageDatabaseFolderPath, localAbsoluteFilePath);
 		} finally {
 			// always unlock regardless of errors
 			lock.unlock();
@@ -880,17 +902,17 @@ public class CentralCloudStorage implements ICloudClient {
 			DIHelper.getInstance().removeProjectProperty(projectId);
 			project.close();
 			
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			storageEngine.syncLocalToStorage(localProjectFolder, storageProjectFolder, sharedRCloneConfig);
-			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
+			centralStorageEngine.syncLocalToStorage(localProjectFolder, storageProjectFolder, sharedRCloneConfig);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
 		} finally {
 			try {
 				// Re-open the project
 				Utility.getProject(projectId, false);
 				if(sharedRCloneConfig != null) {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				}
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -939,11 +961,11 @@ public class CentralCloudStorage implements ICloudClient {
 				project.close();
 			}
 			
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			storageEngine.syncStorageToLocal(storageProjectFolder, localProjectFolder, sharedRCloneConfig);
-			storageEngine.copyToLocal(storageSmssFolder, localSmssFilePath, sharedRCloneConfig);
+			centralStorageEngine.syncStorageToLocal(storageProjectFolder, localProjectFolder, sharedRCloneConfig);
+			centralStorageEngine.copyToLocal(storageSmssFolder, localSmssFilePath, sharedRCloneConfig);
 		} finally {
 			try {
 				// Re-open the project - if already loaded
@@ -951,7 +973,7 @@ public class CentralCloudStorage implements ICloudClient {
 					Utility.getProject(projectId, false);
 				}
 				if(sharedRCloneConfig != null) {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				}
 			} catch(Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -978,7 +1000,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
-			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
 		} finally {
 			lock.unlock();
 			classLogger.info("Project " + aliasAndProjectId + " is unlocked");
@@ -999,7 +1021,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
-			storageEngine.copyToLocal(storageSmssFolder, PROJECT_FOLDER);
+			centralStorageEngine.copyToLocal(storageSmssFolder, PROJECT_FOLDER);
 		} finally {
 			lock.unlock();
 			classLogger.info("Project " + aliasAndProjectId + " is unlocked");
@@ -1014,7 +1036,7 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.copyToLocal(CentralCloudStorage.PROJECT_IMAGES_BLOB, localImagesFolderPath);
+		centralStorageEngine.copyToLocal(CentralCloudStorage.PROJECT_IMAGES_BLOB, localImagesFolderPath);
 	}
 
 	@Override
@@ -1025,20 +1047,20 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.PROJECT_IMAGES_BLOB);
+		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.PROJECT_IMAGES_BLOB);
 	}
 	
 	@Override
 	public void deleteProject(String projectId) throws IOException, InterruptedException {
 		String sharedRCloneConfig = null;
-		if(storageEngine.canReuseRcloneConfig()) {
-			sharedRCloneConfig = storageEngine.createRCloneConfig();
+		if(centralStorageEngine.canReuseRcloneConfig()) {
+			sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 		}
 		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
 		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
-		storageEngine.deleteFolderFromStorage(storageProjectFolder, sharedRCloneConfig);
-		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorage(storageProjectFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
 	}
 
 	@Override
@@ -1061,7 +1083,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
 			project.getInsightDatabase().close();
-			storageEngine.copyToLocal(storageProjectInsightFilePath, localProjectFolder);
+			centralStorageEngine.copyToLocal(storageProjectInsightFilePath, localProjectFolder);
 		}  finally {
 			try {
 				//open the insight db
@@ -1107,7 +1129,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
 			project.getInsightDatabase().close();
-			storageEngine.copyToStorage(localProjectInsightDb, storageProjectFolder);
+			centralStorageEngine.copyToStorage(localProjectInsightDb, storageProjectFolder);
 		}  finally {
 			try {
 				//open the insight db
@@ -1167,7 +1189,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
 			classLogger.info("Pushing folder from local=" + localAbsoluteFilePath + " to remote=" + storageProjectFolderPath);
-			storageEngine.syncLocalToStorage(localAbsoluteFilePath, storageProjectFolderPath);
+			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageProjectFolderPath);
 		} finally {
 			// always unlock regardless of errors
 			lock.unlock();
@@ -1205,7 +1227,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
 			classLogger.info("Pulling folder from remote=" + storageProjectFolderPath + " to local=" + localAbsoluteFilePath);
-			storageEngine.syncStorageToLocal(storageProjectFolderPath, localAbsoluteFilePath);
+			centralStorageEngine.syncStorageToLocal(storageProjectFolderPath, localAbsoluteFilePath);
 		} finally {
 			// always unlock regardless of errors
 			lock.unlock();
@@ -1237,7 +1259,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String storageInsightFolder = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 		
 		classLogger.info("Pushing insight from local=" + Utility.cleanLogString(localInsightFolderPath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
-		storageEngine.syncLocalToStorage(localInsightFolderPath, storageInsightFolder);
+		centralStorageEngine.syncLocalToStorage(localInsightFolderPath, storageInsightFolder);
 		classLogger.debug("Done pushing insight from local=" + Utility.cleanLogString(localInsightFolderPath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
 	}
 
@@ -1257,7 +1279,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String storageInsightFolder = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
 		
 		classLogger.info("Pulling insight from remote=" + Utility.cleanLogString(storageInsightFolder) + " to target=" + Utility.cleanLogString(localInsightFolderPath));
-		storageEngine.syncStorageToLocal(storageInsightFolder, localInsightFolderPath);
+		centralStorageEngine.syncStorageToLocal(storageInsightFolder, localInsightFolderPath);
 		classLogger.debug("Done pulling insight from remote=" + Utility.cleanLogString(storageInsightFolder) + " to target=" + Utility.cleanLogString(localInsightFolderPath));
 	}
 
@@ -1270,8 +1292,8 @@ public class CentralCloudStorage implements ICloudClient {
 
 		String sharedRCloneConfig = null;
 		try {
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			
 			String storageInsightFolder = PROJECT_CONTAINER_PREFIX+projectId+"/"+Constants.APP_ROOT_FOLDER+"/"+Constants.VERSION_FOLDER+"/"+insightId;
@@ -1279,7 +1301,7 @@ public class CentralCloudStorage implements ICloudClient {
 			if(oldImageFileName != null) {
 				String storageOldFileToDelete = storageInsightFolder+"/"+oldImageFileName;
 				classLogger.info("Deleting old insight image from remote=" + Utility.cleanLogString(storageOldFileToDelete));
-				storageEngine.deleteFromStorage(storageOldFileToDelete, sharedRCloneConfig);
+				centralStorageEngine.deleteFromStorage(storageOldFileToDelete, sharedRCloneConfig);
 				classLogger.debug("Done deleting old insight image from remote=" + Utility.cleanLogString(storageOldFileToDelete));
 			} else {
 				classLogger.info("No old insight image on remote to delete");
@@ -1288,7 +1310,7 @@ public class CentralCloudStorage implements ICloudClient {
 			if(newImageFileName != null) {
 				String localInsightImageFilePath = Utility.normalizePath(AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId + "/" + newImageFileName);
 				classLogger.info("Pushing insight image from local=" + Utility.cleanLogString(localInsightImageFilePath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
-				storageEngine.copyToStorage(localInsightImageFilePath, storageInsightFolder, sharedRCloneConfig);
+				centralStorageEngine.copyToStorage(localInsightImageFilePath, storageInsightFolder, sharedRCloneConfig);
 				classLogger.debug("Done pushing insight image from local=" + Utility.cleanLogString(localInsightImageFilePath) + " to remote=" + Utility.cleanLogString(storageInsightFolder));
 			} else {
 				classLogger.info("No new insight image to add to remote");
@@ -1296,7 +1318,7 @@ public class CentralCloudStorage implements ICloudClient {
 		} finally {
 			if(sharedRCloneConfig != null) {
 				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch(Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -1311,11 +1333,6 @@ public class CentralCloudStorage implements ICloudClient {
 	 * Storage
 	 */
 	
-	@Override
-	public void pushStorage(String storageId) throws IOException, InterruptedException {
-		pushStorageSmss(storageId);
-	}
-
 	@Override
 	public void pullStorage(String storageId) throws IOException, InterruptedException {
 		pullStorage(storageId, false);
@@ -1350,7 +1367,7 @@ public class CentralCloudStorage implements ICloudClient {
 				DIHelper.getInstance().removeEngineProperty(storageId);
 				storage.close();
 			}
-			storageEngine.copyToLocal(storageSmssFolder, STORAGE_FOLDER);
+			centralStorageEngine.copyToLocal(storageSmssFolder, STORAGE_FOLDER);
 		} finally {
 			try {
 				// Re-open the storage
@@ -1380,7 +1397,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Storage " + aliasAndStorageId + " is locked");
 		try {
-			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
 		} finally {
 			lock.unlock();
 			classLogger.info("Storage " + aliasAndStorageId + " is unlocked");
@@ -1401,7 +1418,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Storage " + aliasAndStorageId + " is locked");
 		try {
-			storageEngine.copyToLocal(storageSmssFolder, STORAGE_FOLDER);
+			centralStorageEngine.copyToLocal(storageSmssFolder, STORAGE_FOLDER);
 		} finally {
 			lock.unlock();
 			classLogger.info("Storage " + aliasAndStorageId + " is unlocked");
@@ -1411,14 +1428,14 @@ public class CentralCloudStorage implements ICloudClient {
 	@Override
 	public void deleteStorage(String storageId) throws IOException, InterruptedException {
 		String sharedRCloneConfig = null;
-		if(storageEngine.canReuseRcloneConfig()) {
-			sharedRCloneConfig = storageEngine.createRCloneConfig();
+		if(centralStorageEngine.canReuseRcloneConfig()) {
+			sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 		}
 		String storageDatabaseFolder = STORAGE_CONTAINER_PREFIX + storageId;
 		String storageSmssFolder = STORAGE_CONTAINER_PREFIX + storageId + SMSS_POSTFIX;
 
-		storageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
-		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
 	}
 	
 	@Override
@@ -1429,7 +1446,7 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.copyToLocal(CentralCloudStorage.STORAGE_IMAGES_BLOB, localImagesFolderPath);
+		centralStorageEngine.copyToLocal(CentralCloudStorage.STORAGE_IMAGES_BLOB, localImagesFolderPath);
 	}
 
 	@Override
@@ -1440,7 +1457,7 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.STORAGE_IMAGES_BLOB);
+		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.STORAGE_IMAGES_BLOB);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1449,11 +1466,6 @@ public class CentralCloudStorage implements ICloudClient {
 	/*
 	 * Model
 	 */
-
-	@Override
-	public void pushModel(String modelId) throws IOException, InterruptedException {
-		pushModelSmss(modelId);
-	}
 
 	@Override
 	public void pullModel(String modelId) throws IOException, InterruptedException {
@@ -1489,7 +1501,7 @@ public class CentralCloudStorage implements ICloudClient {
 				DIHelper.getInstance().removeEngineProperty(modelId);
 				model.close();
 			}
-			storageEngine.copyToLocal(modelSmssFolder, MODEL_FOLDER);
+			centralStorageEngine.copyToLocal(modelSmssFolder, MODEL_FOLDER);
 		} finally {
 			try {
 				// Re-open the model
@@ -1519,7 +1531,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Model " + aliasAndModelId + " is locked");
 		try {
-			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder);
 		} finally {
 			lock.unlock();
 			classLogger.info("Model " + aliasAndModelId + " is unlocked");
@@ -1540,7 +1552,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Model " + aliasAndModelId + " is locked");
 		try {
-			storageEngine.copyToLocal(storageSmssFolder, MODEL_FOLDER);
+			centralStorageEngine.copyToLocal(storageSmssFolder, MODEL_FOLDER);
 		} finally {
 			lock.unlock();
 			classLogger.info("Model " + aliasAndModelId + " is unlocked");
@@ -1550,14 +1562,14 @@ public class CentralCloudStorage implements ICloudClient {
 	@Override
 	public void deleteModel(String modelId) throws IOException, InterruptedException {
 		String sharedRCloneConfig = null;
-		if(storageEngine.canReuseRcloneConfig()) {
-			sharedRCloneConfig = storageEngine.createRCloneConfig();
+		if(centralStorageEngine.canReuseRcloneConfig()) {
+			sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 		}
 		String storageDatabaseFolder = MODEL_CONTAINER_PREFIX + modelId;
 		String storageSmssFolder = MODEL_CONTAINER_PREFIX + modelId + SMSS_POSTFIX;
 
-		storageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
-		storageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorage(storageDatabaseFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
 	}
 	
 	@Override
@@ -1568,7 +1580,7 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.copyToLocal(CentralCloudStorage.MODEL_IMAGES_BLOB, localImagesFolderPath);
+		centralStorageEngine.copyToLocal(CentralCloudStorage.MODEL_IMAGES_BLOB, localImagesFolderPath);
 	}
 
 	@Override
@@ -1579,7 +1591,7 @@ public class CentralCloudStorage implements ICloudClient {
 		if(!localImageF.exists() || !localImageF.isDirectory()) {
 			localImageF.mkdirs();
 		}
-		storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.MODEL_IMAGES_BLOB);
+		centralStorageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.MODEL_IMAGES_BLOB);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1608,11 +1620,11 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String sharedRCloneConfig = null;
 		try {
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			
-			List<String> results = storageEngine.list(storageSmssFolder, sharedRCloneConfig);
+			List<String> results = centralStorageEngine.list(storageSmssFolder, sharedRCloneConfig);
 			String smss = null;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
@@ -1630,7 +1642,7 @@ public class CentralCloudStorage implements ICloudClient {
 				}
 				
 				// try again
-				results = storageEngine.list(storageSmssFolder, sharedRCloneConfig);
+				results = centralStorageEngine.list(storageSmssFolder, sharedRCloneConfig);
 				for (String result : results) {
 					if (result.endsWith(".smss")) {
 						smss = result;
@@ -1662,13 +1674,13 @@ public class CentralCloudStorage implements ICloudClient {
 
 				// Pull the contents of the project folder before the smss
 				classLogger.info("Pulling user asset/workspace from remote=" + storageUserAssetWorkspaceFolder + " to target=" + localUserAndAssetFolder);
-				storageEngine.syncStorageToLocal(storageUserAssetWorkspaceFolder, localUserAndAssetFolder, sharedRCloneConfig);
+				centralStorageEngine.syncStorageToLocal(storageUserAssetWorkspaceFolder, localUserAndAssetFolder, sharedRCloneConfig);
 				classLogger.debug("Done pulling from remote=" + storageUserAssetWorkspaceFolder + " to target=" + localUserAndAssetFolder);
 
 				// Now pull the smss
 				classLogger.info("Pulling smss from remote=" + storageSmssFolder + " to target=" + USER_FOLDER);
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE USER FOLDER
-				storageEngine.copyToLocal(storageSmssFolder, USER_FOLDER, sharedRCloneConfig);
+				centralStorageEngine.copyToLocal(storageSmssFolder, USER_FOLDER, sharedRCloneConfig);
 				classLogger.debug("Done pulling from remote=" + storageSmssFolder + " to target=" + USER_FOLDER);
 			} finally {
 				// Re-open the project
@@ -1679,7 +1691,7 @@ public class CentralCloudStorage implements ICloudClient {
 		} finally {
 			if(sharedRCloneConfig != null) {
 				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch(Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -1710,11 +1722,11 @@ public class CentralCloudStorage implements ICloudClient {
 			DIHelper.getInstance().removeProjectProperty(projectId);
 			project.close();
 			
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			storageEngine.syncLocalToStorage(localUserAssetWorkspaceFolder, storageUserAssetWorkspaceFolder, sharedRCloneConfig);
-			storageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
+			centralStorageEngine.syncLocalToStorage(localUserAssetWorkspaceFolder, storageUserAssetWorkspaceFolder, sharedRCloneConfig);
+			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig);
 		} finally {
 			try {
 				// Re-open the project
@@ -1724,7 +1736,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 			if(sharedRCloneConfig != null) {
 				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch(Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -1836,12 +1848,12 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("App "+ legacyAppId + " is locked");
 		try {
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			
 			// List the smss directory to get the alias + app id
-			List<String> results = storageEngine.list(legacyStorageSmssFolder, sharedRCloneConfig);
+			List<String> results = centralStorageEngine.list(legacyStorageSmssFolder, sharedRCloneConfig);
 			String storageSmssFileName = null;
 			boolean foundSmss = false;
 			for (String result : results) {
@@ -1863,13 +1875,13 @@ public class CentralCloudStorage implements ICloudClient {
 				localDatabaseF.mkdirs();
 			}
 			classLogger.info("Pulling legacy app (database+insights) from remote=" + Utility.cleanLogString(legacyStorageDatabaseFolder) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
-			storageEngine.syncStorageToLocal(legacyStorageDatabaseFolder, localDatabaseFolder);
+			centralStorageEngine.syncStorageToLocal(legacyStorageDatabaseFolder, localDatabaseFolder);
 			classLogger.debug("Done pulling legacy app (database+insights) from remote=" + Utility.cleanLogString(legacyStorageDatabaseFolder) + " to target=" + Utility.cleanLogString(localDatabaseFolder));
 
 			// Now pull the smss
 			classLogger.info("Pulling smss from remote=" + legacyStorageSmssFolder + " to target=" + DATABASE_FOLDER);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-			storageEngine.copyToLocal(legacyStorageSmssFolder, DATABASE_FOLDER);
+			centralStorageEngine.copyToLocal(legacyStorageSmssFolder, DATABASE_FOLDER);
 			classLogger.debug("Done pulling from remote=" + legacyStorageSmssFolder + " to target=" + DATABASE_FOLDER);
 
 			LegacyToProjectRestructurerHelper fixer = new LegacyToProjectRestructurerHelper();
@@ -1888,7 +1900,7 @@ public class CentralCloudStorage implements ICloudClient {
 		} finally {
 			if(sharedRCloneConfig != null) {
 				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch(Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -1904,8 +1916,8 @@ public class CentralCloudStorage implements ICloudClient {
 	public void fixLegacyImageStructure() throws IOException, InterruptedException {
 		String sharedRCloneConfig = null;
 		try {
-			if(storageEngine.canReuseRcloneConfig()) {
-				sharedRCloneConfig = storageEngine.createRCloneConfig();
+			if(centralStorageEngine.canReuseRcloneConfig()) {
+				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String localImagesFolderPath = baseFolder + "/images/databases";
@@ -1916,12 +1928,12 @@ public class CentralCloudStorage implements ICloudClient {
 			
 			// copy the images
 			// we will push these images to the new location
-			storageEngine.copyToLocal("semoss-imagecontainer", localImagesFolderPath, sharedRCloneConfig);
-			storageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.DB_IMAGES_BLOB, sharedRCloneConfig);
+			centralStorageEngine.copyToLocal("semoss-imagecontainer", localImagesFolderPath, sharedRCloneConfig);
+			centralStorageEngine.syncLocalToStorage(localImagesFolderPath, CentralCloudStorage.DB_IMAGES_BLOB, sharedRCloneConfig);
 		} finally {
 			if(sharedRCloneConfig != null) {
 				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch(Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -1938,7 +1950,7 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		try {
 			// List the smss directory to get the alias + app id
-			List<String> results = storageEngine.list(legacyStorageSmssFolder, sharedRCloneConfig);
+			List<String> results = centralStorageEngine.list(legacyStorageSmssFolder, sharedRCloneConfig);
 			String storageSmssFileName = null;
 			boolean foundSmss = false;
 			for (String result : results) {
@@ -1961,13 +1973,13 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 			
 			classLogger.info("Pulling legacy user asset/workspace from remote=" + Utility.cleanLogString(legacyStorageUserAssetWorkspaceFolder) + " to target=" + Utility.cleanLogString(localUserAssetWorkspaceFolder));
-			storageEngine.syncStorageToLocal(legacyStorageUserAssetWorkspaceFolder, localUserAssetWorkspaceFolder);
+			centralStorageEngine.syncStorageToLocal(legacyStorageUserAssetWorkspaceFolder, localUserAssetWorkspaceFolder);
 			classLogger.debug("Done pulling legacy user asset/workspace from remote=" + Utility.cleanLogString(legacyStorageUserAssetWorkspaceFolder) + " to target=" + Utility.cleanLogString(localUserAssetWorkspaceFolder));
 
 			// Now pull the smss
 			classLogger.info("Pulling smss from remote=" + legacyStorageSmssFolder + " to target=" + USER_FOLDER);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-			storageEngine.copyToLocal(legacyStorageSmssFolder, USER_FOLDER);
+			centralStorageEngine.copyToLocal(legacyStorageSmssFolder, USER_FOLDER);
 			classLogger.debug("Done pulling from remote=" + legacyStorageSmssFolder + " to target=" + USER_FOLDER);
 			
 
@@ -1986,7 +1998,7 @@ public class CentralCloudStorage implements ICloudClient {
 		} finally {
 			if(sharedRCloneConfig != null) {
 				try {
-					storageEngine.deleteRcloneConfig(sharedRCloneConfig);
+					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch(Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
