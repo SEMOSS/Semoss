@@ -917,7 +917,10 @@ public class CentralCloudStorage implements ICloudClient {
 		}
 
 		// We need to push the folder alias__projectId and the file alias__projectId.smss
-		String alias = project.getProjectName();
+		String alias = null;
+		if(project != null) {
+			alias = project.getProjectName();
+		}
 		if(alias == null) {
 			alias = SecurityProjectUtils.getProjectAliasForId(projectId);
 		}
