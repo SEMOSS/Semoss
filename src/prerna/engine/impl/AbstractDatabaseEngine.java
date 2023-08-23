@@ -52,6 +52,7 @@ import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -1075,8 +1076,8 @@ public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 	}
 	
 	@Override
-	public String getCatalogType() {
-		return IDatabaseEngine.CATALOG_TYPE;
+	public IEngine.CATALOG_TYPE getCatalogType() {
+		return IEngine.CATALOG_TYPE.DATABASE;
 	}
 	
 	@Override

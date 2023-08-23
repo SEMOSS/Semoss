@@ -38,13 +38,6 @@ import prerna.engine.impl.MetaHelper;
  */
 public interface IDatabaseEngine extends IExplorable, IEngine {
 	
-	String CATALOG_TYPE = "DATABASE";
-	
-	//TODO: this should switch to IDatabase now
-	//TODO: this should switch to IDatabase now
-	//TODO: this should switch to IDatabase now
-	//TODO: this should switch to IDatabase now
-
 	enum DATABASE_TYPE {
 		@Deprecated
 		APP, // this is now just an IProject
