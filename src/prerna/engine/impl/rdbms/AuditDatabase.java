@@ -67,7 +67,7 @@ public class AuditDatabase {
 		this.databaseName = databaseName;
 
 		String dbFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		dbFolder += DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(databaseName, databaseId);
+		dbFolder += DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(databaseName, databaseId);
 
 		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if (rdbmsTypeStr == null) {

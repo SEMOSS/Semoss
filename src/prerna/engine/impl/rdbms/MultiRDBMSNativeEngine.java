@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdbms;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -52,6 +53,7 @@ import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.ThreadStore;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -66,7 +68,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	// TODO: NEED TO ACCOUNT FOR PASSWORD ENCRYPTION
 	// TODO: NEED TO DETERMINE IF DELETE DB NEEDS ANYTHING DIFFERENT
 	
-	private static final Logger logger = LogManager.getLogger(MultiRDBMSNativeEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(MultiRDBMSNativeEngine.class);
 
 	public static final String DEFAULT_CONTEXT_KEY = "DEFAULT_CONTEXT";
 	public static final String CONNECTIONS_TO_FILL = "CONNECTIONS_TO_FILL";
@@ -208,28 +210,28 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 							contextLookup = rs.getObject(1);
 						}
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						try {
 							if(rs != null) {
 								rs.close();
 							}
 						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 						try {
 							if(ps != null) {
 								ps.close();
 							}
 						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 					
 					// if nothing defined - do we have a default?
 					if(contextLookup == null) {
 						contextLookup = this.defaultContext;
-						logger.info("User " + Utility.cleanLogString(userId) + " is using the default context " + contextLookup);
+						classLogger.info("User " + Utility.cleanLogString(userId) + " is using the default context " + contextLookup);
 					}
 					
 					// now store in the cache for next time used
@@ -242,10 +244,10 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		
 		// still nothing - you are screwed....
 		if(contextLookup == null) {
-			logger.info("User " + userId + " does not have any context defined");
+			classLogger.info("User " + userId + " does not have any context defined");
 			throw new IllegalArgumentException("User has not been provisioned to any context for this app");
 		}
-		logger.info("User " + Utility.cleanLogString(userId) + " is running with context " + contextLookup);
+		classLogger.info("User " + Utility.cleanLogString(userId) + " is running with context " + contextLookup);
 		
 		// give the context that was found
 		return this.contextToConnectionMap.get(contextLookup);
@@ -322,17 +324,21 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	}
 
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		super.close();
 		// close the setup engine
-		this.contextEngine.close();
+		try {
+			this.contextEngine.close();
+		} catch(Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 		// close for all the engines we have
 		for(String key : this.contextToConnectionMap.keySet()) {
 			RDBMSNativeEngine contextE = this.contextToConnectionMap.get(key);
 			try {
 				contextE.close();
 			} catch(Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -348,27 +354,20 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	}
 	
 	@Override
-	public void delete() {
-		logger.debug("Deleting Multi RDBMS Engine: " + this.engineName);
-
-		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
-		//WHY ARE WE DELETING THE SOURCE DATABSE????
-		//COMMENTING THIS OUT FOR NOW
-//		if (this.getDbType() != SQLQueryUtil.DB_TYPE.H2_DB) {
-//			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
-//			insertData(deleteText);
-//		}
-
-		// Close the Insights RDBMS connection, the actual connection, and delete the folders
+	public void delete() throws IOException {
+		classLogger.debug("Deleting Multi RDBMS Engine: " + this.engineName);
 		try {
-//			this.insightRdbms.getConnection().close();
 			close();
-			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
+			// see if any h2 files are here...
+			String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+					+ "/" + Constants.DB_FOLDER 
+					+ "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId);
+			DeleteDbFiles.execute(path, "database", false);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-		// Clean up SMSS and DB files/folder
+		// clean up remaining files
 		super.delete();
 	}
 	
@@ -421,4 +420,8 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		return getContext().getConnectionUrl();
 	}
 	
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
 }

@@ -28,6 +28,7 @@
 package prerna.engine.impl.rdf;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -78,7 +79,8 @@ import prerna.util.Utility;
  */
 public class BigDataEngine extends AbstractDatabaseEngine {
 
-	private static final Logger logger = LogManager.getLogger(BigDataEngine.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(BigDataEngine.class);
+	
 	private BigdataSail bdSail = null;
 	private SailRepositoryConnection rc = null;
 	private SailConnection sc = null;
@@ -109,15 +111,17 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
+	 * @throws IOException 
 	 */
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		super.close();
 		try {
 			bdSail.shutDown();
 			connected = false;
 		} catch (SailException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Error occurred attemping to close the connection", e);
 		}
 	}
 
@@ -130,7 +134,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 	public Object execQuery(String query) {
 		try {
 			Query fullQuery = rc.prepareQuery(QueryLanguage.SPARQL, query);
-			logger.debug("\nSPARQL: " + Utility.cleanLogString(query));
+			classLogger.debug("\nSPARQL: " + Utility.cleanLogString(query));
 			fullQuery.setIncludeInferred(true /* includeInferred */);
 			if(fullQuery instanceof TupleQuery){
 				TupleQueryResult sparqlResults = ((TupleQuery) fullQuery).evaluate();
@@ -165,7 +169,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 	public void insertData(String query) throws Exception {
 		Update up;
 		up = rc.prepareUpdate(QueryLanguage.SPARQL, query);
-		logger.debug("\nSPARQL: " + query);
+		classLogger.debug("\nSPARQL: " + query);
 		rc.setAutoCommit(false);
 		rc.begin();
 		up.execute();
@@ -188,7 +192,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 		try {
 			if(sparqlQuery != null) {
 				TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, sparqlQuery);
-				logger.debug("\nSPARQL: " + sparqlQuery);
+				classLogger.debug("\nSPARQL: " + sparqlQuery);
 				tq.setIncludeInferred(true /* includeInferred */);
 				TupleQueryResult sparqlResults = tq.evaluate();
 				Vector<Object> retVec = new Vector<Object>();
@@ -214,7 +218,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 					}	
 				}
 
-				logger.info("Found " + retVec.size() + " elements in result set");
+				classLogger.info("Found " + retVec.size() + " elements in result set");
 				return retVec;
 			}
 		} catch (RepositoryException e) {
@@ -293,12 +297,12 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 			{
 				if(object.getClass() == new Double(1).getClass())
 				{
-					logger.debug("Found Double " + object);
+					classLogger.debug("Found Double " + object);
 					sc.addStatement(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 				}
 				else if(object.getClass() == new Date(1).getClass())
 				{
-					logger.debug("Found Date " + object);
+					classLogger.debug("Found Date " + object);
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
@@ -306,7 +310,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 				}
 				else
 				{
-					logger.debug("Found String " + object);
+					classLogger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has smssProperties then add to it
 					//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
@@ -358,12 +362,12 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 				}
 				else if(object.getClass() == new Double(1).getClass())
 				{
-					logger.debug("Found Double " + object);
+					classLogger.debug("Found Double " + object);
 					sc.removeStatements(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 				}
 				else if(object.getClass() == new Date(1).getClass())
 				{
-					logger.debug("Found Date " + object);
+					classLogger.debug("Found Date " + object);
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
@@ -371,7 +375,7 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 				}
 				else
 				{
-					logger.debug("Found String " + object);
+					classLogger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has smssProperties then add to it
 					//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
@@ -422,24 +426,32 @@ public class BigDataEngine extends AbstractDatabaseEngine {
 
 	/**
 	 * This method permanently deletes the database and all of its associated files
+	 * @throws IOException 
 	 */
 	@Override
-	public void delete() {
+	public void delete() throws IOException {
 		super.delete();
 		// delete JNL if above doesn't
 		String jnlLoc = SmssUtilities.getSysTapJnl(smssProp).getAbsolutePath();
-		if(jnlLoc != null){
-			System.out.println("Deleting jnl file " + jnlLoc);
+		if(jnlLoc != null) {
 			File jnlFile = new File(jnlLoc);
-			jnlFile.delete();
-		}		
+			if(jnlFile.exists()) {
+				System.out.println("Deleting jnl file " + jnlLoc);
+				jnlFile.delete();
+			}
+		}
 	}
 
 	/**
 	 * Method to get the SC
 	 * @return
 	 */
-	SailConnection getSc() {
+	public SailConnection getSc() {
 		return this.sc;
+	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		return true;
 	}
 }

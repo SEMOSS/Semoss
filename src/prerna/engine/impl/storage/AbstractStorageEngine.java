@@ -141,4 +141,9 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 		DIHelper.getInstance().removeEngineProperty(this.engineId);
 	}
 	
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
+	
 }

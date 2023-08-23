@@ -334,7 +334,12 @@ public class Project implements IProject {
 	public void close() {
 		if(this.insightRdbms != null) {
 			classLogger.debug("closing the insight engine ");
-			this.insightRdbms.close();
+			try {
+				this.insightRdbms.close();
+			} catch (IOException e) {
+				classLogger.warn("Error on closing insights database");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 		
 		// remove the symbolic link
@@ -352,8 +357,7 @@ public class Project implements IProject {
 				}
 			}
 		}
-		
-		
+
 		// TODO: do we want to close the py process everything time we close?
 		// we close when we push insights (cause of the insights database) or update smss
 		
@@ -418,14 +422,11 @@ public class Project implements IProject {
 		} catch(IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-
-		//remove from DIHelper
-		String projectIds = (String)DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-		projectIds = projectIds.replace(";" + this.projectId, "");
-		// in case we are at the start
-		projectIds = projectIds.replace(this.projectId + ";", "");
-		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectIds);
-		DIHelper.getInstance().removeProjectProperty(this.projectId);
+	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		return true;
 	}
 	
 	@Override

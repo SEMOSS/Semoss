@@ -42,15 +42,15 @@ public class UserTrackingUtils {
 		}
 	}
 	
-	public static void addEngineViews(String databaseId) {
+	public static void addEngineViews(String engineId) {
 		if (Utility.isUserTrackingEnabled()) {
-			EngineViewsUtils.add(databaseId);
+			EngineViewsUtils.add(engineId);
 		}
 	}
 
-	public static void deleteDatabase(String databaseId) {
+	public static void deleteEngine(String engineId) {
 		if (Utility.isUserTrackingEnabled()) {
-			doDeleteDatabase(databaseId);
+			doDeleteEngine(engineId);
 		}
 	}
 
@@ -202,7 +202,7 @@ public class UserTrackingUtils {
 		}		
 	}
 
-	private static void doDeleteDatabase(String databaseId) {
+	private static void doDeleteEngine(String engineId) {
 		String[] queries = { 
 				"DELETE FROM ENGINE_USES where ENGINEID = ?",
 				"DELETE FROM ENGINE_VIEWS where ENGINEID = ?",
@@ -210,16 +210,16 @@ public class UserTrackingUtils {
 				};
 
 		for (String query : queries) {
-			doDeleteDatabase(query, databaseId);
+			doDeleteEngine(query, engineId);
 		}
 	}
 
-	private static void doDeleteDatabase(String query, String databaseId) {
+	private static void doDeleteEngine(String query, String engineId) {
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
 			int index = 1;
-			ps.setString(index++, databaseId);
+			ps.setString(index++, engineId);
 
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -311,7 +311,7 @@ public class UserTrackingUtils {
 
 	// End of User tracking methods
 
-	// DATABASE STUFF BELOW
+	// ENGINE STUFF BELOW
 
 	/**
 	 * 
