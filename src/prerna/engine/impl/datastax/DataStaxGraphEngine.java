@@ -14,7 +14,7 @@ import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.sablecc2.om.PixelDataType;
@@ -22,7 +22,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class DataStaxGraphEngine extends AbstractDatabase {
+public class DataStaxGraphEngine extends AbstractDatabaseEngine {
 	
 	private GraphTraversalSource graphTraversalSession;
 	private Map<String, String> typeMap = new HashMap<String, String>();

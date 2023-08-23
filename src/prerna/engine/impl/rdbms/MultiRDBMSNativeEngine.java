@@ -51,7 +51,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.ThreadStore;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -61,7 +61,7 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine {
+public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSEngine {
 
 	// TODO: NEED TO ACCOUNT FOR PASSWORD ENCRYPTION
 	// TODO: NEED TO DETERMINE IF DELETE DB NEEDS ANYTHING DIFFERENT
