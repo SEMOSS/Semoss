@@ -6,8 +6,6 @@ import prerna.om.Insight;
 
 public interface IModelEngine extends IEngine {
 
-	String CATALOG_TYPE = "MODEL";
-
 	// this is what the FE sends for the type of storage we are creating
 	// as a result, cannot be a key in the smss file
 	String MODEL_TYPE = "MODEL_TYPE";
