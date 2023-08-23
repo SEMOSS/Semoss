@@ -26,7 +26,6 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -95,13 +94,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		
 		boolean engineExists = containsDatabaseId(engineId);
 		if(engineExists) {
-			String[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
-			updateDatabaseTypeAndSubType(engineId, typeAndCost[0], typeAndCost[1]);
+			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
+			updateDatabaseTypeAndSubType(engineId, (IEngine.CATALOG_TYPE) typeAndCost[0], (String) typeAndCost[1]);
 			logger.info("Security database already contains database with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
-			String[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
-			addEngine(engineId, engineName, typeAndCost[0], typeAndCost[1], typeAndCost[2], global, user);
+			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
+			addEngine(engineId, engineName, (IEngine.CATALOG_TYPE) typeAndCost[0], (String) typeAndCost[1], (String) typeAndCost[2], global, user);
 		} 
 		
 		// TODO: need to see when we should be updating the database metadata
@@ -114,12 +113,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Utility method to get the database type and cost for storage
+	 * Utility method to get the engine type, subtype, and cost
+	 * This returns ENGINETYPE as the enum IEngine.CATALOG_TYPE and not the String format it is stored in
 	 * @param prop
 	 * @return
 	 */
-	public static String[] getEngineTypeAndSubTypeAndCost(Properties smssProp) {
-		String engineType = null;
+	public static Object[] getEngineTypeAndSubTypeAndCost(Properties smssProp) {
+		IEngine.CATALOG_TYPE engineType = null;
 		String engineSubType = null;
 		String engineCost = "$";
 		
@@ -132,11 +132,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			logger.warn("Unknown class name = " + rawType);
 		}
 		
-		return new String[]{engineType, engineSubType, engineCost};
+		return new Object[]{engineType, engineSubType, engineCost};
 	}
 	
 	/**
-	 * 
+	 * This returns ENGINETYPE as the enum IEngine.CATALOG_TYPE and not the String format it is stored in
 	 * @param engineId
 	 * @return
 	 */
@@ -149,6 +149,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if(results == null || results.isEmpty()) {
 			throw new IllegalArgumentException("Could not find engine with id " + engineId);
 		}
+		Object[] result = results.get(0);
+		result[0] = IEngine.CATALOG_TYPE.valueOf(result[0]+"");
 		return results.get(0);
 	}
 	
@@ -162,7 +164,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param global
 	 * @param user
 	 */
-	public static void addEngine(String engineId, String engineName, String engineType, String engineSubType, String engineCost, boolean global, User user) {
+	public static void addEngine(String engineId, String engineName, IEngine.CATALOG_TYPE engineType, String engineSubType, String engineCost, boolean global, User user) {
 		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 
@@ -172,7 +174,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, engineName);
 			ps.setString(parameterIndex++, engineId);
-			ps.setString(parameterIndex++, engineType);
+			ps.setString(parameterIndex++, engineType.toString());
 			ps.setString(parameterIndex++, engineSubType);
 			ps.setString(parameterIndex++, engineCost);
 			ps.setBoolean(parameterIndex++, global);
@@ -222,14 +224,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public static void updateDatabaseTypeAndSubType(String engineId, String engineType, String engineSubType) {
+	public static void updateDatabaseTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType, String engineSubType) {
 		String query = "UPDATE ENGINE SET ENGINETYPE=?, ENGINESUBTYPE=? WHERE ENGINEID=?";
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, engineType);
+			ps.setString(parameterIndex++, engineType.toString());
 			ps.setString(parameterIndex++, engineSubType);
 			ps.setString(parameterIndex++, engineId);
 			ps.execute();
@@ -2240,7 +2242,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
 		List<String> engineTypes = new ArrayList<>();
-		engineTypes.add(IDatabaseEngine.CATALOG_TYPE);
+		engineTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
 		return getAllEngineList(engineTypes, databaseFilters, null, null, null, null);
 	}
 	

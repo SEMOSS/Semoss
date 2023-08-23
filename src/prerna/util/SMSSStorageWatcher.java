@@ -37,7 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IStorageEngine;
+import prerna.engine.api.IEngine;
 
 /**
  * This class opens a thread and watches a specific SMSS file.
@@ -147,7 +147,7 @@ public class SMSSStorageWatcher extends AbstractFileWatcher {
 		
 		// remove unused databases
 		if (!ClusterUtil.IS_CLUSTER) {
-			List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IStorageEngine.CATALOG_TYPE));
+			List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.STORAGE.toString()));
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
 					logger.info("Deleting the storage engine from security..... " + Utility.cleanLogString(engine));
