@@ -37,12 +37,12 @@ import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.update.UpdateAction;
 
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 
 /**
  * Holds the database in memory, and uses the Jena API to facilitate querying of RDF data sources.
  */
-public class InMemoryJenaEngine extends AbstractDatabase {
+public class InMemoryJenaEngine extends AbstractDatabaseEngine {
 
 	Model jenaModel = null;
 

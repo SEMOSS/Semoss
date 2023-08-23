@@ -36,7 +36,7 @@ import com.jayway.jsonpath.PathNotFoundException;
 
 import cern.colt.Arrays;
 import net.minidev.json.JSONArray;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
@@ -44,7 +44,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class JsonAPIEngine extends AbstractDatabase {
+public class JsonAPIEngine extends AbstractDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(JsonAPIEngine.class);
 

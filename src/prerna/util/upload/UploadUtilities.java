@@ -36,7 +36,7 @@ import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
@@ -1162,7 +1162,7 @@ public class UploadUtilities {
 			String engineClassName = RNativeEngine.class.getName();
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, engineClassName, newLine, tab);
 			String dataFile = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + fileName;
-			bufferedWriter.write(AbstractDatabase.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
+			bufferedWriter.write(AbstractDatabaseEngine.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
 			// stringify maps
 			Gson gson = new GsonBuilder().create();
 			if (newHeaders != null && !newHeaders.isEmpty()) {
