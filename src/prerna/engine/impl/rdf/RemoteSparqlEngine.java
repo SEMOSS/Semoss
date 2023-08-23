@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -121,9 +122,10 @@ public class RemoteSparqlEngine extends AbstractDatabaseEngine {
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
+	 * @throws IOException 
 	 */
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		super.close();
 		// ng.stopTransaction(Conclusion.SUCCESS);
 		try {
@@ -304,4 +306,8 @@ public class RemoteSparqlEngine extends AbstractDatabaseEngine {
 		logger.info("Cnnot delete remote engine");
 	}
 
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
 }

@@ -73,46 +73,40 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 		}
 
 		// open normal tinker engine
-		if (smssProp.getProperty(Constants.TINKER_FILE) != null) {
-			String fileLocation = SmssUtilities.getTinkerFile(smssProp).getAbsolutePath();
-			classLogger.info("Opening graph:  " + Utility.cleanLogString(fileLocation));
-			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(smssProp.getProperty(Constants.TINKER_DRIVER));
-			if (tinkerDriver == TINKER_DRIVER.NEO4J) {
-				g = Neo4jGraph.open(fileLocation);
-			} else {
-				g = TinkerGraph.open();
-				// create index for default semoss types
-				if (this.typeMap != null) {
-					((TinkerGraph) g).createIndex(TinkerFrame.TINKER_TYPE, Vertex.class);
-					((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Vertex.class);
-					((TinkerGraph) g).createIndex(T.label.toString(), Edge.class);
-					((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Edge.class);
-				}
-				try {
-					if (tinkerDriver == TINKER_DRIVER.TG) {
-						// user kyro to de-serialize the cached graph
-						Builder<GryoIo> builder = GryoIo.build();
-						builder.graph(g);
-						builder.onMapper(new MyGraphIoMappingBuilder());
-						GryoIo reader = builder.create();
-						reader.readGraph(fileLocation);
-					} else if (tinkerDriver == TINKER_DRIVER.JSON) {
-						// user kyro to de-serialize the cached graph
-						Builder<GraphSONIo> builder = GraphSONIo.build();
-						builder.graph(g);
-						builder.onMapper(new MyGraphIoMappingBuilder());
-						GraphSONIo reader = builder.create();
-						reader.readGraph(fileLocation);
-					} else if (tinkerDriver == TINKER_DRIVER.XML) {
-						Builder<GraphMLIo> builder = GraphMLIo.build();
-						builder.graph(g);
-						builder.onMapper(new MyGraphIoMappingBuilder());
-						GraphMLIo reader = builder.create();
-						reader.readGraph(fileLocation);
-					}
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
+		String fileLocation = SmssUtilities.getTinkerFile(smssProp).getAbsolutePath();
+		classLogger.info("Opening graph:  " + Utility.cleanLogString(fileLocation));
+		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(smssProp.getProperty(Constants.TINKER_DRIVER));
+		if (tinkerDriver == TINKER_DRIVER.NEO4J) {
+			g = Neo4jGraph.open(fileLocation);
+		} else {
+			g = TinkerGraph.open();
+			// create index for default semoss types
+			if (this.typeMap != null) {
+				((TinkerGraph) g).createIndex(TinkerFrame.TINKER_TYPE, Vertex.class);
+				((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Vertex.class);
+				((TinkerGraph) g).createIndex(T.label.toString(), Edge.class);
+				((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Edge.class);
+			}
+			if (tinkerDriver == TINKER_DRIVER.TG) {
+				// user kyro to de-serialize the cached graph
+				Builder<GryoIo> builder = GryoIo.build();
+				builder.graph(g);
+				builder.onMapper(new MyGraphIoMappingBuilder());
+				GryoIo reader = builder.create();
+				reader.readGraph(fileLocation);
+			} else if (tinkerDriver == TINKER_DRIVER.JSON) {
+				// user kyro to de-serialize the cached graph
+				Builder<GraphSONIo> builder = GraphSONIo.build();
+				builder.graph(g);
+				builder.onMapper(new MyGraphIoMappingBuilder());
+				GraphSONIo reader = builder.create();
+				reader.readGraph(fileLocation);
+			} else if (tinkerDriver == TINKER_DRIVER.XML) {
+				Builder<GraphMLIo> builder = GraphMLIo.build();
+				builder.graph(g);
+				builder.onMapper(new MyGraphIoMappingBuilder());
+				GraphMLIo reader = builder.create();
+				reader.readGraph(fileLocation);
 			}
 		}
 	}
@@ -200,6 +194,22 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
+	}
+	
+	@Override
+	public void close() throws IOException {
+		super.close();
+		try {
+			this.g.close();
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Error occurred closing the Graph", e);
+		}
+	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		return true;
 	}
 
 	/**

@@ -190,9 +190,10 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
+	 * @throws IOException 
 	 */
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		super.close();
 		try {
 			rc.close();
@@ -200,6 +201,11 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
+	}
+	
+	@Override
+	public boolean holdsFileLocks() {
+		return true;
 	}
 
 	/**

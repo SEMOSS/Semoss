@@ -108,7 +108,7 @@ public class UploadUtilities {
 	
 	/**
 	 * Used to update DIHelper
-	 * Should only be used when making new engine
+	 * To be used when making new engine
 	 * @param newEngineName
 	 * @param engine
 	 * @param smssFile
@@ -123,10 +123,8 @@ public class UploadUtilities {
 	
 	/**
 	 * Used to update DIHelper
-	 * Should only be used when making new engine
-	 * @param newEngineName
-	 * @param engine
-	 * @param smssFile
+	 * When making new engine and errors or deleting engine
+	 * @param erroredEngineId
 	 */
 	public static void removeEngineFromDIHelper(String erroredEngineId) {
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.STORE);
@@ -135,6 +133,20 @@ public class UploadUtilities {
 		engineIds = engineIds.replace(";"+erroredEngineId+";", ";");
 		engineIds = engineIds.replace(";"+erroredEngineId, "");
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+	}
+	
+	/**
+	 * Used to update DIHelper
+	 * When making new engine and errors or deleting engine
+	 * @param erroredProjectId
+	 */
+	public static void removeProjectFromDIHelper(String erroredProjectId) {
+		DIHelper.getInstance().removeEngineProperty(erroredProjectId + "_" + Constants.STORE);
+		DIHelper.getInstance().removeEngineProperty(erroredProjectId);
+		String projectIds = (String) DIHelper.getInstance().getEngineProperty(Constants.PROJECTS);
+		projectIds = projectIds.replace(";"+erroredProjectId+";", ";");
+		projectIds = projectIds.replace(";"+erroredProjectId, "");
+		DIHelper.getInstance().setEngineProperty(Constants.PROJECTS, projectIds);
 	}
 	
 	/**

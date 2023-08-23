@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdbms;
 
+import java.io.IOException;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -725,7 +726,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	@Override
-	public void close() {
+	public void close() throws IOException {
 		super.close();
 		try {
 			if(this.useConnectionPooling){
@@ -742,9 +743,9 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					this.engineConnected = false;
 				}
 			}
-
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IOException("Error closing the connection to the database", e);
 		}
 	}
 
@@ -954,25 +955,20 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	@Override
-	public void delete() {
+	public void delete() throws IOException {
 		classLogger.debug("Deleting RDBMS Engine: " + this.engineName);
-
-		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
-		//WHY ARE WE DELETING THE SOURCE DATABSE????
-		//COMMENTING THIS OUT FOR NOW
-		//		if (this.getDbType() != SQLQueryUtil.DB_TYPE.H2_DB) {
-		//			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
-		//			insertData(deleteText);
-		//		}
-
-		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
 			close();
-			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
+			if(this.dbType == RdbmsTypeEnum.H2_DB) {
+				String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+						+ "/" + Constants.DB_FOLDER 
+						+ "/" + SmssUtilities.getUniqueName(this.engineName, this.engineId);
+				DeleteDbFiles.execute(path, "database", false);
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		// Clean up SMSS and DB files/folder
+		// clean up remaining files
 		super.delete();
 	}
 
@@ -1162,19 +1158,37 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		String dbTypeString = smssProp.getProperty(Constants.RDBMS_TYPE);
-		if(dbTypeString == null) {
-			dbTypeString = smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
+		if(this.dbType == null) {
+			String dbTypeString = smssProp.getProperty(Constants.RDBMS_TYPE);
+			if(dbTypeString == null) {
+				dbTypeString = smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
+			}
+			String driver = smssProp.getProperty(Constants.DRIVER);
+			// get the dbType from the input or from the driver itself
+			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
 		}
-		String driver = smssProp.getProperty(Constants.DRIVER);
-		// get the dbType from the input or from the driver itself
-		RdbmsTypeEnum dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
-		return dbType.getLabel();
+		return this.dbType.getLabel();
 	}
-
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
+	
+	@Override
+	public boolean holdsFileLocks() {
+		if(this.dbType == null) {
+			String dbTypeString = smssProp.getProperty(Constants.RDBMS_TYPE);
+			if(dbTypeString == null) {
+				dbTypeString = smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
+			}
+			String driver = smssProp.getProperty(Constants.DRIVER);
+			// get the dbType from the input or from the driver itself
+			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
+		}
+		
+		// will assume all h2 are file locks (might not be the case but 99% of the time...)
+		// and then sqlite is always file based
+		if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
+			return true;
+		}
+		
+		return false;
+	}
 
 }

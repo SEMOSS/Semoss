@@ -1,5 +1,10 @@
 package prerna.sablecc2.reactor.database.metaeditor;
 
+import java.io.IOException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -7,10 +12,13 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class ReloadDatabaseOwlReactor extends AbstractMetaEditorReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(ReloadDatabaseOwlReactor.class);
 
 	/*
 	 * This class is when you make local changes to the OWL file and want to
@@ -40,7 +48,11 @@ public class ReloadDatabaseOwlReactor extends AbstractMetaEditorReactor {
 		// close the old database
 		// assuming it was loaded properly
 		if (oldOwlEngine != null) {
-			oldOwlEngine.close();
+			try {
+				oldOwlEngine.close();
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 		}
 		EngineSyncUtility.clearEngineCache(databaseId);
 		ClusterUtil.pushOwl(databaseId);

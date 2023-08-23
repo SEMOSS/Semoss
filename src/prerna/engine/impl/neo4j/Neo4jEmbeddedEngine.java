@@ -117,6 +117,11 @@ public class Neo4jEmbeddedEngine extends AbstractDatabaseEngine {
 	}
 
 	@Override
+	public boolean holdsFileLocks() {
+		return true;
+	}
+	
+	@Override
 	public void insertData(String query) throws Exception {
 
 	}
@@ -125,7 +130,7 @@ public class Neo4jEmbeddedEngine extends AbstractDatabaseEngine {
 	public void removeData(String query) throws Exception {
 
 	}
-
+	
 	@Override
 	public void commit() {
 

@@ -140,6 +140,17 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		pyt.runEmptyPy(commands);	
 	}
 
+	/**
+	 * Abstract method, child classes should construct their input / output here
+	 * 
+	 * @param question
+	 * @param context
+	 * @param insight
+	 * @param parameters
+	 * @return
+	 */
+	public abstract String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters);
+
 	@Override
 	public Map<String, String> ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		//Map<String, String> output = new HashMap<String, String>();
@@ -194,9 +205,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		return retMap;
 	}
 
-	// Abstract method, child classes should construct their input / output here
-	public abstract String askQuestion(String question, String context, Insight insight, Map<String, Object> parameters);
-	
 	public Object embeddings(String question, Insight insight, Map <String, Object> parameters) {
 		if(!this.socketClient.isConnected())
 			this.startServer();
@@ -272,6 +280,10 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		StringSubstitutor sub = new StringSubstitutor(vars);
 		String resolvedString = sub.replace(input);
 		return resolvedString;
+	}
+	
+	public boolean keepsConversationHistory() {
+		return this.keepConversationHistory;
 	}
 	
 	public String getConversationHistoryFromInferenceLogs(String roomId, String userId){
@@ -413,8 +425,8 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		
 	}
 	
-	public boolean keepsConversationHistory() {
-		return this.keepConversationHistory;
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
 	}
-	
 }

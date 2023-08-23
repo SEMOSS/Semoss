@@ -419,4 +419,9 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 		}
 	}
 	
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
+	
 }
