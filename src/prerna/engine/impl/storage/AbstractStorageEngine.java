@@ -9,7 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IStorageEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -17,7 +17,7 @@ import prerna.util.Utility;
 
 public abstract class AbstractStorageEngine implements IStorageEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractDatabase.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractDatabaseEngine.class);
 	
 	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	

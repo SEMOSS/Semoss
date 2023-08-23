@@ -46,7 +46,7 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -54,7 +54,7 @@ import prerna.util.Utility;
 /**
  * References the RDF source from a remote engine and uses the Jena API to query a database stored in an RDF file (.jnl file).
  */
-public class RemoteJenaEngine extends AbstractDatabase {
+public class RemoteJenaEngine extends AbstractDatabaseEngine {
 	
 	Model jenaModel = null;
 	static final Logger logger = LogManager.getLogger(RemoteJenaEngine.class.getName());

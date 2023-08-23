@@ -19,7 +19,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
@@ -780,7 +780,7 @@ public class TableUserTracker implements IUserTracker {
 		}
 		IDatabaseEngine engine = Utility.getDatabase(engineId);
 		if(engine != null) {
-			RDFFileSesameEngine owlEngine = ((AbstractDatabase) engine).getBaseDataEngine();
+			RDFFileSesameEngine owlEngine = ((AbstractDatabaseEngine) engine).getBaseDataEngine();
 			
 			// are we dealing with a concept or a property
 			String physicalUri = engine.getPhysicalUriFromPixelSelector(table + "__" + column);

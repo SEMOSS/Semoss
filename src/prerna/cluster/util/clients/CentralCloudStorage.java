@@ -18,7 +18,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IStorageEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -571,7 +571,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		File localOwlF = SmssUtilities.getOwlFile(database.getSmssProp());
 		String localOwlFile = localOwlF.getAbsolutePath();
-		String localOwlPositionFile = localOwlF.getParent() + "/" + AbstractDatabase.OWL_POSITION_FILENAME;
+		String localOwlPositionFile = localOwlF.getParent() + "/" + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
 		boolean hasPositionFile = new File(localOwlPositionFile).exists();
 		
 		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
@@ -629,7 +629,7 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
 		String storageDatabaseOwl = storageDatabaseFolder + "/" + owlFileName;
-		String storageDatabaseOwlPosition = storageDatabaseFolder + "/" + AbstractDatabase.OWL_POSITION_FILENAME;
+		String storageDatabaseOwlPosition = storageDatabaseFolder + "/" + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
 		
 		String sharedRCloneConfig = null;
 
@@ -1031,7 +1031,7 @@ public class CentralCloudStorage implements ICloudClient {
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
 					try {
-						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabaseEngine.class)));
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error in loading new insights database for project " + aliasAndProjectId);
@@ -1077,7 +1077,7 @@ public class CentralCloudStorage implements ICloudClient {
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
 					try {
-						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabaseEngine.class)));
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error in loading new insights database for project " + aliasAndProjectId);

@@ -41,7 +41,7 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
@@ -61,7 +61,7 @@ public class TinkerGraphDataModel {
 		// load the base filter hash
 		// this will be used to ignore the triples
 		// that are purely metdata oriented from the tinkerframe
-		Hashtable<String, String> baseFilterHash = ((AbstractDatabase)engine).getBaseHash();
+		Hashtable<String, String> baseFilterHash = ((AbstractDatabaseEngine)engine).getBaseHash();
 
 		String queryCap = query.toUpperCase().trim();
 //		// this is just to remove the limit for some of the queries i have seen

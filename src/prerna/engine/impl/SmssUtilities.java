@@ -198,11 +198,11 @@ public class SmssUtilities {
 	 * @return
 	 */
 	public static File getDataFile(Properties prop) {
-		if(prop.getProperty(AbstractDatabase.DATA_FILE) == null) {
+		if(prop.getProperty(AbstractDatabaseEngine.DATA_FILE) == null) {
 			return null;
 		}
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String dataSuffix = prop.getProperty(AbstractDatabase.DATA_FILE);
+		String dataSuffix = prop.getProperty(AbstractDatabaseEngine.DATA_FILE);
 		if(dataSuffix.startsWith("@BaseFolder@/")) {
 			dataSuffix = dataSuffix.substring("@BaseFolder@/".length());
 		}

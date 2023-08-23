@@ -57,7 +57,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -77,7 +77,7 @@ import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
-public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine {
+public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(RDBMSNativeEngine.class);
 

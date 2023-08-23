@@ -37,13 +37,13 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
-public class ClusterEngine extends AbstractDatabase {
+public class ClusterEngine extends AbstractDatabaseEngine {
 
 	private static final Logger logger = LogManager.getLogger(ClusterEngine.class.getName());
 	// for every class type and relation it tells you which
@@ -75,7 +75,7 @@ public class ClusterEngine extends AbstractDatabase {
 	
 	
 
-	public void addEngine(AbstractDatabase engine) {
+	public void addEngine(AbstractDatabaseEngine engine) {
 		// put it in the hash
 		engineHash.put(engine.getEngineId(), engine);
 		

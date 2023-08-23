@@ -74,7 +74,7 @@ import prerna.util.Utility;
  * An Abstract Engine that sets up the base constructs needed to create an
  * engine.
  */
-public abstract class AbstractDatabase implements IDatabaseEngine {
+public abstract class AbstractDatabaseEngine implements IDatabaseEngine {
 
 	/**
 	 * Static members
@@ -86,7 +86,7 @@ public abstract class AbstractDatabase implements IDatabaseEngine {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractDatabase.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractDatabaseEngine.class);
 	
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
@@ -834,7 +834,7 @@ public abstract class AbstractDatabase implements IDatabaseEngine {
 		// put in same location
 		File owlF = new File(owlFileLocation);
 		String baseFolder = owlF.getParent();
-		String positionJson = baseFolder + DIR_SEPARATOR + AbstractDatabase.OWL_POSITION_FILENAME;
+		String positionJson = baseFolder + DIR_SEPARATOR + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
 		File positionFile = new File(positionJson);
 		return positionFile;
 	}

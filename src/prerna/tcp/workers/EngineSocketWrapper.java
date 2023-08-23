@@ -3,11 +3,11 @@ package prerna.tcp.workers;
 import java.util.Vector;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
 
-public class EngineSocketWrapper extends AbstractDatabase {
+public class EngineSocketWrapper extends AbstractDatabaseEngine {
 
 	// base class for doing everything over the socket
 	SocketServerHandler ssh = null;
