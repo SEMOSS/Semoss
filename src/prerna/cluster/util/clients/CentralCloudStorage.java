@@ -385,7 +385,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		}
 
-		// We need to push the folder alias__databaseId and the file alias__databaseId.smss
+		// We need to pull the folder alias__databaseId and the file alias__databaseId.smss
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localDatabaseFolder = DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
@@ -916,15 +916,8 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		}
 
-		// We need to push the folder alias__projectId and the file alias__projectId.smss
-		String alias = null;
-		if(project != null) {
-			alias = project.getProjectName();
-		}
-		if(alias == null) {
-			alias = SecurityProjectUtils.getProjectAliasForId(projectId);
-		}
-
+		// We need to pull the folder alias__projectId and the file alias__projectId.smss
+		String alias = SecurityProjectUtils.getProjectAliasForId(projectId);
 		String aliasAndProjectId = alias + "__" + projectId;
 		String localProjectFolder = PROJECT_FOLDER + FILE_SEPARATOR + aliasAndProjectId;
 		String localSmssFileName = aliasAndProjectId + ".smss";
@@ -1338,7 +1331,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		}
 
-		// We need to push the file alias__storageId.smss
+		// We need to pull the file alias__storageId.smss
 		String storageName = SecurityEngineUtils.getEngineAliasForId(storageId);
 		String aliasAndStorageId = SmssUtilities.getUniqueName(storageName, storageId);
 		String localSmssFileName = SmssUtilities.getUniqueName(storageName, storageId) + ".smss";
@@ -1477,7 +1470,7 @@ public class CentralCloudStorage implements ICloudClient {
 			}
 		}
 
-		// We need to push the file alias__storageId.smss
+		// We need to pull the file alias__storageId.smss
 		String modelName = SecurityEngineUtils.getEngineAliasForId(modelId);
 		String aliasAndModelId = SmssUtilities.getUniqueName(modelName, modelId);
 		String localSmssFileName = SmssUtilities.getUniqueName(modelName, modelId) + ".smss";
