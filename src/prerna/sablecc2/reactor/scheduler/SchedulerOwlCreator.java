@@ -99,7 +99,6 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_95;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -189,10 +188,9 @@ public class SchedulerOwlCreator {
 
 	/**
 	 * Remake the OWL
-	 * 
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	public void remakeOwl() throws IOException {
+	public void remakeOwl() throws Exception {
 		// get the existing engine and close it
 		RDFFileSesameEngine baseEngine = schedulerDb.getBaseDataEngine();
 		if (baseEngine != null) {
@@ -221,9 +219,9 @@ public class SchedulerOwlCreator {
 	 * Method that uses the OWLER to generate a new OWL structure
 	 * 
 	 * @param owlLocation
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	private void writeNewOwl(String owlLocation) throws IOException {
+	private void writeNewOwl(String owlLocation) throws Exception {
 		Owler owler = new Owler(owlLocation, DATABASE_TYPE.RDBMS);
 
 		// QRTZ_CALENDARS

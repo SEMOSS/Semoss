@@ -71,8 +71,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	/**
 	 * Add an entire project into the security db - Expectation is not to call this method but addProject(projectId, boolean global = true)
 	 * @param projectId
+	 * @throws Exception 
 	 */
-	public static void addProject(String projectId, User user) {
+	public static void addProject(String projectId, User user) throws Exception {
 		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 		
@@ -87,8 +88,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	/**
 	 * Add an entire project into the security db
 	 * @param appId
+	 * @throws Exception 
 	 */
-	public static void addProject(String projectId, boolean global, User user) {
+	public static void addProject(String projectId, boolean global, User user) throws Exception {
 		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 
@@ -573,8 +575,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param projectId
 	 * @return
+	 * @throws Exception 
 	 */
-	public static File createInsightsDatabase(String projectId, String folderPath) {
+	public static File createInsightsDatabase(String projectId, String folderPath) throws Exception {
 		
 		// TODO: potentially take into consideration playsheet legacy insights
 		

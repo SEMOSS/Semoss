@@ -87,9 +87,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 	private ConcurrentMap<String, Object> lruCache = null;
 	
 	@Override
-	public void open(String propFile) {
-		super.open(propFile);
-		
+	public void open(Properties smssProp) throws Exception {
 		/*
 		 * contextToConnectionMap needs to be built
 		 * and the keys need to be stored
@@ -146,18 +144,15 @@ public class MultiRDBMSNativeEngine extends AbstractDatabase implements IRDBMSEn
 		// load in the SETUP engine
 		this.contextProperties.put("TEMP", true);
 		this.contextEngine = new RDBMSNativeEngine();
-		this.contextEngine.setSmssProp(contextProperties);
-		this.contextEngine.open(null);
+		this.contextEngine.open(contextProperties);
 		
 		// load all the other engines
 		for(String contextName : this.contextToProperties.keySet()) {
-			Properties thisProp = this.contextToProperties.get(contextName);
+			Properties thisSmssProps = this.contextToProperties.get(contextName);
 			RDBMSNativeEngine engine = new RDBMSNativeEngine();
 			// set the OWL for each engine
 			engine.setBaseDataEngine(this.baseDataEngine);
-			engine.setSmssProp(thisProp);
-			engine.open(null);
-			
+			engine.open(thisSmssProps);
 			this.contextToConnectionMap.put(contextName, engine);
 		}
 		

@@ -70,7 +70,7 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 	}
 
 	@Override
-	protected IDatabaseEngine generateEngine() {
+	protected IDatabaseEngine generateEngine() throws Exception {
 		TinkerEngine tinkerEng = new TinkerEngine();
 		tinkerEng.setEngineId(this.newDatabaseId);
 		tinkerEng.setEngineName(this.newDatabaseName);

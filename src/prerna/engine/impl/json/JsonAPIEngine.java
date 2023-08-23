@@ -3,7 +3,6 @@ package prerna.engine.impl.json;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -13,6 +12,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
@@ -46,7 +46,7 @@ import prerna.util.Utility;
 
 public class JsonAPIEngine extends AbstractDatabase {
 
-	private static final Logger logger = LogManager.getLogger(JsonAPIEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(JsonAPIEngine.class);
 
 	private static final String ARRAY = "ARRAY";
 	public static final String COUNT = "COUNT";
@@ -64,85 +64,74 @@ public class JsonAPIEngine extends AbstractDatabase {
 	public static final String REPEATER = "repeater";
 	
 	Object document = null;
-
+	String baseFolder = null;
+	
 	@Override
-	public void open(String propFile) {
-		try {
-			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			Hashtable <String, String> paramHash = new Hashtable <>();
-			paramHash.put("BaseFolder", baseFolder);
-			if(getEngineId() != null)
-				paramHash.put("engine", getEngineId());
+	public void open(Properties smssProp) throws Exception {
+		setSmssProp(smssProp);
+		baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		Hashtable <String, String> paramHash = new Hashtable <>();
+		paramHash.put("BaseFolder", baseFolder);
+		if(getEngineId() != null)
+			paramHash.put("engine", getEngineId());
 
-			if(propFile != null) {
-				logger.info("Opening DB - " + Utility.cleanLogString(engineName));
-				setSmssFilePath(propFile);
-			}
-			if(smssProp != null) {
-				// load the rdbms insights db
-				// nope nothing to load here
+		if(this.smssProp != null) {
+			// load the rdbms insights db
+			// nope nothing to load here
 
-				// load the rdf owl db
-				String owlFile = smssProp.getProperty(Constants.OWL);
-				
-				if(owlFile != null) {
-					File owlF = new File(Utility.normalizePath(owlFile));
-					// need a check here to say if I am asking this to be remade or keep what it is
-					if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
-						// the process of remake will start here
-						// see if the usefile is there
-						if(this.smssProp.containsKey(USE_FILE)) {
-							String owlFileName = null;
-							String dataFile = SmssUtilities.getDataFile(this.smssProp).getAbsolutePath();
-							if(owlFile.equals("REMAKE")) {
-								// we will make the name
-								File dF = new File(dataFile);
-								owlFileName = this.engineName + "_OWL.OWL";
-								owlFile = dF.getParentFile() + DIR_SEPARATOR + owlFileName;
-							} else {
-								owlFileName = FilenameUtils.getName(owlFile);
-							}
-							
-							owlFile = generateOwlFromFlatFile(dataFile, owlFile, owlFileName);
+			// load the rdf owl db
+			String owlFile = smssProp.getProperty(Constants.OWL);
+			
+			if(owlFile != null) {
+				File owlF = new File(Utility.normalizePath(owlFile));
+				// need a check here to say if I am asking this to be remade or keep what it is
+				if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
+					// the process of remake will start here
+					// see if the usefile is there
+					if(this.smssProp.containsKey(USE_FILE)) {
+						String owlFileName = null;
+						String dataFile = SmssUtilities.getDataFile(this.smssProp).getAbsolutePath();
+						if(owlFile.equals("REMAKE")) {
+							// we will make the name
+							File dF = new File(dataFile);
+							owlFileName = this.engineName + "_OWL.OWL";
+							owlFile = dF.getParentFile() + DIR_SEPARATOR + owlFileName;
 						} else {
-							owlFile = null;
+							owlFileName = FilenameUtils.getName(owlFile);
 						}
-					}
-					// set the owl file
-					if(owlFile != null) {
-						owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
-						logger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
-						setOWL(owlFile);
+						
+						owlFile = generateOwlFromFlatFile(dataFile, owlFile, owlFileName);
+					} else {
+						owlFile = null;
 					}
 				}
-				// load properties object for db
-				// not sure what this is doing
-				// I changed this to public
-				String genEngPropFile = smssProp.getProperty(Constants.ENGINE_PROPERTIES);
-				if (genEngPropFile != null) {
-					generalEngineProp = Utility.loadProperties(baseFolder + "/" + genEngPropFile);
+				// set the owl file
+				if(owlFile != null) {
+					owlFile = SmssUtilities.getOwlFile(this.smssProp).getAbsolutePath();
+					classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
+					setOWL(owlFile);
 				}
 			}
-			loadDocument();
-			// seems like I may not need this
-			// setOWL already does this
-			//this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
-		} catch (RuntimeException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} 
+			// load properties object for db
+			// not sure what this is doing
+			// I changed this to public
+			String genEngPropFile = smssProp.getProperty(Constants.ENGINE_PROPERTIES);
+			if (genEngPropFile != null) {
+				generalEngineProp = Utility.loadProperties(baseFolder + "/" + genEngPropFile);
+			}
+		}
+		loadDocument();
 	}
 	
-	protected void loadDocument()
-	{
+	protected void loadDocument() {
 		try {
-			if(smssProp.containsKey(INPUT_TYPE) && ((String)smssProp.get(INPUT_TYPE)).equalsIgnoreCase("file"))
-				document = Configuration.defaultConfiguration().jsonProvider().parse(new FileInputStream(baseFolder + "/" + Utility.normalizePath(smssProp.getProperty(INPUT_URL))), "utf-8");
-		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			if(this.smssProp.containsKey(INPUT_TYPE) && ((String)this.smssProp.get(INPUT_TYPE)).equalsIgnoreCase("file")) {
+				this.document = Configuration.defaultConfiguration().jsonProvider().parse(
+						new FileInputStream(this.baseFolder + "/" + Utility.normalizePath(this.smssProp.getProperty(INPUT_URL))), "utf-8");
+			}
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
-
 	}
 
 	// inputparams@@@alias patterns=alias or just alias@@@metadata - I will not worry about metadata for now
@@ -274,7 +263,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 			try {
 				retNode = Configuration.defaultConfiguration().jsonProvider().parse(json);
 			} catch(Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
+				classLogger.error(Constants.STACKTRACE, ex);
 			}
 		}
 
@@ -351,11 +340,11 @@ public class JsonAPIEngine extends AbstractDatabase {
 				if(numRows == 0 || numRows > data[pathIndex].size())
 					numRows = data[pathIndex].size();
 				
-				logger.info(" >> " + data[pathIndex].toString());
-				logger.info("Length >> " + data[pathIndex].size());	
+				classLogger.info(" >> " + data[pathIndex].toString());
+				classLogger.info("Length >> " + data[pathIndex].size());	
 
 			} catch(PathNotFoundException ex) {
-				logger.info("Path not found.. " + Utility.cleanLogString(thisPath));
+				classLogger.info("Path not found.. " + Utility.cleanLogString(thisPath));
 				foundData = false;
 			}
 		}
@@ -388,7 +377,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 			
 		retHash.put(COUNT, totalRows);
 
-		logger.info("Output..  " + Utility.cleanLogString(Arrays.toString(data)));
+		classLogger.info("Output..  " + Utility.cleanLogString(Arrays.toString(data)));
 		
 		return retHash;
 	}
@@ -477,9 +466,9 @@ public class JsonAPIEngine extends AbstractDatabase {
 			
 			retString = handler.handleResponse(response);
 		} catch (ClientProtocolException cpe) {
-			logger.error(Constants.STACKTRACE, cpe);
+			classLogger.error(Constants.STACKTRACE, cpe);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 		          try {
@@ -535,7 +524,7 @@ public class JsonAPIEngine extends AbstractDatabase {
 			ResponseHandler<String> handler = new BasicResponseHandler();
 			CloseableHttpResponse response = httpclient.execute(httppost);
 			
-			logger.info("Response Code " + response.getStatusLine().getStatusCode());
+			classLogger.info("Response Code " + response.getStatusLine().getStatusCode());
 			
 			int status = response.getStatusLine().getStatusCode();
 			
@@ -550,9 +539,9 @@ public class JsonAPIEngine extends AbstractDatabase {
 			
 			retString = result.toString();
 		} catch (ClientProtocolException cpe) {
-			logger.error(Constants.STACKTRACE, cpe);
+			classLogger.error(Constants.STACKTRACE, cpe);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 		          try {
@@ -611,9 +600,9 @@ public class JsonAPIEngine extends AbstractDatabase {
 			CloseableHttpResponse response = httpclient.execute(httppost);
 			retStream = response.getEntity().getContent();
 		} catch (ClientProtocolException cpe) {
-			logger.error(Constants.STACKTRACE, cpe);
+			classLogger.error(Constants.STACKTRACE, cpe);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 		          try {
@@ -657,9 +646,9 @@ public class JsonAPIEngine extends AbstractDatabase {
 
 			retStream = response.getEntity().getContent();
 		} catch (ClientProtocolException cpe) {
-			logger.error(Constants.STACKTRACE, cpe);
+			classLogger.error(Constants.STACKTRACE, cpe);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(httpclient != null) {
 		          try {

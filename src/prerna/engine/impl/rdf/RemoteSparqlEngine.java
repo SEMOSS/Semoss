@@ -73,54 +73,49 @@ import prerna.util.Utility;
 public class RemoteSparqlEngine extends AbstractDatabase {
 
 	private static final Logger logger = LogManager.getLogger(RemoteSparqlEngine.class.getName());
+	
 	BigdataSail bdSail = null;
 	Properties rdfMap = null;
 	RepositoryConnection rc = null;
 	ValueFactory vf = null;
 	boolean connected = false;
 
-	
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
 	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
 	 * least defining the data store.
 	 * @param smssFilePath contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
 	 * what type of engine is being instantiated.
+	 * @throws Exception 
 	 */
 	@Override
-	public void open(String smssFilePath) {
-		try {
-			super.open(smssFilePath);
-			
-			String sparqlQEndpoint = smssProp.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
-			String sparqlUEndpoint = smssProp.getProperty(Constants.SPARQL_UPDATE_ENDPOINT);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		
+		String sparqlQEndpoint = this.smssProp.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
+		String sparqlUEndpoint = this.smssProp.getProperty(Constants.SPARQL_UPDATE_ENDPOINT);
 
-			//com.bigdata.rdf.sail.webapp.client.RemoteRepository repo = new com.bigdata.rdf.sail.webapp.client.RemoteRepository(sparqlQEndpoint, null, null);
-			//repo.
-			SPARQLRepository repo = new SPARQLRepository(sparqlQEndpoint);
-			Hashtable <String, String> myMap = new Hashtable<String,String>();
-			myMap.put("apikey","d0184dd3-fb6b-4228-9302-1c6e62b01465");
-			//repo.setAdditionalHttpHeaders(myMap);
-			rc = new SPARQLConnection(repo);//, sparqlQEndpoint, sparqlUEndpoint);
-			//rc = new SPARQLConnection(repo, sparqlQEndpoint, sparqlUEndpoint);
-	
-			// new ForwardChainingRDFSInferencer(bdSail);
-			//InferenceEngine ie = bdSail.getInferenceEngine();
-	
-			// logger.info("ie forward chaining " + ie);
-			// need to convert to constants
-			String dbcmFile = smssProp.getProperty(Constants.DBCM_Prop);
-			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			
-			dbcmFile = workingDir + "/" + dbcmFile;
-			rdfMap = DIHelper.getInstance().getCoreProp();
-			
-			this.connected = true;
-			// return g;
-		}catch(RuntimeException ignored)
-		{
-			ignored.printStackTrace();
-		}
+		//com.bigdata.rdf.sail.webapp.client.RemoteRepository repo = new com.bigdata.rdf.sail.webapp.client.RemoteRepository(sparqlQEndpoint, null, null);
+		//repo.
+		SPARQLRepository repo = new SPARQLRepository(sparqlQEndpoint);
+		Hashtable <String, String> myMap = new Hashtable<String,String>();
+		myMap.put("apikey","d0184dd3-fb6b-4228-9302-1c6e62b01465");
+		//repo.setAdditionalHttpHeaders(myMap);
+		rc = new SPARQLConnection(repo);//, sparqlQEndpoint, sparqlUEndpoint);
+		//rc = new SPARQLConnection(repo, sparqlQEndpoint, sparqlUEndpoint);
+
+		// new ForwardChainingRDFSInferencer(bdSail);
+		//InferenceEngine ie = bdSail.getInferenceEngine();
+
+		// logger.info("ie forward chaining " + ie);
+		// need to convert to constants
+		String dbcmFile = smssProp.getProperty(Constants.DBCM_Prop);
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		
+		dbcmFile = workingDir + "/" + dbcmFile;
+		rdfMap = DIHelper.getInstance().getCoreProp();
+		
+		this.connected = true;
 	}
 	
 	/**

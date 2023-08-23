@@ -32,6 +32,7 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 	 * @throws Exception 
 	 */
 	public void open(String smssFilePath) throws Exception {
+		this.smssFilePath = smssFilePath;
 		this.open(Utility.loadProperties(smssFilePath));
 	}
 	

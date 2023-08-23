@@ -43,8 +43,9 @@ public class OWLERLineage {
 	 * Constructor for the class when we are creating a brand new OWL file
 	 * @param fileName				The location of the new OWL file
 	 * @param type					The type of the engine the OWL file is being created for
+	 * @throws Exception 
 	 */
-	public OWLERLineage(String owlPath, IDatabaseEngine.DATABASE_TYPE type) {
+	public OWLERLineage(String owlPath, IDatabaseEngine.DATABASE_TYPE type) throws Exception {
 		this.owlPath = owlPath;
 		this.type = type;
 		

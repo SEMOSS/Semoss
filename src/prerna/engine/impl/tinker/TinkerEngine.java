@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -36,7 +37,7 @@ import prerna.util.Utility;
 
 public class TinkerEngine extends AbstractDatabase {
 
-	private static final Logger logger = LogManager.getLogger(TinkerEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(TinkerEngine.class);
 
 	protected Graph g = null;
 	protected Map<String, String> typeMap = new HashMap<>();
@@ -44,15 +45,15 @@ public class TinkerEngine extends AbstractDatabase {
 	protected boolean useLabel = false;
 	
 	@Override
-	public void open(String propFile) {
-		super.open(propFile);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 		// get type map
 		String typeMapStr = this.smssProp.getProperty("TYPE_MAP");
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -62,7 +63,7 @@ public class TinkerEngine extends AbstractDatabase {
 			try {
 				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -74,7 +75,7 @@ public class TinkerEngine extends AbstractDatabase {
 		// open normal tinker engine
 		if (smssProp.getProperty(Constants.TINKER_FILE) != null) {
 			String fileLocation = SmssUtilities.getTinkerFile(smssProp).getAbsolutePath();
-			logger.info("Opening graph:  " + Utility.cleanLogString(fileLocation));
+			classLogger.info("Opening graph:  " + Utility.cleanLogString(fileLocation));
 			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(smssProp.getProperty(Constants.TINKER_DRIVER));
 			if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 				g = Neo4jGraph.open(fileLocation);
@@ -110,7 +111,7 @@ public class TinkerEngine extends AbstractDatabase {
 						reader.readGraph(fileLocation);
 					}
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -195,9 +196,9 @@ public class TinkerEngine extends AbstractDatabase {
 				g.tx().commit();
 			}
 			long endTime = System.currentTimeMillis();
-			logger.info("Successfully saved graph to file: " + Utility.normalizePath(fileLocation) + "(" + (endTime - startTime) + " ms)");
+			classLogger.info("Successfully saved graph to file: " + Utility.normalizePath(fileLocation) + "(" + (endTime - startTime) + " ms)");
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 

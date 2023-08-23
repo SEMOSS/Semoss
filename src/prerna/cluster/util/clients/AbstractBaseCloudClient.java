@@ -189,7 +189,12 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 				//open the insight db
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
-					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+					try {
+						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Error in loading new insights database for project " + aliasProjectId);
+					}
 				} else {
 					throw new IllegalArgumentException("Insight database was not able to be found");
 				}
@@ -236,7 +241,12 @@ public abstract class AbstractBaseCloudClient extends AbstractCloudClient {
 				//open the insight db
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
-					project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+					try {
+						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
+						throw new IllegalArgumentException("Error in loading new insights database for project " + aliasProjectId);
+					}
 				} else {
 					throw new IllegalArgumentException("Insight database was not able to be found");
 				}
