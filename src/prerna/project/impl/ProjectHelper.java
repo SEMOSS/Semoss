@@ -139,7 +139,7 @@ public class ProjectHelper {
 			tempSmss.delete();
 
 			// Update engine smss file location
-			project.openProject(smssFile.getAbsolutePath());
+			project.open(smssFile.getAbsolutePath());
 			logger.info("Finished creating project");
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 

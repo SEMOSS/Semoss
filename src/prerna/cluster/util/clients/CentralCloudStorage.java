@@ -1028,10 +1028,10 @@ public class CentralCloudStorage implements ICloudClient {
 		}  finally {
 			try {
 				//open the insight db
-				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
+				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getSmssProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
 					try {
-						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabaseEngine.class)));
+						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getSmssProp(), LogManager.getLogger(AbstractDatabaseEngine.class)));
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error in loading new insights database for project " + aliasAndProjectId);
@@ -1074,10 +1074,10 @@ public class CentralCloudStorage implements ICloudClient {
 		}  finally {
 			try {
 				//open the insight db
-				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
+				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getSmssProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
 					try {
-						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabaseEngine.class)));
+						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getSmssProp(), LogManager.getLogger(AbstractDatabaseEngine.class)));
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error in loading new insights database for project " + aliasAndProjectId);
