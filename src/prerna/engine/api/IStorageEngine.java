@@ -7,8 +7,6 @@ import java.util.Properties;
 
 public interface IStorageEngine extends IEngine {
 
-	String CATALOG_TYPE = "STORAGE";
-
 	// this is what the FE sends for the type of storage we are creating
 	// as a result, cannot be a key in the smss file
 	String STORAGE_TYPE = "STORAGE_TYPE";

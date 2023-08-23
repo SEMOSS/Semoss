@@ -8,6 +8,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -93,8 +94,8 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 	}
 	
 	@Override
-	public String getCatalogType() {
-		return IStorageEngine.CATALOG_TYPE;
+	public IEngine.CATALOG_TYPE getCatalogType() {
+		return IEngine.CATALOG_TYPE.STORAGE;
 	}
 	
 	@Override

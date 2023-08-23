@@ -6,6 +6,14 @@ import java.util.Properties;
 
 public interface IEngine extends Closeable {
 
+	enum CATALOG_TYPE {
+		DATABASE,
+		STORAGE,
+		MODEL,
+		// special kind for IProject
+		PROJECT,
+	};
+	
 	/**
 	 * Sets the unique id for the engine 
 	 * @param engineId - id to set the engine 
@@ -85,7 +93,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @return
 	 */
-	String getCatalogType();
+	CATALOG_TYPE getCatalogType();
 	
 	/**
 	 * 
