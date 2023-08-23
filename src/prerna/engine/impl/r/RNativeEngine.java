@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -75,8 +76,8 @@ public class RNativeEngine extends AbstractDatabase {
 	private RDataTable dt;
 	
 	@Override
-	public void open(String smssFilePath) {
-		super.open(smssFilePath);
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
 
 		this.file = SmssUtilities.getDataFile(this.smssProp);
 		this.fileLocation = this.file.getAbsolutePath().replace('\\', '/');
@@ -98,7 +99,7 @@ public class RNativeEngine extends AbstractDatabase {
 			try {
 				this.columnToType = new ObjectMapper().readValue(typeMapStr, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
 			this.columnToType = this.getDataTypes(propertyUriArr);
@@ -109,18 +110,18 @@ public class RNativeEngine extends AbstractDatabase {
 			try {
 				this.additionalDataType = new ObjectMapper().readValue(addTypeStr, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
 			this.additionalDataType = this.getAdtlDataTypes(propertyUriArr);
 		}
-		// TODO
+
 		String newHeadersStr = this.smssProp.getProperty(Constants.NEW_HEADERS);
 		if (newHeadersStr != null && !newHeadersStr.trim().isEmpty()) {
 			try {
 				this.newHeaders = new ObjectMapper().readValue(newHeadersStr, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -142,16 +143,15 @@ public class RNativeEngine extends AbstractDatabase {
 		this.columnTypes = this.dt.getMetaData().getHeaderToTypeMap();
 	}
 	
-	
-	
 	/**
 	 * Generate the OWL based on a flat file
 	 * @param dataFile
 	 * @param owlFile
 	 * @param owlFileName
 	 * @return
+	 * @throws Exception 
 	 */
-	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) {
+	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) throws Exception {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
 		maker.makeFlatOwl(dataFile, owlFile, getDatabaseType(), false);
 		if(owlFile.equals("REMAKE")) {

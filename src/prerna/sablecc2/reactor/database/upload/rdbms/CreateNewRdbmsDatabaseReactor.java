@@ -226,9 +226,8 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		database.setOWL(owlFile.getAbsolutePath());
 		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
 		prop.put("TEMP", "TRUE");
-		database.setSmssProp(prop);
-		database.open(null);
-		if (!database.isConnected()) {
+		database.open(prop);
+		if(!database.isConnected()) {
 			throw new IllegalArgumentException("Unable to connect to external database");
 		}
 		this.logger.info(stepCounter + ". Complete");

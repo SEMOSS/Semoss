@@ -38,6 +38,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -101,55 +102,45 @@ public class RDFFileSesameEngine extends AbstractDatabase {
 	 * least defining the data store.
 	 * @param smssFilePath contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
 	 * what type of engine is being instantiated.
+	 * @throws Exception 
 	 */
 	@Override
-	public void open(String smssFilePath) {
-		try {
-			super.open(smssFilePath);
-			Repository myRepository = new SailRepository(
-					new ForwardChainingRDFSInferencer(
-							new MemoryStore()));
-			myRepository.initialize();
-			if(smssProp != null) {
-				fileName = SmssUtilities.getRdfFile(smssProp).getAbsolutePath();
-				
-				if(smssProp.containsKey(Constants.RDF_FILE_TYPE)) {
-					rdfFileType = smssProp.getProperty(Constants.RDF_FILE_TYPE);
-				}
-
-				if(smssProp.containsKey(Constants.RDF_FILE_BASE_URI)) {
-					baseURI = smssProp.getProperty(Constants.RDF_FILE_BASE_URI);
-				}
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		Repository myRepository = new SailRepository(
+				new ForwardChainingRDFSInferencer(
+						new MemoryStore()));
+		myRepository.initialize();
+		
+		// you can technically set the filename directly
+		// so we will still check that the smssProp is not null/empty
+		if(this.smssProp != null && !this.smssProp.isEmpty()) {
+			fileName = SmssUtilities.getRdfFile(this.smssProp).getAbsolutePath();
+			
+			if(this.smssProp.containsKey(Constants.RDF_FILE_TYPE)) {
+				rdfFileType = this.smssProp.getProperty(Constants.RDF_FILE_TYPE);
 			}
 
-			rc = myRepository.getConnection();
-			sc = ((SailRepositoryConnection) rc).getSailConnection();
-			vf = rc.getValueFactory();
-
-			if(fileName != null) {
-				File file = new File(Utility.normalizePath(fileName));
-				if(rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, baseURI, RDFFormat.RDFXML);
-				else if(rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
-				else if(rdfFileType.equalsIgnoreCase("BINARY")) rc.add(file, baseURI, RDFFormat.BINARY);
-				else if(rdfFileType.equalsIgnoreCase("N3")) rc.add(file, baseURI, RDFFormat.N3);
-				else if(rdfFileType.equalsIgnoreCase("NTRIPLES")) rc.add(file, baseURI, RDFFormat.NTRIPLES);
-				else if(rdfFileType.equalsIgnoreCase("TRIG")) rc.add(file, baseURI, RDFFormat.TRIG);
-				else if(rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
+			if(this.smssProp.containsKey(Constants.RDF_FILE_BASE_URI)) {
+				baseURI = this.smssProp.getProperty(Constants.RDF_FILE_BASE_URI);
 			}
-			this.connected = true;
-		} catch(RuntimeException ignored) {
-			this.connected = false;
-			logger.error(Constants.STACKTRACE, ignored);
-		} catch (RDFParseException e) {
-			this.connected = false;
-			logger.error(Constants.STACKTRACE, e);
-		} catch (RepositoryException re) {
-			this.connected = false;
-			logger.error(Constants.STACKTRACE, re);
-		} catch (IOException ioe) {
-			this.connected = false;
-			logger.error(Constants.STACKTRACE, ioe);
 		}
+
+		rc = myRepository.getConnection();
+		sc = ((SailRepositoryConnection) rc).getSailConnection();
+		vf = rc.getValueFactory();
+
+		if(fileName != null) {
+			File file = new File(Utility.normalizePath(fileName));
+			if(rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, baseURI, RDFFormat.RDFXML);
+			else if(rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
+			else if(rdfFileType.equalsIgnoreCase("BINARY")) rc.add(file, baseURI, RDFFormat.BINARY);
+			else if(rdfFileType.equalsIgnoreCase("N3")) rc.add(file, baseURI, RDFFormat.N3);
+			else if(rdfFileType.equalsIgnoreCase("NTRIPLES")) rc.add(file, baseURI, RDFFormat.NTRIPLES);
+			else if(rdfFileType.equalsIgnoreCase("TRIG")) rc.add(file, baseURI, RDFFormat.TRIG);
+			else if(rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
+		}
+		this.connected = true;
 	}
 
 

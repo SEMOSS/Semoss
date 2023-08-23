@@ -316,10 +316,9 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		database.setEngineId(this.databaseId);
 		database.setEngineName(this.databaseName);
 		database.setOWL(owlFile.getAbsolutePath());
-		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
-		prop.put("TEMP", "TRUE");
-		database.setSmssProp(prop);
-		database.open(null);
+		Properties smssProps = Utility.loadProperties(tempSmss.getAbsolutePath());
+		smssProps.put("TEMP", "TRUE");
+		database.open(smssProps);
 		if (!database.isConnected()) {
 			throw new IllegalArgumentException("Unable to connect to external database");
 		}

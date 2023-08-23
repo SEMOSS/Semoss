@@ -49,7 +49,7 @@ public class MasterDatabaseUtility {
 
 	// -----------------------------------------   RDBMS CALLS ---------------------------------------
 
-	public static void initLocalMaster() throws SQLException, IOException {
+	public static void initLocalMaster() throws Exception {
 		IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB_NAME);
 		LocalMasterOwlCreator owlCreator = new LocalMasterOwlCreator(database);
 		if(owlCreator.needsRemake()) {

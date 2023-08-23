@@ -1,7 +1,6 @@
 package prerna.auth.utils;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
@@ -220,9 +219,9 @@ public class SecurityOwlCreator {
 	
 	/**
 	 * Remake the OWL 
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	public void remakeOwl() throws IOException {
+	public void remakeOwl() throws Exception {
 		// get the existing engine and close it
 		RDFFileSesameEngine baseEngine = securityDb.getBaseDataEngine();
 		if(baseEngine != null) {
@@ -248,9 +247,9 @@ public class SecurityOwlCreator {
 	/**
 	 * Method that uses the OWLER to generate a new OWL structure
 	 * @param owlLocation
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	private void writeNewOwl(String owlLocation) throws IOException {
+	private void writeNewOwl(String owlLocation) throws Exception {
 		Owler owler = new Owler(owlLocation, DATABASE_TYPE.RDBMS);
 
 		// ENGINE

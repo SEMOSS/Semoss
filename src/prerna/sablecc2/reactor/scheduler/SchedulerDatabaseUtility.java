@@ -171,7 +171,7 @@ public class SchedulerDatabaseUtility {
 		throw new IllegalStateException("Utility class");
 	}
 
-	public static void startServer() throws IOException, SQLException {
+	public static void startServer() throws Exception {
 		schedulerDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
 		Connection conn = schedulerDb.getConnection();
 		try {

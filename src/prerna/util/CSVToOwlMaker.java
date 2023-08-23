@@ -14,8 +14,9 @@ public class CSVToOwlMaker {
 	 * @param csvFile
 	 * @param owlFileLocation
 	 * @param dbType
+	 * @throws Exception 
 	 */
-	public void makeFlatOwl(String csvFile, String owlFileLocation, IDatabaseEngine.DATABASE_TYPE dbType, boolean addUniqueId) {
+	public void makeFlatOwl(String csvFile, String owlFileLocation, IDatabaseEngine.DATABASE_TYPE dbType, boolean addUniqueId) throws Exception {
 		// get the headers + types + additional types
 		// based on the csv parsing
 		// and then generate a new OWL file
@@ -51,7 +52,13 @@ public class CSVToOwlMaker {
 		}
 	}
 
-	public static void main(String [] args) {
+	
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	
+	public static void main(String [] args) throws Exception {
 		DIHelper.getInstance().loadCoreProp("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/RDF_Map_web.prop");
 
 		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
