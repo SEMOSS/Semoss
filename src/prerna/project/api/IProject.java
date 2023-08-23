@@ -28,13 +28,13 @@
 package prerna.project.api;
 
 import java.io.Closeable;
-import java.util.Properties;
 import java.util.TreeSet;
 import java.util.Vector;
 
 import prerna.auth.AuthProvider;
 import prerna.date.SemossDate;
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
@@ -43,22 +43,31 @@ import prerna.sablecc2.reactor.frame.r.util.TCPRTranslator;
 import prerna.tcp.client.SocketClient;
 import prerna.util.SemossClassloader;
 
-public interface IProject extends Closeable {
+public interface IProject extends IEngine, Closeable {
 	
 	/**
-	 * Load the project based on the smss details
-	 * @param projectSmssFilePath
-	 * @throws Exception 
+	 * Sets the unique id for the project 
+	 * @param projectId - id to set the project 
 	 */
-	void openProject(String projectSmssFilePath) throws Exception;
+	void setProjectId(String projectId);
 	
 	/**
-	 * Get the properties file used to open the project
+	 * Get the project id
 	 * @return
 	 */
-	Properties getProp();
+	String getProjectId();
+
+	/**
+	 * Sets the name for the project 
+	 * @param projectName - name of the project 
+	 */
+	void setProjectName(String projectName);
 	
-	String getProjectSmssFilePath();
+	/**
+	 * Get the project name
+	 * @return
+	 */
+	String getProjectName();
 	
 	// gets the perspectives for this engine
 	// REFAC: Not sure we need this anymore
@@ -83,24 +92,6 @@ public interface IProject extends Closeable {
 	RDBMSNativeEngine getInsightDatabase();
 
 	/**
-	 * Get the project id
-	 * @return
-	 */
-	String getProjectId();
-
-	/**
-	 * Get the project name
-	 * @return
-	 */
-	String getProjectName();
-	
-	/**
-	 * Sets the unique id for the project 
-	 * @param projectId - id to set the project 
-	 */
-	void setProjectId(String projectId);
-	
-	/**
 	 * Set the insight database
 	 * @param insightDatabase
 	 */
@@ -112,11 +103,6 @@ public interface IProject extends Closeable {
 	 */
 	String getInsightDefinition();
 
-	/**
-	 * Delete the project from disk
-	 */
-	void deleteProject();
-	
 	/**
 	 * Compile the project specific reactors
 	 */
@@ -246,6 +232,10 @@ public interface IProject extends Closeable {
 	 */
 	TCPPyTranslator getProjectPyTranslator();
 	
+	/**
+	 * 
+	 * @return
+	 */
 	String getCompileOutput();
 	
 }

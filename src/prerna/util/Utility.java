@@ -2685,7 +2685,7 @@ public class Utility {
 			// create and open the class
 			project = (IProject) Class.forName(projectClass).newInstance();
 			project.setProjectId(projectId);
-			project.openProject(smssFilePath);
+			project.open(smssFilePath);
 
 			// set the engine in DIHelper
 			DIHelper.getInstance().setProjectProperty(projectId, project);
