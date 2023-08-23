@@ -34,7 +34,7 @@ import javax.swing.JComponent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.api.IChakraListener;
@@ -69,7 +69,7 @@ public class SaveOWLListener implements IChakraListener {
 		String engineName = ps.engine.getEngineId();
 		// get the core properties
 		ps.exportDB();
-		((AbstractDatabase)ps.engine).saveConfiguration();
+		((AbstractDatabaseEngine)ps.engine).saveConfiguration();
 	}
 	
 	/**

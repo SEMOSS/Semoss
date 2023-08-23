@@ -65,7 +65,7 @@ import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.remote.BigdataSailRemoteRepository;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -73,7 +73,7 @@ import prerna.util.Utility;
 /**
  * Connects the database to the java engine, except database (.jnl file) is sitting on a server (or the web).
  */
-public class RemoteBigdataEngine extends AbstractDatabase {
+public class RemoteBigdataEngine extends AbstractDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(RemoteBigdataEngine.class.getName());
 	

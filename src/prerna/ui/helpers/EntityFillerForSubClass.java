@@ -37,7 +37,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -63,7 +63,7 @@ public class EntityFillerForSubClass implements Runnable {
 		if (entityNS != null) {
 			sparqlQuery = sparqlQuery + entityNS + "/" + parent + "> ;}";
 			names = Utility.getVectorOfReturn(sparqlQuery, engine, true);
-			if(engine instanceof AbstractDatabase){
+			if(engine instanceof AbstractDatabaseEngine){
 				Vector<String> baseNames = Utility.getVectorOfReturn(sparqlQuery, engine.getBaseDataEngine(), true);
 				for(String name: baseNames) 
 					if(!names.contains(name)) 
