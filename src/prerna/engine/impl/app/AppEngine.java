@@ -72,4 +72,10 @@ public class AppEngine extends AbstractDatabaseEngine {
 	public void commit() {
 		LOGGER.info("There is no data to store for an AppEngine!");
 	}
+
+	@Override
+	public boolean holdsFileLocks() {
+		return false;
+	}
+	
 }

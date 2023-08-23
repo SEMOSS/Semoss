@@ -244,9 +244,10 @@ public class AbstractEngineCreator {
 
 	/**
 	 * Close the OWL engine
+	 * @throws IOException 
 	 * @throws EngineException
 	 */
-	protected void closeOWL() {
+	protected void closeOWL() throws IOException {
 		owler.closeOwl();
 	}
 	

@@ -86,8 +86,9 @@ public abstract class AbstractOwler {
 
 	/**
 	 * Closes the connection to the RDFFileSesameEngine supported by the OWL
+	 * @throws IOException 
 	 */
-	public void closeOwl() {
+	public void closeOwl() throws IOException {
 		engine.closeBaseEng();
 	}
 

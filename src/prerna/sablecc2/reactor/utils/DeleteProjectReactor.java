@@ -1,7 +1,11 @@
 package prerna.sablecc2.reactor.utils;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -19,10 +23,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.upload.UploadUtilities;
 
 public class DeleteProjectReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DeleteProjectReactor.class);
 
 	public DeleteProjectReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
@@ -74,17 +80,20 @@ public class DeleteProjectReactor extends AbstractReactor {
 	 */
 	private boolean deleteProject(IProject project) {
 		String projectId = project.getProjectId();
-		project.delete();
-
-		// remove from dihelper... this is absurd
-		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-		projectIds = projectIds.replace(";" + projectId, "");
-		// in case it was the first engine loaded
-		projectIds = projectIds.replace(projectId + ";", "");
-		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectIds);
-
+		// remove from DIHelper
+		UploadUtilities.removeProjectFromDIHelper(projectId);
+		// remove from security
 		SecurityProjectUtils.deleteProject(projectId);
+		// remove from user tracking
 		UserTrackingUtils.deleteProject(projectId);
+		
+		// now try to actually remove from disk
+		try {
+			project.delete();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
 		return true;
 	}
 

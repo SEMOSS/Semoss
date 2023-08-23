@@ -108,7 +108,11 @@ public class GenerateMetamodelLayout {
 			}
 		} finally {
 			if(rfse != null) {
-				rfse.close();
+				try {
+					rfse.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 	}
