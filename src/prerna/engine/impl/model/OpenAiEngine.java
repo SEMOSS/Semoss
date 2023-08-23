@@ -12,12 +12,13 @@ import prerna.om.Insight;
 import prerna.util.Utility;
 
 public class OpenAiEngine extends AbstractModelEngine {
-	private static final Logger logger = LogManager.getLogger(OpenAiEngine.class);
+	
+	private static final Logger classLogger = LogManager.getLogger(OpenAiEngine.class);
 
 	@Override
 	public String askQuestion(String question, String context, Insight insight, Map <String, Object> parameters) 
 	{
-		String varName = (String) generalEngineProp.get("VAR_NAME");
+		String varName = (String) smssProp.get("VAR_NAME");
 	
 		StringBuilder callMaker = new StringBuilder().append(varName).append(".ask(");
 		callMaker.append("question=\"").append(question.replace("\"", "\\\"")).append("\"");
@@ -51,7 +52,7 @@ public class OpenAiEngine extends AbstractModelEngine {
 			}
 		}
 		callMaker.append(")");
-		OpenAiEngine.logger.info("Running >>>" + callMaker.toString());
+		classLogger.info("Running >>>" + callMaker.toString());
 		Object output = pyt.runScript(callMaker.toString());
 		return (String) output;
 	}
