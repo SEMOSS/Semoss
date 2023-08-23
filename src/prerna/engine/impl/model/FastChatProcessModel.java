@@ -27,36 +27,24 @@ public class FastChatProcessModel extends AbstractModelEngine {
     private Process process;
     
 	@Override
-	public void open(String smssFilePath) {
-		// TODO Auto-generated method stub
-		// starts the model
-		try {
-			generalEngineProp = new Properties();
-			File file = new File(smssFilePath);
-			
-			generalEngineProp.load(new FileInputStream(file));
-			
-			workerAddress = DIHelper.getInstance().getProperty(Constants.WORKER_ADDRESS);
-			if(workerAddress ==null || workerAddress.trim().isEmpty()) {
-	            workerAddress = System.getenv(Constants.WORKER_ADDRESS);
-			}
-			controllerAddress = DIHelper.getInstance().getProperty(Constants.CONTROLLER_ADDRESS);
-			if(controllerAddress ==null || controllerAddress.trim().isEmpty()) {
-				controllerAddress = System.getenv(Constants.WORKER_ADDRESS);
-			}
-			modelPath = (String)generalEngineProp.get(Constants.MODEL);
-			//TODO comes from some gpu client on resources
-			gpuIdString = (String)generalEngineProp.get(Constants.GPU_ID);
-			gpuNum = (String)generalEngineProp.get(Constants.NUM_GPU);
-
-
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	public void open(Properties smssProp) throws Exception {
+		setSmssProp(smssProp);
+		
+		// WHY IS THIS DIHELPER AND NOT IN THE SMSS FILE????
+		workerAddress = DIHelper.getInstance().getProperty(Constants.WORKER_ADDRESS);
+		if(workerAddress ==null || workerAddress.trim().isEmpty()) {
+            workerAddress = System.getenv(Constants.WORKER_ADDRESS);
 		}
+		controllerAddress = DIHelper.getInstance().getProperty(Constants.CONTROLLER_ADDRESS);
+		if(controllerAddress == null || controllerAddress.trim().isEmpty()) {
+			controllerAddress = System.getenv(Constants.WORKER_ADDRESS);
+		}
+		
+		
+		modelPath = this.smssProp.getProperty(Constants.MODEL);
+		//TODO comes from some gpu client on resources
+		gpuIdString = this.smssProp.getProperty(Constants.GPU_ID);
+		gpuNum = this.smssProp.getProperty(Constants.NUM_GPU);
 	}
 
     public void startServer()  {
