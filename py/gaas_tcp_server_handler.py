@@ -170,12 +170,20 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                   try:
                     exec(command, globals(), self.my_var)
                     output = f"executed command {command.encode('utf-8')}"
-                  except Exception as e:
-                    output =  ''.join(tb.format_exception(None, e, e.__traceback__))
+                  except Exception as last_exec_error:
+                    #output =  ''.join(tb.format_exception(None, e, e.__traceback__))
+                    #error_message = tb.format_exception_only(type(last_exec_error), last_exec_error)
+                    #output = "".join(error_message)
+                    traceback = sys.exc_info()[2]                    
+                    full_trace = ['Traceback (most recent call last):\n']
+                    full_trace = full_trace + tb.format_tb(traceback)[1:] + tb.format_exception_only(type(last_exec_error), last_exec_error)
+                    output = ''.join(full_trace)
+                    is_exception = True
+                    
                 # remove all user defined variables to globals
                 for key in removal_keys:
                   del globals()[key]
-                is_exception = True
+                
           output = str(output)
           self.send_output(output, payload, operation=payload["operation"], response=True, exception=is_exception)
       
