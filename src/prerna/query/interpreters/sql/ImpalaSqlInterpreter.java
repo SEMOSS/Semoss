@@ -1428,7 +1428,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 
 	///////////////////////////////////////// test method /////////////////////////////////////////////////
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		// load in the engine
 		TestUtilityMethods.loadDIHelper();
 

@@ -1,5 +1,6 @@
 package prerna.engine.impl.app;
 
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -7,7 +8,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.AbstractDatabase;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 @Deprecated // this is replaced by projects
 public class AppEngine extends AbstractDatabase {
@@ -17,12 +17,11 @@ public class AppEngine extends AbstractDatabase {
 	/**
 	 * Overriding the default behavior
 	 * Do not need to do anything except load the insights database
+	 * @throws Exception 
 	 */
 	@Override
-	public void open(String propFile) {
-		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		setSmssFilePath(propFile);
-		
+	public void open(Properties smssProp) {
+		setSmssProp(smssProp);
 		// get id & name
 		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);

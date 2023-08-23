@@ -34,8 +34,9 @@ public class ProjectUtils {
 	 * Generate an empty insight database
 	 * @param appName
 	 * @return
+	 * @throws Exception 
 	 */
-	public static RDBMSNativeEngine generateInsightsDatabase(String projectId, String projectName) {
+	public static RDBMSNativeEngine generateInsightsDatabase(String projectId, String projectName) throws Exception {
 		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if(rdbmsTypeStr == null) {
 			// default will be h2
@@ -43,18 +44,14 @@ public class ProjectUtils {
 		}
 		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 
-		Properties prop = new Properties();
-
+		Properties insightSmssProp = new Properties();
 		/*
 		 * This must be either H2 or SQLite
 		 */
-		prop.putAll(getNewInsightDatabaseConnectionPropValues(rdbmsType, projectId, projectName));
+		insightSmssProp.putAll(getNewInsightDatabaseConnectionPropValues(rdbmsType, projectId, projectName));
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
-		insightEngine.setSmssProp(prop);
-		// opening will work since we directly injected the prop map
-		// this way i do not need to write it to disk and then recreate it later
-		insightEngine.open(null);
 		insightEngine.setBasic(true);
+		insightEngine.open(insightSmssProp);
 
 		runInsightCreateTableQueries(insightEngine);
 		return insightEngine;
@@ -158,8 +155,6 @@ public class ProjectUtils {
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put(Constants.DRIVER, rdbmsType.getDriver());
 		retMap.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
-		retMap.put("TEMP", "TRUE");
-		
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
 			baseFolder += Constants.PROJECT_FOLDER + DIR_SEPARATOR;
@@ -200,8 +195,9 @@ public class ProjectUtils {
 	 * Generate an empty insight database
 	 * @param appName
 	 * @return
+	 * @throws Exception 
 	 */
-	public static RDBMSNativeEngine generateInsightsDatabase(RdbmsTypeEnum rdbmsType, String folderLocation) {
+	public static RDBMSNativeEngine generateInsightsDatabase(RdbmsTypeEnum rdbmsType, String folderLocation) throws Exception {
 		if(rdbmsType == null) {
 			String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 			if(rdbmsTypeStr == null) {
@@ -211,18 +207,14 @@ public class ProjectUtils {
 			rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 		}
 		
-		Properties prop = new Properties();
-
+		Properties insightSmssProp = new Properties();
 		/*
 		 * This must be either H2 or SQLite
 		 */
-		prop.putAll(getNewInsightDatabaseConnectionPropValues(rdbmsType, folderLocation));
+		insightSmssProp.putAll(getNewInsightDatabaseConnectionPropValues(rdbmsType, folderLocation));
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
-		insightEngine.setSmssProp(prop);
-		// opening will work since we directly injected the prop map
-		// this way i do not need to write it to disk and then recreate it later
-		insightEngine.open(null);
 		insightEngine.setBasic(true);
+		insightEngine.open(insightSmssProp);
 
 		runInsightCreateTableQueries(insightEngine);
 		return insightEngine;

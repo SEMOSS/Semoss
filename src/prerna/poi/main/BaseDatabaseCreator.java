@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -30,9 +31,9 @@ public class BaseDatabaseCreator {
 	private final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
 	
 	//open without connection
-	public BaseDatabaseCreator(String owlFile) {
+	public BaseDatabaseCreator(String owlFile) throws Exception {
 		baseEng = new RDFFileSesameEngine();
-		baseEng.open(null);
+		baseEng.open(new Properties());
 		baseEng.setFileName(owlFile);
 	}
 

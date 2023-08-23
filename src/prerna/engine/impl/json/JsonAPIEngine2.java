@@ -1,7 +1,6 @@
 package prerna.engine.impl.json;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Hashtable;
 
@@ -29,7 +28,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	// that uses jmes path instead to aggregate results
 	// evrything remains the same the way you get the output changes
 	
-	private static final Logger logger = LogManager.getLogger(JsonAPIEngine2.class);
+	private static final Logger classLogger = LogManager.getLogger(JsonAPIEngine2.class);
 
 	ObjectMapper mapper = null;
 	JsonNode input = null;
@@ -39,25 +38,21 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	public static final String COUNT = "COUNT";
 
 	@Override
-	protected void loadDocument()
-	{
+	protected void loadDocument() {
 		try {
 			getMapper();
 			if(smssProp.containsKey("input_type") && ((String)smssProp.get("input_type")).equalsIgnoreCase("file"))
 				input = mapper.readTree(new File(baseFolder + "/" + Utility.normalizePath(smssProp.getProperty("input_url"))));
-		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
-
 	}
 
-	private ObjectMapper getMapper()
-	{
-		if(this.mapper == null)
+	private ObjectMapper getMapper() {
+		if(this.mapper == null) {
 			mapper = new ObjectMapper();
-
+		}
+		
 		return mapper;
 	}
 	
@@ -69,7 +64,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			try {
 				retNode = mapper.readTree(json);
 			} catch (Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
+				classLogger.error(Constants.STACKTRACE, ex);
 			}
 		}
 		return retNode;
@@ -88,18 +83,13 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		// the other elements is what we need to select
 		// the only thing to remember is repeater here
 		// the prop should have the root
-
 		
 		// jackson will create this
 		JsonNode data = null;
 		
-		
 		String root = smssProp.getProperty(ROOT) + "[].";
-		
 		String selects = null;
-		
 		StringBuffer composer = new StringBuffer("[");
-
 		String [] headers  = null;
 		if(repeaterHeader != null) {
 			headers = new String[jsonPaths.length + 1];
@@ -137,21 +127,17 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 				headers[pathIndex] = jsonHeader;
 			}
 		}
-		
 		composer.append("]");
 		selects = composer.toString();
 
 		// add the last header which is repeater
-		if(repeaterHeader != null)
+		if(repeaterHeader != null) {
 			headers[jsonPaths.length] = repeaterHeader;
-		
+		}
 		
 		// the result is always array node of array node
 		// need to find a way where I can fill this array node
-		
-		
 		int numRows = 0;
-		
 		int totalRows = 0;
 
 		ArrayNode input = null;
@@ -211,20 +197,16 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		if(smssProp.containsKey("SEPARATOR"))
 			retHash.put("SEPARATOR", smssProp.get("SEPARATOR"));
 
-		logger.info("Output..  " + Utility.cleanLogString(data.toString()));
+		classLogger.info("Output..  " + Utility.cleanLogString(data.toString()));
 
 		return retHash;
 	}
 	
 	@Override
-	protected String [] getTypes(Object data2)
-	{
-		
+	protected String [] getTypes(Object data2) {
 		String [] types = new String[1];
-		
 		if( !(data2 instanceof NullNode))
 		{
-			
 			ArrayNode mainData = (ArrayNode)data2;
 			ArrayNode data = null;
 			if(mainData.size() > 0 && mainData.get(0) instanceof ArrayNode)

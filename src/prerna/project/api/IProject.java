@@ -48,8 +48,9 @@ public interface IProject extends Closeable {
 	/**
 	 * Load the project based on the smss details
 	 * @param projectSmssFilePath
+	 * @throws Exception 
 	 */
-	void openProject(String projectSmssFilePath);
+	void openProject(String projectSmssFilePath) throws Exception;
 	
 	/**
 	 * Get the properties file used to open the project

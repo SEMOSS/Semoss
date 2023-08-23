@@ -126,216 +126,182 @@ public class RDBMSNativeEngine extends AbstractDatabase implements IRDBMSEngine 
 	private String fileCreateString = null;
 
 	@Override
-	public void open(String smssFilePath)
-	{
-		if(smssFilePath == null && this.smssProp == null){
-			if(dataSource != null){
-				try{
-					this.engineConn = getConnection();
-					this.engineConnected = true;
-					if(this.autoCommit != null) {
-						this.engineConn.setAutoCommit(this.autoCommit);
-					}
-					if(this.transactionIsolationType > -1) {
-						this.engineConn.setTransactionIsolation(this.transactionIsolationType);
-					}
-				} catch (Exception e){
-					classLogger.error("error RDBMS opening database", e);
-				}
-			} else {
-				classLogger.info("using engine connection");
-			}
-		} else {
-			// will mostly be sent the connection string and I will connect here
-			// I need to see if the connection pool has been initiated
-			// if not initiate the connection pool
-			if(this.smssProp == null) {
-				setSmssFilePath(smssFilePath);
-			} else {
-				setSmssProp(this.smssProp);
-			}
-			// if this is not a temp then open the super
-			if(!this.smssProp.containsKey("TEMP")) { 
-				// not temp, in which case, this engine has a insights rdbms and an owl
-				// so call super to open them and set them in the engine
-				super.open(smssFilePath);
-			}
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+		// grab the values from the prop file 
+		String dbTypeString = this.smssProp.getProperty(Constants.RDBMS_TYPE);
+		if(dbTypeString == null) {
+			dbTypeString = this.smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
+		}
+		this.driver = this.smssProp.getProperty(Constants.DRIVER);
+		// get the dbType from the input or from the driver itself
+		this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(this.driver);
+		if(this.dbType == null) {
+			this.dbType = RdbmsTypeEnum.H2_DB;
+		}
+		// make the query util first
+		// since this will help with getting the correct keys for the connection
+		this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType);
 
-			// grab the values from the prop file 
-			String dbTypeString = smssProp.getProperty(Constants.RDBMS_TYPE);
-			if(dbTypeString == null) {
-				dbTypeString = smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
-			}
-			this.driver = smssProp.getProperty(Constants.DRIVER);
-			// get the dbType from the input or from the driver itself
-			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(this.driver);
-			if(this.dbType == null) {
-				this.dbType = RdbmsTypeEnum.H2_DB;
-			}
-			// make the query util first
-			// since this will help with getting the correct keys for the connection
-			this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType);
+		// get the database so we have it - can be used for filtering tables/columns
+		this.database = this.smssProp.getProperty(AbstractSqlQueryUtil.DATABASE);
+		
+		// get the schema so we have it - can be used for filtering tables/columns
+		this.schema = this.smssProp.getProperty(AbstractSqlQueryUtil.SCHEMA);
+		
+		// grab the username/password
+		// keys can be username/password
+		// but some will have it as accessKey/secretKey
+		// so accounting for that here
+		this.userName = this.smssProp.getProperty(queryUtil.getConnectionUserKey());
+		if(smssFilePath != null) {
+			this.password = decryptPass(smssFilePath, false);
+		} 
+		if(this.password == null) {
+			this.password = this.smssProp.containsKey(queryUtil.getConnectionPasswordKey()) ? this.smssProp.getProperty(queryUtil.getConnectionPasswordKey()) : "";
+		}
 
-			// get the database so we have it - can be used for filtering tables/columns
-			this.database = smssProp.getProperty(AbstractSqlQueryUtil.DATABASE);
-			
-			// get the schema so we have it - can be used for filtering tables/columns
-			this.schema = smssProp.getProperty(AbstractSqlQueryUtil.SCHEMA);
-			
-			// grab the username/password
-			// keys can be username/password
-			// but some will have it as accessKey/secretKey
-			// so accounting for that here
-			this.userName = smssProp.getProperty(queryUtil.getConnectionUserKey());
-			if(smssFilePath != null) {
-				this.password = decryptPass(smssFilePath, false);
-			} 
-			if(this.password == null) {
-				this.password = smssProp.containsKey(queryUtil.getConnectionPasswordKey()) ? smssProp.getProperty(queryUtil.getConnectionPasswordKey()) : "";
-			}
+		// grab the connection url
+		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
+		if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
+			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
+			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
+		}
+		this.originalConnectionURL = this.connectionURL;
+		
+		// make a check to see if it is asking to use file
+		boolean useFile = false;
+		if(this.smssProp.containsKey(USE_FILE)) {
+			useFile = Boolean.valueOf(this.smssProp.getProperty(USE_FILE));
+		}
 
-			// grab the connection url
-			this.connectionURL = smssProp.getProperty(Constants.CONNECTION_URL);
-			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
-				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
-				smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
-			}
-			this.originalConnectionURL = this.connectionURL;
-			
-			// make a check to see if it is asking to use file
-			boolean useFile = false;
-			if(smssProp.containsKey(USE_FILE)) {
-				useFile = Boolean.valueOf(smssProp.getProperty(USE_FILE));
-			}
+		// see if connection pooling
+		this.useConnectionPooling = Boolean.valueOf(this.smssProp.getProperty(Constants.USE_CONNECTION_POOLING));
 
-			// see if connection pooling
-			this.useConnectionPooling = Boolean.valueOf(smssProp.getProperty(Constants.USE_CONNECTION_POOLING));
-
-			// fetch size
-			if(smssProp.getProperty(Constants.FETCH_SIZE) != null) {
-				String strFetchSize = smssProp.getProperty(Constants.FETCH_SIZE);
-				try {
-					this.fetchSize = Integer.parseInt(strFetchSize);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the fetch size");
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			// connection query timeout
-			if(smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT) != null) {
-				String queryTimeoutStr = smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT);
-				try {
-					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the query timeout");
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			// auto commit connection 
-			if(smssProp.getProperty(Constants.AUTO_COMMIT) != null) {
-				this.autoCommit = Boolean.parseBoolean(smssProp.getProperty(Constants.AUTO_COMMIT)+"");
-			}
-			// connection transaction type
-			if(smssProp.getProperty(Constants.TRANSACTION_TYPE) != null) {
-				this.transactionIsolationType = AbstractSqlQueryUtil.getConnectionTypeValueFromString(smssProp.getProperty(Constants.TRANSACTION_TYPE)+"");
-			}
-			
-			// leak detection threshold
-			if(smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
-				String leakDetectionStr = smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS);
-				try {
-					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the leak detection threshold");
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			// idle timeout
-			if(smssProp.getProperty(Constants.IDLE_TIMEOUT) != null) {
-				String idleTimeoutStr = smssProp.getProperty(Constants.IDLE_TIMEOUT);
-				try {
-					this.idelTimeout = Long.parseLong(idleTimeoutStr);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the idle timeout");
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			// pool min size
-			if(smssProp.getProperty(Constants.POOL_MIN_SIZE) != null) {
-				String strMinPoolSize = smssProp.getProperty(Constants.POOL_MIN_SIZE);
-				try {
-					this.poolMinSize = Integer.parseInt(strMinPoolSize);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the min pool size");
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			// pool max size
-			if(smssProp.getProperty(Constants.POOL_MAX_SIZE) != null) {
-				String strMaxPoolSize = smssProp.getProperty(Constants.POOL_MAX_SIZE);
-				try {
-					this.poolMaxSize = Integer.parseInt(strMaxPoolSize);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the max pool size");
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-
+		// fetch size
+		if(this.smssProp.getProperty(Constants.FETCH_SIZE) != null) {
+			String strFetchSize = this.smssProp.getProperty(Constants.FETCH_SIZE);
 			try {
-				// account for files
-				if(useFile) {
-					// also update the connection url
-					Hashtable<String, String> paramHash = new Hashtable<String, String>();
-					String dbName = this.fileDB.replace(".csv", "").replace(".tsv", "");
-					paramHash.put("database", dbName);
-					this.connectionURL = Utility.fillParam2(connectionURL, paramHash);
-					
-					// set the types
-					Vector<String> concepts = this.getConcepts();
-					this.fileConceptAndType = new HashMap<>();
-					for(int conceptIndex = 0;conceptIndex < concepts.size(); conceptIndex++) {
-						List<String> propList = getPropertyUris4PhysicalUri(concepts.get(conceptIndex));
-						String [] propArray = propList.toArray(new String[propList.size()]);
-						Map<String, String> typeMap = getDataTypes(propArray);
-						this.fileConceptAndType.putAll(typeMap);
-					}
-					
-					this.fileCreateString = RdbmsQueryBuilder.createTableFromFile(this.fileDB, this.fileConceptAndType);
-
-					// this makes the connection and creates the table
-					makeConnection(dbType.getDriver(), this.userName, this.password, this.connectionURL, this.fileCreateString);
-				}
-				
-				// init - example of this is H2Server where we spin up and have a new connection url
-				String initUrl = init(this.originalConnectionURL);
-				if(initUrl != null) {
-					this.connectionURL = initUrl;
-				}
-				
-				// update the query utility values
-				this.queryUtil.setConnectionUrl(this.connectionURL);
-				this.queryUtil.setConnectionDetailsFromSMSS(smssProp);
-				// if we are connection pooling
-				if(useConnectionPooling) {
-					this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
-					setDataSourceProperties(this.dataSource);
-					this.datasourceConnected = true;
-					classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				} else {
-					this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, smssProp);
-					if(this.autoCommit != null) {
-						this.engineConn.setAutoCommit(this.autoCommit);
-					}
-					if(this.transactionIsolationType > -1) {
-						this.engineConn.setTransactionIsolation(this.transactionIsolationType);
-					}
-					this.queryUtil.enhanceConnection(this.engineConn);
-					classLogger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				}
-				this.engineConnected = true;
-			} catch (SQLException e) {
+				this.fetchSize = Integer.parseInt(strFetchSize);
+			} catch(Exception e) {
+				System.out.println("Error occurred trying to parse and get the fetch size");
 				classLogger.error(Constants.STACKTRACE, e);
 			}
+		}
+		// connection query timeout
+		if(this.smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT) != null) {
+			String queryTimeoutStr = this.smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT);
+			try {
+				this.queryTimeout = Integer.parseInt(queryTimeoutStr);
+			} catch(Exception e) {
+				System.out.println("Error occurred trying to parse and get the query timeout");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		// auto commit connection 
+		if(this.smssProp.getProperty(Constants.AUTO_COMMIT) != null) {
+			this.autoCommit = Boolean.parseBoolean(this.smssProp.getProperty(Constants.AUTO_COMMIT)+"");
+		}
+		// connection transaction type
+		if(this.smssProp.getProperty(Constants.TRANSACTION_TYPE) != null) {
+			this.transactionIsolationType = AbstractSqlQueryUtil.getConnectionTypeValueFromString(this.smssProp.getProperty(Constants.TRANSACTION_TYPE)+"");
+		}
+		
+		// leak detection threshold
+		if(this.smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
+			String leakDetectionStr = this.smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS);
+			try {
+				this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
+			} catch(Exception e) {
+				System.out.println("Error occurred trying to parse and get the leak detection threshold");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		// idle timeout
+		if(this.smssProp.getProperty(Constants.IDLE_TIMEOUT) != null) {
+			String idleTimeoutStr = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+			try {
+				this.idelTimeout = Long.parseLong(idleTimeoutStr);
+			} catch(Exception e) {
+				System.out.println("Error occurred trying to parse and get the idle timeout");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		// pool min size
+		if(this.smssProp.getProperty(Constants.POOL_MIN_SIZE) != null) {
+			String strMinPoolSize = this.smssProp.getProperty(Constants.POOL_MIN_SIZE);
+			try {
+				this.poolMinSize = Integer.parseInt(strMinPoolSize);
+			} catch(Exception e) {
+				System.out.println("Error occurred trying to parse and get the min pool size");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		// pool max size
+		if(this.smssProp.getProperty(Constants.POOL_MAX_SIZE) != null) {
+			String strMaxPoolSize = this.smssProp.getProperty(Constants.POOL_MAX_SIZE);
+			try {
+				this.poolMaxSize = Integer.parseInt(strMaxPoolSize);
+			} catch(Exception e) {
+				System.out.println("Error occurred trying to parse and get the max pool size");
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		try {
+			// account for files
+			if(useFile) {
+				// also update the connection url
+				Hashtable<String, String> paramHash = new Hashtable<String, String>();
+				String dbName = this.fileDB.replace(".csv", "").replace(".tsv", "");
+				paramHash.put("database", dbName);
+				this.connectionURL = Utility.fillParam2(connectionURL, paramHash);
+				
+				// set the types
+				Vector<String> concepts = this.getConcepts();
+				this.fileConceptAndType = new HashMap<>();
+				for(int conceptIndex = 0;conceptIndex < concepts.size(); conceptIndex++) {
+					List<String> propList = getPropertyUris4PhysicalUri(concepts.get(conceptIndex));
+					String [] propArray = propList.toArray(new String[propList.size()]);
+					Map<String, String> typeMap = getDataTypes(propArray);
+					this.fileConceptAndType.putAll(typeMap);
+				}
+				
+				this.fileCreateString = RdbmsQueryBuilder.createTableFromFile(this.fileDB, this.fileConceptAndType);
+
+				// this makes the connection and creates the table
+				makeConnection(dbType.getDriver(), this.userName, this.password, this.connectionURL, this.fileCreateString);
+			}
+			
+			// init - example of this is H2Server where we spin up and have a new connection url
+			String initUrl = init(this.originalConnectionURL);
+			if(initUrl != null) {
+				this.connectionURL = initUrl;
+			}
+			
+			// update the query utility values
+			this.queryUtil.setConnectionUrl(this.connectionURL);
+			this.queryUtil.setConnectionDetailsFromSMSS(this.smssProp);
+			// if we are connection pooling
+			if(useConnectionPooling) {
+				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
+				setDataSourceProperties(this.dataSource);
+				this.datasourceConnected = true;
+				classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			} else {
+				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.smssProp);
+				if(this.autoCommit != null) {
+					this.engineConn.setAutoCommit(this.autoCommit);
+				}
+				if(this.transactionIsolationType > -1) {
+					this.engineConn.setTransactionIsolation(this.transactionIsolationType);
+				}
+				this.queryUtil.enhanceConnection(this.engineConn);
+				classLogger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			}
+			this.engineConnected = true;
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}	
 

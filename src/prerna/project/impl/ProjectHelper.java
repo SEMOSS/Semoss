@@ -200,8 +200,9 @@ public class ProjectHelper {
 	 * Load the insights rdbms engine using the main engine properties
 	 * @param mainEngineProp
 	 * @return
+	 * @throws Exception 
 	 */
-	public static RDBMSNativeEngine loadInsightsEngine(Properties mainEngineProp, Logger logger) {
+	public static RDBMSNativeEngine loadInsightsEngine(Properties mainEngineProp, Logger logger) throws Exception {
 		String projectId = mainEngineProp.getProperty(Constants.PROJECT);
 		String projectName = mainEngineProp.getProperty(Constants.PROJECT_ALIAS);
 
@@ -219,8 +220,9 @@ public class ProjectHelper {
 	 * @param insightDatabaseLoc
 	 * @param logger
 	 * @return
+	 * @throws Exception 
 	 */
-	private static RDBMSNativeEngine loadInsightsDatabase(String projectId, String projectName, RdbmsTypeEnum rdbmsInsightsType, String insightDatabaseLoc, Logger logger) {
+	private static RDBMSNativeEngine loadInsightsDatabase(String projectId, String projectName, RdbmsTypeEnum rdbmsInsightsType, String insightDatabaseLoc, Logger logger) throws Exception {
 		if(insightDatabaseLoc == null || !new File(insightDatabaseLoc).exists()) {
 			// make a new database
 			RDBMSNativeEngine insightsRdbms = (RDBMSNativeEngine) ProjectUtils.generateInsightsDatabase(projectId, projectName);
@@ -229,9 +231,9 @@ public class ProjectHelper {
 			return insightsRdbms;
 		}
 		RDBMSNativeEngine insightsRdbms = new RDBMSNativeEngine();
-		Properties prop = new Properties();
-		prop.put(Constants.DRIVER, rdbmsInsightsType.getDriver());
-		prop.put(Constants.RDBMS_TYPE, rdbmsInsightsType.getLabel());
+		Properties insightSmssProp = new Properties();
+		insightSmssProp.put(Constants.DRIVER, rdbmsInsightsType.getDriver());
+		insightSmssProp.put(Constants.RDBMS_TYPE, rdbmsInsightsType.getLabel());
 		String connURL = null;
 		logger.info("Insight rdbms database location is " + Utility.cleanLogString(insightDatabaseLoc));
 
@@ -248,19 +250,17 @@ public class ProjectHelper {
 
 		if(rdbmsInsightsType == RdbmsTypeEnum.SQLITE) {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":" + insightDatabaseLoc;
-			prop.put(Constants.USERNAME, "");
-			prop.put(Constants.PASSWORD, pass);
+			insightSmssProp.put(Constants.USERNAME, "");
+			insightSmssProp.put(Constants.PASSWORD, pass);
 		} else {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":nio:" + insightDatabaseLoc.replace(".mv.db", "");
-			prop.put(Constants.USERNAME, "sa");
-			prop.put(Constants.PASSWORD, pass);
+			insightSmssProp.put(Constants.USERNAME, "sa");
+			insightSmssProp.put(Constants.PASSWORD, pass);
 		}
 		logger.info("Insight rdbms database url is " + Utility.cleanLogString(connURL));
-		prop.put(Constants.CONNECTION_URL, connURL);
-		prop.put("TEMP", true);
-		
-		insightsRdbms.setSmssProp(prop);
-		insightsRdbms.open(null);
+		insightSmssProp.put(Constants.CONNECTION_URL, connURL);
+		insightsRdbms.setBasic(true);
+		insightsRdbms.open(insightSmssProp);
 		insightsRdbms.setEngineId(projectId + "_INSIGHTS_RDBMS");
 
 		AbstractSqlQueryUtil queryUtil = insightsRdbms.getQueryUtil();
@@ -397,10 +397,7 @@ public class ProjectHelper {
 			//			// TODO: EVENTUALLY WE WILL DELETE THIS
 			//			// TODO: EVENTUALLY WE WILL DELETE THIS
 			//			InsightsDatabaseUpdater3CacheableColumn.update(engineId, insightsRdbms);
-
 		}
-
-		insightsRdbms.setBasic(true);
 		return insightsRdbms;
 	}
 
