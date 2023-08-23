@@ -74,7 +74,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 	 */
 	private boolean deleteProject(IProject project) {
 		String projectId = project.getProjectId();
-		project.deleteProject();
+		project.delete();
 
 		// remove from dihelper... this is absurd
 		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);

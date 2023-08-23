@@ -105,7 +105,7 @@ public class Project implements IProject {
 	private String projectGitRepo;
 	private AuthProvider gitProvider;
 	
-	private Properties prop = null;
+	private Properties smssProp = null;
 	private String projectSmssFilePath = null;
 	
 	private String projectBaseFolder = null;
@@ -151,13 +151,18 @@ public class Project implements IProject {
 	private int port = -1;
 	
 	@Override
-	public void openProject(String projectSmssFilePath) throws Exception {
-		this.projectSmssFilePath = projectSmssFilePath;
-		this.prop = Utility.loadProperties(projectSmssFilePath);
-		this.projectId = prop.getProperty(Constants.PROJECT);
-		this.projectName = prop.getProperty(Constants.PROJECT_ALIAS);
+	public void open(String smssFilePath) throws Exception {
+		setSmssFilePath(smssFilePath);
+		open(Utility.loadProperties(projectSmssFilePath));
+	}
+	
+	@Override
+	public void open(Properties smssProp) throws Exception {
+		setSmssProp(smssProp);
+		this.projectId = this.smssProp.getProperty(Constants.PROJECT);
+		this.projectName = this.smssProp.getProperty(Constants.PROJECT_ALIAS);
 		
-		this.isAsset = Boolean.parseBoolean(prop.getProperty(Constants.IS_ASSET_APP));
+		this.isAsset = Boolean.parseBoolean(this.smssProp.getProperty(Constants.IS_ASSET_APP));
 		if(this.isAsset) {
 			this.projectBaseFolder = AssetUtility.getUserAssetAndWorkspaceBaseFolder(this.projectName, this.projectId);
 			this.projectVersionFolder = AssetUtility.getUserAssetAndWorkspaceVersionFolder(this.projectName, this.projectId);
@@ -169,9 +174,9 @@ public class Project implements IProject {
 			this.projectPortalFolder = AssetUtility.getProjectPortalsFolder(this.projectName, this.projectId);
 		}
 		
-		if(prop.containsKey(Constants.PROJECT_GIT_PROVIDER) && prop.containsKey(Constants.PROJECT_GIT_CLONE)) {
-			this.projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
-			this.projectGitRepo = prop.getProperty(Constants.PROJECT_GIT_CLONE);
+		if(this.smssProp.containsKey(Constants.PROJECT_GIT_PROVIDER) && this.smssProp.containsKey(Constants.PROJECT_GIT_CLONE)) {
+			this.projectGitProvider = this.smssProp.getProperty(Constants.PROJECT_GIT_PROVIDER);
+			this.projectGitRepo = this.smssProp.getProperty(Constants.PROJECT_GIT_CLONE);
 			this.gitProvider = AuthProvider.getProviderFromString(projectGitProvider);
 
 			if(!AssetUtility.isGit(projectVersionFolder)) {
@@ -202,13 +207,23 @@ public class Project implements IProject {
 	}
 	
 	@Override
-	public Properties getProp() {
-		return this.prop;
+	public Properties getSmssProp() {
+		return this.smssProp;
 	}
 	
 	@Override
-	public String getProjectSmssFilePath() {
+	public void setSmssProp(Properties smssProp) {
+		this.smssProp = smssProp;
+	}
+	
+	@Override
+	public String getSmssFilePath() {
 		return this.projectSmssFilePath;
+	}
+	
+	@Override
+	public void setSmssFilePath(String smssFilePath) {
+		this.projectSmssFilePath = smssFilePath;
 	}
 	
 	@Override
@@ -227,12 +242,12 @@ public class Project implements IProject {
 	 */
 	protected void loadInsightsRdbms() throws Exception {
 		// load the rdbms insights db
-		this.insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(this.prop).getAbsolutePath();
+		this.insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(this.smssProp).getAbsolutePath();
 		
 		// if it is not defined directly in the smss
 		// we will not create an insights database
 		if(insightDatabaseLoc != null) {
-			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.prop, classLogger);
+			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.smssProp, classLogger);
 		}
 	}
 	
@@ -261,6 +276,7 @@ public class Project implements IProject {
 		return this.projectId;
 	}
 
+	@Override
 	public void setProjectName(String projectName) {
 		this.projectName = projectName;
 	}
@@ -365,7 +381,7 @@ public class Project implements IProject {
 	}
 
 	@Override
-	public void deleteProject() {
+	public void delete() {
 		String folderName = SmssUtilities.getUniqueName(this.projectName, this.projectId);
 		classLogger.debug("Closing " + folderName);
 		this.close();
@@ -989,7 +1005,7 @@ public class Project implements IProject {
 		// find what the tomcat deploy directory is
 		// no easy way to find other than may be find the classpath ? - will instrument this through RDF Map
 		if(publicHomeFilePath != null) {
-			boolean enableForProject = (prop != null && Boolean.parseBoolean(prop.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
+			boolean enableForProject = (smssProp != null && Boolean.parseBoolean(smssProp.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false")+ ""));
 			SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
 			boolean outOfDate = false;
 			if(lastPublishedDateInSecurity != null && this.lastPortalPublishDate != null) {
@@ -1019,8 +1035,8 @@ public class Project implements IProject {
 					// first smss file
 					// second rdf map
 					boolean copy = true;
-					if(prop != null && prop.getProperty(Settings.COPY_PROJECT) != null) {
-						copy = Boolean.parseBoolean(prop.getProperty(Settings.COPY_PROJECT) + "");
+					if(smssProp != null && smssProp.getProperty(Settings.COPY_PROJECT) != null) {
+						copy = Boolean.parseBoolean(smssProp.getProperty(Settings.COPY_PROJECT) + "");
 					} else if(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) != null) {
 						copy = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.COPY_PROJECT) + "");	
 					}
@@ -1547,7 +1563,7 @@ public class Project implements IProject {
 		{
 			boolean nativePyServer = false;
 			// first is it defined in smss
-			String nativePyServerStr = this.prop.getProperty(Settings.NATIVE_PY_SERVER);
+			String nativePyServerStr = this.smssProp.getProperty(Settings.NATIVE_PY_SERVER);
 			// if not, grab from rdf map
 			if(nativePyServerStr == null || (nativePyServerStr=nativePyServerStr.trim()).isEmpty()) {
 				nativePyServerStr = DIHelper.getInstance().getProperty(Settings.NATIVE_PY_SERVER);
@@ -1556,7 +1572,7 @@ public class Project implements IProject {
 				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
 			}
 			
-			classLogger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.prop));
+			classLogger.info("Starting TCP Server for Project = " + SmssUtilities.getUniqueName(this.smssProp));
 			if(port != -1) {
 				this.port = port;
 			} else {
@@ -1592,8 +1608,8 @@ public class Project implements IProject {
 				if(nativePyServer) {
 					
 					String timeout = "15";
-					if(this.prop.containsKey(Settings.TIMEOUT))
-						timeout = this.prop.getProperty(Settings.TIMEOUT);
+					if(this.smssProp.containsKey(Settings.TIMEOUT))
+						timeout = this.smssProp.getProperty(Settings.TIMEOUT);
 					Object[] ret = Utility.startTCPServerNativePy(this.tcpServerDirectory, this.port+"", timeout);
 					this.tcpServerProcess = (Process) ret[0];
 					this.tcpServerProcessPrefix = (String) ret[1];
@@ -1606,7 +1622,7 @@ public class Project implements IProject {
 			
 			// instrumenting the client class also now
 			// first is it defined in smss
-			String pyClient = this.prop.getProperty(Settings.TCP_CLIENT);
+			String pyClient = this.smssProp.getProperty(Settings.TCP_CLIENT);
 			// if not, grab from rdf map
 			if(pyClient == null || (pyClient=pyClient.trim()).isEmpty()) {
 				pyClient = DIHelper.getInstance().getProperty(Settings.TCP_CLIENT);
@@ -1654,6 +1670,49 @@ public class Project implements IProject {
 		}
 		
 		return finalOutput;
+	}
+	
+	//////////////////////////////////////////////////////////////////
+	
+	/*
+	 * METHODS FROM IEngine that redirect to IProject methods
+	 */
+
+	@Override
+	public void setEngineId(String engineId) {
+		setProjectId(engineId);
+	}
+
+	@Override
+	public String getEngineId() {
+		return getProjectId();
+	}
+
+	@Override
+	public void setEngineName(String engineName) {
+		setProjectName(engineName);
+	}
+
+	@Override
+	public String getEngineName() {
+		return getProjectName();
+	}
+
+	@Override
+	public Properties getOrigSmssProp() {
+		return this.smssProp;
+	}
+
+	@Override
+	public String getCatalogType() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }
