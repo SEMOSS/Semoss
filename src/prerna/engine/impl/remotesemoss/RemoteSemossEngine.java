@@ -2,11 +2,11 @@ package prerna.engine.impl.remotesemoss;
 
 import java.util.Vector;
 
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
 
 // TODO >>>timb: REST - either replace with rest remote or remove this
-public class RemoteSemossEngine extends AbstractDatabase {
+public class RemoteSemossEngine extends AbstractDatabaseEngine {
 
 	private String remoteAddress;
 	

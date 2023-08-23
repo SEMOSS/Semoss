@@ -658,17 +658,14 @@ public class PixelUnit {
 			if (appId != null) {
 				IDatabaseEngine engine = Utility.getDatabase(appId);
 				if (isRelationalDatabase(engine)) {
-
 					// Cast to RDBMS to grab the connection details
 					RDBMSNativeEngine rdbms = (RDBMSNativeEngine) engine;
-
 					try {
 						String connectionUrl = rdbms.getConnectionMetadata().getURL();
 						String driver = rdbms.getDbType().getDriver();
 
 						// Close the db
 						rdbms.close();
-
 						// Clean insert
 						IDataSet dataSet = new FlatXmlDataSetBuilder()
 								.build(new File(getXMLFileForAlias(Utility.normalizePath(alias)).toAbsolutePath().toString()));
@@ -681,8 +678,6 @@ public class PixelUnit {
 						classLogger.warn("Cannot clean database with the alias " + alias + ", an exception has occurred.",
 								e);
 						testDatabasesAreClean = false;
-					} finally {
-						rdbms.open(null);
 					}
 				} else {
 					classLogger.warn("Cannot clean database with the alias " + alias + ", database is not an RDBMS.");

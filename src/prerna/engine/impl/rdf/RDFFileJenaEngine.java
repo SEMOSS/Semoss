@@ -52,7 +52,7 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.util.FileManager;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -60,7 +60,7 @@ import prerna.util.Utility;
 /**
  * References the RDF source and uses the Jena API to query a database stored in an RDF file (.jnl file).
  */
-public class RDFFileJenaEngine extends AbstractDatabase {
+public class RDFFileJenaEngine extends AbstractDatabaseEngine {
 	
 	static final Logger classLogger = LogManager.getLogger(RDFFileJenaEngine.class);
 

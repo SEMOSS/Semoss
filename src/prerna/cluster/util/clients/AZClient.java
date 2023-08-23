@@ -35,7 +35,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
-import prerna.engine.impl.AbstractDatabase;
+import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
@@ -220,7 +220,7 @@ public class AZClient extends AbstractCloudClient {
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX +databaseId+"/"+ owlFile.getName(), appFolder);
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX + databaseId+"/"+ AbstractDatabase.OWL_POSITION_FILENAME, appFolder);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+ DB_CONTAINER_PREFIX + databaseId+"/"+ AbstractDatabaseEngine.OWL_POSITION_FILENAME, appFolder);
 
 		}  finally {
 			try {
@@ -271,7 +271,7 @@ public class AZClient extends AbstractCloudClient {
 			//sync will delete files that are in the destination if they aren't being synced
 
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), appRcloneConfig + ":" + DB_CONTAINER_PREFIX + databaseId);			 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractDatabase.OWL_POSITION_FILENAME, appRcloneConfig + ":" + DB_CONTAINER_PREFIX + databaseId);			 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractDatabaseEngine.OWL_POSITION_FILENAME, appRcloneConfig + ":" + DB_CONTAINER_PREFIX + databaseId);			 
 
 
 		}  finally {
@@ -330,7 +330,7 @@ public class AZClient extends AbstractCloudClient {
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
 					try {
-						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabaseEngine.class)));
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error in loading new insights database for project " + aliasProjectId);
@@ -383,7 +383,7 @@ public class AZClient extends AbstractCloudClient {
 				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getProp()).getAbsolutePath();
 				if(insightDbLoc != null) {
 					try {
-						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabase.class)));
+						project.setInsightDatabase( ProjectHelper.loadInsightsEngine(project.getProp(), LogManager.getLogger(AbstractDatabaseEngine.class)));
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error in loading new insights database for project " + aliasProjectId);
