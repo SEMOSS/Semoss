@@ -290,8 +290,8 @@ public class CentralCloudStorage implements ICloudClient {
 			File localEngineF = new File(localEngineFolder);
 			if(!localEngineF.exists() || !localEngineF.isDirectory()) {
 				localEngineF.mkdirs();
-				ClusterUtil.validateFolder(localEngineFolder);
 			}
+			ClusterUtil.validateFolder(localEngineFolder);
 		}
 		String localSmssFileName = aliasAndEngineId + ".smss";
 		String localSmssFilePath = localEngineBaseFolder + FILE_SEPARATOR + localSmssFileName;
