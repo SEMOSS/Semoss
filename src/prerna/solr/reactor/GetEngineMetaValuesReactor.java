@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,12 +20,7 @@ public class GetEngineMetaValuesReactor extends AbstractReactor {
     @Override
     public NounMetadata execute() {
     	List<String> eTypes = getListValues(ReactorKeysEnum.ENGINE_TYPE.getKey());
-        List<String> engineList = null;
-        if(AbstractSecurityUtils.securityEnabled()) {
-            engineList = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, false, true);
-        } else {
-        	engineList = SecurityEngineUtils.getAllEngineIds(eTypes);
-        }
+        List<String> engineList = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, false, true);
         if(engineList != null && engineList.isEmpty()) {
         	return new NounMetadata(new ArrayList<>(), PixelDataType.CUSTOM_DATA_STRUCTURE);
         }

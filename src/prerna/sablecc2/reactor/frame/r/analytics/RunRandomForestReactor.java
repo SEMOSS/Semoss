@@ -10,7 +10,6 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.query.interpreters.RInterpreter;
@@ -73,7 +72,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 		String fileName = this.keyValue.get(this.keysToGet[6]);
 		// get asset path
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled()) + "/" + fileName;
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true) + "/" + fileName;
 		
 		// initialize vars
 		String targetDt = null;

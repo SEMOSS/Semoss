@@ -16,7 +16,6 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.RNativeEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -52,40 +51,27 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
 		}
 		// check security
-		User user = null;
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if (security) {
-			user = this.insight.getUser();
-			if (user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-
-			// throw error if user is anonymous
-			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
 		}
 
-		if (security) {
-			// check if input is alias since we are adding ot existing
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
+		// throw error if user is anonymous
+		if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+			throwAnonymousUserError();
+		}
+		// check if input is alias since we are adding ot existing
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
 
-			// throw error is user is not owner
-			if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
-				NounMetadata noun = new NounMetadata("User must be the owner in order to replace all the data in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		} else {
-			// check if input is alias since we are adding ot existing
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if (!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-			}
+		// throw error is user is not owner
+		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
+			NounMetadata noun = new NounMetadata("User must be the owner in order to replace all the data in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
 		}
 
 		boolean error = false;

@@ -7,7 +7,6 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -36,14 +35,12 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 		relativeFilePath = Utility.normalizePath(relativeFilePath);
 		
 		String assetProjectId = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			if(user != null){
-				AuthProvider token = user.getPrimaryLogin();
-				if(token != null){
-					assetProjectId = user.getAssetProjectId(token);
-					Utility.getProject(assetProjectId);
-				}
+		User user = this.insight.getUser();
+		if(user != null){
+			AuthProvider token = user.getPrimaryLogin();
+			if(token != null){
+				assetProjectId = user.getAssetProjectId(token);
+				Utility.getProject(assetProjectId);
 			}
 		}
 

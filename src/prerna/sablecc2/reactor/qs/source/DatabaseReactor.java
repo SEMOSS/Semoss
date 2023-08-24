@@ -1,9 +1,7 @@
 package prerna.sablecc2.reactor.qs.source;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
@@ -30,16 +28,9 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 		this.organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-			}
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 		}
 
 		this.qs.setEngineId(databaseId);

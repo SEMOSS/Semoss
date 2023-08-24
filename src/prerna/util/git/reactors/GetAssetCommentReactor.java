@@ -25,11 +25,10 @@ public class GetAssetCommentReactor extends AbstractReactor {
 		organizeKeys();
 		// check if user is logged in
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
+
 		String space = this.keyValue.get(this.keysToGet[1]);
 		if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
 			// if we are in the insight space

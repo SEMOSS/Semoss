@@ -6,11 +6,9 @@ import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.project.api.IProject;
@@ -52,16 +50,12 @@ public class IsInsightParameterizedReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to input the id for the insight");
 		}
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
-				NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		} else {
-			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
+			NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
 		}
 		
 		// get the engine so i can get the new insight

@@ -2,13 +2,11 @@ package prerna.util.usertracking.reactors;
 
 import java.util.List;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.api.impl.util.Owler;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -39,16 +37,9 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 		// get inputs - engine
 		String engineId = UploadInputUtility.getDatabaseNameOrId(this.store);
 		// we may have the alias
-		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
-			}
-		} else {
-			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist");
-			}
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
 		}
 		
 		boolean descriptions = getDescriptionsBool();

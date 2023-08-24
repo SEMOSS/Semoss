@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -30,11 +29,9 @@ public class ReloadDatabaseReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		
 		// make sure user has at least edit access
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-				if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-					throw new IllegalArgumentException("User does not have permission to reload the database");
-				}
+		if(!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
+			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("User does not have permission to reload the database");
 			}
 		}
 		

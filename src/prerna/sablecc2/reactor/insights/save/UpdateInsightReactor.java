@@ -63,24 +63,19 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String existingId = getRdbmsId();
 		
 		User user = this.insight.getUser();
-		String author = null;
-		String email = null;
-		
 		// security
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
-			
-			if(!SecurityInsightUtils.userCanEditInsight(user, projectId, existingId)) {
-				throw new IllegalArgumentException("User does not have permission to edit this insight");
-			}
-			
-			// Get the user's email
-			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-			email = accessToken.getEmail();
-			author = accessToken.getUsername();
+		if(AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
+		
+		if(!SecurityInsightUtils.userCanEditInsight(user, projectId, existingId)) {
+			throw new IllegalArgumentException("User does not have permission to edit this insight");
+		}
+		
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
 		
 		String insightName = getInsightName();
 		if(insightName == null || (insightName = insightName.trim()).isEmpty()) {

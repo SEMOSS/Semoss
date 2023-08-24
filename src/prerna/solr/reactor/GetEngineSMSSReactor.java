@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
@@ -27,15 +26,13 @@ public class GetEngineSMSSReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-			if(!isAdmin) {
-				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-				if(!isOwner) {
-					throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to view the smss. User must be the owner to perform this function.");
-				}
-			}	
+		User user = this.insight.getUser();
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if(!isAdmin) {
+			boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
+			if(!isOwner) {
+				throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to view the smss. User must be the owner to perform this function.");
+			}
 		}
 		
 		IEngine engine = Utility.getEngine(engineId);

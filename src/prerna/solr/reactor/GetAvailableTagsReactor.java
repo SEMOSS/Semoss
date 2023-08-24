@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.GenRowStruct;
@@ -27,29 +26,27 @@ public class GetAvailableTagsReactor extends AbstractReactor {
 
 		// account for security
 		List<String> projectFilters = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			appliedProjectFilters = new Vector<>();
-			projectFilters = SecurityProjectUtils.getFullUserProjectIds(this.insight.getUser());
-			if(!inputFilters.isEmpty()) {
-				// loop through and compare what the user has access to
-				for(String inputAppFilter : inputFilters) {
-					if(!projectFilters.contains(inputAppFilter)) {
-						warningNouns.add(NounMetadata.getWarningNounMessage(inputAppFilter + " does not exist or user does not have access to project."));
-					} else {
-						appliedProjectFilters.add(inputAppFilter);
-					}
+		appliedProjectFilters = new Vector<>();
+		projectFilters = SecurityProjectUtils.getFullUserProjectIds(this.insight.getUser());
+		if(!inputFilters.isEmpty()) {
+			// loop through and compare what the user has access to
+			for(String inputAppFilter : inputFilters) {
+				if(!projectFilters.contains(inputAppFilter)) {
+					warningNouns.add(NounMetadata.getWarningNounMessage(inputAppFilter + " does not exist or user does not have access to project."));
+				} else {
+					appliedProjectFilters.add(inputAppFilter);
 				}
-			} else {
-				// set the permissions to everything the user has access to
-				appliedProjectFilters.addAll(projectFilters);
 			}
+		} else {
+			// set the permissions to everything the user has access to
+			appliedProjectFilters.addAll(projectFilters);
 		}
 //		else {
 //			// no security
 //			// keep null, we will not have an database filter
 //		}
 		
-		if(AbstractSecurityUtils.securityEnabled() && appliedProjectFilters != null && appliedProjectFilters.isEmpty()) {
+		if(appliedProjectFilters != null && appliedProjectFilters.isEmpty()) {
 			if(inputFilters.isEmpty()) {
 				return NounMetadata.getWarningNounMessage("User does not have access to any projects");
 			} else {

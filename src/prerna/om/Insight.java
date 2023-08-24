@@ -57,7 +57,6 @@ import com.google.gson.GsonBuilder;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
@@ -279,7 +278,7 @@ public class Insight implements Serializable {
 			this.pragmap.put("xCache", DIHelper.getInstance().getCoreProp().getProperty("X_CACHE"));
 		}
 		// put the pragmap
-		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
+		if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 			if(this.user != null) {
 				this.user.getUserMountHelper().mountFolder(getInsightFolder(), getInsightFolder(), false);
 			}
@@ -339,7 +338,7 @@ public class Insight implements Serializable {
 				} catch(Exception e) {
 					logger.error(Constants.ERROR_MESSAGE, e);
 				} finally {
-					if(this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace() && AbstractSecurityUtils.securityEnabled() 
+					if(this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace() 
 							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
 						List<Pixel> returnedPixelList = runner.getReturnPixelList();
 						if(!returnedPixelList.isEmpty() && !returnedPixelList.get(returnedPixelList.size()-1).isMeta()) {

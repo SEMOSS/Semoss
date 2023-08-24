@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.List;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.r.RSyntaxHelper;
@@ -41,18 +40,16 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 		
 		// Pull necessary files / create file paths. 
 		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
-		if (AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
-			if (assetId != null && !(assetId.isEmpty())) {
-				ClusterUtil.pullUserWorkspace(assetId, true);
-				savePath = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
+		User user = this.insight.getUser();
+		String assetId = user.getAssetProjectId(user.getPrimaryLogin());
+		if (assetId != null && !(assetId.isEmpty())) {
+			ClusterUtil.pullUserWorkspace(assetId, true);
+			savePath = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
 
-				File assetDir = new File(savePath);
-				if (!assetDir.isDirectory() || !assetDir.exists()) {
-					assetDir.mkdirs();
-				} 
-			}
+			File assetDir = new File(savePath);
+			if (!assetDir.isDirectory() || !assetDir.exists()) {
+				assetDir.mkdirs();
+			} 
 		}
 		savePath = savePath.replace("\\", "/"); 
 
@@ -90,12 +87,8 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.executeEmptyR("rm( " + wd + "); gc();");
 		
 		// push Asset folder
-		if (AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			String assetId = user.getAssetProjectId(user.getPrimaryLogin());
-			if (assetId != null && !(assetId.isEmpty())) {
-				ClusterUtil.pushUserWorkspace(assetId, true);
-			}
+		if (assetId != null && !(assetId.isEmpty())) {
+			ClusterUtil.pushUserWorkspace(assetId, true);
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -112,13 +105,7 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 		sessionTableBuilder.append("source(\"" + rFolderPath.replace("\\", "/") + "data_inquiry_assembly.R\");");
 
 		// use all the databases
-		List<String> engineFilters = null;
-		if (AbstractSecurityUtils.securityEnabled()) {
-			engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
-		} else {
-			engineFilters = MasterDatabaseUtility.getAllDatabaseIds();
-		}
-
+		List<String> engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 		// first get the total number of cols and relationships
 		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engineFilters);
 		List<String[]> allRelations = MasterDatabaseUtility.getRelationships(engineFilters);

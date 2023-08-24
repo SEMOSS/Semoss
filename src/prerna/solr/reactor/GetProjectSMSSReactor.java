@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
@@ -27,15 +26,13 @@ public class GetProjectSMSSReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if(AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-			if(!isAdmin) {
-				boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-				if(!isOwner) {
-					throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have permissions to update the smss of the project. User must be the owner to perform this function.");
-				}
-			}	
+		User user = this.insight.getUser();
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if(!isAdmin) {
+			boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
+			if(!isOwner) {
+				throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have permissions to update the smss of the project. User must be the owner to perform this function.");
+			}
 		}
 				
 		IProject project = Utility.getProject(projectId);

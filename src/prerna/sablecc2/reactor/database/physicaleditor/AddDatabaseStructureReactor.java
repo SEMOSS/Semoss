@@ -7,14 +7,12 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,16 +40,9 @@ public class AddDatabaseStructureReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-			}
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
 		}
 		
 		// table > column > type

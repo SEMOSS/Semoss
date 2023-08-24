@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.algorithms;
 import java.io.File;
 import java.util.List;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -47,12 +46,7 @@ public class UpdateNLPHistoryReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(sb.toString());
 
 		// get all id's of a user
-		List<String> allIds = null;
-		if (AbstractSecurityUtils.securityEnabled()) {
-			allIds = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
-		} else {
-			allIds = MasterDatabaseUtility.getAllDatabaseIds();
-		}
+		List<String> allIds = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());;
 
 		// get matrix of data from local master
 		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(allIds);

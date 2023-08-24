@@ -1,6 +1,5 @@
 package prerna.solr.reactor;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -22,12 +21,7 @@ public class GetDatabaseMarkdownReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the database to get the markdown from");
 		}
 		
-		String databaseMarkdown;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseMarkdown = SecurityEngineUtils.getDatabaseMarkdown(this.insight.getUser(), databaseId);
-		} else {
-			databaseMarkdown = null;
-		}
+		String databaseMarkdown = SecurityEngineUtils.getDatabaseMarkdown(this.insight.getUser(), databaseId);
 		return new NounMetadata(databaseMarkdown, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 

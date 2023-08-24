@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -38,10 +37,8 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 		
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
-			}
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 		}
 
 		Logger logger = getLogger(CLASS_NAME);

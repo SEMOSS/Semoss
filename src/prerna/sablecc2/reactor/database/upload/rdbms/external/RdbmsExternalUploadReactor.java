@@ -33,7 +33,6 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -85,33 +84,29 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.logger = getLogger(this.getClass().getName());
-		User user = null;
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if (security) {
-			user = this.insight.getUser();
-			if (user == null) {
-				NounMetadata noun = new NounMetadata(
-						"User must be signed into an account in order to create a database", PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create a database", PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-			if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-				if (this.insight.getUser().isAnonymous()) {
-					throwAnonymousUserError();
-				}
+		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+			if (this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
 			}
+		}
 
-			// throw error is user doesn't have rights to publish new databases
-			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
-				throwUserNotPublisherError();
-			}
-			
-			if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-				throwFunctionalityOnlyExposedForAdminsError();
-			}
+		// throw error is user doesn't have rights to publish new databases
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+			throwUserNotPublisherError();
+		}
+		
+		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
 		organizeKeys();
@@ -139,23 +134,15 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		this.databaseName = UploadInputUtility.getDatabaseNameOrId(this.store);
 
 		if (existingDatabase) {
-			if (security) {
-				// check if input is alias since we are adding to existing
-				databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
-				if (!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
-					NounMetadata noun = new NounMetadata(
-							"User does not have sufficient priviledges to create or update a database",
-							PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-					SemossPixelException err = new SemossPixelException(noun);
-					err.setContinueThreadOfExecution(false);
-					throw err;
-				}
-			} else {
-				// check if input is alias since we are adding to existing
-				databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-				if (!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-					throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-				}
+			// check if input is alias since we are adding to existing
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
+			if (!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
+				NounMetadata noun = new NounMetadata(
+						"User does not have sufficient priviledges to create or update a database",
+						PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
 			}
 
 			this.databaseId = databaseId;

@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -43,14 +42,9 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 		List<String> engineIdFilters = getEngineIdFilters();
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
 
-		List<Map<String, Object>> engineInfo = new ArrayList<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
-		if(AbstractSecurityUtils.securityEnabled()) {
-			engineInfo = SecurityEngineUtils.getUserDiscoverableEngineList(this.insight.getUser(), 
-					engineTypes, engineIdFilters, engineMetadataFilter, searchTerm, limit, offset);
-		} else {
-			engineInfo = SecurityEngineUtils.getAllEngineList(engineTypes, engineIdFilters, engineMetadataFilter, searchTerm, limit, offset);
-		}
+		List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserDiscoverableEngineList(this.insight.getUser(), 
+				engineTypes, engineIdFilters, engineMetadataFilter, searchTerm, limit, offset);
 
 		if(!engineInfo.isEmpty() && !noMeta) {
 			Map<String, Integer> index = new HashMap<>(engineInfo.size());

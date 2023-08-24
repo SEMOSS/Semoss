@@ -9,12 +9,10 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -41,16 +39,9 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 		List<String> columnNames = getColumns();
 		
 		// we may have the alias
-		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
-			}
-		} else {
-			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist");
-			}
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
 		}
 		
 		IDatabaseEngine engine = Utility.getDatabase(engineId);

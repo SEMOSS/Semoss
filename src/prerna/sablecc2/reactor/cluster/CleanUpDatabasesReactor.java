@@ -11,7 +11,6 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -83,10 +82,6 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 			cleanUpCloudStorage = true;
 		}
 		
-		if(!AbstractSecurityUtils.securityEnabled()) {
-			throw new IllegalArgumentException("Security must be enabled for this operation!");
-		}
-
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(this.insight.getUser());
 		if(!isAdmin) {
 			throw new IllegalArgumentException("User must be an admin for this operation!");

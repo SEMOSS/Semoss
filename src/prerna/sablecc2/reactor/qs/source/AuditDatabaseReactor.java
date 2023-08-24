@@ -10,13 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -46,17 +44,9 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		organizeKeys();
 		String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
 		// we may have the alias
-		if (AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException(
-						"Database " + databaseId + " does not exist or user does not have access to database");
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if (!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-			}
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 		}
 
 		if (!(Utility.getDatabase(databaseId) instanceof RDBMSNativeEngine)) {

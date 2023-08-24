@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.cluster;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
@@ -29,12 +28,10 @@ public class PushInsightFolderToCloudReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an insight id");
 		}
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			// make sure valid id for user
-			if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
-				// you dont have access
-				throw new IllegalArgumentException("Insight does not exist or user is not an owner to force pulling from cloud storage");
-			}
+		// make sure valid id for user
+		if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
+			// you dont have access
+			throw new IllegalArgumentException("Insight does not exist or user is not an owner to force pulling from cloud storage");
 		}
 		
 		IProject project = Utility.getProject(projectId);
