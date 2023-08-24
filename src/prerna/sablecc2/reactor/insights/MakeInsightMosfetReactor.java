@@ -62,14 +62,12 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		if(rdbmsId == null) {
 			// we will run for all the insights
 			// so you need to be the app owner
-			if(AbstractSecurityUtils.securityEnabled()) {
-				if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-					throwAnonymousUserError();
-				}
-				
-				if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
-					throw new IllegalArgumentException("User must be an owner of the app to update all the app mosfet files");
-				}
+			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+			
+			if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
+				throw new IllegalArgumentException("User must be an owner of the app to update all the app mosfet files");
 			}
 			
 			IProject project = Utility.getProject(projectId);
@@ -121,14 +119,12 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		} else {
 			// need edit access to the insight
 			// override is assumed to be true
-			if(AbstractSecurityUtils.securityEnabled()) {
-				if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-					throwAnonymousUserError();
-				}
-				
-				if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
-					throw new IllegalArgumentException("User does not have permission to edit this insight");
-				}
+			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+			
+			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
+				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
 			
 			IProject project = Utility.getProject(projectId);

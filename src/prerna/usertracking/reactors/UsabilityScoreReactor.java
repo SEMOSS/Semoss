@@ -1,9 +1,7 @@
 package prerna.usertracking.reactors;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -21,34 +19,25 @@ public class UsabilityScoreReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
 		if (Utility.isUserTrackingDisabled()) {
 			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
 		}
 		
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		
 		databaseId = checkDatabaseId(databaseId);
-		
-		
 		double score = UserTrackingStatisticsUtils.calculateScore(databaseId);
-		
-
 		return new NounMetadata(score, PixelDataType.CONST_DECIMAL);
 	}
-	
 
+	/**
+	 * 
+	 * @param databaseId
+	 * @return
+	 */
 	private String checkDatabaseId(String databaseId) {
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-			}
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 		}
 		return databaseId;
 	}

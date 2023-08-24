@@ -2076,89 +2076,89 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
-	/**
-	 * TODO >>> Kunal: change app_name and app_name_id to project references
-	 * Search through all insights with an optional filter on engines and an optional search term
-	 * @param projectFilter
-	 * @param searchTerm
-	 * @param tags
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public static List<Map<String, Object>> searchInsights(List<String> projectFilter, String searchTerm, 
-			QueryColumnOrderBySelector sortBy, Map<String, Object> insightMetadataFilter, String limit, String offset) {
-		// NOTE - IF YOU CHANGE THE SELECTOR ALIAS - YOU NEED TO UPDATE THE PLACES
-		// THAT CALL THIS METHOD AS THAT IS PASSED IN THE SORT BY FIELD
-		SelectQueryStruct qs = new SelectQueryStruct();
-		// selectors
-		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT", "layout"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEMINUTES", "cacheMinutes"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHECRON", "cacheCron"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEDON", "cachedOn"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT", "cacheEncrypt"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME", "insight_schema_name"));
-
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-		fun.setAlias("low_name");
-		qs.addSelector(fun);
-		// filters
-		if(projectFilter != null && !projectFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
-		}
-		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
-		}
-//		// if we have tag filters
-//		boolean tagFiltering = tags != null && !tags.isEmpty();
-//		if(tagFiltering) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//	/**
+//	 * TODO >>> Kunal: change app_name and app_name_id to project references
+//	 * Search through all insights with an optional filter on engines and an optional search term
+//	 * @param projectFilter
+//	 * @param searchTerm
+//	 * @param tags
+//	 * @param limit
+//	 * @param offset
+//	 * @return
+//	 */
+//	public static List<Map<String, Object>> searchInsights(List<String> projectFilter, String searchTerm, 
+//			QueryColumnOrderBySelector sortBy, Map<String, Object> insightMetadataFilter, String limit, String offset) {
+//		// NOTE - IF YOU CHANGE THE SELECTOR ALIAS - YOU NEED TO UPDATE THE PLACES
+//		// THAT CALL THIS METHOD AS THAT IS PASSED IN THE SORT BY FIELD
+//		SelectQueryStruct qs = new SelectQueryStruct();
+//		// selectors
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "app_name"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT", "layout"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEMINUTES", "cacheMinutes"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHECRON", "cacheCron"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEDON", "cachedOn"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEENCRYPT", "cacheEncrypt"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME", "insight_schema_name"));
+//
+//		QueryFunctionSelector fun = new QueryFunctionSelector();
+//		fun.setFunction(QueryFunctionHelper.LOWER);
+//		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+//		fun.setAlias("low_name");
+//		qs.addSelector(fun);
+//		// filters
+//		if(projectFilter != null && !projectFilter.isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
 //		}
-//		// joins
-		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-//		if(tagFiltering) {
-//			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
-//			qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "inner.join");
+//		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+//			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 //		}
-		// sort
-		if(sortBy == null) {
-			qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
-		} else {
-			qs.addOrderBy(sortBy);
-		}
-		// limit 
-		if(limit != null && !limit.trim().isEmpty()) {
-			qs.setLimit(Long.parseLong(limit));
-		}
-		// offset
-		if(offset != null && !offset.trim().isEmpty()) {
-			qs.setOffSet(Long.parseLong(offset));
-		}
-		// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
-		if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
-			for (String k : insightMetadataFilter.keySet()) {
-				SelectQueryStruct subQs = new SelectQueryStruct();
-				subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
-			}
-		}
-		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
+////		// if we have tag filters
+////		boolean tagFiltering = tags != null && !tags.isEmpty();
+////		if(tagFiltering) {
+////			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+////			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+////		}
+////		// joins
+//		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
+////		if(tagFiltering) {
+////			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
+////			qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "inner.join");
+////		}
+//		// sort
+//		if(sortBy == null) {
+//			qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
+//		} else {
+//			qs.addOrderBy(sortBy);
+//		}
+//		// limit 
+//		if(limit != null && !limit.trim().isEmpty()) {
+//			qs.setLimit(Long.parseLong(limit));
+//		}
+//		// offset
+//		if(offset != null && !offset.trim().isEmpty()) {
+//			qs.setOffSet(Long.parseLong(offset));
+//		}
+//		// filtering by insightmeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against insightids from subquery
+//		if (insightMetadataFilter!=null && !insightMetadataFilter.isEmpty()) {
+//			for (String k : insightMetadataFilter.keySet()) {
+//				SelectQueryStruct subQs = new SelectQueryStruct();
+//				subQs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", k));
+//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", insightMetadataFilter.get(k)));
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "==", subQs));
+//			}
+//		}
+//		
+//		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+//	}
 	
 	
 	/**
@@ -2271,50 +2271,50 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return qs;
 	}
 	
-	/**
-	 * Search through all insights with an optional filter on engines and an optional search term
-	 * @param projectFilter
-	 * @param searchTerm
-	 * @param tags
-	 * @return
-	 */
-	public static SelectQueryStruct searchInsightsUsage(List<String> projectFilter, String searchTerm, List<String> tags) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		// selectors
-		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
-		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "insight_tags"));
-
-		// filters
-		if(projectFilter != null && !projectFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
-		}
-		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
-		}
-		// if we have tag filters
-		boolean tagFiltering = tags != null && !tags.isEmpty();
-		if(tagFiltering) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
-		}
-		// joins
-		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-		// always add tags
-//		if(tagFiltering) {
-		qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "left.outer.join");
-		qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "left.outer.join");
+//	/**
+//	 * Search through all insights with an optional filter on engines and an optional search term
+//	 * @param projectFilter
+//	 * @param searchTerm
+//	 * @param tags
+//	 * @return
+//	 */
+//	public static SelectQueryStruct searchInsightsUsage(List<String> projectFilter, String searchTerm, List<String> tags) {
+//		SelectQueryStruct qs = new SelectQueryStruct();
+//		// selectors
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "app_name"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+//		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "insight_tags"));
+//
+//		// filters
+//		if(projectFilter != null && !projectFilter.isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
 //		}
-
-		return qs;
-	}
+//		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+//			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+//		}
+//		// if we have tag filters
+//		boolean tagFiltering = tags != null && !tags.isEmpty();
+//		if(tagFiltering) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+//		}
+//		// joins
+//		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
+//		// always add tags
+////		if(tagFiltering) {
+//		qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "left.outer.join");
+//		qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "left.outer.join");
+////		}
+//
+//		return qs;
+//	}
 	
 	/**
 	 * Get the wrapper for additional insight metadata

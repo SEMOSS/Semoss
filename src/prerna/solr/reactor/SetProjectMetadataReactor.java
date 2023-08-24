@@ -3,7 +3,6 @@ package prerna.solr.reactor;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -23,12 +22,9 @@ public class SetProjectMetadataReactor extends AbstractSetMetadataReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
-		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
-			}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
 		}
 		
 		Map<String, Object> metadata = getMetaMap();

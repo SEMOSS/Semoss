@@ -13,19 +13,16 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.neo4j.helpers.ThisShouldNotHappenError;
 
 import com.google.gson.JsonSyntaxException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightStore;
@@ -106,16 +103,12 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		User user = this.insight.getUser();
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
-			if(!SecurityInsightUtils.userCanViewInsight(user, projectId, rdbmsId)) {
-				NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		} else {
-			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+		if(!SecurityInsightUtils.userCanViewInsight(user, projectId, rdbmsId)) {
+			NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
 		}
 		
 		// get the engine so i can get the new insight

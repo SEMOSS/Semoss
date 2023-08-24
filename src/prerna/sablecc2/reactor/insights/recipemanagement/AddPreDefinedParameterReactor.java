@@ -11,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 import org.jasypt.encryption.pbe.StandardPBEByteEncryptor;
 import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -77,12 +76,11 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 
 	public void resolvePayloadVariables(List<Map<String, Object>> paramList, List<Object> exportVariables) {
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException(
-						"Database " + databaseId + " does not exist or user does not have access to database");
-			}
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException(
+					"Database " + databaseId + " does not exist or user does not have access to database");
 		}
+
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		for (Object exportVar : exportVariables) {
 			Map<String, Object> exportParam = (Map<String, Object>) exportVar;

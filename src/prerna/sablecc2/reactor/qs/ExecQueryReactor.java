@@ -5,7 +5,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
@@ -71,11 +70,9 @@ public class ExecQueryReactor extends AbstractReactor {
 					userId = user.getAccessToken(user.getLogins().get(0)).getId();
 				}
 
-				// If security is enabled, then check that the user can edit the engine
-				if (AbstractSecurityUtils.securityEnabled()) {
-					if (!SecurityEngineUtils.userCanEditEngine(user, engine.getEngineId())) {
-						throw new IllegalArgumentException("User does not have permission to exec query for this app");
-					}
+				// check that the user can edit the engine
+				if (!SecurityEngineUtils.userCanEditEngine(user, engine.getEngineId())) {
+					throw new IllegalArgumentException("User does not have permission to exec query for this app");
 				}
 			} else if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();

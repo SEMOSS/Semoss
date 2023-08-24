@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.project;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -34,13 +33,11 @@ public class ProjectReconnectServerReactor extends AbstractReactor {
 			projectId = this.insight.getProjectId();
 		}
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			// make sure valid id for user
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-				// you don't have access
-				throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
-			}
+		// make sure valid id for user
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			// you don't have access
+			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 		
 		boolean force = Boolean.parseBoolean(keyValue.get(keysToGet[1])+"");

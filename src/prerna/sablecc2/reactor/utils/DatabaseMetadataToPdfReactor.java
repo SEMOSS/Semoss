@@ -21,7 +21,6 @@ import org.apache.logging.log4j.util.Strings;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -53,23 +52,16 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		
 		// security
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-			if (!isAdmin) {
-				boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
-				if (!isOwner) {
-					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
-				}
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if (!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if (!isAdmin) {
+			boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
+			if (!isOwner) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
 			}
 		}
 		
-		Map<String, Object> databaseInfo = SecurityEngineUtils.getAllDatabaseList(databaseId).get(0);
+		Map<String, Object> databaseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), databaseId, null).get(0);
 		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, null, true));
 		databaseInfo.putIfAbsent("description", "");
 		databaseInfo.putIfAbsent("tags", new Vector<String>());

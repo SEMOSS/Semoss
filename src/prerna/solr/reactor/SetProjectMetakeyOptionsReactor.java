@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.GenRowStruct;
@@ -34,10 +33,9 @@ public class SetProjectMetakeyOptionsReactor extends AbstractInsightReactor {
 			if (metaoptions==null || metaoptions.isEmpty()) {
 				throw new IllegalArgumentException("Must provide a set of metadata values to store.");
 			}
-			if(AbstractSecurityUtils.securityEnabled()) {
-				res = SecurityProjectUtils.updateMetakeyOptions(metaoptions);
-			}
+			res = SecurityProjectUtils.updateMetakeyOptions(metaoptions);
 		}
+		
 		NounMetadata noun = new NounMetadata(res, PixelDataType.BOOLEAN);
 		if (res) {
 			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully updated the new metakey for metakey options"));

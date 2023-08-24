@@ -2,7 +2,6 @@ package prerna.util.git.reactors;
 
 import java.io.File;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -34,7 +33,7 @@ public class GitCloneReactor extends AbstractReactor {
 		String space = this.keyValue.get(this.keysToGet[2]);
 		// if security is enabled, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
 		// add relative path in asset folder if specified
 		if (filePath != null && !filePath.isEmpty()) {
 			assetFolder += filePath;

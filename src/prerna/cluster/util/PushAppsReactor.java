@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.clients.AbstractCloudClient;
@@ -27,16 +26,11 @@ public class PushAppsReactor extends AbstractReactor{
 		
 		String dryRunString = this.keyValue.get(ReactorKeysEnum.DRY_RUN.getKey());
 
-
 		boolean dryRun = true;
 		if (dryRunString != null && !dryRunString.isEmpty() && dryRunString.equalsIgnoreCase("false")) {
 			dryRun = false;
 		}
 		
-		if(!AbstractSecurityUtils.securityEnabled()) {
-			throw new IllegalArgumentException("Security must be enabled for this operation!");
-		}
-
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(this.insight.getUser());
 		if(!isAdmin) {
 			throw new IllegalArgumentException("User must be an admin for this operation!");

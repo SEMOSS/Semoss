@@ -14,7 +14,6 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -56,7 +55,7 @@ public class PushAssetToS3Reactor extends AbstractReactor {
 		organizeKeys();
 		// get base asset folder
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
 		String pushPath = assetFolder;
 		// if a specific file is specified for download
 		String relativeAssetPath = keyValue.get(keysToGet[0]);

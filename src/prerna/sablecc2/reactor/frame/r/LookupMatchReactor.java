@@ -37,10 +37,8 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		// check if user is logged in
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
 
 		// initialize the r connection
@@ -58,7 +56,7 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		String space = this.keyValue.get(this.keysToGet[1]);
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
 		String fileName =  Utility.normalizePath(this.keyValue.get(keysToGet[0]));
 		String filePath = assetFolder + "/" + fileName;
 

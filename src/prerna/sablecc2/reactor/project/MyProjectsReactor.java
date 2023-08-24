@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -42,17 +41,12 @@ public class MyProjectsReactor extends AbstractReactor {
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())+"");
 		Boolean portalsOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey())+"");
 		List<Integer> permissionFilters = getPermissionFilters();
-		List<Map<String, Object>> projectInfo = new ArrayList<>();
-		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			Map<String, Object> projectMetadataFilter = getMetaMap();
-			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, portalsOnly,
-					projectMetadataFilter, permissionFilters, limit, offset);
-			if(!favoritesOnly) {
-				this.insight.getUser().setProjects(projectInfo);
-			}
-		} else {
-			projectInfo = SecurityProjectUtils.getAllProjectList(null, limit, offset);
+		Map<String, Object> projectMetadataFilter = getMetaMap();
+
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly, portalsOnly,
+				projectMetadataFilter, permissionFilters, limit, offset);
+		if(!favoritesOnly) {
+			this.insight.getUser().setProjects(projectInfo);
 		}
 
 		if(!projectInfo.isEmpty() && !noMeta) {

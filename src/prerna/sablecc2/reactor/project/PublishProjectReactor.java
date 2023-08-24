@@ -32,10 +32,8 @@ public class PublishProjectReactor extends AbstractReactor {
 		}
 		
 		User user = this.insight.getUser();
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityProjectUtils.userIsOwner(user, projectId)) {
-				throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
-			}
+		if(!SecurityProjectUtils.userIsOwner(user, projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
 		}
 		
 		IProject project = Utility.getProject(projectId);
