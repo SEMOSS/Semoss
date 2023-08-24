@@ -18,7 +18,7 @@ public class AllConceptualNamesReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		// need to take into consideration security
-		List<String> engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+		List<String> engineFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 		Collection<String> conceptualNames = MasterDatabaseUtility.getAllConceptualNames(engineFilters);
 		return new NounMetadata(conceptualNames, PixelDataType.CONST_STRING);
 	}

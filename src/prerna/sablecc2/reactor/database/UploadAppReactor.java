@@ -223,7 +223,7 @@ public class UploadAppReactor extends AbstractInsightReactor {
 		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addDatabaseOwner(appId, user.getAccessToken(ap).getId());
+				SecurityEngineUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
 			}
 		}
 

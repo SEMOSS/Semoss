@@ -92,14 +92,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// Collect all the apps that we will iterate through
 		if (hasFilters) {
 			// need to validate that the user has access to these ids
-			List<String> databaseIds = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> databaseIds = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 			// make sure our ids are a complete subset of the user ids
 			// user defined list must always be a subset of all the engine ids
 			if (!databaseIds.containsAll(dbFilters)) {
 				throw new IllegalArgumentException("Attempting to filter to app ids that user does not have access to or do not exist");
 			}
 		} else {
-			dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+			dbFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 		}
 		
 		// init r tables for use between methods

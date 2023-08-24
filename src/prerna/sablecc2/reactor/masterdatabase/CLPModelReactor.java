@@ -33,7 +33,7 @@ public class CLPModelReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		List<String> cNames = getConceptulNamesList();
-		List<String> engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+		List<String> engineFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 		logger.info("Querying to retrieve conceptual to physical to logical model");
 		List<String[]> values = MasterDatabaseUtility.getConceptualToLogicalToPhysicalModel(cNames, engineFilters);
 		if(values == null) {
