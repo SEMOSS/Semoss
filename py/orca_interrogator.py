@@ -17,8 +17,9 @@ class Interrogator(gi.Interrogator):
     else:
         prompt = f"### System:\n{system}\n\n### User:\n{question}\n\n### Response:\n"
         
-    console_streamer = SemossStreamer(self.tokenizer, skip_prompt=True)
+    console_streamer = SemossStreamer(tokenizer=self.tokenizer, skip_prompt=True)
     console_streamer.set_output_prefix(self.output_prefix)
-    return super().ask(prompt, streamer=console_streamer, **kwargs)
-    
+    super().ask(prompt, streamer=console_streamer, max_new_tokens=1000, **kwargs)
+    output = console_streamer.complete_output
+    return output
   
