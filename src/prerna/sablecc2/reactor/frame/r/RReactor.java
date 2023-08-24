@@ -15,7 +15,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.ReactorSecurityManager;
@@ -83,16 +82,11 @@ public final class RReactor extends AbstractRFrameReactor {
 			return handleGGPlot(code);
 		}
 		
-		String output = null;
 		//capture.output(tryCatch({
 		//+ print("monkeshwaran")}, error = function(e){"error"; e$message}),
 		//+ file="c:/users/pkapaleeswaran/workspacej3/r.out")
 
-		if(AbstractSecurityUtils.securityEnabled()) {
-			output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getVarMap());
-		} else {
-			output = rJavaTranslator.runRAndReturnOutput(code);
-		}
+		String output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getVarMap());
 		List<NounMetadata> outputs = new ArrayList<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
 		

@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.database.upload.modifications;
 
 import java.io.IOException;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -10,7 +9,6 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineModifier;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.modifications.EngineModificationFactory;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -43,16 +41,9 @@ public class DatabaseRenameColumnReactor extends AbstractReactor {
 		organizeKeys();
 		
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-			}
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
 		}
 		
 		String table = this.keyValue.get(this.keysToGet[1]);

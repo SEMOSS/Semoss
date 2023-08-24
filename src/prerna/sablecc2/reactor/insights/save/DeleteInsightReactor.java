@@ -49,8 +49,6 @@ public class DeleteInsightReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
-		String author = null;
-		String email = null;
 		if(AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
@@ -61,16 +59,14 @@ public class DeleteInsightReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must define the project to delete the insights from");
 		}
 		String projectId = projectGrs.get(0).toString();
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
-			if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-				throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to the project");
-			}
-			// Get the user's email
-			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-			email = accessToken.getEmail();
-			author = accessToken.getUsername();
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+		if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to the project");
 		}
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
 
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
@@ -83,10 +79,8 @@ public class DeleteInsightReactor extends AbstractReactor {
 		int size = grs.size();
 		for (int i = 0; i < size; i++) {
 			String insightId = grs.get(i).toString();
-			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
-					throw new IllegalArgumentException("User does not have permission to edit this insight");
-				}
+			if(!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
+				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
 			
 			// delete from insights database

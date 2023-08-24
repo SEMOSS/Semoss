@@ -2,11 +2,9 @@ package prerna.sablecc2.reactor.insights.save;
 
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -25,17 +23,12 @@ public class DeleteInsightCacheReactor extends AbstractInsightReactor {
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
 		Map<String, Object> parameterValues = getInsightParamValueMap();
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
-			}
-		} else {
-			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
 		}
 		
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-		
 		try {
 			InsightCacheUtility.deleteCache(projectId, projectName, rdbmsId, parameterValues, true);
 			return new NounMetadata(true, PixelDataType.BOOLEAN);

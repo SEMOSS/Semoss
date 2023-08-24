@@ -12,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
@@ -81,8 +80,8 @@ public class InsertReactor extends AbstractReactor {
 					userId = user.getAccessToken(user.getLogins().get(0)).getId();
 				}
 				
-				// If security is enabled, then check that the user can edit the engine
-				if (AbstractSecurityUtils.securityEnabled() && !SecurityEngineUtils.userCanEditEngine(user, database.getEngineId())) {
+				// check that the user can edit the engine
+				if (!SecurityEngineUtils.userCanEditEngine(user, database.getEngineId())) {
 					throw new IllegalArgumentException("User does not have permission to insert query for this database");
 				}
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
