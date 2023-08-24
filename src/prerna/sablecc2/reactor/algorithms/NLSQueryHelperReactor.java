@@ -67,14 +67,14 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		
 		// need to validate that the user has access to these ids
 		if (dbFilters.size() > 0) {
-			List<String> databaseIds = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> databaseIds = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 			// make sure our ids are a complete subset of the user ids
 			// user defined list must always be a subset of all the engine ids
 			if (!databaseIds.containsAll(dbFilters)) {
 				throw new IllegalArgumentException("Attempting to filter to database ids that user does not have access to or do not exist");
 			}
 		} else {
-			dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+			dbFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 		}
 
 		// source the proper script

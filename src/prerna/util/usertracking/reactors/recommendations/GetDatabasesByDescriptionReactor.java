@@ -81,7 +81,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 			if (marginInput != null && !marginInput.isEmpty()) {
 				margin = marginInput;
 			}
-			List<String> enginesWithAccess = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+			List<String> enginesWithAccess = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 			// source scripts and run find_db
 			sb.append(RSyntaxHelper.loadPackages(packages));
 			sb.append("setwd(\"" + DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\");");
