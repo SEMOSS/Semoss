@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -39,24 +38,18 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 		if(engineFilterGrs != null) {
 			eFilters = new Vector<String>();
 			String engineFilter = engineFilterGrs.get(0).toString();
-			if(AbstractSecurityUtils.securityEnabled()) {
-				engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
-			} else {
-				engineFilter = MasterDatabaseUtility.testDatabaseIdIfAlias(engineFilter);
-			}
+			engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
 			eFilters.add(engineFilter);
 		}
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			List<String> dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
-			if(eFilters != null) {
-				if(!dbFilters.contains(eFilters.get(0))) {
-					throw new IllegalArgumentException("Databases " + eFilters.get(0) + " does not exist or user does not have access");
-				}
-			} else {
-				eFilters = new Vector<String>();
-				eFilters.addAll(dbFilters);
+		List<String> dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+		if(eFilters != null) {
+			if(!dbFilters.contains(eFilters.get(0))) {
+				throw new IllegalArgumentException("Databases " + eFilters.get(0) + " does not exist or user does not have access");
 			}
+		} else {
+			eFilters = new Vector<String>();
+			eFilters.addAll(dbFilters);
 		}
 		
 		Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptProperties(conceptLogicals, eFilters);

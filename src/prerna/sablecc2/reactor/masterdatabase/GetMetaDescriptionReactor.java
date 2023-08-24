@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -26,14 +25,9 @@ public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
 	@Override
 	public NounMetadata execute() {
 		String engineId = getEngineId();
-
-		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
-			}
-		} else {
-			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 		}
 		
 		String concept = getConcept();

@@ -8,7 +8,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -34,11 +33,9 @@ public class GetInsightMetamodelReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String id = this.keyValue.get(this.keysToGet[1]);
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, id)) {
-				throw new IllegalArgumentException("Insight does not exist or user does not have permission to view this insight");
-			}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, id)) {
+			throw new IllegalArgumentException("Insight does not exist or user does not have permission to view this insight");
 		}
 		
 		List<Object[]> insightFrames = SecurityInsightUtils.getInsightFrames(projectId, id);

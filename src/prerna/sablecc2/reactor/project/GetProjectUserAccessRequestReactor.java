@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -29,12 +28,9 @@ public class GetProjectUserAccessRequestReactor extends AbstractReactor {
 		if(!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException("User does not have permission to view access requests for this project");
 		}
-		List<Map<String, Object>> requests;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			requests = SecurityProjectUtils.getUserAccessRequestsByProject(projectId);
-		} else {
-			requests = null;
-		}
+		
+		List<Map<String, Object>> requests = SecurityProjectUtils.getUserAccessRequestsByProject(projectId);
 		return new NounMetadata(requests, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
 	}
+	
 }

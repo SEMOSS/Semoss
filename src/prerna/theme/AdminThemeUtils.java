@@ -11,7 +11,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
@@ -29,11 +28,6 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	}
 
 	public static AdminThemeUtils getInstance(User user) {
-		// if no security
-		// do whatever you want!
-		if (!AbstractSecurityUtils.securityEnabled()) {
-			return instance;
-		}
 		if (user == null) {
 			return null;
 		}

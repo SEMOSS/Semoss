@@ -50,21 +50,17 @@ public class RequestDatabaseReactor extends AbstractReactor {
 		}
 					
 		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to request an app",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if (security) {
-			if (user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to request an app",
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-
-			// throw error if user is anonymous
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		// throw error if user is anonymous
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
 		
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());

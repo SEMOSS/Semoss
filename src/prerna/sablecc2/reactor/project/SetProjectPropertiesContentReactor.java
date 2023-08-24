@@ -6,7 +6,6 @@ import java.util.Map;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectProperties;
@@ -32,10 +31,8 @@ public class SetProjectPropertiesContentReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
-				throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
-			}
+		if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
 		}
 				
 		IProject project = Utility.getProject(projectId);

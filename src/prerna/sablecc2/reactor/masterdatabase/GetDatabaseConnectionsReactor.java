@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -31,28 +30,23 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 		
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
-		List<String> databaseFilters = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
-			if(!databaseFilters.isEmpty()) {
-				if(databaseId != null) {
-					// need to make sure it is a valid engine id
-					if(!databaseFilters.contains(databaseId)) {
-						throw new IllegalArgumentException("Database does not exist or user does not have access to database");
-					}
-					// we are good
-					appliedDatabaseFilters.add(databaseId);
-				} else {
-					// set default as filters
-					appliedDatabaseFilters = databaseFilters;
+		List<String> databaseFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+		if(!databaseFilters.isEmpty()) {
+			if(databaseId != null) {
+				// need to make sure it is a valid engine id
+				if(!databaseFilters.contains(databaseId)) {
+					throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 				}
+				// we are good
+				appliedDatabaseFilters.add(databaseId);
 			} else {
-				if(databaseId != null) {
-					appliedDatabaseFilters.add(databaseId);
-				}
+				// set default as filters
+				appliedDatabaseFilters = databaseFilters;
 			}
-		} else if(databaseId != null) {
-			appliedDatabaseFilters.add(databaseId);
+		} else {
+			if(databaseId != null) {
+				appliedDatabaseFilters.add(databaseId);
+			}
 		}
 		
 		List<String> inputColumnValues = getColumns();

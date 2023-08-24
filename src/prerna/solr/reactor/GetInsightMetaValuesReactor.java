@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -20,12 +19,7 @@ public class GetInsightMetaValuesReactor extends AbstractReactor {
     
     @Override
     public NounMetadata execute() {
-        List<String> insightIdList = null;
-        if(AbstractSecurityUtils.securityEnabled()) {
-            insightIdList = SecurityInsightUtils.getUserInsightIdList(this.insight.getUser(), true, true);
-        } else {
-        	insightIdList = SecurityInsightUtils.getAllInsightIds();
-        }
+        List<String> insightIdList = SecurityInsightUtils.getUserInsightIdList(this.insight.getUser(), true, true);
         if(insightIdList != null && insightIdList.isEmpty()) {
         	return new NounMetadata(new ArrayList<>(), PixelDataType.CUSTOM_DATA_STRUCTURE);
         }
