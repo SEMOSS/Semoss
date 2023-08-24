@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -10,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -20,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 
 public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
@@ -352,18 +353,23 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("This group already has access to this insight. Please edit the existing permission level.");
 		}
 		
-		String query = "INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, INSIGHTID, PERMISSION) VALUES('"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(groupId) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', "
-				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
-				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
-		
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement("INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, INSIGHTID, PERMISSION) VALUES(?,?,?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, projectId);
+			ps.setString(parameterIndex++, insightId);
+			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding group permissions for this insight", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -445,16 +451,23 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "UPDATE GROUPINSIGHTPERMISSION SET PERMISSION=" + newPermissionLvl
-				+ " WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(groupId) + "' "
-				+ "AND TYPE='" + RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "' "
-				+ "AND PROJECTID='" + RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "' "
-				+ "AND INSIGHTID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement("UPDATE GROUPINSIGHTPERMISSION SET PERMISSION=? WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?");
+			int parameterIndex = 1;
+			ps.setInt(parameterIndex++, newPermissionLvl);
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, projectId);
+			ps.setString(parameterIndex++, insightId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred updating the group permissions for this insight", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -490,16 +503,22 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "DELETE FROM GROUPINSIGHTPERMISSION WHERE ID='" 
-				+ RdbmsQueryBuilder.escapeForSQLStatement(groupId) + "' "
-				+ "AND TYPE='" + RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "' "
-				+ "AND PROJECTID='" + RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "' "
-				+ "AND INSIGHTID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement("DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, projectId);
+			ps.setString(parameterIndex++, insightId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
