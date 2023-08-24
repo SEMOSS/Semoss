@@ -17,11 +17,9 @@ import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.comm.InMemoryConsole;
@@ -646,23 +644,16 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 	protected String testDatabaseId(String databaseId, boolean edit) {
 		String testId = databaseId;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
-			if(edit) {
-				// need edit permission
-				if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), testId)) {
-					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
-				}
-			} else {
-				// just need read access
-				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), testId)) {
-					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
-				}
+		testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
+		if(edit) {
+			// need edit permission
+			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), testId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
 			}
 		} else {
-			testId = MasterDatabaseUtility.testDatabaseIdIfAlias(testId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(testId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
+			// just need read access
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), testId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
 			}
 		}
 		return testId;

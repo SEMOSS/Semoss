@@ -17,7 +17,6 @@ import javax.crypto.Cipher;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -191,7 +190,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// and read it back in
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
 			
-			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
+			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 				Insight in = this.pyt.insight;
 				String insightFolder = in.getInsightFolder();
 				new File(Utility.normalizePath(insightFolder)).mkdirs();

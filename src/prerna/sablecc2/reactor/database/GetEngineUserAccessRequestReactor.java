@@ -1,11 +1,9 @@
 package prerna.sablecc2.reactor.database;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -31,12 +29,7 @@ public class GetEngineUserAccessRequestReactor extends AbstractReactor {
 		if(!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("User does not have permission to view access requests for this engine");
 		}
-		List<Map<String, Object>> requests = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			requests = SecurityEngineUtils.getUserAccessRequestsByEngine(engineId);
-		} else {
-			requests = new ArrayList<>();
-		}
+		List<Map<String, Object>> requests = SecurityEngineUtils.getUserAccessRequestsByEngine(engineId);
 		return new NounMetadata(requests, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
 	}
 }

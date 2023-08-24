@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
@@ -37,12 +36,10 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		List<String> messages = new ArrayList<>();
 		
 		if(projectId != null && !projectId.isEmpty()) {
-			if(AbstractSecurityUtils.securityEnabled()) {
-				// make sure valid id for user
-				if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-					// you dont have access
-					throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
-				}
+			// make sure valid id for user
+			if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+				// you dont have access
+				throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 			}
 			
 			IProject project = Utility.getProject(projectId);
@@ -89,10 +86,8 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String projectId = project.getProjectId();
 			String projectName = project.getProjectName();
-			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityProjectUtils.userIsOwner(user, projectId)) {
-					throw new IllegalArgumentException("Project '" + project.getProjectId() + "' does not exist or user is not an owner of the project.");
-				}
+			if(!SecurityProjectUtils.userIsOwner(user, projectId)) {
+				throw new IllegalArgumentException("Project '" + project.getProjectId() + "' does not exist or user is not an owner of the project.");
 			}
 			
 			// push the compiled code

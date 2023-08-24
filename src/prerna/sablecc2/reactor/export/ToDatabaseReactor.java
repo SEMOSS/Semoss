@@ -58,19 +58,12 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	@Override
 	public NounMetadata execute() {
 		this.task = getTask();
-		
 		this.engineId = getEngineId();
-		if(AbstractSecurityUtils.securityEnabled()) {
-			this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
-			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
-				throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
-			}
-		} else {
-			this.engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(this.engineId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(this.engineId)) {
-				throw new IllegalArgumentException("Database " + this.engineId + " does not exist");
-			}
+		this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
+			throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
 		}
+		
 		User user = this.insight.getUser();
 		// throw error is user doesn't have rights to export data
 		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {

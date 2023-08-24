@@ -38,22 +38,18 @@ public class DeleteAssetReactor extends AbstractReactor {
 		organizeKeys();
 		// check if user is logged in
 		User user = this.insight.getUser();
-		String author = null;
-		String email = null;
 		// check if user is logged in
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
-			// Get the user's email
-			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-			email = accessToken.getEmail();
-			author = accessToken.getUsername();
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
 
 		// get asset base folder
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String baseFolderPath = AssetUtility.getAssetVersionBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
+		String baseFolderPath = AssetUtility.getAssetVersionBasePath(this.insight, space, true);
 		// relative path is used for git if insight is saved
 		// or if we are dealing with project space
 		String relativePath = "";

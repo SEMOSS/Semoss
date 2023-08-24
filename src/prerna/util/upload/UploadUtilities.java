@@ -156,7 +156,7 @@ public class UploadUtilities {
 	 */
 	public static void updateMetadata(String databaseId, User user) throws Exception {
 		Utility.synchronizeEngineMetadata(databaseId);
-		SecurityEngineUtils.addEngine(databaseId, !AbstractSecurityUtils.securityEnabled(), user);
+		SecurityEngineUtils.addEngine(databaseId, false, user);
 	}
 
 	/**
@@ -171,12 +171,7 @@ public class UploadUtilities {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
 		// need to make sure the database is unique
-		boolean containsDatabase = false;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			containsDatabase = AbstractSecurityUtils.userContainsEngineName(user, engineName);
-		} else {
-			containsDatabase = AbstractSecurityUtils.containsEngineName(engineName);
-		}
+		boolean containsDatabase = AbstractSecurityUtils.userContainsEngineName(user, engineName);
 		if(containsDatabase) {
 			throw new IOException("Engine name already exists.  Please provide a unique engine name");
 		}
@@ -204,12 +199,7 @@ public class UploadUtilities {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
 		// need to make sure the database is unique
-		boolean containsDatabase = false;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			containsDatabase = AbstractSecurityUtils.userContainsEngineName(user, databaseName);
-		} else {
-			containsDatabase = AbstractSecurityUtils.containsEngineName(databaseName);
-		}
+		boolean containsDatabase = AbstractSecurityUtils.userContainsEngineName(user, databaseName);
 		if(containsDatabase) {
 			throw new IOException("Database name already exists.  Please provide a unique database name");
 		}

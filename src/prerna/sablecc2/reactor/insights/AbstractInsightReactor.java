@@ -21,13 +21,11 @@ import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.couch.CouchException;
 import prerna.io.connector.couch.CouchUtil;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.sablecc2.PixelUtility;
@@ -95,12 +93,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the project where the insight currently exists");
 		}
 
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		} else {
-			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
-		}
-		
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		return projectId;
 	}
 	

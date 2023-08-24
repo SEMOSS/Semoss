@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.project;
 
 import org.apache.commons.lang3.StringUtils;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectProperties;
@@ -27,10 +26,8 @@ public class ReloadProjectPropertiesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 			
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
-			}
+		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
 		}
 		
 		IProject project = Utility.getProject(projectId);

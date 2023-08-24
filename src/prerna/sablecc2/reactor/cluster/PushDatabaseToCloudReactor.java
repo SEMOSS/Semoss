@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.cluster;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -24,12 +23,10 @@ public class PushDatabaseToCloudReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an database id");
 		}
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			// make sure valid id for user
-			if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), databaseId)) {
-				// you dont have access
-				throw new IllegalArgumentException("Database does not exist or user is not an owner to force pulling from cloud storage");
-			}
+		// make sure valid id for user
+		if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), databaseId)) {
+			// you dont have access
+			throw new IllegalArgumentException("Database does not exist or user is not an owner to force pulling from cloud storage");
 		}
 		
 		ClusterUtil.pullDatabase(databaseId, Utility.isEngineLoaded(databaseId));

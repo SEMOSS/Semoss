@@ -30,20 +30,17 @@ public class SaveAssetReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		// check if user is logged in
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
 
 		String space = this.keyValue.get(this.keysToGet[3]);
 		// if security is enabled, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
 		String fileName = Utility.normalizePath(keyValue.get(keysToGet[0]));
 		
-		
-		//CFG Releated add to limit saving R/Py Files in prod - No new files can be created but they can be sourced
+		// limit saving R/Py Files in prod - No new files can be created but they can be sourced
 		boolean strict_script_source =  Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.STRICT_SCRIPT_SOURCE));
 		if(strict_script_source) {
 			 String extension = FilenameUtils.getExtension(fileName);

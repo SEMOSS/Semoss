@@ -12,7 +12,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -49,16 +48,14 @@ public class ExportProjectReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-			if (!isAdmin) {
-				boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-				if (!isOwner) {
-					throw new IllegalArgumentException("Project " + projectId + "does not exist or user does not have access to export.");
-				}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if (!isAdmin) {
+			boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
+			if (!isOwner) {
+				throw new IllegalArgumentException("Project " + projectId + "does not exist or user does not have access to export.");
 			}
-		} 
+		}
 
 		logger.info("Exporting project now...");
 		logger.info("Stopping the project...");

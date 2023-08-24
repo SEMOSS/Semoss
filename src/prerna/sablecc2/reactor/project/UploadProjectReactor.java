@@ -57,30 +57,27 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		// permissions on project?
 		User user = this.insight.getUser();
 		LegacyToProjectRestructurerHelper legacyToProjectRestructurerHelper = new LegacyToProjectRestructurerHelper();
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if (security) {
-			if (user == null) {
-				NounMetadata noun = new NounMetadata(
-						"User must be signed into an account in order to create or update an app",
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create or upload a project",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-			// throw error if user is anonymous
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		// throw error if user is anonymous
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
-			// throw error is user doesn't have rights to publish new apps
-			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
-				throwUserNotPublisherError();
-			}
+		// throw error is user doesn't have rights to publish new apps
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
+			throwUserNotPublisherError();
+		}
 
-			if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-				AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
-			}
+		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 		}
 
 		// creating a temp folder to unzip project folder and smss
@@ -256,7 +253,7 @@ public class UploadProjectReactor extends AbstractInsightReactor {
 		try {
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
-			SecurityProjectUtils.addProject(projectId, !AbstractSecurityUtils.securityEnabled(), user);
+			SecurityProjectUtils.addProject(projectId, false, user);
 			logger.info(step + ") Done");
 		} catch (Exception e) {
 			error = true;

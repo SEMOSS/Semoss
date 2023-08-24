@@ -27,18 +27,14 @@ public class CommitAssetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String author = null;
-		String email = null;
 		// check if user is logged in
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
-			// Get the user's email
-			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-			email = accessToken.getEmail();
-			author = accessToken.getUsername();
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
 		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		String comment = this.keyValue.get(this.keysToGet[1]);
 		String space = this.keyValue.get(this.keysToGet[2]);
@@ -72,12 +68,10 @@ public class CommitAssetReactor extends AbstractReactor {
 		// commit it
 		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
 		if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
-			if (AbstractSecurityUtils.securityEnabled()) {
-				AuthProvider provider = user.getPrimaryLogin();
-				String projectId = user.getAssetProjectId(provider);
-				if(projectId!=null && !(projectId.isEmpty())) {
-					ClusterUtil.pushUserWorkspace(projectId, true);
-				}
+			AuthProvider provider = user.getPrimaryLogin();
+			String projectId = user.getAssetProjectId(provider);
+			if(projectId!=null && !(projectId.isEmpty())) {
+				ClusterUtil.pushUserWorkspace(projectId, true);
 			}
 		} else {
 			// if space is null or it is in the insight, push using insight id to get engine

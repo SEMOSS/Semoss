@@ -3,7 +3,6 @@ package prerna.solr.reactor;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -24,12 +23,9 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = UploadInputUtility.getEngineNameOrId(this.store);
-		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("Engine does not exist or user does not have access to edit");
-			}
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Engine does not exist or user does not have access to edit");
 		}
 		
 		Map<String, Object> metadata = getMetaMap();

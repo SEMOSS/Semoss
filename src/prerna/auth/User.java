@@ -545,10 +545,6 @@ public class User implements Serializable {
 			throw new IllegalArgumentException("User cannot be anonymous.");
 		}
 
-		if (!AbstractSecurityUtils.securityEnabled()) {
-			throw new IllegalArgumentException("Security must be enabled.");
-		}
-
 		List<Pair<String, String>> creds = new ArrayList<>();
 		if (user.getLogins() != null) {
 			for (AuthProvider login : user.getLogins()) {
@@ -572,10 +568,6 @@ public class User implements Serializable {
 
 		if (user.isAnonymous()) {
 			throw new IllegalArgumentException("User cannot be anonymous.");
-		}
-
-		if (!AbstractSecurityUtils.securityEnabled()) {
-			throw new IllegalArgumentException("Security must be enabled.");
 		}
 
 		List<Pair<String, String>> creds = new ArrayList<>();
@@ -870,7 +862,7 @@ public class User implements Serializable {
 		if(this.pyt == null && create) {
 			// all of the logic should go here now ?
 			synchronized(this) {
-				if (AbstractSecurityUtils.securityEnabled() && PyUtils.pyEnabled()) {		
+				if (PyUtils.pyEnabled()) {		
 					if (!useNettyPy) {
 						PyExecutorThread jepThread = null;
 						if (jepThread == null) {

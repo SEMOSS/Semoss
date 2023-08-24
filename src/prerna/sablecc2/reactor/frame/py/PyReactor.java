@@ -6,7 +6,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ICodeExecution;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.om.Variable.LANGUAGE;
@@ -67,38 +66,27 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		
 		try
 		{
-			if(AbstractSecurityUtils.securityEnabled()) {
-				//if(tokens > 1) 
-				{
-	//				if(nativePyServer)
-	//				{
-	//					Map appMap = insight.getUser().getVarMap();
-	//					
-	//					if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
-	//					{
-	//						String varFolderAssignment = appMap.get("PY_VAR_STRING").toString();
-	//						varFolderAssignment = varFolderAssignment.replace("\n", ";");
-	//						pyTranslator.runScript(varFolderAssignment);
-	//					}
-	//					output = pyTranslator.runScript(code, this.insight) + "";
-	//				}
-	//				else
-						output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
-				} 
-				/*else {
-					//output = pyTranslator.runScript(code) + "";
-					output = pyTranslator.runScript(insight.getUser().getVarMap(), code) + "";
-				}*/
-			} else 
+			//if(tokens > 1) 
 			{
-				//if(tokens > 1) 
-				{
-					output = pyTranslator.runSingle(null, code, this.insight) + "";
-				} 
-				/*else {
-					output = pyTranslator.runScript(code) + "";
-				}*/
-			}
+//				if(nativePyServer)
+//				{
+//					Map appMap = insight.getUser().getVarMap();
+//					
+//					if (appMap != null && appMap.containsKey("PY_VAR_STRING"))
+//					{
+//						String varFolderAssignment = appMap.get("PY_VAR_STRING").toString();
+//						varFolderAssignment = varFolderAssignment.replace("\n", ";");
+//						pyTranslator.runScript(varFolderAssignment);
+//					}
+//					output = pyTranslator.runScript(code, this.insight) + "";
+//				}
+//				else
+					output = pyTranslator.runSingle(insight.getUser().getVarMap(), code, this.insight) + "";
+			} 
+			/*else {
+				//output = pyTranslator.runScript(code) + "";
+				output = pyTranslator.runScript(insight.getUser().getVarMap(), code) + "";
+			}*/
 		}catch(SemossPixelException ex)
 		{
 			output = ex.getMessage();

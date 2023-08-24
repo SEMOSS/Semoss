@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
@@ -45,16 +44,12 @@ public class GetInsightsReactor extends AbstractReactor {
 			projectFilters = new Vector<String>();
 			for (int i = 0; i < projectFilterGrs.size(); i++) {
 				String pFilter = projectFilterGrs.get(i).toString();
-				if (AbstractSecurityUtils.securityEnabled()) {
-					pFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), pFilter);
-					if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), pFilter)) {
-						projectFilters.add(pFilter);
-					} else {
-						// store warnings
-						warningNouns.add(NounMetadata.getWarningNounMessage(pFilter + " does not exist or user does not have access to project."));
-					}
-				} else {
+				pFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), pFilter);
+				if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), pFilter)) {
 					projectFilters.add(pFilter);
+				} else {
+					// store warnings
+					warningNouns.add(NounMetadata.getWarningNounMessage(pFilter + " does not exist or user does not have access to project."));
 				}
 			}
 		}
@@ -78,15 +73,10 @@ public class GetInsightsReactor extends AbstractReactor {
 			sortBy = new QueryColumnOrderBySelector("low_name");
 		}
 		// get results and meta (if available, otherwise null)
-		List<Map<String, Object>> results = null;
 		Map<String, Object> insightMetadataFilter = getMetaMap();
 		// method handles if filters are null or not
-		if (AbstractSecurityUtils.securityEnabled()) {
-			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), projectFilters, searchTerm, 
-					favoritesOnly, sortBy, insightMetadataFilter, limit, offset);
-		} else {
-			results = SecurityInsightUtils.searchInsights(projectFilters, searchTerm, sortBy, insightMetadataFilter, limit, offset);
-		}
+		List<Map<String, Object>> results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), projectFilters, searchTerm, 
+				favoritesOnly, sortBy, insightMetadataFilter, limit, offset);
 		
 		// this entire block is to add the additional metadata to the insights
 		if(!noMeta) {

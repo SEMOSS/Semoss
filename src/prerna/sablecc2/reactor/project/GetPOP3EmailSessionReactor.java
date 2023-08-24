@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.project;
 import org.apache.commons.lang3.StringUtils;
 
 import jakarta.mail.Store;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectProperties;
@@ -28,11 +27,9 @@ public class GetPOP3EmailSessionReactor extends AbstractReactor {
 		if(StringUtils.isBlank(projectId)) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
-			
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
-			}
+		
+		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
 		}
 		
 		// make sure we have the value or throw a null pointer

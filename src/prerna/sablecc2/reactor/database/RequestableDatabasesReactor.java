@@ -21,22 +21,20 @@ public class RequestableDatabasesReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		// check security
 		User user = this.insight.getUser();
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if (security) {
-			if (user == null) {
-				NounMetadata noun = new NounMetadata(
-						"User must be signed into an account in order to get requestable apps",
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-
-			// throw error if user is anonymous
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to get requestable apps",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
 		}
+
+		// throw error if user is anonymous
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
+		
 		Map<String, Object> dbs = new HashMap<>();
 		// get the dbs the user has access to
 		Set<String> allUserDbs = SecurityEngineUtils.getDatabasesUserHasExplicitAccess(user);

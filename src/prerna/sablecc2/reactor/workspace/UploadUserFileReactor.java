@@ -9,7 +9,6 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,14 +46,12 @@ public class UploadUserFileReactor extends AbstractReactor {
 		File uploadedFile = new File(uploadedFilePath);
 
 		String assetProjectId = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			if(user != null){
-				AuthProvider token = user.getPrimaryLogin();
-				if(token != null){
-					assetProjectId = user.getAssetProjectId(token);
-					Utility.getProject(assetProjectId);
-				}
+		User user = this.insight.getUser();
+		if(user != null){
+			AuthProvider token = user.getPrimaryLogin();
+			if(token != null){
+				assetProjectId = user.getAssetProjectId(token);
+				Utility.getProject(assetProjectId);
 			}
 		}
 

@@ -2409,7 +2409,6 @@ public class MasterDatabaseUtility {
 	 * @param databaseId
 	 * @return
 	 */
-
 	public static String testDatabaseIdIfAlias(String databaseId) {
 		List<String> databaseIds = MasterDatabaseUtility.getDatabaseIdsForAlias(databaseId);
 		if(databaseIds.size() == 1) {

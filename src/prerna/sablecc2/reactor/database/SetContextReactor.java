@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.database;
 
+import prerna.auth.User;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,7 +42,7 @@ public class SetContextReactor extends AbstractReactor {
 		
 		// if python enabled
 		// set the path
-		if(PyUtils.pyEnabled() && load) {
+		if(PyUtils.pyEnabled()) {
 			String assetsDir = AssetUtility.getProjectAssetFolder(context).replace("\\", "/");
 			String script = "import sys\n"+
 				"import os\n"+
@@ -49,8 +50,20 @@ public class SetContextReactor extends AbstractReactor {
 				"os.chdir('"+assetsDir+"')"
 				;
 			
-			PyTranslator pyT = this.insight.getPyTranslator();
-			pyT.runEmptyPy(script);			
+			PyTranslator pyT = null;
+			User user = insight.getUser();
+			if(user != null) {
+				pyT = user.getPyTranslator(false);
+			}
+			if(pyT == null && user != null && load) {
+				pyT = user.getPyTranslator(true);
+			} else if(load) {
+				pyT = insight.getPyTranslator();
+			}
+			
+			if(pyT != null) {
+				pyT.runEmptyPy(script);
+			}
 		}
 		
 		return new NounMetadata("Successfully set context to '" + context , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);

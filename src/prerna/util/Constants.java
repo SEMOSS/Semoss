@@ -535,7 +535,6 @@ public class Constants {
 	
 	// Security
 	public static final String SECURITY_DB = "security";
-	public static final String SECURITY_ENABLED = "security-enabled";
 	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
 	public static final String ANONYMOUS_USER_UPLOAD_DATA = "anonymous-users-upload-data";
 	public static final String USE_LOGOUT_PAGE = "use-logout-page";

@@ -8,7 +8,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -53,19 +52,13 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			pFilters = new Vector<String>();
 			for (int i = 0; i < projectGrsFilters.size(); i++) {
 				String engineFilter = projectGrsFilters.get(i).toString();
-				if (AbstractSecurityUtils.securityEnabled()) {
-					engineFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
-					if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
-						pFilters.add(engineFilter);
-					} else {
-						// store warnings
-						warningNouns.add(NounMetadata.getWarningNounMessage(engineFilter + " does not exist or user does not have access to project."));
-					}
-				} 
-//				else {
-//					engineFilter = MasterDatabaseUtility.testEngineIdIfAlias(engineFilter);
-//					pFilters.add(engineFilter);
-//				}
+				engineFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
+				if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
+					pFilters.add(engineFilter);
+				} else {
+					// store warnings
+					warningNouns.add(NounMetadata.getWarningNounMessage(engineFilter + " does not exist or user does not have access to project."));
+				}
 			}
 		}
 		String searchTerm = this.keyValue.get(this.keysToGet[1]);
@@ -84,14 +77,7 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 		}
 		
 		// get results
-		SelectQueryStruct qs = null;
-		// method handles if filters are null or not
-		if (AbstractSecurityUtils.securityEnabled()) {
-			qs = SecurityInsightUtils.searchUserInsightsUsage(this.insight.getUser(), pFilters, searchTerm, tagFilters);
-		} else {
-			qs = SecurityInsightUtils.searchInsightsUsage(pFilters, searchTerm, tagFilters);
-		}
-		
+		SelectQueryStruct qs = SecurityInsightUtils.searchUserInsightsUsage(this.insight.getUser(), pFilters, searchTerm, tagFilters);;
 		IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
 		IRawSelectWrapper wrapper = null;
 		try {

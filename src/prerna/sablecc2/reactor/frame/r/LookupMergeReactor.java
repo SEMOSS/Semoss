@@ -37,10 +37,8 @@ public class LookupMergeReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		// check if user is logged in
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
 
 		// initialize the reactor

@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.cluster;
 import java.util.HashMap;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -39,16 +38,14 @@ public class OpenDatabaseReactor extends AbstractReactor {
 			return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_DATABASE);
 		}
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			// make sure valid id for user
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if( !(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId) 
-					|| SecurityEngineUtils.engineIsDiscoverable(databaseId)
-					)
-				){
-				// you dont have access
-				throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
-			}
+		// make sure valid id for user
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if( !(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId) 
+				|| SecurityEngineUtils.engineIsDiscoverable(databaseId)
+				)
+			){
+			// you dont have access
+			throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
 		}
 		
 		IDatabaseEngine engine = Utility.getDatabase(databaseId);

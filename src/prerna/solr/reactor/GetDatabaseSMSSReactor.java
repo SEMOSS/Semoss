@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -28,15 +27,13 @@ public class GetDatabaseSMSSReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if(AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-			if(!isAdmin) {
-				boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
-				if(!isOwner) {
-					throw new IllegalArgumentException("Catalog " + databaseId + " does not exist or user does not have permissions to update the smss of the catalog. User must be the owner to perform this function.");
-				}
-			}	
+		User user = this.insight.getUser();
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if(!isAdmin) {
+			boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
+			if(!isOwner) {
+				throw new IllegalArgumentException("Catalog " + databaseId + " does not exist or user does not have permissions to update the smss of the catalog. User must be the owner to perform this function.");
+			}
 		}
 		
 		IDatabaseEngine engine = Utility.getDatabase(databaseId);

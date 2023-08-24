@@ -42,22 +42,19 @@ public class RequestProjectReactor extends AbstractReactor {
 		String permission = this.keyValue.get(this.keysToGet[1]);
 
 		User user = this.insight.getUser();
-
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if (security) {
-			if (user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to request a project",
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-
-			// throw error if user is anonymous
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		if (user == null) {
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to request a project",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
 		}
+
+		// throw error if user is anonymous
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
+
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
 		// check user permission for the project

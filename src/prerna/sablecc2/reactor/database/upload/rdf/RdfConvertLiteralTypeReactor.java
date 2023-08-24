@@ -21,7 +21,6 @@ import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
@@ -50,19 +49,18 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		String property = this.keyValue.get(this.keysToGet[2]);
 		String dataType = this.keyValue.get(this.keysToGet[3]);
 
-		if(appId == null || appId.isEmpty()) {
-			throw new NullPointerException("Must provide an app id");
+		if(databaseId == null || databaseId.isEmpty()) {
+			throw new NullPointerException("Must provide an database id");
 		}
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("Database " + appId + " does not exist or user is not an owner to the database");
-			}
+		if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user is not an owner to the database");
 		}
+		
 		if(concept == null || concept.isEmpty()) {
 			throw new NullPointerException("Must provide a value for concept");
 		}
@@ -85,7 +83,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 		
 		List<Object[]> collection = new Vector<>();
 		
-		IDatabaseEngine engine = Utility.getDatabase(appId);
+		IDatabaseEngine engine = Utility.getDatabase(databaseId);
 		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(engine, query);

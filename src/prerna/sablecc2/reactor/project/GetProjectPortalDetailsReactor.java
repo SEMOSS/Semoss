@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.project;
 import java.util.HashMap;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -11,7 +10,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GetProjectPortalDetailsReactor extends AbstractReactor {
@@ -29,13 +27,11 @@ public class GetProjectPortalDetailsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			// make sure valid id for user
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-				// you dont have access
-				throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
-			}
+		// make sure valid id for user
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			// you dont have access
+			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 		
 		IProject project = Utility.getProject(projectId);

@@ -11,7 +11,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -49,11 +48,9 @@ public class EngineActivityReactor extends AbstractReactor {
 				addwarning = true;
 			}
 		}
-		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to engine");
-			}
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to engine");
 		}
 			
 		logger.info("Getting engine activity for engine: {}", engineId);
@@ -97,13 +94,9 @@ public class EngineActivityReactor extends AbstractReactor {
 	
 	private List<Pair<String, String>> usersCanView(List<Pair<String, String>> usesInInsights, User user) {
 		List<Pair<String, String>> insightsUserCanView = new ArrayList<>();
-		if (AbstractSecurityUtils.securityEnabled()) {
-			insightsUserCanView = usesInInsights.stream()
-					.filter(x -> SecurityInsightUtils.userCanViewInsight(user, x.getRight(), x.getLeft()))
-					.collect(Collectors.toList());
-		} else {
-			insightsUserCanView = usesInInsights;
-		}
+		insightsUserCanView = usesInInsights.stream()
+				.filter(x -> SecurityInsightUtils.userCanViewInsight(user, x.getRight(), x.getLeft()))
+				.collect(Collectors.toList());
 		return insightsUserCanView;
 	}
 	

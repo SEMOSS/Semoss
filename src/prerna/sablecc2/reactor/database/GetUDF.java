@@ -1,10 +1,8 @@
 package prerna.sablecc2.reactor.database;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -30,16 +28,9 @@ public class GetUDF extends AbstractReactor {
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-			}
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 		}
 		
 		IDatabaseEngine database = Utility.getDatabase(databaseId);

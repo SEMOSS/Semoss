@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.sablecc2.om.GenRowStruct;
@@ -34,9 +33,7 @@ public class SetInsightMetakeyOptionsReactor extends AbstractInsightReactor {
 			if (metaoptions==null || metaoptions.isEmpty()) {
 				throw new IllegalArgumentException("Must provide a set of metadata values to store.");
 			}
-			if(AbstractSecurityUtils.securityEnabled()) {
-				res = SecurityInsightUtils.updateMetakeyOptions(metaoptions);
-			}
+			res = SecurityInsightUtils.updateMetakeyOptions(metaoptions);
 		}
 		NounMetadata noun = new NounMetadata(res, PixelDataType.BOOLEAN);
 		if (res) {

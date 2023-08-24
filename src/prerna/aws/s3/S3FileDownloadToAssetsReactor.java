@@ -16,7 +16,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.SSECustomerKey;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -77,7 +76,7 @@ public class S3FileDownloadToAssetsReactor extends AbstractReactor {
 		}
 
 		String space = this.keyValue.get(TARGET_SPACE);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
 		if(assetFolder == null || assetFolder.isEmpty()) {
 			return getError("Unable to retrieve asset directory");
 		}

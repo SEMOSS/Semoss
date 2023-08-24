@@ -11,13 +11,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.InsightFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -49,19 +47,12 @@ public class ExportDatabaseReactor extends AbstractReactor {
 		
 		// security
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-			if (!isAdmin) {
-				boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
-				if (!isOwner) {
-					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
-				}
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if (!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if (!isAdmin) {
+			boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
+			if (!isOwner) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
 			}
 		}
 

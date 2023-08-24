@@ -47,23 +47,19 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		// get inputs
 		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		String projectId = getProject();
-		String author = null;
-		String email = null;
 
 		// security
-		if (AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
-			if (!SecurityEngineUtils.userCanEditEngine(user, projectId)) {
-				throw new IllegalArgumentException("User does not have permission to add insights in the proejct");
-			}
-			// Get the user's email
-			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-			email = accessToken.getEmail();
-			author = accessToken.getUsername();
+		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
+		if (!SecurityEngineUtils.userCanEditEngine(user, projectId)) {
+			throw new IllegalArgumentException("User does not have permission to add insights in the proejct");
+		}
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
 
 		Map<String, List<String>> filesAdded = new HashMap<>();
 		List<String> fileList = new Vector<>();

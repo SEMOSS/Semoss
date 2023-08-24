@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.project;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -20,13 +19,7 @@ public class GetProjectListReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		List<Map<String, Object>> retList = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			retList = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null);
-		} else {
-			retList = SecurityProjectUtils.getAllProjectList(null, null, null);
-		}
-		
+		List<Map<String, Object>> retList = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null);
 		return new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_LIST);
 	}
 	

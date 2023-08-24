@@ -2221,98 +2221,98 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return databaseMap;
 	}
 
-	/**
-	 * Get the database information
-	 * @param databaseFilter
-	 * @return
-	 */
-	public static List<Map<String, Object>> getAllDatabaseList(String databaseFilter) {
-		List<String> filters = null;
-		if(databaseFilter != null && !databaseFilter.isEmpty()) {
-			filters = new ArrayList<>();
-			filters.add(databaseFilter);
-		}
-		return getAllDatabaseList(filters);
-	}
+//	/**
+//	 * Get the database information
+//	 * @param databaseFilter
+//	 * @return
+//	 */
+//	public static List<Map<String, Object>> getAllDatabaseList(String databaseFilter) {
+//		List<String> filters = null;
+//		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+//			filters = new ArrayList<>();
+//			filters.add(databaseFilter);
+//		}
+//		return getAllDatabaseList(filters);
+//	}
 	
-	/**
-	 * Get the database information
-	 * @param databaseFilter
-	 * @return
-	 */
-	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
-		List<String> engineTypes = new ArrayList<>();
-		engineTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
-		return getAllEngineList(engineTypes, databaseFilters, null, null, null, null);
-	}
+//	/**
+//	 * Get the database information
+//	 * @param databaseFilter
+//	 * @return
+//	 */
+//	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
+//		List<String> engineTypes = new ArrayList<>();
+//		engineTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
+//		return getAllEngineList(engineTypes, databaseFilters, null, null, null, null);
+//	}
 	
-	/**
-	 * Get database information
-	 * @param databaseFilters
-	 * @param engineMetadataFilter
-	 * @param searchTerm
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public static List<Map<String, Object>> getAllEngineList(List<String> engineType, List<String> engineIdFilters, Map<String, Object> engineMetadataFilter,
-			String searchTerm, String limit, String offset) {
-		
-		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
-
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
-		if(engineType != null && !engineType.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineType));
-		}
-		if(engineIdFilters != null && !engineIdFilters.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineIdFilters));
-		}
-		// optional word filter on the engine name
-		if(hasSearchTerm) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "ENGINE__ENGINENAME", searchTerm);
-		}
-		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
-		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
-			for (String k : engineMetadataFilter.keySet()) {
-				SelectQueryStruct subQs = new SelectQueryStruct();
-				subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", k));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", engineMetadataFilter.get(k)));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
-			}
-		}
-		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		// add the sort
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-		
-		Long long_limit = -1L;
-		Long long_offset = -1L;
-		if(limit != null && !limit.trim().isEmpty()) {
-			long_limit = Long.parseLong(limit);
-		}
-		if(offset != null && !offset.trim().isEmpty()) {
-			long_offset = Long.parseLong(offset);
-		}
-		qs.setLimit(long_limit);
-		qs.setOffSet(long_offset);
-		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
+//	/**
+//	 * Get database information
+//	 * @param databaseFilters
+//	 * @param engineMetadataFilter
+//	 * @param searchTerm
+//	 * @param limit
+//	 * @param offset
+//	 * @return
+//	 */
+//	public static List<Map<String, Object>> getAllEngineList(List<String> engineType, List<String> engineIdFilters, Map<String, Object> engineMetadataFilter,
+//			String searchTerm, String limit, String offset) {
+//		
+//		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
+//		
+//		SelectQueryStruct qs = new SelectQueryStruct();
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+//
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
+//		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
+//		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
+//		if(engineType != null && !engineType.isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineType));
+//		}
+//		if(engineIdFilters != null && !engineIdFilters.isEmpty()) {
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineIdFilters));
+//		}
+//		// optional word filter on the engine name
+//		if(hasSearchTerm) {
+//			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "ENGINE__ENGINENAME", searchTerm);
+//		}
+//		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
+//		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
+//			for (String k : engineMetadataFilter.keySet()) {
+//				SelectQueryStruct subQs = new SelectQueryStruct();
+//				subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", k));
+//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", engineMetadataFilter.get(k)));
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
+//			}
+//		}
+//		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+//		// add the sort
+//		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+//		
+//		Long long_limit = -1L;
+//		Long long_offset = -1L;
+//		if(limit != null && !limit.trim().isEmpty()) {
+//			long_limit = Long.parseLong(limit);
+//		}
+//		if(offset != null && !offset.trim().isEmpty()) {
+//			long_offset = Long.parseLong(offset);
+//		}
+//		qs.setLimit(long_limit);
+//		qs.setOffSet(long_offset);
+//		
+//		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+//	}
 	
 	/**
 	 * Get the list of the engine information that the user has access to

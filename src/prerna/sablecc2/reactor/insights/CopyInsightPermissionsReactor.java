@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.insights;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -29,11 +28,6 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// must have security enabled to do this
-		if(!AbstractSecurityUtils.securityEnabled()) {
-			throw new IllegalArgumentException("Security must be activiated to perform this operation");
-		}
-
 		organizeKeys();
 		String sourceProjectId = this.keyValue.get(this.keysToGet[0]);
 		String sourceInsightId = this.keyValue.get(this.keysToGet[1]);

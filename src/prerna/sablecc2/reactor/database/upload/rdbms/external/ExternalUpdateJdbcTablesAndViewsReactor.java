@@ -14,7 +14,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -46,13 +45,12 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if(AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
-			if(!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
-				throw new IllegalArgumentException("User does not have permission to edit this database schema");
-			}
+		User user = this.insight.getUser();
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
+		if(!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
+			throw new IllegalArgumentException("User does not have permission to edit this database schema");
 		}
+
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
 		IRDBMSEngine nativeDatabase = null;
 		if(database instanceof IRDBMSEngine) {

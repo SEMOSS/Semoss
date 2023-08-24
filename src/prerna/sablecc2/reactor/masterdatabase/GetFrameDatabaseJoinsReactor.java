@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -28,17 +27,15 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 		Map<String, Map<String, List<String>>> connections = new HashMap<String, Map<String, List<String>>>();
 		
 		List<String> dbFilters = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			String specificDbFilter = getDatabase();
-			if(specificDbFilter != null) {
-				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), specificDbFilter)) {
-					throw new IllegalArgumentException("Database " + specificDbFilter + " does not exist or user does not have access to database");
-				}
-				dbFilters = new Vector<String>();
-				dbFilters.add(specificDbFilter);
-			} else {
-				dbFilters = SecurityEngineUtils.getVisibleUserDatabaseIds(this.insight.getUser());
+		String specificDbFilter = getDatabase();
+		if(specificDbFilter != null) {
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), specificDbFilter)) {
+				throw new IllegalArgumentException("Database " + specificDbFilter + " does not exist or user does not have access to database");
 			}
+			dbFilters = new Vector<String>();
+			dbFilters.add(specificDbFilter);
+		} else {
+			dbFilters = SecurityEngineUtils.getVisibleUserDatabaseIds(this.insight.getUser());
 		}
 		
 		ITableDataFrame frame = getFrame();

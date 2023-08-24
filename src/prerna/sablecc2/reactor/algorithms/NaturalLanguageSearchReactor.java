@@ -20,7 +20,6 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -93,26 +92,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// Collect all the apps that we will iterate through
 		if (hasFilters) {
 			// need to validate that the user has access to these ids
-			if (AbstractSecurityUtils.securityEnabled()) {
-				List<String> databaseIds = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
-				// make sure our ids are a complete subset of the user ids
-				// user defined list must always be a subset of all the engine ids
-				if (!databaseIds.containsAll(dbFilters)) {
-					throw new IllegalArgumentException(
-							"Attempting to filter to app ids that user does not have access to or do not exist");
-				}
-			} else {
-				List<String> allIds = MasterDatabaseUtility.getAllDatabaseIds();
-				if (!allIds.containsAll(dbFilters)) {
-					throw new IllegalArgumentException("Attempting to filter to app ids that not exist");
-				}
+			List<String> databaseIds = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+			// make sure our ids are a complete subset of the user ids
+			// user defined list must always be a subset of all the engine ids
+			if (!databaseIds.containsAll(dbFilters)) {
+				throw new IllegalArgumentException("Attempting to filter to app ids that user does not have access to or do not exist");
 			}
 		} else {
-			if (AbstractSecurityUtils.securityEnabled()) {
-				dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
-			} else {
-				dbFilters = MasterDatabaseUtility.getAllDatabaseIds();
-			}
+			dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
 		}
 		
 		// init r tables for use between methods

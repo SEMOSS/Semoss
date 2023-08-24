@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.apache.commons.math3.util.Precision;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.util.Constants;
 
@@ -20,21 +19,17 @@ public class UserTrackingStatisticsUtils {
 	private static double MP_DESC = 2.0;
 	private static double MP_RK = 3.0;
 	
-	
+	/**
+	 * 
+	 * @param databaseId
+	 * @return
+	 */
 	public static double calculateScore(String databaseId) {
-		double score = 0.0;
-		if (AbstractSecurityUtils.securityEnabled()) {
-			score += calculateSecurityScore(databaseId);
-		} else {
-			score += calculateNonSecurityScore(databaseId);
-		}
-
+		double score = calculateSecurityScore(databaseId);
 		// round to 2 decimal places
 		score = Precision.round(score, 2);
-		
 		return score;
 	}
-	
 	
 	private static double calculateSecurityScore(String databaseId) {
 		double calc = 0.0;
@@ -77,12 +72,6 @@ public class UserTrackingStatisticsUtils {
 		return Math.min(mp, wordCount / wfp);
 	}
 
-	// TODO: figure this out
-	private static double calculateNonSecurityScore(String databaseId) {
-		double calc = 0.0;
-		return 0;
-	}
-	
 	private static String getStringFromObject(Object o) {
 		String val;
 		if (o instanceof List) {

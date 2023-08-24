@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.GenRowStruct;
@@ -25,12 +24,7 @@ public class GetDatabaseMetaValuesReactor extends AbstractReactor {
     	List<String> eTypes = new ArrayList<>();
 		eTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
 		
-        List<String> dbList = null;
-        if(AbstractSecurityUtils.securityEnabled()) {
-            dbList = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, false, true);
-        } else {
-        	dbList = SecurityEngineUtils.getAllEngineIds(eTypes);
-        }
+        List<String> dbList = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, false, true);
         if(dbList != null && dbList.isEmpty()) {
         	return new NounMetadata(new ArrayList<>(), PixelDataType.CUSTOM_DATA_STRUCTURE);
         }

@@ -7,7 +7,6 @@ import java.util.Map;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,14 +40,12 @@ public class UserDirReactor extends AbstractReactor {
 		}
 
 		String assetEngineID = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			if(user != null){
-				AuthProvider token = user.getPrimaryLogin();
-				if(token != null){
-					assetEngineID = user.getAssetProjectId(token);
-					Utility.getProject(assetEngineID);
-				}
+		User user = this.insight.getUser();
+		if(user != null){
+			AuthProvider token = user.getPrimaryLogin();
+			if(token != null){
+				assetEngineID = user.getAssetProjectId(token);
+				Utility.getProject(assetEngineID);
 			}
 		}
 

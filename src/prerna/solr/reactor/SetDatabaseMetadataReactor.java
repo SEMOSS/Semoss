@@ -3,10 +3,8 @@ package prerna.solr.reactor;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -26,14 +24,9 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String databaseId = UploadInputUtility.getDatabaseNameOrId(this.store);
-		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("Database does not exist or user does not have access to edit");
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database does not exist or user does not have access to edit");
 		}
 		
 		Map<String, Object> metadata = getMetaMap();

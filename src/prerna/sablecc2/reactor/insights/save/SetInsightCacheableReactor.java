@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.quartz.CronExpression;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
@@ -44,18 +43,10 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		String existingId = this.keyValue.get(this.keysToGet[1]);
 		
 		// we may have the alias
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
-			}
-		} 
-//		else {
-//			projectId = MasterDatabaseUtility.testEngineIdIfAlias(projectId);
-//			if(!MasterDatabaseUtility.getAllEngineIds().contains(projectId)) {
-//				throw new IllegalArgumentException("App " + projectId + " does not exist");
-//			}
-//		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
+		}
 		
 		Map<String, Object> currentInsightDetails = SecurityInsightUtils.getSpecificInsightCacheDetails(projectId, existingId);
 		

@@ -8,7 +8,6 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -34,10 +33,8 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 		String projectId = this.getProject(); 
 		String insightId = this.getRdbmsId();
 		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, insightId)) {
-				throw new IllegalArgumentException("Insight does not exist or user does not have access to edit");
-			}
+		if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, insightId)) {
+			throw new IllegalArgumentException("Insight does not exist or user does not have access to edit");
 		}
 		
 		Map<String, Object> metadata = getMetaMap();

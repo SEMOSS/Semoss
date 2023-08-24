@@ -71,24 +71,18 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String projectId = getProject();
 		
 		User user = this.insight.getUser();
-		String author = null;
-		String email = null;
-		
 		// security
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-			
-			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-				throw new IllegalArgumentException("User does not have permission to add insights in the project");
-			}
-			
-			// Get the user's email
-			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-			email = accessToken.getEmail();
-			author = accessToken.getUsername();
+		if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+			throwAnonymousUserError();
 		}
+		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("User does not have permission to add insights in the project");
+		}
+		
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
 		
 		String insightName = getInsightName();
 		if(insightName == null || (insightName = insightName.trim()).isEmpty()) {

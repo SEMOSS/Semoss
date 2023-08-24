@@ -9,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -50,16 +49,9 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		organizeKeys();
 		
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
-			}
-		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
-			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
-			}
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 		}
 
 		IDatabaseEngine database = Utility.getDatabase(databaseId);

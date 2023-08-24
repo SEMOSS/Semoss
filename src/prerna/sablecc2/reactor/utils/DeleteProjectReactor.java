@@ -44,19 +44,17 @@ public class DeleteProjectReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			
 			// we may have the alias
-			if(AbstractSecurityUtils.securityEnabled()) {
-				projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-				if(!isAdmin) {
-					if(AbstractSecurityUtils.adminOnlyProjectDelete()) {
-						throwFunctionalityOnlyExposedForAdminsError();
-					}
-					
-					boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-					if(!isOwner) {
-						throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have permissions to delete the project. "
-								+ "User must be the owner to perform this function.");
-					}
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+			if(!isAdmin) {
+				if(AbstractSecurityUtils.adminOnlyProjectDelete()) {
+					throwFunctionalityOnlyExposedForAdminsError();
+				}
+				
+				boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
+				if(!isOwner) {
+					throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have permissions to delete the project. "
+							+ "User must be the owner to perform this function.");
 				}
 			}
 

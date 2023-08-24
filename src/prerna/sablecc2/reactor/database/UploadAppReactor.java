@@ -57,30 +57,27 @@ public class UploadAppReactor extends AbstractInsightReactor {
 		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		// check security
 		User user = this.insight.getUser();
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if (security) {
-			if (user == null) {
-				NounMetadata noun = new NounMetadata(
-						"User must be signed into an account in order to create or update an app",
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create or update an app",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-			// throw error if user is anonymous
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		// throw error if user is anonymous
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
-			// throw error is user doesn't have rights to publish new apps
-			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
-				throwUserNotPublisherError();
-			}
-			
-			if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-				throwFunctionalityOnlyExposedForAdminsError();
-			}
+		// throw error is user doesn't have rights to publish new apps
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
+			throwUserNotPublisherError();
+		}
+		
+		if (AbstractSecurityUtils.adminOnlyEngineAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
 		// creating a temp folder to unzip db folder and smss
@@ -203,7 +200,7 @@ public class UploadAppReactor extends AbstractInsightReactor {
 			logger.info(step + ") Grabbing app structure");
 			Utility.synchronizeEngineMetadata(appId);
 			logger.info(step + ") Done");
-			SecurityEngineUtils.addEngine(appId, !AbstractSecurityUtils.securityEnabled(), user);
+			SecurityEngineUtils.addEngine(appId, false, user);
 		} catch(Exception e) {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);

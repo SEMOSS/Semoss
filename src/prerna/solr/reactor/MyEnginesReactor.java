@@ -10,7 +10,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -54,15 +53,10 @@ public class MyEnginesReactor extends AbstractReactor {
 		List<Integer> permissionFilters = getPermissionFilters();
 		Boolean includeUserT = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
 		
-		List<Map<String, Object>> engineInfo = new ArrayList<>();
 		Map<String, Object> engineMetadataFilter = getMetaMap();
-		if(AbstractSecurityUtils.securityEnabled()) {
-			engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset);
-			if(!favoritesOnly) {
-				this.insight.getUser().setEngines(engineInfo);
-			}
-		} else {
-			engineInfo = SecurityEngineUtils.getAllEngineList(engineTypes, engineIdFilters, engineMetadataFilter, searchTerm, limit, offset);
+		List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit, offset);
+		if(!favoritesOnly) {
+			this.insight.getUser().setEngines(engineInfo);
 		}
 
 		if(!engineInfo.isEmpty() && (!noMeta || includeUserT)) {

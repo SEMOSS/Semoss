@@ -28,10 +28,8 @@ public class UnzipFileReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		// check if user is logged in
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
 		
 		// specify the folder from the base
@@ -40,7 +38,7 @@ public class UnzipFileReactor extends AbstractReactor {
 		
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
+		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
 		String zipFileLocation = (baseFolder + "/" + fileRelativePath).replace('\\', '/');
 		File zipFile = new File(zipFileLocation);
 		if(zipFile.exists() && !zipFile.isFile()) {

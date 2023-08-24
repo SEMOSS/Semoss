@@ -2,7 +2,6 @@ package prerna.util.git.reactors;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
@@ -29,17 +28,12 @@ public class IsGit extends AbstractReactor {
 		if(projectId == null || projectId.isEmpty()) {
 			throw new IllegalArgumentException("Need to specify the project id");
 		}
-		String databaseName = null;
-		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), projectId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
-			}
-			databaseName = SecurityProjectUtils.getProjectAliasForId(projectId);
-		} else {
-			databaseName = SecurityProjectUtils.getProjectAliasForId(projectId);
+
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
 		}
+		String databaseName = SecurityProjectUtils.getProjectAliasForId(projectId);
 		
 		logger.info("Checking - Please wait");
 		// get the path of the git location

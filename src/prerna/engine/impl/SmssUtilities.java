@@ -641,12 +641,7 @@ public class SmssUtilities {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
 		// need to make sure the app is unique
-		boolean containsProject = false;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			containsProject = AbstractSecurityUtils.userContainsProjectName(user, projectName);
-		} else {
-			containsProject = AbstractSecurityUtils.containsProjectName(projectName);
-		}
+		boolean containsProject = AbstractSecurityUtils.userContainsProjectName(user, projectName);
 		if(containsProject) {
 			throw new IOException("Project name already exists.  Please provide a unique project name");
 		}

@@ -83,29 +83,26 @@ public class ProjectHelper {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
 
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if(security) {
-			if(user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a project", PixelDataType.CONST_STRING, 
-						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
+		if(user == null) {
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a project", PixelDataType.CONST_STRING, 
+					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-			// throw error if user is anonymous
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				AbstractReactor.throwAnonymousUserError();
-			}
+		// throw error if user is anonymous
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			AbstractReactor.throwAnonymousUserError();
+		}
 
-			// throw error is user doesn't have rights to publish new apps
-			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
-				AbstractReactor.throwUserNotPublisherError();
-			}
-			
-			if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-				AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
-			}
+		// throw error is user doesn't have rights to publish new apps
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
+			AbstractReactor.throwUserNotPublisherError();
+		}
+		
+		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 		}
 
 		try {

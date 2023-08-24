@@ -18,7 +18,6 @@ import org.eclipse.jgit.util.FileUtils;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.ds.util.flatfile.ParquetFileIterator;
 import prerna.engine.api.IHeadersDataRow;
@@ -35,7 +34,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -204,7 +202,7 @@ public class RFrameBuilder {
 
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 
-			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE)) && AbstractSecurityUtils.securityEnabled()) {
+			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 				Insight in = this.getRJavaTranslator().getInsight();
 				
 				String insightFolder = this.getRJavaTranslator().getInsight().getInsightFolder();

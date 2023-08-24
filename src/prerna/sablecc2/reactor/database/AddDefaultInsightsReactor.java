@@ -53,20 +53,18 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		}
 		boolean pullDatabase = true;
 		// security and stuff
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-			
-			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-				throw new IllegalArgumentException("User does not have permission to add insights in the project");
-			}
-			if(!addAll && insightsToAdd.size()==1 && insightsToAdd.contains(INSIGHT_STATS)) {
-				// do not need a database for this situation
-				pullDatabase = false;
-			} else if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("User does not have permission to view the database");
-			}
+		if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+			throwAnonymousUserError();
+		}
+		
+		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("User does not have permission to add insights in the project");
+		}
+		if(!addAll && insightsToAdd.size()==1 && insightsToAdd.contains(INSIGHT_STATS)) {
+			// do not need a database for this situation
+			pullDatabase = false;
+		} else if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("User does not have permission to view the database");
 		}
 
 		List<NounMetadata> additionalNouns = new Vector<NounMetadata>();

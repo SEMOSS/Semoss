@@ -11,7 +11,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IDatabaseEngine;
@@ -65,7 +64,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		String space = this.keyValue.get(this.keysToGet[1]);
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
+		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
 		File baseF = new File(baseFolder);
 		if(!baseF.exists() || !baseF.isDirectory()) {
 			baseF.mkdirs();
@@ -85,10 +84,8 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		// now we want to go through and save all the file details 
 		List<String> databaseIds = getDatabases();
 		for(String dbId : databaseIds) {
-			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), dbId)) {
-					throw new IllegalArgumentException("User does not have permission to view this database or database does not exist");
-				}
+			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), dbId)) {
+				throw new IllegalArgumentException("User does not have permission to view this database or database does not exist");
 			}
 		}
 		

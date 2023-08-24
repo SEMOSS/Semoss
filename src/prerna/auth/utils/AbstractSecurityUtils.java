@@ -44,7 +44,6 @@ public abstract class AbstractSecurityUtils {
 	private static final Logger logger = LogManager.getLogger(AbstractSecurityUtils.class);
 
 	static RDBMSNativeEngine securityDb;
-	static boolean securityEnabled = false;
 	@Deprecated
 	static boolean adminSetPublisher = false;
 	static boolean adminSetExporter = false;
@@ -87,13 +86,6 @@ public abstract class AbstractSecurityUtils {
 		OwlSeparatePixelFromConceptual.fixOwl(securityDb.getSmssProp());
 
 		initialize();
-
-		Object security = DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED);
-		if(security == null) {
-			securityEnabled = false;
-		} else {
-			securityEnabled = (security instanceof Boolean && ((boolean) security) ) || (Boolean.parseBoolean(security.toString()));
-		}
 
 		Object anonymousUsers = DIHelper.getInstance().getLocalProp(Constants.ANONYMOUS_USER_ALLOWED);
 		if(anonymousUsers == null) {
@@ -140,12 +132,8 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyInsightShare = Utility.getApplicationAdminOnlyInsightShare();
 	}
 
-	public static boolean securityEnabled() {
-		return securityEnabled;
-	}
-
 	public static boolean anonymousUsersEnabled() {
-		return securityEnabled && anonymousUsersEnabled;
+		return anonymousUsersEnabled;
 	}
 
 	public static boolean anonymousUserUploadData() {
@@ -154,59 +142,59 @@ public abstract class AbstractSecurityUtils {
 
 	@Deprecated
 	public static boolean adminSetPublisher() {
-		return securityEnabled && adminSetPublisher;
+		return adminSetPublisher;
 	}
 
 	public static boolean adminSetExporter() {
-		return securityEnabled && adminSetExporter;
+		return adminSetExporter;
 	}
 
 	public static boolean adminOnlyProjectAdd() {
-		return securityEnabled && adminOnlyProjectAdd;
+		return adminOnlyProjectAdd;
 	}
 
 	public static boolean adminOnlyProjectDelete() {
-		return securityEnabled && adminOnlyProjectDelete;
+		return adminOnlyProjectDelete;
 	}
 
 	public static boolean adminOnlyProjectAddAccess() {
-		return securityEnabled && adminOnlyProjectAddAccess;
+		return adminOnlyProjectAddAccess;
 	}
 
 	public static boolean adminOnlyProjectSetPublic() {
-		return securityEnabled && adminOnlyProjectSetPublic;
+		return adminOnlyProjectSetPublic;
 	}
 
 	public static boolean adminOnlyEngineAdd() {
-		return securityEnabled && adminOnlyDatabaseAdd;
+		return adminOnlyDatabaseAdd;
 	}
 
 	public static boolean adminOnlyEngineDelete() {
-		return securityEnabled && adminOnlyDatabaseDelete;
+		return adminOnlyDatabaseDelete;
 	}
 
 	public static boolean adminOnlyEngineAddAccess() {
-		return securityEnabled && adminOnlyDatabaseAddAccess;
+		return adminOnlyDatabaseAddAccess;
 	}
 
 	public static boolean adminOnlyEngineSetPublic() {
-		return securityEnabled && adminOnlyDatabaseSetPublic;
+		return adminOnlyDatabaseSetPublic;
 	}
 
 	public static boolean adminOnlyEngineSetDiscoverable() {
-		return securityEnabled && adminOnlyDatabaseSetDiscoverable;
+		return adminOnlyDatabaseSetDiscoverable;
 	}
 
 	public static boolean adminOnlyInsightSetPublic() {
-		return securityEnabled && adminOnlyInsightSetPublic;
+		return adminOnlyInsightSetPublic;
 	}
 
 	public static boolean adminOnlyInsightAddAccess() {
-		return securityEnabled && adminOnlyInsightAddAccess;
+		return adminOnlyInsightAddAccess;
 	}
 
 	public static boolean adminOnlyInsightShare() {
-		return securityEnabled && adminOnlyInsightShare;
+		return adminOnlyInsightShare;
 	}
 
 	public static void initialize() throws Exception {

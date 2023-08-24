@@ -38,16 +38,14 @@ public class AssetUtility {
 		// find out what space the user wants to use to get the base asset path
 		if (space != null && !space.isEmpty()) {
 			if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
-				if (AbstractSecurityUtils.securityEnabled()) {
-					User user = in.getUser();
-					if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-						throw new IllegalArgumentException("Must be logged in to access user specific assets");
-					}
-					AuthProvider provider = user.getPrimaryLogin();
-					String projectId = user.getAssetProjectId(provider);
-					String projectName = "Asset";
-					assetFolder = getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
+				User user = in.getUser();
+				if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+					throw new IllegalArgumentException("Must be logged in to access user specific assets");
 				}
+				AuthProvider provider = user.getPrimaryLogin();
+				String projectId = user.getAssetProjectId(provider);
+				String projectName = "Asset";
+				assetFolder = getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
@@ -58,16 +56,14 @@ public class AssetUtility {
 				// user has passed an id
 				String projectId = space;
 				// check if the user has permission for the app
-				if (AbstractSecurityUtils.securityEnabled()) {
-					if(editRequired) {
-						if(!SecurityProjectUtils.userCanEditProject(in.getUser(), projectId)) {
-							throw new IllegalArgumentException("User does not have permission for this project");
-						}
-					} else {
-						// only read access
-						if(!SecurityProjectUtils.userCanViewProject(in.getUser(), projectId)) {
-							throw new IllegalArgumentException("User does not have permission for this project");
-						}
+				if(editRequired) {
+					if(!SecurityProjectUtils.userCanEditProject(in.getUser(), projectId)) {
+						throw new IllegalArgumentException("User does not have permission for this project");
+					}
+				} else {
+					// only read access
+					if(!SecurityProjectUtils.userCanViewProject(in.getUser(), projectId)) {
+						throw new IllegalArgumentException("User does not have permission for this project");
 					}
 				}
 				IProject project = Utility.getProject(projectId);
@@ -102,16 +98,14 @@ public class AssetUtility {
 		// find out what space the user wants to use to get the base asset path
 		if (space != null) {
 			if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
-				if (AbstractSecurityUtils.securityEnabled()) {
-					User user = in.getUser();
-					if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-						throw new IllegalArgumentException("Must be logged in to perform this operation");
-					}
-					AuthProvider provider = user.getPrimaryLogin();
-					String projectId = user.getAssetProjectId(provider);
-					String projectName = "Asset";
-					assetFolder = getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
+				User user = in.getUser();
+				if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+					throw new IllegalArgumentException("Must be logged in to perform this operation");
 				}
+				AuthProvider provider = user.getPrimaryLogin();
+				String projectId = user.getAssetProjectId(provider);
+				String projectName = "Asset";
+				assetFolder = getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
@@ -122,16 +116,14 @@ public class AssetUtility {
 				// user has passed an id
 				String projectId = space;
 				// check if the user has permission for the app
-				if (AbstractSecurityUtils.securityEnabled()) {
-					if(editRequired) {
-						if(!SecurityProjectUtils.userCanEditProject(in.getUser(), space)) {
-							throw new IllegalArgumentException("User does not have permission for this project");
-						}
-					} else {
-						// only read access
-						if(!SecurityProjectUtils.userCanViewProject(in.getUser(), space)) {
-							throw new IllegalArgumentException("User does not have permission for this project");
-						}
+				if(editRequired) {
+					if(!SecurityProjectUtils.userCanEditProject(in.getUser(), space)) {
+						throw new IllegalArgumentException("User does not have permission for this project");
+					}
+				} else {
+					// only read access
+					if(!SecurityProjectUtils.userCanViewProject(in.getUser(), space)) {
+						throw new IllegalArgumentException("User does not have permission for this project");
 					}
 				}
 				IProject project = Utility.getProject(projectId);
