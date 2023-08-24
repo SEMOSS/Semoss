@@ -59,10 +59,10 @@ public class CommitAssetReactor extends AbstractReactor {
 		// need to get the first piece of filepath
 		// add it to the asset
 		// and pass that as asset folder
-//		String [] fileTokens = filePath.split("/");
-//		String baseDir = fileTokens[0];
-//		assetFolder = assetFolder + "/" + baseDir;
-//		filePath = filePath.replace(baseDir, "");
+		String [] fileTokens = filePath.split("/");
+		String baseDir = fileTokens[0];
+		assetFolder = assetFolder + "/" + baseDir;
+		filePath = filePath.replace(baseDir, "");
 
 		// add file to git
 		List<String> files = new Vector<>();
