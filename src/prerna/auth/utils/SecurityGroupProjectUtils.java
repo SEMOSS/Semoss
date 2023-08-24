@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -10,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -20,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 
@@ -347,18 +348,23 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		if(getGroupProjectPermission(groupId, groupType, projectId) != null) {
 			throw new IllegalArgumentException("This group already has access to this project. Please edit the existing permission level.");
 		}
-
-		String query = "INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION) VALUES('"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(groupId) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', "
-				+ AccessPermissionEnum.getIdByPermission(permission) + ");";
-
+		
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement("INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION) VALUES(?,?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, projectId);
+			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred adding group permissions for this project", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -438,16 +444,23 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				throw new IllegalAccessException("Cannot give owner level access to this project since you are not currently an owner.");
 			}
 		}
-
-		String query = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=" + newPermissionLvl
-				+ " WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(groupId) + "' "
-				+ "AND TYPE='" + RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "' "
-				+ "AND PROJECTID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "';";
+		
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement("UPDATE GROUPPROJECTPERMISSION SET PERMISSION=? WHERE ID=? AND TYPE=? AND PROJECTID=?");
+			int parameterIndex = 1;
+			ps.setInt(parameterIndex++, newPermissionLvl);
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred updating the group permissions for this project", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -482,16 +495,22 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this group project permission.");
 			}
 		}
-
-		String query = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID='" 
-				+ RdbmsQueryBuilder.escapeForSQLStatement(groupId) + "' "
-				+ "AND TYPE='" + RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "' "
-				+ "AND PROJECTID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "';";
+		
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement("DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred removing the user permissions for this project", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
