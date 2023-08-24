@@ -9,10 +9,9 @@ class OpenAiClient(BaseClient):
   # prefix
   #'vicuna-7b-v1.3'
   # openai.api_base = "https://play.semoss.org/fastchat/v1/"
-  def __init__(self, template_file=None, endpoint=None, model_name='gpt-3.5-turbo', api_key="EMPTY", **kwargs):
-    super().__init__(template_file=template_file)
+  def __init__(self, template=None, endpoint=None, model_name='gpt-3.5-turbo', api_key="EMPTY", **kwargs):
+    super().__init__(template=template)
     self.kwargs = kwargs
-    self.template_file = template_file
     self.model_name = model_name
     self.instance_history = []
     if (endpoint!=None):
@@ -41,10 +40,14 @@ class OpenAiClient(BaseClient):
       if 'full_prompt' not in kwargs.keys():
         # if the user provided context, use that. Otherwise, try to get it from the template
         mapping = {"question": question} | kwargs
-        if context is not None:
+        if context is not None and template_name == None:
           if isinstance(context, str):
             context = self.fill_context(context, **mapping)[0]
             message_payload.append({"role": "system", "content": context})
+        elif context != None and template_name != None:
+          mapping.update({"context":context})
+          context = self.fill_template(template_name=template_name, **mapping)[0]
+          message_payload.append({"role": "system", "content": context})
         else:
           if template_name != None:
             possibleContent = self.fill_template(template_name=template_name, **mapping)[0]
@@ -80,7 +83,6 @@ class OpenAiClient(BaseClient):
           message_payload.extend(full_prompt)
         
         kwargs['messages'] = message_payload
-        print(message_payload)
         completion = openai.ChatCompletion.create(model=self.model_name, **kwargs)
         response = completion.choices[0].message.content
         final_query = response
