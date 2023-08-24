@@ -8,7 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.tcp.PayloadStruct;
-import prerna.tcp.client.workers.EngineWorker;
+import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
 import prerna.util.FstUtil;
 
@@ -120,11 +120,18 @@ public class SocketClientHandler implements Runnable {
 									// there could be other operations 
 									// for now it is the engine
 									//logger.info("In the request block...");
-
 									if(ps.operation == PayloadStruct.OPERATION.ENGINE)
 									{
+										// old way
+										/*
 										Thread ew = new Thread(new EngineWorker((SocketClient)socketClient, ps));
 										ew.start();
+										*/
+										NativePyEngineWorker ew = new NativePyEngineWorker(((SocketClient)socketClient).getUser(), ps);
+										ew.run();
+										PayloadStruct ps2 = ew.getOutput();
+										socketClient.executeCommand(ps2);
+										
 										lenBytes = null;
 										bytesReadSoFar = 0;
 										lenBytesReadSoFar = 0;
