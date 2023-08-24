@@ -35,7 +35,7 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 	    	throw new IllegalArgumentException("Unallowed metakeys. Can only use: "+String.join(", ", validMetakeys));
 		}
 		
-		SecurityEngineUtils.updateDatabaseMetadata(engineId, metadata);
+		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));
 		return noun;

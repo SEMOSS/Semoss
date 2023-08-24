@@ -591,7 +591,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean makeRequest(User user, String databaseId, int requestedPermission) throws SQLException {
 		// make sure this person isn't requesting multiple times
-		if(!SecurityEngineUtils.getGlobalDatabaseIds().contains(databaseId)) {
+		if(!SecurityEngineUtils.getGlobalEngineIds().contains(databaseId)) {
 			throw new IllegalArgumentException("Cannot request access to an app that is not public");
 		}
 		

@@ -105,7 +105,7 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 		sessionTableBuilder.append("source(\"" + rFolderPath.replace("\\", "/") + "data_inquiry_assembly.R\");");
 
 		// use all the databases
-		List<String> engineFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+		List<String> engineFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 		// first get the total number of cols and relationships
 		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engineFilters);
 		List<String[]> allRelations = MasterDatabaseUtility.getRelationships(engineFilters);

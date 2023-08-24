@@ -42,7 +42,7 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 			eFilters.add(engineFilter);
 		}
 		
-		List<String> dbFilters = SecurityEngineUtils.getFullUserDatabaseIds(this.insight.getUser());
+		List<String> dbFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 		if(eFilters != null) {
 			if(!dbFilters.contains(eFilters.get(0))) {
 				throw new IllegalArgumentException("Databases " + eFilters.get(0) + " does not exist or user does not have access");
