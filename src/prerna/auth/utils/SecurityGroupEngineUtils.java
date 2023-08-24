@@ -11,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -416,15 +415,15 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editDatabaseGroupPermission(User user, String groupId, String groupType, String databaseId, String newPermission) throws IllegalAccessException {
+	public static void editDatabaseGroupPermission(User user, String groupId, String groupType, String engineId, String newPermission) throws IllegalAccessException {
 		// make sure user can edit the database
-		Integer userPermissionLvl = getBestDatabasePermission(user, databaseId);
+		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
 		if(userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, databaseId);
+		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
 		if(existingGroupPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify database permission for a group who does not currently have access to the database");
 		}
@@ -446,15 +445,22 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=" + newPermissionLvl
-				+ " WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(groupId) + "' "
-				+ "AND TYPE='" + RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement("UPDATE GROUPENGINEPERMISSION SET PERMISSION=? WHERE ID=? AND TYPE=? AND ENGINEID=?");
+			int parameterIndex = 1;
+			ps.setInt(parameterIndex++, newPermissionLvl);
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred updating the group permissions for this database", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
@@ -467,15 +473,15 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void removeDatabaseGroupPermission(User user, String groupId, String groupType, String databaseId) throws IllegalAccessException {
+	public static void removeDatabaseGroupPermission(User user, String groupId, String groupType, String engineId) throws IllegalAccessException {
 		// make sure user can edit the database
-		Integer userPermissionLvl = getBestDatabasePermission(user, databaseId);
+		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
 		if(userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, databaseId);
+		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
 		if(existingGroupPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify group permission for a user who does not currently have access to the database");
 		}
@@ -490,15 +496,21 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "DELETE FROM GROUPENGINEPERMISSION WHERE ID='" 
-				+ RdbmsQueryBuilder.escapeForSQLStatement(groupId) + "' "
-				+ "AND TYPE='" + RdbmsQueryBuilder.escapeForSQLStatement(groupType) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement("DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=? AND ENGINEID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, groupType);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred removing the user permissions for this database", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 	
