@@ -8,9 +8,9 @@ from string import Template
 class TextGenClient(BaseClient):
   params = list(inspect.signature(Client.generate).parameters.keys())[1:]
 
-  def __init__(self, template_file=None, endpoint=None, model_name="guanaco", **kwargs):
+  def __init__(self, template=None, endpoint=None, model_name="guanaco", **kwargs):
     assert endpoint is not None
-    super().__init__(template_file=template_file)
+    super().__init__(template=template)
     self.kwargs = kwargs
     self.client = Client(endpoint)
     self.model_name = model_name
@@ -38,10 +38,15 @@ class TextGenClient(BaseClient):
     # attempt to pull in the context
     sub_occured = False
     mapping = {"question": question} | kwargs
-    if context != None:
-       # check if we have to fill the content/template passed in by the user
-       context, sub_occured = self.fill_context(context, **mapping)
-       content = [context,'\n']
+    if context != None and template_name == None:
+      # check if we have to fill the content/template passed in by the user
+      if isinstance(context, str):
+        context, sub_occured = self.fill_context(context, **mapping)
+        content = [context,'\n']
+    elif context != None and template_name != None:
+        mapping.update({"context":context})
+        context, sub_occured = self.fill_template(template_name=template_name, **mapping)
+        content = [context,'\n']
     else:
       if template_name != None:
         possibleContent, sub_occured = self.fill_template(template_name=template_name, **mapping)
@@ -74,7 +79,7 @@ class TextGenClient(BaseClient):
 
     # join all the inputs into a single string
     prompt = "".join(content)
-    print(prompt)
+    #print(prompt)
     # ask the question and apply the additional params
     responses = self.client.generate_stream(prompt, max_new_tokens=max_new_tokens, **kwargs)
     return ''.join(response.token.text for response in responses)
