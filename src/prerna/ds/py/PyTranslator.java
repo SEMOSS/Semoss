@@ -14,7 +14,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
 import prerna.project.impl.Project;
 import prerna.tcp.client.ErrorSenderThread;
@@ -316,8 +315,7 @@ public class PyTranslator {
 			pyTempF.setReadable(true);
 		}
 
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))
-				&& AbstractSecurityUtils.securityEnabled()) {
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
 				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
 			}
@@ -484,8 +482,7 @@ public class PyTranslator {
 			pyTempF.setReadable(true);
 		}
 
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))
-				&& AbstractSecurityUtils.securityEnabled()) {
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
 				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
 			}
@@ -848,8 +845,7 @@ public class PyTranslator {
 			pyTempF.setReadable(true);
 		}
 
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))
-				&& AbstractSecurityUtils.securityEnabled()) {
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 			if (this.insight.getUser() != null) {
 				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
 			}

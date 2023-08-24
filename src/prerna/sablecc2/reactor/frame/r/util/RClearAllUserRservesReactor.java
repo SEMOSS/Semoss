@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RserveConnectionPool;
@@ -13,11 +12,8 @@ public class RClearAllUserRservesReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		
-		if(AbstractSecurityUtils.securityEnabled()) {
-			if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-				throw new IllegalArgumentException("User must be an admin to perform this action.");
-			}
+		if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
+			throw new IllegalArgumentException("User must be an admin to perform this action.");
 		}
 		
 		boolean success = true;

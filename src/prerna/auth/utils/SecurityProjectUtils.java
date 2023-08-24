@@ -2310,54 +2310,54 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
-	/**
-	 * Get the list of the projects with an optional filter
-	 * @param userId
-	 * @return
-	 */
-	public static List<Map<String, Object>> getAllProjectList(String projectFilter, String limit, String offset) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
-		// dont forget reactors/portal information
-		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED", "project_portal_published_date"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER", "project_published_user"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE", "project_published_user_type"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED", "project_reactors_compiled_date"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
-		// back to the others
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.LOWER);
-		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
-		fun.setAlias("low_project_name");
-		qs.addSelector(fun);
-		if(projectFilter != null && !projectFilter.isEmpty()) { 
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
-		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
-		
-		Long long_limit = -1L;
-		Long long_offset = -1L;
-		if(limit != null && !limit.trim().isEmpty()) {
-			long_limit = Long.parseLong(limit);
-		}
-		if(offset != null && !offset.trim().isEmpty()) {
-			long_offset = Long.parseLong(offset);
-		}
-		qs.setLimit(long_limit);
-		qs.setOffSet(long_offset);
-		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
+//	/**
+//	 * Get the list of the projects with an optional filter
+//	 * @param userId
+//	 * @return
+//	 */
+//	public static List<Map<String, Object>> getAllProjectList(String projectFilter, String limit, String offset) {
+//		SelectQueryStruct qs = new SelectQueryStruct();
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
+//		// dont forget reactors/portal information
+//		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED", "project_portal_published_date"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER", "project_published_user"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE", "project_published_user_type"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED", "project_reactors_compiled_date"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
+//		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
+//		// back to the others
+//		QueryFunctionSelector fun = new QueryFunctionSelector();
+//		fun.setFunction(QueryFunctionHelper.LOWER);
+//		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
+//		fun.setAlias("low_project_name");
+//		qs.addSelector(fun);
+//		if(projectFilter != null && !projectFilter.isEmpty()) { 
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
+//		}
+//		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+//		
+//		Long long_limit = -1L;
+//		Long long_offset = -1L;
+//		if(limit != null && !limit.trim().isEmpty()) {
+//			long_limit = Long.parseLong(limit);
+//		}
+//		if(offset != null && !offset.trim().isEmpty()) {
+//			long_offset = Long.parseLong(offset);
+//		}
+//		qs.setLimit(long_limit);
+//		qs.setOffSet(long_offset);
+//		
+//		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+//	}
 	
 	/**
 	 * Change the user visibility (show/hide) for a project. Without removing its permissions.

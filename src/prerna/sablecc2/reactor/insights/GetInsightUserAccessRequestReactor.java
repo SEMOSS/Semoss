@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -34,10 +33,8 @@ public class GetInsightUserAccessRequestReactor extends AbstractReactor {
 		if(!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
 			throw new IllegalArgumentException("User does not have permission to view access requests for this insight");
 		}
-		List<Map<String, Object>> requests = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			requests = SecurityInsightUtils.getUserAccessRequestsByInsight(projectId, insightId);
-		}
+		List<Map<String, Object>> requests = SecurityInsightUtils.getUserAccessRequestsByInsight(projectId, insightId);;
 		return new NounMetadata(requests, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
 	}
+	
 }

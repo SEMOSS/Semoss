@@ -5,11 +5,9 @@ import java.util.Hashtable;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -43,20 +41,14 @@ public class InitAppRepo extends GitBaseReactor {
 		if(databaseId == null || databaseId.isEmpty()) {
 			throw new IllegalArgumentException("Need to specify the database id");
 		}
-		String databaseName = null;
 		
 		// you can only push
 		// if you are the owner
-		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
-			}
-			databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
-		} else {
-			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if(!SecurityEngineUtils.userIsOwner(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 		}
-		
+		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		if(repository == null || repository.isEmpty()) {

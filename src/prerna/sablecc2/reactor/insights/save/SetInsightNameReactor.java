@@ -8,7 +8,6 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.InsightAdministrator;
@@ -42,12 +41,10 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		String existingId = getRdbmsId();
 		
 		// we may have the alias
-		if(AbstractSecurityUtils.securityEnabled()) {
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
-			}
-		} 
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
+		}
 		
 		String insightName = getInsightName();
 		if(insightName == null || (insightName = insightName.trim()).isEmpty()) {

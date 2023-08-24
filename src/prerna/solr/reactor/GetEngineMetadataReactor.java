@@ -4,7 +4,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -31,18 +30,16 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 		}
 		
 		List<Map<String, Object>> baseInfo = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			// make sure valid id for user
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-				// user has access!
-				baseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineId, null);
-			} else if(SecurityEngineUtils.engineIsDiscoverable(engineId)) {
-				baseInfo = SecurityEngineUtils.getDiscoverableEngineList(engineId, null);
-			} else {
-				// you dont have access
-				throw new IllegalArgumentException("Engine does not exist or user does not have access to the database");
-			}
+		// make sure valid id for user
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		if(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			// user has access!
+			baseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineId, null);
+		} else if(SecurityEngineUtils.engineIsDiscoverable(engineId)) {
+			baseInfo = SecurityEngineUtils.getDiscoverableEngineList(engineId, null);
+		} else {
+			// you dont have access
+			throw new IllegalArgumentException("Engine does not exist or user does not have access to the database");
 		}
 		
 		if(baseInfo == null || baseInfo.isEmpty()) {
