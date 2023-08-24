@@ -2,6 +2,7 @@ package prerna.auth.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.UUID;
 
@@ -13,7 +14,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
@@ -23,6 +23,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.AssetUtility;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -136,14 +137,31 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @throws SQLException 
 	 */
 	public static void registerUserWorkspaceProject(AccessToken token, String projectId) throws SQLException {
-		String[] colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
+		/*String[] colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
 		String[] types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
 		String insertQuery = RdbmsQueryBuilder.makeInsert("WORKSPACEENGINE", colNames, types, 
 				new String[] {	token.getProvider().name(), 
 								token.getId(), 
-								projectId});
-		securityDb.insertData(insertQuery);
-		securityDb.commit();
+								projectId});*/
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("INSERT INTO WORKSPACEENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, token.getProvider().name());
+			ps.setString(parameterIndex++, token.getId());
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+		// INSERT INTO WORKSPACEENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?);
+		/*securityDb.insertData(insertQuery);
+		securityDb.commit();*/
 	}
 	
 	/**
@@ -164,14 +182,22 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @throws SQLException 
 	 */
 	public static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
-		String[] colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
-		String[] types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
-		String insertQuery = RdbmsQueryBuilder.makeInsert("ASSETENGINE", colNames, types, 
-				new String[] {	token.getProvider().name(), 
-								token.getId(), 
-								projectId});
-		securityDb.insertData(insertQuery);
-		securityDb.commit();
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("INSERT INTO ASSETENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, token.getProvider().name());
+			ps.setString(parameterIndex++, token.getId());
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
 	}
 	
 	/**

@@ -23,7 +23,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -597,20 +596,27 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		
 		StringBuilder builder = new StringBuilder();
-		String[] colNames = new String[]{"ID", "SUBMITTEDBY", "ENGINE", "PERMISSION"};
-		String[] types = new String[]{"VARCHAR(100)", "VARCHAR(255)", "VARCHAR(255)", "INT"};
-		
+		PreparedStatement ps = null;
+		ps = securityDb.getPreparedStatement("INSERT INTO ACCESSREQUEST (ID, SUBMITTEDBY, ENGINE, PERMISSION) VALUES(?,?,?,?)");
 		List<Map<String, Object>> existingRequests = SecurityQueryUtils.getUserAccessRequestsByProvider(user, databaseId);
 		if(existingRequests.isEmpty()) {
 			// brand new requests
 			String requestId = UUID.randomUUID().toString();
 			List<AuthProvider> logins = user.getLogins();
+			System.out.println(logins);
 			for(AuthProvider provider : logins) {
 				Object[] data = new Object[]{requestId, user.getAccessToken(provider).getId(), databaseId, requestedPermission};
-				builder.append(RdbmsQueryBuilder.makeInsert("ACCESSREQUEST", colNames, types, data)).append(";");
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, requestId);
+				ps.setString(parameterIndex++, user.getAccessToken(provider).getId());
+				ps.setString(parameterIndex++, databaseId);
+				ps.setInt(parameterIndex++, requestedPermission);
+				ps.addBatch();
 			}
-			
-			securityDb.insertData(builder.toString());
+			ps.execute();
+			if(!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} else {
 			// are there new logins for this request that are needed, or not?
 			List<String> userIds = new Vector<>();
@@ -636,19 +642,33 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				if(uniqueRequestIds.size() == 1) {
 					String requestId = uniqueRequestIds.iterator().next();
 					for(String userId : userIds) {
-						Object[] data = new Object[]{requestId, userId, databaseId, requestedPermission};				
-						builder.append(RdbmsQueryBuilder.makeInsert("ACCESSREQUEST", colNames, types, data)).append(";");
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, requestId);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, databaseId);
+						ps.setInt(parameterIndex++, requestedPermission);
+						ps.addBatch();
 					}
-					securityDb.insertData(builder.toString());
+					ps.execute();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
 				} else {
 					// we will update all the ids to be the same
 					String newRequestId = UUID.randomUUID().toString();
 					// first insert the new records
 					for(String userId : userIds) {
-						Object[] data = new Object[]{newRequestId, userId, databaseId, requestedPermission};				
-						builder.append(RdbmsQueryBuilder.makeInsert("ACCESSREQUEST", colNames, types, data)).append(";");
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newRequestId);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, databaseId);
+						ps.setInt(parameterIndex++, requestedPermission);
+						ps.addBatch();
 					}
-					securityDb.insertData(builder.toString());
+					ps.execute();
+					if(!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
 					
 					// now update the old ones since we have the same user
 					String updateQuery = "UPDATE ACCESSREQUEST SET ID='" + newRequestId + "' WHERE ID IN " + createFilter(uniqueRequestIds);
